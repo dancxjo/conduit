@@ -101,12 +101,17 @@ fn event_name(kind: FlowEventKind) -> &'static str {
         FlowEventKind::Disconnected => "disconnected",
         FlowEventKind::Failed => "failed",
         FlowEventKind::Cancelled { .. } => "cancelled",
+        FlowEventKind::DrainStarted { .. } => "drain-started",
+        FlowEventKind::ValuesDiscardedOnAbort { .. } => "values-discarded-on-abort",
+        FlowEventKind::Completed => "completed",
     }
 }
 
 fn state_name(state: FlowQueueState) -> &'static str {
     match state {
         FlowQueueState::Active => "active",
+        FlowQueueState::Draining => "draining",
+        FlowQueueState::Completed => "completed",
         FlowQueueState::Disconnected => "disconnected",
         FlowQueueState::Failed => "failed",
         FlowQueueState::Cancelled => "cancelled",
@@ -278,25 +283,39 @@ fn cancellation_wakes_blocked_producer_and_waiting_consumer() {
         },
     );
     assert!(matches!(pending.disposition, OfferDisposition::Pending(3)));
-    assert!(producer_queue.cancel().iter().any(|event| matches!(
-        event.kind,
-        FlowEventKind::Cancelled {
-            wake_producer: true,
-            ..
-        }
-    )));
+    let mut producer_discarded = [None, None];
+    assert!(
+        producer_queue
+            .cancel_abort(&mut producer_discarded)
+            .unwrap()
+            .iter()
+            .any(|event| matches!(
+                event.kind,
+                FlowEventKind::Cancelled {
+                    wake_producer: true,
+                    ..
+                }
+            ))
+    );
 
     let mut consumer_slots: [Option<(u8, u32)>; 2] = [None, None];
     let mut consumer_queue =
         BoundedFlowQueue::new(&mut consumer_slots, block, resolved_facts(block)).unwrap();
     assert_eq!(consumer_queue.pop().value, None);
-    assert!(consumer_queue.cancel().iter().any(|event| matches!(
-        event.kind,
-        FlowEventKind::Cancelled {
-            wake_consumer: true,
-            ..
-        }
-    )));
+    let mut consumer_discarded = [];
+    assert!(
+        consumer_queue
+            .cancel_abort(&mut consumer_discarded)
+            .unwrap()
+            .iter()
+            .any(|event| matches!(
+                event.kind,
+                FlowEventKind::Cancelled {
+                    wake_consumer: true,
+                    ..
+                }
+            ))
+    );
 }
 
 #[test]

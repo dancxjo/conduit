@@ -151,10 +151,11 @@ Dequeues preserve FIFO order except for the one explicitly named coalescing
 target.
 
 An empty pop records one waiting consumer. A full blocking offer records one
-blocked producer while returning the actual value. Cancellation emits which
-endpoints must be woken and clears both wait states. Drain-versus-abort value
-disposition belongs to lifecycle issue #8; cancellation here proves that
-pressure waits cannot remain asleep.
+blocked producer while returning the actual value. Specification 008 freezes
+natural completion and draining cancellation as value-preserving drains.
+Aborting cancellation transfers every queued value to caller storage and emits
+loss evidence before terminal cancellation. Every cancellation explicitly
+wakes pressure waits.
 
 ## Source and plan resolution
 

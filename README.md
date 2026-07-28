@@ -43,6 +43,9 @@ be the final standard library.
 Resolved cords carry exact item/per-value/aggregate byte limits, watermarks,
 and pressure policy. The allocator-free reference queue consumes fixed caller
 storage and emits every pressure, loss, replacement, and wake transition.
+Lifecycle is an allocator-free semantic state machine with bounded
+hierarchical cancellation, deterministic terminal precedence, explicit
+drain/abort queue disposition, and substitutable composite derivation.
 
 ## Design boundaries
 

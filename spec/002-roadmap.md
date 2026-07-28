@@ -11,6 +11,7 @@ The repository currently proves:
 - deterministic endpoint and implementation resolution;
 - type, cardinality, capacity, and cycle validation;
 - the exact bounded FlowPolicy algebra and allocator-free reference queue;
+- exact lifecycle, cancellation, terminal-race, and queue-disposition rules;
 - exact explanation output;
 - finite acyclic execution;
 - process stdin/stdout/stderr as explicit node implementations;
