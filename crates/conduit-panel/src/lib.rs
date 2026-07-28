@@ -1,9 +1,9 @@
 //! Editable `.panel` source model and parser.
 //!
 //! The current grammar is intentionally a small executable seed. It establishes
-//! source identity, nodes, configuration, typed endpoint references, and
-//! bounded cord policy. Composite definitions and imports will extend this
-//! grammar without creating a separate runtime Panel object.
+//! source identity, primitive and composite nodes, explicit exports,
+//! configuration bindings, typed endpoint references, and bounded cord policy.
+//! Imports will extend this grammar without creating a runtime Panel object.
 
 use std::fmt;
 
@@ -12,10 +12,49 @@ use std::fmt;
 pub struct Panel {
     /// Source grammar major version.
     pub version: u16,
+    /// Reusable composite node definitions in source order.
+    pub definitions: Vec<CompositeDefinition>,
     /// Node instances.
     pub nodes: Vec<Node>,
     /// Cord declarations.
     pub cords: Vec<Cord>,
+}
+
+/// One reusable assemblage that remains an ordinary node at its boundary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompositeDefinition {
+    /// Stable semantic definition identity.
+    pub id: String,
+    /// Child instances.
+    pub nodes: Vec<Node>,
+    /// Internal cords.
+    pub cords: Vec<Cord>,
+    /// Explicit boundary-to-child port mappings.
+    pub exports: Vec<PortExport>,
+    /// Explicit boundary-parameter-to-child-config mappings.
+    pub bindings: Vec<ConfigBinding>,
+}
+
+/// Direction of one explicitly exported boundary port.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExportDirection {
+    Input,
+    Output,
+}
+
+/// One transparent composite boundary mapping.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortExport {
+    pub direction: ExportDirection,
+    pub id: String,
+    pub target: Endpoint,
+}
+
+/// One composite configuration parameter binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConfigBinding {
+    pub parameter: String,
+    pub target: Endpoint,
 }
 
 /// One semantic node instance in source.
@@ -411,9 +450,42 @@ impl Parser {
             return Err(self.error(format!("unsupported panel version {version}")));
         }
 
+        let mut definitions = Vec::new();
         let mut nodes = Vec::new();
         let mut cords = Vec::new();
         while !matches!(self.current().kind, TokenKind::Eof) {
+            let declaration = self.expect_any_word()?;
+            match declaration.as_str() {
+                "node" => nodes.push(self.parse_node()?),
+                "composite" => definitions.push(self.parse_composite()?),
+                "cord" => {
+                    let ordinal = cords.len();
+                    cords.push(self.parse_cord(ordinal)?);
+                }
+                _ => {
+                    return Err(self.error(format!(
+                        "expected `composite`, `node`, or `cord`, found `{declaration}`"
+                    )));
+                }
+            }
+        }
+
+        Ok(Panel {
+            version,
+            definitions,
+            nodes,
+            cords,
+        })
+    }
+
+    fn parse_composite(&mut self) -> Result<CompositeDefinition, ParseError> {
+        let id = self.expect_any_word()?;
+        self.expect_simple(TokenKind::LeftBrace, "`{`")?;
+        let mut nodes = Vec::new();
+        let mut cords = Vec::new();
+        let mut exports = Vec::new();
+        let mut bindings = Vec::new();
+        while !matches!(self.current().kind, TokenKind::RightBrace) {
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
                 "node" => nodes.push(self.parse_node()?),
@@ -421,18 +493,42 @@ impl Parser {
                     let ordinal = cords.len();
                     cords.push(self.parse_cord(ordinal)?);
                 }
+                "export" => {
+                    let direction = match self.expect_any_word()?.as_str() {
+                        "input" => ExportDirection::Input,
+                        "output" => ExportDirection::Output,
+                        _ => return Err(self.error("export direction must be `input` or `output`")),
+                    };
+                    let export_id = self.expect_any_word()?;
+                    self.expect_simple(TokenKind::Equals, "`=`")?;
+                    exports.push(PortExport {
+                        direction,
+                        id: export_id,
+                        target: self.expect_endpoint()?,
+                    });
+                }
+                "bind" => {
+                    let parameter = self.expect_any_word()?;
+                    self.expect_simple(TokenKind::Equals, "`=`")?;
+                    bindings.push(ConfigBinding {
+                        parameter,
+                        target: self.expect_endpoint()?,
+                    });
+                }
                 _ => {
-                    return Err(
-                        self.error(format!("expected `node` or `cord`, found `{declaration}`"))
-                    );
+                    return Err(self.error(format!(
+                        "expected composite child, cord, export, or binding; found `{declaration}`"
+                    )));
                 }
             }
         }
-
-        Ok(Panel {
-            version,
+        self.advance();
+        Ok(CompositeDefinition {
+            id,
             nodes,
             cords,
+            exports,
+            bindings,
         })
     }
 
@@ -707,5 +803,30 @@ mod tests {
                 offset: 1
             }
         );
+    }
+
+    #[test]
+    fn parses_composite_exports_and_parameter_bindings() {
+        let panel = parse(
+            r#"
+                panel 1
+                composite example/upper-line {
+                    node source : conduit/literal
+                    node upper : conduit/uppercase
+                    cord source.out -> upper.in
+                    export output text = upper.out
+                    bind value = source.value
+                }
+                node line : example/upper-line { value = "hello" }
+                node sink : conduit/stdout
+                cord line.text -> sink.in
+            "#,
+        )
+        .expect("composite source parses");
+        let definition = &panel.definitions[0];
+        assert_eq!(definition.id, "example/upper-line");
+        assert_eq!(definition.exports[0].target.node, "upper");
+        assert_eq!(definition.bindings[0].target.port, "value");
+        assert_eq!(panel.nodes[0].kind, "example/upper-line");
     }
 }

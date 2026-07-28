@@ -35,6 +35,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`008-lifecycle-cancellation-terminal-v1.md`](008-lifecycle-cancellation-terminal-v1.md)
   freezes lifecycle transitions, bounded hierarchical cancellation,
   deterministic terminal races, and replicated-child supervision.
+- [`009-exported-composites-v1.md`](009-exported-composites-v1.md) freezes
+  ordinary composite definitions, transparent exports, parameter bindings,
+  recursive lowering, and logical/expanded provenance.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

@@ -18,7 +18,9 @@ use conduit_core::{
     SemanticHash, Sensitivity, TemporalContract, TerminalContract, TraitProof, TypeContractRef,
     ValueCardinality, validate_plan,
 };
-use conduit_panel::{Node, Panel, SourcePressure};
+use conduit_panel::{
+    CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
+};
 
 mod config_resolution;
 mod type_registry;
@@ -223,19 +225,20 @@ impl Default for Registry {
 impl Registry {
     /// Resolves semantic source references to concrete hosted implementations.
     pub fn resolve<'a>(&'a self, panel: &'a Panel) -> Result<ResolvedPanel<'a>, ResolutionError> {
-        if panel.nodes.len() > usize::from(u16::MAX) {
+        let expanded = expand_panel(panel, &self.nodes)?;
+        if expanded.nodes.len() > usize::from(u16::MAX) {
             return Err(ResolutionError::new(
                 "CND-PLN-003",
                 "panel has more nodes than the portable plan can address",
             ));
         }
 
-        let mut nodes = Vec::with_capacity(panel.nodes.len());
-        for source in &panel.nodes {
+        let mut nodes = Vec::with_capacity(expanded.nodes.len());
+        for source in expanded.nodes {
             Id::new(&source.id).map_err(|error| {
                 ResolutionError::new(
                     "CND-ID-001",
-                    format!("invalid node id `{}`: {error}", source.id),
+                    format!("invalid expanded node id `{}`: {error}", source.id),
                 )
             })?;
             let definition = self.nodes.get(source.kind.as_str()).ok_or_else(|| {
@@ -244,14 +247,14 @@ impl Registry {
                     format!("no ready implementation for `{}`", source.kind),
                 )
             })?;
-            (definition.validate_config)(source)?;
+            (definition.validate_config)(&source)?;
             nodes.push(ResolvedNode { source, definition });
         }
 
-        let mut cords = Vec::with_capacity(panel.cords.len());
-        for source in &panel.cords {
-            let from_node = node_index(panel, &source.from.node)?;
-            let to_node = node_index(panel, &source.to.node)?;
+        let mut cords = Vec::with_capacity(expanded.cords.len());
+        for source in expanded.cords {
+            let from_node = node_index(&nodes, &source.from.node)?;
+            let to_node = node_index(&nodes, &source.to.node)?;
             let from_port = port_index(
                 nodes[from_node].definition.contract.outputs,
                 &source.from.port,
@@ -281,7 +284,7 @@ impl Registry {
         let core_cords = cords
             .iter()
             .map(|cord| {
-                let flow = resolve_flow(cord.source)?;
+                let flow = resolve_flow(&cord.source)?;
                 let value_type =
                     nodes[cord.from_node].definition.contract.outputs[cord.from_port].value_type;
                 let flow_decision = self.types.assess_flow_policy(value_type, flow);
@@ -321,6 +324,7 @@ impl Registry {
             source: panel,
             nodes,
             cords,
+            logical_composites: expanded.logical_composites,
         })
     }
 
@@ -374,17 +378,615 @@ impl TypeContractProvider for BuiltinTypeProvider {
     }
 }
 
+#[derive(Debug)]
+struct ExpandedSource {
+    nodes: Vec<Node>,
+    cords: Vec<Cord>,
+    logical_composites: Vec<LogicalComposite>,
+}
+
+#[derive(Debug)]
+struct LogicalComposite {
+    path: String,
+    definition: String,
+    children: Vec<(String, String)>,
+    cords: Vec<(String, String)>,
+    exports: Vec<(ExportDirection, String, Endpoint)>,
+    bindings: Vec<(String, String)>,
+}
+
+type BoundaryMap = BTreeMap<(u8, String), Endpoint>;
+
+fn expand_panel(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+) -> Result<ExpandedSource, ResolutionError> {
+    validate_definition_names(panel, primitives)?;
+    validate_definition_shapes(panel, primitives)?;
+    validate_definition_cycles(panel)?;
+    let mut expanded = ExpandedSource {
+        nodes: Vec::new(),
+        cords: Vec::new(),
+        logical_composites: Vec::new(),
+    };
+    let mut roots = BTreeMap::<String, BoundaryMap>::new();
+    for node in &panel.nodes {
+        validate_instance_id(&node.id)?;
+        if roots.contains_key(&node.id) {
+            return Err(ResolutionError::new(
+                "CND-ID-002",
+                format!("duplicate node id `{}`", node.id),
+            ));
+        }
+        let boundary = expand_instance(
+            panel,
+            primitives,
+            node,
+            &node.id,
+            &mut Vec::new(),
+            &mut expanded,
+        )?;
+        roots.insert(node.id.clone(), boundary);
+    }
+    for cord in &panel.cords {
+        let from = resolve_boundary_endpoint(&roots, &cord.from, ExportDirection::Output)?;
+        let to = resolve_boundary_endpoint(&roots, &cord.to, ExportDirection::Input)?;
+        push_expanded_cord(&mut expanded, cord, from, to);
+    }
+    Ok(expanded)
+}
+
+fn validate_definition_shapes(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+) -> Result<(), ResolutionError> {
+    for definition in &panel.definitions {
+        for (index, child) in definition.nodes.iter().enumerate() {
+            validate_instance_id(&child.id)?;
+            if definition.nodes[..index]
+                .iter()
+                .any(|prior| prior.id == child.id)
+            {
+                return Err(ResolutionError::new(
+                    "CND-ID-002",
+                    format!("duplicate child `{}` in `{}`", child.id, definition.id),
+                ));
+            }
+        }
+        for cord in &definition.cords {
+            for (endpoint, direction) in [
+                (&cord.from, ExportDirection::Output),
+                (&cord.to, ExportDirection::Input),
+            ] {
+                let child = definition
+                    .nodes
+                    .iter()
+                    .find(|child| child.id == endpoint.node)
+                    .ok_or_else(|| {
+                        ResolutionError::new(
+                            "CND-CMP-003",
+                            format!(
+                                "cord in `{}` targets missing child `{}`",
+                                definition.id, endpoint.node
+                            ),
+                        )
+                    })?;
+                if !kind_has_port(panel, primitives, &child.kind, direction, &endpoint.port) {
+                    return Err(ResolutionError::new(
+                        "CND-CMP-003",
+                        format!(
+                            "cord in `{}` targets missing or wrong-direction port `{}.{}`",
+                            definition.id, endpoint.node, endpoint.port
+                        ),
+                    ));
+                }
+            }
+        }
+        for (index, export) in definition.exports.iter().enumerate() {
+            if definition.exports[..index].iter().any(|prior| {
+                prior.direction == export.direction
+                    && (prior.id == export.id || prior.target == export.target)
+            }) {
+                return Err(ResolutionError::new(
+                    "CND-CMP-002",
+                    format!("duplicate export `{}` in `{}`", export.id, definition.id),
+                ));
+            }
+            let child = definition
+                .nodes
+                .iter()
+                .find(|child| child.id == export.target.node)
+                .ok_or_else(|| {
+                    ResolutionError::new(
+                        "CND-CMP-003",
+                        format!(
+                            "export `{}` targets missing child `{}`",
+                            export.id, export.target.node
+                        ),
+                    )
+                })?;
+            if !kind_has_port(
+                panel,
+                primitives,
+                &child.kind,
+                export.direction,
+                &export.target.port,
+            ) {
+                return Err(ResolutionError::new(
+                    "CND-CMP-003",
+                    format!(
+                        "export `{}` targets missing or wrong-direction port `{}.{}`",
+                        export.id, export.target.node, export.target.port
+                    ),
+                ));
+            }
+        }
+        for (index, binding) in definition.bindings.iter().enumerate() {
+            if definition.bindings[..index]
+                .iter()
+                .any(|prior| prior.parameter == binding.parameter && prior.target == binding.target)
+            {
+                return Err(ResolutionError::new(
+                    "CND-CMP-002",
+                    format!(
+                        "duplicate binding `{}` to `{}.{}`",
+                        binding.parameter, binding.target.node, binding.target.port
+                    ),
+                ));
+            }
+            let child = definition
+                .nodes
+                .iter()
+                .find(|child| child.id == binding.target.node)
+                .ok_or_else(|| {
+                    ResolutionError::new(
+                        "CND-CMP-003",
+                        format!(
+                            "binding `{}` targets missing child `{}`",
+                            binding.parameter, binding.target.node
+                        ),
+                    )
+                })?;
+            if !kind_has_parameter(panel, primitives, &child.kind, &binding.target.port) {
+                return Err(ResolutionError::new(
+                    "CND-CMP-003",
+                    format!(
+                        "binding `{}` targets missing field `{}.{}`",
+                        binding.parameter, binding.target.node, binding.target.port
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn kind_has_port(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+    kind: &str,
+    direction: ExportDirection,
+    port: &str,
+) -> bool {
+    if let Some(primitive) = primitives.get(kind) {
+        let ports = match direction {
+            ExportDirection::Input => primitive.contract.inputs,
+            ExportDirection::Output => primitive.contract.outputs,
+        };
+        return ports.iter().any(|candidate| candidate.id.as_str() == port);
+    }
+    panel
+        .definitions
+        .iter()
+        .find(|definition| definition.id == kind)
+        .is_some_and(|definition| {
+            definition
+                .exports
+                .iter()
+                .any(|export| export.direction == direction && export.id == port)
+        })
+}
+
+fn kind_has_parameter(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+    kind: &str,
+    parameter: &str,
+) -> bool {
+    if let Some(primitive) = primitives.get(kind) {
+        return primitive
+            .contract
+            .config
+            .fields
+            .iter()
+            .any(|field| field.key.as_str() == parameter);
+    }
+    panel
+        .definitions
+        .iter()
+        .find(|definition| definition.id == kind)
+        .is_some_and(|definition| {
+            definition
+                .bindings
+                .iter()
+                .any(|binding| binding.parameter == parameter)
+        })
+}
+
+fn validate_definition_names(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+) -> Result<(), ResolutionError> {
+    for (index, definition) in panel.definitions.iter().enumerate() {
+        Id::new(&definition.id).map_err(|error| {
+            ResolutionError::new(
+                "CND-CMP-001",
+                format!("invalid composite id `{}`: {error}", definition.id),
+            )
+        })?;
+        if primitives.contains_key(definition.id.as_str())
+            || panel.definitions[..index]
+                .iter()
+                .any(|prior| prior.id == definition.id)
+        {
+            return Err(ResolutionError::new(
+                "CND-CMP-001",
+                format!("duplicate node definition `{}`", definition.id),
+            ));
+        }
+    }
+    for definition in &panel.definitions {
+        for child in &definition.nodes {
+            if !primitives.contains_key(child.kind.as_str())
+                && !panel
+                    .definitions
+                    .iter()
+                    .any(|candidate| candidate.id == child.kind)
+            {
+                return Err(ResolutionError::new(
+                    "CND-CMP-005",
+                    format!(
+                        "composite `{}` references unknown definition `{}`",
+                        definition.id, child.kind
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_definition_cycles(panel: &Panel) -> Result<(), ResolutionError> {
+    fn visit<'a>(
+        panel: &'a Panel,
+        definition: &'a CompositeDefinition,
+        visiting: &mut Vec<&'a str>,
+        visited: &mut Vec<&'a str>,
+    ) -> Result<(), ResolutionError> {
+        if visiting.contains(&definition.id.as_str()) {
+            let mut cycle = visiting.join(" -> ");
+            cycle.push_str(" -> ");
+            cycle.push_str(&definition.id);
+            return Err(ResolutionError::new(
+                "CND-CMP-005",
+                format!("recursive composite definition: {cycle}"),
+            ));
+        }
+        if visited.contains(&definition.id.as_str()) {
+            return Ok(());
+        }
+        visiting.push(&definition.id);
+        for child in &definition.nodes {
+            if let Some(nested) = panel
+                .definitions
+                .iter()
+                .find(|candidate| candidate.id == child.kind)
+            {
+                visit(panel, nested, visiting, visited)?;
+            }
+        }
+        visiting.pop();
+        visited.push(&definition.id);
+        Ok(())
+    }
+
+    let mut visiting = Vec::new();
+    let mut visited = Vec::new();
+    for definition in &panel.definitions {
+        visit(panel, definition, &mut visiting, &mut visited)?;
+    }
+    Ok(())
+}
+
+fn expand_instance(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+    source: &Node,
+    path: &str,
+    stack: &mut Vec<String>,
+    expanded: &mut ExpandedSource,
+) -> Result<BoundaryMap, ResolutionError> {
+    if let Some(primitive) = primitives.get(source.kind.as_str()) {
+        let id = expanded_id(path);
+        let mut boundary = BoundaryMap::new();
+        for port in primitive.contract.inputs {
+            boundary.insert(
+                (
+                    direction_key(ExportDirection::Input),
+                    port.id.as_str().to_owned(),
+                ),
+                Endpoint {
+                    node: id.clone(),
+                    port: port.id.as_str().to_owned(),
+                },
+            );
+        }
+        for port in primitive.contract.outputs {
+            boundary.insert(
+                (
+                    direction_key(ExportDirection::Output),
+                    port.id.as_str().to_owned(),
+                ),
+                Endpoint {
+                    node: id.clone(),
+                    port: port.id.as_str().to_owned(),
+                },
+            );
+        }
+        let mut node = source.clone();
+        node.id = id;
+        expanded.nodes.push(node);
+        return Ok(boundary);
+    }
+
+    let definition = panel
+        .definitions
+        .iter()
+        .find(|definition| definition.id == source.kind)
+        .ok_or_else(|| {
+            ResolutionError::new(
+                "CND-IMP-001",
+                format!("no ready implementation or composite for `{}`", source.kind),
+            )
+        })?;
+    if stack.contains(&definition.id) {
+        return Err(ResolutionError::new(
+            "CND-CMP-005",
+            format!("recursive composite `{}`", definition.id),
+        ));
+    }
+    stack.push(definition.id.clone());
+
+    validate_instance_config(source, definition)?;
+    let mut children = BTreeMap::<String, BoundaryMap>::new();
+    for child in &definition.nodes {
+        if children.contains_key(&child.id) {
+            return Err(ResolutionError::new(
+                "CND-ID-002",
+                format!("duplicate child `{}` in `{}`", child.id, definition.id),
+            ));
+        }
+        let mut bound = child.clone();
+        apply_bindings(source, definition, &mut bound)?;
+        let child_path = format!("{path}/{}", child.id);
+        let boundary = expand_instance(panel, primitives, &bound, &child_path, stack, expanded)?;
+        children.insert(child.id.clone(), boundary);
+    }
+    for cord in &definition.cords {
+        let from = resolve_boundary_endpoint(&children, &cord.from, ExportDirection::Output)?;
+        let to = resolve_boundary_endpoint(&children, &cord.to, ExportDirection::Input)?;
+        push_expanded_cord(expanded, cord, from, to);
+    }
+
+    let mut boundary = BoundaryMap::new();
+    let mut logical_exports = Vec::new();
+    for export in &definition.exports {
+        let key = (direction_key(export.direction), export.id.clone());
+        if boundary.contains_key(&key) {
+            return Err(ResolutionError::new(
+                "CND-CMP-002",
+                format!("duplicate export `{}` in `{}`", export.id, definition.id),
+            ));
+        }
+        let target = resolve_boundary_endpoint(&children, &export.target, export.direction)?;
+        boundary.insert(key, target.clone());
+        logical_exports.push((export.direction, export.id.clone(), target));
+    }
+    expanded.logical_composites.push(LogicalComposite {
+        path: path.to_owned(),
+        definition: definition.id.clone(),
+        children: definition
+            .nodes
+            .iter()
+            .map(|child| (format!("{path}/{}", child.id), child.kind.clone()))
+            .collect(),
+        cords: definition
+            .cords
+            .iter()
+            .map(|cord| {
+                (
+                    format!("{}.{}", cord.from.node, cord.from.port),
+                    format!("{}.{}", cord.to.node, cord.to.port),
+                )
+            })
+            .collect(),
+        exports: logical_exports,
+        bindings: definition
+            .bindings
+            .iter()
+            .map(|binding| {
+                (
+                    binding.parameter.clone(),
+                    format!("{path}/{}.{}", binding.target.node, binding.target.port),
+                )
+            })
+            .collect(),
+    });
+    stack.pop();
+    Ok(boundary)
+}
+
+fn validate_instance_config(
+    source: &Node,
+    definition: &CompositeDefinition,
+) -> Result<(), ResolutionError> {
+    for entry in &source.config {
+        let count = definition
+            .bindings
+            .iter()
+            .filter(|binding| binding.parameter == entry.key)
+            .count();
+        if count == 0 {
+            return Err(ResolutionError::new(
+                "CND-CMP-007",
+                format!(
+                    "composite `{}` has no parameter `{}`",
+                    definition.id, entry.key
+                ),
+            ));
+        }
+        if source
+            .config
+            .iter()
+            .filter(|candidate| candidate.key == entry.key)
+            .count()
+            != 1
+        {
+            return Err(ResolutionError::new(
+                "CND-CFG-002",
+                format!("duplicate composite parameter `{}`", entry.key),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn apply_bindings(
+    source: &Node,
+    definition: &CompositeDefinition,
+    child: &mut Node,
+) -> Result<(), ResolutionError> {
+    for binding in definition
+        .bindings
+        .iter()
+        .filter(|binding| binding.target.node == child.id)
+    {
+        let value = source
+            .config(&binding.parameter)
+            .ok_or_else(|| {
+                ResolutionError::new(
+                    "CND-CMP-007",
+                    format!(
+                        "composite `{}` requires parameter `{}`",
+                        definition.id, binding.parameter
+                    ),
+                )
+            })?
+            .to_owned();
+        if child
+            .config
+            .iter()
+            .any(|entry| entry.key == binding.target.port)
+        {
+            return Err(ResolutionError::new(
+                "CND-CMP-007",
+                format!(
+                    "binding for `{}.{}` conflicts with child configuration",
+                    child.id, binding.target.port
+                ),
+            ));
+        }
+        child.config.push(ConfigEntry {
+            key: binding.target.port.clone(),
+            value,
+        });
+    }
+    for binding in &definition.bindings {
+        if !definition
+            .nodes
+            .iter()
+            .any(|candidate| candidate.id == binding.target.node)
+        {
+            return Err(ResolutionError::new(
+                "CND-CMP-003",
+                format!(
+                    "binding `{}` targets missing child `{}`",
+                    binding.parameter, binding.target.node
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn resolve_boundary_endpoint(
+    instances: &BTreeMap<String, BoundaryMap>,
+    endpoint: &Endpoint,
+    direction: ExportDirection,
+) -> Result<Endpoint, ResolutionError> {
+    let boundary = instances.get(&endpoint.node).ok_or_else(|| {
+        ResolutionError::new(
+            "CND-CMP-006",
+            format!(
+                "endpoint `{}` bypasses an instance boundary or names no child",
+                endpoint.node
+            ),
+        )
+    })?;
+    boundary
+        .get(&(direction_key(direction), endpoint.port.clone()))
+        .cloned()
+        .ok_or_else(|| {
+            ResolutionError::new(
+                "CND-CMP-003",
+                format!(
+                    "dangling or wrong-direction port mapping `{}.{}`",
+                    endpoint.node, endpoint.port
+                ),
+            )
+        })
+}
+
+fn push_expanded_cord(expanded: &mut ExpandedSource, source: &Cord, from: Endpoint, to: Endpoint) {
+    let mut cord = source.clone();
+    cord.id = format!("cord-{}", expanded.cords.len());
+    cord.from = from;
+    cord.to = to;
+    expanded.cords.push(cord);
+}
+
+const fn direction_key(direction: ExportDirection) -> u8 {
+    match direction {
+        ExportDirection::Input => 0,
+        ExportDirection::Output => 1,
+    }
+}
+
+fn expanded_id(path: &str) -> String {
+    path.replace('/', ".")
+}
+
+fn validate_instance_id(id: &str) -> Result<(), ResolutionError> {
+    if id.contains('/') || id.contains('.') || Id::new(id).is_err() {
+        return Err(ResolutionError::new(
+            "CND-CMP-001",
+            format!("`{id}` is not a valid local instance id"),
+        ));
+    }
+    Ok(())
+}
+
 /// A source node paired with its selected implementation.
 #[derive(Debug)]
 struct ResolvedNode<'a> {
-    source: &'a Node,
+    source: Node,
     definition: &'a RegisteredNode,
 }
 
 /// A source cord with resolved numeric endpoints.
 #[derive(Debug)]
-struct ResolvedCord<'a> {
-    source: &'a conduit_panel::Cord,
+struct ResolvedCord {
+    source: conduit_panel::Cord,
     from_node: usize,
     from_port: usize,
     to_node: usize,
@@ -396,20 +998,81 @@ struct ResolvedCord<'a> {
 pub struct ResolvedPanel<'a> {
     source: &'a Panel,
     nodes: Vec<ResolvedNode<'a>>,
-    cords: Vec<ResolvedCord<'a>>,
+    cords: Vec<ResolvedCord>,
+    logical_composites: Vec<LogicalComposite>,
 }
 
 impl ResolvedPanel<'_> {
-    /// Produces deterministic human-readable resolution output.
+    /// Produces deterministic logical and expanded resolution output.
     #[must_use]
     pub fn explain(&self) -> String {
+        format!("{}\n{}", self.explain_logical(), self.explain_expanded())
+    }
+
+    /// Shows authored instances and composite boundary provenance.
+    #[must_use]
+    pub fn explain_logical(&self) -> String {
         use std::fmt::Write as _;
 
         let mut explanation = String::new();
         writeln!(
             explanation,
-            "panel v{}: {} nodes, {} cords",
+            "logical panel v{}: {} root nodes, {} root cords",
             self.source.version,
+            self.source.nodes.len(),
+            self.source.cords.len()
+        )
+        .expect("writing to String cannot fail");
+        for node in &self.source.nodes {
+            writeln!(explanation, "  instance {} : {}", node.id, node.kind)
+                .expect("writing to String cannot fail");
+        }
+        let mut composites = self.logical_composites.iter().collect::<Vec<_>>();
+        composites.sort_by(|left, right| left.path.cmp(&right.path));
+        for composite in composites {
+            writeln!(
+                explanation,
+                "  composite {} : {}",
+                composite.path, composite.definition
+            )
+            .expect("writing to String cannot fail");
+            for (child_path, definition) in &composite.children {
+                writeln!(explanation, "    child {child_path} : {definition}")
+                    .expect("writing to String cannot fail");
+            }
+            for (from, to) in &composite.cords {
+                writeln!(explanation, "    cord {from} -> {to}")
+                    .expect("writing to String cannot fail");
+            }
+            for (direction, id, target) in &composite.exports {
+                let direction = match direction {
+                    ExportDirection::Input => "input",
+                    ExportDirection::Output => "output",
+                };
+                writeln!(
+                    explanation,
+                    "    export {direction} {id} -> {}.{}",
+                    target.node, target.port
+                )
+                .expect("writing to String cannot fail");
+            }
+            for (parameter, target) in &composite.bindings {
+                writeln!(explanation, "    bind {parameter} -> {target}")
+                    .expect("writing to String cannot fail");
+            }
+        }
+        explanation
+    }
+
+    /// Shows the exact flattened primitive execution topology.
+    #[must_use]
+    pub fn explain_expanded(&self) -> String {
+        use std::fmt::Write as _;
+
+        let mut explanation = String::new();
+        writeln!(
+            explanation,
+            "expanded plan: {} nodes, {} cords",
             self.nodes.len(),
             self.cords.len()
         )
@@ -503,7 +1166,7 @@ impl ResolvedPanel<'_> {
 
                 let resolved = &self.nodes[node_index];
                 let mut handler = (resolved.definition.factory)();
-                let node_outputs = handler.run(resolved.source, &inputs, io)?;
+                let node_outputs = handler.run(&resolved.source, &inputs, io)?;
                 if node_outputs.len() != resolved.definition.contract.outputs.len() {
                     return Err(RuntimeError::new(
                         "CND-RUN-004",
@@ -643,12 +1306,11 @@ impl fmt::Display for RuntimeError {
 
 impl std::error::Error for RuntimeError {}
 
-fn node_index(panel: &Panel, id: &str) -> Result<usize, ResolutionError> {
-    let matches = panel
-        .nodes
+fn node_index(nodes: &[ResolvedNode<'_>], id: &str) -> Result<usize, ResolutionError> {
+    let matches = nodes
         .iter()
         .enumerate()
-        .filter(|(_, node)| node.id == id)
+        .filter(|(_, node)| node.source.id == id)
         .map(|(index, _)| index)
         .collect::<Vec<_>>();
     match matches.as_slice() {
@@ -673,7 +1335,7 @@ fn port_index(ports: &[PortContract<'_>], id: &str, node: &str) -> Result<usize,
 
 fn reject_cycles(
     nodes: &[ResolvedNode<'_>],
-    cords: &[ResolvedCord<'_>],
+    cords: &[ResolvedCord],
 ) -> Result<(), ResolutionError> {
     let mut completed = vec![false; nodes.len()];
     let mut remaining = nodes.len();
@@ -936,5 +1598,148 @@ mod tests {
             .expect("panel runs");
 
         assert_eq!(output, b"pipe friendly");
+    }
+
+    #[test]
+    fn nested_composites_bind_parameters_export_ports_and_preserve_views() {
+        let panel = parse(
+            r#"
+                panel 1
+                composite example/literal-line {
+                    node source : conduit/literal
+                    export output text = source.out
+                    bind value = source.value
+                }
+                composite example/upper-line {
+                    node source : example/literal-line
+                    node upper : conduit/uppercase
+                    cord source.text -> upper.in
+                    export output text = upper.out
+                    bind value = source.value
+                }
+                node line : example/upper-line { value = "mixed Case" }
+                node stdout : conduit/stdout
+                node stderr : conduit/stderr
+                cord line.text -> stdout.in
+                cord line.text -> stderr.in
+            "#,
+        )
+        .expect("nested composite parses");
+        let registry = Registry::default();
+        let resolved = registry.resolve(&panel).expect("composite resolves");
+        let logical = resolved.explain_logical();
+        let expanded = resolved.explain_expanded();
+        assert!(logical.contains("composite line : example/upper-line"));
+        assert!(logical.contains("composite line/source : example/literal-line"));
+        assert!(logical.contains("child line/upper : conduit/uppercase"));
+        assert!(logical.contains("export output text -> line.upper.out"));
+        assert!(logical.contains("bind value -> line/source.value"));
+        assert!(expanded.contains("line.source.source : conduit/literal"));
+        assert!(expanded.contains("line.upper : conduit/uppercase"));
+        assert!(!expanded.contains("example/upper-line -> hosted builtin"));
+
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        let summary = resolved
+            .run(&mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+            })
+            .expect("flattened composite runs");
+        assert_eq!(summary.nodes_completed, 4);
+        assert_eq!(output, b"MIXED CASE");
+        assert_eq!(error, b"MIXED CASE");
+    }
+
+    #[test]
+    fn composite_boundary_is_substitutable_for_primitive_inputs_and_outputs() {
+        let panel = parse(
+            r#"
+                panel 1
+                composite example/uppercase {
+                    node worker : conduit/uppercase
+                    export input in = worker.in
+                    export output out = worker.out
+                }
+                node source : conduit/literal { value = "boundary" }
+                node transform : example/uppercase
+                node sink : conduit/stdout
+                cord source.out -> transform.in
+                cord transform.out -> sink.in
+            "#,
+        )
+        .expect("transparent composite parses");
+        let registry = Registry::default();
+        let resolved = registry
+            .resolve(&panel)
+            .expect("transparent boundary resolves");
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        resolved
+            .run(&mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+            })
+            .expect("same primitive implementation runs");
+        assert_eq!(output, b"BOUNDARY");
+    }
+
+    #[test]
+    fn rejects_recursive_duplicate_dangling_and_boundary_bypass() {
+        let registry = Registry::default();
+        for (source, code) in [
+            (
+                "panel 1\ncomposite example/a { node b : example/b }\n\
+                 composite example/b { node a : example/a }\n\
+                 node root : example/a",
+                "CND-CMP-005",
+            ),
+            (
+                "panel 1\ncomposite example/a {\n\
+                   node source : conduit/stdin\n\
+                   export output out = source.out\n\
+                   export output out = source.out\n\
+                 }\nnode root : example/a",
+                "CND-CMP-002",
+            ),
+            (
+                "panel 1\ncomposite example/a {\n\
+                   node source : conduit/stdin\n\
+                   export output out = missing.out\n\
+                 }\nnode root : example/a",
+                "CND-CMP-003",
+            ),
+            (
+                "panel 1\ncomposite example/a {\n\
+                   node source : conduit/stdin\n\
+                   export input in = source.out\n\
+                 }\nnode root : example/a",
+                "CND-CMP-003",
+            ),
+            (
+                "panel 1\ncomposite example/a {\n\
+                   node source : conduit/literal\n\
+                   export output out = source.out\n\
+                   bind value = source.missing\n\
+                 }\nnode root : example/a { value = x }",
+                "CND-CMP-003",
+            ),
+            (
+                "panel 1\ncomposite example/a {\n\
+                   node source : conduit/stdin\n\
+                   export output out = source.out\n\
+                 }\nnode root : example/a\nnode sink : conduit/stdout\n\
+                 cord root.source.out -> sink.in",
+                "CND-CMP-006",
+            ),
+        ] {
+            let panel = parse(source).expect("negative fixture parses");
+            let error = registry.resolve(&panel).expect_err("must reject");
+            assert_eq!(error.code, code, "{}", error.message);
+        }
     }
 }

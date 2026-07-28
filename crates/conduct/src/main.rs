@@ -72,8 +72,9 @@ fn run() -> Result<(), String> {
     match arguments.mode {
         Mode::Check => {
             println!(
-                "ok: panel v{}; {} nodes; {} cords",
+                "ok: panel v{}; {} definitions; {} root nodes; {} root cords",
                 panel.version,
+                panel.definitions.len(),
                 panel.nodes.len(),
                 panel.cords.len()
             );

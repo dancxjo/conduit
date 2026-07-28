@@ -1,0 +1,32 @@
+panel 1
+
+composite example/upper-line {
+    node source : conduit/literal
+    node upper : conduit/uppercase
+
+    cord source.out -> upper.in {
+        capacity = 2
+        max_value_bytes = 1024
+        max_queued_bytes = 2048
+        low_watermark = 0
+        high_watermark = 2
+        pressure = block
+    }
+
+    export output text = upper.out
+    bind value = source.value
+}
+
+node line : example/upper-line {
+    value = "Composite nodes stay ordinary."
+}
+node output : conduit/stdout
+
+cord line.text -> output.in {
+    capacity = 2
+    max_value_bytes = 1024
+    max_queued_bytes = 2048
+    low_watermark = 0
+    high_watermark = 2
+    pressure = block
+}
