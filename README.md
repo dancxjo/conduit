@@ -28,8 +28,8 @@ execution plan; packaging and code generation are separate operations.
 This repository contains the first executable Plan C foundation:
 
 - `conduit-core`: allocator-free contracts, canonical semantic hashes, opaque
-  type references, complete port/config schemas, directional compatibility,
-  and plan validation;
+  type references, complete port/config schemas, bounded flow-policy state
+  machines, directional compatibility, and plan validation;
 - `conduit-panel`: the initial editable `.panel` source reader;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
   one-shot executor, including domain type-provider discovery;
@@ -39,6 +39,10 @@ The initial runtime includes intentionally small proof handlers for literal
 UTF-8 text, stdin, uppercase transformation, stdout, and stderr. They establish
 the complete parse → check/explain → resolve → run path without pretending to
 be the final standard library.
+
+Resolved cords carry exact item/per-value/aggregate byte limits, watermarks,
+and pressure policy. The allocator-free reference queue consumes fixed caller
+storage and emits every pressure, loss, replacement, and wake transition.
 
 ## Design boundaries
 

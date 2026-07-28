@@ -10,6 +10,7 @@ The repository currently proves:
 - hosted built-in implementation registration;
 - deterministic endpoint and implementation resolution;
 - type, cardinality, capacity, and cycle validation;
+- the exact bounded FlowPolicy algebra and allocator-free reference queue;
 - exact explanation output;
 - finite acyclic execution;
 - process stdin/stdout/stderr as explicit node implementations;

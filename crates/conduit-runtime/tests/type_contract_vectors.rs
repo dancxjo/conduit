@@ -1,6 +1,7 @@
 use conduit_core::{
     CanonicalDescriptor, CanonicalValue, CompatibilityClass, CompatibilityOutcome,
-    CompatibilityQuery, CompatibilityReason, Id, SemanticHash, TypeContractRef,
+    CompatibilityQuery, CompatibilityReason, FlowTypeFacts, Id, SemanticHash, TraitProof,
+    TypeContractRef,
 };
 use conduit_runtime::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
@@ -40,6 +41,10 @@ impl TypeContractProvider for FixtureProvider {
             human_name: reference.contract_id.as_str(),
             descriptor: descriptor(reference.contract_id, reference.schema_version),
             strategy,
+            flow_type_facts: FlowTypeFacts {
+                disposable: TraitProof::Indeterminate,
+                coalescers: None,
+            },
         })
     }
 

@@ -1,22 +1,24 @@
 //! Hosted registry, resolver, explainer, and executor.
 //!
 //! This first runtime intentionally executes finite, one-shot acyclic panels.
-//! The portable contracts already describe bounded live flow; a later streaming
-//! executor can implement those policies without changing node, port, or cord
-//! identity.
+//! The portable core now includes the normative allocator-free bounded queue;
+//! a later hosted streaming scheduler can drive it without changing node,
+//! port, cord, or flow-policy identity.
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io::{Read, Write};
 
 use conduit_core::{
-    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
+    BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome, ConfigContract,
+    ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, Direction, Endpoint as CoreEndpoint, ExecutionPlan,
-    FlowPolicy, Id, LossAcceptance, NodeContract, PlanCord, PlanNode, PortContract,
-    PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract, TerminalContract,
-    TypeContractRef, ValueCardinality, validate_plan,
+    FlowCapacity, FlowPolicy, FlowTypeFacts, FlowWatermarks, Id, LossAcceptance, NodeContract,
+    PlanCord, PlanNode, PortContract, PortFlowConstraints, Presence, Pressure, SampleSchedule,
+    SemanticHash, Sensitivity, TemporalContract, TerminalContract, TraitProof, TypeContractRef,
+    ValueCardinality, validate_plan,
 };
-use conduit_panel::{Node, Panel};
+use conduit_panel::{Node, Panel, SourcePressure};
 
 mod config_resolution;
 mod type_registry;
@@ -164,6 +166,7 @@ struct RegisteredNode {
 /// Registry identity and discovery are deliberately above `conduit-core`.
 pub struct Registry {
     nodes: BTreeMap<&'static str, RegisteredNode>,
+    types: TypeRegistry,
 }
 
 impl Default for Registry {
@@ -209,7 +212,11 @@ impl Default for Registry {
                 validate_config: validate_empty_config,
             },
         );
-        Self { nodes }
+        let mut types = TypeRegistry::default();
+        types
+            .register(BuiltinTypeProvider)
+            .expect("built-in type namespace is unique and valid");
+        Self { nodes, types }
     }
 }
 
@@ -274,6 +281,16 @@ impl Registry {
         let core_cords = cords
             .iter()
             .map(|cord| {
+                let flow = resolve_flow(cord.source)?;
+                let value_type =
+                    nodes[cord.from_node].definition.contract.outputs[cord.from_port].value_type;
+                let flow_decision = self.types.assess_flow_policy(value_type, flow);
+                if flow_decision.outcome != CompatibilityOutcome::Compatible {
+                    return Err(ResolutionError::new(
+                        "CND-FLW-004",
+                        flow_decision.reason.as_str(),
+                    ));
+                }
                 Ok(PlanCord {
                     id: Id(cord.source.id.as_str()),
                     from: CoreEndpoint {
@@ -288,10 +305,7 @@ impl Registry {
                             ResolutionError::new("CND-PLN-003", "too many input ports")
                         })?,
                     },
-                    flow: FlowPolicy {
-                        capacity_items: cord.source.capacity_items,
-                        pressure: cord.source.pressure,
-                    },
+                    flow,
                 })
             })
             .collect::<Result<Vec<_>, ResolutionError>>()?;
@@ -313,6 +327,50 @@ impl Registry {
     /// Returns the semantic contracts available from this registry.
     pub fn contracts(&self) -> impl Iterator<Item = &'static NodeContract<'static>> + '_ {
         self.nodes.values().map(|node| node.contract)
+    }
+
+    /// Returns the domain type registry used during flow resolution.
+    #[must_use]
+    pub const fn type_registry(&self) -> &TypeRegistry {
+        &self.types
+    }
+}
+
+struct BuiltinTypeProvider;
+
+impl TypeContractProvider for BuiltinTypeProvider {
+    fn namespace(&self) -> &str {
+        "conduit"
+    }
+
+    fn describe<'a>(
+        &'a self,
+        reference: TypeContractRef<'a>,
+    ) -> Option<TypeContractDescription<'a>> {
+        (reference == TEXT_TYPE).then_some(TypeContractDescription {
+            human_name: "UTF-8 text",
+            descriptor: CanonicalDescriptor {
+                kind: TEXT_TYPE.contract_id,
+                schema_version: TEXT_TYPE.schema_version,
+                body: CanonicalValue::Null,
+            },
+            strategy: TypeComparisonStrategy::Nominal,
+            flow_type_facts: FlowTypeFacts {
+                disposable: TraitProof::Disproven,
+                coalescers: Some(&[]),
+            },
+        })
+    }
+
+    fn consumer_accepts_producer<'a>(
+        &'a self,
+        _: TypeContractRef<'a>,
+        _: TypeContractRef<'a>,
+    ) -> ProviderTypeDecision<'a> {
+        ProviderTypeDecision {
+            outcome: CompatibilityOutcome::Incompatible,
+            rule: Id("conduit/no-type-rule"),
+        }
     }
 }
 
@@ -383,12 +441,16 @@ impl ResolvedPanel<'_> {
         for (index, cord) in self.cords.iter().enumerate() {
             writeln!(
                 explanation,
-                "  cord {index}: {}.{} -> {}.{} capacity={} pressure={:?}",
+                "  cord {index}: {}.{} -> {}.{} capacity={} max_value_bytes={} max_queued_bytes={} watermarks={}..{} pressure={}",
                 self.nodes[cord.from_node].source.id,
                 self.nodes[cord.from_node].definition.contract.outputs[cord.from_port].id,
                 self.nodes[cord.to_node].source.id,
                 self.nodes[cord.to_node].definition.contract.inputs[cord.to_port].id,
                 cord.source.capacity_items,
+                cord.source.max_value_bytes,
+                cord.source.max_queued_bytes,
+                cord.source.low_watermark_items,
+                cord.source.high_watermark_items,
                 cord.source.pressure
             )
             .expect("writing to String cannot fail");
@@ -487,6 +549,37 @@ impl ResolvedPanel<'_> {
             cords_conducted: self.cords.len(),
         })
     }
+}
+
+fn resolve_flow(source: &conduit_panel::Cord) -> Result<FlowPolicy<'_>, ResolutionError> {
+    let capacity = FlowCapacity::new(
+        source.capacity_items,
+        source.max_value_bytes,
+        source.max_queued_bytes,
+    )
+    .map_err(|error| ResolutionError::new(error.code(), error.to_string()))?;
+    let watermarks = FlowWatermarks::new(
+        source.low_watermark_items,
+        source.high_watermark_items,
+        capacity,
+    )
+    .map_err(|error| ResolutionError::new(error.code(), error.to_string()))?;
+    let pressure = match &source.pressure {
+        SourcePressure::Block => Pressure::Block(BlockingFairness::Fifo),
+        SourcePressure::Reject => Pressure::Reject,
+        SourcePressure::Coalesce { relation } => Pressure::Coalesce {
+            relation: Id(relation),
+        },
+        SourcePressure::Sample { every, offset } => Pressure::Sample(
+            SampleSchedule::new(*every, *offset)
+                .map_err(|error| ResolutionError::new(error.code(), error.to_string()))?,
+        ),
+        SourcePressure::DropDisposable => Pressure::DropDisposable,
+        SourcePressure::Disconnect => Pressure::Disconnect,
+        SourcePressure::Fail => Pressure::Fail,
+    };
+    FlowPolicy::new(capacity, pressure, watermarks)
+        .map_err(|error| ResolutionError::new(error.code(), error.to_string()))
 }
 
 /// Successful execution counts.
@@ -755,7 +848,11 @@ mod tests {
         .expect("panel parses");
         let registry = Registry::default();
         let resolved = registry.resolve(&panel).expect("panel resolves");
-        assert!(resolved.explain().contains("capacity=8 pressure=Block"));
+        let explanation = resolved.explain();
+        assert!(explanation.contains("capacity=8"));
+        assert!(explanation.contains("max_value_bytes=65536"));
+        assert!(explanation.contains("watermarks=7..8"));
+        assert!(explanation.contains("pressure=block(fifo)"));
 
         let mut input = &b""[..];
         let mut output = Vec::new();
@@ -781,6 +878,36 @@ mod tests {
             .resolve(&panel)
             .expect_err("missing implementation");
         assert_eq!(error.code, "CND-IMP-001");
+    }
+
+    #[test]
+    fn rejects_loss_and_missing_type_traits_before_execution() {
+        let sample = parse(
+            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+             cord a.out -> b.in {\n\
+               pressure = sample\n\
+               sample_every = 2\n\
+             }",
+        )
+        .unwrap();
+        let error = Registry::default()
+            .resolve(&sample)
+            .expect_err("lossless ports reject sampling");
+        assert_eq!(error.code, "CND-FLW-002");
+
+        let coalesce = parse(
+            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+             cord a.out -> b.in {\n\
+               pressure = coalesce\n\
+               coalescer = conduit/replace-latest\n\
+             }",
+        )
+        .unwrap();
+        let error = Registry::default()
+            .resolve(&coalesce)
+            .expect_err("text type does not declare coalescing");
+        assert_eq!(error.code, "CND-FLW-004");
+        assert_eq!(error.message, "coalescing-relation-unavailable");
     }
 
     #[test]

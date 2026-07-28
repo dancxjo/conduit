@@ -29,6 +29,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`006-port-config-contracts-v1.md`](006-port-config-contracts-v1.md) freezes
   complete port boundaries, directional diagnostics, and separate typed
   configuration/default/redaction semantics.
+- [`007-bounded-flow-policy-v1.md`](007-bounded-flow-policy-v1.md) freezes
+  finite item/byte capacity, pressure transitions, type-gated loss, evidence,
+  and the allocator-free reference queue.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

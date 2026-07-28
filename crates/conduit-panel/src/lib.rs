@@ -7,8 +7,6 @@
 
 use std::fmt;
 
-use conduit_core::Pressure;
-
 /// Parsed editable panel source.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Panel {
@@ -71,8 +69,59 @@ pub struct Cord {
     pub to: Endpoint,
     /// Finite item capacity.
     pub capacity_items: u16,
-    /// Pressure response.
-    pub pressure: Pressure,
+    /// Maximum accounted bytes for one value.
+    pub max_value_bytes: u32,
+    /// Maximum accounted resident bytes.
+    pub max_queued_bytes: u64,
+    /// Pressure clearance threshold.
+    pub low_watermark_items: u16,
+    /// Pressure entry threshold.
+    pub high_watermark_items: u16,
+    /// Exact pressure response.
+    pub pressure: SourcePressure,
+}
+
+/// Authored exact pressure policy.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SourcePressure {
+    /// FIFO producer blocking.
+    Block,
+    /// Reject the attempted write.
+    Reject,
+    /// Use one named domain replacement relation.
+    Coalesce {
+        /// Exact relation identifier.
+        relation: String,
+    },
+    /// Use one exact arrival-sequence schedule.
+    Sample {
+        /// Sampling period.
+        every: u32,
+        /// Selected offset within the period.
+        offset: u32,
+    },
+    /// Drop only values proven disposable.
+    DropDisposable,
+    /// Disconnect the cord.
+    Disconnect,
+    /// Fail the affected run scope.
+    Fail,
+}
+
+impl fmt::Display for SourcePressure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Block => formatter.write_str("block(fifo)"),
+            Self::Reject => formatter.write_str("reject"),
+            Self::Coalesce { relation } => write!(formatter, "coalesce({relation})"),
+            Self::Sample { every, offset } => {
+                write!(formatter, "sample(every={every},offset={offset})")
+            }
+            Self::DropDisposable => formatter.write_str("drop-disposable"),
+            Self::Disconnect => formatter.write_str("disconnect"),
+            Self::Fail => formatter.write_str("fail"),
+        }
+    }
 }
 
 /// Source parser failure.
@@ -405,7 +454,14 @@ impl Parser {
         self.expect_simple(TokenKind::Arrow, "`->`")?;
         let to = self.expect_endpoint()?;
         let mut capacity_items = 8_u16;
-        let mut pressure = Pressure::Block;
+        let mut pressure_name = "block".to_owned();
+        let mut max_value_bytes = None;
+        let mut max_queued_bytes = None;
+        let mut low_watermark_items = None;
+        let mut high_watermark_items = None;
+        let mut coalescer = None;
+        let mut sample_every = None;
+        let mut sample_offset = 0_u32;
         if matches!(self.current().kind, TokenKind::LeftBrace) {
             self.advance();
             while !matches!(self.current().kind, TokenKind::RightBrace) {
@@ -418,8 +474,39 @@ impl Parser {
                             .map_err(|_| self.error("cord capacity does not fit in u16"))?;
                     }
                     "pressure" => {
-                        pressure = parse_pressure(&self.expect_any_word()?)
-                            .ok_or_else(|| self.error("unknown pressure behavior"))?;
+                        pressure_name = self.expect_any_word()?;
+                    }
+                    "max_value_bytes" => {
+                        max_value_bytes = Some(
+                            u32::try_from(self.expect_number()?)
+                                .map_err(|_| self.error("value byte bound does not fit in u32"))?,
+                        );
+                    }
+                    "max_queued_bytes" => {
+                        max_queued_bytes = Some(self.expect_number()?);
+                    }
+                    "low_watermark" => {
+                        low_watermark_items = Some(
+                            u16::try_from(self.expect_number()?)
+                                .map_err(|_| self.error("low watermark does not fit in u16"))?,
+                        );
+                    }
+                    "high_watermark" => {
+                        high_watermark_items = Some(
+                            u16::try_from(self.expect_number()?)
+                                .map_err(|_| self.error("high watermark does not fit in u16"))?,
+                        );
+                    }
+                    "coalescer" => coalescer = Some(self.expect_any_word()?),
+                    "sample_every" => {
+                        sample_every = Some(
+                            u32::try_from(self.expect_number()?)
+                                .map_err(|_| self.error("sample period does not fit in u32"))?,
+                        );
+                    }
+                    "sample_offset" => {
+                        sample_offset = u32::try_from(self.expect_number()?)
+                            .map_err(|_| self.error("sample offset does not fit in u32"))?;
                     }
                     _ => return Err(self.error(format!("unknown cord field `{key}`"))),
                 }
@@ -427,11 +514,37 @@ impl Parser {
             self.advance();
         }
 
+        let max_value_bytes = max_value_bytes.unwrap_or(65_536);
+        let max_queued_bytes =
+            max_queued_bytes.unwrap_or(u64::from(capacity_items) * u64::from(max_value_bytes));
+        let high_watermark_items = high_watermark_items.unwrap_or(capacity_items);
+        let low_watermark_items =
+            low_watermark_items.unwrap_or(high_watermark_items.saturating_sub(1));
+        let pressure = match pressure_name.as_str() {
+            "block" => SourcePressure::Block,
+            "reject" => SourcePressure::Reject,
+            "coalesce" => SourcePressure::Coalesce {
+                relation: coalescer.ok_or_else(|| self.error("coalesce requires `coalescer`"))?,
+            },
+            "sample" => SourcePressure::Sample {
+                every: sample_every.ok_or_else(|| self.error("sample requires `sample_every`"))?,
+                offset: sample_offset,
+            },
+            "drop_disposable" | "drop-disposable" => SourcePressure::DropDisposable,
+            "disconnect" => SourcePressure::Disconnect,
+            "fail" => SourcePressure::Fail,
+            _ => return Err(self.error("unknown pressure behavior")),
+        };
+
         Ok(Cord {
             id: format!("cord-{ordinal}"),
             from,
             to,
             capacity_items,
+            max_value_bytes,
+            max_queued_bytes,
+            low_watermark_items,
+            high_watermark_items,
             pressure,
         })
     }
@@ -526,19 +639,6 @@ impl Parser {
     }
 }
 
-fn parse_pressure(value: &str) -> Option<Pressure> {
-    match value {
-        "block" => Some(Pressure::Block),
-        "reject" => Some(Pressure::Reject),
-        "coalesce" => Some(Pressure::Coalesce),
-        "sample" => Some(Pressure::Sample),
-        "drop_disposable" => Some(Pressure::DropDisposable),
-        "disconnect" => Some(Pressure::Disconnect),
-        "fail" => Some(Pressure::Fail),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -563,7 +663,9 @@ mod tests {
         assert_eq!(panel.nodes.len(), 2);
         assert_eq!(panel.nodes[0].config("value"), Some("Hello\n"));
         assert_eq!(panel.cords[0].capacity_items, 4);
-        assert_eq!(panel.cords[0].pressure, Pressure::Reject);
+        assert_eq!(panel.cords[0].pressure, SourcePressure::Reject);
+        assert_eq!(panel.cords[0].max_value_bytes, 65_536);
+        assert_eq!(panel.cords[0].max_queued_bytes, 4 * 65_536);
     }
 
     #[test]
@@ -571,5 +673,39 @@ mod tests {
         let error = parse("panel 1\nnode broken conduit/literal").expect_err("invalid panel");
         assert_eq!(error.code, "CND-SRC-001");
         assert_eq!(error.line, 2);
+    }
+
+    #[test]
+    fn requires_exact_parameters_for_sampling_and_coalescing() {
+        let missing_sample = parse(
+            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+             cord a.out -> b.in { pressure = sample }",
+        )
+        .expect_err("sampling interval must not be implicit");
+        assert!(missing_sample.message.contains("sample_every"));
+
+        let missing_coalescer = parse(
+            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+             cord a.out -> b.in { pressure = coalesce }",
+        )
+        .expect_err("coalescing relation must not be implicit");
+        assert!(missing_coalescer.message.contains("coalescer"));
+
+        let panel = parse(
+            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+             cord a.out -> b.in {\n\
+               pressure = sample\n\
+               sample_every = 4\n\
+               sample_offset = 1\n\
+             }",
+        )
+        .expect("exact sample schedule");
+        assert_eq!(
+            panel.cords[0].pressure,
+            SourcePressure::Sample {
+                every: 4,
+                offset: 1
+            }
+        );
     }
 }
