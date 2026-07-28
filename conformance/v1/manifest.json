@@ -1,0 +1,946 @@
+{
+  "fixture_version": "conduit.conformance/v1",
+  "manifest_revision": 1,
+  "protocol_version": 1,
+  "deterministic_environment": {
+    "clock": {
+      "basis": "conduit.fixture-clock/v1",
+      "tick": 1000
+    },
+    "seed": 1380991557,
+    "host_observations": []
+  },
+  "property_seeds": {
+    "bytes": [
+      "",
+      "00",
+      "ff",
+      "0001ff",
+      "434e4401"
+    ],
+    "recursion_depths": [
+      0,
+      1,
+      63,
+      64,
+      65
+    ],
+    "discovery_orders": [
+      [
+        "fixture/a",
+        "fixture/b",
+        "fixture/c"
+      ],
+      [
+        "fixture/c",
+        "fixture/a",
+        "fixture/b"
+      ]
+    ]
+  },
+  "suites": [
+    {
+      "id": "canonical",
+      "profile": "conduit.c1",
+      "requirement_ids": [
+        "CAN-001",
+        "CAN-002",
+        "CAN-003",
+        "CAN-004",
+        "CAN-005",
+        "CAN-006",
+        "CAN-007",
+        "CAN-008",
+        "CAN-009"
+      ],
+      "artifacts": [
+        {
+          "id": "canonical-v1",
+          "path": "../c1/canonical-v1.json",
+          "sha256": "sha256:ad94b0458c8bfcb3138c68217182421451f7ea4f8a57229f6fa523aa3df1e4a9",
+          "operation": "canonical-descriptor-v1",
+          "requirement_ids": [
+            "CAN-001",
+            "CAN-002",
+            "CAN-003",
+            "CAN-005",
+            "CAN-006",
+            "CAN-009"
+          ],
+          "default_rule": "CAN-001",
+          "case_rules": {
+            "scalar-coverage": "CAN-005"
+          },
+          "format": "json-vectors",
+          "collection": "vectors",
+          "case_fields": [
+            "name"
+          ],
+          "expected_fields": [
+            "canonical_hex",
+            "semantic_hash"
+          ]
+        },
+        {
+          "id": "canonical-negative-v1",
+          "path": "../c1/canonical-v1.json",
+          "sha256": "sha256:ad94b0458c8bfcb3138c68217182421451f7ea4f8a57229f6fa523aa3df1e4a9",
+          "operation": "canonical-descriptor-rejection-v1",
+          "requirement_ids": [
+            "CAN-004",
+            "CAN-007"
+          ],
+          "default_rule": "CAN-004",
+          "case_rules": {},
+          "format": "json-vectors",
+          "collection": "negative_vectors",
+          "case_fields": [
+            "name"
+          ],
+          "expected_fields": [
+            "expected_error"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "canonical-v1#node-contract"
+        ],
+        "negative": [
+          "canonical-negative-v1#duplicate-map-key",
+          "canonical-negative-v1#invalid-identifier"
+        ],
+        "boundary": [
+          "canonical-v1#scalar-coverage"
+        ],
+        "migration": [
+          "canonical-v1#node-contract"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "canonical_vectors"
+        }
+      ]
+    },
+    {
+      "id": "compatibility",
+      "profile": "conduit.c1",
+      "requirement_ids": [
+        "COM-001",
+        "COM-002",
+        "COM-003",
+        "COM-004",
+        "COM-005",
+        "COM-006",
+        "COM-007",
+        "COM-008",
+        "COM-009",
+        "COM-010",
+        "COM-011",
+        "COM-012"
+      ],
+      "artifacts": [
+        {
+          "id": "compatibility-v1",
+          "path": "../c1/compatibility-v1.tsv",
+          "sha256": "sha256:2165c72b85bf6e2ee7c25a618f7ef9c524400ae1708b9039cf26b732ee353672",
+          "operation": "directional-compatibility-v1",
+          "requirement_ids": [
+            "COM-001",
+            "COM-002",
+            "COM-003",
+            "COM-004",
+            "COM-005",
+            "COM-006",
+            "COM-007",
+            "COM-012"
+          ],
+          "default_rule": "COM-002",
+          "case_rules": {
+            "exact": "COM-003",
+            "backward-added-default": "COM-004",
+            "forward-added-unknown-rejected": "COM-006",
+            "forward-added-unknown-preserved": "COM-005",
+            "changed-default": "COM-006",
+            "domain-provider-needed": "COM-007",
+            "provider-approved-producer": "COM-007",
+            "optional-writer-required-reader": "COM-004"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "name"
+          ],
+          "expected_columns": [
+            "outcome",
+            "class",
+            "reason",
+            "subject"
+          ]
+        },
+        {
+          "id": "migration-v1",
+          "path": "../c1/migration-v1.tsv",
+          "sha256": "sha256:311b4abe0c5fea936038e918438ac6c88d23a7d0d842c5581f639c9d3c9ade5e",
+          "operation": "migration-compatibility-v1",
+          "requirement_ids": [
+            "COM-010",
+            "COM-011"
+          ],
+          "default_rule": "COM-010",
+          "case_rules": {
+            "nondeterministic": "COM-011",
+            "partial": "COM-011"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "name"
+          ],
+          "expected_columns": [
+            "outcome",
+            "class",
+            "reason"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "compatibility-v1#exact"
+        ],
+        "negative": [
+          "compatibility-v1#missing-required-field"
+        ],
+        "boundary": [
+          "compatibility-v1#domain-provider-needed"
+        ],
+        "migration": [
+          "migration-v1#accepted"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "compatibility_vectors"
+        }
+      ]
+    },
+    {
+      "id": "types",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "TYP-001",
+        "TYP-002",
+        "TYP-003",
+        "TYP-004",
+        "TYP-005",
+        "TYP-006",
+        "TYP-007",
+        "TYP-008",
+        "TYP-009",
+        "TYP-010",
+        "TYP-011",
+        "TYP-012"
+      ],
+      "artifacts": [
+        {
+          "id": "type-contract-v1",
+          "path": "../c2/type-contract-v1.tsv",
+          "sha256": "sha256:d2522ec2c291643744f5cb351eda0d524e02db2c169f70bc5f6c3d1c87e01bb5",
+          "operation": "type-contract-compatibility-v1",
+          "requirement_ids": [
+            "TYP-001",
+            "TYP-003",
+            "TYP-004",
+            "TYP-005",
+            "TYP-007",
+            "TYP-008",
+            "TYP-009",
+            "TYP-010"
+          ],
+          "default_rule": "TYP-004",
+          "case_rules": {
+            "explicit_structural": "TYP-007",
+            "same_shape_different_semantics": "TYP-008",
+            "opaque_adapter_required": "TYP-009",
+            "missing_provider": "TYP-005",
+            "unknown_strategy": "TYP-005",
+            "malformed_reference": "TYP-010"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "class",
+            "reason",
+            "subject"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "type-contract-v1#exact_nominal"
+        ],
+        "negative": [
+          "type-contract-v1#malformed_reference"
+        ],
+        "boundary": [
+          "type-contract-v1#unknown_strategy"
+        ],
+        "migration": [
+          "type-contract-v1#provider_directional"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "type_contract_vectors"
+        }
+      ]
+    },
+    {
+      "id": "ports-config",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "PRT-001",
+        "PRT-002",
+        "PRT-003",
+        "PRT-004",
+        "PRT-005",
+        "PRT-006",
+        "PRT-007",
+        "PRT-008",
+        "CFG-001",
+        "CFG-002",
+        "CFG-003",
+        "CFG-004",
+        "CFG-005",
+        "CFG-006",
+        "CFG-007"
+      ],
+      "artifacts": [
+        {
+          "id": "port-contract-v1",
+          "path": "../c2/port-contract-v1.tsv",
+          "sha256": "sha256:5c8c26b60eee4f1e243a53a24df51ced859dfcf70c6b9c058f03310052c7763d",
+          "operation": "port-contract-compatibility-v1",
+          "requirement_ids": [
+            "PRT-001",
+            "PRT-002",
+            "PRT-003",
+            "PRT-004",
+            "PRT-005",
+            "PRT-006",
+            "PRT-007",
+            "PRT-008"
+          ],
+          "default_rule": "PRT-005",
+          "case_rules": {
+            "accepted": "PRT-003",
+            "type_mismatch": "PRT-004",
+            "required_optional": "PRT-005",
+            "connection_cardinality": "PRT-002",
+            "value_cardinality": "PRT-002",
+            "flow_mismatch": "PRT-008",
+            "committed_to_progressive": "PRT-006",
+            "explicit_adapter_input": "PRT-007",
+            "explicit_adapter_output": "PRT-007"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "reason",
+            "consumer_descriptor_hash"
+          ]
+        },
+        {
+          "id": "config-v1",
+          "path": "../c2/config-v1.tsv",
+          "sha256": "sha256:9b2ac7b92ed8b5af7533db82c97b2a155f8ad47d188ee9eac1ccfe0cd8cf7508",
+          "operation": "configuration-contract-v1",
+          "requirement_ids": [
+            "CFG-001",
+            "CFG-002",
+            "CFG-003",
+            "CFG-004",
+            "CFG-005",
+            "CFG-006",
+            "CFG-007"
+          ],
+          "default_rule": "CFG-007",
+          "case_rules": {
+            "canonical_default": "CFG-003",
+            "explicit_default": "CFG-003",
+            "secret_value": "CFG-005",
+            "pre_start_mutation": "CFG-004",
+            "secret_to_public": "CFG-005"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "code",
+            "field_descriptor_hash",
+            "contract_descriptor_hash"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "port-contract-v1#accepted"
+        ],
+        "negative": [
+          "port-contract-v1#direction_mismatch"
+        ],
+        "boundary": [
+          "port-contract-v1#committed_to_progressive"
+        ],
+        "migration": [
+          "config-v1#explicit_default"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "port_contract_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "config_contract_vectors"
+        }
+      ]
+    },
+    {
+      "id": "flow",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "FLW-001",
+        "FLW-002",
+        "FLW-003",
+        "FLW-004",
+        "FLW-005",
+        "FLW-006",
+        "FLW-007",
+        "FLW-008",
+        "FLW-009",
+        "FLW-010",
+        "FLW-011",
+        "FLW-012"
+      ],
+      "artifacts": [
+        {
+          "id": "flow-policy-v1",
+          "path": "../c2/flow-policy-v1.tsv",
+          "sha256": "sha256:7296c50fea9f29eb35e78a8183cd41c48cd9ebf6b9bf49673d1996087a03941c",
+          "operation": "bounded-flow-transition-v1",
+          "requirement_ids": [
+            "FLW-001",
+            "FLW-002",
+            "FLW-003",
+            "FLW-004",
+            "FLW-005",
+            "FLW-006",
+            "FLW-007",
+            "FLW-008",
+            "FLW-009",
+            "FLW-010",
+            "FLW-011",
+            "FLW-012"
+          ],
+          "default_rule": "FLW-003",
+          "case_rules": {
+            "block": "FLW-004",
+            "coalesce": "FLW-005",
+            "sample_full": "FLW-008",
+            "drop_disposable": "FLW-005",
+            "coalesce_unknown": "FLW-006",
+            "coalesce_missing": "FLW-005",
+            "drop_unknown": "FLW-006",
+            "drop_forbidden": "FLW-009"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "reason",
+            "transition",
+            "disposition",
+            "events",
+            "queue_after",
+            "state"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "flow-policy-v1#block"
+        ],
+        "negative": [
+          "flow-policy-v1#drop_forbidden"
+        ],
+        "boundary": [
+          "flow-policy-v1#sample_full"
+        ],
+        "migration": [
+          "flow-policy-v1#coalesce"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "flow_policy_vectors"
+        }
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "LIF-001",
+        "LIF-002",
+        "LIF-003",
+        "LIF-004",
+        "LIF-005",
+        "CAN-001",
+        "CAN-002",
+        "CAN-003",
+        "CAN-004",
+        "TRM-001",
+        "TRM-002",
+        "TRM-003",
+        "REP-001",
+        "REP-002"
+      ],
+      "artifacts": [
+        {
+          "id": "lifecycle-v1",
+          "path": "../c2/lifecycle-v1.tsv",
+          "sha256": "sha256:e87ec8e9ca92950b70a7368c46eeec0743be97d801ae5586f8b2a4c5462577a0",
+          "operation": "lifecycle-transition-v1",
+          "requirement_ids": [
+            "LIF-001",
+            "LIF-002",
+            "LIF-003",
+            "LIF-004",
+            "LIF-005"
+          ],
+          "default_rule": "LIF-001",
+          "case_rules": {
+            "node~running~draining": "LIF-002",
+            "composite~created~preparing": "LIF-004",
+            "composite~preparing~ready": "LIF-004",
+            "composite~ready~running": "LIF-004",
+            "composite~running~draining": "LIF-004",
+            "composite~draining~succeeded": "LIF-004",
+            "composite~running~cancelled": "LIF-004",
+            "composite~draining~failed": "LIF-004"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "subject",
+            "from",
+            "to"
+          ],
+          "expected_columns": [
+            "outcome",
+            "code"
+          ]
+        },
+        {
+          "id": "terminal-races-v1",
+          "path": "../c2/terminal-races-v1.tsv",
+          "sha256": "sha256:53e126e36f5628e40e50157848d66bf68a36df43544798d5f799e90e6f25ed60",
+          "operation": "terminal-race-v1",
+          "requirement_ids": [
+            "TRM-001",
+            "TRM-002",
+            "TRM-003"
+          ],
+          "default_rule": "TRM-001",
+          "case_rules": {
+            "failure-during-drain": "TRM-002",
+            "downstream-cancel-blocked": "TRM-003"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "terminal",
+            "queue",
+            "primary"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "lifecycle-v1#node~created~preparing"
+        ],
+        "negative": [
+          "lifecycle-v1#node~created~running"
+        ],
+        "boundary": [
+          "terminal-races-v1#authority-vs-deadline"
+        ],
+        "migration": [
+          "lifecycle-v1#composite~created~preparing"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "lifecycle_vectors"
+        }
+      ]
+    },
+    {
+      "id": "composites",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "CMP-001",
+        "CMP-002",
+        "CMP-003",
+        "CMP-004",
+        "CMP-005",
+        "CMP-006",
+        "CMP-007",
+        "CMP-008",
+        "CMP-009",
+        "CMP-010"
+      ],
+      "artifacts": [
+        {
+          "id": "composite-v1",
+          "path": "../c2/composite-v1.tsv",
+          "sha256": "sha256:81edccde7dc653116d931b90a61b95b3b1171b471294aa28a06c1bee5bd7a7b1",
+          "operation": "composite-validation-v1",
+          "requirement_ids": [
+            "CMP-001",
+            "CMP-002",
+            "CMP-003",
+            "CMP-004",
+            "CMP-005",
+            "CMP-006",
+            "CMP-007",
+            "CMP-008",
+            "CMP-009",
+            "CMP-010"
+          ],
+          "default_rule": "CMP-001",
+          "case_rules": {
+            "nested": "CMP-005",
+            "fan-out": "CMP-008",
+            "parameter": "CMP-007",
+            "duplicate-export": "CMP-002",
+            "dangling-export": "CMP-003",
+            "incompatible-export": "CMP-002",
+            "recursive-definition": "CMP-004",
+            "boundary-bypass": "CMP-003"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "code",
+            "provenance"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "composite-v1#one-level"
+        ],
+        "negative": [
+          "composite-v1#recursive-definition"
+        ],
+        "boundary": [
+          "composite-v1#fan-out"
+        ],
+        "migration": [
+          "composite-v1#nested"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "composite_vectors"
+        }
+      ]
+    },
+    {
+      "id": "authority",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "AUT-001",
+        "AUT-002",
+        "AUT-003",
+        "AUT-004",
+        "AUT-005",
+        "AUT-006",
+        "AUT-007",
+        "AUT-008",
+        "AUT-009",
+        "SEN-001",
+        "SEN-002",
+        "SEN-003"
+      ],
+      "artifacts": [
+        {
+          "id": "authority-v1",
+          "path": "../c2/authority-v1.tsv",
+          "sha256": "sha256:b6ff3a0b77c52600eff51ac8685087cb543806f24e7087dea537d0e8930680a5",
+          "operation": "authority-validation-v1",
+          "requirement_ids": [
+            "AUT-001",
+            "AUT-002",
+            "AUT-003",
+            "AUT-004",
+            "AUT-005",
+            "AUT-006",
+            "AUT-007",
+            "AUT-008",
+            "AUT-009",
+            "SEN-001",
+            "SEN-002",
+            "SEN-003"
+          ],
+          "default_rule": "AUT-003",
+          "case_rules": {
+            "allow": "AUT-002",
+            "deny_missing_grant": "AUT-002",
+            "expiry": "AUT-003",
+            "nondelegable_cross_host": "AUT-007",
+            "sensitivity_downgrade": "SEN-001",
+            "composite_aggregation": "AUT-006",
+            "redacted_evidence": "SEN-003"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "reason"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "authority-v1#allow"
+        ],
+        "negative": [
+          "authority-v1#deny_missing_grant"
+        ],
+        "boundary": [
+          "authority-v1#expiry"
+        ],
+        "migration": [
+          "authority-v1#composite_aggregation"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "authority_vectors"
+        }
+      ]
+    },
+    {
+      "id": "plans",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "PLN-001",
+        "PLN-002",
+        "PLN-003",
+        "PLN-004",
+        "PLN-005",
+        "PLN-006",
+        "PLN-007",
+        "PLN-008",
+        "PLN-009",
+        "PLN-010"
+      ],
+      "artifacts": [
+        {
+          "id": "execution-plan-v1",
+          "path": "../c2/execution-plan-v1.tsv",
+          "sha256": "sha256:ca9379492e055f3a963a968814b027d77caeeba9006981df889f2f004950ca3a",
+          "operation": "execution-plan-validation-v1",
+          "requirement_ids": [
+            "PLN-001",
+            "PLN-002",
+            "PLN-003",
+            "PLN-004",
+            "PLN-005",
+            "PLN-006",
+            "PLN-007",
+            "PLN-008",
+            "PLN-009",
+            "PLN-010"
+          ],
+          "default_rule": "PLN-005",
+          "case_rules": {
+            "valid_minimal": "PLN-002",
+            "valid_nested": "PLN-008",
+            "hash_mismatch": "PLN-004",
+            "zero_or_unbounded_capacity": "PLN-007",
+            "unresolved_implementation": "PLN-003",
+            "absent_grant": "PLN-005",
+            "expired_grant": "PLN-006",
+            "stale_host_report": "PLN-006",
+            "canonical_identity": "PLN-004",
+            "bounded_instance_pool": "PLN-009"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome",
+            "reason"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "execution-plan-v1#valid_minimal"
+        ],
+        "negative": [
+          "execution-plan-v1#hash_mismatch"
+        ],
+        "boundary": [
+          "execution-plan-v1#bounded_instance_pool"
+        ],
+        "migration": [
+          "execution-plan-v1#canonical_identity"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010"
+      ],
+      "artifacts": [
+        {
+          "id": "execution-event-v1",
+          "path": "../c2/execution-event-v1.tsv",
+          "sha256": "sha256:cfb5913532cf0975b8c74dbcbbc2c9541023d8ceb4e7d78121f60d889e7f6496",
+          "operation": "execution-event-validation-v1",
+          "requirement_ids": [
+            "EVD-001",
+            "EVD-002",
+            "EVD-003",
+            "EVD-004",
+            "EVD-005",
+            "EVD-006",
+            "EVD-007",
+            "EVD-008",
+            "EVD-009",
+            "EVD-010"
+          ],
+          "default_rule": "EVD-002",
+          "case_rules": {
+            "causation_chain": "EVD-005",
+            "nested_subject": "EVD-004",
+            "pressure_loss": "EVD-007",
+            "redaction": "EVD-007",
+            "correction": "EVD-006",
+            "terminal": "EVD-002",
+            "distributed_out_of_order": "EVD-008",
+            "replay_equivalence": "EVD-010",
+            "malformed_payload_reference": "EVD-007",
+            "semantic_hash_stability": "EVD-009",
+            "ndjson_round_trip": "EVD-010"
+          },
+          "format": "tsv",
+          "case_columns": [
+            "case"
+          ],
+          "expected_columns": [
+            "outcome"
+          ]
+        },
+        {
+          "id": "execution-event-stream-v1",
+          "path": "../c2/execution-event-v1.ndjson",
+          "sha256": "sha256:efaebc74bc69119d0f08b26e7ee94effc1c686be6953de6a0ed384cfa00ca39d",
+          "operation": "execution-event-ndjson-v1",
+          "requirement_ids": [
+            "EVD-001",
+            "EVD-002",
+            "EVD-003",
+            "EVD-004",
+            "EVD-005",
+            "EVD-007",
+            "EVD-010"
+          ],
+          "default_rule": "EVD-010",
+          "case_rules": {
+            "event/source": "EVD-001",
+            "event/dropped": "EVD-007",
+            "event/terminal": "EVD-002"
+          },
+          "format": "ndjson",
+          "case_fields": [
+            "event_id"
+          ],
+          "expected_fields": [
+            "identity"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "execution-event-v1#causation_chain"
+        ],
+        "negative": [
+          "execution-event-v1#malformed_payload_reference"
+        ],
+        "boundary": [
+          "execution-event-v1#distributed_out_of_order"
+        ],
+        "migration": [
+          "execution-event-v1#replay_equivalence"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "evidence_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "evidence_ndjson"
+        }
+      ]
+    }
+  ]
+}

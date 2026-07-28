@@ -332,5 +332,36 @@
       "canonical_hex": "434e440122000000000000000f636f6e647569742f6578616d706c6500000007310000000000000005220000000000000005656d707479002200000000000000056c696d697410fffffffffffffffffffffffffffffffd2200000000000000056e616d6573300000000000000002210000000000000002c3a921000000000000000365cc81220000000000000005726574727910000000000000000000000000000000042200000000000000077061796c6f61642000000000000000030001ff",
       "semantic_hash": "sha256:f18ea35bc600ad01bd5e9009d53d0547f0256fd7e068784a7beac02670ac2eb4"
     }
+  ],
+  "negative_vectors": [
+    {
+      "name": "duplicate-map-key",
+      "kind": "conduit/example",
+      "schema_version": 1,
+      "body": {
+        "map": [
+          {
+            "name": "id",
+            "value": null
+          },
+          {
+            "name": "id",
+            "value": {
+              "boolean": false
+            }
+          }
+        ]
+      },
+      "expected_error": "duplicate-map-key"
+    },
+    {
+      "name": "invalid-identifier",
+      "kind": "conduit/example",
+      "schema_version": 1,
+      "body": {
+        "identifier": "Not/Portable"
+      },
+      "expected_error": "invalid-identifier"
+    }
   ]
 }

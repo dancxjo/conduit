@@ -19,7 +19,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
-      - run: python3 conformance/c1/verify_canonical_v1.py
+      - run: cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
       - run: cargo run -p conduct -- --check examples/hello.panel
       - run: cargo run -p conduct -- --explain examples/hello.panel
       - run: test "$(cargo run -q -p conduct -- examples/hello.panel)" = "HELLO FROM CONDUIT."

@@ -47,6 +47,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`012-immutable-execution-event-v1.md`](012-immutable-execution-event-v1.md)
   freezes append-only run evidence, causation/correlation/time separation,
   structural redaction, replay validation, and hosted NDJSON round-tripping.
+- [`013-conformance-harness-v1.md`](013-conformance-harness-v1.md) freezes the
+  language-neutral fixture inventory, NDJSON runner protocol, structured
+  comparison results, deterministic seeds, and fixture review/version rules.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

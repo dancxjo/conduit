@@ -87,4 +87,18 @@ cargo check -p conduit-core --no-default-features \
   --target thumbv6m-none-eabi
 ```
 
+The complete normative inventory also has a language-neutral NDJSON protocol
+and a hosted Rust reference runner:
+
+```sh
+cargo run -p conduit-conformance -- audit conformance/v1/manifest.json
+cargo run -p conduit-conformance -- requests conformance/v1/manifest.json
+cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
+```
+
+Third-party implementations consume the `requests` stream and submit matching
+NDJSON to `check-results`; no Rust or repository-specific binding is required.
+See
+[`spec/013-conformance-harness-v1.md`](spec/013-conformance-harness-v1.md).
+
 Conduit is released under the MIT license.
