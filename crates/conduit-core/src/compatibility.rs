@@ -7,7 +7,7 @@
 
 use core::fmt;
 
-use crate::{Id, SemanticHash};
+use crate::{Id, SemanticHash, TypeContractRef};
 
 /// An exact descriptor revision participating in a compatibility question.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -36,6 +36,13 @@ pub enum CompatibilityQuery<'a> {
         reader: DescriptorRef<'a>,
         /// Producer of encoded documents or evidence.
         writer: DescriptorRef<'a>,
+    },
+    /// Whether every value emitted by `producer` is accepted by `consumer`.
+    ConsumerAcceptsProducer {
+        /// Domain-owned type contract at the consuming boundary.
+        consumer: TypeContractRef<'a>,
+        /// Domain-owned type contract at the producing boundary.
+        producer: TypeContractRef<'a>,
     },
     /// Whether `candidate` may replace `required` at a semantic boundary.
     CandidateSubstitutesRequired {
@@ -145,6 +152,32 @@ pub enum CompatibilityReason {
     MigrationNotTotal,
     /// Exact deterministic total migration is available.
     MigrationAccepted,
+    /// Both type-contract references have exact identity.
+    TypeContractExact,
+    /// Both contracts explicitly select the same structural projection.
+    TypeStructuralAccepted,
+    /// Explicit structural projections differ.
+    TypeStructuralMismatch,
+    /// The contracts select different comparison strategies.
+    TypeStrategyMismatch,
+    /// A provider returned a comparison strategy unknown to this registry.
+    TypeStrategyUnknown,
+    /// A type-contract reference is malformed.
+    InvalidTypeReference,
+    /// No provider is registered for the required namespace.
+    TypeProviderUnavailable,
+    /// A provider does not know the exact referenced contract.
+    TypeContractUnknown,
+    /// A provider descriptor does not match the referenced semantic identity.
+    TypeDescriptorInvalid,
+    /// A domain provider proved directional acceptance.
+    TypeProviderAccepted,
+    /// A domain provider disproved directional acceptance.
+    TypeProviderRejected,
+    /// A domain provider requires an additional named fact.
+    TypeProviderIndeterminate,
+    /// A provider returned a malformed decision.
+    TypeProviderDecisionInvalid,
 }
 
 impl CompatibilityReason {
@@ -168,6 +201,19 @@ impl CompatibilityReason {
             Self::MigrationNotDeterministic => "migration-not-deterministic",
             Self::MigrationNotTotal => "migration-not-total",
             Self::MigrationAccepted => "migration-accepted",
+            Self::TypeContractExact => "type-contract-exact",
+            Self::TypeStructuralAccepted => "type-structural-accepted",
+            Self::TypeStructuralMismatch => "type-structural-mismatch",
+            Self::TypeStrategyMismatch => "type-strategy-mismatch",
+            Self::TypeStrategyUnknown => "type-strategy-unknown",
+            Self::InvalidTypeReference => "invalid-type-reference",
+            Self::TypeProviderUnavailable => "type-provider-unavailable",
+            Self::TypeContractUnknown => "type-contract-unknown",
+            Self::TypeDescriptorInvalid => "type-descriptor-invalid",
+            Self::TypeProviderAccepted => "type-provider-accepted",
+            Self::TypeProviderRejected => "type-provider-rejected",
+            Self::TypeProviderIndeterminate => "type-provider-indeterminate",
+            Self::TypeProviderDecisionInvalid => "type-provider-decision-invalid",
         }
     }
 }
