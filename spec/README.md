@@ -38,6 +38,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`009-exported-composites-v1.md`](009-exported-composites-v1.md) freezes
   ordinary composite definitions, transparent exports, parameter bindings,
   recursive lowering, and logical/expanded provenance.
+- [`010-scoped-authority-v1.md`](010-scoped-authority-v1.md) separates fresh
+  host capability, effects, grants, exact bindings, delegation, revocation,
+  and structurally redacted sensitivity handling.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

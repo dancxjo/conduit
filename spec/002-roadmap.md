@@ -12,6 +12,7 @@ The repository currently proves:
 - type, cardinality, capacity, and cycle validation;
 - the exact bounded FlowPolicy algebra and allocator-free reference queue;
 - exact lifecycle, cancellation, terminal-race, and queue-disposition rules;
+- scoped effects, grants, deterministic authority binding, and redaction;
 - exact explanation output;
 - finite acyclic execution;
 - process stdin/stdout/stderr as explicit node implementations;
@@ -23,7 +24,6 @@ It does **not** yet claim:
 - live streaming scheduling;
 - full pressure-policy execution;
 - implementation manifests and host capability reports;
-- authority grants;
 - artifact resolution;
 - canonical plan bytes;
 - durable event evidence;

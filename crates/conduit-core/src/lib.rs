@@ -9,6 +9,7 @@
 
 use core::fmt;
 
+mod authority;
 mod canonical;
 mod compatibility;
 mod composite;
@@ -18,6 +19,16 @@ mod lifecycle;
 mod port;
 mod type_contract;
 
+pub use authority::{
+    AuthorityConstraintRef, AuthorityDenial, AuthorityEvent, AuthorityEventKind, AuthorityGrant,
+    AuthorityReason, AuthorityScope, AuthorityTime, DelegationPolicy, EffectRequirement,
+    EvidenceValue, GrantStatus, HostCapability, MAX_AUTHORITY_CONSTRAINTS, NodeEffectSet,
+    ObservedGrant, PlacedEffect, RedactedValueMetadata, ResolvedAuthorityBinding, ResourceRef,
+    ResourceSelector, SensitivityDecision, SensitivityDisposition, SensitivityReason,
+    SensitivityUse, aggregate_composite_effect_sets, assess_sensitivity, authority_bound_event,
+    authority_denial_event, authority_terminal_cause, resolve_authority, resolve_authority_plan,
+    validate_authority_at_use,
+};
 pub use canonical::{
     CANONICAL_FORM_VERSION, CANONICAL_MAGIC, CanonicalDescriptor, CanonicalError, CanonicalSink,
     CanonicalValue, FieldDisposition, MAX_CANONICAL_DEPTH, MapField, SEMANTIC_HASH_DOMAIN,

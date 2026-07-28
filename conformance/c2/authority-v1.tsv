@@ -1,0 +1,10 @@
+# case	capability	grant	resource	scope	time	delegation	sensitivity	outcome	reason
+allow	fresh	matching	exact	descendant	active	same-host	public	compatible	authority-bound
+deny_missing_grant	fresh	missing	exact	descendant	active	same-host	public	incompatible	grant-missing
+resource_mismatch	fresh	mismatch	exact	descendant	active	same-host	public	incompatible	grant-resource-mismatch
+scope_mismatch	fresh	matching	exact	outside	active	same-host	public	incompatible	grant-scope-mismatch
+expiry	fresh	matching	exact	descendant	expired	same-host	public	incompatible	grant-expired
+nondelegable_cross_host	fresh	matching	exact	exact	active	none	public	incompatible	grant-delegation-denied
+sensitivity_downgrade	fresh	matching	exact	descendant	active	same-host	secret-to-public	incompatible	port-sensitivity-violation
+composite_aggregation	fresh	matching	all-reachable	descendant	active	same-host	public	compatible	authority-bound
+redacted_evidence	fresh	matching	exact	descendant	active	same-host	secret	compatible	redacted

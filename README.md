@@ -49,6 +49,9 @@ drain/abort queue disposition, and substitutable composite derivation.
 Reusable `composite` definitions contain ordinary nodes and cords, expose only
 explicit typed ports, bind configuration separately, and explain both logical
 and deterministically flattened primitive views.
+Authority resolution keeps fresh host capability, declared effects, scoped
+grants, and exact plan bindings separate; protected diagnostics and evidence
+carry redacted metadata instead of value bytes.
 
 ## Design boundaries
 
