@@ -18,6 +18,8 @@ The current documents are candidates, not a claim of ecosystem stability:
   specifications and descriptors become normative and conformant.
 - [`002-roadmap.md`](002-roadmap.md) defines the smallest proof sequence from
   the current one-shot executor to embedded and domain integrations.
+- [`003-canonical-descriptor-v1.md`](003-canonical-descriptor-v1.md) freezes the
+  allocator-free canonical descriptor bytes and semantic-hash vectors.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

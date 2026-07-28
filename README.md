@@ -27,7 +27,8 @@ execution plan; packaging and code generation are separate operations.
 
 This repository contains the first executable Plan C foundation:
 
-- `conduit-core`: allocator-free contracts and plan validation;
+- `conduit-core`: allocator-free contracts, canonical semantic hashes, and plan
+  validation;
 - `conduit-panel`: the initial editable `.panel` source reader;
 - `conduit-runtime`: a hosted registry, resolver, explainer, and one-shot
   executor;
@@ -61,6 +62,7 @@ conformance roadmap.
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+python3 conformance/c1/verify_canonical_v1.py
 cargo check -p conduit-core --no-default-features \
   --target thumbv6m-none-eabi
 ```
