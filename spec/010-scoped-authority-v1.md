@@ -126,8 +126,8 @@ then resolves any simultaneous failure or cancellation.
 
 Immutable authority evidence payloads cover binding, successful use, denial,
 revocation, and expiry. They retain requesting path, action, grant ID, and
-audit ID where known. Issue #12 supplies the common provenance envelope and
-sequence ownership.
+audit ID where known. Specification 012 supplies the common provenance
+envelope and sequence ownership.
 
 The core models authority but cannot make native in-process code safe. A host
 integration must enforce the binding at the implementation/resource boundary.

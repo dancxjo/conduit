@@ -44,6 +44,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`011-exact-execution-plan-v1.md`](011-exact-execution-plan-v1.md) freezes
   exact runnable-plan contents, canonical identity, portable validation,
   freshness, resource accounting, and bounded expansion/pool identity.
+- [`012-immutable-execution-event-v1.md`](012-immutable-execution-event-v1.md)
+  freezes append-only run evidence, causation/correlation/time separation,
+  structural redaction, replay validation, and hosted NDJSON round-tripping.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

@@ -14,6 +14,7 @@ The repository currently proves:
 - exact lifecycle, cancellation, terminal-race, and queue-disposition rules;
 - scoped effects, grants, deterministic authority binding, and redaction;
 - canonical exact-plan identity, portable validation, freshness, and budgets;
+- immutable execution-event identity, causation, replay, and NDJSON;
 - exact explanation output;
 - finite acyclic execution;
 - process stdin/stdout/stderr as explicit node implementations;
@@ -27,7 +28,7 @@ It does **not** yet claim:
 - implementation manifests and host capability reports;
 - hosted artifact discovery and resolution;
 - canonical plan byte export/import;
-- durable event evidence;
+- durable evidence storage and indexing;
 - remote cords;
 - Patchbay UI.
 

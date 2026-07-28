@@ -141,6 +141,8 @@ deadline wins disconnect; and disconnect wins completion.
 Every accepted state transition emits immutable evidence containing subject,
 exact before/after state, local monotonic sequence, and structured terminal
 cause when required. Rejected transitions do not advance sequence or state.
+Specification 012 defines the common exact-run envelope that wraps this local
+semantic observation without replacing its sequence or lifecycle facts.
 
 Cancellation evidence contains its registration-order sequence, resource,
 receiving and initiating scopes, local reason, initiating reason, absolute
