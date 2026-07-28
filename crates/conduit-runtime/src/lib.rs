@@ -247,6 +247,26 @@ impl Default for Registry {
 impl Registry {
     /// Resolves semantic source references to concrete hosted implementations.
     pub fn resolve<'a>(&'a self, panel: &'a Panel) -> Result<ResolvedPanel<'a>, ResolutionError> {
+        let has_unlowered_source = !panel.imports.is_empty()
+            || !panel.roots.is_empty()
+            || !panel.port_groups.is_empty()
+            || !panel.pools.is_empty()
+            || panel.nodes.iter().any(|node| node.constraint.is_some())
+            || panel.definitions.iter().any(|definition| {
+                !definition.parameters.is_empty()
+                    || !definition.port_groups.is_empty()
+                    || !definition.pools.is_empty()
+                    || definition
+                        .nodes
+                        .iter()
+                        .any(|node| node.constraint.is_some())
+            });
+        if has_unlowered_source {
+            return Err(ResolutionError::new(
+                "CND-PLN-005",
+                "imports, roots, constraints, port groups, and pools must be explicitly lowered before runtime resolution",
+            ));
+        }
         let expanded = expand_panel(panel, &self.nodes)?;
         if expanded.nodes.len() > usize::from(u16::MAX) {
             return Err(ResolutionError::new(
@@ -1565,6 +1585,23 @@ mod tests {
     }
 
     #[test]
+    fn source_only_module_group_and_pool_forms_require_explicit_lowering() {
+        for source in [
+            "panel 1\nimport \"./child.panel\" as child",
+            "panel 1\nport-group routes input : fixture/request indexed max 8",
+            "panel 1\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
+            "panel 1\nnode app { node child : conduit/literal }\nroot app",
+            "panel 1\nnode source : conduit/literal using ready",
+        ] {
+            let panel = parse(source).expect("source form parses");
+            let error = Registry::default()
+                .resolve(&panel)
+                .expect_err("source-only construct must not be ignored");
+            assert_eq!(error.code, "CND-PLN-005");
+        }
+    }
+
+    #[test]
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
             "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
@@ -1713,12 +1750,13 @@ mod tests {
     #[test]
     fn rejects_recursive_duplicate_dangling_and_boundary_bypass() {
         let registry = Registry::default();
-        for (source, code) in [
+        for (source, source_code, runtime_code) in [
             (
                 "panel 1\ncomposite example/a { node b : example/b }\n\
                  composite example/b { node a : example/a }\n\
                  node root : example/a",
-                "CND-CMP-005",
+                None,
+                Some("CND-CMP-005"),
             ),
             (
                 "panel 1\ncomposite example/a {\n\
@@ -1726,21 +1764,24 @@ mod tests {
                    export output out = source.out\n\
                    export output out = source.out\n\
                  }\nnode root : example/a",
-                "CND-CMP-002",
+                Some("CND-SRC-002"),
+                None,
             ),
             (
                 "panel 1\ncomposite example/a {\n\
                    node source : conduit/stdin\n\
                    export output out = missing.out\n\
                  }\nnode root : example/a",
-                "CND-CMP-003",
+                Some("CND-SRC-009"),
+                None,
             ),
             (
                 "panel 1\ncomposite example/a {\n\
                    node source : conduit/stdin\n\
                    export input in = source.out\n\
                  }\nnode root : example/a",
-                "CND-CMP-003",
+                None,
+                Some("CND-CMP-003"),
             ),
             (
                 "panel 1\ncomposite example/a {\n\
@@ -1748,7 +1789,8 @@ mod tests {
                    export output out = source.out\n\
                    bind value = source.missing\n\
                  }\nnode root : example/a { value = x }",
-                "CND-CMP-003",
+                None,
+                Some("CND-CMP-003"),
             ),
             (
                 "panel 1\ncomposite example/a {\n\
@@ -1756,12 +1798,20 @@ mod tests {
                    export output out = source.out\n\
                  }\nnode root : example/a\nnode sink : conduit/stdout\n\
                  cord root.source.out -> sink.in",
-                "CND-CMP-006",
+                Some("CND-SRC-009"),
+                None,
             ),
         ] {
-            let panel = parse(source).expect("negative fixture parses");
-            let error = registry.resolve(&panel).expect_err("must reject");
-            assert_eq!(error.code, code, "{}", error.message);
+            match parse(source) {
+                Err(error) => {
+                    assert_eq!(Some(error.code), source_code, "{}", error.message);
+                }
+                Ok(panel) => {
+                    assert!(source_code.is_none(), "expected source rejection");
+                    let error = registry.resolve(&panel).expect_err("must reject");
+                    assert_eq!(Some(error.code), runtime_code, "{}", error.message);
+                }
+            }
         }
     }
 }

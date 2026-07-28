@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 1,
+  "manifest_revision": 2,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -939,6 +939,96 @@
         {
           "package": "conduit-runtime",
           "test": "evidence_ndjson"
+        }
+      ]
+    },
+    {
+      "id": "panel-source",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006",
+        "SRC-007",
+        "SRC-008",
+        "SRC-009",
+        "SRC-010",
+        "SRC-011"
+      ],
+      "artifacts": [
+        {
+          "id": "panel-grammar-v1",
+          "path": "../c3/panel-grammar-v1.json",
+          "sha256": "sha256:fb8346d3910f86665fde108cfef53839d9d84c073c41ddf71c99be27a7ed3d4c",
+          "operation": "panel-source-v1",
+          "requirement_ids": [
+            "SRC-001",
+            "SRC-002",
+            "SRC-003",
+            "SRC-004",
+            "SRC-005",
+            "SRC-006",
+            "SRC-007",
+            "SRC-008",
+            "SRC-009",
+            "SRC-010",
+            "SRC-011"
+          ],
+          "default_rule": "SRC-001",
+          "case_rules": {
+            "import-alias-pin": "SRC-005",
+            "multiple-roots-selected": "SRC-006",
+            "port-groups": "SRC-008",
+            "bounded-pools": "SRC-008",
+            "format-equivalence": "SRC-010",
+            "unsupported-version": "SRC-007",
+            "duplicate-symbol": "SRC-002",
+            "boundary-bypass": "SRC-009",
+            "multiple-roots-unselected": "SRC-006",
+            "zero-group-maximum": "SRC-008",
+            "duplicate-group-member": "SRC-002",
+            "unbounded-pool": "SRC-008",
+            "missing-import": "SRC-003",
+            "import-cycle": "SRC-004",
+            "pin-mismatch": "SRC-005",
+            "resolved-import": "SRC-003"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "outcome",
+            "code"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "panel-grammar-v1#minimal",
+          "panel-grammar-v1#resolved-import"
+        ],
+        "negative": [
+          "panel-grammar-v1#malformed-cord",
+          "panel-grammar-v1#import-cycle"
+        ],
+        "boundary": [
+          "panel-grammar-v1#port-groups",
+          "panel-grammar-v1#bounded-pools"
+        ],
+        "migration": [
+          "panel-grammar-v1#format-equivalence",
+          "panel-grammar-v1#definition-parameters-constraint-export"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-panel",
+          "test": "panel_grammar_vectors"
         }
       ]
     }

@@ -50,6 +50,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`013-conformance-harness-v1.md`](013-conformance-harness-v1.md) freezes the
   language-neutral fixture inventory, NDJSON runner protocol, structured
   comparison results, deterministic seeds, and fixture review/version rules.
+- [`014-panel-grammar-modules-v1.md`](014-panel-grammar-modules-v1.md) freezes
+  `.panel` grammar version 1, lossless CST/source-AST separation, deterministic
+  imports and roots, and bounded group/pool authoring forms.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.
