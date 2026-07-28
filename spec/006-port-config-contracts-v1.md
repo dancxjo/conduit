@@ -72,6 +72,9 @@ finite or open-ended producers; the other values are exact. Public consumers
 cannot accept restricted or secret producers without an explicit
 declassification adapter and authority.
 
+Specification 010 freezes the authority binding and recording/presentation
+rules. No grant permits an implicit sensitivity downgrade.
+
 Substitution checks use the variance direction from `COM-008`. A candidate may
 not make an optional port required or narrow the permitted connection counts.
 Input type decisions ask whether the candidate accepts the required input;
