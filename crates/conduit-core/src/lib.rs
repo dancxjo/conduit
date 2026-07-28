@@ -12,6 +12,7 @@ use core::fmt;
 mod canonical;
 mod compatibility;
 mod config;
+mod flow;
 mod port;
 mod type_contract;
 
@@ -28,6 +29,12 @@ pub use compatibility::{
 pub use config::{
     ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,
     ConfigIdentity, ConfigMutability, ConfigRequirement,
+};
+pub use flow::{
+    BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
+    FlowOffer, FlowPolicy, FlowPolicyDecision, FlowPolicyError, FlowPolicyReason, FlowQueueState,
+    FlowTypeFacts, FlowWatermarks, OfferDisposition, OfferTransition, PopTransition, Pressure,
+    QueueError, SampleSchedule, TraitProof,
 };
 pub use port::{
     ConnectionCardinality, Delivery, Direction, LossAcceptance, PortCompatibilityDecision,
@@ -121,34 +128,6 @@ impl fmt::Display for IdError {
     }
 }
 
-/// Behavior when a producer reaches a cord's finite capacity.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Pressure {
-    /// Suspend production until capacity is available.
-    Block,
-    /// Reject the attempted write.
-    Reject,
-    /// Replace a prior value under the carried type's replacement relation.
-    Coalesce,
-    /// Keep values according to an exact sampling policy.
-    Sample,
-    /// Drop only values explicitly declared disposable.
-    DropDisposable,
-    /// End the cord connection.
-    Disconnect,
-    /// Fail the affected execution scope.
-    Fail,
-}
-
-/// Exact bounded flow policy for a resolved cord.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct FlowPolicy {
-    /// Maximum number of values resident on the cord.
-    pub capacity_items: u16,
-    /// Saturation behavior.
-    pub pressure: Pressure,
-}
-
 /// A semantic node contract.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeContract<'a> {
@@ -190,7 +169,7 @@ pub struct PlanCord<'a> {
     /// Input endpoint.
     pub to: Endpoint,
     /// Exact flow behavior.
-    pub flow: FlowPolicy,
+    pub flow: FlowPolicy<'a>,
 }
 
 /// A borrowed resolved execution plan suitable for constrained runtimes.
@@ -289,7 +268,7 @@ pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
                 subject_index: u16::try_from(index).ok(),
             });
         }
-        if cord.flow.capacity_items == 0 {
+        if cord.flow.capacity.items() == 0 {
             return Err(ValidationError {
                 code: DiagnosticCode::UnboundedCord,
                 subject_index: u16::try_from(index).ok(),
@@ -355,6 +334,15 @@ pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
                 subject_index: u16::try_from(index).ok(),
             });
         }
+        if cord.flow.pressure.permits_loss()
+            && (source_port.flow.loss == LossAcceptance::LosslessOnly
+                || target_port.flow.loss == LossAcceptance::LosslessOnly)
+        {
+            return Err(ValidationError {
+                code: DiagnosticCode::FlowConstraintMismatch,
+                subject_index: u16::try_from(index).ok(),
+            });
+        }
     }
 
     for (node_index, node) in plan.nodes.iter().enumerate() {
@@ -413,6 +401,19 @@ mod tests {
         ]),
     };
     const NO_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
+    const CAPACITY: FlowCapacity = match FlowCapacity::new(1, 64, 64) {
+        Ok(capacity) => capacity,
+        Err(_) => panic!("valid test capacity"),
+    };
+    const WATERMARKS: FlowWatermarks = match FlowWatermarks::new(0, 1, CAPACITY) {
+        Ok(watermarks) => watermarks,
+        Err(_) => panic!("valid test watermarks"),
+    };
+    const FLOW: FlowPolicy<'static> = FlowPolicy {
+        capacity: CAPACITY,
+        pressure: Pressure::Block(BlockingFairness::Fifo),
+        watermarks: WATERMARKS,
+    };
     const OUT: PortContract<'static> = PortContract {
         id: Id("out"),
         direction: Direction::Output,
@@ -472,10 +473,7 @@ mod tests {
             id: Id("speech"),
             from: Endpoint { node: 0, port: 0 },
             to: Endpoint { node: 1, port: 0 },
-            flow: FlowPolicy {
-                capacity_items: 1,
-                pressure: Pressure::Block,
-            },
+            flow: FLOW,
         }];
         let plan = ExecutionPlan {
             nodes: &nodes,
@@ -487,36 +485,9 @@ mod tests {
 
     #[test]
     fn rejects_zero_capacity() {
-        let nodes = [
-            PlanNode {
-                id: Id("source"),
-                contract: &SOURCE,
-            },
-            PlanNode {
-                id: Id("sink"),
-                contract: &SINK,
-            },
-        ];
-        let cords = [PlanCord {
-            id: Id("speech"),
-            from: Endpoint { node: 0, port: 0 },
-            to: Endpoint { node: 1, port: 0 },
-            flow: FlowPolicy {
-                capacity_items: 0,
-                pressure: Pressure::Block,
-            },
-        }];
-        let plan = ExecutionPlan {
-            nodes: &nodes,
-            cords: &cords,
-        };
-
         assert_eq!(
-            validate_plan(&plan),
-            Err(ValidationError {
-                code: DiagnosticCode::UnboundedCord,
-                subject_index: Some(0),
-            })
+            FlowCapacity::new(0, 64, 64),
+            Err(FlowPolicyError::ZeroCapacity)
         );
     }
 

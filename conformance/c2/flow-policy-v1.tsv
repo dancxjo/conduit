@@ -1,0 +1,12 @@
+# case	policy	parameter	type_facts	outcome	reason	transition	disposition	events	queue_after	state
+block	block	-	any	compatible	flow-policy-accepted	full	pending	pressure-entered	a,b	active
+reject	reject	-	any	compatible	flow-policy-accepted	full	rejected	pressure-entered,value-rejected	a,b	active
+coalesce	coalesce	fixture/replace-latest	coalesce-proven	compatible	flow-policy-accepted	full	coalesced	pressure-entered,value-coalesced	a,c	active
+sample_full	sample	1:0	any	compatible	flow-policy-accepted	full	dropped	pressure-entered,value-sampled-out	a,b	active
+drop_disposable	drop-disposable	-	disposable-proven	compatible	flow-policy-accepted	full	dropped	pressure-entered,value-dropped-disposable	a,b	active
+disconnect	disconnect	-	any	compatible	flow-policy-accepted	full	disconnected	pressure-entered,disconnected	a,b	disconnected
+fail	fail	-	any	compatible	flow-policy-accepted	full	failed	pressure-entered,failed	a,b	failed
+coalesce_unknown	coalesce	fixture/replace-latest	coalesce-unknown	indeterminate	coalescing-provider-required	none	-	-	-	-
+coalesce_missing	coalesce	fixture/replace-latest	coalesce-missing	incompatible	coalescing-relation-unavailable	none	-	-	-	-
+drop_unknown	drop-disposable	-	disposable-unknown	indeterminate	disposability-provider-required	none	-	-	-	-
+drop_forbidden	drop-disposable	-	disposable-forbidden	incompatible	type-not-disposable	none	-	-	-	-

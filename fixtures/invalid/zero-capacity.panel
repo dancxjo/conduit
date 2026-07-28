@@ -7,5 +7,7 @@ node output : conduit/stdout
 
 cord greeting.out -> output.in {
     capacity = 0
+    max_value_bytes = 65536
+    max_queued_bytes = 524288
     pressure = block
 }

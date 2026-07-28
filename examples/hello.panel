@@ -10,10 +10,18 @@ node output : conduit/stdout
 
 cord greeting.out -> shout.in {
     capacity = 8
+    max_value_bytes = 65536
+    max_queued_bytes = 524288
+    low_watermark = 4
+    high_watermark = 8
     pressure = block
 }
 
 cord shout.out -> output.in {
     capacity = 8
+    max_value_bytes = 65536
+    max_queued_bytes = 524288
+    low_watermark = 4
+    high_watermark = 8
     pressure = block
 }

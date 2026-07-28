@@ -5,7 +5,8 @@ use std::fmt;
 
 use conduit_core::{
     CanonicalDescriptor, CompatibilityClass, CompatibilityDecision, CompatibilityOutcome,
-    CompatibilityQuery, CompatibilityReason, Id, SemanticHash, TypeContractRef,
+    CompatibilityQuery, CompatibilityReason, FlowPolicy, FlowPolicyDecision, FlowTypeFacts, Id,
+    SemanticHash, TraitProof, TypeContractRef,
 };
 
 /// Comparison behavior declared by an exact type-contract descriptor.
@@ -33,6 +34,8 @@ pub struct TypeContractDescription<'a> {
     pub descriptor: CanonicalDescriptor<'a>,
     /// Comparison strategy interpreted from that exact descriptor.
     pub strategy: TypeComparisonStrategy<'a>,
+    /// Type-owned facts used by exact bounded-flow resolution.
+    pub flow_type_facts: FlowTypeFacts<'a>,
 }
 
 /// A provider's reasoned answer before the registry adds exact operands.
@@ -245,6 +248,23 @@ impl TypeRegistry {
                 None,
             ),
         }
+    }
+
+    /// Assesses one exact flow policy against provider-owned type facts.
+    #[must_use]
+    pub fn assess_flow_policy(
+        &self,
+        reference: TypeContractRef<'_>,
+        policy: FlowPolicy<'_>,
+    ) -> FlowPolicyDecision {
+        let facts = self
+            .describe(reference)
+            .map(|description| description.flow_type_facts)
+            .unwrap_or(FlowTypeFacts {
+                disposable: TraitProof::Indeterminate,
+                coalescers: None,
+            });
+        policy.assess_type_facts(facts)
     }
 
     fn provider(&self, reference: TypeContractRef<'_>) -> Option<&dyn TypeContractProvider> {

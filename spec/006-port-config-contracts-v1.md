@@ -103,8 +103,8 @@ stable `CND-PRT-*`, `CND-TYP-*`, `CND-AUT-*`, and `CND-FLW-*` diagnostics.
 Every resolved cord still requires a positive finite item capacity. Version 1
 port flow constraints say only whether loss must be absent or may be admitted
 after a TypeContract proves the required trait. Exact pressure transitions,
-capacity units, watermarks, fairness, sampling, and coalescing belong to the
-FlowPolicy algebra in #7.
+capacity units, watermarks, fairness, sampling, and coalescing are defined by
+[`007-bounded-flow-policy-v1.md`](007-bounded-flow-policy-v1.md).
 
 Version 1 terminal fields distinguish finite natural completion from an
 open-ended producer. Cancellation scopes, drain/abort, race precedence, and

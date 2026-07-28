@@ -5,5 +5,20 @@ node input : conduit/stdin
 node transform : conduit/uppercase
 node output : conduit/stdout
 
-cord input.out -> transform.in
-cord transform.out -> output.in
+cord input.out -> transform.in {
+    capacity = 8
+    max_value_bytes = 65536
+    max_queued_bytes = 524288
+    low_watermark = 4
+    high_watermark = 8
+    pressure = block
+}
+
+cord transform.out -> output.in {
+    capacity = 8
+    max_value_bytes = 65536
+    max_queued_bytes = 524288
+    low_watermark = 4
+    high_watermark = 8
+    pressure = block
+}
