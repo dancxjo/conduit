@@ -181,10 +181,14 @@ There are two distinct changes:
   correction entry to `conformance/v1/CHANGELOG.md`. A correction may repair
   malformed representation, an incorrect reference, or explanatory metadata;
   it MUST NOT silently change semantic meaning.
+- A **backward-compatible suite addition** may increment `manifest_revision`
+  when it adds an independently selectable profile and leaves every existing
+  request and expected result unchanged. The changelog records the new expected
+  operation version and unsupported-profile migration behavior.
 - A **semantic fixture version** creates a new versioned manifest when an
-  operation, input meaning, expected semantic result, stable reason, or
-  governing requirement changes. Its changelog entry records the previous and
-  new expected versions plus migration notes.
+  existing operation, input meaning, expected semantic result, stable reason,
+  or governing requirement changes. Its changelog entry records the previous
+  and new expected versions plus migration notes.
 
 Every review MUST show the affected requirement IDs, old and new artifact
 digests, whether expected output changed, reference results, and migration

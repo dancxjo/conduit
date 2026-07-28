@@ -1,23 +1,61 @@
 //! Editable `.panel` source model and parser.
 //!
-//! The current grammar is intentionally a small executable seed. It establishes
-//! source identity, primitive and composite nodes, explicit exports,
-//! configuration bindings, typed endpoint references, and bounded cord policy.
-//! Imports will extend this grammar without creating a runtime Panel object.
+//! Parsing produces source structures only. Module loading is explicit and
+//! deterministic; implementation selection, host observation, planning,
+//! execution, evidence, and presentation remain outside this crate.
 
-use std::fmt;
+use std::{collections::BTreeSet, fmt};
+
+mod document;
+mod modules;
+
+pub use document::{
+    CstToken, CstTokenKind, SourceDocument, Span, parse_document, parse_document_with_root,
+    semantic_source_hash,
+};
+pub use modules::{
+    LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedModule, resolve_modules,
+};
 
 /// Parsed editable panel source.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Panel {
     /// Source grammar major version.
     pub version: u16,
+    /// Explicit module imports in source order.
+    pub imports: Vec<Import>,
     /// Reusable composite node definitions in source order.
     pub definitions: Vec<CompositeDefinition>,
     /// Node instances.
     pub nodes: Vec<Node>,
     /// Cord declarations.
     pub cords: Vec<Cord>,
+    /// Explicit selectable root definitions.
+    pub roots: Vec<Root>,
+    /// Root selected by the caller when the document declares alternatives.
+    pub selected_root: Option<String>,
+    /// Compile-time top-level port groups.
+    pub port_groups: Vec<PortGroup>,
+    /// Plan-visible top-level bounded instance pools.
+    pub pools: Vec<InstancePool>,
+}
+
+/// One deterministic source import. Parsing never fetches it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Import {
+    /// Authored relative path or absolute URI.
+    pub target: String,
+    /// Local namespace alias.
+    pub alias: String,
+    /// Optional exact UTF-8 content digest.
+    pub content_hash: Option<String>,
+}
+
+/// One explicitly selectable root definition.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Root {
+    /// Definition or top-level instance selected as a root.
+    pub target: String,
 }
 
 /// One reusable assemblage that remains an ordinary node at its boundary.
@@ -25,6 +63,8 @@ pub struct Panel {
 pub struct CompositeDefinition {
     /// Stable semantic definition identity.
     pub id: String,
+    /// Typed source parameters. They are not live ports.
+    pub parameters: Vec<Parameter>,
     /// Child instances.
     pub nodes: Vec<Node>,
     /// Internal cords.
@@ -33,6 +73,18 @@ pub struct CompositeDefinition {
     pub exports: Vec<PortExport>,
     /// Explicit boundary-parameter-to-child-config mappings.
     pub bindings: Vec<ConfigBinding>,
+    /// Compile-time port groups owned by this definition.
+    pub port_groups: Vec<PortGroup>,
+    /// Finite pools of this definition's child templates.
+    pub pools: Vec<InstancePool>,
+}
+
+/// One typed composite source parameter.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Parameter {
+    pub id: String,
+    pub value_type: String,
+    pub default: Option<String>,
 }
 
 /// Direction of one explicitly exported boundary port.
@@ -64,8 +116,69 @@ pub struct Node {
     pub id: String,
     /// Semantic node-contract identity.
     pub kind: String,
+    /// Unresolved implementation/capability constraint such as `ready`.
+    pub constraint: Option<String>,
     /// Source configuration entries.
     pub config: Vec<ConfigEntry>,
+}
+
+/// Shape of a compile-time group of ordinary ports.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PortGroupShape {
+    /// Explicit stable keys in source order.
+    Keyed(Vec<String>),
+    /// Stable indices `0..maximum`.
+    Indexed,
+}
+
+/// One finite compile-time port group.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortGroup {
+    pub id: String,
+    pub direction: ExportDirection,
+    /// Complete semantic `PortContract` identity applied to every member.
+    pub port_contract: String,
+    pub maximum: u16,
+    pub shape: PortGroupShape,
+}
+
+/// Admission policy for a finite instance pool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PoolAdmission {
+    Reject,
+    Block,
+    QueueBounded(u16),
+    Fail,
+}
+
+/// Cleanup policy for a finite instance pool.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PoolCleanup {
+    Drain,
+    Abort,
+}
+
+/// Supervision policy for child attempts.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PoolSupervision {
+    FailTogether,
+    Isolate,
+    RestartBounded { attempts: u16, backoff_ms: u64 },
+    Fallback(String),
+    Escalate,
+}
+
+/// One source-level, finitely bounded composite instance pool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstancePool {
+    pub id: String,
+    pub template: String,
+    pub maximum: u16,
+    pub admission: PoolAdmission,
+    pub deadline_ms: u64,
+    pub idle_timeout_ms: u64,
+    pub supervision: PoolSupervision,
+    pub cleanup: PoolCleanup,
 }
 
 impl Node {
@@ -194,9 +307,12 @@ enum TokenKind {
     String(String),
     Number(u64),
     Colon,
+    Comma,
     Equals,
     LeftBrace,
     RightBrace,
+    LeftParen,
+    RightParen,
     Arrow,
     Eof,
 }
@@ -208,7 +324,7 @@ struct Token {
     column: usize,
 }
 
-/// Parses the initial `.panel` grammar.
+/// Parses normative `.panel` grammar version 1.
 ///
 /// ```text
 /// panel 1
@@ -224,7 +340,16 @@ struct Token {
 /// }
 /// ```
 pub fn parse(source: &str) -> Result<Panel, ParseError> {
-    Parser::new(lex(source)?).parse()
+    parse_with_root(source, None)
+}
+
+/// Parses a document and explicitly selects one of its declared roots.
+pub fn parse_with_root(source: &str, selected_root: Option<&str>) -> Result<Panel, ParseError> {
+    Parser::new(lex(source)?).parse(selected_root, true)
+}
+
+fn parse_module(source: &str) -> Result<Panel, ParseError> {
+    Parser::new(lex(source)?).parse(None, false)
 }
 
 fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
@@ -261,6 +386,15 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                 index += 1;
                 column += 1;
             }
+            b',' => {
+                tokens.push(Token {
+                    kind: TokenKind::Comma,
+                    line,
+                    column,
+                });
+                index += 1;
+                column += 1;
+            }
             b'=' => {
                 tokens.push(Token {
                     kind: TokenKind::Equals,
@@ -282,6 +416,24 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
             b'}' => {
                 tokens.push(Token {
                     kind: TokenKind::RightBrace,
+                    line,
+                    column,
+                });
+                index += 1;
+                column += 1;
+            }
+            b'(' => {
+                tokens.push(Token {
+                    kind: TokenKind::LeftParen,
+                    line,
+                    column,
+                });
+                index += 1;
+                column += 1;
+            }
+            b')' => {
+                tokens.push(Token {
+                    kind: TokenKind::RightParen,
                     line,
                     column,
                 });
@@ -392,7 +544,7 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     column: start_column,
                 });
             }
-            _ if is_word_byte(byte) => {
+            _ if is_word_start_byte(byte) => {
                 let start = index;
                 let start_column = column;
                 while bytes
@@ -428,7 +580,11 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
 }
 
 const fn is_word_byte(byte: u8) -> bool {
-    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.' | b'/' | b'@')
+    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.' | b'/' | b'@' | b'[' | b']')
+}
+
+const fn is_word_start_byte(byte: u8) -> bool {
+    byte.is_ascii_alphabetic() || matches!(byte, b'_' | b'-' | b'.' | b'/' | b'@')
 }
 
 struct Parser {
@@ -441,51 +597,139 @@ impl Parser {
         Self { tokens, index: 0 }
     }
 
-    fn parse(mut self) -> Result<Panel, ParseError> {
+    fn parse(
+        mut self,
+        selected_root: Option<&str>,
+        require_root_selection: bool,
+    ) -> Result<Panel, ParseError> {
         self.expect_word("panel")?;
         let version = self.expect_number()?;
         let version =
             u16::try_from(version).map_err(|_| self.error("panel version does not fit in u16"))?;
         if version != 1 {
-            return Err(self.error(format!("unsupported panel version {version}")));
+            return Err(self.error_code(
+                "CND-SRC-007",
+                format!("unsupported panel version {version}"),
+            ));
         }
 
+        let mut imports = Vec::new();
         let mut definitions = Vec::new();
         let mut nodes = Vec::new();
         let mut cords = Vec::new();
+        let mut roots = Vec::new();
+        let mut port_groups = Vec::new();
+        let mut pools = Vec::new();
         while !matches!(self.current().kind, TokenKind::Eof) {
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
-                "node" => nodes.push(self.parse_node()?),
-                "composite" => definitions.push(self.parse_composite()?),
+                "import" => imports.push(self.parse_import()?),
+                "node" => {
+                    let id = self.expect_any_word()?;
+                    if matches!(
+                        self.current().kind,
+                        TokenKind::LeftParen | TokenKind::LeftBrace
+                    ) {
+                        definitions.push(self.parse_definition_after_id(id)?);
+                    } else {
+                        nodes.push(self.parse_node_after_id(id)?);
+                    }
+                }
+                "composite" => {
+                    let id = self.expect_any_word()?;
+                    definitions.push(self.parse_definition_after_id(id)?);
+                }
                 "cord" => {
                     let ordinal = cords.len();
                     cords.push(self.parse_cord(ordinal)?);
                 }
+                "root" => roots.push(Root {
+                    target: self.expect_any_word()?,
+                }),
+                "port-group" => port_groups.push(self.parse_port_group()?),
+                "pool" => pools.push(self.parse_pool()?),
                 _ => {
                     return Err(self.error(format!(
-                        "expected `composite`, `node`, or `cord`, found `{declaration}`"
+                        "expected import, node, composite, cord, root, port-group, or pool; found `{declaration}`"
                     )));
                 }
             }
         }
 
-        Ok(Panel {
+        let selected_root = match (roots.len(), selected_root) {
+            (0, None) => None,
+            (0, Some(selected)) => {
+                return Err(self.error_code(
+                    "CND-SRC-006",
+                    format!("selected root `{selected}` is not declared"),
+                ));
+            }
+            (1, None) => Some(roots[0].target.clone()),
+            (_, None) if require_root_selection => {
+                return Err(
+                    self.error_code("CND-SRC-006", "multiple roots require explicit selection")
+                );
+            }
+            (_, None) => None,
+            (_, Some(selected)) if roots.iter().any(|root| root.target == selected) => {
+                Some(selected.to_owned())
+            }
+            (_, Some(selected)) => {
+                return Err(self.error_code(
+                    "CND-SRC-006",
+                    format!("selected root `{selected}` is not declared"),
+                ));
+            }
+        };
+
+        let panel = Panel {
             version,
+            imports,
             definitions,
             nodes,
             cords,
+            roots,
+            selected_root,
+            port_groups,
+            pools,
+        };
+        validate_source_symbols(panel, self.current().line, self.current().column)
+    }
+
+    fn parse_import(&mut self) -> Result<Import, ParseError> {
+        let target = self.expect_string()?;
+        self.expect_word("as")?;
+        let alias = self.expect_any_word()?;
+        let content_hash = if self.current_word_is("pin") {
+            self.advance();
+            Some(self.expect_string()?)
+        } else {
+            None
+        };
+        Ok(Import {
+            target,
+            alias,
+            content_hash,
         })
     }
 
-    fn parse_composite(&mut self) -> Result<CompositeDefinition, ParseError> {
-        let id = self.expect_any_word()?;
+    fn parse_definition_after_id(&mut self, id: String) -> Result<CompositeDefinition, ParseError> {
+        let parameters = if matches!(self.current().kind, TokenKind::LeftParen) {
+            self.parse_parameters()?
+        } else {
+            Vec::new()
+        };
         self.expect_simple(TokenKind::LeftBrace, "`{`")?;
         let mut nodes = Vec::new();
         let mut cords = Vec::new();
         let mut exports = Vec::new();
         let mut bindings = Vec::new();
+        let mut port_groups = Vec::new();
+        let mut pools = Vec::new();
         while !matches!(self.current().kind, TokenKind::RightBrace) {
+            if matches!(self.current().kind, TokenKind::Eof) {
+                return Err(self.error("unterminated node definition"));
+            }
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
                 "node" => nodes.push(self.parse_node()?),
@@ -499,12 +743,19 @@ impl Parser {
                         "output" => ExportDirection::Output,
                         _ => return Err(self.error("export direction must be `input` or `output`")),
                     };
-                    let export_id = self.expect_any_word()?;
-                    self.expect_simple(TokenKind::Equals, "`=`")?;
+                    let first = self.expect_any_word()?;
+                    let (export_id, target) = if self.current_word_is("as") {
+                        self.advance();
+                        let export_id = self.expect_any_word()?;
+                        (export_id, self.endpoint_from_word(first)?)
+                    } else {
+                        self.expect_simple(TokenKind::Equals, "`=`")?;
+                        (first, self.expect_endpoint()?)
+                    };
                     exports.push(PortExport {
                         direction,
                         id: export_id,
-                        target: self.expect_endpoint()?,
+                        target,
                     });
                 }
                 "bind" => {
@@ -515,9 +766,11 @@ impl Parser {
                         target: self.expect_endpoint()?,
                     });
                 }
+                "port-group" => port_groups.push(self.parse_port_group()?),
+                "pool" => pools.push(self.parse_pool()?),
                 _ => {
                     return Err(self.error(format!(
-                        "expected composite child, cord, export, or binding; found `{declaration}`"
+                        "expected child, cord, export, binding, port-group, or pool; found `{declaration}`"
                     )));
                 }
             }
@@ -525,24 +778,258 @@ impl Parser {
         self.advance();
         Ok(CompositeDefinition {
             id,
+            parameters,
             nodes,
             cords,
             exports,
             bindings,
+            port_groups,
+            pools,
         })
+    }
+
+    fn parse_parameters(&mut self) -> Result<Vec<Parameter>, ParseError> {
+        self.expect_simple(TokenKind::LeftParen, "`(`")?;
+        let mut parameters = Vec::new();
+        while !matches!(self.current().kind, TokenKind::RightParen) {
+            let id = self.expect_any_word()?;
+            self.expect_simple(TokenKind::Colon, "`:`")?;
+            let value_type = self.expect_any_word()?;
+            let default = if matches!(self.current().kind, TokenKind::Equals) {
+                self.advance();
+                Some(self.expect_source_value()?)
+            } else {
+                None
+            };
+            parameters.push(Parameter {
+                id,
+                value_type,
+                default,
+            });
+            if matches!(self.current().kind, TokenKind::Comma) {
+                self.advance();
+            } else if !matches!(self.current().kind, TokenKind::RightParen) {
+                return Err(self.error("expected `,` or `)` after parameter"));
+            }
+        }
+        self.advance();
+        Ok(parameters)
     }
 
     fn parse_node(&mut self) -> Result<Node, ParseError> {
         let id = self.expect_any_word()?;
+        self.parse_node_after_id(id)
+    }
+
+    fn parse_node_after_id(&mut self, id: String) -> Result<Node, ParseError> {
         self.expect_simple(TokenKind::Colon, "`:`")?;
         let kind = self.expect_any_word()?;
+        let constraint = if self.current_word_is("using") {
+            self.advance();
+            Some(self.expect_any_word()?)
+        } else {
+            None
+        };
         let config = if matches!(self.current().kind, TokenKind::LeftBrace) {
             self.advance();
             self.parse_config_block()?
         } else {
             Vec::new()
         };
-        Ok(Node { id, kind, config })
+        Ok(Node {
+            id,
+            kind,
+            constraint,
+            config,
+        })
+    }
+
+    fn parse_port_group(&mut self) -> Result<PortGroup, ParseError> {
+        let id = self.expect_any_word()?;
+        let direction = match self.expect_any_word()?.as_str() {
+            "input" => ExportDirection::Input,
+            "output" => ExportDirection::Output,
+            _ => return Err(self.error("port-group direction must be `input` or `output`")),
+        };
+        self.expect_simple(TokenKind::Colon, "`:`")?;
+        let port_contract = self.expect_any_word()?;
+        let shape_name = self.expect_any_word()?;
+        self.expect_word("max")?;
+        let maximum = self.expect_bounded_u16("port-group maximum")?;
+        if maximum == 0 {
+            return Err(self.error_code(
+                "CND-SRC-008",
+                "port-group maximum must be positive and finite",
+            ));
+        }
+        let shape = match shape_name.as_str() {
+            "indexed" => PortGroupShape::Indexed,
+            "keyed" => {
+                self.expect_simple(TokenKind::LeftBrace, "`{`")?;
+                let mut members = Vec::new();
+                let mut unique = BTreeSet::new();
+                while !matches!(self.current().kind, TokenKind::RightBrace) {
+                    if matches!(self.current().kind, TokenKind::Eof) {
+                        return Err(self.error("unterminated keyed port-group"));
+                    }
+                    self.expect_word("member")?;
+                    let member = self.expect_any_word()?;
+                    if !unique.insert(member.clone()) {
+                        return Err(self.error_code(
+                            "CND-SRC-002",
+                            format!("duplicate port-group member `{member}`"),
+                        ));
+                    }
+                    members.push(member);
+                }
+                self.advance();
+                if members.is_empty() || members.len() > usize::from(maximum) {
+                    return Err(self.error_code(
+                        "CND-SRC-008",
+                        "keyed member count must be positive and at most `max`",
+                    ));
+                }
+                PortGroupShape::Keyed(members)
+            }
+            _ => return Err(self.error("port-group shape must be `keyed` or `indexed`")),
+        };
+        Ok(PortGroup {
+            id,
+            direction,
+            port_contract,
+            maximum,
+            shape,
+        })
+    }
+
+    fn parse_pool(&mut self) -> Result<InstancePool, ParseError> {
+        let id = self.expect_any_word()?;
+        self.expect_simple(TokenKind::Colon, "`:`")?;
+        let template = self.expect_any_word()?;
+        self.expect_simple(TokenKind::LeftBrace, "`{`")?;
+        let mut maximum = None;
+        let mut admission = None;
+        let mut admission_queue = None;
+        let mut deadline_ms = None;
+        let mut idle_timeout_ms = None;
+        let mut supervision = None;
+        let mut restart_attempts = None;
+        let mut restart_backoff_ms = None;
+        let mut fallback = None;
+        let mut cleanup = None;
+        let mut fields = BTreeSet::new();
+        while !matches!(self.current().kind, TokenKind::RightBrace) {
+            if matches!(self.current().kind, TokenKind::Eof) {
+                return Err(self.error("unterminated pool policy"));
+            }
+            let key = self.expect_any_word()?;
+            if !fields.insert(key.clone()) {
+                return Err(self.error_code("CND-SRC-002", format!("duplicate pool field `{key}`")));
+            }
+            self.expect_simple(TokenKind::Equals, "`=`")?;
+            match key.as_str() {
+                "maximum" => maximum = Some(self.expect_bounded_u16("pool maximum")?),
+                "admission" => admission = Some(self.expect_any_word()?),
+                "admission_queue" => {
+                    admission_queue = Some(self.expect_bounded_u16("admission queue")?)
+                }
+                "deadline_ms" => deadline_ms = Some(self.expect_number()?),
+                "idle_timeout_ms" => idle_timeout_ms = Some(self.expect_number()?),
+                "supervision" => supervision = Some(self.expect_any_word()?),
+                "restart_attempts" => restart_attempts = Some(self.expect_u16("restart attempts")?),
+                "restart_backoff_ms" => restart_backoff_ms = Some(self.expect_number()?),
+                "fallback" => fallback = Some(self.expect_any_word()?),
+                "cleanup" => cleanup = Some(self.expect_any_word()?),
+                _ => return Err(self.error(format!("unknown pool field `{key}`"))),
+            }
+        }
+        self.advance();
+
+        let maximum = maximum.ok_or_else(|| {
+            self.error_code("CND-SRC-008", "pool requires a positive finite `maximum`")
+        })?;
+        if maximum == 0 {
+            return Err(self.error_code("CND-SRC-008", "pool maximum must be positive and finite"));
+        }
+        let admission = match admission
+            .ok_or_else(|| self.error("pool requires `admission`"))?
+            .as_str()
+        {
+            "reject" => PoolAdmission::Reject,
+            "block" => PoolAdmission::Block,
+            "queue_bounded" | "queue-bounded" => {
+                let capacity = admission_queue.ok_or_else(|| {
+                    self.error("queue-bounded admission requires `admission_queue`")
+                })?;
+                if capacity == 0 {
+                    return Err(self
+                        .error_code("CND-SRC-008", "admission queue must be positive and finite"));
+                }
+                PoolAdmission::QueueBounded(capacity)
+            }
+            "fail" => PoolAdmission::Fail,
+            _ => return Err(self.error("unknown pool admission policy")),
+        };
+        if !matches!(&admission, PoolAdmission::QueueBounded(_)) && admission_queue.is_some() {
+            return Err(self.error("`admission_queue` is valid only with queue-bounded admission"));
+        }
+        let fallback_supplied = fallback.is_some();
+        let supervision = match supervision
+            .ok_or_else(|| self.error("pool requires `supervision`"))?
+            .as_str()
+        {
+            "fail_together" | "fail-together" => PoolSupervision::FailTogether,
+            "isolate" => PoolSupervision::Isolate,
+            "restart_bounded" | "restart-bounded" => PoolSupervision::RestartBounded {
+                attempts: {
+                    let attempts = restart_attempts
+                        .ok_or_else(|| self.error("bounded restart requires `restart_attempts`"))?;
+                    if attempts == 0 {
+                        return Err(self.error_code(
+                            "CND-SRC-008",
+                            "bounded restart attempts must be positive and finite",
+                        ));
+                    }
+                    attempts
+                },
+                backoff_ms: restart_backoff_ms
+                    .ok_or_else(|| self.error("bounded restart requires `restart_backoff_ms`"))?,
+            },
+            "fallback" => PoolSupervision::Fallback(
+                fallback.ok_or_else(|| self.error("fallback supervision requires `fallback`"))?,
+            ),
+            "escalate" => PoolSupervision::Escalate,
+            _ => return Err(self.error("unknown pool supervision policy")),
+        };
+        if !matches!(&supervision, PoolSupervision::RestartBounded { .. })
+            && (restart_attempts.is_some() || restart_backoff_ms.is_some())
+        {
+            return Err(
+                self.error("restart fields are valid only with bounded-restart supervision")
+            );
+        }
+        if !matches!(&supervision, PoolSupervision::Fallback(_)) && fallback_supplied {
+            return Err(self.error("`fallback` is valid only with fallback supervision"));
+        }
+        let cleanup = match cleanup
+            .ok_or_else(|| self.error("pool requires `cleanup`"))?
+            .as_str()
+        {
+            "drain" => PoolCleanup::Drain,
+            "abort" => PoolCleanup::Abort,
+            _ => return Err(self.error("pool cleanup must be `drain` or `abort`")),
+        };
+        Ok(InstancePool {
+            id,
+            template,
+            maximum,
+            admission,
+            deadline_ms: deadline_ms.ok_or_else(|| self.error("pool requires `deadline_ms`"))?,
+            idle_timeout_ms: idle_timeout_ms
+                .ok_or_else(|| self.error("pool requires `idle_timeout_ms`"))?,
+            supervision,
+            cleanup,
+        })
     }
 
     fn parse_cord(&mut self, ordinal: usize) -> Result<Cord, ParseError> {
@@ -558,10 +1045,16 @@ impl Parser {
         let mut coalescer = None;
         let mut sample_every = None;
         let mut sample_offset = 0_u32;
+        let mut fields = BTreeSet::new();
         if matches!(self.current().kind, TokenKind::LeftBrace) {
             self.advance();
             while !matches!(self.current().kind, TokenKind::RightBrace) {
                 let key = self.expect_any_word()?;
+                if !fields.insert(key.clone()) {
+                    return Err(
+                        self.error_code("CND-SRC-002", format!("duplicate cord field `{key}`"))
+                    );
+                }
                 self.expect_simple(TokenKind::Equals, "`=`")?;
                 match key.as_str() {
                     "capacity" => {
@@ -647,20 +1140,17 @@ impl Parser {
 
     fn parse_config_block(&mut self) -> Result<Vec<ConfigEntry>, ParseError> {
         let mut entries = Vec::new();
+        let mut keys = BTreeSet::new();
         while !matches!(self.current().kind, TokenKind::RightBrace) {
             let key = self.expect_any_word()?;
+            if !keys.insert(key.clone()) {
+                return Err(self.error_code(
+                    "CND-SRC-002",
+                    format!("duplicate configuration field `{key}`"),
+                ));
+            }
             self.expect_simple(TokenKind::Equals, "`=`")?;
-            let value = match self.current().kind.clone() {
-                TokenKind::String(value) | TokenKind::Word(value) => {
-                    self.advance();
-                    value
-                }
-                TokenKind::Number(value) => {
-                    self.advance();
-                    value.to_string()
-                }
-                _ => return Err(self.error("expected configuration value")),
-            };
+            let value = self.expect_source_value()?;
             entries.push(ConfigEntry { key, value });
         }
         self.advance();
@@ -669,6 +1159,10 @@ impl Parser {
 
     fn expect_endpoint(&mut self) -> Result<Endpoint, ParseError> {
         let value = self.expect_any_word()?;
+        self.endpoint_from_word(value)
+    }
+
+    fn endpoint_from_word(&self, value: String) -> Result<Endpoint, ParseError> {
         let Some((node, port)) = value.rsplit_once('.') else {
             return Err(self.error(format!("endpoint `{value}` must be `node.port`")));
         };
@@ -679,6 +1173,39 @@ impl Parser {
             node: node.to_owned(),
             port: port.to_owned(),
         })
+    }
+
+    fn expect_source_value(&mut self) -> Result<String, ParseError> {
+        match self.current().kind.clone() {
+            TokenKind::String(value) | TokenKind::Word(value) => {
+                self.advance();
+                Ok(value)
+            }
+            TokenKind::Number(value) => {
+                self.advance();
+                Ok(value.to_string())
+            }
+            _ => Err(self.error("expected source value")),
+        }
+    }
+
+    fn expect_string(&mut self) -> Result<String, ParseError> {
+        if let TokenKind::String(value) = self.current().kind.clone() {
+            self.advance();
+            Ok(value)
+        } else {
+            Err(self.error("expected string"))
+        }
+    }
+
+    fn expect_u16(&mut self, label: &str) -> Result<u16, ParseError> {
+        u16::try_from(self.expect_number()?)
+            .map_err(|_| self.error(format!("{label} does not fit in u16")))
+    }
+
+    fn expect_bounded_u16(&mut self, label: &str) -> Result<u16, ParseError> {
+        u16::try_from(self.expect_number()?)
+            .map_err(|_| self.error_code("CND-SRC-008", format!("{label} does not fit in u16")))
     }
 
     fn expect_word(&mut self, expected: &str) -> Result<(), ParseError> {
@@ -717,6 +1244,10 @@ impl Parser {
         }
     }
 
+    fn current_word_is(&self, expected: &str) -> bool {
+        matches!(&self.current().kind, TokenKind::Word(value) if value == expected)
+    }
+
     fn current(&self) -> &Token {
         &self.tokens[self.index]
     }
@@ -726,13 +1257,163 @@ impl Parser {
     }
 
     fn error(&self, message: impl Into<String>) -> ParseError {
+        self.error_code("CND-SRC-001", message)
+    }
+
+    fn error_code(&self, code: &'static str, message: impl Into<String>) -> ParseError {
         ParseError {
-            code: "CND-SRC-001",
+            code,
             line: self.current().line,
             column: self.current().column,
             message: message.into(),
         }
     }
+}
+
+fn validate_source_symbols(
+    panel: Panel,
+    diagnostic_line: usize,
+    diagnostic_column: usize,
+) -> Result<Panel, ParseError> {
+    let duplicate = |kind: &str, id: &str| ParseError {
+        code: "CND-SRC-002",
+        line: diagnostic_line,
+        column: diagnostic_column,
+        message: format!("duplicate {kind} `{id}`"),
+    };
+    let mut aliases = BTreeSet::new();
+    for import in &panel.imports {
+        if !aliases.insert(import.alias.as_str()) {
+            return Err(duplicate("import alias", &import.alias));
+        }
+    }
+    let mut definitions = BTreeSet::new();
+    for definition in &panel.definitions {
+        if !definitions.insert(definition.id.as_str()) {
+            return Err(duplicate("definition", &definition.id));
+        }
+        let mut names = BTreeSet::new();
+        for parameter in &definition.parameters {
+            if !names.insert(parameter.id.as_str()) {
+                return Err(duplicate("definition member", &parameter.id));
+            }
+        }
+        for node in &definition.nodes {
+            if !names.insert(node.id.as_str()) {
+                return Err(duplicate("definition member", &node.id));
+            }
+        }
+        for group in &definition.port_groups {
+            if !names.insert(group.id.as_str()) {
+                return Err(duplicate("definition member", &group.id));
+            }
+        }
+        for pool in &definition.pools {
+            if !names.insert(pool.id.as_str()) {
+                return Err(duplicate("definition member", &pool.id));
+            }
+        }
+        let mut exports = BTreeSet::new();
+        for export in &definition.exports {
+            let direction = match export.direction {
+                ExportDirection::Input => 0_u8,
+                ExportDirection::Output => 1_u8,
+            };
+            if !exports.insert((direction, export.id.as_str())) {
+                return Err(duplicate("export", &export.id));
+            }
+        }
+        let mut bindings = BTreeSet::new();
+        for binding in &definition.bindings {
+            if !bindings.insert(binding.parameter.as_str()) {
+                return Err(duplicate("binding", &binding.parameter));
+            }
+            if !definition.parameters.is_empty()
+                && !definition
+                    .parameters
+                    .iter()
+                    .any(|parameter| parameter.id == binding.parameter)
+            {
+                return Err(ParseError {
+                    code: "CND-SRC-003",
+                    line: diagnostic_line,
+                    column: diagnostic_column,
+                    message: format!(
+                        "binding `{}` names no declared parameter in `{}`",
+                        binding.parameter, definition.id
+                    ),
+                });
+            }
+        }
+        let children: BTreeSet<&str> = definition
+            .nodes
+            .iter()
+            .map(|node| node.id.as_str())
+            .collect();
+        for endpoint in definition
+            .cords
+            .iter()
+            .flat_map(|cord| [&cord.from, &cord.to])
+            .chain(definition.exports.iter().map(|export| &export.target))
+            .chain(definition.bindings.iter().map(|binding| &binding.target))
+        {
+            if !children.contains(endpoint.node.as_str()) {
+                return Err(ParseError {
+                    code: "CND-SRC-009",
+                    line: diagnostic_line,
+                    column: diagnostic_column,
+                    message: format!(
+                        "definition `{}` endpoint bypasses or names no child `{}`",
+                        definition.id, endpoint.node
+                    ),
+                });
+            }
+        }
+    }
+    let mut top = BTreeSet::new();
+    for node in &panel.nodes {
+        if !top.insert(node.id.as_str()) {
+            return Err(duplicate("top-level node", &node.id));
+        }
+    }
+    for group in &panel.port_groups {
+        if !top.insert(group.id.as_str()) {
+            return Err(duplicate("top-level member", &group.id));
+        }
+    }
+    for pool in &panel.pools {
+        if !top.insert(pool.id.as_str()) {
+            return Err(duplicate("top-level member", &pool.id));
+        }
+    }
+    for endpoint in panel.cords.iter().flat_map(|cord| [&cord.from, &cord.to]) {
+        if !top.contains(endpoint.node.as_str()) {
+            return Err(ParseError {
+                code: "CND-SRC-009",
+                line: diagnostic_line,
+                column: diagnostic_column,
+                message: format!(
+                    "top-level endpoint bypasses or names no instance `{}`",
+                    endpoint.node
+                ),
+            });
+        }
+    }
+    let mut roots = BTreeSet::new();
+    for root in &panel.roots {
+        if !roots.insert(root.target.as_str()) {
+            return Err(duplicate("root", &root.target));
+        }
+        if !definitions.contains(root.target.as_str()) && !top.contains(root.target.as_str()) {
+            return Err(ParseError {
+                code: "CND-SRC-006",
+                line: diagnostic_line,
+                column: diagnostic_column,
+                message: format!("root `{}` names no definition or instance", root.target),
+            });
+        }
+    }
+    Ok(panel)
 }
 
 #[cfg(test)]

@@ -1,5 +1,16 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 2 — 2026-07-28
+
+- Added the independent `panel-source` suite and
+  `conformance/c3/panel-grammar-v1.json` cases for issue #14.
+- Existing version 1 requests and expected outputs are unchanged.
+- Expected version: new `panel-source-v1` operation at grammar version 1; no
+  previous operation result was replaced.
+- Requirement IDs: `SRC-001` through `SRC-011`.
+- Migration: runners may add the `conduit.c3` profile explicitly; they must
+  report it as unsupported rather than silently skipping its cases.
+
 ## Manifest revision 1 — 2026-07-28
 
 - Established `conduit.conformance/v1` and protocol version 1.

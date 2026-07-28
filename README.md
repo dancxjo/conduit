@@ -30,7 +30,8 @@ This repository contains the first executable Plan C foundation:
 - `conduit-core`: allocator-free contracts, canonical semantic hashes, opaque
   type references, complete port/config schemas, bounded flow-policy state
   machines, directional compatibility, and plan validation;
-- `conduit-panel`: the initial editable `.panel` source reader;
+- `conduit-panel`: the versioned `.panel` grammar, lossless CST/source AST,
+  explicit module resolver, and bounded group/pool source model;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
   one-shot executor, including domain type-provider discovery;
 - `conduct`: the Unix command-line interface.
@@ -58,6 +59,11 @@ provenance under one canonical identity validated before start.
 Immutable execution events link every observation to a run and exact plan,
 separate append order from recorder clocks and causality, and round-trip
 structurally redacted evidence through a hosted NDJSON stream.
+`.panel` version 1 now supports reusable parameterized definitions, unresolved
+`using` constraints, deterministic aliased imports with optional content pins,
+explicit roots, compile-time keyed/indexed port groups, and finite instance
+pools. Parsing and module loading remain separate from runtime lowering;
+comments and formatting round-trip without entering semantic source identity.
 
 ## Design boundaries
 
