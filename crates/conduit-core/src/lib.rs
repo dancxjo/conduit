@@ -14,6 +14,7 @@ mod canonical;
 mod compatibility;
 mod composite;
 mod config;
+mod evidence;
 mod execution_plan;
 mod flow;
 mod lifecycle;
@@ -47,6 +48,12 @@ pub use composite::{
 pub use config::{
     ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,
     ConfigIdentity, ConfigMutability, ConfigRequirement,
+};
+pub use evidence::{
+    EXECUTION_EVENT_SCHEMA_VERSION, EventCorrelation, EventPayload, EventPayloadShape,
+    EventRelations, EventTerminality, EventTime, EventTimeKind, EvidenceError, EvidencePolicy,
+    EvidenceReason, ExecutionEvent, ExecutionEventKind, MAX_EVENT_DERIVATIONS,
+    validate_event_stream, validate_execution_event,
 };
 pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, PinnedDescriptor, PlanArtifact,

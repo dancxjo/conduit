@@ -1,0 +1,12 @@
+# case	run_plan	order	time	causation	payload	terminal	outcome
+causation_chain	exact	monotonic	mixed	resolved	public	no	compatible
+nested_subject	exact	monotonic	monotonic	resolved	none	no	compatible
+pressure_loss	exact	monotonic	monotonic	resolved	redacted	no	compatible
+redaction	exact	monotonic	domain	resolved	secret-redacted	no	compatible
+correction	exact	append-only	monotonic	supersedes	public	no	compatible
+terminal	exact	final	monotonic	resolved	none	yes	compatible
+distributed_out_of_order	exact	append-total	unsynchronized	resolved	none	no	compatible
+replay_equivalence	exact	monotonic	mixed	resolved	typed	no	compatible
+malformed_payload_reference	exact	monotonic	monotonic	resolved	invalid-reference	no	incompatible
+semantic_hash_stability	exact	monotonic	monotonic	resolved	typed	no	compatible
+ndjson_round_trip	exact	monotonic	mixed	resolved	typed	yes	compatible

@@ -55,6 +55,9 @@ carry redacted metadata instead of value bytes.
 Exact execution plans pin implementation/artifact/host choices, finite queues,
 resource and pool maxima, required authority, and logical-to-expanded
 provenance under one canonical identity validated before start.
+Immutable execution events link every observation to a run and exact plan,
+separate append order from recorder clocks and causality, and round-trip
+structurally redacted evidence through a hosted NDJSON stream.
 
 ## Design boundaries
 

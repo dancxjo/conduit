@@ -23,11 +23,17 @@ use conduit_panel::{
 };
 
 mod config_resolution;
+mod evidence_ndjson;
 mod type_registry;
 
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,
+};
+pub use evidence_ndjson::{
+    NdjsonError, OwnedEventCorrelation, OwnedEventPayload, OwnedEventRelations,
+    OwnedEventTerminality, OwnedEventTime, OwnedExecutionEvent, OwnedPayloadShape, OwnedTypeRef,
+    decode_event_ndjson, encode_event_ndjson, encode_owned_event_ndjson,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
