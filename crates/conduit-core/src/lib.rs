@@ -10,11 +10,17 @@
 use core::fmt;
 
 mod canonical;
+mod compatibility;
 
 pub use canonical::{
     CANONICAL_FORM_VERSION, CANONICAL_MAGIC, CanonicalDescriptor, CanonicalError, CanonicalSink,
     CanonicalValue, FieldDisposition, MAX_CANONICAL_DEPTH, MapField, SEMANTIC_HASH_DOMAIN,
     SemanticHash,
+};
+pub use compatibility::{
+    CompatibilityClass, CompatibilityDecision, CompatibilityOutcome, CompatibilityQuery,
+    CompatibilityReason, DescriptorRef, MigrationRef, RecordField, RecordSchema,
+    UnknownFieldPolicy, ValueAcceptance, assess_exact, assess_migration, assess_reader_acceptance,
 };
 
 /// A stable identifier borrowed from a descriptor or resolved plan.

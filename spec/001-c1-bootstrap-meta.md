@@ -78,6 +78,10 @@ Compatibility is directional. A claim states which consumer accepts which
 producer, which implementation satisfies which contract, or which runtime
 executes which plan.
 
+The version 1 query roles, three-valued outcomes, backward/forward definitions,
+substitution variance, and exact migration identity are normative in
+[`004-directional-compatibility-v1.md`](004-directional-compatibility-v1.md).
+
 Breaking changes include:
 
 - changing units, clock, coordinate frame, delivery, or terminal meaning;
@@ -274,7 +278,7 @@ incomplete.
 
 ## C1 exit
 
-C1 may become stable only after the directional compatibility fixtures are
-frozen and independently read. Canonical descriptor form version 1 and its
-semantic-hash vectors are stable; the rest of this meta-model remains candidate
-until that compatibility work is complete.
+Canonical descriptor form version 1 and directional compatibility algebra
+version 1 are stable with frozen fixtures. The remaining meta-model sections
+stay candidate until their owning semantic, planning, evidence, and packaging
+specifications stabilize.

@@ -1,0 +1,7 @@
+# Conduit compatibility v1 migration fixtures.
+# name	source_version	target_version	source_hash	target_hash	migration_source_hash	migration_target_hash	deterministic	total	outcome	class	reason
+accepted	1	2	a1	b2	a1	b2	true	true	compatible	migratable	migration-accepted
+source-mismatch	1	2	a1	b2	ff	b2	true	true	incompatible	-	migration-source-mismatch
+target-mismatch	1	2	a1	b2	a1	ff	true	true	incompatible	-	migration-target-mismatch
+nondeterministic	1	2	a1	b2	a1	b2	false	true	incompatible	-	migration-not-deterministic
+partial	1	2	a1	b2	a1	b2	true	false	incompatible	-	migration-not-total

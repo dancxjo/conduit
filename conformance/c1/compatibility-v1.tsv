@@ -1,0 +1,15 @@
+# Conduit compatibility v1 record fixtures.
+# Fields are id,r-or-o,value-hash-byte,default-hash-byte-or--,acceptance.
+# name	reader_kind	writer_kind	reader_version	writer_version	reader_hash	writer_hash	unknown	reader_fields	writer_fields	outcome	class	reason	subject
+exact	conduit/schema	conduit/schema	1	1	aa	aa	reject	id,r,11,-,exact	id,r,11,-,exact	compatible	exact	exact-identity	-
+backward-added-default	conduit/schema	conduit/schema	2	1	b2	a1	reject	id,r,11,-,exact;note,r,22,33,exact	id,r,11,-,exact	compatible	backward-compatible	fields-accepted	-
+forward-added-unknown-rejected	conduit/schema	conduit/schema	1	2	a1	b2	reject	id,r,11,-,exact	id,r,11,-,exact;note,o,22,-,exact	incompatible	-	unknown-producer-field	note
+forward-added-unknown-preserved	conduit/schema	conduit/schema	1	2	a1	b2	preserve	id,r,11,-,exact	id,r,11,-,exact;note,o,22,-,exact	compatible	forward-compatible	fields-accepted	-
+missing-required-field	conduit/schema	conduit/schema	2	1	b2	a1	reject	id,r,11,-,exact;note,r,22,-,exact	id,r,11,-,exact	incompatible	-	missing-required-field	note
+changed-default	conduit/schema	conduit/schema	2	1	b2	a1	reject	mode,o,11,44,exact	mode,o,11,33,exact	incompatible	-	default-changed	mode
+unsafe-value-narrowing	conduit/schema	conduit/schema	2	1	b2	a1	reject	value,r,12,-,exact	value,r,11,-,exact	incompatible	-	value-contract-rejected	value
+domain-provider-needed	conduit/schema	conduit/schema	2	1	b2	a1	reject	value,r,12,-,provider	value,r,11,-,exact	indeterminate	-	value-provider-required	value
+provider-approved-producer	conduit/schema	conduit/schema	2	1	b2	a1	reject	value,r,12,-,oneof11	value,r,11,-,exact	compatible	backward-compatible	fields-accepted	-
+same-version-directional-acceptance	conduit/schema	conduit/schema	1	1	a1	b1	reject	id,r,11,-,exact	id,r,11,-,exact	compatible	accepted	fields-accepted	-
+optional-writer-required-reader	conduit/schema	conduit/schema	2	1	b2	a1	reject	id,r,11,-,exact	id,o,11,-,exact	incompatible	-	missing-required-field	id
+descriptor-kind-mismatch	conduit/schema	conduit/event	2	1	b2	a1	reject	id,r,11,-,exact	id,r,11,-,exact	incompatible	-	descriptor-kind-mismatch	-
