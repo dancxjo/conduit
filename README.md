@@ -52,6 +52,9 @@ and deterministically flattened primitive views.
 Authority resolution keeps fresh host capability, declared effects, scoped
 grants, and exact plan bindings separate; protected diagnostics and evidence
 carry redacted metadata instead of value bytes.
+Exact execution plans pin implementation/artifact/host choices, finite queues,
+resource and pool maxima, required authority, and logical-to-expanded
+provenance under one canonical identity validated before start.
 
 ## Design boundaries
 

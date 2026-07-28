@@ -41,6 +41,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`010-scoped-authority-v1.md`](010-scoped-authority-v1.md) separates fresh
   host capability, effects, grants, exact bindings, delegation, revocation,
   and structurally redacted sensitivity handling.
+- [`011-exact-execution-plan-v1.md`](011-exact-execution-plan-v1.md) freezes
+  exact runnable-plan contents, canonical identity, portable validation,
+  freshness, resource accounting, and bounded expansion/pool identity.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

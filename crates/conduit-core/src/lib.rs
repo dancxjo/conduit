@@ -14,6 +14,7 @@ mod canonical;
 mod compatibility;
 mod composite;
 mod config;
+mod execution_plan;
 mod flow;
 mod lifecycle;
 mod port;
@@ -46,6 +47,14 @@ pub use composite::{
 pub use config::{
     ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,
     ConfigIdentity, ConfigMutability, ConfigRequirement,
+};
+pub use execution_plan::{
+    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding,
+    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanPortGroup, PlanPortGroupMember,
+    PlanResourceBinding, PlanResourceBudget, PlanValidationContext, PlanValidationError,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -178,7 +187,7 @@ pub struct PlanNode<'a> {
 /// One end of a resolved cord.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Endpoint {
-    /// Index into [`ExecutionPlan::nodes`].
+    /// Index into [`PlanGraph::nodes`].
     pub node: u16,
     /// Index into the node contract's direction-appropriate port slice.
     pub port: u16,
@@ -197,9 +206,9 @@ pub struct PlanCord<'a> {
     pub flow: FlowPolicy<'a>,
 }
 
-/// A borrowed resolved execution plan suitable for constrained runtimes.
+/// Borrowed semantic topology used before exact implementation resolution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ExecutionPlan<'a> {
+pub struct PlanGraph<'a> {
     /// Resolved nodes.
     pub nodes: &'a [PlanNode<'a>],
     /// Resolved cords.
@@ -276,7 +285,7 @@ impl fmt::Display for ValidationError {
 ///
 /// Rich hosted validation may produce several diagnostics. This allocator-free
 /// boundary returns the first failure in deterministic plan order.
-pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
+pub fn validate_plan_graph(plan: &PlanGraph<'_>) -> Result<(), ValidationError> {
     for (index, node) in plan.nodes.iter().enumerate() {
         if plan.nodes[..index].iter().any(|prior| prior.id == node.id) {
             return Err(ValidationError {
@@ -500,12 +509,12 @@ mod tests {
             to: Endpoint { node: 1, port: 0 },
             flow: FLOW,
         }];
-        let plan = ExecutionPlan {
+        let plan = PlanGraph {
             nodes: &nodes,
             cords: &cords,
         };
 
-        assert_eq!(validate_plan(&plan), Ok(()));
+        assert_eq!(validate_plan_graph(&plan), Ok(()));
     }
 
     #[test]

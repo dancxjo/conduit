@@ -188,7 +188,8 @@ An execution plan pins:
 - exact flow and lifecycle policy.
 
 A constrained executor verifies the plan and its limits before starting any
-node.
+node. Specification 011 freezes the exact schema, canonical identity,
+freshness rules, resource accounting, and allocator-free validation profile.
 
 Execution events identify the run and exact plan and preserve ordered sequence,
 event/observation time where applicable, subject, typed payload, derivation, and

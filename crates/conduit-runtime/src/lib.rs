@@ -12,11 +12,11 @@ use std::io::{Read, Write};
 use conduit_core::{
     BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome, ConfigContract,
     ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
-    ConnectionCardinality, Delivery, Direction, Endpoint as CoreEndpoint, ExecutionPlan,
-    FlowCapacity, FlowPolicy, FlowTypeFacts, FlowWatermarks, Id, LossAcceptance, NodeContract,
-    PlanCord, PlanNode, PortContract, PortFlowConstraints, Presence, Pressure, SampleSchedule,
-    SemanticHash, Sensitivity, TemporalContract, TerminalContract, TraitProof, TypeContractRef,
-    ValueCardinality, validate_plan,
+    ConnectionCardinality, Delivery, Direction, Endpoint as CoreEndpoint, FlowCapacity, FlowPolicy,
+    FlowTypeFacts, FlowWatermarks, Id, LossAcceptance, NodeContract, PlanCord, PlanGraph, PlanNode,
+    PortContract, PortFlowConstraints, Presence, Pressure, SampleSchedule, SemanticHash,
+    Sensitivity, TemporalContract, TerminalContract, TraitProof, TypeContractRef, ValueCardinality,
+    validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
@@ -33,6 +33,22 @@ pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
     TypeRegistry, TypeRegistryError,
 };
+
+/// Allocator-aware convenience around the core-compatible exact-plan validator.
+pub fn validate_hosted_execution_plan(
+    plan: &conduit_core::ExecutionPlan<'_>,
+    context: conduit_core::PlanValidationContext<'_>,
+) -> Result<(), conduit_core::PlanValidationError> {
+    let fact_count = plan
+        .identity_fact_count()
+        .map_err(|_| conduit_core::PlanValidationError {
+            code: conduit_core::PlanDiagnosticCode::InvalidDescriptor,
+            collection: conduit_core::PlanCollection::Header,
+            subject_index: None,
+        })?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); fact_count];
+    conduit_core::validate_execution_plan(plan, context, &mut scratch)
+}
 
 const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("conduit/text.utf8"),
@@ -312,7 +328,7 @@ impl Registry {
                 })
             })
             .collect::<Result<Vec<_>, ResolutionError>>()?;
-        validate_plan(&ExecutionPlan {
+        validate_plan_graph(&PlanGraph {
             nodes: &core_nodes,
             cords: &core_cords,
         })

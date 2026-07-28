@@ -184,6 +184,117 @@ impl CanonicalDescriptor<'_> {
     }
 }
 
+/// Hash a descriptor whose body contains ordinary fields plus one set of
+/// already-domain-separated semantic hashes.
+///
+/// This specialized writer lets allocator-free aggregate descriptors encode a
+/// caller-owned, variably sized fact set without constructing a recursive
+/// `CanonicalValue` scratch tree.
+pub(crate) fn semantic_hash_with_hash_set(
+    kind: Id<'_>,
+    schema_version: u32,
+    fields: &[MapField<'_>],
+    set_name: Id<'_>,
+    hashes: &[SemanticHash],
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let mut sink = HashSink(Sha256::new());
+    sink.write(SEMANTIC_HASH_DOMAIN)
+        .map_err(CanonicalError::Sink)?;
+    write_descriptor_with_hash_set(&mut sink, kind, schema_version, fields, set_name, hashes)?;
+    Ok(SemanticHash(sink.0.finalize().into()))
+}
+
+fn write_descriptor_with_hash_set<S: CanonicalSink>(
+    sink: &mut S,
+    kind: Id<'_>,
+    schema_version: u32,
+    fields: &[MapField<'_>],
+    set_name: Id<'_>,
+    hashes: &[SemanticHash],
+) -> Result<(), CanonicalError<S::Error>> {
+    validate_id(kind)?;
+    validate_id(set_name)?;
+    validate_map(fields, 1)?;
+    if fields.iter().any(|field| {
+        field.name == set_name || !matches!(field.disposition, FieldDisposition::Semantic)
+    }) {
+        return Err(CanonicalError::DuplicateMapKey);
+    }
+    for (index, hash) in hashes.iter().enumerate() {
+        if hashes[..index].contains(hash) {
+            return Err(CanonicalError::DuplicateSetValue);
+        }
+    }
+
+    write_bytes(sink, &CANONICAL_MAGIC)?;
+    write_id(sink, kind)?;
+    write_bytes(sink, &schema_version.to_be_bytes())?;
+    write_byte(sink, TAG_MAP)?;
+    write_length(sink, fields.len() + 1)?;
+
+    for rank in 0..=fields.len() {
+        let (selected, selected_is_set) = aggregate_field_at_rank(fields, set_name, rank)
+            .ok_or(CanonicalError::LengthOverflow)?;
+        write_id(sink, selected)?;
+        if selected_is_set {
+            write_byte(sink, TAG_SET)?;
+            write_length(sink, hashes.len())?;
+            for hash_rank in 0..hashes.len() {
+                let hash = hash_at_rank(hashes, hash_rank).ok_or(CanonicalError::LengthOverflow)?;
+                write_value(sink, &CanonicalValue::Bytes(hash.as_bytes()), 2)?;
+            }
+        } else {
+            let field = fields
+                .iter()
+                .find(|field| field.name == selected)
+                .ok_or(CanonicalError::LengthOverflow)?;
+            write_value(sink, &field.value, 1)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn aggregate_field_at_rank<'a>(
+    fields: &[MapField<'a>],
+    set_name: Id<'a>,
+    rank: usize,
+) -> Option<(Id<'a>, bool)> {
+    let set_rank = fields
+        .iter()
+        .filter(|field| canonical_id_less(field.name, set_name))
+        .count();
+    if set_rank == rank {
+        return Some((set_name, true));
+    }
+    fields.iter().find_map(|candidate| {
+        let field_rank = fields
+            .iter()
+            .filter(|field| canonical_id_less(field.name, candidate.name))
+            .count()
+            + usize::from(canonical_id_less(set_name, candidate.name));
+        (field_rank == rank).then_some((candidate.name, false))
+    })
+}
+
+fn canonical_id_less(left: Id<'_>, right: Id<'_>) -> bool {
+    left.as_str()
+        .len()
+        .cmp(&right.as_str().len())
+        .then_with(|| left.as_str().as_bytes().cmp(right.as_str().as_bytes()))
+        == Ordering::Less
+}
+
+fn hash_at_rank(hashes: &[SemanticHash], rank: usize) -> Option<&SemanticHash> {
+    hashes.iter().find(|candidate| {
+        hashes
+            .iter()
+            .filter(|other| other.as_bytes() < candidate.as_bytes())
+            .count()
+            == rank
+    })
+}
+
 struct HashSink(Sha256);
 
 impl CanonicalSink for HashSink {
@@ -548,4 +659,85 @@ fn compare_lengths<E>(left: usize, right: usize) -> Result<Ordering, CanonicalEr
     let left = u64::try_from(left).map_err(|_| CanonicalError::LengthOverflow)?;
     let right = u64::try_from(right).map_err(|_| CanonicalError::LengthOverflow)?;
     Ok(left.cmp(&right))
+}
+
+#[cfg(test)]
+mod aggregate_tests {
+    extern crate std;
+
+    use self::std::vec::Vec;
+    use super::*;
+
+    struct VecSink(Vec<u8>);
+
+    impl CanonicalSink for VecSink {
+        type Error = Infallible;
+
+        fn write(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
+            self.0.extend_from_slice(bytes);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn specialized_hash_set_writer_matches_general_canonical_form() {
+        let hashes = [
+            SemanticHash::from_bytes([2; 32]),
+            SemanticHash::from_bytes([1; 32]),
+        ];
+        let facts = [
+            CanonicalValue::Bytes(hashes[0].as_bytes()),
+            CanonicalValue::Bytes(hashes[1].as_bytes()),
+        ];
+        let ordinary = [
+            MapField {
+                name: Id("source"),
+                value: CanonicalValue::Bytes(&[7; 32]),
+                disposition: FieldDisposition::Semantic,
+            },
+            MapField {
+                name: Id("created_tick"),
+                value: CanonicalValue::Integer(4),
+                disposition: FieldDisposition::Semantic,
+            },
+        ];
+        let complete = [
+            ordinary[0],
+            MapField {
+                name: Id("facts"),
+                value: CanonicalValue::Set(&facts),
+                disposition: FieldDisposition::Semantic,
+            },
+            ordinary[1],
+        ];
+        let descriptor = CanonicalDescriptor {
+            kind: Id("conduit/execution-plan"),
+            schema_version: 1,
+            body: CanonicalValue::Map(&complete),
+        };
+        let expected = descriptor.semantic_hash().unwrap();
+        let mut general_bytes = VecSink(Vec::new());
+        descriptor.write_canonical(&mut general_bytes).unwrap();
+        let mut specialized_bytes = VecSink(Vec::new());
+        write_descriptor_with_hash_set(
+            &mut specialized_bytes,
+            Id("conduit/execution-plan"),
+            1,
+            &ordinary,
+            Id("facts"),
+            &hashes,
+        )
+        .unwrap();
+        assert_eq!(specialized_bytes.0, general_bytes.0);
+        assert_eq!(
+            semantic_hash_with_hash_set(
+                Id("conduit/execution-plan"),
+                1,
+                &ordinary,
+                Id("facts"),
+                &hashes,
+            ),
+            Ok(expected)
+        );
+    }
 }

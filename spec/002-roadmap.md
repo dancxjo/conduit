@@ -13,6 +13,7 @@ The repository currently proves:
 - the exact bounded FlowPolicy algebra and allocator-free reference queue;
 - exact lifecycle, cancellation, terminal-race, and queue-disposition rules;
 - scoped effects, grants, deterministic authority binding, and redaction;
+- canonical exact-plan identity, portable validation, freshness, and budgets;
 - exact explanation output;
 - finite acyclic execution;
 - process stdin/stdout/stderr as explicit node implementations;
@@ -24,8 +25,8 @@ It does **not** yet claim:
 - live streaming scheduling;
 - full pressure-policy execution;
 - implementation manifests and host capability reports;
-- artifact resolution;
-- canonical plan bytes;
+- hosted artifact discovery and resolution;
+- canonical plan byte export/import;
 - durable event evidence;
 - remote cords;
 - Patchbay UI.
