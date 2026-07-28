@@ -99,9 +99,10 @@ state, build timestamps, and non-critical annotations.
 They include every fact affecting validation, resolution, authority, resource
 use, or execution.
 
-The baseline digest is algorithm-qualified SHA-256. The exact canonical
-descriptor form and frozen cross-language vectors must be completed before C1
-becomes stable. A plan records every exact semantic hash that influenced it.
+The baseline digest is algorithm-qualified SHA-256. Canonical descriptor form
+version 1 and its frozen cross-language vectors are defined by
+[`003-canonical-descriptor-v1.md`](003-canonical-descriptor-v1.md). A plan
+records every exact semantic hash that influenced it.
 
 ## Contracts
 
@@ -273,6 +274,7 @@ incomplete.
 
 ## C1 exit
 
-C1 may become stable only after the canonical semantic-hash vectors and
-compatibility fixtures are frozen and independently read. The current candidate
-is sufficient to design C2 without prematurely freezing syntax or packaging.
+C1 may become stable only after the directional compatibility fixtures are
+frozen and independently read. Canonical descriptor form version 1 and its
+semantic-hash vectors are stable; the rest of this meta-model remains candidate
+until that compatibility work is complete.

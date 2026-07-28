@@ -9,6 +9,14 @@
 
 use core::fmt;
 
+mod canonical;
+
+pub use canonical::{
+    CANONICAL_FORM_VERSION, CANONICAL_MAGIC, CanonicalDescriptor, CanonicalError, CanonicalSink,
+    CanonicalValue, FieldDisposition, MAX_CANONICAL_DEPTH, MapField, SEMANTIC_HASH_DOMAIN,
+    SemanticHash,
+};
+
 /// A stable identifier borrowed from a descriptor or resolved plan.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Id<'a>(pub &'a str);
