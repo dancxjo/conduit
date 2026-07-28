@@ -15,6 +15,13 @@ use conduit_core::{
 };
 use conduit_panel::{Node, Panel};
 
+mod type_registry;
+
+pub use type_registry::{
+    ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
+    TypeRegistry, TypeRegistryError,
+};
+
 const TEXT_ID: Id<'static> = Id("conduit/text.utf8");
 const INPUT_TEXT: PortContract<'static> = PortContract {
     id: Id("in"),

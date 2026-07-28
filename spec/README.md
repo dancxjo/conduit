@@ -23,6 +23,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`004-directional-compatibility-v1.md`](004-directional-compatibility-v1.md)
   freezes reasoned compatibility queries, version direction, substitution, and
   migration identity.
+- [`005-type-contracts-v1.md`](005-type-contracts-v1.md) defines opaque
+  domain-owned type references, hosted provider discovery, and explicit
+  nominal, structural, and opaque comparison.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

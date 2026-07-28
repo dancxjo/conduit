@@ -1,0 +1,9 @@
+# case	consumer_id	consumer_version	producer_id	producer_version	consumer_strategy	consumer_shape	producer_strategy	producer_shape	wire_shape	outcome	class	reason	subject
+exact_nominal	fixture/nominal	1	fixture/nominal	1	nominal	-	nominal	-	-	compatible	exact	type-contract-exact	-
+provider_directional	fixture/nominal	2	fixture/nominal	1	nominal	-	nominal	-	-	compatible	accepted	type-provider-accepted	fixture/accepts-v1
+explicit_structural	fixture/record-a	1	fixture/record-b	1	structural	31	structural	31	record-value-u32	compatible	accepted	type-structural-accepted	-
+same_shape_different_semantics	fixture/milliseconds	1	fixture/samples	1	structural	41	structural	42	record-value-u32	incompatible	-	type-structural-mismatch	-
+opaque_adapter_required	fixture/audio.pcm	1	fixture/audio.stream	1	opaque	-	opaque	-	-	incompatible	-	type-provider-rejected	fixture/explicit-adapter-required
+missing_provider	absent/value	2	absent/value	1	nominal	-	nominal	-	-	indeterminate	-	type-provider-unavailable	absent
+unknown_strategy	fixture/future	2	fixture/future	1	unknown	-	nominal	-	-	indeterminate	-	type-strategy-unknown	fixture/future-strategy
+malformed_reference	local	1	fixture/nominal	1	nominal	-	nominal	-	-	indeterminate	-	invalid-type-reference	local

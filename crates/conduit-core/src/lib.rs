@@ -11,6 +11,7 @@ use core::fmt;
 
 mod canonical;
 mod compatibility;
+mod type_contract;
 
 pub use canonical::{
     CANONICAL_FORM_VERSION, CANONICAL_MAGIC, CanonicalDescriptor, CanonicalError, CanonicalSink,
@@ -22,6 +23,7 @@ pub use compatibility::{
     CompatibilityReason, DescriptorRef, MigrationRef, RecordField, RecordSchema,
     UnknownFieldPolicy, ValueAcceptance, assess_exact, assess_migration, assess_reader_acceptance,
 };
+pub use type_contract::{TypeContractRef, TypeContractRefError};
 
 /// A stable identifier borrowed from a descriptor or resolved plan.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
