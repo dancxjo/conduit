@@ -27,11 +27,12 @@ execution plan; packaging and code generation are separate operations.
 
 This repository contains the first executable Plan C foundation:
 
-- `conduit-core`: allocator-free contracts, canonical semantic hashes,
-  opaque type references, directional compatibility, and plan validation;
+- `conduit-core`: allocator-free contracts, canonical semantic hashes, opaque
+  type references, complete port/config schemas, directional compatibility,
+  and plan validation;
 - `conduit-panel`: the initial editable `.panel` source reader;
-- `conduit-runtime`: a hosted registry, resolver, explainer, and one-shot
-  executor, including domain type-provider discovery;
+- `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
+  one-shot executor, including domain type-provider discovery;
 - `conduct`: the Unix command-line interface.
 
 The initial runtime includes intentionally small proof handlers for literal

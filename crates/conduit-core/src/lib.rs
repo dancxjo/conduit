@@ -11,6 +11,8 @@ use core::fmt;
 
 mod canonical;
 mod compatibility;
+mod config;
+mod port;
 mod type_contract;
 
 pub use canonical::{
@@ -23,7 +25,17 @@ pub use compatibility::{
     CompatibilityReason, DescriptorRef, MigrationRef, RecordField, RecordSchema,
     UnknownFieldPolicy, ValueAcceptance, assess_exact, assess_migration, assess_reader_acceptance,
 };
-pub use type_contract::{TypeContractRef, TypeContractRefError};
+pub use config::{
+    ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,
+    ConfigIdentity, ConfigMutability, ConfigRequirement,
+};
+pub use port::{
+    ConnectionCardinality, Delivery, Direction, LossAcceptance, PortCompatibilityDecision,
+    PortCompatibilityReason, PortContract, PortFlowConstraints, Presence, Sensitivity,
+    TemporalContract, TerminalContract, ValueCardinality, assess_port_connection,
+    assess_port_substitution,
+};
+pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
 
 /// A stable identifier borrowed from a descriptor or resolved plan.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -109,63 +121,6 @@ impl fmt::Display for IdError {
     }
 }
 
-/// Port direction.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Direction {
-    /// Values enter the node.
-    Input,
-    /// Values leave the node.
-    Output,
-}
-
-/// Whether a port must be connected.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Presence {
-    /// At least one connection is required when cardinality permits it.
-    Required,
-    /// The port may remain disconnected.
-    Optional,
-}
-
-/// Number of cords permitted at a port.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Cardinality {
-    /// Exactly one cord.
-    ExactlyOne,
-    /// Zero or one cord.
-    ZeroOrOne,
-    /// One or more cords.
-    OneOrMore,
-    /// Any number of cords.
-    ZeroOrMore,
-}
-
-impl Cardinality {
-    const fn accepts(self, count: usize) -> bool {
-        match self {
-            Self::ExactlyOne => count == 1,
-            Self::ZeroOrOne => count <= 1,
-            Self::OneOrMore => count >= 1,
-            Self::ZeroOrMore => true,
-        }
-    }
-}
-
-/// Semantic delivery shape.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Delivery {
-    /// Every value is independently meaningful and ordered.
-    Stream,
-    /// A newer value replaces the previous current state.
-    LatestState,
-    /// A finite collection is delivered as one logical value.
-    FiniteBatch,
-    /// A durable or content-addressed artifact reference.
-    ArtifactReference,
-    /// Lifecycle or authority-bearing control data.
-    Control,
-}
-
 /// Behavior when a producer reaches a cord's finite capacity.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Pressure {
@@ -194,28 +149,13 @@ pub struct FlowPolicy {
     pub pressure: Pressure,
 }
 
-/// A semantic port contract.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PortContract<'a> {
-    /// Stable port identifier within the node contract.
-    pub id: Id<'a>,
-    /// Direction of value movement.
-    pub direction: Direction,
-    /// Stable semantic type identity.
-    pub value_type: Id<'a>,
-    /// Whether the port must be connected.
-    pub presence: Presence,
-    /// Permitted connection count.
-    pub cardinality: Cardinality,
-    /// Semantic delivery shape.
-    pub delivery: Delivery,
-}
-
 /// A semantic node contract.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeContract<'a> {
     /// Stable semantic contract identity.
     pub id: Id<'a>,
+    /// Typed configuration fields, never patchable as live ports.
+    pub config: ConfigContract<'a>,
     /// Input ports in stable contract order.
     pub inputs: &'a [PortContract<'a>],
     /// Output ports in stable contract order.
@@ -273,8 +213,20 @@ pub enum DiagnosticCode {
     CardinalityViolation,
     /// `CND-TYP-001`: connected port types differ.
     TypeMismatch,
+    /// `CND-PRT-003`: producer value counts exceed consumer acceptance.
+    ValueCardinalityMismatch,
+    /// `CND-PRT-004`: port delivery shapes differ.
+    DeliveryMismatch,
+    /// `CND-PRT-005`: temporal behavior is not accepted.
+    TemporalMismatch,
+    /// `CND-PRT-006`: terminal behavior is not accepted.
+    TerminalMismatch,
+    /// `CND-AUT-001`: sensitivity would be weakened.
+    SensitivityViolation,
     /// `CND-FLW-001`: a live cord has no finite capacity.
     UnboundedCord,
+    /// `CND-FLW-002`: endpoint loss constraints cannot be satisfied.
+    FlowConstraintMismatch,
 }
 
 impl DiagnosticCode {
@@ -286,7 +238,13 @@ impl DiagnosticCode {
             Self::InvalidEndpoint => "CND-PRT-001",
             Self::CardinalityViolation => "CND-PRT-002",
             Self::TypeMismatch => "CND-TYP-001",
+            Self::ValueCardinalityMismatch => "CND-PRT-003",
+            Self::DeliveryMismatch => "CND-PRT-004",
+            Self::TemporalMismatch => "CND-PRT-005",
+            Self::TerminalMismatch => "CND-PRT-006",
+            Self::SensitivityViolation => "CND-AUT-001",
             Self::UnboundedCord => "CND-FLW-001",
+            Self::FlowConstraintMismatch => "CND-FLW-002",
         }
     }
 }
@@ -367,15 +325,33 @@ pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
             });
         };
 
-        if source_port.direction != Direction::Output || target_port.direction != Direction::Input {
+        let type_decision =
+            assess_type_contract_exact(target_port.value_type, source_port.value_type);
+        let port_decision = assess_port_connection(*target_port, *source_port, type_decision);
+        if port_decision.outcome != CompatibilityOutcome::Compatible {
+            let code = match port_decision.reason {
+                PortCompatibilityReason::Accepted => continue,
+                PortCompatibilityReason::DirectionMismatch => DiagnosticCode::InvalidEndpoint,
+                PortCompatibilityReason::TypeMismatch => DiagnosticCode::TypeMismatch,
+                PortCompatibilityReason::PresenceMismatch
+                | PortCompatibilityReason::ConnectionCardinalityMismatch => {
+                    DiagnosticCode::CardinalityViolation
+                }
+                PortCompatibilityReason::ValueCardinalityMismatch => {
+                    DiagnosticCode::ValueCardinalityMismatch
+                }
+                PortCompatibilityReason::DeliveryMismatch => DiagnosticCode::DeliveryMismatch,
+                PortCompatibilityReason::TemporalMismatch => DiagnosticCode::TemporalMismatch,
+                PortCompatibilityReason::TerminalMismatch => DiagnosticCode::TerminalMismatch,
+                PortCompatibilityReason::SensitivityViolation => {
+                    DiagnosticCode::SensitivityViolation
+                }
+                PortCompatibilityReason::FlowConstraintMismatch => {
+                    DiagnosticCode::FlowConstraintMismatch
+                }
+            };
             return Err(ValidationError {
-                code: DiagnosticCode::InvalidEndpoint,
-                subject_index: u16::try_from(index).ok(),
-            });
-        }
-        if source_port.value_type != target_port.value_type {
-            return Err(ValidationError {
-                code: DiagnosticCode::TypeMismatch,
+                code,
                 subject_index: u16::try_from(index).ok(),
             });
         }
@@ -391,7 +367,7 @@ pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
                         && usize::from(cord.to.port) == port_index
                 })
                 .count();
-            if !port.cardinality.accepts(count)
+            if !port.connections.accepts_count(count)
                 || (port.presence == Presence::Required && count == 0)
             {
                 return Err(ValidationError {
@@ -409,7 +385,7 @@ pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
                         && usize::from(cord.from.port) == port_index
                 })
                 .count();
-            if !port.cardinality.accepts(count)
+            if !port.connections.accepts_count(count)
                 || (port.presence == Presence::Required && count == 0)
             {
                 return Err(ValidationError {
@@ -427,30 +403,55 @@ pub fn validate_plan(plan: &ExecutionPlan<'_>) -> Result<(), ValidationError> {
 mod tests {
     use super::*;
 
-    const TEXT: Id<'static> = Id("conduit/text.utf8");
+    const TEXT: TypeContractRef<'static> = TypeContractRef {
+        contract_id: Id("conduit/text.utf8"),
+        schema_version: 1,
+        semantic_hash: SemanticHash::from_bytes([
+            0x23, 0xf6, 0xb8, 0xc6, 0xd7, 0x84, 0x79, 0x9a, 0x10, 0x09, 0xbd, 0x45, 0x32, 0x26,
+            0x67, 0x0d, 0xdd, 0x91, 0x80, 0xe0, 0x06, 0xd4, 0xc2, 0x32, 0x70, 0x55, 0xcb, 0xf3,
+            0x50, 0x77, 0x6e, 0x9b,
+        ]),
+    };
+    const NO_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
     const OUT: PortContract<'static> = PortContract {
         id: Id("out"),
         direction: Direction::Output,
         value_type: TEXT,
         presence: Presence::Required,
-        cardinality: Cardinality::OneOrMore,
+        connections: ConnectionCardinality::OneOrMore,
+        values: ValueCardinality::ExactlyOne,
         delivery: Delivery::FiniteBatch,
+        temporal: TemporalContract::Atemporal,
+        terminal: TerminalContract::Finite,
+        sensitivity: Sensitivity::Public,
+        flow: PortFlowConstraints {
+            loss: LossAcceptance::LosslessOnly,
+        },
     };
     const INPUT: PortContract<'static> = PortContract {
         id: Id("in"),
         direction: Direction::Input,
         value_type: TEXT,
         presence: Presence::Required,
-        cardinality: Cardinality::ExactlyOne,
+        connections: ConnectionCardinality::ExactlyOne,
+        values: ValueCardinality::ExactlyOne,
         delivery: Delivery::FiniteBatch,
+        temporal: TemporalContract::Atemporal,
+        terminal: TerminalContract::Finite,
+        sensitivity: Sensitivity::Public,
+        flow: PortFlowConstraints {
+            loss: LossAcceptance::LosslessOnly,
+        },
     };
     const SOURCE: NodeContract<'static> = NodeContract {
         id: Id("conduit/source"),
+        config: NO_CONFIG,
         inputs: &[],
         outputs: &[OUT],
     };
     const SINK: NodeContract<'static> = NodeContract {
         id: Id("conduit/sink"),
+        config: NO_CONFIG,
         inputs: &[INPUT],
         outputs: &[],
     };

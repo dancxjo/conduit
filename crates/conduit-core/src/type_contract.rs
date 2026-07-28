@@ -5,7 +5,10 @@
 
 use core::fmt;
 
-use crate::{Id, SemanticHash};
+use crate::{
+    CompatibilityClass, CompatibilityDecision, CompatibilityQuery, CompatibilityReason, Id,
+    SemanticHash,
+};
 
 /// An exact reference to a domain-owned type contract.
 ///
@@ -41,6 +44,43 @@ impl<'a> TypeContractRef<'a> {
             .split_once('/')
             .ok_or(TypeContractRefError::MissingNamespace)?;
         Id::new(namespace).map_err(|_| TypeContractRefError::InvalidContractIdentifier)
+    }
+}
+
+/// Proves exact type identity or preserves the need for a hosted provider.
+#[must_use]
+pub fn assess_type_contract_exact<'a>(
+    consumer: TypeContractRef<'a>,
+    producer: TypeContractRef<'a>,
+) -> CompatibilityDecision<'a> {
+    let query = CompatibilityQuery::ConsumerAcceptsProducer { consumer, producer };
+    if consumer.validate().is_err() {
+        return CompatibilityDecision::indeterminate(
+            query,
+            CompatibilityReason::InvalidTypeReference,
+            Some(consumer.contract_id),
+        );
+    }
+    if producer.validate().is_err() {
+        return CompatibilityDecision::indeterminate(
+            query,
+            CompatibilityReason::InvalidTypeReference,
+            Some(producer.contract_id),
+        );
+    }
+    if consumer == producer {
+        CompatibilityDecision::compatible(
+            query,
+            CompatibilityClass::Exact,
+            CompatibilityReason::TypeContractExact,
+            None,
+        )
+    } else {
+        CompatibilityDecision::indeterminate(
+            query,
+            CompatibilityReason::ValueProviderRequired,
+            None,
+        )
     }
 }
 

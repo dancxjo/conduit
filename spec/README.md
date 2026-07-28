@@ -26,6 +26,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`005-type-contracts-v1.md`](005-type-contracts-v1.md) defines opaque
   domain-owned type references, hosted provider discovery, and explicit
   nominal, structural, and opaque comparison.
+- [`006-port-config-contracts-v1.md`](006-port-config-contracts-v1.md) freezes
+  complete port boundaries, directional diagnostics, and separate typed
+  configuration/default/redaction semantics.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.
