@@ -1,0 +1,15 @@
+[package]
+name = "conduit-runtime"
+description = "Hosted Conduit registry, resolver, explainer, and executor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-panel = { path = "../conduit-panel" }
+
+[lints]
+workspace = true
