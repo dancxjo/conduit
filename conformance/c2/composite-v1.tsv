@@ -1,0 +1,10 @@
+# case	shape	outcome	code	provenance
+one-level	export-output	compatible	-	root/child.out
+nested	export-output	compatible	-	root/inner/child.out
+fan-out	export-output-two-consumers	compatible	-	root/child.out
+parameter	bound-config	compatible	-	root/child.setting
+duplicate-export	export-output-twice	incompatible	CND-CMP-002	-
+dangling-export	export-missing-child	incompatible	CND-CMP-003	-
+incompatible-export	weaken-sensitivity	incompatible	CND-CMP-004	-
+recursive-definition	a-to-b-to-a	incompatible	CND-CMP-005	-
+boundary-bypass	root.child.out	incompatible	CND-CMP-006	-

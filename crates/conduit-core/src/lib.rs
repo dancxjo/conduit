@@ -11,6 +11,7 @@ use core::fmt;
 
 mod canonical;
 mod compatibility;
+mod composite;
 mod config;
 mod flow;
 mod lifecycle;
@@ -26,6 +27,10 @@ pub use compatibility::{
     CompatibilityClass, CompatibilityDecision, CompatibilityOutcome, CompatibilityQuery,
     CompatibilityReason, DescriptorRef, MigrationRef, RecordField, RecordSchema,
     UnknownFieldPolicy, ValueAcceptance, assess_exact, assess_migration, assess_reader_acceptance,
+};
+pub use composite::{
+    CompositeChild, CompositeConfigBinding, CompositeDefinition, CompositeError, CompositeExport,
+    DefinitionDependencies, InstancePath, validate_composite, validate_definition_dependencies,
 };
 pub use config::{
     ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,

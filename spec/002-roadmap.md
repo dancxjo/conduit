@@ -6,7 +6,7 @@ The repository currently proves:
 
 - allocator-free semantic identifiers, node/port contracts, bounded cords, and
   structural plan validation;
-- an editable flat `.panel` seed grammar;
+- an editable `.panel` seed grammar with exported nested composites;
 - hosted built-in implementation registration;
 - deterministic endpoint and implementation resolution;
 - type, cardinality, capacity, and cycle validation;
@@ -22,7 +22,6 @@ It does **not** yet claim:
 
 - live streaming scheduling;
 - full pressure-policy execution;
-- exported composite-node source syntax;
 - implementation manifests and host capability reports;
 - authority grants;
 - artifact resolution;

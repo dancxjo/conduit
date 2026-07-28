@@ -46,6 +46,9 @@ storage and emits every pressure, loss, replacement, and wake transition.
 Lifecycle is an allocator-free semantic state machine with bounded
 hierarchical cancellation, deterministic terminal precedence, explicit
 drain/abort queue disposition, and substitutable composite derivation.
+Reusable `composite` definitions contain ordinary nodes and cords, expose only
+explicit typed ports, bind configuration separately, and explain both logical
+and deterministically flattened primitive views.
 
 ## Design boundaries
 
