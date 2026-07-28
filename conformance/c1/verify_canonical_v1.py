@@ -214,6 +214,26 @@ def verify(path: Path, show: bool) -> None:
         if digest != vector["semantic_hash"]:
             raise AssertionError(f"{vector['name']}: semantic hash differs")
         print(f"ok {vector['name']} {digest}")
+    for vector in suite.get("negative_vectors", []):
+        try:
+            descriptor(vector["kind"], vector["schema_version"], vector["body"])
+        except ValueError as error:
+            message = str(error)
+            if message.startswith("duplicate canonical map key"):
+                actual = "duplicate-map-key"
+            elif message.startswith("invalid identifier"):
+                actual = "invalid-identifier"
+            elif message == "canonical value nesting exceeds 64":
+                actual = "maximum-depth-exceeded"
+            else:
+                actual = "malformed-canonical-value"
+        else:
+            actual = "accepted"
+        if actual != vector["expected_error"]:
+            raise AssertionError(
+                f"{vector['name']}: expected {vector['expected_error']}, got {actual}"
+            )
+        print(f"ok {vector['name']} rejected {actual}")
 
 
 def main() -> None:

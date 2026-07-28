@@ -9,7 +9,7 @@ lint:
 
 test:
     cargo test --workspace
-    python3 conformance/c1/verify_canonical_v1.py
+    cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
 
 embedded:
     cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
