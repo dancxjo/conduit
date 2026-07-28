@@ -1,0 +1,8 @@
+panel 1
+
+node greeting : conduit/literal {
+    value = "This endpoint does not exist."
+}
+node output : conduit/stdout
+
+cord greeting.missing -> output.in
