@@ -1,0 +1,7 @@
+# case	causes	terminal	queue	primary
+source-complete-buffered	natural-completion	succeeded	drain	natural-completion
+downstream-cancel-blocked	cancellation-requested	cancelled	abort	cancellation-requested
+failure-during-drain	natural-completion,node-failed	failed	abort	node-failed
+authority-vs-deadline	deadline-expired,authority-revoked	cancelled	abort	authority-revoked
+deadline-vs-disconnect	transport-disconnected,deadline-expired	cancelled	abort	deadline-expired
+disconnect-vs-complete	natural-completion,transport-disconnected	disconnected	abort	transport-disconnected

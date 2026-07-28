@@ -13,6 +13,7 @@ mod canonical;
 mod compatibility;
 mod config;
 mod flow;
+mod lifecycle;
 mod port;
 mod type_contract;
 
@@ -35,6 +36,14 @@ pub use flow::{
     FlowOffer, FlowPolicy, FlowPolicyDecision, FlowPolicyError, FlowPolicyReason, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, OfferDisposition, OfferTransition, PopTransition, Pressure,
     QueueError, SampleSchedule, TraitProof,
+};
+pub use lifecycle::{
+    CancellationDelivery, CancellationOutcome, CancellationRegistration, CancellationScope,
+    CauseRef, CordLifecycle, CordState, LifecycleError, LifecycleEvent, LifecycleMachine,
+    LifecycleState, ManagedSubject, ReplicaIdentity, ReplicaPoolContract, ReplicaState, StopPolicy,
+    SubjectState, SupervisionPolicy, TerminalCause, TerminalCauseCode, TerminalClass,
+    TerminalResolution, cancel_scope, cord_transition_allowed, derive_composite,
+    managed_transition_allowed, replica_transition_allowed, resolve_terminal,
 };
 pub use port::{
     ConnectionCardinality, Delivery, Direction, LossAcceptance, PortCompatibilityDecision,

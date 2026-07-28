@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use crate::{CompatibilityOutcome, Id};
+use crate::{CompatibilityOutcome, Id, StopPolicy, TerminalClass};
 
 /// Fairness contract for blocked producers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -369,6 +369,10 @@ impl FlowPolicyDecision {
 pub enum FlowQueueState {
     /// Accepting policy-governed offers.
     Active,
+    /// No longer accepting offers while accepted values drain.
+    Draining,
+    /// Natural source completion finished after draining.
+    Completed,
     /// Pressure policy disconnected the cord.
     Disconnected,
     /// Pressure policy failed the cord/run scope.
@@ -423,6 +427,20 @@ pub enum FlowEventKind {
         /// A consumer was waiting.
         wake_consumer: bool,
     },
+    /// Accepted values will drain before the named terminal state.
+    DrainStarted {
+        /// Terminal state that follows an empty queue.
+        terminal: FlowQueueState,
+    },
+    /// Aborting cancellation returned queued values for evidenced disposal.
+    ValuesDiscardedOnAbort {
+        /// Number of accepted values returned.
+        items: u16,
+        /// Accounted bytes returned.
+        bytes: u64,
+    },
+    /// Natural completion became terminal after the queue emptied.
+    Completed,
 }
 
 /// At most two evidence events emitted by one atomic queue transition.
@@ -518,6 +536,7 @@ pub struct BoundedFlowQueue<'s, 'p, T> {
     producer_waiting: bool,
     consumer_waiting: bool,
     state: FlowQueueState,
+    drain_target: Option<FlowQueueState>,
 }
 
 impl<'s, 'p, T> BoundedFlowQueue<'s, 'p, T> {
@@ -552,6 +571,7 @@ impl<'s, 'p, T> BoundedFlowQueue<'s, 'p, T> {
             producer_waiting: false,
             consumer_waiting: false,
             state: FlowQueueState::Active,
+            drain_target: None,
         })
     }
 
@@ -730,24 +750,193 @@ impl<'s, 'p, T> BoundedFlowQueue<'s, 'p, T> {
             self.producer_waiting = false;
             self.emit(&mut events, FlowEventKind::ProducerReady);
         }
+        if self.len == 0 && self.state == FlowQueueState::Draining {
+            let target = self
+                .drain_target
+                .take()
+                .expect("draining queue has a terminal target");
+            self.state = target;
+            match target {
+                FlowQueueState::Completed => self.emit(&mut events, FlowEventKind::Completed),
+                FlowQueueState::Cancelled => self.emit(
+                    &mut events,
+                    FlowEventKind::Cancelled {
+                        wake_producer: false,
+                        wake_consumer: false,
+                    },
+                ),
+                FlowQueueState::Failed => self.emit(&mut events, FlowEventKind::Failed),
+                FlowQueueState::Disconnected => {
+                    self.emit(&mut events, FlowEventKind::Disconnected);
+                }
+                FlowQueueState::Active | FlowQueueState::Draining => {
+                    unreachable!("drain target must be terminal")
+                }
+            }
+        }
         PopTransition {
             value: Some(value),
             events,
         }
     }
 
-    /// Cancels the queue and returns explicit wake evidence.
-    pub fn cancel(&mut self) -> FlowEvents {
+    /// Records natural source completion and preserves accepted values to drain.
+    pub fn complete_source(&mut self) -> FlowEvents {
+        self.begin_drain(FlowQueueState::Completed)
+    }
+
+    /// Cancels with drain semantics, preserving every accepted value.
+    pub fn cancel_drain(&mut self) -> FlowEvents {
+        self.begin_drain(FlowQueueState::Cancelled)
+    }
+
+    /// Cancels with abort semantics and returns every accepted value.
+    ///
+    /// The caller must provide at least `occupancy_items()` empty slots. No
+    /// queue value is removed if storage is insufficient or non-empty.
+    pub fn cancel_abort(&mut self, discarded: &mut [Option<T>]) -> Result<FlowEvents, QueueError> {
+        self.abort_to(FlowQueueState::Cancelled, discarded)
+    }
+
+    /// Applies a resolved terminal class and exact queue disposition.
+    pub fn terminate(
+        &mut self,
+        class: TerminalClass,
+        stop: StopPolicy,
+        discarded: &mut [Option<T>],
+    ) -> Result<FlowEvents, QueueError> {
+        let target = match class {
+            TerminalClass::Succeeded => FlowQueueState::Completed,
+            TerminalClass::Disconnected => FlowQueueState::Disconnected,
+            TerminalClass::Cancelled => FlowQueueState::Cancelled,
+            TerminalClass::Failed => FlowQueueState::Failed,
+        };
+        if class == TerminalClass::Succeeded || stop == StopPolicy::Drain {
+            Ok(self.begin_drain(target))
+        } else {
+            self.abort_to(target, discarded)
+        }
+    }
+
+    fn abort_to(
+        &mut self,
+        target: FlowQueueState,
+        discarded: &mut [Option<T>],
+    ) -> Result<FlowEvents, QueueError> {
         let mut events = FlowEvents::new();
-        if self.state == FlowQueueState::Active {
-            self.state = FlowQueueState::Cancelled;
-            let kind = FlowEventKind::Cancelled {
-                wake_producer: self.producer_waiting,
-                wake_consumer: self.consumer_waiting,
-            };
-            self.producer_waiting = false;
-            self.consumer_waiting = false;
-            self.emit(&mut events, kind);
+        if !matches!(
+            self.state,
+            FlowQueueState::Active | FlowQueueState::Draining
+        ) {
+            return Ok(events);
+        }
+        let required = usize::from(self.len);
+        if discarded.len() < required {
+            return Err(QueueError::DiscardStorageTooSmall);
+        }
+        if discarded[..required].iter().any(Option::is_some) {
+            return Err(QueueError::DiscardStorageNotEmpty);
+        }
+        let items = self.len;
+        let bytes = self.queued_bytes;
+        for slot in &mut discarded[..required] {
+            let (value, value_bytes) = self.slots[self.head]
+                .take()
+                .expect("queue prefix is occupied");
+            *slot = Some(value);
+            self.head = (self.head + 1) % usize::from(self.policy.capacity.items);
+            self.len -= 1;
+            self.queued_bytes -= u64::from(value_bytes);
+        }
+        if items != 0 {
+            self.emit(
+                &mut events,
+                FlowEventKind::ValuesDiscardedOnAbort { items, bytes },
+            );
+        }
+        let kind = FlowEventKind::Cancelled {
+            wake_producer: self.producer_waiting,
+            wake_consumer: self.consumer_waiting,
+        };
+        self.producer_waiting = false;
+        self.consumer_waiting = false;
+        self.pressured = false;
+        self.drain_target = None;
+        self.state = target;
+        match target {
+            FlowQueueState::Cancelled => self.emit(&mut events, kind),
+            FlowQueueState::Failed => self.emit(&mut events, FlowEventKind::Failed),
+            FlowQueueState::Disconnected => self.emit(&mut events, FlowEventKind::Disconnected),
+            FlowQueueState::Active | FlowQueueState::Draining | FlowQueueState::Completed => {
+                unreachable!("abort target must be an unsuccessful terminal state")
+            }
+        }
+        Ok(events)
+    }
+
+    /// Applies an exact cancellation stop policy.
+    pub fn cancel(
+        &mut self,
+        stop: StopPolicy,
+        discarded: &mut [Option<T>],
+    ) -> Result<FlowEvents, QueueError> {
+        match stop {
+            StopPolicy::Drain => Ok(self.cancel_drain()),
+            StopPolicy::Abort => self.cancel_abort(discarded),
+        }
+    }
+
+    fn begin_drain(&mut self, target: FlowQueueState) -> FlowEvents {
+        let mut events = FlowEvents::new();
+        if self.state == FlowQueueState::Draining {
+            let current = self
+                .drain_target
+                .expect("draining queue has a terminal target");
+            if queue_terminal_rank(target) > queue_terminal_rank(current) {
+                self.drain_target = Some(target);
+                self.emit(
+                    &mut events,
+                    FlowEventKind::DrainStarted { terminal: target },
+                );
+            }
+            return events;
+        }
+        if self.state != FlowQueueState::Active {
+            return events;
+        }
+        let wake_producer = self.producer_waiting;
+        let wake_consumer = self.consumer_waiting;
+        self.producer_waiting = false;
+        self.consumer_waiting = false;
+        if self.len == 0 {
+            self.state = target;
+            match target {
+                FlowQueueState::Completed => self.emit(&mut events, FlowEventKind::Completed),
+                FlowQueueState::Cancelled => self.emit(
+                    &mut events,
+                    FlowEventKind::Cancelled {
+                        wake_producer,
+                        wake_consumer,
+                    },
+                ),
+                FlowQueueState::Failed => self.emit(&mut events, FlowEventKind::Failed),
+                FlowQueueState::Disconnected => {
+                    self.emit(&mut events, FlowEventKind::Disconnected);
+                }
+                FlowQueueState::Active | FlowQueueState::Draining => {
+                    unreachable!("drain target must be terminal")
+                }
+            }
+            return events;
+        }
+        self.state = FlowQueueState::Draining;
+        self.drain_target = Some(target);
+        self.emit(
+            &mut events,
+            FlowEventKind::DrainStarted { terminal: target },
+        );
+        if wake_producer {
+            self.emit(&mut events, FlowEventKind::ProducerReady);
         }
         events
     }
@@ -771,6 +960,16 @@ impl<'s, 'p, T> BoundedFlowQueue<'s, 'p, T> {
     }
 }
 
+const fn queue_terminal_rank(state: FlowQueueState) -> u8 {
+    match state {
+        FlowQueueState::Completed => 0,
+        FlowQueueState::Disconnected => 1,
+        FlowQueueState::Cancelled => 2,
+        FlowQueueState::Failed => 3,
+        FlowQueueState::Active | FlowQueueState::Draining => 0,
+    }
+}
+
 /// Fixed-storage queue construction failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueueError {
@@ -782,4 +981,8 @@ pub enum QueueError {
     StorageTooSmall,
     /// Caller storage was not empty.
     StorageNotEmpty,
+    /// Abort storage cannot hold every accepted queued value.
+    DiscardStorageTooSmall,
+    /// Abort storage must be empty before queue ownership is transferred.
+    DiscardStorageNotEmpty,
 }
