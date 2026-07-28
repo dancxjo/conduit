@@ -1,0 +1,16 @@
+# case	plan	observations	resolution	bounds	authority	outcome	reason
+valid_minimal	exact	fresh	resolved	finite	matching	compatible	plan-valid
+valid_nested	exact	fresh	resolved	finite	matching	compatible	plan-valid
+duplicate_id	duplicate	fresh	resolved	finite	matching	incompatible	duplicate-identity
+dangling_endpoint	exact	fresh	dangling	finite	matching	incompatible	dangling-reference
+hash_mismatch	mismatched	fresh	resolved	finite	matching	incompatible	identity-or-contract-mismatch
+zero_or_unbounded_capacity	exact	fresh	resolved	invalid	matching	incompatible	queue-invalid
+unresolved_implementation	exact	fresh	unresolved	finite	matching	incompatible	unresolved-selection
+missing_artifact	exact	fresh	missing-artifact	finite	matching	incompatible	artifact-missing
+over_budget	exact	fresh	resolved	over-budget	matching	incompatible	budget-exceeded
+absent_grant	exact	fresh	resolved	finite	missing	incompatible	authority-invalid
+expired_grant	exact	fresh	resolved	finite	expired	incompatible	authority-invalid
+stale_host_report	exact	stale	resolved	finite	matching	incompatible	host-observation-stale
+unsupported_version	unsupported	fresh	resolved	finite	matching	incompatible	unsupported-version
+canonical_identity	reordered	fresh	resolved	finite	matching	compatible	identity-stable
+bounded_instance_pool	exact	fresh	resolved	fixed-maxima	matching	compatible	plan-valid
