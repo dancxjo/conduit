@@ -10,58 +10,104 @@ use std::fmt;
 use std::io::{Read, Write};
 
 use conduit_core::{
-    Cardinality, Delivery, Direction, Endpoint as CoreEndpoint, ExecutionPlan, FlowPolicy, Id,
-    NodeContract, PlanCord, PlanNode, PortContract, Presence, validate_plan,
+    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
+    ConnectionCardinality, Delivery, Direction, Endpoint as CoreEndpoint, ExecutionPlan,
+    FlowPolicy, Id, LossAcceptance, NodeContract, PlanCord, PlanNode, PortContract,
+    PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract, TerminalContract,
+    TypeContractRef, ValueCardinality, validate_plan,
 };
 use conduit_panel::{Node, Panel};
 
+mod config_resolution;
 mod type_registry;
 
+pub use config_resolution::{
+    ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
+    SecretValue, resolve_config, validate_config_update,
+};
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
     TypeRegistry, TypeRegistryError,
 };
 
-const TEXT_ID: Id<'static> = Id("conduit/text.utf8");
+const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("conduit/text.utf8"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x23, 0xf6, 0xb8, 0xc6, 0xd7, 0x84, 0x79, 0x9a, 0x10, 0x09, 0xbd, 0x45, 0x32, 0x26, 0x67,
+        0x0d, 0xdd, 0x91, 0x80, 0xe0, 0x06, 0xd4, 0xc2, 0x32, 0x70, 0x55, 0xcb, 0xf3, 0x50, 0x77,
+        0x6e, 0x9b,
+    ]),
+};
+const EMPTY_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
+const LITERAL_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[ConfigFieldContract {
+        key: Id("value"),
+        value_type: TEXT_TYPE,
+        requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Public,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Semantic,
+    }],
+};
 const INPUT_TEXT: PortContract<'static> = PortContract {
     id: Id("in"),
     direction: Direction::Input,
-    value_type: TEXT_ID,
+    value_type: TEXT_TYPE,
     presence: Presence::Required,
-    cardinality: Cardinality::ExactlyOne,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
     delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
 };
 const OUTPUT_TEXT: PortContract<'static> = PortContract {
     id: Id("out"),
     direction: Direction::Output,
-    value_type: TEXT_ID,
+    value_type: TEXT_TYPE,
     presence: Presence::Required,
-    cardinality: Cardinality::OneOrMore,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ExactlyOne,
     delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
 };
 
 const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/literal"),
+    config: LITERAL_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 const STDIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/stdin"),
+    config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/uppercase"),
+    config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/stdout"),
+    config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
 const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/stderr"),
+    config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
@@ -70,7 +116,7 @@ const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Value {
     /// Exact semantic type identity.
-    pub value_type: &'static str,
+    pub value_type: TypeContractRef<'static>,
     /// Canonical or implementation-agreed payload bytes.
     pub bytes: Vec<u8>,
 }
@@ -78,7 +124,7 @@ pub struct Value {
 impl Value {
     fn text(value: impl Into<Vec<u8>>) -> Self {
         Self {
-            value_type: TEXT_ID.as_str(),
+            value_type: TEXT_TYPE,
             bytes: value.into(),
         }
     }
@@ -321,7 +367,7 @@ impl ResolvedPanel<'_> {
                 writeln!(
                     explanation,
                     "    input  {} : {} {:?} {:?}",
-                    port.id, port.value_type, port.delivery, port.cardinality
+                    port.id, port.value_type.contract_id, port.delivery, port.connections
                 )
                 .expect("writing to String cannot fail");
             }
@@ -329,7 +375,7 @@ impl ResolvedPanel<'_> {
                 writeln!(
                     explanation,
                     "    output {} : {} {:?} {:?}",
-                    port.id, port.value_type, port.delivery, port.cardinality
+                    port.id, port.value_type.contract_id, port.delivery, port.connections
                 )
                 .expect("writing to String cannot fail");
             }
@@ -411,12 +457,15 @@ impl ResolvedPanel<'_> {
                     .iter()
                     .zip(resolved.definition.contract.outputs)
                 {
-                    if value.value_type != port.value_type.as_str() {
+                    if value.value_type != port.value_type {
                         return Err(RuntimeError::new(
                             "CND-RUN-004",
                             format!(
                                 "node `{}` emitted `{}` on `{}`; expected `{}`",
-                                resolved.source.id, value.value_type, port.id, port.value_type
+                                resolved.source.id,
+                                value.value_type.contract_id,
+                                port.id,
+                                port.value_type.contract_id
                             ),
                         ));
                     }
