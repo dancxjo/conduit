@@ -1,0 +1,19 @@
+[package]
+name = "conduct"
+description = "Check, explain, and conduct .panel files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "conduct"
+path = "src/main.rs"
+
+[dependencies]
+conduit-panel = { path = "../conduit-panel" }
+conduit-runtime = { path = "../conduit-runtime" }
+
+[lints]
+workspace = true

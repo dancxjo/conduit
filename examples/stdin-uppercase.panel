@@ -1,0 +1,9 @@
+# With a panel read from a file, process stdin remains available to this node.
+panel 1
+
+node input : conduit/stdin
+node transform : conduit/uppercase
+node output : conduit/stdout
+
+cord input.out -> transform.in
+cord transform.out -> output.in
