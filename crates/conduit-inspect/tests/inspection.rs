@@ -381,6 +381,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],
+        hazard_closure: None,
         composites: &[],
         port_groups: &[],
         instance_pools: &[],

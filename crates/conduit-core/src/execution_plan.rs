@@ -7,13 +7,15 @@ use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     AdministrativeProof, AdministrativeSubject, AuthorityGrant, AuthorityTime, CanonicalDescriptor,
     CanonicalError, CanonicalValue, CheckpointProviderCapabilities, ContainmentContext,
-    ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectRequirement,
-    EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
-    FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
-    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
+    ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectFlowBinding,
+    EffectRequirement, EventProviderCapabilities, EventStreamContract, ExecutionProfile,
+    FanOutMode, FieldDisposition, FlowPolicy, GrantStatus, HazardClosureContext,
+    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofNode, HostCapability, Id,
+    InstancePath, JobContract, MAX_HAZARD_PROOF_NODES, MapField, MergeOrdering,
+    MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
     PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus, Pressure,
     ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
-    SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef,
+    SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef, analyze_effect_closure,
     validate_administrative_proof, validate_authority_at_use, validate_distributed_binding,
     validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
     validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
@@ -31,8 +33,10 @@ use crate::{
 /// backend profile, carrier protection, and carrier endpoint. Schema 11 pins
 /// administrative containment proofs on exact authority bindings. Schema 12
 /// pins persistent policy-budget status and optional finite offline leases.
+/// Schema 13 pins whole-plan hazardous-effect closure policy, exact stage
+/// transfers, permits, and the resulting decision.
 /// Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 12;
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 13;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -44,6 +48,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V8: u32 = 8;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V9: u32 = 9;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V10: u32 = 10;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V11: u32 = 11;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V12: u32 = 12;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -301,6 +306,17 @@ pub struct PlanPolicyBudget<'a> {
     pub check_at_use: bool,
 }
 
+/// Exact plan-level hazardous-effect closure proof introduced in schema 13.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanHazardClosure<'a> {
+    pub epoch: u64,
+    pub plan_subject: SemanticHash,
+    pub policy: HazardClosurePolicy<'a>,
+    pub flows: &'a [EffectFlowBinding<'a>],
+    pub permits: &'a [HazardPermit<'a>],
+    pub decision_identity: SemanticHash,
+}
+
 /// One logical boundary export retained alongside primitive expansion.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanExportBinding<'a> {
@@ -421,6 +437,8 @@ pub struct ExecutionPlan<'a> {
     /// Accepted implicit-satisfaction proofs introduced in schema 7.
     pub satisfaction_proofs: &'a [PlanSatisfactionProof<'a>],
     pub authorities: &'a [PlanAuthority<'a>],
+    /// Policy-selected whole-plan closure introduced in schema 13.
+    pub hazard_closure: Option<PlanHazardClosure<'a>>,
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
     pub instance_pools: &'a [PlanInstancePool<'a>],
@@ -451,6 +469,7 @@ pub enum PlanCollection {
     Jobs,
     SatisfactionProofs,
     Authorities,
+    HazardClosure,
     Composites,
     PortGroups,
     InstancePools,
@@ -482,6 +501,7 @@ pub enum PlanDiagnosticCode {
     SatisfactionInvalid,
     Containment(ContainmentReason),
     PolicyBudget(PolicyBudgetReason),
+    HazardClosure(HazardClosureReason),
     Distributed(crate::DistributedReason),
     ScratchTooSmall,
 }
@@ -512,6 +532,7 @@ impl PlanDiagnosticCode {
             Self::SatisfactionInvalid => "CND-IMP-017",
             Self::Containment(reason) => reason.code(),
             Self::PolicyBudget(reason) => reason.code(),
+            Self::HazardClosure(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
@@ -568,6 +589,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.jobs.len()))
             .and_then(|value| value.checked_add(self.satisfaction_proofs.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
+            .and_then(|value| value.checked_add(usize::from(self.hazard_closure.is_some())))
             .and_then(|value| value.checked_add(self.unresolved.len()))
             .ok_or(PlanIdentityError::FactCountOverflow)?;
         for node in self.nodes {
@@ -704,6 +726,9 @@ impl ExecutionPlan<'_> {
         }
         for value in self.authorities {
             push!(hash_authority(self.schema_version, *value));
+        }
+        if let Some(closure) = self.hazard_closure {
+            push!(hash_hazard_closure(closure));
         }
         for composite in self.composites {
             push!(hash_composite(*composite));
@@ -1758,6 +1783,72 @@ pub fn validate_execution_plan(
         }
     }
 
+    match plan.hazard_closure {
+        None => {}
+        Some(_) if plan.schema_version < 13 => {
+            return Err(error(
+                PlanDiagnosticCode::UnsupportedVersion,
+                PlanCollection::HazardClosure,
+                None,
+            ));
+        }
+        Some(closure) => {
+            let mut proof = [None::<HazardProofNode<'_>>; MAX_HAZARD_PROOF_NODES];
+            let report = analyze_effect_closure(
+                closure.policy,
+                plan.authorities,
+                closure.flows,
+                closure.permits,
+                HazardClosureContext {
+                    plan_subject: closure.plan_subject,
+                    epoch: closure.epoch,
+                    time: plan.created_at,
+                },
+                &mut proof,
+            )
+            .map_err(|denial| {
+                error(
+                    PlanDiagnosticCode::HazardClosure(denial.reason),
+                    PlanCollection::HazardClosure,
+                    None,
+                )
+            })?;
+            if report.decision_identity != closure.decision_identity {
+                return Err(error(
+                    PlanDiagnosticCode::HazardClosure(HazardClosureReason::IdentityMismatch),
+                    PlanCollection::HazardClosure,
+                    None,
+                ));
+            }
+            let current = analyze_effect_closure(
+                closure.policy,
+                plan.authorities,
+                closure.flows,
+                closure.permits,
+                HazardClosureContext {
+                    plan_subject: closure.plan_subject,
+                    epoch: closure.epoch,
+                    time: context.now,
+                },
+                &mut proof,
+            )
+            .map_err(|denial| {
+                error(
+                    PlanDiagnosticCode::HazardClosure(denial.reason),
+                    PlanCollection::HazardClosure,
+                    None,
+                )
+            })?;
+            if current.closure_identity != report.closure_identity {
+                return Err(error(
+                    PlanDiagnosticCode::HazardClosure(HazardClosureReason::IdentityMismatch),
+                    PlanCollection::HazardClosure,
+                    None,
+                ));
+            }
+        }
+    }
+
     for (index, composite) in plan.composites.iter().enumerate() {
         if !valid_path(composite.instance)
             || composite.members.is_empty()
@@ -2783,6 +2874,53 @@ fn hash_authority(
                 CanonicalValue::Boolean(value.binding.check_at_use),
             ),
         ],
+    )
+}
+
+fn hash_hazard_closure(
+    value: PlanHazardClosure<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    if value.flows.len() > crate::MAX_HAZARD_FLOWS
+        || value.permits.len() > crate::MAX_HAZARD_PERMITS
+    {
+        return Err(CanonicalError::LengthOverflow);
+    }
+    let mut flows = [SemanticHash::from_bytes([0; 32]); crate::MAX_HAZARD_FLOWS];
+    for (index, flow) in value.flows.iter().enumerate() {
+        flows[index] = flow.computed_semantic_hash()?;
+    }
+    let mut permits = [SemanticHash::from_bytes([0; 32]); crate::MAX_HAZARD_PERMITS];
+    for (index, permit) in value.permits.iter().enumerate() {
+        permits[index] = permit.identity;
+    }
+    let permit_set = semantic_hash_with_hash_set(
+        Id("conduit/plan-hazard-permits"),
+        1,
+        &[],
+        Id("permits"),
+        &permits[..value.permits.len()],
+    )?;
+    semantic_hash_with_hash_set(
+        Id("conduit/plan-hazard-closure"),
+        1,
+        &[
+            semantic("epoch", CanonicalValue::Integer(i128::from(value.epoch))),
+            semantic(
+                "plan_subject",
+                CanonicalValue::Bytes(value.plan_subject.as_bytes()),
+            ),
+            semantic(
+                "policy_identity",
+                CanonicalValue::Bytes(value.policy.identity.as_bytes()),
+            ),
+            semantic(
+                "decision_identity",
+                CanonicalValue::Bytes(value.decision_identity.as_bytes()),
+            ),
+            semantic("permits", CanonicalValue::Bytes(permit_set.as_bytes())),
+        ],
+        Id("flows"),
+        &flows[..value.flows.len()],
     )
 }
 

@@ -15,20 +15,24 @@ use conduit_core::{
     BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
     ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
     EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    EXECUTION_PLAN_SCHEMA_VERSION_V11, EffectRequirement, ExecutionLimits, ExecutionPlan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12, EffectClassBinding,
+    EffectClassTraits, EffectFlowBinding, EffectRequirement, ExecutionLimits, ExecutionPlan,
     ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GrantStatus,
-    HandleDisposition, HostCapability, Id, ImplementationManifest, InstancePath,
-    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
-    ObservedGrant, OwnershipModel, PassportStatus, PassportStatusObservation,
-    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping,
-    PlanExportBinding, PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPortGroup,
+    HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
+    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HostCapability, Id,
+    ImplementationManifest, InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef,
+    ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
+    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanExportBinding,
+    PlanHazardClosure, PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPortGroup,
     PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext,
     PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits,
     PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure, ReplacementSupport,
     ReportCapability, ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding,
     ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
-    RollingLimit, SampleSchedule, SemanticHash, StopPolicy, TypeContractRef, ValueRepresentation,
-    resolve_authority, validate_administrative_proof,
+    RollingLimit, SampleSchedule, SemanticHash, StopPolicy, ToxicCombinationRule,
+    ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement, TypeContractRef,
+    ValueRepresentation, analyze_effect_closure, resolve_authority, validate_administrative_proof,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -46,6 +50,7 @@ pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 2;
 pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
 pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4";
 pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
+pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -587,6 +592,141 @@ pub struct AdministrativeProofDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct EffectClassBindingDocument {
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub persistence: bool,
+    pub delegation: bool,
+    pub distributed: bool,
+    pub administrative: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToxicEffectPatternDocument {
+    pub id: String,
+    pub class: PinDocument,
+    pub resource_kind: Option<String>,
+    pub resource_id: Option<String>,
+    pub audience: Option<String>,
+    pub host: Option<String>,
+    pub realm: Option<String>,
+    pub budget: Option<PinDocument>,
+    pub persistence: String,
+    pub delegation: String,
+    pub distributed: String,
+    pub administrative: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToxicFlowRequirementDocument {
+    pub from_pattern: u8,
+    pub to_pattern: u8,
+    pub transfer: PinDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToxicCombinationRuleDocument {
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub patterns: Vec<ToxicEffectPatternDocument>,
+    pub flows: Vec<ToxicFlowRequirementDocument>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HazardClosureLimitsDocument {
+    pub maximum_effects: u16,
+    pub maximum_classes: u8,
+    pub maximum_rules: u8,
+    pub maximum_patterns_per_rule: u8,
+    pub maximum_flows: u8,
+    pub maximum_permits: u8,
+    pub maximum_proof_nodes: u8,
+    pub maximum_search_steps: u32,
+}
+
+impl From<HazardClosureLimitsDocument> for HazardClosureLimits {
+    fn from(value: HazardClosureLimitsDocument) -> Self {
+        Self {
+            maximum_effects: value.maximum_effects,
+            maximum_classes: value.maximum_classes,
+            maximum_rules: value.maximum_rules,
+            maximum_patterns_per_rule: value.maximum_patterns_per_rule,
+            maximum_flows: value.maximum_flows,
+            maximum_permits: value.maximum_permits,
+            maximum_proof_nodes: value.maximum_proof_nodes,
+            maximum_search_steps: value.maximum_search_steps,
+        }
+    }
+}
+
+impl From<HazardClosureLimits> for HazardClosureLimitsDocument {
+    fn from(value: HazardClosureLimits) -> Self {
+        Self {
+            maximum_effects: value.maximum_effects,
+            maximum_classes: value.maximum_classes,
+            maximum_rules: value.maximum_rules,
+            maximum_patterns_per_rule: value.maximum_patterns_per_rule,
+            maximum_flows: value.maximum_flows,
+            maximum_permits: value.maximum_permits,
+            maximum_proof_nodes: value.maximum_proof_nodes,
+            maximum_search_steps: value.maximum_search_steps,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HazardClosurePolicyDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub permit_class: PinDocument,
+    pub classes: Vec<EffectClassBindingDocument>,
+    pub rules: Vec<ToxicCombinationRuleDocument>,
+    pub limits: HazardClosureLimitsDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EffectFlowBindingDocument {
+    pub from_effect: String,
+    pub to_effect: String,
+    pub transfer: PinDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HazardPermitDocument {
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub policy_identity: String,
+    pub rule_identity: String,
+    pub plan_subject: String,
+    pub epoch: u64,
+    pub scope_identity: String,
+    pub time_basis: String,
+    pub not_before_tick: u64,
+    pub expires_at_tick: u64,
+    pub approval: AdministrativeProofDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HazardClosureDocument {
+    pub epoch: u64,
+    pub plan_subject: String,
+    pub policy: HazardClosurePolicyDocument,
+    pub flows: Vec<EffectFlowBindingDocument>,
+    pub permits: Vec<HazardPermitDocument>,
+    pub decision_identity: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PolicyBudgetLimitsDocument {
     pub current_stock: Option<u64>,
     pub rolling_units: Option<u64>,
@@ -758,6 +898,8 @@ pub struct CompileInput {
     pub catalog: CompileCatalogDocument,
     #[serde(default)]
     pub pool_bindings: Vec<PoolBindingDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hazard_closure: Option<HazardClosureDocument>,
     pub source_semantic_hash: String,
     pub resolver: PinDocument,
     pub resolver_policy_hash: String,
@@ -789,6 +931,7 @@ struct CompileIdentityProjection<'a> {
     modules: &'a [CompileModuleDocument],
     catalog: &'a CompileCatalogDocument,
     pool_bindings: &'a [PoolBindingDocument],
+    hazard_closure: &'a Option<HazardClosureDocument>,
     source_semantic_hash: &'a str,
     resolver: &'a PinDocument,
     resolver_policy_hash: &'a str,
@@ -852,6 +995,9 @@ impl CompileInput {
             candidate.implementation.identity = implementation_identity(&candidate.implementation)?;
             candidate.host_report.identity = report_identity(&candidate.host_report)?;
         }
+        if let Some(closure) = &mut self.hazard_closure {
+            seal_hazard_closure(closure)?;
+        }
         self.resolver_policy_hash = policy_hash(self)?;
         self.identity = self.computed_identity()?;
         self.validate()
@@ -869,6 +1015,7 @@ impl CompileInput {
             modules: &canonical.modules,
             catalog: &canonical.catalog,
             pool_bindings: &canonical.pool_bindings,
+            hazard_closure: &canonical.hazard_closure,
             source_semantic_hash: &canonical.source_semantic_hash,
             resolver: &canonical.resolver,
             resolver_policy_hash: &canonical.resolver_policy_hash,
@@ -942,6 +1089,42 @@ impl CompileInput {
             .iter()
             .map(|reporter| parse_hash(reporter))
             .collect::<Result<Vec<_>, _>>()?;
+        if let Some(closure) = &self.hazard_closure {
+            let arena = Bump::new();
+            let policy = hazard_closure_policy(&closure.policy, &arena)?;
+            let _flows = closure
+                .flows
+                .iter()
+                .map(effect_flow_binding)
+                .collect::<Result<Vec<_>, _>>()?;
+            let permits = closure
+                .permits
+                .iter()
+                .map(|permit| {
+                    hazard_permit(
+                        permit,
+                        &arena,
+                        AuthorityTime {
+                            basis: id(&self.time_basis)?,
+                            tick: self.current_tick,
+                        },
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let subject = parse_hash(&closure.plan_subject)?;
+            parse_hash(&closure.decision_identity)?;
+            if closure.epoch == 0
+                || permits.iter().any(|permit| {
+                    permit.policy_identity != policy.identity
+                        || permit.plan_subject != subject
+                        || permit.epoch != closure.epoch
+                })
+            {
+                return Err(CompileError::new(CompileReason::HazardClosure(
+                    HazardClosureReason::PermitScopeMismatch,
+                )));
+            }
+        }
         if self.identity != self.computed_identity()? {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
@@ -1430,6 +1613,8 @@ pub struct ExactPlanDocument {
     pub nodes: Vec<PlanNodeDocument>,
     pub cords: Vec<PlanCordDocument>,
     pub authorities: Vec<PlanAuthorityDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hazard_closure: Option<HazardClosureDocument>,
     pub composites: Vec<PlanCompositeDocument>,
     pub port_groups: Vec<PlanPortGroupDocument>,
     pub instance_pools: Vec<PlanInstancePoolDocument>,
@@ -1453,12 +1638,36 @@ impl ExactPlanDocument {
         .map_err(|_| CompileError::new(CompileReason::PlanInvalid))
     }
 
+    /// Compute the exact policy/permit subject for this plan's resolved
+    /// authority facts and caller-declared stage transfers.
+    pub fn effect_closure_subject(
+        &self,
+        epoch: u64,
+        flows: &[EffectFlowBindingDocument],
+    ) -> Result<String, CompileError> {
+        let arena = Bump::new();
+        let plan = self.as_plan(&arena)?;
+        let flows = flows
+            .iter()
+            .map(effect_flow_binding)
+            .collect::<Result<Vec<_>, _>>()?;
+        conduit_core::effect_closure_subject(plan.authorities, &flows, epoch, plan.created_at.basis)
+            .map(|identity| identity.to_string())
+            .map_err(|_| {
+                CompileError::new(CompileReason::HazardClosure(
+                    HazardClosureReason::IdentityMismatch,
+                ))
+            })
+    }
+
     fn as_plan<'a>(&'a self, arena: &'a Bump) -> Result<ExecutionPlan<'a>, CompileError> {
         let supported_document = (self.schema == PLAN_DOCUMENT_SCHEMA
             && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V3)
             || (self.schema == ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V11)
             || (self.schema == POLICY_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V12)
+            || (self.schema == HAZARD_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
@@ -1632,6 +1841,21 @@ impl ExactPlanDocument {
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
+        let hazard_closure = self
+            .hazard_closure
+            .as_ref()
+            .map(|closure| {
+                plan_hazard_closure(
+                    closure,
+                    arena.alloc_slice_copy(&authorities),
+                    arena,
+                    AuthorityTime {
+                        basis: id(&self.time_basis)?,
+                        tick: self.created_at_tick,
+                    },
+                )
+            })
+            .transpose()?;
         let port_groups = self
             .port_groups
             .iter()
@@ -1708,6 +1932,7 @@ impl ExactPlanDocument {
             jobs: &[],
             satisfaction_proofs: &[],
             authorities: arena.alloc_slice_copy(&authorities),
+            hazard_closure,
             composites: arena.alloc_slice_copy(&composites),
             port_groups: arena.alloc_slice_copy(&port_groups),
             instance_pools: arena.alloc_slice_copy(&instance_pools),
@@ -2238,11 +2463,28 @@ fn compile_topology(
     }) {
         return Err(CompileError::new(CompileReason::PlanInvalid));
     }
-    let plan_schema_version = if plan_authorities
+    let hazard_closure = input
+        .hazard_closure
+        .as_ref()
+        .map(|closure| {
+            plan_hazard_closure(
+                closure,
+                &plan_authorities,
+                &arena,
+                AuthorityTime {
+                    basis: policy.time_basis,
+                    tick: policy.current_tick,
+                },
+            )
+        })
+        .transpose()?;
+    let plan_schema_version = if hazard_closure.is_some() {
+        EXECUTION_PLAN_SCHEMA_VERSION
+    } else if plan_authorities
         .iter()
         .any(|authority| !authority.policy_budgets.is_empty())
     {
-        EXECUTION_PLAN_SCHEMA_VERSION
+        EXECUTION_PLAN_SCHEMA_VERSION_V12
     } else if plan_authorities
         .iter()
         .any(|authority| authority.containment.is_some())
@@ -2275,6 +2517,7 @@ fn compile_topology(
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &plan_authorities,
+        hazard_closure,
         composites: &composites,
         port_groups: &port_groups,
         instance_pools: &instance_pools,
@@ -2297,6 +2540,9 @@ fn compile_topology(
             conduit_core::PlanDiagnosticCode::BudgetExceeded => CompileReason::BudgetInvalid,
             conduit_core::PlanDiagnosticCode::PolicyBudget(reason) => {
                 CompileReason::PolicyBudget(reason)
+            }
+            conduit_core::PlanDiagnosticCode::HazardClosure(reason) => {
+                CompileReason::HazardClosure(reason)
             }
             _ => CompileReason::PlanInvalid,
         }));
@@ -2962,6 +3208,83 @@ fn seal_administrative_proof(
     Ok(())
 }
 
+fn seal_hazard_closure(document: &mut HazardClosureDocument) -> Result<(), CompileError> {
+    let zero = SemanticHash::from_bytes([0; 32]).to_string();
+    for class in &mut document.policy.classes {
+        class.identity.clone_from(&zero);
+        class.identity = effect_class_binding(class)?
+            .computed_semantic_hash()
+            .map_err(|_| {
+                CompileError::new(CompileReason::HazardClosure(
+                    HazardClosureReason::InvalidDescriptor,
+                ))
+            })?
+            .to_string();
+    }
+    for rule in &mut document.policy.rules {
+        rule.identity.clone_from(&zero);
+        let arena = Bump::new();
+        let patterns = rule
+            .patterns
+            .iter()
+            .map(toxic_effect_pattern)
+            .collect::<Result<Vec<_>, _>>()?;
+        let flows = rule
+            .flows
+            .iter()
+            .map(toxic_flow_requirement)
+            .collect::<Result<Vec<_>, _>>()?;
+        let value = ToxicCombinationRule {
+            identity: SemanticHash::from_bytes([0; 32]),
+            descriptor: pin(&rule.descriptor)?,
+            patterns: arena.alloc_slice_copy(&patterns),
+            flows: arena.alloc_slice_copy(&flows),
+        };
+        rule.identity = value
+            .computed_semantic_hash()
+            .map_err(|_| {
+                CompileError::new(CompileReason::HazardClosure(
+                    HazardClosureReason::RuleInvalid,
+                ))
+            })?
+            .to_string();
+    }
+    document.policy.identity.clone_from(&zero);
+    {
+        let arena = Bump::new();
+        let policy = hazard_closure_policy(&document.policy, &arena)?;
+        document.policy.identity = policy
+            .computed_semantic_hash()
+            .map_err(|_| {
+                CompileError::new(CompileReason::HazardClosure(
+                    HazardClosureReason::InvalidDescriptor,
+                ))
+            })?
+            .to_string();
+    }
+    for permit in &mut document.permits {
+        permit.policy_identity.clone_from(&document.policy.identity);
+        seal_administrative_proof(&mut permit.approval)?;
+        permit.identity.clone_from(&zero);
+        let arena = Bump::new();
+        let now = AuthorityTime {
+            basis: id(&permit.time_basis)?,
+            tick: permit.not_before_tick,
+        };
+        permit.identity = hazard_permit(permit, &arena, now)?
+            .computed_semantic_hash()
+            .map_err(|_| {
+                CompileError::new(CompileReason::HazardClosure(
+                    HazardClosureReason::PermitApprovalInvalid,
+                ))
+            })?
+            .to_string();
+    }
+    parse_hash(&document.plan_subject)?;
+    parse_hash(&document.decision_identity)?;
+    Ok(())
+}
+
 fn authority_constraints<'a>(
     documents: &'a [AuthorityConstraintDocument],
     arena: &'a Bump,
@@ -3230,6 +3553,206 @@ fn administrative_proof<'a>(
     )
     .map_err(|reason| CompileError::new(CompileReason::Containment(reason)))?;
     Ok(proof)
+}
+
+fn trait_requirement(value: &str) -> Result<TraitRequirement, CompileError> {
+    match value {
+        "any" => Ok(TraitRequirement::Any),
+        "required" => Ok(TraitRequirement::Required),
+        "forbidden" => Ok(TraitRequirement::Forbidden),
+        _ => Err(CompileError::new(CompileReason::HazardClosure(
+            HazardClosureReason::RuleInvalid,
+        ))),
+    }
+}
+
+fn effect_class_binding(
+    document: &EffectClassBindingDocument,
+) -> Result<EffectClassBinding<'_>, CompileError> {
+    let descriptor = pin(&document.descriptor)?;
+    Ok(EffectClassBinding {
+        identity: parse_hash(&document.identity)?,
+        descriptor,
+        constraint: AuthorityConstraintRef {
+            id: descriptor.id,
+            semantic_hash: descriptor.semantic_hash,
+        },
+        traits: EffectClassTraits {
+            persistence: document.persistence,
+            delegation: document.delegation,
+            distributed: document.distributed,
+            administrative: document.administrative,
+        },
+    })
+}
+
+fn toxic_effect_pattern(
+    document: &ToxicEffectPatternDocument,
+) -> Result<ToxicEffectPattern<'_>, CompileError> {
+    let resource = match (
+        document.resource_kind.as_deref(),
+        document.resource_id.as_deref(),
+    ) {
+        (None, None) => None,
+        (Some(kind), None) => Some(ResourceSelector::Kind(id(kind)?)),
+        (Some(kind), Some(resource)) => Some(ResourceSelector::Exact(ResourceRef {
+            kind: id(kind)?,
+            id: id(resource)?,
+        })),
+        (None, Some(_)) => {
+            return Err(CompileError::new(CompileReason::HazardClosure(
+                HazardClosureReason::RuleInvalid,
+            )));
+        }
+    };
+    Ok(ToxicEffectPattern {
+        id: id(&document.id)?,
+        class: pin(&document.class)?,
+        resource,
+        audience: document.audience.as_deref().map(id).transpose()?,
+        host: document.host.as_deref().map(id).transpose()?,
+        realm: document.realm.as_deref().map(id).transpose()?,
+        budget: document.budget.as_ref().map(pin).transpose()?,
+        persistence: trait_requirement(&document.persistence)?,
+        delegation: trait_requirement(&document.delegation)?,
+        distributed: trait_requirement(&document.distributed)?,
+        administrative: trait_requirement(&document.administrative)?,
+    })
+}
+
+fn toxic_flow_requirement(
+    document: &ToxicFlowRequirementDocument,
+) -> Result<ToxicFlowRequirement<'_>, CompileError> {
+    Ok(ToxicFlowRequirement {
+        from_pattern: document.from_pattern,
+        to_pattern: document.to_pattern,
+        transfer: pin(&document.transfer)?,
+    })
+}
+
+fn hazard_closure_policy<'a>(
+    document: &'a HazardClosurePolicyDocument,
+    arena: &'a Bump,
+) -> Result<HazardClosurePolicy<'a>, CompileError> {
+    let classes = document
+        .classes
+        .iter()
+        .map(effect_class_binding)
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut rules = Vec::with_capacity(document.rules.len());
+    for rule in &document.rules {
+        let patterns = rule
+            .patterns
+            .iter()
+            .map(toxic_effect_pattern)
+            .collect::<Result<Vec<_>, _>>()?;
+        let flows = rule
+            .flows
+            .iter()
+            .map(toxic_flow_requirement)
+            .collect::<Result<Vec<_>, _>>()?;
+        rules.push(ToxicCombinationRule {
+            identity: parse_hash(&rule.identity)?,
+            descriptor: pin(&rule.descriptor)?,
+            patterns: arena.alloc_slice_copy(&patterns),
+            flows: arena.alloc_slice_copy(&flows),
+        });
+    }
+    Ok(HazardClosurePolicy {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        descriptor: pin(&document.descriptor)?,
+        permit_class: pin(&document.permit_class)?,
+        classes: arena.alloc_slice_copy(&classes),
+        rules: arena.alloc_slice_copy(&rules),
+        limits: document.limits.into(),
+    })
+}
+
+fn effect_flow_binding(
+    document: &EffectFlowBindingDocument,
+) -> Result<EffectFlowBinding<'_>, CompileError> {
+    Ok(EffectFlowBinding {
+        from_effect: id(&document.from_effect)?,
+        to_effect: id(&document.to_effect)?,
+        transfer: pin(&document.transfer)?,
+    })
+}
+
+fn hazard_permit<'a>(
+    document: &'a HazardPermitDocument,
+    arena: &'a Bump,
+    now: AuthorityTime<'a>,
+) -> Result<HazardPermit<'a>, CompileError> {
+    let subject = administrative_subject(&document.approval.proposal.subject)?;
+    let approval = administrative_proof(&document.approval, subject, arena, now).map_err(|_| {
+        CompileError::new(CompileReason::HazardClosure(
+            HazardClosureReason::PermitApprovalInvalid,
+        ))
+    })?;
+    Ok(HazardPermit {
+        identity: parse_hash(&document.identity)?,
+        descriptor: pin(&document.descriptor)?,
+        policy_identity: parse_hash(&document.policy_identity)?,
+        rule_identity: parse_hash(&document.rule_identity)?,
+        plan_subject: parse_hash(&document.plan_subject)?,
+        epoch: document.epoch,
+        scope_identity: parse_hash(&document.scope_identity)?,
+        time_basis: id(&document.time_basis)?,
+        not_before_tick: document.not_before_tick,
+        expires_at_tick: document.expires_at_tick,
+        approval,
+    })
+}
+
+fn plan_hazard_closure<'a>(
+    document: &'a HazardClosureDocument,
+    authorities: &'a [PlanAuthority<'a>],
+    arena: &'a Bump,
+    now: AuthorityTime<'a>,
+) -> Result<PlanHazardClosure<'a>, CompileError> {
+    let policy = hazard_closure_policy(&document.policy, arena)?;
+    let flows = document
+        .flows
+        .iter()
+        .map(effect_flow_binding)
+        .collect::<Result<Vec<_>, _>>()?;
+    let permits = document
+        .permits
+        .iter()
+        .map(|permit| hazard_permit(permit, arena, now))
+        .collect::<Result<Vec<_>, _>>()?;
+    let flows = arena.alloc_slice_copy(&flows);
+    let permits = arena.alloc_slice_copy(&permits);
+    let plan_subject = parse_hash(&document.plan_subject)?;
+    let mut proof = vec![None::<HazardProofNode<'a>>; MAX_HAZARD_PROOF_NODES];
+    let report = analyze_effect_closure(
+        policy,
+        authorities,
+        flows,
+        permits,
+        HazardClosureContext {
+            plan_subject,
+            epoch: document.epoch,
+            time: now,
+        },
+        &mut proof,
+    )
+    .map_err(|denial| CompileError::hazard(denial, &proof))?;
+    let decision_identity = parse_hash(&document.decision_identity)?;
+    if report.decision_identity != decision_identity {
+        return Err(CompileError::new(CompileReason::HazardClosure(
+            HazardClosureReason::IdentityMismatch,
+        )));
+    }
+    Ok(PlanHazardClosure {
+        epoch: document.epoch,
+        plan_subject,
+        policy,
+        flows,
+        permits,
+        decision_identity,
+    })
 }
 
 fn persistent_budget_policy(
@@ -3606,6 +4129,7 @@ fn plan_document(
                 .collect(),
         })
         .collect();
+    let hazard_closure = plan.hazard_closure.map(hazard_closure_document);
     let port_groups = plan
         .port_groups
         .iter()
@@ -3651,7 +4175,9 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 12 {
+        schema: if plan.schema_version >= 13 {
+            HAZARD_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 12 {
             POLICY_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else if plan.schema_version >= 11 {
             ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -3672,6 +4198,7 @@ fn plan_document(
         nodes,
         cords,
         authorities,
+        hazard_closure,
         composites,
         port_groups,
         instance_pools,
@@ -4154,6 +4681,118 @@ fn administrative_proof_document(value: AdministrativeProof<'_>) -> Administrati
     }
 }
 
+fn trait_requirement_document(value: TraitRequirement) -> String {
+    match value {
+        TraitRequirement::Any => "any",
+        TraitRequirement::Required => "required",
+        TraitRequirement::Forbidden => "forbidden",
+    }
+    .to_owned()
+}
+
+fn toxic_pattern_document(value: ToxicEffectPattern<'_>) -> ToxicEffectPatternDocument {
+    let (resource_kind, resource_id) = match value.resource {
+        None => (None, None),
+        Some(ResourceSelector::Kind(kind)) => (Some(kind.to_string()), None),
+        Some(ResourceSelector::Exact(resource)) => (
+            Some(resource.kind.to_string()),
+            Some(resource.id.to_string()),
+        ),
+    };
+    ToxicEffectPatternDocument {
+        id: value.id.to_string(),
+        class: pin_document(value.class),
+        resource_kind,
+        resource_id,
+        audience: value.audience.map(|value| value.to_string()),
+        host: value.host.map(|value| value.to_string()),
+        realm: value.realm.map(|value| value.to_string()),
+        budget: value.budget.map(pin_document),
+        persistence: trait_requirement_document(value.persistence),
+        delegation: trait_requirement_document(value.delegation),
+        distributed: trait_requirement_document(value.distributed),
+        administrative: trait_requirement_document(value.administrative),
+    }
+}
+
+fn hazard_closure_document(value: PlanHazardClosure<'_>) -> HazardClosureDocument {
+    HazardClosureDocument {
+        epoch: value.epoch,
+        plan_subject: value.plan_subject.to_string(),
+        policy: HazardClosurePolicyDocument {
+            schema_version: value.policy.schema_version,
+            identity: value.policy.identity.to_string(),
+            descriptor: pin_document(value.policy.descriptor),
+            permit_class: pin_document(value.policy.permit_class),
+            classes: value
+                .policy
+                .classes
+                .iter()
+                .map(|class| EffectClassBindingDocument {
+                    identity: class.identity.to_string(),
+                    descriptor: pin_document(class.descriptor),
+                    persistence: class.traits.persistence,
+                    delegation: class.traits.delegation,
+                    distributed: class.traits.distributed,
+                    administrative: class.traits.administrative,
+                })
+                .collect(),
+            rules: value
+                .policy
+                .rules
+                .iter()
+                .map(|rule| ToxicCombinationRuleDocument {
+                    identity: rule.identity.to_string(),
+                    descriptor: pin_document(rule.descriptor),
+                    patterns: rule
+                        .patterns
+                        .iter()
+                        .copied()
+                        .map(toxic_pattern_document)
+                        .collect(),
+                    flows: rule
+                        .flows
+                        .iter()
+                        .map(|flow| ToxicFlowRequirementDocument {
+                            from_pattern: flow.from_pattern,
+                            to_pattern: flow.to_pattern,
+                            transfer: pin_document(flow.transfer),
+                        })
+                        .collect(),
+                })
+                .collect(),
+            limits: value.policy.limits.into(),
+        },
+        flows: value
+            .flows
+            .iter()
+            .map(|flow| EffectFlowBindingDocument {
+                from_effect: flow.from_effect.to_string(),
+                to_effect: flow.to_effect.to_string(),
+                transfer: pin_document(flow.transfer),
+            })
+            .collect(),
+        permits: value
+            .permits
+            .iter()
+            .map(|permit| HazardPermitDocument {
+                identity: permit.identity.to_string(),
+                descriptor: pin_document(permit.descriptor),
+                policy_identity: permit.policy_identity.to_string(),
+                rule_identity: permit.rule_identity.to_string(),
+                plan_subject: permit.plan_subject.to_string(),
+                epoch: permit.epoch,
+                scope_identity: permit.scope_identity.to_string(),
+                time_basis: permit.time_basis.to_string(),
+                not_before_tick: permit.not_before_tick,
+                expires_at_tick: permit.expires_at_tick,
+                approval: administrative_proof_document(permit.approval),
+            })
+            .collect(),
+        decision_identity: value.decision_identity.to_string(),
+    }
+}
+
 fn policy_budget_binding_document(value: PlanPolicyBudget<'_>) -> PolicyBudgetBindingDocument {
     let (anchor_kind, anchor_id) = match value.policy.anchor {
         PolicyBudgetAnchor::Realm(id) => ("realm", id),
@@ -4279,6 +4918,61 @@ fn canonicalize_compile_input(input: &mut CompileInput) {
     input.trusted_entities.sort();
     input.trusted_status_reporters.sort();
     input.implementation_preference.sort();
+    if let Some(closure) = &mut input.hazard_closure {
+        closure
+            .policy
+            .classes
+            .sort_by(|left, right| left.descriptor.id.cmp(&right.descriptor.id));
+        for rule in &mut closure.policy.rules {
+            rule.flows.sort_by(|left, right| {
+                (left.from_pattern, left.to_pattern, &left.transfer.id).cmp(&(
+                    right.from_pattern,
+                    right.to_pattern,
+                    &right.transfer.id,
+                ))
+            });
+        }
+        closure
+            .policy
+            .rules
+            .sort_by(|left, right| left.descriptor.id.cmp(&right.descriptor.id));
+        closure.flows.sort_by(|left, right| {
+            (&left.from_effect, &left.to_effect, &left.transfer.id).cmp(&(
+                &right.from_effect,
+                &right.to_effect,
+                &right.transfer.id,
+            ))
+        });
+        closure
+            .permits
+            .sort_by(|left, right| left.descriptor.id.cmp(&right.descriptor.id));
+        for permit in &mut closure.permits {
+            permit.approval.policy.approvers.sort_by(|left, right| {
+                (&left.realm, &left.entity, &left.key).cmp(&(
+                    &right.realm,
+                    &right.entity,
+                    &right.key,
+                ))
+            });
+            permit
+                .approval
+                .proposal
+                .beneficiaries
+                .sort_by(|left, right| {
+                    (&left.realm, &left.entity, &left.plan, left.epoch).cmp(&(
+                        &right.realm,
+                        &right.entity,
+                        &right.plan,
+                        right.epoch,
+                    ))
+                });
+            permit
+                .approval
+                .approvals
+                .sort_by(|left, right| left.id.cmp(&right.id));
+            permit.approval.commit.approvals.sort();
+        }
+    }
     input.candidates.sort_by(|left, right| {
         (
             &left.implementation.id,
@@ -4654,6 +5348,7 @@ pub enum CompileReason {
     SourceLimitExceeded,
     Containment(ContainmentReason),
     PolicyBudget(PolicyBudgetReason),
+    HazardClosure(HazardClosureReason),
 }
 
 impl CompileReason {
@@ -4671,23 +5366,66 @@ impl CompileReason {
             Self::SourceLimitExceeded => "CND-CMP-009",
             Self::Containment(reason) => reason.code(),
             Self::PolicyBudget(reason) => reason.code(),
+            Self::HazardClosure(reason) => reason.code(),
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompileHazardProofNode {
+    pub parent: Option<u8>,
+    pub kind: &'static str,
+    pub descriptor: String,
+    pub effect: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompileError {
     reason: CompileReason,
+    hazard_proof: Vec<CompileHazardProofNode>,
 }
 
 impl CompileError {
-    const fn new(reason: CompileReason) -> Self {
-        Self { reason }
+    fn new(reason: CompileReason) -> Self {
+        Self {
+            reason,
+            hazard_proof: Vec::new(),
+        }
+    }
+
+    fn hazard(
+        denial: conduit_core::HazardClosureDenial<'_>,
+        proof: &[Option<HazardProofNode<'_>>],
+    ) -> Self {
+        let hazard_proof = proof
+            .iter()
+            .flatten()
+            .map(|node| CompileHazardProofNode {
+                parent: node.parent,
+                kind: match node.kind {
+                    HazardProofKind::Rule => "rule",
+                    HazardProofKind::Effect => "effect",
+                    HazardProofKind::Flow => "flow",
+                    HazardProofKind::Permit => "permit",
+                },
+                descriptor: node.descriptor.to_string(),
+                effect: node.effect.map(|effect| effect.to_string()),
+            })
+            .collect();
+        Self {
+            reason: CompileReason::HazardClosure(denial.reason),
+            hazard_proof,
+        }
     }
 
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.reason.code()
+    }
+
+    #[must_use]
+    pub fn hazard_proof(&self) -> &[CompileHazardProofNode] {
+        &self.hazard_proof
     }
 }
 
@@ -4742,8 +5480,35 @@ impl fmt::Display for CompileError {
             CompileReason::PolicyBudget(_) => {
                 "persistent policy budget proof is invalid or unavailable"
             }
+            CompileReason::HazardClosure(HazardClosureReason::PermitMissing)
+            | CompileReason::HazardClosure(HazardClosureReason::ToxicCombination) => {
+                "whole-plan effect closure contains a policy-forbidden combination"
+            }
+            CompileReason::HazardClosure(HazardClosureReason::ProofStorageExceeded) => {
+                "whole-plan effect-closure proof storage is exhausted before start"
+            }
+            CompileReason::HazardClosure(HazardClosureReason::SearchLimitExceeded) => {
+                "whole-plan effect-closure analysis exceeded its finite search bound"
+            }
+            CompileReason::HazardClosure(_) => {
+                "whole-plan effect-closure proof or exact permit is invalid"
+            }
         };
-        formatter.write_str(message)
+        formatter.write_str(message)?;
+        if let Some(rule) = self.hazard_proof.iter().find(|node| node.kind == "rule") {
+            write!(formatter, "; rule {}", rule.descriptor)?;
+            let mut effects = self
+                .hazard_proof
+                .iter()
+                .filter_map(|node| node.effect.as_deref());
+            if let Some(first) = effects.next() {
+                write!(formatter, "; effects {first}")?;
+                for effect in effects {
+                    write!(formatter, ", {effect}")?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -5088,6 +5853,7 @@ mod tests {
             }],
             catalog: builtin_catalog_document().unwrap(),
             pool_bindings: Vec::new(),
+            hazard_closure: None,
             source_semantic_hash: topology.source_semantic_hash.to_string(),
             resolver: pin_doc("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),
@@ -5228,6 +5994,7 @@ mod tests {
             ],
             catalog: builtin_catalog_document().unwrap(),
             pool_bindings: Vec::new(),
+            hazard_closure: None,
             source_semantic_hash: hash(1),
             resolver: pin_doc("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),
@@ -5692,7 +6459,7 @@ mod tests {
         input.seal().unwrap();
         let plan = compile_panel(&panel, &input).unwrap();
         assert_eq!(plan.schema, POLICY_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V12);
         assert_eq!(plan.authorities[0].policy_budgets.len(), 1);
         plan.validate().unwrap();
 
@@ -5711,6 +6478,190 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "persistent policy budget denied the protected effect"
+        );
+    }
+
+    #[test]
+    fn whole_plan_hazard_closure_is_sealed_and_toxic_combinations_fail_before_start() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let mut input = compile_input(source, &panel);
+        let candidate = input
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .unwrap();
+        candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        let host = candidate.host_report.host.clone();
+        let present_class = pin_doc("class.present", 140);
+        let absent_class = pin_doc("class.absent", 141);
+        let present_constraint = AuthorityConstraintDocument {
+            id: present_class.id.clone(),
+            semantic_hash: present_class.semantic_hash.clone(),
+        };
+        candidate.authorities.push(AuthorityDecisionDocument {
+            requirement: hash(142),
+            effect_hash: String::new(),
+            grant_hash: String::new(),
+            effect: EffectRequirementDocument {
+                id: "fixture/classified".to_owned(),
+                administrative_class: None,
+                policy_budget_class: None,
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: Some("fixture/device-a".to_owned()),
+                requester: "root/greeting".to_owned(),
+                audience: "fixture/run".to_owned(),
+                constraints: vec![present_constraint.clone()],
+                check_at_use: true,
+            },
+            capability: HostCapabilityDocument {
+                id: "fixture/classified-capability".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: "fixture/device-a".to_owned(),
+                host: host.clone(),
+                time_basis: "clock/compile".to_owned(),
+                observed_at_tick: 10,
+                valid_until_tick: 20,
+            },
+            grant: AuthorityGrantDocument {
+                id: "fixture/classified-grant".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: "fixture/device-a".to_owned(),
+                scope_root: "root/greeting".to_owned(),
+                scope_descendants: false,
+                audience: "fixture/run".to_owned(),
+                constraints: vec![present_constraint],
+                time_basis: "clock/compile".to_owned(),
+                not_before_tick: 10,
+                expires_at_tick: 20,
+                issued_for_host: host,
+                delegation: "none".to_owned(),
+                audit_id: "fixture/classified-audit".to_owned(),
+                terminal_policy: "abort".to_owned(),
+            },
+            status: "active".to_owned(),
+            administrative_subject: None,
+            containment: None,
+            policy_budgets: Vec::new(),
+        });
+        input.seal().unwrap();
+        let baseline = compile_panel(&panel, &input).unwrap();
+        let baseline_arena = Bump::new();
+        let baseline_plan = baseline.as_plan(&baseline_arena).unwrap();
+        let plan_subject = conduit_core::effect_closure_subject(
+            baseline_plan.authorities,
+            &[],
+            1,
+            baseline_plan.created_at.basis,
+        )
+        .unwrap();
+
+        let mut closure = HazardClosureDocument {
+            epoch: 1,
+            plan_subject: plan_subject.to_string(),
+            policy: HazardClosurePolicyDocument {
+                schema_version: conduit_core::HAZARD_CLOSURE_POLICY_SCHEMA_VERSION,
+                identity: hash(0),
+                descriptor: pin_doc("policy.fixture-hazard", 143),
+                permit_class: pin_doc("effect.fixture-permit", 144),
+                classes: vec![
+                    EffectClassBindingDocument {
+                        identity: hash(0),
+                        descriptor: present_class.clone(),
+                        persistence: false,
+                        delegation: false,
+                        distributed: false,
+                        administrative: false,
+                    },
+                    EffectClassBindingDocument {
+                        identity: hash(0),
+                        descriptor: absent_class.clone(),
+                        persistence: false,
+                        delegation: false,
+                        distributed: false,
+                        administrative: false,
+                    },
+                ],
+                rules: vec![ToxicCombinationRuleDocument {
+                    identity: hash(0),
+                    descriptor: pin_doc("rule.fixture-toxic", 145),
+                    patterns: vec![ToxicEffectPatternDocument {
+                        id: "stage.absent".to_owned(),
+                        class: absent_class,
+                        resource_kind: None,
+                        resource_id: None,
+                        audience: None,
+                        host: None,
+                        realm: None,
+                        budget: None,
+                        persistence: "any".to_owned(),
+                        delegation: "any".to_owned(),
+                        distributed: "any".to_owned(),
+                        administrative: "any".to_owned(),
+                    }],
+                    flows: Vec::new(),
+                }],
+                limits: HazardClosureLimitsDocument {
+                    maximum_effects: 8,
+                    maximum_classes: 4,
+                    maximum_rules: 4,
+                    maximum_patterns_per_rule: 4,
+                    maximum_flows: 4,
+                    maximum_permits: 4,
+                    maximum_proof_nodes: 8,
+                    maximum_search_steps: 64,
+                },
+            },
+            flows: Vec::new(),
+            permits: Vec::new(),
+            decision_identity: hash(146),
+        };
+        seal_hazard_closure(&mut closure).unwrap();
+        {
+            let arena = Bump::new();
+            let policy = hazard_closure_policy(&closure.policy, &arena).unwrap();
+            let mut proof = [None; MAX_HAZARD_PROOF_NODES];
+            let report = analyze_effect_closure(
+                policy,
+                baseline_plan.authorities,
+                &[],
+                &[],
+                HazardClosureContext {
+                    plan_subject,
+                    epoch: 1,
+                    time: baseline_plan.created_at,
+                },
+                &mut proof,
+            )
+            .unwrap();
+            closure.decision_identity = report.decision_identity.to_string();
+        }
+        input.hazard_closure = Some(closure);
+        input.seal().unwrap();
+        let plan = compile_panel(&panel, &input).unwrap();
+        assert_eq!(plan.schema, HAZARD_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert!(plan.hazard_closure.is_some());
+        plan.validate().unwrap();
+
+        let mut toxic = input;
+        toxic.hazard_closure.as_mut().unwrap().policy.rules[0].patterns[0].class = present_class;
+        toxic.seal().unwrap();
+        let error = compile_panel(&panel, &toxic).unwrap_err();
+        assert_eq!(error.code(), "CND-HZD-010");
+        assert_eq!(
+            error.to_string(),
+            "whole-plan effect closure contains a policy-forbidden combination; rule rule.fixture-toxic; effects fixture/classified"
+        );
+        assert_eq!(error.hazard_proof().len(), 2);
+        assert_eq!(error.hazard_proof()[0].kind, "rule");
+        assert_eq!(
+            error.hazard_proof()[1].effect.as_deref(),
+            Some("fixture/classified")
         );
     }
 

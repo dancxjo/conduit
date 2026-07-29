@@ -232,6 +232,7 @@ fn with_plan(
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],
+        hazard_closure: None,
         composites: &[],
         port_groups: &[],
         instance_pools: &[],

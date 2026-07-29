@@ -1,5 +1,20 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 36 — 2026-07-29
+
+- Registered 22 independently dispatched hazardous-effect-closure cases for
+  isolated controls, exact toxic combinations and permits, declared
+  plan/epoch/artifact/host/realm/budget permit mismatches, propagation,
+  composite and remote visibility, exact constraint distinctions, live
+  overlap, per-occurrence permits, expiry and invalid approval, degradation,
+  and bounded analysis failures.
+- Added plan schema 13 and `conduit.execution-plan/v6` bindings for the exact
+  domain policy, closure subject, transfer facts, permits, and decision
+  identity while preserving earlier plan identities.
+- Kept the claim boundary explicit: the analyzer evaluates complete declared
+  effects and exact bindings; domains and hosts still own taxonomy completeness
+  and effect reporting.
+
 ## Manifest revision 35 — 2026-07-29
 
 - Registered 15 independently dispatched persistent-policy-budget cases for

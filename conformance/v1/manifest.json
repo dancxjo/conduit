@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 35,
+  "manifest_revision": 36,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3849,6 +3849,94 @@
       },
       "reference_tests": [
         {"package": "conduit-core", "test": "policy_budget_vectors"}
+      ]
+    },
+    {
+      "id": "hazardous-effect-closure",
+      "profile": "conduit.c3-c5",
+      "requirement_ids": [
+        "HZD-001", "HZD-002", "HZD-003", "HZD-004", "HZD-005",
+        "HZD-006", "HZD-007", "HZD-008", "HZD-009", "HZD-010",
+        "HZD-011", "HZD-012", "HZD-013", "HZD-014", "HZD-015",
+        "HZD-016", "HZD-017", "HZD-018"
+      ],
+      "artifacts": [{
+        "id": "hazard-closure-v1",
+        "path": "../c2/hazard-closure-v1.json",
+        "sha256": "sha256:b66d68ac2421819d5c89adb02652a7e2be1fd8da7a333c229887851f117a56ca",
+        "operation": "hazardous-effect-closure-v1",
+        "requirement_ids": [
+          "HZD-001", "HZD-002", "HZD-003", "HZD-004", "HZD-005",
+          "HZD-006", "HZD-007", "HZD-008", "HZD-009", "HZD-010",
+          "HZD-011", "HZD-012", "HZD-013", "HZD-014", "HZD-015",
+          "HZD-016", "HZD-017", "HZD-018"
+        ],
+        "default_rule": "HZD-001",
+        "case_rules": {
+          "isolated-network-accepted": "HZD-005",
+          "isolated-write-accepted": "HZD-005",
+          "isolated-process-accepted": "HZD-005",
+          "toxic-triad-denied": "HZD-010",
+          "exact-independent-permit-accepted": "HZD-011",
+          "permit-plan-mismatch-denied": "HZD-010",
+          "permit-epoch-mismatch-denied": "HZD-010",
+          "permit-artifact-mismatch-denied": "HZD-010",
+          "permit-host-mismatch-denied": "HZD-010",
+          "permit-realm-mismatch-denied": "HZD-010",
+          "permit-budget-mismatch-denied": "HZD-010",
+          "expired-permit-denied": "HZD-012",
+          "invalid-independent-approval-denied": "HZD-011",
+          "one-permit-cannot-cover-two-occurrences": "HZD-010",
+          "declared-propagation-chain-denied": "HZD-006",
+          "composite-hidden-effects-denied": "HZD-003",
+          "remote-federated-effects-denied": "HZD-007",
+          "exact-host-audience-distinction": "HZD-004",
+          "old-new-overlap-denied": "HZD-009",
+          "degradation-cannot-bypass-closure": "HZD-008",
+          "proof-storage-exhaustion": "HZD-015",
+          "analysis-search-exhaustion": "HZD-013"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "hazard-closure-v1#isolated-network-accepted",
+          "hazard-closure-v1#isolated-write-accepted",
+          "hazard-closure-v1#isolated-process-accepted",
+          "hazard-closure-v1#exact-independent-permit-accepted",
+          "hazard-closure-v1#exact-host-audience-distinction"
+        ],
+        "negative": [
+          "hazard-closure-v1#toxic-triad-denied",
+          "hazard-closure-v1#permit-plan-mismatch-denied",
+          "hazard-closure-v1#permit-epoch-mismatch-denied",
+          "hazard-closure-v1#permit-artifact-mismatch-denied",
+          "hazard-closure-v1#permit-host-mismatch-denied",
+          "hazard-closure-v1#permit-realm-mismatch-denied",
+          "hazard-closure-v1#permit-budget-mismatch-denied",
+          "hazard-closure-v1#expired-permit-denied",
+          "hazard-closure-v1#invalid-independent-approval-denied",
+          "hazard-closure-v1#one-permit-cannot-cover-two-occurrences",
+          "hazard-closure-v1#declared-propagation-chain-denied",
+          "hazard-closure-v1#composite-hidden-effects-denied",
+          "hazard-closure-v1#remote-federated-effects-denied",
+          "hazard-closure-v1#degradation-cannot-bypass-closure"
+        ],
+        "boundary": [
+          "hazard-closure-v1#proof-storage-exhaustion",
+          "hazard-closure-v1#analysis-search-exhaustion"
+        ],
+        "migration": [
+          "hazard-closure-v1#old-new-overlap-denied"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "hazard_closure_vectors"},
+        {"package": "conduit-compile", "test": "compile_vectors"},
+        {"package": "conduct", "test": "compile_cli"}
       ]
     }
   ]

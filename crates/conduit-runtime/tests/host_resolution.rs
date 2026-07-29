@@ -853,6 +853,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],
+        hazard_closure: None,
         composites: &[],
         port_groups: &[],
         instance_pools: &[],

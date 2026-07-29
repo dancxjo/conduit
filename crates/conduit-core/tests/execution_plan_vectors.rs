@@ -300,6 +300,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &authorities,
+        hazard_closure: None,
         composites: &composites,
         port_groups: &groups,
         instance_pools: &pools,

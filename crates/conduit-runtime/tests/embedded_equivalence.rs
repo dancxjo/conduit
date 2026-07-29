@@ -314,6 +314,7 @@ fn with_equivalence_plans(
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],
+        hazard_closure: None,
         composites: &[],
         port_groups: &[],
         instance_pools: &[],

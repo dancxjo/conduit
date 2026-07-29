@@ -156,6 +156,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   defines plan-v12 host/site/realm anchored current, rolling, lifetime, and
   finite-lease governance budgets with atomic idempotent reservations,
   durable recovery, fresh status, and independent approval for increases.
+- [`043-hazardous-effect-closure-v1.md`](043-hazardous-effect-closure-v1.md)
+  defines plan-v13 domain-owned effect classes, bounded whole-plan and
+  transition closure, exact toxic combinations and declared propagation,
+  independent expiring permits, and secret-safe proof trees.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

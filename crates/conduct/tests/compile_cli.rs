@@ -8,7 +8,7 @@ use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
     CompileSourceLimits, ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument,
-    ImplementationDocument, PinDocument, builtin_catalog_document,
+    ImplementationDocument, PinDocument, builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -206,6 +206,7 @@ fn input(source: &str) -> CompileInput {
         }],
         catalog: builtin_catalog_document().unwrap(),
         pool_bindings: Vec::new(),
+        hazard_closure: None,
         source_semantic_hash: topology.source_semantic_hash.to_string(),
         resolver: pin("conduit/exact-compiler-resolver", 70),
         resolver_policy_hash: String::new(),
@@ -353,6 +354,137 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
     input
 }
 
+fn toxic_hazard_input(source: &str) -> CompileInput {
+    let mut value = serde_json::to_value(input(source)).unwrap();
+    let candidate = value["candidates"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|candidate| {
+            candidate["implementation"]["semantic_contract"]["id"] == "conduit/literal"
+        })
+        .unwrap();
+    candidate["implementation"]["maximum_plan_version"] =
+        serde_json::json!(EXECUTION_PLAN_SCHEMA_VERSION);
+    candidate["host_report"]["maximum_plan_version"] =
+        serde_json::json!(EXECUTION_PLAN_SCHEMA_VERSION);
+    let host = candidate["host_report"]["host"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let effect_class = pin("class.cli-toxic", 130);
+    candidate["authorities"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "requirement": hash(131),
+            "effect_hash": "",
+            "grant_hash": "",
+            "effect": {
+                "id": "fixture/cli-toxic",
+                "action": "fixture/read",
+                "resource_kind": "fixture/device",
+                "resource_id": "fixture/device-a",
+                "requester": "root/greeting",
+                "audience": "fixture/run",
+                "constraints": [{
+                    "id": effect_class.id,
+                    "semantic_hash": effect_class.semantic_hash
+                }],
+                "check_at_use": true
+            },
+            "capability": {
+                "id": "fixture/cli-toxic-capability",
+                "action": "fixture/read",
+                "resource_kind": "fixture/device",
+                "resource_id": "fixture/device-a",
+                "host": host.clone(),
+                "time_basis": "clock/compile",
+                "observed_at_tick": 10,
+                "valid_until_tick": 20
+            },
+            "grant": {
+                "id": "fixture/cli-toxic-grant",
+                "action": "fixture/read",
+                "resource_kind": "fixture/device",
+                "resource_id": "fixture/device-a",
+                "scope_root": "root/greeting",
+                "scope_descendants": false,
+                "audience": "fixture/run",
+                "constraints": [{
+                    "id": effect_class.id,
+                    "semantic_hash": effect_class.semantic_hash
+                }],
+                "time_basis": "clock/compile",
+                "not_before_tick": 10,
+                "expires_at_tick": 20,
+                "issued_for_host": host,
+                "delegation": "none",
+                "audit_id": "fixture/cli-toxic-audit",
+                "terminal_policy": "abort"
+            },
+            "status": "active"
+        }));
+    let mut baseline: CompileInput = serde_json::from_value(value).unwrap();
+    baseline.seal().unwrap();
+    let exact = compile_source(source, &baseline).unwrap();
+    let plan_subject = exact.effect_closure_subject(1, &[]).unwrap();
+    let mut value = serde_json::to_value(baseline).unwrap();
+    value["hazard_closure"] = serde_json::json!({
+        "epoch": 1,
+        "plan_subject": plan_subject,
+        "policy": {
+            "schema_version": 1,
+            "identity": "",
+            "descriptor": pin("policy.cli-hazard", 132),
+            "permit_class": pin("effect.cli-permit", 133),
+            "classes": [{
+                "identity": "",
+                "descriptor": effect_class,
+                "persistence": false,
+                "delegation": false,
+                "distributed": false,
+                "administrative": false
+            }],
+            "rules": [{
+                "identity": "",
+                "descriptor": pin("rule.cli-toxic", 134),
+                "patterns": [{
+                    "id": "stage.cli-toxic",
+                    "class": pin("class.cli-toxic", 130),
+                    "resource_kind": null,
+                    "resource_id": null,
+                    "audience": null,
+                    "host": null,
+                    "realm": null,
+                    "budget": null,
+                    "persistence": "any",
+                    "delegation": "any",
+                    "distributed": "any",
+                    "administrative": "any"
+                }],
+                "flows": []
+            }],
+            "limits": {
+                "maximum_effects": 8,
+                "maximum_classes": 4,
+                "maximum_rules": 4,
+                "maximum_patterns_per_rule": 4,
+                "maximum_flows": 4,
+                "maximum_permits": 4,
+                "maximum_proof_nodes": 8,
+                "maximum_search_steps": 64
+            }
+        },
+        "flows": [],
+        "permits": [],
+        "decision_identity": hash(135)
+    });
+    let mut input: CompileInput = serde_json::from_value(value).unwrap();
+    input.seal().unwrap();
+    input
+}
+
 fn assert_fixture_case(id: &str) {
     let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
     assert!(
@@ -475,6 +607,50 @@ fn check_and_explain_name_persistent_denial_not_plan_resource_exhaustion() {
         assert!(diagnostic.contains("CND-PBG-008"), "{mode}: {diagnostic}");
         assert!(
             diagnostic.contains("persistent policy budget denied the protected effect"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            !diagnostic.contains("resource budget"),
+            "{mode}: {diagnostic}"
+        );
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn check_and_explain_name_the_whole_plan_toxic_combination() {
+    let root = temporary_directory();
+    let source = include_str!("../../../examples/hello.panel");
+    let panel = root.join("hello.panel");
+    let input_path = root.join("compile-input.json");
+    std::fs::write(&panel, source).unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&toxic_hazard_input(source)).unwrap(),
+    )
+    .unwrap();
+
+    for mode in ["--check", "--explain"] {
+        let output = command()
+            .arg(mode)
+            .arg("--compile-input")
+            .arg(&input_path)
+            .arg(&panel)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{mode}");
+        let diagnostic = String::from_utf8(output.stderr).unwrap();
+        assert!(diagnostic.contains("CND-HZD-010"), "{mode}: {diagnostic}");
+        assert!(
+            diagnostic.contains("whole-plan effect closure"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            diagnostic.contains("rule rule.cli-toxic"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            diagnostic.contains("effects fixture/cli-toxic"),
             "{mode}: {diagnostic}"
         );
         assert!(

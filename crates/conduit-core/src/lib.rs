@@ -20,6 +20,7 @@ mod distributed;
 mod evidence;
 mod execution_plan;
 mod flow;
+mod hazard_closure;
 mod host;
 mod implementation;
 mod job;
@@ -103,20 +104,31 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
     EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
     EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
-    EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
-    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget,
-    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
-    UnresolvedPlanKind, validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
+    EXECUTION_PLAN_SCHEMA_VERSION_V12, ExecutionPlan, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
+    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
+    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
+    PlanSatisfactionSubject, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
+    validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
     FlowOffer, FlowPolicy, FlowPolicyDecision, FlowPolicyError, FlowPolicyReason, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, OfferDisposition, OfferTransition, PopTransition, Pressure,
     QueueError, SampleSchedule, TraitProof,
+};
+pub use hazard_closure::{
+    EffectClassBinding, EffectClassTraits, EffectFlowBinding, HAZARD_CLOSURE_POLICY_SCHEMA_VERSION,
+    HazardClosureContext, HazardClosureDenial, HazardClosureDisposition, HazardClosureLimits,
+    HazardClosurePolicy, HazardClosureReason, HazardClosureReport, HazardPermit, HazardProofKind,
+    HazardProofNode, MAX_HAZARD_CLASSES, MAX_HAZARD_EFFECTS, MAX_HAZARD_FLOWS, MAX_HAZARD_PATTERNS,
+    MAX_HAZARD_PERMITS, MAX_HAZARD_PROOF_NODES, MAX_HAZARD_RULES, ToxicCombinationRule,
+    ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement, TransitionEffectClosure,
+    analyze_effect_closure, analyze_transition_effect_closure, effect_closure_subject,
+    effect_combination_scope, transition_effect_closure_subject,
 };
 pub use host::{
     CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, HostReportIdentityError, HostReportReason,

@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.hazard-closure-fixtures/v1",
+  "cases": [
+    {"id":"isolated-network-accepted","scenario":"isolated-network","expected":"accepted"},
+    {"id":"isolated-write-accepted","scenario":"isolated-write","expected":"accepted"},
+    {"id":"isolated-process-accepted","scenario":"isolated-process","expected":"accepted"},
+    {"id":"toxic-triad-denied","scenario":"toxic-triad","expected":"CND-HZD-010"},
+    {"id":"exact-independent-permit-accepted","scenario":"exact-permit","expected":"permitted"},
+    {"id":"permit-plan-mismatch-denied","scenario":"permit-plan-mismatch","expected":"CND-HZD-010"},
+    {"id":"permit-epoch-mismatch-denied","scenario":"permit-epoch-mismatch","expected":"CND-HZD-010"},
+    {"id":"permit-artifact-mismatch-denied","scenario":"permit-artifact-mismatch","expected":"CND-HZD-010"},
+    {"id":"permit-host-mismatch-denied","scenario":"permit-host-mismatch","expected":"CND-HZD-010"},
+    {"id":"permit-realm-mismatch-denied","scenario":"permit-realm-mismatch","expected":"CND-HZD-010"},
+    {"id":"permit-budget-mismatch-denied","scenario":"permit-budget-mismatch","expected":"CND-HZD-010"},
+    {"id":"expired-permit-denied","scenario":"permit-expired","expected":"CND-HZD-012"},
+    {"id":"invalid-independent-approval-denied","scenario":"permit-approval-invalid","expected":"CND-HZD-013"},
+    {"id":"one-permit-cannot-cover-two-occurrences","scenario":"one-permit-two-occurrences","expected":"CND-HZD-010"},
+    {"id":"declared-propagation-chain-denied","scenario":"propagation-chain","expected":"CND-HZD-010"},
+    {"id":"composite-hidden-effects-denied","scenario":"composite-hidden","expected":"CND-HZD-010"},
+    {"id":"remote-federated-effects-denied","scenario":"remote-federation","expected":"CND-HZD-010"},
+    {"id":"exact-host-audience-distinction","scenario":"constraint-distinction","expected":"accepted"},
+    {"id":"old-new-overlap-denied","scenario":"transition-overlap","expected":"CND-HZD-010"},
+    {"id":"degradation-cannot-bypass-closure","scenario":"degradation-no-bypass","expected":"CND-HZD-010"},
+    {"id":"proof-storage-exhaustion","scenario":"proof-exhaustion","expected":"CND-HZD-008"},
+    {"id":"analysis-search-exhaustion","scenario":"search-exhaustion","expected":"CND-HZD-007"}
+  ]
+}
