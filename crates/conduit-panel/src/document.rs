@@ -1,4 +1,4 @@
-use std::fmt::Write as _;
+use std::fmt::{self, Write as _};
 
 use sha2::{Digest as _, Sha256};
 
@@ -6,6 +6,25 @@ use crate::{
     ExportDirection, Panel, ParseError, PoolAdmission, PoolCleanup, PoolSupervision,
     PortGroupShape, SourcePressure, parse_with_root,
 };
+
+pub const SOURCE_AST_SCHEMA_V1: u16 = 1;
+pub const SOURCE_AST_SCHEMA_V2: u16 = 2;
+
+/// Explicit persisted source-AST schema selection failure.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceSchemaError {
+    pub code: &'static str,
+    pub schema_version: u16,
+    pub message: String,
+}
+
+impl fmt::Display for SourceSchemaError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}: {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for SourceSchemaError {}
 
 /// Exact source extent, using UTF-8 byte offsets and one-based locations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -60,6 +79,13 @@ impl SourceDocument {
     pub fn semantic_hash(&self) -> Option<String> {
         self.ast.as_ref().map(semantic_source_hash)
     }
+
+    /// Hashes corrected authored source semantics without caller-selected
+    /// resolution state.
+    #[must_use]
+    pub fn semantic_hash_v2(&self) -> Option<String> {
+        self.ast.as_ref().map(semantic_source_hash_v2)
+    }
 }
 
 /// Parses a lossless document without selecting among multiple declared roots.
@@ -95,8 +121,17 @@ pub fn parse_document_with_root(source: &str, selected_root: Option<&str>) -> So
 /// execution-plan identities.
 #[must_use]
 pub fn semantic_source_hash(panel: &Panel) -> String {
+    semantic_source_hash_v1(panel)
+}
+
+/// Frozen version 1 source-semantic hash.
+///
+/// Version 1 included `Panel::selected_root`. It remains available so
+/// persisted identities and conformance fixtures are never reinterpreted.
+#[must_use]
+pub fn semantic_source_hash_v1(panel: &Panel) -> String {
     let mut normalized = String::new();
-    write_panel(panel, &mut normalized);
+    write_panel(panel, &mut normalized, true);
     format!(
         "sha256:{:x}",
         Sha256::digest(
@@ -107,6 +142,42 @@ pub fn semantic_source_hash(panel: &Panel) -> String {
             .concat()
         )
     )
+}
+
+/// Corrected version 2 authored-source hash.
+///
+/// Caller-selected root state is resolved metadata, not authored AST
+/// semantics, and is therefore excluded under the version 2 domain.
+#[must_use]
+pub fn semantic_source_hash_v2(panel: &Panel) -> String {
+    let mut normalized = String::new();
+    write_panel(panel, &mut normalized, false);
+    format!(
+        "sha256:{:x}",
+        Sha256::digest(
+            [
+                b"conduit.panel-source/v2\0".as_slice(),
+                normalized.as_bytes()
+            ]
+            .concat()
+        )
+    )
+}
+
+/// Hashes one explicitly selected source-AST schema.
+pub fn semantic_source_hash_version(
+    panel: &Panel,
+    schema_version: u16,
+) -> Result<String, SourceSchemaError> {
+    match schema_version {
+        SOURCE_AST_SCHEMA_V1 => Ok(semantic_source_hash_v1(panel)),
+        SOURCE_AST_SCHEMA_V2 => Ok(semantic_source_hash_v2(panel)),
+        _ => Err(SourceSchemaError {
+            code: "CND-SRC-011",
+            schema_version,
+            message: format!("unsupported source-AST schema version {schema_version}"),
+        }),
+    }
 }
 
 fn lossless_tokens(source: &str) -> Vec<CstToken> {
@@ -188,7 +259,7 @@ fn advance(character: char, index: &mut usize, line: &mut usize, column: &mut us
     }
 }
 
-fn write_panel(panel: &Panel, output: &mut String) {
+fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) {
     field(output, "version", panel.version);
     for import in &panel.imports {
         output.push_str("import{");
@@ -251,7 +322,9 @@ fn write_panel(panel: &Panel, output: &mut String) {
         text(output, &root.target);
         output.push('}');
     }
-    optional_text(output, panel.selected_root.as_deref());
+    if include_selected_root {
+        optional_text(output, panel.selected_root.as_deref());
+    }
     for group in &panel.port_groups {
         write_group(group, output);
     }

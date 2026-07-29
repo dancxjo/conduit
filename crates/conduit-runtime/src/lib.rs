@@ -37,11 +37,14 @@ pub use evidence_ndjson::{
     decode_event_ndjson, encode_event_ndjson, encode_owned_event_ndjson,
 };
 pub use source_lowering::{
-    ConfigProvenance, LiteralValidationError, LoweredConfigEntry, LoweredConfigValue,
-    LoweredGroupPort, LoweredNode, LoweredPool, LoweredSource, LoweringDiagnostic,
-    OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference,
-    OwnedSemanticValue, OwnedTypeReference, SourceContractCatalog, SourceMapEntry, SourceOrigin,
-    lower_source,
+    ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LiteralValidationError,
+    LoweredBindingV2, LoweredCompositeChildV2, LoweredCompositeV2, LoweredConfigEntry,
+    LoweredConfigValue, LoweredCordV2, LoweredExportV2, LoweredGroupPort, LoweredNode,
+    LoweredNodeV2, LoweredPool, LoweredRootSelectionV2, LoweredSource, LoweredSourceV2,
+    LoweringDiagnostic, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedNodeSchema,
+    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_V2,
+    SourceContractCatalog, SourceMapEntry, SourceOrigin, VersionedLoweredSource, lower_source,
+    lower_source_v2, lower_source_version, migrate_lowered_source_v1,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,

@@ -68,6 +68,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   `conduct` command model, structured failure routing, stdout/stderr ownership,
   terminal and color policy, broken-pipe behavior, and measured dependency
   cost.
+- [`019-source-lowering-v2.md`](019-source-lowering-v2.md) preserves frozen v1
+  identities while moving root selection out of authored source identity and
+  retaining complete cords, composite relationships, constraints, and exact
+  provenance in corrected lowering v2.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
