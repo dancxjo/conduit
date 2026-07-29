@@ -68,6 +68,19 @@ universal package. Compilation means validation, resolution, and lowering to
 an exact execution plan; packaging and code generation are separate
 operations.
 
+Primary values stay on stdout. Diagnostics and interactive status use stderr:
+
+```sh
+conduct --check --diagnostic-format=json panel.panel
+conduct --check --color=never --verbose-diagnostics panel.panel
+```
+
+Diagnostic format is `human` or `json`; color is `auto`, `always`, or `never`.
+Automatic color honors `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, terminal
+attachment, and `TERM=dumb`. Redirected stderr receives no status animation or
+cursor control, and a downstream closed stdout pipe is treated as normal
+completion.
+
 ## Why the runtime is opinionated
 
 Conduit treats runtime behavior as part of the system’s meaning rather than as

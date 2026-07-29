@@ -1,0 +1,254 @@
+{
+  "suite": "conduit.conduct-cli/v1",
+  "command_cases": [
+    {
+      "id": "default-run-file",
+      "runner": "process",
+      "args": ["$EXAMPLE"],
+      "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
+    },
+    {
+      "id": "explicit-run-file",
+      "runner": "process",
+      "args": ["--run", "$EXAMPLE"],
+      "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
+    },
+    {
+      "id": "check-file",
+      "runner": "process",
+      "args": ["--check", "$EXAMPLE"],
+      "expected": {"exit": 0, "stdout": "ok: panel v1; 0 definitions; 3 root nodes; 2 root cords\n", "stderr": "empty"}
+    },
+    {
+      "id": "explain-file",
+      "runner": "process",
+      "args": ["--explain", "$EXAMPLE"],
+      "expected": {"exit": 0, "stdout_starts": "logical panel v1:", "stderr": "empty"}
+    },
+    {
+      "id": "default-run-stdin",
+      "runner": "process",
+      "args": [],
+      "stdin": "$HELLO_SOURCE",
+      "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
+    },
+    {
+      "id": "dash-run-stdin",
+      "runner": "process",
+      "args": ["-"],
+      "stdin": "$HELLO_SOURCE",
+      "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
+    },
+    {
+      "id": "mutually-exclusive-modes-human",
+      "runner": "process",
+      "args": ["--check", "--run"],
+      "expected": {"exit": 2, "stdout": "empty", "stderr_snapshot": "argument-conflict.txt"}
+    },
+    {
+      "id": "mutually-exclusive-modes-json",
+      "runner": "process",
+      "args": ["--diagnostic-format=json", "--check", "--run"],
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-CLI-001"}
+    },
+    {
+      "id": "unknown-option-json",
+      "runner": "process",
+      "args": ["--diagnostic-format=json", "--unknown"],
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-CLI-001"}
+    },
+    {
+      "id": "two-panels-json",
+      "runner": "process",
+      "args": ["--diagnostic-format=json", "one.panel", "two.panel"],
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-CLI-001"}
+    },
+    {
+      "id": "canonical-diagnostic-flags",
+      "runner": "process",
+      "args": ["--check", "--diagnostic-format=json", "--color=never", "--verbose-diagnostics", "-"],
+      "stdin": "panel 1\ncord a.out b.in\n",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-SRC-001", "ansi": false}
+    },
+    {
+      "id": "concise-human-diagnostic",
+      "runner": "process",
+      "args": ["--check", "--color=never", "-"],
+      "stdin": "panel 1\ncord a.out b.in\n",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "error[CND-SRC-001]", "ansi": false}
+    },
+    {
+      "id": "verbose-human-diagnostic",
+      "runner": "process",
+      "args": ["--check", "--color=never", "--verbose-diagnostics", "-"],
+      "stdin": "panel 1\ncord a.out b.in\n",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "bytes 19..20", "ansi": false}
+    },
+    {
+      "id": "diagnostic-json-clean-stdout",
+      "runner": "process",
+      "args": ["--check", "--diagnostic-format=json", "-"],
+      "stdin": "panel 1\ncord a.out b.in\n",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-SRC-001"}
+    },
+    {
+      "id": "missing-file",
+      "runner": "process",
+      "args": ["--check", "--diagnostic-format=json", "fixture/definitely-missing.panel"],
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-IO-001"}
+    },
+    {
+      "id": "invalid-utf8-stdin",
+      "runner": "process",
+      "args": ["--check", "--diagnostic-format=json", "-"],
+      "stdin_hex": "fffe",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-IO-001"}
+    },
+    {
+      "id": "ordinary-run-path-not-subcommand",
+      "runner": "process",
+      "args": ["--diagnostic-format=json", "run"],
+      "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-IO-001"}
+    },
+    {
+      "id": "help-width-40",
+      "runner": "process",
+      "args": ["--help"],
+      "environment": {"COLUMNS": "40"},
+      "expected": {"exit": 0, "stdout_snapshot": "help.txt", "stderr": "empty"}
+    },
+    {
+      "id": "help-width-120",
+      "runner": "process",
+      "args": ["--help"],
+      "environment": {"COLUMNS": "120"},
+      "expected": {"exit": 0, "stdout_snapshot": "help.txt", "stderr": "empty"}
+    },
+    {
+      "id": "version",
+      "runner": "process",
+      "args": ["--version"],
+      "expected": {"exit": 0, "stdout_starts": "conduct ", "stderr": "empty"}
+    },
+    {
+      "id": "broken-stdout-pipe",
+      "runner": "broken-pipe",
+      "args": ["--explain", "$EXAMPLE"],
+      "expected": {"exit": 0}
+    },
+    {
+      "id": "closed-stderr",
+      "runner": "closed-stderr",
+      "args": ["--check", "--run"],
+      "expected": {"exit": 2}
+    },
+    {
+      "id": "stdout-write-failure",
+      "runner": "output-failure",
+      "args": ["--check", "$EXAMPLE"],
+      "expected": {"exit": 2, "stderr_contains": "CND-IO-002"}
+    },
+    {
+      "id": "warning-presentation",
+      "runner": "diagnostic-fixture-link",
+      "fixture": "diagnostics-v1#stable-json",
+      "expected": {"severity": "warning", "renderer": "conduit-diagnostics"}
+    }
+  ],
+  "presentation_cases": [
+    {
+      "id": "non-tty-auto",
+      "terminal": false,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {},
+      "expected": {"ansi": false, "status": false, "cursor_control": false}
+    },
+    {
+      "id": "tty-auto",
+      "terminal": true,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {},
+      "expected": {"ansi": true, "status": true, "cursor_control": false}
+    },
+    {
+      "id": "no-color",
+      "terminal": true,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {"NO_COLOR": "1"},
+      "expected": {"ansi": false, "status": true, "cursor_control": false}
+    },
+    {
+      "id": "clicolor-zero",
+      "terminal": true,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {"CLICOLOR": "0"},
+      "expected": {"ansi": false, "status": true, "cursor_control": false}
+    },
+    {
+      "id": "clicolor-force-non-tty",
+      "terminal": false,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {"CLICOLOR_FORCE": "1"},
+      "expected": {"ansi": true, "status": false, "cursor_control": false}
+    },
+    {
+      "id": "term-dumb",
+      "terminal": true,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {"TERM": "dumb"},
+      "expected": {"ansi": false, "status": false, "cursor_control": false}
+    },
+    {
+      "id": "explicit-always-precedence",
+      "terminal": false,
+      "diagnostic_format": "human",
+      "color": "always",
+      "environment": {"NO_COLOR": "1", "TERM": "dumb"},
+      "expected": {"ansi": true, "status": false, "cursor_control": false}
+    },
+    {
+      "id": "explicit-never-precedence",
+      "terminal": true,
+      "diagnostic_format": "human",
+      "color": "never",
+      "environment": {"CLICOLOR_FORCE": "1"},
+      "expected": {"ansi": false, "status": true, "cursor_control": false}
+    },
+    {
+      "id": "diagnostic-json-tty",
+      "terminal": true,
+      "diagnostic_format": "json",
+      "color": "always",
+      "environment": {},
+      "expected": {"ansi": false, "status": false, "cursor_control": false}
+    },
+    {
+      "id": "run-has-no-spinner",
+      "terminal": true,
+      "diagnostic_format": "human",
+      "color": "auto",
+      "environment": {},
+      "operation": "run",
+      "expected": {"status": true, "spinner": false, "cursor_control": false}
+    }
+  ],
+  "measurement": {
+    "baseline_commit": "2d082a17611fdaa2ab03100270da87ff14beb3c2",
+    "target": "x86_64-unknown-linux-gnu",
+    "rustc": "1.95.0",
+    "profile": "release",
+    "command": "conduct --version",
+    "launches": 1000,
+    "baseline_binary_bytes": 932208,
+    "after_binary_bytes": 1539120,
+    "baseline_elapsed_seconds": 0.63,
+    "after_elapsed_seconds": 0.66,
+    "notes": "Indicative single-run local measurement. Clap color support was disabled; Conduit's existing renderer remains the only diagnostic color owner."
+  }
+}
