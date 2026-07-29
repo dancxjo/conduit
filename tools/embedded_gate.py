@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import json
-import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -16,11 +16,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUDGET_PATH = ROOT / "conformance/c5/rp2040-budgets-v1.json"
 
 
-def run(*command: str, env: dict[str, str] | None = None) -> str:
+def run(*command: str) -> str:
     result = subprocess.run(
         command,
         cwd=ROOT,
-        env=env,
         check=True,
         text=True,
         stdout=subprocess.PIPE,
@@ -31,8 +30,6 @@ def run(*command: str, env: dict[str, str] | None = None) -> str:
 
 def main() -> int:
     budget = json.loads(BUDGET_PATH.read_text(encoding="utf-8"))
-    environment = os.environ.copy()
-    environment["CARGO_ENCODED_RUSTFLAGS"] = "-Clink-arg=-Tlink.x"
     run(
         "cargo",
         "build",
@@ -41,7 +38,6 @@ def main() -> int:
         "--target",
         budget["target"],
         "--release",
-        env=environment,
     )
     artifact = ROOT / budget["artifact"]
     size_lines = run("size", str(artifact)).strip().splitlines()
@@ -74,6 +70,22 @@ def main() -> int:
     header = run("readelf", "-h", str(artifact))
     if "Machine:                           ARM" not in header:
         raise RuntimeError("firmware artifact is not an ARM ELF")
+    sections = run("readelf", "-W", "-S", str(artifact))
+    boot2 = re.search(
+        r"\[\s*\d+\]\s+\.boot2\s+\S+\s+([0-9a-fA-F]+)\s+"
+        r"[0-9a-fA-F]+\s+([0-9a-fA-F]+)",
+        sections,
+    )
+    if boot2 is None:
+        raise RuntimeError("firmware artifact omits the RP2040 .boot2 section")
+    boot2_address = int(boot2.group(1), 16)
+    boot2_size = int(boot2.group(2), 16)
+    if boot2_address != 0x10000000 or boot2_size != 0x100:
+        raise RuntimeError(
+            "RP2040 .boot2 must occupy exactly "
+            f"0x10000000..0x10000100, got address={boot2_address:#x} "
+            f"size={boot2_size:#x}"
+        )
     report = {
         "schema": "conduit.rp2040-budget-report/v1",
         "target": budget["target"],
@@ -94,6 +106,11 @@ def main() -> int:
         "stack": {
             "bytes": budget["declared_stack_budget_bytes"],
             "kind": "profile-declared-reviewed-ceiling-not-elf-measurement",
+        },
+        "boot2": {
+            "address": f"0x{boot2_address:08x}",
+            "bytes": boot2_size,
+            "kind": "linked-rp2040-second-stage-bootloader",
         },
         "allocator_undefined_symbols": [],
     }

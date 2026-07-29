@@ -66,6 +66,9 @@ fn main() {
     println!("cargo:rustc-env=CONDUIT_FIRMWARE_TARGET={target}");
     println!("cargo:rustc-env=CONDUIT_FIRMWARE_PROFILE={profile}");
     println!("cargo:rustc-link-search={}", output.display());
+    if target == "thumbv6m-none-eabi" {
+        println!("cargo:rustc-link-arg=-Tlink.x");
+    }
 }
 
 fn collect_files(root: &Path, directory: &Path, files: &mut Vec<PathBuf>) {

@@ -5,4 +5,11 @@ MEMORY
   RAM   : ORIGIN = 0x20000000, LENGTH = 264K
 }
 
+SECTIONS {
+  .boot2 ORIGIN(BOOT2) :
+  {
+    KEEP(*(.boot2));
+  } > BOOT2
+} INSERT BEFORE .text;
+
 _stack_start = ORIGIN(RAM) + LENGTH(RAM);

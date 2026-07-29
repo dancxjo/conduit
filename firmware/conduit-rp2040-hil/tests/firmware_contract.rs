@@ -11,6 +11,18 @@ use sha2::{Digest, Sha256};
 const FIXTURE: &str = include_str!("../../../conformance/c5/rp2040-firmware-hil-v1.json");
 
 #[test]
+fn rp2040_link_contract_places_boot2_before_the_application() {
+    let memory = include_str!("../memory.x");
+    assert!(memory.contains(".boot2 ORIGIN(BOOT2)"));
+    assert!(memory.contains("KEEP(*(.boot2))"));
+    assert!(memory.contains("INSERT BEFORE .text"));
+
+    let build = include_str!("../build.rs");
+    assert!(build.contains(r#"if target == "thumbv6m-none-eabi""#));
+    assert!(build.contains(r#"cargo:rustc-link-arg=-Tlink.x"#));
+}
+
+#[test]
 fn linked_firmware_path_matches_the_physical_hil_oracle() {
     assert_eq!(
         FIRMWARE_IDENTITY.as_bytes(),
