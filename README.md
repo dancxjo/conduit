@@ -94,6 +94,8 @@ conduct --check --diagnostic-format=json panel.panel
 conduct --check --color=never --verbose-diagnostics panel.panel
 conduct --check --format=json panel.panel
 conduct --explain --format=json panel.panel
+conduct --check --compile-input compile-input.json panel.panel
+conduct --explain --compile-input compile-input.json panel.panel
 conduct --run --format=ndjson panel.panel
 ```
 

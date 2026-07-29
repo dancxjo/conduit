@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 33,
+  "manifest_revision": 34,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3566,6 +3566,86 @@
       "reference_tests": [
         {"package": "conduit-runtime", "test": "security_vectors"},
         {"package": "conduit-runtime", "test": "distributed_backend"}
+      ]
+    },
+    {
+      "id": "administrative-containment",
+      "profile": "conduit.c2-c5",
+      "requirement_ids": [
+        "CTN-001", "CTN-002", "CTN-003", "CTN-004", "CTN-005", "CTN-006",
+        "CTN-007", "CTN-008", "CTN-009", "CTN-010", "CTN-011", "CTN-012",
+        "CTN-013", "CTN-014", "CTN-015", "CTN-016", "CTN-017", "CTN-018",
+        "CTN-019", "CTN-020", "CTN-021", "CTN-022", "CTN-023", "CTN-024"
+      ],
+      "artifacts": [{
+        "id": "containment-v1",
+        "path": "../c2/containment-v1.json",
+        "sha256": "sha256:3b8565565a8df37056db2f572f3de68fb388f8c9b52d92d9299b4990c5c313b2",
+        "operation": "administrative-containment-v1",
+        "requirement_ids": [
+          "CTN-001", "CTN-002", "CTN-003", "CTN-004", "CTN-005", "CTN-006",
+          "CTN-007", "CTN-008", "CTN-009", "CTN-010", "CTN-011", "CTN-012",
+          "CTN-013", "CTN-014", "CTN-015", "CTN-016", "CTN-017", "CTN-018",
+          "CTN-019", "CTN-020", "CTN-021", "CTN-022", "CTN-023", "CTN-024"
+        ],
+        "default_rule": "CTN-001",
+        "case_rules": {
+          "self-grant-enlargement": "CTN-014",
+          "self-successor-activation": "CTN-015",
+          "cyclic-mutual-approval": "CTN-016",
+          "commit-authority-mismatch": "CTN-020",
+          "execution-authority-mismatch": "CTN-021",
+          "threshold-shared-domain": "CTN-013",
+          "replay-other-realm": "CTN-005",
+          "replay-other-entity": "CTN-005",
+          "replay-other-plan": "CTN-005",
+          "replay-other-epoch": "CTN-005",
+          "replay-other-artifact": "CTN-005",
+          "replay-other-budget": "CTN-005",
+          "approver-unavailable": "CTN-007",
+          "partition-before-threshold": "CTN-007",
+          "governance-handle-ambient": "CTN-018",
+          "recovery-widened": "CTN-023"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "containment-v1#ordinary-effect",
+          "containment-v1#exact-external-approval",
+          "containment-v1#threshold-separate-domains",
+          "containment-v1#delegation-narrowed",
+          "containment-v1#exact-governance-ceremony"
+        ],
+        "negative": [
+          "containment-v1#self-grant-enlargement",
+          "containment-v1#self-successor-activation",
+          "containment-v1#cyclic-mutual-approval",
+          "containment-v1#clone-enrollment",
+          "containment-v1#self-authorizing-installer",
+          "containment-v1#commit-authority-mismatch",
+          "containment-v1#execution-authority-mismatch",
+          "containment-v1#approval-revoked",
+          "containment-v1#governance-handle-ambient"
+        ],
+        "boundary": [
+          "containment-v1#threshold-shared-domain",
+          "containment-v1#replay-other-epoch",
+          "containment-v1#approval-expired",
+          "containment-v1#approver-unavailable",
+          "containment-v1#delegation-depth-widened"
+        ],
+        "migration": [
+          "containment-v1#rollback-other-epoch",
+          "containment-v1#recovery-narrowed",
+          "containment-v1#recovery-widened"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "containment_vectors"}
       ]
     },
     {

@@ -41,6 +41,11 @@ Specification
 adds the exact transport artifact, execution profile, and carrier endpoint in
 addition to explicit carrier protection in plan schema 10 without changing
 schema-1 through schema-9 identity.
+Specification
+[`041-administrative-containment-v1.md`](041-administrative-containment-v1.md)
+adds exact administrative subject and containment proof facts to authority
+bindings in plan schema 11 without changing schema-1 through schema-10
+identity.
 
 ## Identity boundary
 
@@ -228,7 +233,8 @@ collection order. Before any node starts it checks:
 5. endpoint existence, direction, type identity, and finite queue accounting;
 6. one exact bounded distributed binding for every cross-host cord and none
    for local cords in schema 9;
-7. complete required authority and run-start validity;
+7. complete required authority, administrative containment when marked, and
+   run-start validity;
 8. bounded event-stream and durable-job providers, references, and allocations;
 9. composite, export, port-group, and instance-pool references and maxima;
 10. checked aggregate budget; and

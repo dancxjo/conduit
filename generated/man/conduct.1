@@ -4,7 +4,7 @@
 .SH NAME
 conduct \- Conduct a typed node arrangement.
 .SH SYNOPSIS
-\fBconduct\fR [\fB\-\-check\fR] [\fB\-\-explain\fR] [\fB\-\-run\fR] [\fB\-\-format\fR] [\fB\-\-diagnostic\-format\fR] [\fB\-\-color\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-v \fR]... [\fB\-\-verbose\-diagnostics\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIPANEL\fR] [\fIsubcommands\fR]
+\fBconduct\fR [\fB\-\-check\fR] [\fB\-\-explain\fR] [\fB\-\-run\fR] [\fB\-\-format\fR] [\fB\-\-diagnostic\-format\fR] [\fB\-\-color\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-v \fR]... [\fB\-\-verbose\-diagnostics\fR] [\fB\-\-compile\-input\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIPANEL\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 Conduct a typed node arrangement.
 .SH OPTIONS
@@ -69,6 +69,9 @@ Add bounded resolution status detail; repeat for future detail levels
 .TP
 \fB\-\-verbose\-diagnostics\fR
 Include related spans, notes, paths, and causes
+.TP
+\fB\-\-compile\-input\fR \fI<INPUT>\fR
+Validate check/explain against this explicit compile\-input snapshot
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help

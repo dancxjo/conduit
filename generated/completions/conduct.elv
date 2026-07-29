@@ -21,6 +21,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
             cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
             cand --color 'Select diagnostic terminal styling'
+            cand --compile-input 'Validate check/explain against this explicit compile-input snapshot'
             cand --check 'Parse, resolve, and validate without starting nodes'
             cand --explain 'Show exact node, port, cord, type, and flow resolution'
             cand --run 'Run the panel (the default mode)'

@@ -1,6 +1,6 @@
 # Print an optspec for argparse to handle cmd's options that are independent of any subcommand.
 function __fish_conduct_global_optspecs
-    string join \n check explain run format= diagnostic-format= color= q/quiet v verbose-diagnostics h/help V/version
+    string join \n check explain run format= diagnostic-format= color= q/quiet v verbose-diagnostics compile-input= h/help V/version
 end
 
 function __fish_conduct_needs_command
@@ -32,6 +32,7 @@ json\t''"
 complete -c conduct -n "__fish_conduct_needs_command" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
 always\t''
 never\t''"
+complete -c conduct -n "__fish_conduct_needs_command" -l compile-input -d 'Validate check/explain against this explicit compile-input snapshot' -r -F
 complete -c conduct -n "__fish_conduct_needs_command" -l check -d 'Parse, resolve, and validate without starting nodes'
 complete -c conduct -n "__fish_conduct_needs_command" -l explain -d 'Show exact node, port, cord, type, and flow resolution'
 complete -c conduct -n "__fish_conduct_needs_command" -l run -d 'Run the panel (the default mode)'

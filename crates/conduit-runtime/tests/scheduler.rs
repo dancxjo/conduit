@@ -1274,6 +1274,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
         };
         let effect = EffectRequirement {
             id: Id("read"),
+            administrative_class: None,
             action: Id("fixture/read"),
             resource: ResourceSelector::Exact(resource),
             requester: plan.nodes[0].instance,
@@ -1347,6 +1348,8 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             capability,
             grant,
             binding,
+            administrative_subject: None,
+            containment: None,
         }];
         let members = [nodes[0].instance, nodes[1].instance];
         let exports = [

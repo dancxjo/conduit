@@ -148,6 +148,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   defines plan-v10 exact transport selection, the carrier-neutral backend,
   real hosted Zenoh plaintext/TLS/mTLS proof, deterministic carrier faults,
   and the general firmware-boundary Zenoh-Pico path.
+- [`041-administrative-containment-v1.md`](041-administrative-containment-v1.md)
+  defines plan-v11 domain-owned administrative effect classes, distinct
+  proposal/approval/commit/execution identities, independent threshold
+  approval, monotonic delegation/recovery, and protected ceremonies.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

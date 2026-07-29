@@ -6,8 +6,8 @@ use core::fmt;
 
 use crate::{
     CanonicalDescriptor, CanonicalError, CanonicalValue, FieldDisposition, Id, InstancePath,
-    MapField, SemanticHash, Sensitivity, StopPolicy, TerminalCause, TerminalCauseCode,
-    TypeContractRef,
+    MapField, PinnedDescriptor, SemanticHash, Sensitivity, StopPolicy, TerminalCause,
+    TerminalCauseCode, TypeContractRef,
 };
 
 /// Maximum constraint references in the allocator-free v1 descriptor.
@@ -38,6 +38,9 @@ pub struct AuthorityConstraintRef<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EffectRequirement<'a> {
     pub id: Id<'a>,
+    /// Domain-owned class requiring administrative containment. `None` is an
+    /// ordinary effect and preserves the v1 requirement identity.
+    pub administrative_class: Option<PinnedDescriptor<'a>>,
     pub action: Id<'a>,
     pub resource: ResourceSelector<'a>,
     pub requester: InstancePath<'a>,
@@ -884,8 +887,21 @@ impl EffectRequirement<'_> {
             constraint_values[index] = CanonicalValue::Map(&constraint_fields[index]);
         }
         let selector_fields = selector_fields(self.resource);
+        let administrative_class = self
+            .administrative_class
+            .map(hash_pinned_descriptor)
+            .transpose()?;
         let fields = [
             semantic("id", CanonicalValue::Identifier(self.id)),
+            MapField {
+                name: Id("administrative_class"),
+                value: administrative_class
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
+                disposition: FieldDisposition::Defaulted(&NULL_CANONICAL_VALUE),
+            },
             semantic("action", CanonicalValue::Identifier(self.action)),
             semantic("resource", CanonicalValue::Map(&selector_fields)),
             semantic("requester", CanonicalValue::Text(self.requester.as_str())),
@@ -903,6 +919,33 @@ impl EffectRequirement<'_> {
         }
         .semantic_hash()
     }
+}
+
+const NULL_CANONICAL_VALUE: CanonicalValue<'static> = CanonicalValue::Null;
+
+fn hash_pinned_descriptor(
+    pin: PinnedDescriptor<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    if pin.schema_version == 0 || Id::new(pin.id.as_str()).is_err() {
+        return Err(CanonicalError::InvalidIdentifier);
+    }
+    let fields = [
+        semantic("id", CanonicalValue::Identifier(pin.id)),
+        semantic(
+            "schema_version",
+            CanonicalValue::Integer(i128::from(pin.schema_version)),
+        ),
+        semantic(
+            "semantic_hash",
+            CanonicalValue::Bytes(pin.semantic_hash.as_bytes()),
+        ),
+    ];
+    CanonicalDescriptor {
+        kind: Id("conduit/pinned-descriptor"),
+        schema_version: 1,
+        body: CanonicalValue::Map(&fields),
+    }
+    .semantic_hash()
 }
 
 impl AuthorityGrant<'_> {

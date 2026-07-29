@@ -5,15 +5,17 @@ use core::fmt;
 
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
-    AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue,
-    CheckpointProviderCapabilities, DescriptorRef, Direction, DuplicationRule, EffectRequirement,
+    AdministrativeProof, AdministrativeSubject, AuthorityGrant, AuthorityTime, CanonicalDescriptor,
+    CanonicalError, CanonicalValue, CheckpointProviderCapabilities, ContainmentContext,
+    ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectRequirement,
     EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
     FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
     MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PlanDistributedCord,
     Pressure, ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
-    SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef, validate_authority_at_use,
-    validate_distributed_binding, validate_job_contract, validate_plan_execution_profile,
-    validate_runtime_evidence_policy, validate_satisfaction_proof, validate_stream_contract,
+    SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef,
+    validate_administrative_proof, validate_authority_at_use, validate_distributed_binding,
+    validate_job_contract, validate_plan_execution_profile, validate_runtime_evidence_policy,
+    validate_satisfaction_proof, validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -24,9 +26,10 @@ use crate::{
 /// jobs, schema 7 adds implicit-satisfaction proof bindings, schema 8 adds one
 /// exact runtime-evidence recording policy, schema 9 adds distributed-cord
 /// bindings, and schema 10 pins the selected transport artifact, bounded
-/// backend profile, carrier protection, and carrier endpoint. Earlier schemas
-/// remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 10;
+/// backend profile, carrier protection, and carrier endpoint. Schema 11 pins
+/// administrative containment proofs on exact authority bindings. Earlier
+/// schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 11;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -36,6 +39,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V6: u32 = 6;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V7: u32 = 7;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V8: u32 = 8;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V9: u32 = 9;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V10: u32 = 10;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -278,6 +282,8 @@ pub struct PlanAuthority<'a> {
     pub capability: HostCapability<'a>,
     pub grant: AuthorityGrant<'a>,
     pub binding: ResolvedAuthorityBinding<'a>,
+    pub administrative_subject: Option<AdministrativeSubject<'a>>,
+    pub containment: Option<AdministrativeProof<'a>>,
 }
 
 /// One logical boundary export retained alongside primitive expansion.
@@ -459,6 +465,7 @@ pub enum PlanDiagnosticCode {
     RuntimeEvidenceInvalid,
     JobInvalid,
     SatisfactionInvalid,
+    Containment(ContainmentReason),
     Distributed(crate::DistributedReason),
     ScratchTooSmall,
 }
@@ -487,6 +494,7 @@ impl PlanDiagnosticCode {
             Self::RuntimeEvidenceInvalid => "CND-RTE-002",
             Self::JobInvalid => "CND-JOB-016",
             Self::SatisfactionInvalid => "CND-IMP-017",
+            Self::Containment(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
@@ -678,7 +686,7 @@ impl ExecutionPlan<'_> {
             push!(hash_satisfaction_proof(*proof));
         }
         for value in self.authorities {
-            push!(hash_authority(*value));
+            push!(hash_authority(self.schema_version, *value));
         }
         for composite in self.composites {
             push!(hash_composite(*composite));
@@ -1570,6 +1578,17 @@ pub fn validate_execution_plan(
     }
 
     for (index, authority) in plan.authorities.iter().enumerate() {
+        if plan.schema_version < 11
+            && (authority.effect.administrative_class.is_some()
+                || authority.administrative_subject.is_some()
+                || authority.containment.is_some())
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::UnsupportedVersion,
+                PlanCollection::Authorities,
+                index,
+            ));
+        }
         let Some(node) = plan
             .nodes
             .iter()
@@ -1622,6 +1641,47 @@ pub fn validate_execution_plan(
                 PlanCollection::Authorities,
                 index,
             ));
+        }
+        match (
+            authority.effect.administrative_class,
+            authority.administrative_subject,
+            authority.containment,
+        ) {
+            (None, None, None) => {}
+            (Some(class), Some(subject), Some(proof))
+                if proof.proposal.effect_class == class && proof.policy.effect_class == class =>
+            {
+                for now in [plan.created_at, context.now] {
+                    if let Err(reason) = validate_administrative_proof(
+                        proof,
+                        ContainmentContext {
+                            subject,
+                            time_basis: now.basis,
+                            now_tick: now.tick,
+                        },
+                    ) {
+                        return Err(indexed(
+                            PlanDiagnosticCode::Containment(reason),
+                            PlanCollection::Authorities,
+                            index,
+                        ));
+                    }
+                }
+            }
+            (Some(_), _, None) => {
+                return Err(indexed(
+                    PlanDiagnosticCode::Containment(ContainmentReason::ApprovalMissing),
+                    PlanCollection::Authorities,
+                    index,
+                ));
+            }
+            _ => {
+                return Err(indexed(
+                    PlanDiagnosticCode::Containment(ContainmentReason::EffectClassMismatch),
+                    PlanCollection::Authorities,
+                    index,
+                ));
+            }
         }
     }
 
@@ -2545,7 +2605,15 @@ fn hash_satisfaction_proof(
     )
 }
 
-fn hash_authority(value: PlanAuthority<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
+fn hash_authority(
+    schema_version: u32,
+    value: PlanAuthority<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let administrative_subject = value
+        .administrative_subject
+        .map(hash_administrative_subject)
+        .transpose()?;
+    let containment = value.containment.map(|proof| proof.execution.identity);
     descriptor_hash(
         Id("conduit/plan-authority"),
         &[
@@ -2557,6 +2625,28 @@ fn hash_authority(value: PlanAuthority<'_>) -> Result<SemanticHash, CanonicalErr
             semantic(
                 "grant_hash",
                 CanonicalValue::Bytes(value.grant_hash.as_bytes()),
+            ),
+            defaulted_null(
+                "administrative_subject",
+                if schema_version >= 11 {
+                    administrative_subject
+                        .as_ref()
+                        .map_or(CanonicalValue::Null, |hash| {
+                            CanonicalValue::Bytes(hash.as_bytes())
+                        })
+                } else {
+                    CanonicalValue::Null
+                },
+            ),
+            defaulted_null(
+                "containment_execution",
+                if schema_version >= 11 {
+                    containment.as_ref().map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    })
+                } else {
+                    CanonicalValue::Null
+                },
             ),
             semantic(
                 "capability_id",
@@ -2609,6 +2699,36 @@ fn hash_authority(value: PlanAuthority<'_>) -> Result<SemanticHash, CanonicalErr
             semantic(
                 "binding_check_at_use",
                 CanonicalValue::Boolean(value.binding.check_at_use),
+            ),
+        ],
+    )
+}
+
+fn hash_administrative_subject(
+    subject: AdministrativeSubject<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let budget = subject.budget.map(|pin| pin.semantic_hash);
+    descriptor_hash(
+        Id("conduit/plan-administrative-subject"),
+        &[
+            semantic("realm", CanonicalValue::Identifier(subject.realm)),
+            semantic("entity", CanonicalValue::Identifier(subject.entity)),
+            semantic("plan", CanonicalValue::Bytes(subject.plan.as_bytes())),
+            semantic("epoch", CanonicalValue::Integer(i128::from(subject.epoch))),
+            semantic(
+                "artifact",
+                subject
+                    .artifact
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |artifact| {
+                        CanonicalValue::Bytes(artifact.as_bytes())
+                    }),
+            ),
+            semantic(
+                "budget",
+                budget.as_ref().map_or(CanonicalValue::Null, |hash| {
+                    CanonicalValue::Bytes(hash.as_bytes())
+                }),
             ),
         ],
     )
@@ -2934,5 +3054,15 @@ const fn semantic<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> 
         name: Id(name),
         value,
         disposition: FieldDisposition::Semantic,
+    }
+}
+
+const NULL_CANONICAL_VALUE: CanonicalValue<'static> = CanonicalValue::Null;
+
+const fn defaulted_null<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> {
+    MapField {
+        name: Id(name),
+        value,
+        disposition: FieldDisposition::Defaulted(&NULL_CANONICAL_VALUE),
     }
 }

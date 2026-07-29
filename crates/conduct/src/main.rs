@@ -317,6 +317,25 @@ fn run(
         )
     })?;
 
+    if let Some(input_path) = &arguments.compile_input {
+        let input_bytes = read_bounded(input_path, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES)
+            .map_err(|error| inspection_error(error, presentation))?;
+        let input: CompileInput = serde_json::from_slice(&input_bytes).map_err(|_| {
+            package_error(
+                "CND-CMP-002",
+                "compile input is not valid conduit.compile-input/v2 JSON",
+                presentation,
+            )
+        })?;
+        compile_source(&source, &input).map_err(|error| {
+            cli_error(
+                simple_diagnostic(error.code(), &error.to_string()),
+                presentation,
+                vec![source_document.clone()],
+            )
+        })?;
+    }
+
     emit_status(status_enabled, "Resolving", &document_id);
     let registry = Registry::default();
     let resolved = registry.resolve(&panel).map_err(|error| {
@@ -534,6 +553,18 @@ fn validate_output_format(
     arguments: &Arguments,
     presentation: PresentationOptions,
 ) -> Result<(), CliError> {
+    if arguments.compile_input.is_some()
+        && (arguments.secondary.is_some() || arguments.mode() == Mode::Run)
+    {
+        return Err(cli_error(
+            simple_diagnostic(
+                "CND-CLI-004",
+                "--compile-input is available only with --check or --explain",
+            ),
+            presentation,
+            vec![],
+        ));
+    }
     if arguments.secondary.is_some() && (arguments.check || arguments.explain || arguments.run) {
         return Err(cli_error(
             simple_diagnostic(

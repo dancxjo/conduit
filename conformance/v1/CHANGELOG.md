@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 34 — 2026-07-29
+
+- Registered 33 independently dispatched administrative-containment cases for
+  ordinary and externally approved effects, self/cyclic support, exact replay
+  boundaries, threshold failure domains, delegation, ceremonies, rollback,
+  partition, unavailable approval, and recovery.
+- Added plan-v11 proof-bearing authority bindings while preserving ordinary
+  effect and earlier plan identities; hosted proof-bearing plans use the
+  distinct `conduit.execution-plan/v4` document.
+- Added explicit compile-snapshot validation to `conduct --check` and
+  `--explain`, with stable `CND-CTN-*` reasons for the exact missing or invalid
+  non-escalation proof.
+
 ## Manifest revision 33 — 2026-07-29
 
 - Registered 37 independently dispatched Zenoh transport cases, including

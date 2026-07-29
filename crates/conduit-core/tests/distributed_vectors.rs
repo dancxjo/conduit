@@ -539,6 +539,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     let sink = InstancePath::new("root/sink").unwrap();
     let effect_a = EffectRequirement {
         id: Id("fixture/connect"),
+        administrative_class: None,
         action: Id("fixture/connect"),
         resource: ResourceSelector::Exact(resource_a),
         requester: source,
@@ -548,6 +549,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     };
     let effect_b = EffectRequirement {
         id: Id("fixture/accept"),
+        administrative_class: None,
         action: Id("fixture/accept"),
         resource: ResourceSelector::Exact(resource_b),
         requester: sink,
@@ -630,6 +632,8 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
             }],
         )
         .unwrap(),
+        administrative_subject: None,
+        containment: None,
     };
     let authority_b = PlanAuthority {
         node: sink,
@@ -652,6 +656,8 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
             }],
         )
         .unwrap(),
+        administrative_subject: None,
+        containment: None,
     };
     let authorities = [authority_a, authority_b];
     let source_effects = [authority_a.effect_hash];

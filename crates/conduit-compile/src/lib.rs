@@ -8,9 +8,13 @@ use std::fmt;
 
 use bumpalo::Bump;
 use conduit_core::{
-    ArtifactDigest, ArtifactManifest, ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant,
-    AuthorityScope, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    DelegationPolicy, Direction, EXECUTION_PLAN_SCHEMA_VERSION_V3, EffectRequirement,
+    AdministrativeApproval, AdministrativeApprovalStatus, AdministrativeApprover,
+    AdministrativeCommit, AdministrativeExecution, AdministrativePrincipal, AdministrativeProof,
+    AdministrativeProposal, AdministrativeSubject, ArtifactDigest, ArtifactManifest,
+    ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope, AuthorityTime,
+    BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
+    ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
+    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3, EffectRequirement,
     ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy,
     FlowWatermarks, GrantStatus, HandleDisposition, HostCapability, Id, ImplementationManifest,
     InstancePath, ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory,
@@ -21,6 +25,7 @@ use conduit_core::{
     ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord,
     ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, SampleSchedule,
     SemanticHash, StopPolicy, TypeContractRef, ValueRepresentation, resolve_authority,
+    validate_administrative_proof,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -36,6 +41,7 @@ use sha2::{Digest as _, Sha256};
 pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input/v2";
 pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 2;
 pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
+pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -374,6 +380,8 @@ pub struct AuthorityConstraintDocument {
 #[serde(deny_unknown_fields)]
 pub struct EffectRequirementDocument {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub administrative_class: Option<PinDocument>,
     pub action: String,
     pub resource_kind: String,
     pub resource_id: Option<String>,
@@ -426,6 +434,147 @@ pub struct AuthorityDecisionDocument {
     pub capability: HostCapabilityDocument,
     pub grant: AuthorityGrantDocument,
     pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub administrative_subject: Option<AdministrativeSubjectDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub containment: Option<AdministrativeProofDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativePrincipalDocument {
+    pub realm: String,
+    pub entity: String,
+    pub key: String,
+    pub profile: PinDocument,
+    pub source_plan: String,
+    pub source_epoch: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeSubjectDocument {
+    pub realm: String,
+    pub entity: String,
+    pub plan: String,
+    pub epoch: u64,
+    pub artifact: Option<String>,
+    pub budget: Option<PinDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DelegationEnvelopeDocument {
+    pub action: String,
+    pub resource_kind: String,
+    pub resource_id: Option<String>,
+    pub audience: String,
+    pub time_basis: String,
+    pub not_before_tick: u64,
+    pub expires_at_tick: u64,
+    pub remaining_depth: u8,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeApproverDocument {
+    pub realm: String,
+    pub entity: String,
+    pub key: String,
+    pub profile: PinDocument,
+    pub failure_domain: PinDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContainmentPolicyDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub effect_class: PinDocument,
+    pub approvers: Vec<AdministrativeApproverDocument>,
+    pub committer: AdministrativeApproverDocument,
+    pub executor: AdministrativeApproverDocument,
+    pub minimum_approvals: u8,
+    pub minimum_failure_domains: u8,
+    pub requester_independence: bool,
+    pub beneficiary_independence: bool,
+    pub successor_independence: bool,
+    pub delegation_ceiling: Option<DelegationEnvelopeDocument>,
+    pub ceremony: Option<PinDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeProposalDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub id: String,
+    pub effect_class: PinDocument,
+    pub operation: PinDocument,
+    pub requester: AdministrativePrincipalDocument,
+    pub subject: AdministrativeSubjectDocument,
+    pub beneficiaries: Vec<AdministrativeSubjectDocument>,
+    pub predecessor_plan: Option<String>,
+    pub delegation: Option<DelegationEnvelopeDocument>,
+    pub protected_handle: Option<PinDocument>,
+    pub ceremony: Option<PinDocument>,
+    pub time_basis: String,
+    pub created_at_tick: u64,
+    pub expires_at_tick: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeApprovalDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub id: String,
+    pub proposal_identity: String,
+    pub policy_identity: String,
+    pub approver: AdministrativePrincipalDocument,
+    pub failure_domain: PinDocument,
+    pub time_basis: String,
+    pub issued_at_tick: u64,
+    pub expires_at_tick: u64,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeCommitDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub id: String,
+    pub proposal_identity: String,
+    pub policy_identity: String,
+    pub approvals: Vec<String>,
+    pub committed_by: AdministrativePrincipalDocument,
+    pub committed_at_tick: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeExecutionDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub id: String,
+    pub proposal_identity: String,
+    pub commit_identity: String,
+    pub executor: AdministrativePrincipalDocument,
+    pub time_basis: String,
+    pub not_before_tick: u64,
+    pub expires_at_tick: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdministrativeProofDocument {
+    pub proposal: AdministrativeProposalDocument,
+    pub policy: ContainmentPolicyDocument,
+    pub approvals: Vec<AdministrativeApprovalDocument>,
+    pub commit: AdministrativeCommitDocument,
+    pub execution: AdministrativeExecutionDocument,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1125,6 +1274,10 @@ pub struct PlanAuthorityDocument {
     pub capability: HostCapabilityDocument,
     pub grant: AuthorityGrantDocument,
     pub binding: PlanAuthorityBindingDocument,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub administrative_subject: Option<AdministrativeSubjectDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub containment: Option<AdministrativeProofDocument>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1196,7 +1349,7 @@ impl ExactPlanDocument {
         validate_hosted_execution_plan(
             &plan,
             PlanValidationContext {
-                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+                supported_schema_version: self.schema_version,
                 now: AuthorityTime {
                     basis: Id(&self.time_basis),
                     tick: self.created_at_tick,
@@ -1207,10 +1360,11 @@ impl ExactPlanDocument {
     }
 
     fn as_plan<'a>(&'a self, arena: &'a Bump) -> Result<ExecutionPlan<'a>, CompileError> {
-        if self.schema != PLAN_DOCUMENT_SCHEMA
-            || self.schema_version != EXECUTION_PLAN_SCHEMA_VERSION_V3
-            || !self.unresolved_selectors.is_empty()
-        {
+        let supported_document = (self.schema == PLAN_DOCUMENT_SCHEMA
+            && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V3)
+            || (self.schema == ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
+        if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
         }
         let hosts = self
@@ -1348,6 +1502,30 @@ impl ExactPlanDocument {
                         time_basis: id(&authority.binding.time_basis)?,
                         validated_at_tick: authority.binding.validated_at_tick,
                         check_at_use: authority.binding.check_at_use,
+                    },
+                    administrative_subject: authority
+                        .administrative_subject
+                        .as_ref()
+                        .map(administrative_subject)
+                        .transpose()?,
+                    containment: match (
+                        authority.administrative_subject.as_ref(),
+                        authority.containment.as_ref(),
+                    ) {
+                        (Some(subject), Some(proof)) => {
+                            let subject = administrative_subject(subject)?;
+                            Some(administrative_proof(
+                                proof,
+                                subject,
+                                arena,
+                                AuthorityTime {
+                                    basis: id(&self.time_basis)?,
+                                    tick: self.created_at_tick,
+                                },
+                            )?)
+                        }
+                        (None, None) => None,
+                        _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
                     },
                 })
             })
@@ -1786,6 +1964,8 @@ fn compile_topology(
                 capability: authority.capability,
                 grant: authority.grant,
                 binding,
+                administrative_subject: authority.administrative_subject,
+                containment: authority.containment,
             });
         }
         nodes.push(ResolvedPlanNode {
@@ -1955,8 +2135,16 @@ fn compile_topology(
     }) {
         return Err(CompileError::new(CompileReason::PlanInvalid));
     }
+    let plan_schema_version = if plan_authorities
+        .iter()
+        .any(|authority| authority.containment.is_some())
+    {
+        EXECUTION_PLAN_SCHEMA_VERSION
+    } else {
+        EXECUTION_PLAN_SCHEMA_VERSION_V3
+    };
     let mut plan = ExecutionPlan {
-        schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+        schema_version: plan_schema_version,
         identity: SemanticHash::from_bytes([0; 32]),
         source_semantic_hash: topology.source_semantic_hash,
         resolver: policy.resolver,
@@ -1993,7 +2181,7 @@ fn compile_topology(
         .semantic_hash(&mut scratch)
         .map_err(|_| CompileError::new(CompileReason::PlanInvalid))?;
     let validation_context = PlanValidationContext {
-        supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+        supported_schema_version: plan_schema_version,
         now: plan.created_at,
     };
     if let Err(error) = validate_hosted_execution_plan(&plan, validation_context) {
@@ -2030,6 +2218,8 @@ struct PreparedAuthority<'a> {
     capability: HostCapability<'a>,
     grant: AuthorityGrant<'a>,
     binding: Option<ResolvedAuthorityBinding<'a>>,
+    administrative_subject: Option<AdministrativeSubject<'a>>,
+    containment: Option<AdministrativeProof<'a>>,
 }
 
 fn prepare_candidate<'a>(
@@ -2137,6 +2327,28 @@ fn prepare_candidate<'a>(
             {
                 return Err(CompileError::new(CompileReason::InvalidInput));
             }
+            let (administrative_subject, containment) = match (
+                effect.administrative_class,
+                authority.administrative_subject.as_ref(),
+                authority.containment.as_ref(),
+            ) {
+                (None, None, None) => (None, None),
+                (Some(_), Some(subject), Some(proof)) => {
+                    let subject = administrative_subject(subject)?;
+                    let proof = administrative_proof(proof, subject, arena, time)?;
+                    (Some(subject), Some(proof))
+                }
+                (Some(_), _, None) => {
+                    return Err(CompileError::new(CompileReason::Containment(
+                        ContainmentReason::ApprovalMissing,
+                    )));
+                }
+                _ => {
+                    return Err(CompileError::new(CompileReason::Containment(
+                        ContainmentReason::EffectClassMismatch,
+                    )));
+                }
+            };
             Ok(PreparedAuthority {
                 requirement: parse_hash(&authority.requirement)?,
                 effect_hash,
@@ -2145,6 +2357,8 @@ fn prepare_candidate<'a>(
                 capability,
                 grant,
                 binding,
+                administrative_subject,
+                containment,
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
@@ -2471,10 +2685,118 @@ fn seal_authority_decision(document: &mut AuthorityDecisionDocument) -> Result<(
         .semantic_hash()
         .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
         .to_string();
+    match (
+        document.effect.administrative_class.as_ref(),
+        document.administrative_subject.as_ref(),
+        document.containment.as_mut(),
+    ) {
+        (None, None, None) => {}
+        (Some(effect_class), Some(subject), Some(proof)) => {
+            if &proof.proposal.effect_class != effect_class
+                || &proof.policy.effect_class != effect_class
+                || &proof.proposal.subject != subject
+            {
+                return Err(CompileError::new(CompileReason::Containment(
+                    ContainmentReason::EffectClassMismatch,
+                )));
+            }
+            seal_administrative_proof(proof)?;
+        }
+        (Some(_), _, None) => {
+            return Err(CompileError::new(CompileReason::Containment(
+                ContainmentReason::ApprovalMissing,
+            )));
+        }
+        _ => {
+            return Err(CompileError::new(CompileReason::Containment(
+                ContainmentReason::EffectClassMismatch,
+            )));
+        }
+    }
     match document.status.as_str() {
         "active" | "revoked" => Ok(()),
         _ => Err(CompileError::new(CompileReason::InvalidInput)),
     }
+}
+
+fn seal_administrative_proof(
+    document: &mut AdministrativeProofDocument,
+) -> Result<(), CompileError> {
+    let zero = SemanticHash::from_bytes([0; 32]).to_string();
+
+    document.policy.identity.clone_from(&zero);
+    {
+        let arena = Bump::new();
+        let policy = containment_policy(&document.policy, &arena)?;
+        document.policy.identity = policy
+            .computed_semantic_hash()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+            .to_string();
+    }
+
+    document.proposal.identity.clone_from(&zero);
+    {
+        let arena = Bump::new();
+        let proposal = administrative_proposal(&document.proposal, &arena)?;
+        document.proposal.identity = proposal
+            .computed_semantic_hash()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+            .to_string();
+    }
+
+    for approval in &mut document.approvals {
+        approval
+            .proposal_identity
+            .clone_from(&document.proposal.identity);
+        approval
+            .policy_identity
+            .clone_from(&document.policy.identity);
+        approval.identity.clone_from(&zero);
+        let value = administrative_approval(approval)?;
+        approval.identity = value
+            .computed_semantic_hash()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+            .to_string();
+    }
+
+    document
+        .commit
+        .proposal_identity
+        .clone_from(&document.proposal.identity);
+    document
+        .commit
+        .policy_identity
+        .clone_from(&document.policy.identity);
+    document.commit.approvals = document
+        .approvals
+        .iter()
+        .map(|approval| approval.identity.clone())
+        .collect();
+    document.commit.identity.clone_from(&zero);
+    {
+        let arena = Bump::new();
+        let commit = administrative_commit(&document.commit, &arena)?;
+        document.commit.identity = commit
+            .computed_semantic_hash()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+            .to_string();
+    }
+
+    document
+        .execution
+        .proposal_identity
+        .clone_from(&document.proposal.identity);
+    document
+        .execution
+        .commit_identity
+        .clone_from(&document.commit.identity);
+    document.execution.identity.clone_from(&zero);
+    let execution = administrative_execution(&document.execution)?;
+    document.execution.identity = execution
+        .computed_semantic_hash()
+        .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+        .to_string();
+    Ok(())
 }
 
 fn authority_constraints<'a>(
@@ -2509,6 +2831,11 @@ fn effect_requirement<'a>(
     };
     Ok(EffectRequirement {
         id: id(&document.id)?,
+        administrative_class: document
+            .administrative_class
+            .as_ref()
+            .map(pin)
+            .transpose()?,
         action: id(&document.action)?,
         resource,
         requester: instance(&document.requester)?,
@@ -2516,6 +2843,229 @@ fn effect_requirement<'a>(
         constraints: authority_constraints(&document.constraints, arena)?,
         check_at_use: document.check_at_use,
     })
+}
+
+fn administrative_principal(
+    document: &AdministrativePrincipalDocument,
+) -> Result<AdministrativePrincipal<'_>, CompileError> {
+    Ok(AdministrativePrincipal {
+        realm: id(&document.realm)?,
+        entity: id(&document.entity)?,
+        key: id(&document.key)?,
+        profile: pin(&document.profile)?,
+        source_plan: parse_hash(&document.source_plan)?,
+        source_epoch: document.source_epoch,
+    })
+}
+
+fn administrative_subject(
+    document: &AdministrativeSubjectDocument,
+) -> Result<AdministrativeSubject<'_>, CompileError> {
+    Ok(AdministrativeSubject {
+        realm: id(&document.realm)?,
+        entity: id(&document.entity)?,
+        plan: parse_hash(&document.plan)?,
+        epoch: document.epoch,
+        artifact: document.artifact.as_deref().map(parse_digest).transpose()?,
+        budget: document.budget.as_ref().map(pin).transpose()?,
+    })
+}
+
+fn delegation_envelope(
+    document: &DelegationEnvelopeDocument,
+) -> Result<DelegationEnvelope<'_>, CompileError> {
+    let resource = match document.resource_id.as_deref() {
+        Some(resource_id) => ResourceSelector::Exact(ResourceRef {
+            kind: id(&document.resource_kind)?,
+            id: id(resource_id)?,
+        }),
+        None => ResourceSelector::Kind(id(&document.resource_kind)?),
+    };
+    Ok(DelegationEnvelope {
+        action: id(&document.action)?,
+        resource,
+        audience: id(&document.audience)?,
+        time_basis: id(&document.time_basis)?,
+        not_before_tick: document.not_before_tick,
+        expires_at_tick: document.expires_at_tick,
+        remaining_depth: document.remaining_depth,
+    })
+}
+
+fn containment_policy<'a>(
+    document: &'a ContainmentPolicyDocument,
+    arena: &'a Bump,
+) -> Result<ContainmentPolicy<'a>, CompileError> {
+    let approvers = document
+        .approvers
+        .iter()
+        .map(|approver| {
+            Ok(AdministrativeApprover {
+                realm: id(&approver.realm)?,
+                entity: id(&approver.entity)?,
+                key: id(&approver.key)?,
+                profile: pin(&approver.profile)?,
+                failure_domain: pin(&approver.failure_domain)?,
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    Ok(ContainmentPolicy {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        descriptor: pin(&document.descriptor)?,
+        effect_class: pin(&document.effect_class)?,
+        approvers: arena.alloc_slice_copy(&approvers),
+        committer: administrative_approver(&document.committer)?,
+        executor: administrative_approver(&document.executor)?,
+        minimum_approvals: document.minimum_approvals,
+        minimum_failure_domains: document.minimum_failure_domains,
+        requester_independence: document.requester_independence,
+        beneficiary_independence: document.beneficiary_independence,
+        successor_independence: document.successor_independence,
+        delegation_ceiling: document
+            .delegation_ceiling
+            .as_ref()
+            .map(delegation_envelope)
+            .transpose()?,
+        ceremony: document.ceremony.as_ref().map(pin).transpose()?,
+    })
+}
+
+fn administrative_approver(
+    document: &AdministrativeApproverDocument,
+) -> Result<AdministrativeApprover<'_>, CompileError> {
+    Ok(AdministrativeApprover {
+        realm: id(&document.realm)?,
+        entity: id(&document.entity)?,
+        key: id(&document.key)?,
+        profile: pin(&document.profile)?,
+        failure_domain: pin(&document.failure_domain)?,
+    })
+}
+
+fn administrative_proposal<'a>(
+    document: &'a AdministrativeProposalDocument,
+    arena: &'a Bump,
+) -> Result<AdministrativeProposal<'a>, CompileError> {
+    let beneficiaries = document
+        .beneficiaries
+        .iter()
+        .map(administrative_subject)
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    Ok(AdministrativeProposal {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        id: id(&document.id)?,
+        effect_class: pin(&document.effect_class)?,
+        operation: pin(&document.operation)?,
+        requester: administrative_principal(&document.requester)?,
+        subject: administrative_subject(&document.subject)?,
+        beneficiaries: arena.alloc_slice_copy(&beneficiaries),
+        predecessor_plan: document
+            .predecessor_plan
+            .as_deref()
+            .map(parse_hash)
+            .transpose()?,
+        delegation: document
+            .delegation
+            .as_ref()
+            .map(delegation_envelope)
+            .transpose()?,
+        protected_handle: document.protected_handle.as_ref().map(pin).transpose()?,
+        ceremony: document.ceremony.as_ref().map(pin).transpose()?,
+        time_basis: id(&document.time_basis)?,
+        created_at_tick: document.created_at_tick,
+        expires_at_tick: document.expires_at_tick,
+    })
+}
+
+fn administrative_approval(
+    document: &AdministrativeApprovalDocument,
+) -> Result<AdministrativeApproval<'_>, CompileError> {
+    Ok(AdministrativeApproval {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        id: id(&document.id)?,
+        proposal_identity: parse_hash(&document.proposal_identity)?,
+        policy_identity: parse_hash(&document.policy_identity)?,
+        approver: administrative_principal(&document.approver)?,
+        failure_domain: pin(&document.failure_domain)?,
+        time_basis: id(&document.time_basis)?,
+        issued_at_tick: document.issued_at_tick,
+        expires_at_tick: document.expires_at_tick,
+        status: match document.status.as_str() {
+            "current" => AdministrativeApprovalStatus::Current,
+            "revoked" => AdministrativeApprovalStatus::Revoked,
+            _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+        },
+    })
+}
+
+fn administrative_commit<'a>(
+    document: &'a AdministrativeCommitDocument,
+    arena: &'a Bump,
+) -> Result<AdministrativeCommit<'a>, CompileError> {
+    let approvals = document
+        .approvals
+        .iter()
+        .map(|approval| parse_hash(approval))
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    Ok(AdministrativeCommit {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        id: id(&document.id)?,
+        proposal_identity: parse_hash(&document.proposal_identity)?,
+        policy_identity: parse_hash(&document.policy_identity)?,
+        approvals: arena.alloc_slice_copy(&approvals),
+        committed_by: administrative_principal(&document.committed_by)?,
+        committed_at_tick: document.committed_at_tick,
+    })
+}
+
+fn administrative_execution(
+    document: &AdministrativeExecutionDocument,
+) -> Result<AdministrativeExecution<'_>, CompileError> {
+    Ok(AdministrativeExecution {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        id: id(&document.id)?,
+        proposal_identity: parse_hash(&document.proposal_identity)?,
+        commit_identity: parse_hash(&document.commit_identity)?,
+        executor: administrative_principal(&document.executor)?,
+        time_basis: id(&document.time_basis)?,
+        not_before_tick: document.not_before_tick,
+        expires_at_tick: document.expires_at_tick,
+    })
+}
+
+fn administrative_proof<'a>(
+    document: &'a AdministrativeProofDocument,
+    subject: AdministrativeSubject<'a>,
+    arena: &'a Bump,
+    now: AuthorityTime<'a>,
+) -> Result<AdministrativeProof<'a>, CompileError> {
+    let approvals = document
+        .approvals
+        .iter()
+        .map(administrative_approval)
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    let proof = AdministrativeProof {
+        proposal: administrative_proposal(&document.proposal, arena)?,
+        policy: containment_policy(&document.policy, arena)?,
+        approvals: arena.alloc_slice_copy(&approvals),
+        commit: administrative_commit(&document.commit, arena)?,
+        execution: administrative_execution(&document.execution)?,
+    };
+    validate_administrative_proof(
+        proof,
+        ContainmentContext {
+            subject,
+            time_basis: now.basis,
+            now_tick: now.tick,
+        },
+    )
+    .map_err(|reason| CompileError::new(CompileReason::Containment(reason)))?;
+    Ok(proof)
 }
 
 fn host_capability(document: &HostCapabilityDocument) -> Result<HostCapability<'_>, CompileError> {
@@ -2767,6 +3317,10 @@ fn plan_document(
                 validated_at_tick: authority.binding.validated_at_tick,
                 check_at_use: authority.binding.check_at_use,
             },
+            administrative_subject: authority
+                .administrative_subject
+                .map(administrative_subject_document),
+            containment: authority.containment.map(administrative_proof_document),
         })
         .collect();
     let port_groups = plan
@@ -2814,7 +3368,11 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: PLAN_DOCUMENT_SCHEMA.to_owned(),
+        schema: if plan.schema_version >= 11 {
+            ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else {
+            PLAN_DOCUMENT_SCHEMA.to_owned()
+        },
         schema_version: plan.schema_version,
         identity: plan.identity.to_string(),
         source_semantic_hash: plan.source_semantic_hash.to_string(),
@@ -3140,6 +3698,7 @@ fn effect_to_document(effect: EffectRequirement<'_>) -> EffectRequirementDocumen
     };
     EffectRequirementDocument {
         id: effect.id.to_string(),
+        administrative_class: effect.administrative_class.map(pin_document),
         action: effect.action.to_string(),
         resource_kind,
         resource_id,
@@ -3147,6 +3706,165 @@ fn effect_to_document(effect: EffectRequirement<'_>) -> EffectRequirementDocumen
         audience: effect.audience.to_string(),
         constraints: constraint_documents(effect.constraints),
         check_at_use: effect.check_at_use,
+    }
+}
+
+fn administrative_principal_document(
+    value: AdministrativePrincipal<'_>,
+) -> AdministrativePrincipalDocument {
+    AdministrativePrincipalDocument {
+        realm: value.realm.to_string(),
+        entity: value.entity.to_string(),
+        key: value.key.to_string(),
+        profile: pin_document(value.profile),
+        source_plan: value.source_plan.to_string(),
+        source_epoch: value.source_epoch,
+    }
+}
+
+fn administrative_subject_document(
+    value: AdministrativeSubject<'_>,
+) -> AdministrativeSubjectDocument {
+    AdministrativeSubjectDocument {
+        realm: value.realm.to_string(),
+        entity: value.entity.to_string(),
+        plan: value.plan.to_string(),
+        epoch: value.epoch,
+        artifact: value.artifact.map(|artifact| artifact.to_string()),
+        budget: value.budget.map(pin_document),
+    }
+}
+
+fn delegation_document(value: DelegationEnvelope<'_>) -> DelegationEnvelopeDocument {
+    let (resource_kind, resource_id) = match value.resource {
+        ResourceSelector::Exact(resource) => {
+            (resource.kind.to_string(), Some(resource.id.to_string()))
+        }
+        ResourceSelector::Kind(kind) => (kind.to_string(), None),
+    };
+    DelegationEnvelopeDocument {
+        action: value.action.to_string(),
+        resource_kind,
+        resource_id,
+        audience: value.audience.to_string(),
+        time_basis: value.time_basis.to_string(),
+        not_before_tick: value.not_before_tick,
+        expires_at_tick: value.expires_at_tick,
+        remaining_depth: value.remaining_depth,
+    }
+}
+
+fn administrative_proof_document(value: AdministrativeProof<'_>) -> AdministrativeProofDocument {
+    AdministrativeProofDocument {
+        proposal: AdministrativeProposalDocument {
+            schema_version: value.proposal.schema_version,
+            identity: value.proposal.identity.to_string(),
+            id: value.proposal.id.to_string(),
+            effect_class: pin_document(value.proposal.effect_class),
+            operation: pin_document(value.proposal.operation),
+            requester: administrative_principal_document(value.proposal.requester),
+            subject: administrative_subject_document(value.proposal.subject),
+            beneficiaries: value
+                .proposal
+                .beneficiaries
+                .iter()
+                .copied()
+                .map(administrative_subject_document)
+                .collect(),
+            predecessor_plan: value.proposal.predecessor_plan.map(|plan| plan.to_string()),
+            delegation: value.proposal.delegation.map(delegation_document),
+            protected_handle: value.proposal.protected_handle.map(pin_document),
+            ceremony: value.proposal.ceremony.map(pin_document),
+            time_basis: value.proposal.time_basis.to_string(),
+            created_at_tick: value.proposal.created_at_tick,
+            expires_at_tick: value.proposal.expires_at_tick,
+        },
+        policy: ContainmentPolicyDocument {
+            schema_version: value.policy.schema_version,
+            identity: value.policy.identity.to_string(),
+            descriptor: pin_document(value.policy.descriptor),
+            effect_class: pin_document(value.policy.effect_class),
+            approvers: value
+                .policy
+                .approvers
+                .iter()
+                .map(|approver| AdministrativeApproverDocument {
+                    realm: approver.realm.to_string(),
+                    entity: approver.entity.to_string(),
+                    key: approver.key.to_string(),
+                    profile: pin_document(approver.profile),
+                    failure_domain: pin_document(approver.failure_domain),
+                })
+                .collect(),
+            committer: AdministrativeApproverDocument {
+                realm: value.policy.committer.realm.to_string(),
+                entity: value.policy.committer.entity.to_string(),
+                key: value.policy.committer.key.to_string(),
+                profile: pin_document(value.policy.committer.profile),
+                failure_domain: pin_document(value.policy.committer.failure_domain),
+            },
+            executor: AdministrativeApproverDocument {
+                realm: value.policy.executor.realm.to_string(),
+                entity: value.policy.executor.entity.to_string(),
+                key: value.policy.executor.key.to_string(),
+                profile: pin_document(value.policy.executor.profile),
+                failure_domain: pin_document(value.policy.executor.failure_domain),
+            },
+            minimum_approvals: value.policy.minimum_approvals,
+            minimum_failure_domains: value.policy.minimum_failure_domains,
+            requester_independence: value.policy.requester_independence,
+            beneficiary_independence: value.policy.beneficiary_independence,
+            successor_independence: value.policy.successor_independence,
+            delegation_ceiling: value.policy.delegation_ceiling.map(delegation_document),
+            ceremony: value.policy.ceremony.map(pin_document),
+        },
+        approvals: value
+            .approvals
+            .iter()
+            .map(|approval| AdministrativeApprovalDocument {
+                schema_version: approval.schema_version,
+                identity: approval.identity.to_string(),
+                id: approval.id.to_string(),
+                proposal_identity: approval.proposal_identity.to_string(),
+                policy_identity: approval.policy_identity.to_string(),
+                approver: administrative_principal_document(approval.approver),
+                failure_domain: pin_document(approval.failure_domain),
+                time_basis: approval.time_basis.to_string(),
+                issued_at_tick: approval.issued_at_tick,
+                expires_at_tick: approval.expires_at_tick,
+                status: match approval.status {
+                    AdministrativeApprovalStatus::Current => "current",
+                    AdministrativeApprovalStatus::Revoked => "revoked",
+                }
+                .to_owned(),
+            })
+            .collect(),
+        commit: AdministrativeCommitDocument {
+            schema_version: value.commit.schema_version,
+            identity: value.commit.identity.to_string(),
+            id: value.commit.id.to_string(),
+            proposal_identity: value.commit.proposal_identity.to_string(),
+            policy_identity: value.commit.policy_identity.to_string(),
+            approvals: value
+                .commit
+                .approvals
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+            committed_by: administrative_principal_document(value.commit.committed_by),
+            committed_at_tick: value.commit.committed_at_tick,
+        },
+        execution: AdministrativeExecutionDocument {
+            schema_version: value.execution.schema_version,
+            identity: value.execution.identity.to_string(),
+            id: value.execution.id.to_string(),
+            proposal_identity: value.execution.proposal_identity.to_string(),
+            commit_identity: value.execution.commit_identity.to_string(),
+            executor: administrative_principal_document(value.execution.executor),
+            time_basis: value.execution.time_basis.to_string(),
+            not_before_tick: value.execution.not_before_tick,
+            expires_at_tick: value.execution.expires_at_tick,
+        },
     }
 }
 
@@ -3286,6 +4004,27 @@ fn canonicalize_compile_input(input: &mut CompileInput) {
                 .grant
                 .constraints
                 .sort_by(|left, right| left.id.cmp(&right.id));
+            if let Some(proof) = &mut authority.containment {
+                proof.policy.approvers.sort_by(|left, right| {
+                    (&left.realm, &left.entity, &left.key).cmp(&(
+                        &right.realm,
+                        &right.entity,
+                        &right.key,
+                    ))
+                });
+                proof.proposal.beneficiaries.sort_by(|left, right| {
+                    (&left.realm, &left.entity, &left.plan, left.epoch).cmp(&(
+                        &right.realm,
+                        &right.entity,
+                        &right.plan,
+                        right.epoch,
+                    ))
+                });
+                proof
+                    .approvals
+                    .sort_by(|left, right| left.id.cmp(&right.id));
+                proof.commit.approvals.sort();
+            }
         }
         candidate.authorities.sort_by(|left, right| {
             (&left.requirement, &left.effect.requester, &left.effect.id).cmp(&(
@@ -3539,6 +4278,7 @@ pub enum CompileReason {
     BudgetInvalid,
     PlanInvalid,
     SourceLimitExceeded,
+    Containment(ContainmentReason),
 }
 
 impl CompileReason {
@@ -3554,6 +4294,7 @@ impl CompileReason {
             Self::BudgetInvalid => "CND-CMP-007",
             Self::PlanInvalid => "CND-CMP-008",
             Self::SourceLimitExceeded => "CND-CMP-009",
+            Self::Containment(reason) => reason.code(),
         }
     }
 }
@@ -3592,6 +4333,24 @@ impl fmt::Display for CompileError {
             CompileReason::SourceLimitExceeded => {
                 "entry source or explicit module closure limit exceeded"
             }
+            CompileReason::Containment(ContainmentReason::ApprovalMissing) => {
+                "administrative effect is missing its exact independent approval proof"
+            }
+            CompileReason::Containment(ContainmentReason::SelfSupporting) => {
+                "administrative approval is supported by the requesting or benefiting subject"
+            }
+            CompileReason::Containment(reason) => match reason {
+                ContainmentReason::SuccessorSelfAuthorized => {
+                    "successor activation lacks authority independent of the active plan"
+                }
+                ContainmentReason::FailureDomainInsufficient => {
+                    "administrative approval threshold lacks independent failure domains"
+                }
+                ContainmentReason::SubjectMismatch | ContainmentReason::ApprovalReplay => {
+                    "administrative approval is bound to a different exact subject"
+                }
+                _ => "administrative containment proof is invalid or unavailable",
+            },
         };
         formatter.write_str(message)
     }
@@ -3617,6 +4376,130 @@ mod tests {
             schema_version: 1,
             semantic_hash: hash(byte),
         }
+    }
+
+    fn administrative_principal_doc(
+        entity: &str,
+        key: &str,
+        plan: u8,
+    ) -> AdministrativePrincipalDocument {
+        AdministrativePrincipalDocument {
+            realm: "realm.alpha".to_owned(),
+            entity: entity.to_owned(),
+            key: key.to_owned(),
+            profile: pin_doc("profile.member", 102),
+            source_plan: hash(plan),
+            source_epoch: 7,
+        }
+    }
+
+    fn administrative_subject_doc() -> AdministrativeSubjectDocument {
+        AdministrativeSubjectDocument {
+            realm: "realm.alpha".to_owned(),
+            entity: "target".to_owned(),
+            plan: hash(104),
+            epoch: 7,
+            artifact: None,
+            budget: None,
+        }
+    }
+
+    fn administrative_proof_doc(
+        effect_class: PinDocument,
+    ) -> (AdministrativeSubjectDocument, AdministrativeProofDocument) {
+        let subject = administrative_subject_doc();
+        let approver = administrative_principal_doc("approver", "key.approver", 105);
+        let policy = ContainmentPolicyDocument {
+            schema_version: 1,
+            identity: String::new(),
+            descriptor: pin_doc("policy.containment", 106),
+            effect_class: effect_class.clone(),
+            approvers: vec![AdministrativeApproverDocument {
+                realm: approver.realm.clone(),
+                entity: approver.entity.clone(),
+                key: approver.key.clone(),
+                profile: approver.profile.clone(),
+                failure_domain: pin_doc("failure.rack.one", 107),
+            }],
+            committer: AdministrativeApproverDocument {
+                realm: "realm.alpha".to_owned(),
+                entity: "committer".to_owned(),
+                key: "key.committer".to_owned(),
+                profile: pin_doc("profile.member", 102),
+                failure_domain: pin_doc("failure.committer", 112),
+            },
+            executor: AdministrativeApproverDocument {
+                realm: "realm.alpha".to_owned(),
+                entity: "executor".to_owned(),
+                key: "key.executor".to_owned(),
+                profile: pin_doc("profile.member", 102),
+                failure_domain: pin_doc("failure.executor", 113),
+            },
+            minimum_approvals: 1,
+            minimum_failure_domains: 1,
+            requester_independence: true,
+            beneficiary_independence: true,
+            successor_independence: true,
+            delegation_ceiling: None,
+            ceremony: None,
+        };
+        let proposal = AdministrativeProposalDocument {
+            schema_version: 1,
+            identity: String::new(),
+            id: "proposal.one".to_owned(),
+            effect_class,
+            operation: pin_doc("operation.exact", 108),
+            requester: administrative_principal_doc("requester", "key.requester", 103),
+            subject: subject.clone(),
+            beneficiaries: vec![subject.clone()],
+            predecessor_plan: None,
+            delegation: None,
+            protected_handle: None,
+            ceremony: None,
+            time_basis: "clock/compile".to_owned(),
+            created_at_tick: 10,
+            expires_at_tick: 19,
+        };
+        let approval = AdministrativeApprovalDocument {
+            schema_version: 1,
+            identity: String::new(),
+            id: "approval.one".to_owned(),
+            proposal_identity: String::new(),
+            policy_identity: String::new(),
+            approver,
+            failure_domain: pin_doc("failure.rack.one", 107),
+            time_basis: "clock/compile".to_owned(),
+            issued_at_tick: 10,
+            expires_at_tick: 19,
+            status: "current".to_owned(),
+        };
+        let proof = AdministrativeProofDocument {
+            proposal,
+            policy,
+            approvals: vec![approval],
+            commit: AdministrativeCommitDocument {
+                schema_version: 1,
+                identity: String::new(),
+                id: "commit.one".to_owned(),
+                proposal_identity: String::new(),
+                policy_identity: String::new(),
+                approvals: Vec::new(),
+                committed_by: administrative_principal_doc("committer", "key.committer", 109),
+                committed_at_tick: 11,
+            },
+            execution: AdministrativeExecutionDocument {
+                schema_version: 1,
+                identity: String::new(),
+                id: "execution.one".to_owned(),
+                proposal_identity: String::new(),
+                commit_identity: String::new(),
+                executor: administrative_principal_doc("executor", "key.executor", 110),
+                time_basis: "clock/compile".to_owned(),
+                not_before_tick: 11,
+                expires_at_tick: 19,
+            },
+        };
+        (subject, proof)
     }
 
     fn profile_doc(ordinal: u8) -> ExecutionProfileDocument {
@@ -4117,6 +5000,7 @@ mod tests {
             grant_hash: String::new(),
             effect: EffectRequirementDocument {
                 id: "fixture/read".to_owned(),
+                administrative_class: None,
                 action: "fixture/read".to_owned(),
                 resource_kind: "fixture/device".to_owned(),
                 resource_id: Some("fixture/device-a".to_owned()),
@@ -4153,6 +5037,8 @@ mod tests {
                 terminal_policy: "abort".to_owned(),
             },
             status: "active".to_owned(),
+            administrative_subject: None,
+            containment: None,
         });
         input.seal().unwrap();
 
@@ -4207,6 +5093,92 @@ mod tests {
         assert_eq!(
             compile_panel(&panel, &revoked).unwrap_err().code(),
             "CND-CMP-006"
+        );
+    }
+
+    #[test]
+    fn administrative_effect_requires_and_emits_exact_containment_proof() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let mut input = compile_input(source, &panel);
+        let candidate = input
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .unwrap();
+        candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        let host = candidate.host_report.host.clone();
+        let effect_class = pin_doc("effect.admin", 101);
+        let (subject, proof) = administrative_proof_doc(effect_class.clone());
+        candidate.authorities.push(AuthorityDecisionDocument {
+            requirement: hash(111),
+            effect_hash: String::new(),
+            grant_hash: String::new(),
+            effect: EffectRequirementDocument {
+                id: "fixture/admin".to_owned(),
+                administrative_class: Some(effect_class),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: Some("fixture/device-a".to_owned()),
+                requester: "root/greeting".to_owned(),
+                audience: "fixture/run".to_owned(),
+                constraints: Vec::new(),
+                check_at_use: true,
+            },
+            capability: HostCapabilityDocument {
+                id: "fixture/admin-capability".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: "fixture/device-a".to_owned(),
+                host: host.clone(),
+                time_basis: "clock/compile".to_owned(),
+                observed_at_tick: 10,
+                valid_until_tick: 20,
+            },
+            grant: AuthorityGrantDocument {
+                id: "fixture/admin-grant".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: "fixture/device-a".to_owned(),
+                scope_root: "root/greeting".to_owned(),
+                scope_descendants: false,
+                audience: "fixture/run".to_owned(),
+                constraints: Vec::new(),
+                time_basis: "clock/compile".to_owned(),
+                not_before_tick: 10,
+                expires_at_tick: 20,
+                issued_for_host: host,
+                delegation: "none".to_owned(),
+                audit_id: "fixture/admin-audit".to_owned(),
+                terminal_policy: "abort".to_owned(),
+            },
+            status: "active".to_owned(),
+            administrative_subject: Some(subject),
+            containment: Some(proof),
+        });
+        input.seal().unwrap();
+        let plan = compile_panel(&panel, &input).unwrap();
+        assert_eq!(plan.schema, ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert!(plan.authorities[0].containment.is_some());
+        plan.validate().unwrap();
+
+        let mut missing = input;
+        let authority = missing
+            .candidates
+            .iter_mut()
+            .find(|candidate| !candidate.authorities.is_empty())
+            .unwrap()
+            .authorities
+            .first_mut()
+            .unwrap();
+        authority.containment = None;
+        let error = missing.seal().unwrap_err();
+        assert_eq!(error.code(), "CND-CTN-007");
+        assert_eq!(
+            error.to_string(),
+            "administrative effect is missing its exact independent approval proof"
         );
     }
 

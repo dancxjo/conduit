@@ -29,6 +29,8 @@ Options:
           Add bounded resolution status detail; repeat for future detail levels
       --verbose-diagnostics
           Include related spans, notes, paths, and causes
+      --compile-input <INPUT>
+          Validate check/explain against this explicit compile-input snapshot
   -h, --help
           Print help
   -V, --version

@@ -14,6 +14,7 @@ mod canonical;
 mod compatibility;
 mod composite;
 mod config;
+mod containment;
 mod diagnostic;
 mod distributed;
 mod evidence;
@@ -61,6 +62,18 @@ pub use config::{
     ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,
     ConfigIdentity, ConfigMutability, ConfigRequirement,
 };
+pub use containment::{
+    AdministrativeApproval, AdministrativeApprovalStatus, AdministrativeApprover,
+    AdministrativeCommit, AdministrativeControlKind, AdministrativeControlRecord,
+    AdministrativeExecution, AdministrativePrincipal, AdministrativeProof, AdministrativeProposal,
+    AdministrativeSubject, AdministrativeSupportEdge, CONTAINMENT_POLICY_SCHEMA_VERSION,
+    ContainmentContext, ContainmentDisposition, ContainmentPolicy, ContainmentReason,
+    ContainmentReasonNode, DelegationEnvelope, MAX_ADMINISTRATIVE_APPROVALS,
+    MAX_ADMINISTRATIVE_APPROVERS, MAX_ADMINISTRATIVE_BENEFICIARIES, MAX_CONTAINMENT_REASON_DEPTH,
+    MAX_CONTAINMENT_REASON_NODES, validate_administrative_proof, validate_control_record,
+    validate_delegation_narrowing, validate_effect_containment, validate_reason_tree,
+    validate_recovery_narrowing, validate_support_graph,
+};
 pub use diagnostic::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticArgument, DiagnosticArgumentValue,
     DiagnosticContractError, DiagnosticEdit, DiagnosticFix, DiagnosticRelated, DiagnosticSeverity,
@@ -88,14 +101,14 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
     EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
-    EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
-    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
-    PlanSatisfactionSubject, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
+    EXECUTION_PLAN_SCHEMA_VERSION_V10, ExecutionPlan, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
+    PlanExportBinding, PlanFanOut, PlanHostObservation, PlanIdentityError, PlanInstancePool,
+    PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext,
+    PlanValidationError, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,

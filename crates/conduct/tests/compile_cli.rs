@@ -302,6 +302,35 @@ fn compile_emits_only_a_finite_validated_plan_result() {
 }
 
 #[test]
+fn check_and_explain_validate_the_explicit_compile_snapshot() {
+    let root = temporary_directory();
+    let source = include_str!("../../../examples/hello.panel");
+    let panel = root.join("hello.panel");
+    let input_path = root.join("compile-input.json");
+    std::fs::write(&panel, source).unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&input(source)).unwrap(),
+    )
+    .unwrap();
+
+    for mode in ["--check", "--explain"] {
+        let output = command()
+            .arg(mode)
+            .arg("--compile-input")
+            .arg(&input_path)
+            .arg(&panel)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{mode}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+#[test]
 fn compile_diagnostics_stay_on_stderr_and_reserved_path_is_disambiguated() {
     assert_fixture_case("reserved-word-path-after-double-dash");
     let root = temporary_directory();

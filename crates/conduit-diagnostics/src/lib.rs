@@ -644,12 +644,13 @@ pub fn from_plan_error(
     error: PlanValidationError,
     context: PlanDiagnosticContext,
 ) -> OwnedDiagnostic {
-    let mut diagnostic = base(
-        error.code.as_str(),
-        "exact execution plan validation failed",
-        context.primary,
-        Vec::new(),
-    );
+    let message = match error.code {
+        conduit_core::PlanDiagnosticCode::Containment(reason) => {
+            format!("administrative containment failed: {}", reason.as_str())
+        }
+        _ => "exact execution plan validation failed".to_owned(),
+    };
+    let mut diagnostic = base(error.code.as_str(), &message, context.primary, Vec::new());
     diagnostic.semantic_path = context.semantic_path;
     diagnostic.arguments.push(public_argument(
         "collection",

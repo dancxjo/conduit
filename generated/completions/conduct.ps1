@@ -24,6 +24,7 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
             [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
             [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')
+            [CompletionResult]::new('--compile-input', '--compile-input', [CompletionResultType]::ParameterName, 'Validate check/explain against this explicit compile-input snapshot')
             [CompletionResult]::new('--check', '--check', [CompletionResultType]::ParameterName, 'Parse, resolve, and validate without starting nodes')
             [CompletionResult]::new('--explain', '--explain', [CompletionResultType]::ParameterName, 'Show exact node, port, cord, type, and flow resolution')
             [CompletionResult]::new('--run', '--run', [CompletionResultType]::ParameterName, 'Run the panel (the default mode)')

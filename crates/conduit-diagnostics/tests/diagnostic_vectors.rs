@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    DiagnosticCode, ImplementationError, PlanCollection, PlanDiagnosticCode, PlanValidationError,
-    SemanticHash, ValidationError,
+    ContainmentReason, DiagnosticCode, ImplementationError, PlanCollection, PlanDiagnosticCode,
+    PlanValidationError, SemanticHash, ValidationError,
 };
 use conduit_diagnostics::{
     CompatibilityDiagnosticContext, DiagnosticSource, FixStatus, KnownAdapterFix,
@@ -70,6 +70,23 @@ fn resolver_and_plan_failures_have_structured_adapters() {
         plan.arguments
             .iter()
             .any(|argument| argument.name == "collection")
+    );
+
+    let containment = from_plan_error(
+        PlanValidationError {
+            code: PlanDiagnosticCode::Containment(ContainmentReason::ApprovalMissing),
+            collection: PlanCollection::Authorities,
+            subject_index: Some(0),
+        },
+        PlanDiagnosticContext {
+            primary: None,
+            semantic_path: Some("root/admin".to_owned()),
+        },
+    );
+    assert_eq!(containment.code, "CND-CTN-007");
+    assert_eq!(
+        containment.message,
+        "administrative containment failed: independent-approval-proof-missing"
     );
 
     let implementation = from_implementation_error(ImplementationError::FalseProgress);

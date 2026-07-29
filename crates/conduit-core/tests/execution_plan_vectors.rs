@@ -70,6 +70,7 @@ fn time(tick: u64) -> AuthorityTime<'static> {
 fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
     let effect = EffectRequirement {
         id: Id("read"),
+        administrative_class: None,
         action: Id("fixture/read"),
         resource: ResourceSelector::Exact(RESOURCE),
         requester: InstancePath::new("root/source").unwrap(),
@@ -124,6 +125,8 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         capability,
         grant,
         binding,
+        administrative_subject: None,
+        containment: None,
     };
     let required_effects = [effect_hash];
     let required_resources = [Id("fixture/source-device")];

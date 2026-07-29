@@ -243,6 +243,7 @@ fn endpoint_authority(
     };
     let effect = EffectRequirement {
         id: Id(action),
+        administrative_class: None,
         action: Id(action),
         resource: ResourceSelector::Exact(resource),
         requester: requirement.node,
@@ -299,6 +300,8 @@ fn endpoint_authority(
             &[observed],
         )
         .unwrap(),
+        administrative_subject: None,
+        containment: None,
     }
 }
 
