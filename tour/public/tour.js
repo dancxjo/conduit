@@ -16,6 +16,8 @@ source.addEventListener("input", () => { localStorage.setItem(key(current.id), s
 document.querySelector("#check").onclick = check;
 function run() { const value = JSON.parse(run_panel(source.value)); result.textContent = value.ok ? `${value.stdout || "Run completed."}\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.` : value.diagnostic; }
 document.querySelector("#run").onclick = run;
+document.querySelector("#stop").onclick = () => { result.textContent = "No live run: this lesson uses the finite production runtime."; };
+source.addEventListener("keydown", event => { if (event.shiftKey && event.key === "Enter") { event.preventDefault(); run(); } });
 document.querySelector("#reset").onclick = () => { source.value = current.source; localStorage.removeItem(key(current.id)); check(); };
 document.querySelector("#download").onclick = () => { const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([source.value], {type:"text/plain"})); link.download = "lesson.panel"; link.click(); URL.revokeObjectURL(link.href); };
 show(current);
