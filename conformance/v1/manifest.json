@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 4,
+  "manifest_revision": 5,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1131,6 +1131,223 @@
         {
           "package": "conduit-runtime",
           "test": "source_lowering_vectors"
+        }
+      ]
+    },
+    {
+      "id": "port-groups-correlation",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "PGC-001",
+        "PGC-002",
+        "PGC-003",
+        "PGC-004",
+        "PGC-005",
+        "PGC-006",
+        "PGC-007",
+        "PGC-008",
+        "PGC-009",
+        "PGC-010",
+        "COR-001",
+        "COR-002",
+        "COR-003",
+        "COR-004",
+        "COR-005",
+        "COR-006",
+        "COR-007"
+      ],
+      "artifacts": [
+        {
+          "id": "port-group-source-v1",
+          "path": "../c2/port-group-correlation-v1.json",
+          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "operation": "port-group-source-v1",
+          "requirement_ids": [
+            "PGC-001",
+            "PGC-002",
+            "PGC-003",
+            "PGC-004",
+            "PGC-005",
+            "PGC-006",
+            "PGC-007",
+            "PGC-008",
+            "PGC-010"
+          ],
+          "default_rule": "PGC-001",
+          "case_rules": {
+            "keyed-exact-identities-and-spans": "PGC-003",
+            "indexed-exact-range": "PGC-002",
+            "complete-contract-direction-mismatch": "PGC-004",
+            "maximum-changes-identity": "PGC-005",
+            "trivia-preserves-identity": "PGC-008",
+            "catalog-order-independent": "PGC-008",
+            "nested-member-export-source": "PGC-010",
+            "unknown-local-member": "PGC-010",
+            "duplicate-key": "PGC-002",
+            "zero-maximum": "PGC-005",
+            "overflowed-maximum": "PGC-005",
+            "membership-exceeds-maximum": "PGC-005",
+            "boundary-bypass": "PGC-010"
+          },
+          "format": "json-vectors",
+          "collection": "port_group_cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        },
+        {
+          "id": "port-group-plan-v2",
+          "path": "../c2/port-group-correlation-v1.json",
+          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "operation": "port-group-plan-v2",
+          "requirement_ids": [
+            "PGC-002",
+            "PGC-004",
+            "PGC-005",
+            "PGC-007",
+            "PGC-008",
+            "PGC-009"
+          ],
+          "default_rule": "PGC-009",
+          "case_rules": {
+            "plan-v1-preserved": "PGC-009",
+            "plan-v2-maximum": "PGC-005",
+            "plan-v2-direction": "PGC-004",
+            "plan-v2-membership-over-maximum": "PGC-005",
+            "plan-v1-to-v2-migration": "PGC-009"
+          },
+          "format": "json-vectors",
+          "collection": "plan_cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        },
+        {
+          "id": "correlation-family-v1",
+          "path": "../c2/port-group-correlation-v1.json",
+          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "operation": "correlation-family-v1",
+          "requirement_ids": [
+            "COR-001",
+            "COR-002",
+            "COR-004",
+            "COR-005",
+            "COR-007"
+          ],
+          "default_rule": "COR-002",
+          "case_rules": {
+            "attempt": "COR-004",
+            "causation": "COR-001",
+            "generation": "COR-005",
+            "plan-epoch": "COR-007"
+          },
+          "format": "json-vectors",
+          "collection": "identity_families",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        },
+        {
+          "id": "correlation-propagation-v1",
+          "path": "../c2/port-group-correlation-v1.json",
+          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "operation": "correlation-propagation-v1",
+          "requirement_ids": [
+            "COR-001",
+            "COR-003",
+            "COR-004",
+            "COR-005",
+            "COR-007"
+          ],
+          "default_rule": "COR-003",
+          "case_rules": {
+            "retry": "COR-004",
+            "restart": "COR-004",
+            "checkpoint-resume": "COR-004",
+            "replicated-generation": "COR-005",
+            "plan-epoch-transition": "COR-007"
+          },
+          "format": "json-vectors",
+          "collection": "propagation_cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        },
+        {
+          "id": "correlation-allocation-rejection-v1",
+          "path": "../c2/port-group-correlation-v1.json",
+          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "operation": "correlation-allocation-rejection-v1",
+          "requirement_ids": [
+            "PGC-008",
+            "COR-001",
+            "COR-004",
+            "COR-006"
+          ],
+          "default_rule": "COR-006",
+          "case_rules": {
+            "registry-order-member": "PGC-008",
+            "work-as-attempt": "COR-004",
+            "timestamp-as-causation": "COR-001"
+          },
+          "format": "json-vectors",
+          "collection": "negative_allocator_cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "port-group-source-v1#keyed-exact-identities-and-spans",
+          "correlation-propagation-v1#local-request-reply",
+          "correlation-propagation-v1#remote-request-reply"
+        ],
+        "negative": [
+          "port-group-source-v1#complete-contract-direction-mismatch",
+          "port-group-source-v1#unknown-local-member",
+          "correlation-allocation-rejection-v1#wall-clock-request",
+          "correlation-allocation-rejection-v1#work-as-attempt"
+        ],
+        "boundary": [
+          "port-group-source-v1#indexed-exact-range",
+          "port-group-source-v1#zero-maximum",
+          "port-group-source-v1#overflowed-maximum",
+          "port-group-plan-v2#plan-v2-membership-over-maximum"
+        ],
+        "migration": [
+          "port-group-plan-v2#plan-v1-preserved",
+          "port-group-plan-v2#plan-v1-to-v2-migration",
+          "correlation-propagation-v1#plan-epoch-transition"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "source_lowering_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "evidence_vectors"
         }
       ]
     },

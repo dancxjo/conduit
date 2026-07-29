@@ -230,6 +230,8 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
     let groups = [PlanPortGroup {
         instance: nodes[0].instance,
         template_hash: hash(22),
+        maximum: 2,
+        direction: Direction::Output,
         members: &group_members,
     }];
     let pool_grants = [grant.id];
@@ -397,6 +399,91 @@ fn canonical_identity_ignores_registry_and_collection_order() {
             .semantic_hash(scratch)
             .unwrap(),
             plan.identity
+        );
+    });
+}
+
+#[test]
+fn plan_v2_pins_group_maximum_and_direction_without_rewriting_v1() {
+    with_plan(|plan, scratch| {
+        let fixture = include_str!("../../../conformance/c2/port-group-correlation-v1.json");
+        for case in [
+            "plan-v1-preserved",
+            "plan-v2-maximum",
+            "plan-v2-direction",
+            "plan-v2-membership-over-maximum",
+            "plan-v1-to-v2-migration",
+        ] {
+            assert!(fixture.contains(&format!("\"id\": \"{case}\"")));
+        }
+        let v1_changed_group = [PlanPortGroup {
+            maximum: 99,
+            direction: Direction::Input,
+            ..plan.port_groups[0]
+        }];
+        let v1_changed = ExecutionPlan {
+            port_groups: &v1_changed_group,
+            ..plan
+        };
+        assert_eq!(v1_changed.semantic_hash(scratch).unwrap(), plan.identity);
+
+        let mut v2 = ExecutionPlan {
+            schema_version: 2,
+            identity: ZERO_HASH,
+            ..plan
+        };
+        v2.identity = v2.semantic_hash(scratch).unwrap();
+        let v2_context = PlanValidationContext {
+            supported_schema_version: 2,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v2, v2_context, scratch), Ok(()));
+        assert_ne!(v2.identity, plan.identity);
+
+        let changed_maximum_group = [PlanPortGroup {
+            maximum: 3,
+            ..v2.port_groups[0]
+        }];
+        let changed_maximum = ExecutionPlan {
+            port_groups: &changed_maximum_group,
+            ..v2
+        };
+        assert_ne!(changed_maximum.semantic_hash(scratch).unwrap(), v2.identity);
+
+        let changed_direction_group = [PlanPortGroup {
+            direction: Direction::Input,
+            ..v2.port_groups[0]
+        }];
+        let changed_direction = ExecutionPlan {
+            port_groups: &changed_direction_group,
+            ..v2
+        };
+        assert_ne!(
+            changed_direction.semantic_hash(scratch).unwrap(),
+            v2.identity
+        );
+
+        let invalid_group = [PlanPortGroup {
+            maximum: 1,
+            ..v2.port_groups[0]
+        }];
+        let mut invalid = ExecutionPlan {
+            identity: ZERO_HASH,
+            port_groups: &invalid_group,
+            ..v2
+        };
+        invalid.identity = invalid.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&invalid, v2_context, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::InvalidDescriptor
+        );
+        assert_eq!(
+            validate_execution_plan(&v2, context(1), scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::UnsupportedVersion
         );
     });
 }

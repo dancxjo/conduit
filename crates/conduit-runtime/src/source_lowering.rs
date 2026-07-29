@@ -35,6 +35,7 @@ impl From<TypeContractRef<'_>> for OwnedTypeReference {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OwnedPortReference {
     pub id: String,
+    pub direction: conduit_core::Direction,
     pub semantic_hash: SemanticHash,
 }
 
@@ -43,6 +44,7 @@ impl OwnedPortReference {
     pub fn from_contract(contract: &PortContract<'_>) -> Result<Self, CanonicalError<Infallible>> {
         Ok(Self {
             id: contract.id.as_str().to_owned(),
+            direction: contract.direction,
             semantic_hash: contract.semantic_hash()?,
         })
     }
@@ -255,11 +257,18 @@ pub struct LoweredNode {
 pub struct LoweredGroupPort {
     pub group_id: String,
     pub member: String,
+    pub ordinal: u16,
     pub id: String,
+    pub logical_group_path: String,
+    pub expanded_port_path: String,
     pub direction: conduit_panel::ExportDirection,
     pub group_maximum: u16,
     pub port_contract: OwnedPortReference,
     pub semantic_hash: SemanticHash,
+    pub group_origin: SourceOrigin,
+    /// Exact authored key origin. Indexed members are derived and have no
+    /// separately authored member token.
+    pub member_origin: Option<SourceOrigin>,
     pub origin: SourceOrigin,
 }
 
@@ -799,14 +808,41 @@ fn lower_group(
             ),
         )
     })?;
-    let members: Vec<String> = match &group.shape {
-        PortGroupShape::Keyed(members) => members.clone(),
-        PortGroupShape::Indexed => (0..group.maximum).map(|index| index.to_string()).collect(),
+    let authored_direction = match group.direction {
+        conduit_panel::ExportDirection::Input => conduit_core::Direction::Input,
+        conduit_panel::ExportDirection::Output => conduit_core::Direction::Output,
     };
-    for member in members {
+    if port_contract.direction != authored_direction {
+        return Err(diagnostic(
+            "CND-LWR-010",
+            path,
+            None,
+            Some(origin(uri, module_hash, group.source_span)),
+            format!(
+                "port-group direction `{}` does not match complete port contract `{}` direction `{}`",
+                authored_direction.as_str(),
+                port_contract.id,
+                port_contract.direction.as_str()
+            ),
+        ));
+    }
+    let members: Vec<(String, Option<SourceSpan>)> = match &group.shape {
+        PortGroupShape::Keyed(members) => members
+            .iter()
+            .map(|member| (member.key.clone(), Some(member.source_span)))
+            .collect(),
+        PortGroupShape::Indexed => (0..group.maximum)
+            .map(|index| (index.to_string(), None))
+            .collect(),
+    };
+    let group_origin = origin(uri, module_hash, group.source_span);
+    for (ordinal, (member, member_span)) in members.into_iter().enumerate() {
         let id = format!("{}[{member}]", group.id);
-        let origin = origin(uri, module_hash, group.source_span);
-        let semantic_path = format!("{path}/{id}");
+        let member_origin = member_span.map(|span| origin(uri, module_hash, span));
+        let origin = member_origin
+            .clone()
+            .unwrap_or_else(|| group_origin.clone());
+        let semantic_path = format!("{path}/member/{member}");
         let direction = match group.direction {
             conduit_panel::ExportDirection::Input => "input",
             conduit_panel::ExportDirection::Output => "output",
@@ -816,6 +852,7 @@ fn lower_group(
             &[
                 path,
                 &id,
+                &ordinal.to_string(),
                 direction,
                 &port_contract.id,
                 &port_contract.semantic_hash.to_string(),
@@ -825,11 +862,16 @@ fn lower_group(
         output.push(LoweredGroupPort {
             group_id: group.id.clone(),
             member,
+            ordinal: u16::try_from(ordinal).expect("group maximum is u16"),
             id,
+            logical_group_path: path.to_owned(),
+            expanded_port_path: semantic_path.clone(),
             direction: group.direction,
             group_maximum: group.maximum,
             port_contract: port_contract.clone(),
             semantic_hash: hash,
+            group_origin: group_origin.clone(),
+            member_origin,
             origin: origin.clone(),
         });
         source_map.push(SourceMapEntry {

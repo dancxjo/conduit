@@ -593,7 +593,7 @@ fn valid_relations(event_id: Id<'_>, relations: EventRelations<'_>) -> bool {
 }
 
 fn valid_correlation(value: EventCorrelation<'_>) -> bool {
-    [
+    let identities = [
         value.request,
         value.exchange,
         value.session,
@@ -603,10 +603,29 @@ fn valid_correlation(value: EventCorrelation<'_>) -> bool {
         value.idempotency,
         value.checkpoint,
         value.transport,
-    ]
-    .into_iter()
-    .flatten()
-    .all(valid_id)
+    ];
+    if identities
+        .into_iter()
+        .flatten()
+        .any(|identity| !valid_id(identity))
+        || value.epoch.is_some() && value.session.is_none()
+        || value.attempt.is_some() && value.work_unit.is_none()
+    {
+        return false;
+    }
+    for (index, identity) in identities.iter().enumerate() {
+        let Some(identity) = identity else {
+            continue;
+        };
+        if identities[..index]
+            .iter()
+            .flatten()
+            .any(|prior| prior == identity)
+        {
+            return false;
+        }
+    }
+    true
 }
 
 fn valid_time(time: EventTime<'_>) -> bool {

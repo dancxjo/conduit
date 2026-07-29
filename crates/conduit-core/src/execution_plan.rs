@@ -11,8 +11,12 @@ use crate::{
     validate_authority_at_use,
 };
 
-/// Exact schema supported by the portable v1 validator.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 1;
+/// Latest exact schema supported by the portable validator.
+///
+/// Schema 2 adds explicit port-group maximum and direction. Schema 1 remains
+/// readable with its frozen identity and validation behavior.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 2;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -213,6 +217,10 @@ pub struct PlanPortGroupMember<'a> {
 pub struct PlanPortGroup<'a> {
     pub instance: InstancePath<'a>,
     pub template_hash: SemanticHash,
+    /// Authored semantic maximum. This is normative in plan schema 2.
+    pub maximum: u16,
+    /// Direction of every complete member contract. Normative in schema 2.
+    pub direction: Direction,
     pub members: &'a [PlanPortGroupMember<'a>],
 }
 
@@ -478,7 +486,7 @@ impl ExecutionPlan<'_> {
             }
         }
         for group in self.port_groups {
-            push!(hash_port_group(*group));
+            push!(hash_port_group(self.schema_version, *group));
             for member in group.members {
                 push!(hash_port_group_member(group.instance, *member));
             }
@@ -566,8 +574,11 @@ pub fn validate_execution_plan(
     context: PlanValidationContext<'_>,
     identity_scratch: &mut [SemanticHash],
 ) -> Result<(), PlanValidationError> {
-    if plan.schema_version != EXECUTION_PLAN_SCHEMA_VERSION
-        || context.supported_schema_version != EXECUTION_PLAN_SCHEMA_VERSION
+    if !(EXECUTION_PLAN_SCHEMA_VERSION_V1..=EXECUTION_PLAN_SCHEMA_VERSION)
+        .contains(&plan.schema_version)
+        || !(EXECUTION_PLAN_SCHEMA_VERSION_V1..=EXECUTION_PLAN_SCHEMA_VERSION)
+            .contains(&context.supported_schema_version)
+        || plan.schema_version > context.supported_schema_version
     {
         return Err(error(
             PlanDiagnosticCode::UnsupportedVersion,
@@ -930,7 +941,9 @@ pub fn validate_execution_plan(
     }
 
     for (index, group) in plan.port_groups.iter().enumerate() {
-        if !valid_path(group.instance) || group.members.is_empty() {
+        let invalid_v2_bounds = plan.schema_version >= 2
+            && (group.maximum == 0 || group.members.len() > usize::from(group.maximum));
+        if !valid_path(group.instance) || group.members.is_empty() || invalid_v2_bounds {
             return Err(indexed(
                 PlanDiagnosticCode::InvalidDescriptor,
                 PlanCollection::PortGroups,
@@ -1373,14 +1386,37 @@ fn hash_export(
     )
 }
 
-fn hash_port_group(value: PlanPortGroup<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
+fn hash_port_group(
+    plan_schema_version: u32,
+    value: PlanPortGroup<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    if plan_schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V1 {
+        return descriptor_hash(
+            Id("conduit/plan-port-group"),
+            &[
+                semantic("instance", CanonicalValue::Text(value.instance.as_str())),
+                semantic(
+                    "template_hash",
+                    CanonicalValue::Bytes(value.template_hash.as_bytes()),
+                ),
+            ],
+        );
+    }
     descriptor_hash(
-        Id("conduit/plan-port-group"),
+        Id("conduit/plan-port-group-v2"),
         &[
             semantic("instance", CanonicalValue::Text(value.instance.as_str())),
             semantic(
                 "template_hash",
                 CanonicalValue::Bytes(value.template_hash.as_bytes()),
+            ),
+            semantic(
+                "maximum",
+                CanonicalValue::Integer(i128::from(value.maximum)),
+            ),
+            semantic(
+                "direction",
+                CanonicalValue::Identifier(Id(value.direction.as_str())),
             ),
         ],
     )

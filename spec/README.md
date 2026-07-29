@@ -60,6 +60,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`016-structured-diagnostics-v1.md`](016-structured-diagnostics-v1.md)
   freezes allocator-free diagnostic data, exact source spans, structural
   redaction, guarded fixes, lossless JSON, and hosted terminal rendering.
+- [`017-port-groups-correlation-v1.md`](017-port-groups-correlation-v1.md)
+  reconciles finite keyed/indexed port groups through source, lowering,
+  plan-v2, exports, and evidence, and freezes distinct correlation identity
+  allocators, scopes, lifetimes, and propagation.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

@@ -6,6 +6,11 @@ ExecutionEvent schema version: 1
 
 NDJSON representation version: 1
 
+Specification
+[`017-port-groups-correlation-v1.md`](017-port-groups-correlation-v1.md)
+normatively specializes the allocators, scopes, lifetimes, sensitivity, and
+propagation of these correlation fields without changing event schema 1.
+
 ## Evidence boundary
 
 An `ExecutionEvent` is one immutable normative observation linked to an exact

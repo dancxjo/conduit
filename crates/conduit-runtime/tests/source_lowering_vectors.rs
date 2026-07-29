@@ -124,8 +124,15 @@ impl SourceContractCatalog for Catalog {
     }
 
     fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
-        matches!(id, "fixture/request-port" | "fixture/reply-port").then(|| OwnedPortReference {
+        let direction = match id {
+            "fixture/request-port" => conduit_core::Direction::Input,
+            "fixture/reply-port" => conduit_core::Direction::Output,
+            "fixture/wrong-direction" => conduit_core::Direction::Output,
+            _ => return None,
+        };
+        Some(OwnedPortReference {
             id: id.to_owned(),
+            direction,
             semantic_hash: Self::type_ref(id).semantic_hash,
         })
     }
@@ -194,6 +201,41 @@ impl SourceContractCatalog for Catalog {
             ("fixture/unavailable", _) => Err(LiteralValidationError::ProviderUnavailable),
             _ => Err(LiteralValidationError::WrongKind),
         }
+    }
+}
+
+struct OrderedPortCatalog(Vec<String>);
+
+impl SourceContractCatalog for OrderedPortCatalog {
+    fn node_schema(&self, _id: &str) -> Option<OwnedNodeSchema> {
+        None
+    }
+
+    fn type_reference(&self, _id: &str) -> Option<OwnedTypeReference> {
+        None
+    }
+
+    fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
+        self.0
+            .iter()
+            .find(|candidate| candidate.as_str() == id)
+            .and_then(|candidate| Catalog.port_contract(candidate))
+    }
+
+    fn validate_literal(
+        &self,
+        _expected: &OwnedTypeReference,
+        _source: &SourceValue,
+    ) -> Result<OwnedSemanticValue, LiteralValidationError> {
+        unreachable!("port-group-only catalog has no source literals")
+    }
+
+    fn validate_default(
+        &self,
+        _expected: &OwnedTypeReference,
+        _value: &OwnedSemanticValue,
+    ) -> Result<(), LiteralValidationError> {
+        unreachable!("port-group-only catalog has no defaults")
     }
 }
 
@@ -449,6 +491,156 @@ fn provenance_name(provenance: ConfigProvenance) -> &'static str {
         ConfigProvenance::Authored => "authored",
         ConfigProvenance::SchemaDefault => "schema-default",
         ConfigProvenance::PlanBinding => "plan-binding",
+    }
+}
+
+#[test]
+fn every_normative_port_group_source_vector_has_the_exact_result() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c2/port-group-correlation-v1.json"
+    ))
+    .unwrap();
+    for case in fixture["port_group_cases"].as_array().unwrap() {
+        let id = case["id"].as_str().unwrap();
+        let expected = case["expected"].clone();
+        let source = case["source"].as_str().unwrap();
+        let actual = match case["assertion"].as_str().unwrap() {
+            "parse-diagnostic" => {
+                let error = conduit_panel::parse(source).unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            "parse" => {
+                let panel = conduit_panel::parse(source).unwrap();
+                let target = panel
+                    .definitions
+                    .iter()
+                    .flat_map(|definition| &definition.exports)
+                    .find(|export| export.target.port.contains('['))
+                    .map(|export| export.target.port.as_str())
+                    .unwrap();
+                json!({"outcome": "accepted", "target": target})
+            }
+            "diagnostic" => {
+                let error = lower_source(&graph(source), &Catalog).unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            "compare" => {
+                let first = lower_source(&graph(source), &Catalog).unwrap();
+                let second = lower_source(
+                    &graph(case["comparison_source"].as_str().unwrap()),
+                    &Catalog,
+                )
+                .unwrap();
+                json!({
+                    "outcome": "accepted",
+                    "relation": if first.semantic_hash == second.semantic_hash {
+                        "equal"
+                    } else {
+                        "different"
+                    }
+                })
+            }
+            "catalog-order" => {
+                let orders = case["catalog_orders"].as_array().unwrap();
+                let catalog = |order: &Value| {
+                    OrderedPortCatalog(
+                        order
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|value| value.as_str().unwrap().to_owned())
+                            .collect(),
+                    )
+                };
+                let first = lower_source(&graph(source), &catalog(&orders[0])).unwrap();
+                let second = lower_source(&graph(source), &catalog(&orders[1])).unwrap();
+                json!({
+                    "outcome": "accepted",
+                    "relation": if first.semantic_hash == second.semantic_hash {
+                        "equal"
+                    } else {
+                        "different"
+                    }
+                })
+            }
+            "lower" => {
+                let lowered = lower_source(&graph(source), &Catalog).unwrap();
+                let members: Vec<Value> = lowered
+                    .group_ports
+                    .iter()
+                    .map(|member| {
+                        if let Some(member_origin) = &member.member_origin {
+                            let span = &member_origin.span;
+                            json!({
+                                "key": member.member,
+                                "ordinal": member.ordinal,
+                                "line": span.line,
+                                "column": span.column,
+                                "end_column": span.end_column,
+                            })
+                        } else {
+                            json!({
+                                "key": member.member,
+                                "ordinal": member.ordinal,
+                                "authored_span": false,
+                            })
+                        }
+                    })
+                    .collect();
+                json!({
+                    "outcome": "accepted",
+                    "maximum": lowered.group_ports[0].group_maximum,
+                    "members": members,
+                })
+            }
+            other => panic!("{id}: unknown port-group assertion {other}"),
+        };
+        assert_eq!(actual, expected, "{id}");
+    }
+    let families = fixture["identity_families"].as_array().unwrap();
+    let mut family_ids = std::collections::BTreeSet::new();
+    for family in families {
+        let id = family["id"].as_str().unwrap();
+        assert!(family_ids.insert(id), "duplicate identity family {id}");
+        for field in [
+            "allocator",
+            "scope",
+            "lifetime",
+            "uniqueness",
+            "serialization",
+            "sensitivity",
+            "propagation",
+        ] {
+            assert!(
+                family[field]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty()),
+                "{id}: missing {field}"
+            );
+        }
+    }
+    for case in fixture["propagation_cases"].as_array().unwrap() {
+        let preserved: std::collections::BTreeSet<_> = case["preserve"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect();
+        for field in ["allocate", "replace"] {
+            if let Some(values) = case.get(field).and_then(Value::as_array) {
+                assert!(
+                    values
+                        .iter()
+                        .map(|value| value.as_str().unwrap())
+                        .all(|value| !preserved.contains(value)),
+                    "{}: {field} overlaps preserved identity",
+                    case["id"]
+                );
+            }
+        }
+    }
+    for case in fixture["negative_allocator_cases"].as_array().unwrap() {
+        assert_eq!(case["expected"]["outcome"], "rejected", "{}", case["id"]);
     }
 }
 
