@@ -46,8 +46,8 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
             "{id} commands are an optional canonical command list"
         );
         assert_eq!(
-            lesson["profile"], "browser-local-deterministic",
-            "{id} declares the bounded browser profile"
+            lesson["profile"], "wasm-local-proof",
+            "{id} does not overclaim the unfinished browser-host profile"
         );
 
         let source = lesson["source"].as_str().expect("lesson has source");
