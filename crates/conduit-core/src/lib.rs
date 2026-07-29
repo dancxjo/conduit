@@ -21,6 +21,7 @@ mod flow;
 mod implementation;
 mod job;
 mod lifecycle;
+mod manifest;
 mod port;
 mod resonance;
 mod runtime_evidence;
@@ -114,6 +115,14 @@ pub use lifecycle::{
     SubjectState, SupervisionPolicy, TerminalCause, TerminalCauseCode, TerminalClass,
     TerminalResolution, cancel_scope, cord_transition_allowed, derive_composite,
     managed_transition_allowed, replica_transition_allowed, resolve_terminal,
+};
+pub use manifest::{
+    ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactLocation, ArtifactLocationKind, ArtifactManifest,
+    ArtifactProvenance, ArtifactSignature, ArtifactTrustPolicy, ArtifactVerificationReason,
+    ExecutorKind, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, ImplementationManifest,
+    ManifestArtifactRef, ManifestEntrypoint, ManifestIdentityError, ManifestInterface,
+    ManifestReason, ReplacementSupport, ReproducibilityClaim, SignatureVerification,
+    validate_artifact_manifest, validate_implementation_manifest, verify_artifact_candidate,
 };
 pub use port::{
     ConnectionCardinality, Delivery, Direction, LossAcceptance, PortCompatibilityDecision,

@@ -2,14 +2,15 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use conduit_core::{
-    ArtifactDigest, AuthorityTime, BlockingFairness, Direction, ExecutionPlan, FlowCapacity,
-    FlowPolicy, FlowWatermarks, Id, InstancePath, PinnedDescriptor, PlanArtifact,
-    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, SemanticHash, TypeContractRef,
+    ArtifactDigest, ArtifactLocation, ArtifactLocationKind, ArtifactManifest, ArtifactProvenance,
+    AuthorityTime, BlockingFairness, Direction, ExecutionPlan, FlowCapacity, FlowPolicy,
+    FlowWatermarks, Id, InstancePath, PinnedDescriptor, PlanArtifact, PlanHostObservation,
+    PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, SemanticHash, TypeContractRef,
 };
 use conduit_inspect::{
-    ArtifactKind, InspectLimits, RequestedKind, inspect_bytes, inspect_conformance_manifest_path,
-    inspect_execution_plan, inspect_lowered_source,
+    ArtifactKind, InspectLimits, RequestedKind, inspect_artifact_manifest, inspect_bytes,
+    inspect_conformance_manifest_path, inspect_execution_plan, inspect_lowered_source,
 };
 use conduit_runtime::LoweredSourceV2;
 use sha2::Digest as _;
@@ -51,6 +52,54 @@ fn temporary_directory() -> PathBuf {
     ));
     std::fs::create_dir_all(&path).unwrap();
     path
+}
+
+#[test]
+fn artifact_manifest_inspection_exposes_license_provenance_and_remote_hint_without_fetching() {
+    let mut manifest = ArtifactManifest {
+        schema_version: 1,
+        identity: ZERO_HASH,
+        id: Id("fixture/artifact"),
+        digest: ArtifactDigest::from_bytes([31; 32]),
+        media_type: "application/wasm",
+        byte_size: 42,
+        target: Some(Id("wasm32-wasip2")),
+        abi: Some(Id("component-v1")),
+        provenance: ArtifactProvenance {
+            builder: Id("fixture/builder"),
+            source_digest: ArtifactDigest::from_bytes([32; 32]),
+            build_recipe_digest: ArtifactDigest::from_bytes([33; 32]),
+            reproducible: true,
+        },
+        signatures: &[],
+        license_expressions: &["Apache-2.0"],
+        notices: &[],
+        sbom: None,
+        source: None,
+        related_artifacts: &[],
+        locations: &[ArtifactLocation {
+            kind: ArtifactLocationKind::RemoteUri,
+            locator: "https://artifacts.invalid/module.wasm",
+        }],
+    };
+    let mut scratch = [ZERO_HASH; 1];
+    manifest.identity = manifest.computed_semantic_hash(&mut scratch).unwrap();
+
+    let report = inspect_artifact_manifest(&manifest, DIGEST, InspectLimits::default()).unwrap();
+    assert_eq!(report.kind, ArtifactKind::ArtifactManifest);
+    assert_eq!(report.budgets["artifact_bytes"], 42);
+    assert!(
+        report.references.iter().any(|reference| {
+            reference.category == "license" && reference.value == "Apache-2.0"
+        })
+    );
+    assert!(report.references.iter().any(|reference| {
+        reference.category == "provenance-builder" && reference.value == "fixture/builder"
+    }));
+    assert!(report.references.iter().any(|reference| {
+        reference.category == "remote-location"
+            && reference.value == "https://artifacts.invalid/module.wasm"
+    }));
 }
 
 fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {

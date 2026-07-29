@@ -1,5 +1,17 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 19 — 2026-07-29
+
+- Added the `implementation-artifact-manifests` C5 suite for issue #25.
+- Froze separate semantic, implementation, artifact, location, and exact-plan
+  identities across native, WASM, FFI, process, firmware, and remote adapters.
+- Added mandatory pre-load digest/size checks, explicit target/ABI and trust
+  policy outcomes, reproducibility, transitive licensing/provenance references,
+  and non-executing inspection.
+- Requirement IDs: `MAN-001` through `MAN-010` and `ART-001` through `ART-010`.
+- Migration: resolvers may consume v1 manifests; unsupported schemas and
+  incomplete security metadata fail closed rather than becoming preferences.
+
 ## Manifest revision 18 — 2026-07-29
 
 - Added the `performance-accounting` suite for issue #24.

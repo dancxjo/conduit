@@ -111,6 +111,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`030-performance-and-resource-accounting-v1.md`](030-performance-and-resource-accounting-v1.md)
   defines reproducible report metadata, strict deterministic resource/size
   gates, reviewed baselines, and explicit future workload ownership.
+- [`031-implementation-artifact-manifests-v1.md`](031-implementation-artifact-manifests-v1.md)
+  freezes separate semantic, implementation, and immutable-artifact identities,
+  capability-oriented executors, provenance/licensing inspection, and the
+  mandatory pre-load integrity/trust boundary.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

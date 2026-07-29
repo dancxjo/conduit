@@ -23,6 +23,7 @@ use conduit_panel::{
 };
 use serde::Serialize;
 
+mod artifact_verification;
 mod config_resolution;
 mod evidence_ndjson;
 mod implementation_binding;
@@ -31,6 +32,7 @@ mod scheduler;
 mod source_lowering;
 mod type_registry;
 
+pub use artifact_verification::{HostedArtifactVerificationError, verify_artifact_bytes};
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,

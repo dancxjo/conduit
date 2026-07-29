@@ -7,7 +7,9 @@ use std::path::{Path, PathBuf};
 
 use conduit_conformance::Manifest;
 use conduit_core::{
-    EvidencePolicy, ExecutionPlan, Id, PlanValidationContext, validate_event_stream,
+    ArtifactLocationKind, ArtifactManifest, EvidencePolicy, ExecutionPlan, Id,
+    ImplementationManifest, PlanValidationContext, SemanticHash, validate_artifact_manifest,
+    validate_event_stream, validate_implementation_manifest,
 };
 use conduit_diagnostics::{OwnedDiagnostic, OwnedDiagnosticArgumentValue};
 use conduit_panel::{
@@ -75,6 +77,8 @@ pub enum ArtifactKind {
     StructuredDiagnostic,
     ConformanceManifest,
     ConformanceCases,
+    ImplementationManifest,
+    ArtifactManifest,
 }
 
 impl ArtifactKind {
@@ -88,6 +92,8 @@ impl ArtifactKind {
             Self::StructuredDiagnostic => "structured-diagnostic",
             Self::ConformanceManifest => "conformance-manifest",
             Self::ConformanceCases => "conformance-cases",
+            Self::ImplementationManifest => "implementation-manifest",
+            Self::ArtifactManifest => "artifact-manifest",
         }
     }
 }
@@ -217,7 +223,10 @@ pub fn inspect_bytes(
         ArtifactKind::StructuredDiagnostic => inspect_diagnostic(bytes, limits),
         ArtifactKind::ConformanceManifest => inspect_conformance_manifest(bytes, limits),
         ArtifactKind::ConformanceCases => inspect_conformance_cases(bytes, limits),
-        ArtifactKind::LoweredSource | ArtifactKind::ExecutionPlan => Err(failure(
+        ArtifactKind::LoweredSource
+        | ArtifactKind::ExecutionPlan
+        | ArtifactKind::ImplementationManifest
+        | ArtifactKind::ArtifactManifest => Err(failure(
             "CND-INSP-008",
             "this semantic kind has no frozen standalone byte encoding; use its typed inspection adapter",
         )),
@@ -456,6 +465,215 @@ pub fn inspect_lowered_source(
         references,
         redacted_fields,
         vec!["semantic lowering is distinct from an exact execution plan".to_owned()],
+    ))
+}
+
+/// Inspect a canonical implementation manifest without resolving, loading, or
+/// executing any referenced artifact or backend.
+pub fn inspect_implementation_manifest(
+    manifest: &ImplementationManifest<'_>,
+    content_digest: &str,
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    require_digest(content_digest, "content digest")?;
+    let items = manifest
+        .artifacts
+        .len()
+        .checked_add(manifest.required_interfaces.len())
+        .and_then(|value| value.checked_add(manifest.provided_interfaces.len()))
+        .and_then(|value| value.checked_add(manifest.required_authorities.len()))
+        .and_then(|value| value.checked_add(manifest.required_effects.len()))
+        .ok_or_else(|| failure("CND-INSP-007", "manifest item count overflow"))?;
+    enforce_collection_bound(items, limits, "implementation manifest items")?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); manifest.identity_fact_count()];
+    validate_implementation_manifest(manifest, &mut scratch)
+        .map_err(|reason| failure(reason.code(), "invalid implementation manifest"))?;
+
+    let mut counts = BTreeMap::new();
+    counts.insert("artifacts".to_owned(), manifest.artifacts.len() as u64);
+    counts.insert(
+        "required_interfaces".to_owned(),
+        manifest.required_interfaces.len() as u64,
+    );
+    counts.insert(
+        "provided_interfaces".to_owned(),
+        manifest.provided_interfaces.len() as u64,
+    );
+    counts.insert(
+        "required_authorities".to_owned(),
+        manifest.required_authorities.len() as u64,
+    );
+    counts.insert(
+        "required_effects".to_owned(),
+        manifest.required_effects.len() as u64,
+    );
+    let mut budgets = BTreeMap::new();
+    budgets.insert(
+        "coexistence_memory_bytes".to_owned(),
+        manifest.coexistence_memory_bytes,
+    );
+    let mut references = vec![
+        InspectionReference {
+            category: "semantic-contract".to_owned(),
+            value: format!(
+                "{}@{}",
+                manifest.semantic_contract.id, manifest.semantic_contract.semantic_hash
+            ),
+        },
+        InspectionReference {
+            category: "execution-profile".to_owned(),
+            value: format!(
+                "{}@{}",
+                manifest.execution_profile.id, manifest.execution_profile.semantic_hash
+            ),
+        },
+    ];
+    references.extend(
+        manifest
+            .artifacts
+            .iter()
+            .map(|artifact| InspectionReference {
+                category: "artifact".to_owned(),
+                value: format!("{}@{}", artifact.id, artifact.digest),
+            }),
+    );
+    references.extend(
+        manifest
+            .required_interfaces
+            .iter()
+            .map(|interface| InspectionReference {
+                category: "required-interface".to_owned(),
+                value: format!(
+                    "{}@{}",
+                    interface.interface.id, interface.interface.semantic_hash
+                ),
+            }),
+    );
+    references.extend(
+        manifest
+            .provided_interfaces
+            .iter()
+            .map(|interface| InspectionReference {
+                category: "provided-interface".to_owned(),
+                value: format!(
+                    "{}@{}",
+                    interface.interface.id, interface.interface.semantic_hash
+                ),
+            }),
+    );
+    stable_references(&mut references);
+    Ok(base_report(
+        ArtifactKind::ImplementationManifest,
+        manifest.schema_version,
+        content_digest.to_owned(),
+        Some(manifest.identity.to_string()),
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            format!("executor {}", manifest.executor.as_str()),
+            "inspection does not resolve or execute the implementation".to_owned(),
+        ],
+    ))
+}
+
+/// Inspect provenance, licensing, signatures, and transitive references
+/// without fetching or executing artifact bytes.
+pub fn inspect_artifact_manifest(
+    manifest: &ArtifactManifest<'_>,
+    content_digest: &str,
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    require_digest(content_digest, "content digest")?;
+    let items = manifest
+        .identity_fact_count()
+        .checked_add(manifest.locations.len())
+        .ok_or_else(|| failure("CND-INSP-007", "artifact manifest item count overflow"))?;
+    enforce_collection_bound(items, limits, "artifact manifest items")?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); manifest.identity_fact_count()];
+    validate_artifact_manifest(manifest, &mut scratch)
+        .map_err(|reason| failure(reason.code(), "invalid artifact manifest"))?;
+
+    let mut counts = BTreeMap::new();
+    counts.insert("signatures".to_owned(), manifest.signatures.len() as u64);
+    counts.insert(
+        "license_expressions".to_owned(),
+        manifest.license_expressions.len() as u64,
+    );
+    counts.insert("notices".to_owned(), manifest.notices.len() as u64);
+    counts.insert(
+        "related_artifacts".to_owned(),
+        manifest.related_artifacts.len() as u64,
+    );
+    counts.insert("locations".to_owned(), manifest.locations.len() as u64);
+    let mut budgets = BTreeMap::new();
+    budgets.insert("artifact_bytes".to_owned(), manifest.byte_size);
+    let mut references = vec![InspectionReference {
+        category: "provenance-builder".to_owned(),
+        value: manifest.provenance.builder.to_string(),
+    }];
+    references.extend(
+        manifest
+            .license_expressions
+            .iter()
+            .map(|license| InspectionReference {
+                category: "license".to_owned(),
+                value: (*license).to_owned(),
+            }),
+    );
+    references.extend(
+        manifest
+            .signatures
+            .iter()
+            .map(|signature| InspectionReference {
+                category: "signature-signer".to_owned(),
+                value: signature.signer.to_string(),
+            }),
+    );
+    references.extend(manifest.locations.iter().map(|location| {
+        InspectionReference {
+            category: match location.kind {
+                ArtifactLocationKind::BundlePath => "bundle-location",
+                ArtifactLocationKind::RemoteUri => "remote-location",
+            }
+            .to_owned(),
+            value: location.locator.to_owned(),
+        }
+    }));
+    for (category, reference) in manifest
+        .notices
+        .iter()
+        .map(|value| ("notice", value))
+        .chain(manifest.sbom.iter().map(|value| ("sbom", value)))
+        .chain(manifest.source.iter().map(|value| ("source", value)))
+        .chain(
+            manifest
+                .related_artifacts
+                .iter()
+                .map(|value| ("related-artifact", value)),
+        )
+    {
+        references.push(InspectionReference {
+            category: category.to_owned(),
+            value: format!("{}@{}", reference.id, reference.digest),
+        });
+    }
+    stable_references(&mut references);
+    Ok(base_report(
+        ArtifactKind::ArtifactManifest,
+        manifest.schema_version,
+        content_digest.to_owned(),
+        Some(manifest.identity.to_string()),
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            format!("media_type {}", manifest.media_type),
+            "locations are non-identity retrieval hints; bytes remain digest-gated".to_owned(),
+            "inspection performs no fetch, load, signature verification, or execution".to_owned(),
+        ],
     ))
 }
 

@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 18,
+  "manifest_revision": 19,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2928,6 +2928,97 @@
         {
           "package": "conduit-runtime",
           "test": "scheduler"
+        }
+      ]
+    },
+    {
+      "id": "implementation-artifact-manifests",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "MAN-001", "MAN-002", "MAN-003", "MAN-004", "MAN-005",
+        "MAN-006", "MAN-007", "MAN-008", "MAN-009", "MAN-010",
+        "ART-001", "ART-002", "ART-003", "ART-004", "ART-005",
+        "ART-006", "ART-007", "ART-008", "ART-009", "ART-010"
+      ],
+      "artifacts": [
+        {
+          "id": "manifests-v1",
+          "path": "../c5/manifests-v1.json",
+          "sha256": "sha256:0f72616916d63f9683900bb34ddd5797dd5aa55ce53f1ecc5d623c18bbfc4b0d",
+          "operation": "implementation-artifact-manifests-v1",
+          "requirement_ids": [
+            "MAN-001", "MAN-002", "MAN-003", "MAN-004", "MAN-005",
+            "MAN-006", "MAN-007", "MAN-008", "MAN-009", "MAN-010",
+            "ART-001", "ART-002", "ART-003", "ART-004", "ART-005",
+            "ART-006", "ART-007", "ART-008", "ART-009", "ART-010"
+          ],
+          "default_rule": "MAN-001",
+          "case_rules": {
+            "same-contract-native-wasm-ffi": "MAN-003",
+            "process-is-language-neutral": "MAN-002",
+            "firmware-entrypoint-and-abi": "MAN-002",
+            "remote-provided-backend-interface": "MAN-004",
+            "host-service-interfaces-remain-narrow": "MAN-004",
+            "missing-entrypoint": "MAN-008",
+            "unsupported-plan-runtime-range": "MAN-008",
+            "execution-profile-and-effects-pinned": "MAN-004",
+            "stateful-replacement-is-bounded": "MAN-005",
+            "reproducible-rebuild-match": "MAN-007",
+            "reproducible-rebuild-mismatch": "MAN-007",
+            "artifact-substitution-changes-implementation-and-plan": "MAN-006",
+            "heterogeneous-bundle-transitive-references": "ART-009",
+            "remote-location-is-nonidentity-hint": "ART-002",
+            "digest-mismatch-before-load": "ART-004",
+            "size-mismatch-before-load": "ART-004",
+            "wrong-target": "ART-005",
+            "unsupported-abi": "ART-005",
+            "signature-valid-under-explicit-policy": "ART-006",
+            "signature-invalid": "ART-006",
+            "signature-is-not-sandbox-claim": "ART-007",
+            "provenance-required": "ART-006",
+            "unknown-license-policy": "ART-008",
+            "missing-sbom-policy": "ART-009",
+            "license-provenance-inspection-no-execution": "ART-010",
+            "secret-material-is-opaque-host-handle": "MAN-004",
+            "validation-never-loads-or-executes": "MAN-008"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "manifests-v1#same-contract-native-wasm-ffi",
+          "manifests-v1#signature-valid-under-explicit-policy",
+          "manifests-v1#license-provenance-inspection-no-execution"
+        ],
+        "negative": [
+          "manifests-v1#digest-mismatch-before-load",
+          "manifests-v1#missing-entrypoint",
+          "manifests-v1#signature-invalid"
+        ],
+        "boundary": [
+          "manifests-v1#remote-location-is-nonidentity-hint",
+          "manifests-v1#stateful-replacement-is-bounded"
+        ],
+        "migration": [
+          "manifests-v1#artifact-substitution-changes-implementation-and-plan"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "manifest_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "artifact_verification"
+        },
+        {
+          "package": "conduit-inspect",
+          "test": "inspection"
         }
       ]
     }
