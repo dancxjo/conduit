@@ -7,6 +7,17 @@
 export function parse_panel(source: string): string;
 
 /**
+ * Applies a presentation-only visual move through the same Patchbay protocol.
+ */
+export function patchbay_move_node(source: string, node_id: string, x: number, y: number): string;
+
+/**
+ * Applies a source transaction through the production Patchbay protocol.
+ * The browser receives only the separate source/semantic/presentation facts.
+ */
+export function patchbay_replace_source(source: string, replacement: string): string;
+
+/**
  * Executes the existing finite hosted proof runtime with bounded in-memory
  * streams, returning only public stdout/stderr and the exact runtime result.
  */
@@ -17,6 +28,8 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly parse_panel: (a: number, b: number) => [number, number];
+    readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
+    readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
     readonly run_panel: (a: number, b: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

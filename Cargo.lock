@@ -180,6 +180,7 @@ name = "conduit-web"
 version = "0.1.0"
 dependencies = [
  "conduit-panel",
+ "conduit-patchbay",
  "conduit-runtime",
  "serde_json",
  "wasm-bindgen",

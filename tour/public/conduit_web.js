@@ -21,6 +21,55 @@ export function parse_panel(source) {
 }
 
 /**
+ * Applies a presentation-only visual move through the same Patchbay protocol.
+ * @param {string} source
+ * @param {string} node_id
+ * @param {number} x
+ * @param {number} y
+ * @returns {string}
+ */
+export function patchbay_move_node(source, node_id, x, y) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(node_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_move_node(ptr0, len0, ptr1, len1, x, y);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Applies a source transaction through the production Patchbay protocol.
+ * The browser receives only the separate source/semantic/presentation facts.
+ * @param {string} source
+ * @param {string} replacement
+ * @returns {string}
+ */
+export function patchbay_replace_source(source, replacement) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(replacement, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_replace_source(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * Executes the existing finite hosted proof runtime with bounded in-memory
  * streams, returning only public stdout/stderr and the exact runtime result.
  * @param {string} source

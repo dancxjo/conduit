@@ -6,7 +6,8 @@
   <nav aria-label="Lessons"><h1>Tour of Conduit</h1><ol id="lessons"></ol></nav>
   <section aria-labelledby="title"><h2 id="title">Loading lesson…</h2><p id="goal"></p>
     <label for="source">Real .panel source</label><textarea id="source" rows="22" spellcheck="false"></textarea>
-    <h3>Panel projection</h3><ul id="panel" aria-label="Parsed nodes"></ul>
+    <h3>Panel projection</h3><p id="panel-help">Select a node to reveal its source; position controls change only its presentation.</p><ul id="panel" aria-label="Parsed nodes" aria-describedby="panel-help"></ul>
+    <p><button id="move-left" disabled>Move selected left</button> <button id="move-right" disabled>Move selected right</button></p>
     <p><button id="run">Run</button> <button id="stop" disabled>Stop</button> <button id="check">Check</button> <button id="reset">Reset</button> <button id="download">Download</button></p>
     <output id="result" aria-live="polite">Loading production parser…</output>
   </section>
