@@ -1,16 +1,60 @@
 # Conduit
 
-Conduit is a portable execution model for wiring typed, capability-aware nodes,
-from Unix processes to `no_std` devices.
+Conduit is a portable execution substrate for composing heterogeneous software
+and hardware from typed, inspectable nodes.
+
+It is meant to make systems design feel more like wiring a modular instrument
+than embedding one large application: components have explicit interfaces,
+connections have declared behavior, and a complete arrangement can be checked,
+explained, executed, and eventually replaced without losing its identity.
+
+Conduit is not an operating system and it is not tied to one domain. It is a
+common composition layer that can run above Linux, WebAssembly, embedded
+firmware, and distributed hosts. A speech pipeline, a robot behavior, a web
+server, or a sensor network can all be described using the same underlying
+model.
+
+## The model
 
 The runtime ontology is deliberately small:
 
 - a **node** performs a semantic computation;
 - a typed, directional **port** forms its boundary;
-- a bounded **cord** connects an output port to an input port.
+- a bounded **cord** connects an output port to an input port;
+- a **panel** is editable source describing an arrangement of nodes and cords.
 
-Editable arrangements live in `.panel` files. The `conduct` command checks,
-explains, and runs them:
+A panel can expose its own typed ports and become a reusable composite node.
+Composition is therefore recursive without introducing a special runtime kind
+of “panel”: at its boundary, every composite remains a node.
+
+This is more expressive than assuming that every component is only stdin,
+stdout, and stderr. Unix streams remain useful, but Conduit can represent
+multiple typed inputs and outputs, grouped ports, bounded replication, host
+services, and other domain-specific contracts transparently.
+
+## One semantic model, many hosts
+
+Conduit separates what a node means from how it is implemented. The same
+semantic capability may be provided by Rust, native code, WebAssembly, Python,
+remote services, or embedded firmware.
+
+Hosts advertise capabilities and resources; implementations declare their
+requirements. Conduit resolves compatible implementations into an exact plan,
+but it does not provision or administer the host.
+
+That distinction lets Linux and a Pico W participate in the same conceptual
+system without pretending they have the same resources. Linux may host a
+network service or a large model; a Pico W may host a compact control pipeline.
+They share panel semantics and contracts, while their available
+implementations and capabilities remain honest.
+
+The portable core is `#![no_std]`-capable. The embedded goal is a compact
+compiled pipeline image executed by a small runtime, not a miniature Linux
+distribution.
+
+## Working with panels
+
+The `conduct` command checks, explains, and runs panels:
 
 ```sh
 cargo run -p conduct -- examples/hello.panel
@@ -19,23 +63,66 @@ cargo run -p conduct -- --explain examples/hello.panel
 cat examples/hello.panel | cargo run -p conduct -- -
 ```
 
-`--run` is the default. A `.panel` is source, not bytecode, ELF, or a universal
-package. Compilation means validation, resolution, and lowering to an exact
-execution plan; packaging and code generation are separate operations.
+`--run` is the default. A `.panel` is source, not bytecode, ELF, or a
+universal package. Compilation means validation, resolution, and lowering to
+an exact execution plan; packaging and code generation are separate
+operations.
+
+## Why the runtime is opinionated
+
+Conduit treats runtime behavior as part of the system’s meaning rather than as
+an incidental library detail:
+
+- live flow is bounded, with explicit pressure, delivery, and loss policy;
+- cancellation and terminal behavior are deterministic;
+- queues use caller-provided fixed storage at the allocator-free boundary;
+- execution plans pin implementation, artifact, host, resources, authority,
+  and provenance before start;
+- diagnostics and evidence can be durably associated with an exact run and plan;
+- composite definitions expose only explicit typed ports and explain both their
+  logical and flattened primitive forms.
+
+This makes a pipeline something that can be inspected and reasoned about, not
+just something that happens to execute.
+
+## Direction
+
+The repository is moving from a strong executable foundation toward a general
+system for building long-lived, evolvable arrangements.
+
+Important parts of that direction include:
+
+- distributed transport, including Zenoh;
+- composable HTTP/HTTPS serving through host backends;
+- standard node libraries and host-service interfaces;
+- port groups and bounded composite replication;
+- capability-aware implementation selection;
+- independent conformance implementations and language-neutral protocols;
+- swappable node behavior.
+
+A swappable node keeps its semantic identity while its implementation or plan
+epoch changes. Replacements may be cold, quiescent, or stateful. Live changes
+therefore require a declared handoff boundary, optional state transfer, and
+atomic port rebinding.
+
+The goal is not merely to make pipelines convenient. It is to provide a
+stable language for expressing how capabilities become systems—across
+processes, machines, runtimes, and devices—while keeping the boundaries,
+constraints, evidence, and substitutions visible.
 
 ## Status
 
 This repository contains the first executable Plan C foundation:
 
-- `conduit-core`: allocator-free contracts, canonical semantic hashes, opaque
-  type references, complete port/config schemas, bounded flow-policy state
-  machines, directional compatibility, and plan validation;
+- `conduit-core`: allocator-free contracts, canonical semantic hashes,
+  opaque type references, port/config schemas, bounded flow-policy state
+  machines, compatibility, and plan validation;
 - `conduit-panel`: the versioned `.panel` grammar, lossless CST/source AST,
-  explicit module resolver, and bounded group/pool source model;
+  module resolution, reusable definitions, groups, and finite pools;
 - `conduit-diagnostics`: owned structured diagnostics, lossless JSON, guarded
   source fixes, cross-file spans, and concise/verbose terminal rendering;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
-  one-shot executor, including domain type-provider discovery;
+  one-shot executor;
 - `conduct`: the Unix command-line interface.
 
 The initial runtime includes intentionally small proof handlers for literal
@@ -43,55 +130,9 @@ UTF-8 text, stdin, uppercase transformation, stdout, and stderr. They establish
 the complete parse → check/explain → resolve → run path without pretending to
 be the final standard library.
 
-Resolved cords carry exact item/per-value/aggregate byte limits, watermarks,
-and pressure policy. The allocator-free reference queue consumes fixed caller
-storage and emits every pressure, loss, replacement, and wake transition.
-Lifecycle is an allocator-free semantic state machine with bounded
-hierarchical cancellation, deterministic terminal precedence, explicit
-drain/abort queue disposition, and substitutable composite derivation.
-Reusable `composite` definitions contain ordinary nodes and cords, expose only
-explicit typed ports, bind configuration separately, and explain both logical
-and deterministically flattened primitive views.
-Authority resolution keeps fresh host capability, declared effects, scoped
-grants, and exact plan bindings separate; protected diagnostics and evidence
-carry redacted metadata instead of value bytes.
-Exact execution plans pin implementation/artifact/host choices, finite queues,
-resource and pool maxima, required authority, and logical-to-expanded
-provenance under one canonical identity validated before start.
-Immutable execution events link every observation to a run and exact plan,
-separate append order from recorder clocks and causality, and round-trip
-structurally redacted evidence through a hosted NDJSON stream.
-`.panel` version 1 now supports reusable parameterized definitions, unresolved
-`using` constraints, deterministic aliased imports with optional content pins,
-explicit roots, compile-time keyed/indexed port groups, and finite instance
-pools. Hosted source lowering validates exact booleans, signed integers, text,
-bytes, references, lists, records, contract references, exact decimals, and
-secret references against node-provided schemas. It applies canonical defaults
-with visible provenance, retains cross-module source maps, expands finite
-groups, and resolves exact pool templates without probing a host. Parsing,
-module loading, lowering, plan resolution, and execution remain separate;
-comments and formatting round-trip without entering semantic source identity.
-Portable failures now carry stable codes, severity, primary/related byte
-spans, semantic paths, causal codes, safe fixes, and structurally redacted
-arguments. `conduct` can emit human or versioned JSON diagnostics with explicit
-color and verbosity policy.
-
-## Design boundaries
-
-- Semantic node contracts are distinct from Rust, WASM, Python, firmware,
-  native, or remote implementations.
-- Hosts advertise capabilities and resources; implementations declare
-  requirements. Conduit does not provision hosts.
-- Composite arrangements become reusable by exporting typed ports and remain
-  nodes at their boundary. There is no separate runtime `Panel` kind.
-- Live flow is bounded. Pressure, delivery, cancellation, and terminal behavior
-  are semantic rather than incidental library behavior.
-- Presentation belongs to Patchbay and cannot change execution semantics.
-- Tongues and Netherwick supply domain contracts; Conduit does not contain
-  speech or robot-specific types.
-
-See [`spec/`](spec/) for the evidence baseline, bootstrap meta-model, and
-conformance roadmap.
+Python is used as an independent conformance oracle, not as a privileged
+runtime path. Tongues and Netherwick may supply domain contracts; Conduit does
+not contain speech- or robot-specific types.
 
 ## Development
 
@@ -114,8 +155,8 @@ cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
 ```
 
 Third-party implementations consume the `requests` stream and submit matching
-NDJSON to `check-results`; no Rust or repository-specific binding is required.
-See
+NDJSON to `check-results`; no Rust or repository-specific binding is
+required. See
 [`spec/013-conformance-harness-v1.md`](spec/013-conformance-harness-v1.md).
 
 Conduit is released under the MIT license.
