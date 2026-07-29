@@ -1,20 +1,19 @@
 [package]
-name = "conduct"
-description = "Check, explain, and conduct .panel files"
+name = "conduit-diagnostics"
+description = "Hosted structured diagnostics, JSON, fixes, and terminal rendering for Conduit"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[[bin]]
-name = "conduct"
-path = "src/main.rs"
-
 [dependencies]
-conduit-diagnostics = { path = "../conduit-diagnostics" }
+conduit-core = { path = "../conduit-core" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-runtime = { path = "../conduit-runtime" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.10.9"
 
 [dev-dependencies]
 serde_json = "1.0.149"
