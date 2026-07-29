@@ -44,8 +44,27 @@ pub struct ResolvedImport {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModuleGraph {
     pub entry_uri: String,
+    /// Frozen compatibility projection of the selected target.
     pub selected_root: Option<String>,
+    /// Version 2 resolved selection metadata. Its mode is explanatory; the
+    /// selected target is the semantic resolution input.
+    pub root_selection: Option<ResolvedRootSelection>,
     pub modules: Vec<ResolvedModule>,
+}
+
+/// How a resolved root target was selected.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RootSelectionMode {
+    Explicit,
+    ImplicitSole,
+}
+
+/// One caller/derivation-owned selection kept outside authored source
+/// identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedRootSelection {
+    pub target: String,
+    pub mode: RootSelectionMode,
 }
 
 /// Stable module/import failure.
@@ -82,6 +101,7 @@ pub fn resolve_modules(
     selected_root: Option<&str>,
     loader: &impl ModuleLoader,
 ) -> Result<ModuleGraph, ModuleResolutionError> {
+    let root_was_explicit = selected_root.is_some();
     let entry_uri = normalize_uri(entry_uri).map_err(|message| ModuleResolutionError {
         code: "CND-SRC-003",
         uri: entry_uri.to_owned(),
@@ -99,6 +119,14 @@ pub fn resolve_modules(
         .resolved
         .get(&entry_uri)
         .and_then(|module| module.panel.selected_root.clone());
+    let root_selection = selected_root.as_ref().map(|target| ResolvedRootSelection {
+        target: target.clone(),
+        mode: if root_was_explicit {
+            RootSelectionMode::Explicit
+        } else {
+            RootSelectionMode::ImplicitSole
+        },
+    });
     let modules = resolver
         .order
         .iter()
@@ -107,6 +135,7 @@ pub fn resolve_modules(
     Ok(ModuleGraph {
         entry_uri,
         selected_root,
+        root_selection,
         modules,
     })
 }

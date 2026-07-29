@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 6,
+  "manifest_revision": 7,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1550,6 +1550,99 @@
         {
           "package": "conduct",
           "test": "diagnostics_cli"
+        }
+      ]
+    },
+    {
+      "id": "source-lowering-v2",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "SL2-001",
+        "SL2-002",
+        "SL2-003",
+        "SL2-004",
+        "SL2-005",
+        "SL2-006",
+        "SL2-007",
+        "SL2-008",
+        "SL2-009",
+        "SL2-010",
+        "SL2-011",
+        "SL2-012"
+      ],
+      "artifacts": [
+        {
+          "id": "source-lowering-v2",
+          "path": "../c3/source-lowering-v2.json",
+          "sha256": "sha256:aac0c3c4c2feed5e09371bacc71b58f968b793a251d3deb460412481d338c7da",
+          "operation": "source-lowering-v2",
+          "requirement_ids": [
+            "SL2-001",
+            "SL2-002",
+            "SL2-003",
+            "SL2-004",
+            "SL2-005",
+            "SL2-006",
+            "SL2-007",
+            "SL2-008",
+            "SL2-009",
+            "SL2-010",
+            "SL2-011",
+            "SL2-012"
+          ],
+          "default_rule": "SL2-008",
+          "case_rules": {
+            "authored-identity-excludes-root-selection": "SL2-002",
+            "resolved-root-selection-enters-lowering-identity": "SL2-003",
+            "implicit-sole-root-normalizes-with-explicit-selection": "SL2-004",
+            "constraint-is-retained-and-identity-bearing": "SL2-005",
+            "ordinary-cord-is-retained-and-identity-bearing": "SL2-006",
+            "composite-child-and-export-are-retained": "SL2-007",
+            "configuration-binding-is-retained": "SL2-007",
+            "nested-imported-topology-retains-content-identified-origins": "SL2-009",
+            "v1-reader-preserves-frozen-result": "SL2-001",
+            "v1-migration-relowers-exact-source": "SL2-011",
+            "stale-v1-migration-is-rejected": "SL2-012",
+            "origin-free-v1-migration-is-ambiguous": "SL2-012",
+            "unsupported-source-schema-version": "SL2-012",
+            "unsupported-lowering-schema-version": "SL2-012"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "source-lowering-v2#authored-identity-excludes-root-selection",
+          "source-lowering-v2#constraint-is-retained-and-identity-bearing",
+          "source-lowering-v2#nested-imported-topology-retains-content-identified-origins"
+        ],
+        "negative": [
+          "source-lowering-v2#unsupported-source-schema-version",
+          "source-lowering-v2#stale-v1-migration-is-rejected",
+          "source-lowering-v2#boundary-bypass-remains-rejected"
+        ],
+        "boundary": [
+          "source-lowering-v2#ordinary-cord-is-retained-and-identity-bearing",
+          "source-lowering-v2#composite-child-and-export-are-retained",
+          "source-lowering-v2#configuration-binding-is-retained"
+        ],
+        "migration": [
+          "source-lowering-v2#v1-reader-preserves-frozen-result",
+          "source-lowering-v2#v1-migration-relowers-exact-source",
+          "source-lowering-v2#implicit-sole-root-normalizes-with-explicit-selection"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "source_lowering_vectors"
         }
       ]
     }

@@ -237,6 +237,12 @@ ASTs, and entry-root selection. It is not an ExecutionPlan or lockfile.
 Packaging tooling may persist those identities in a separate lock artifact;
 parsing never silently updates a pin.
 
+Specification
+[`019-source-lowering-v2.md`](019-source-lowering-v2.md) corrects the persisted
+source-AST boundary by excluding caller-selected root state under an explicit
+version 2 identity domain. This version 1 hash and every grammar-v1 fixture
+retain their original meaning.
+
 ## CST, semantic AST, and compatibility
 
 `SourceDocument` retains every UTF-8 byte as contiguous CST tokens with exact

@@ -137,6 +137,12 @@ reconciles this frozen lowering form with exact keyed-member spans, complete
 contract direction validation, explicit plan-v2 maxima, and correlation
 identity. It does not reinterpret lowering-v1.
 
+Specification
+[`019-source-lowering-v2.md`](019-source-lowering-v2.md) defines the versioned
+correction that retains ordinary cords, composite-child relationships,
+exports, bindings, unresolved constraints, and selected-root input. This
+version 1 record and hash remain readable and unchanged.
+
 ## Diagnostics
 
 Every lowering diagnostic carries a stable code, semantic path, safe message,

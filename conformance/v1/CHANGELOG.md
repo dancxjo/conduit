@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 7 — 2026-07-29
+
+- Added the `source-lowering-v2` suite and language-neutral
+  `conformance/c3/source-lowering-v2.json` fixture for issue #64.
+- Preserved source/lowering v1 identities while separating caller-selected
+  root state from authored source-v2 identity.
+- Added complete cord, composite-child, export, binding, unresolved-constraint,
+  source-map, version-selection, and verified migration cases.
+- Requirement IDs: `SL2-001` through `SL2-012`.
+- Migration: a persisted v1 lowering requires its exact resolved source graph
+  for verified v2 re-lowering; runners must reject unsupported versions rather
+  than fall back.
+
 ## Manifest revision 6 — 2026-07-29
 
 - Added the `conduct-cli` suite and language-neutral

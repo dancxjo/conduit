@@ -10,12 +10,13 @@ mod document;
 mod modules;
 
 pub use document::{
-    CstToken, CstTokenKind, SourceDocument, Span, parse_document, parse_document_with_root,
-    semantic_source_hash,
+    CstToken, CstTokenKind, SOURCE_AST_SCHEMA_V1, SOURCE_AST_SCHEMA_V2, SourceDocument,
+    SourceSchemaError, Span, parse_document, parse_document_with_root, semantic_source_hash,
+    semantic_source_hash_v1, semantic_source_hash_v2, semantic_source_hash_version,
 };
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
-    resolve_modules,
+    ResolvedRootSelection, RootSelectionMode, resolve_modules,
 };
 
 /// Parsed editable panel source.
@@ -50,6 +51,8 @@ pub struct Import {
     pub alias: String,
     /// Optional exact UTF-8 content digest.
     pub content_hash: Option<String>,
+    /// Exact authored import extent.
+    pub source_span: SourceSpan,
 }
 
 /// One explicitly selectable root definition.
@@ -57,6 +60,8 @@ pub struct Import {
 pub struct Root {
     /// Definition or top-level instance selected as a root.
     pub target: String,
+    /// Exact authored root target extent.
+    pub source_span: SourceSpan,
 }
 
 /// One reusable assemblage that remains an ordinary node at its boundary.
@@ -78,6 +83,8 @@ pub struct CompositeDefinition {
     pub port_groups: Vec<PortGroup>,
     /// Finite pools of this definition's child templates.
     pub pools: Vec<InstancePool>,
+    /// Exact authored composite extent.
+    pub source_span: SourceSpan,
 }
 
 /// One typed composite source parameter.
@@ -105,6 +112,7 @@ pub struct PortExport {
     pub direction: ExportDirection,
     pub id: String,
     pub target: Endpoint,
+    pub source_span: SourceSpan,
 }
 
 /// One composite configuration parameter binding.
@@ -112,6 +120,7 @@ pub struct PortExport {
 pub struct ConfigBinding {
     pub parameter: String,
     pub target: Endpoint,
+    pub source_span: SourceSpan,
 }
 
 /// One semantic node instance in source.
@@ -123,6 +132,8 @@ pub struct Node {
     pub kind: String,
     /// Unresolved implementation/capability constraint such as `ready`.
     pub constraint: Option<String>,
+    /// Exact constraint token extent, when authored.
+    pub constraint_span: Option<SourceSpan>,
     /// Source configuration entries.
     pub config: Vec<ConfigEntry>,
     /// Exact authored instance extent.
@@ -323,6 +334,8 @@ pub struct Cord {
     pub high_watermark_items: u16,
     /// Exact pressure response.
     pub pressure: SourcePressure,
+    /// Exact authored cord extent.
+    pub source_span: SourceSpan,
 }
 
 /// Authored exact pressure policy.
@@ -777,22 +790,44 @@ impl Parser {
                         self.current().kind,
                         TokenKind::LeftParen | TokenKind::LeftBrace
                     ) {
-                        definitions.push(self.parse_definition_after_id(id)?);
+                        definitions.push(self.parse_definition_after_id(
+                            id,
+                            start_line,
+                            start_column,
+                        )?);
                     } else {
                         nodes.push(self.parse_node_after_id(id, start_line, start_column)?);
                     }
                 }
                 "composite" => {
+                    let start_line = self.current().line;
+                    let start_column = self.current().column;
                     let id = self.expect_any_word()?;
-                    definitions.push(self.parse_definition_after_id(id)?);
+                    definitions.push(self.parse_definition_after_id(
+                        id,
+                        start_line,
+                        start_column,
+                    )?);
                 }
                 "cord" => {
                     let ordinal = cords.len();
                     cords.push(self.parse_cord(ordinal)?);
                 }
-                "root" => roots.push(Root {
-                    target: self.expect_any_word()?,
-                }),
+                "root" => {
+                    let start_line = self.current().line;
+                    let start_column = self.current().column;
+                    let target = self.expect_any_word()?;
+                    let (end_line, end_column) = self.previous_end();
+                    roots.push(Root {
+                        target,
+                        source_span: SourceSpan {
+                            line: start_line,
+                            column: start_column,
+                            end_line,
+                            end_column,
+                        },
+                    });
+                }
                 "port-group" => port_groups.push(self.parse_port_group()?),
                 "pool" => pools.push(self.parse_pool()?),
                 _ => {
@@ -844,6 +879,8 @@ impl Parser {
     }
 
     fn parse_import(&mut self) -> Result<Import, ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
         let target = self.expect_string()?;
         self.expect_word("as")?;
         let alias = self.expect_any_word()?;
@@ -853,14 +890,26 @@ impl Parser {
         } else {
             None
         };
+        let (end_line, end_column) = self.previous_end();
         Ok(Import {
             target,
             alias,
             content_hash,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
         })
     }
 
-    fn parse_definition_after_id(&mut self, id: String) -> Result<CompositeDefinition, ParseError> {
+    fn parse_definition_after_id(
+        &mut self,
+        id: String,
+        start_line: usize,
+        start_column: usize,
+    ) -> Result<CompositeDefinition, ParseError> {
         let parameters = if matches!(self.current().kind, TokenKind::LeftParen) {
             self.parse_parameters()?
         } else {
@@ -885,6 +934,8 @@ impl Parser {
                     cords.push(self.parse_cord(ordinal)?);
                 }
                 "export" => {
+                    let start_line = self.current().line;
+                    let start_column = self.current().column;
                     let direction = match self.expect_any_word()?.as_str() {
                         "input" => ExportDirection::Input,
                         "output" => ExportDirection::Output,
@@ -899,18 +950,35 @@ impl Parser {
                         self.expect_simple(TokenKind::Equals, "`=`")?;
                         (first, self.expect_endpoint()?)
                     };
+                    let (end_line, end_column) = self.previous_end();
                     exports.push(PortExport {
                         direction,
                         id: export_id,
                         target,
+                        source_span: SourceSpan {
+                            line: start_line,
+                            column: start_column,
+                            end_line,
+                            end_column,
+                        },
                     });
                 }
                 "bind" => {
+                    let start_line = self.current().line;
+                    let start_column = self.current().column;
                     let parameter = self.expect_any_word()?;
                     self.expect_simple(TokenKind::Equals, "`=`")?;
+                    let target = self.expect_endpoint()?;
+                    let (end_line, end_column) = self.previous_end();
                     bindings.push(ConfigBinding {
                         parameter,
-                        target: self.expect_endpoint()?,
+                        target,
+                        source_span: SourceSpan {
+                            line: start_line,
+                            column: start_column,
+                            end_line,
+                            end_column,
+                        },
                     });
                 }
                 "port-group" => port_groups.push(self.parse_port_group()?),
@@ -923,6 +991,7 @@ impl Parser {
             }
         }
         self.advance();
+        let (end_line, end_column) = self.previous_end();
         Ok(CompositeDefinition {
             id,
             parameters,
@@ -932,6 +1001,12 @@ impl Parser {
             bindings,
             port_groups,
             pools,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
         })
     }
 
@@ -1002,7 +1077,19 @@ impl Parser {
         let kind = self.expect_any_word()?;
         let constraint = if self.current_word_is("using") {
             self.advance();
-            Some(self.expect_any_word()?)
+            let start_line = self.current().line;
+            let start_column = self.current().column;
+            let constraint = self.expect_any_word()?;
+            let (end_line, end_column) = self.previous_end();
+            Some((
+                constraint,
+                SourceSpan {
+                    line: start_line,
+                    column: start_column,
+                    end_line,
+                    end_column,
+                },
+            ))
         } else {
             None
         };
@@ -1016,7 +1103,8 @@ impl Parser {
         Ok(Node {
             id,
             kind,
-            constraint,
+            constraint: constraint.as_ref().map(|(value, _)| value.clone()),
+            constraint_span: constraint.map(|(_, span)| span),
             config,
             source_span: SourceSpan {
                 line: start_line,
@@ -1245,6 +1333,8 @@ impl Parser {
     }
 
     fn parse_cord(&mut self, ordinal: usize) -> Result<Cord, ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
         let from = self.expect_endpoint()?;
         self.expect_simple(TokenKind::Arrow, "`->`")?;
         let to = self.expect_endpoint()?;
@@ -1336,6 +1426,7 @@ impl Parser {
             "fail" => SourcePressure::Fail,
             _ => return Err(self.error("unknown pressure behavior")),
         };
+        let (end_line, end_column) = self.previous_end();
 
         Ok(Cord {
             id: format!("cord-{ordinal}"),
@@ -1347,6 +1438,12 @@ impl Parser {
             low_watermark_items,
             high_watermark_items,
             pressure,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
         })
     }
 

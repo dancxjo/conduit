@@ -8,7 +8,7 @@ use conduit_core::{
     DiagnosticEdit, DiagnosticFix, DiagnosticRelated, DiagnosticSeverity, DiagnosticSpan,
     FixApplicability, PlanValidationError, ValidationError,
 };
-use conduit_panel::{ModuleResolutionError, ParseError, SourceSpan};
+use conduit_panel::{ModuleResolutionError, ParseError, SourceSchemaError, SourceSpan};
 use conduit_runtime::{LoweringDiagnostic, ResolutionError, RuntimeError};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -483,6 +483,19 @@ pub fn from_parse_error(error: &ParseError, source: &DiagnosticSource) -> OwnedD
     let primary = span_at_location(source, error.line, error.column);
     let fixes = parse_fixes(error, source, &primary);
     base(error.code, &error.message, Some(primary), fixes)
+}
+
+/// Converts an explicit persisted source-schema selection failure.
+#[must_use]
+pub fn from_source_schema_error(error: &SourceSchemaError) -> OwnedDiagnostic {
+    let mut diagnostic = base(error.code, &error.message, None, Vec::new());
+    diagnostic.arguments.push(OwnedDiagnosticArgument {
+        name: "schema_version".to_owned(),
+        value: OwnedDiagnosticArgumentValue::Public {
+            text: error.schema_version.to_string(),
+        },
+    });
+    diagnostic
 }
 
 /// Converts module resolution failure and import causality.

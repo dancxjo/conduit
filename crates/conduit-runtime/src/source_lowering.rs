@@ -9,7 +9,7 @@ use conduit_core::{
 };
 use conduit_panel::{
     InstancePool, ModuleGraph, Panel, PoolAdmission, PoolCleanup, PoolSupervision, PortGroup,
-    PortGroupShape, SourceSpan, SourceValue,
+    PortGroupShape, RootSelectionMode, SourcePressure, SourceSpan, SourceValue,
 };
 use sha2::{Digest as _, Sha256};
 
@@ -333,6 +333,119 @@ impl LoweredSource {
     }
 }
 
+pub const LOWERED_SOURCE_SCHEMA_V1: u16 = 1;
+pub const LOWERED_SOURCE_SCHEMA_V2: u16 = 2;
+pub const SOURCE_AST_SCHEMA_V2: u16 = conduit_panel::SOURCE_AST_SCHEMA_V2;
+
+/// Corrected root-selection input to lowering. Selection mode is explanatory;
+/// equivalent explicit and sole-root selections share semantic identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredRootSelectionV2 {
+    pub entry_uri: String,
+    pub target: String,
+    pub mode: RootSelectionMode,
+    pub authored_source_hash: String,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// Version 2 node descriptor retaining its unresolved implementation/capability
+/// constraint for later plan resolution.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredNodeV2 {
+    pub path: String,
+    pub contract_id: String,
+    pub contract_hash: SemanticHash,
+    pub unresolved_constraint: Option<String>,
+    pub config: Vec<LoweredConfigEntry>,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// One complete ordinary authored cord retained before plan resolution.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredCordV2 {
+    pub path: String,
+    pub from: String,
+    pub to: String,
+    pub capacity_items: u16,
+    pub max_value_bytes: u32,
+    pub max_queued_bytes: u64,
+    pub low_watermark_items: u16,
+    pub high_watermark_items: u16,
+    pub pressure: SourcePressure,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// Explicit ownership of one child by one authored composite.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredCompositeChildV2 {
+    pub composite_path: String,
+    pub child_path: String,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// One authored composite definition and its exact boundary contract.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredCompositeV2 {
+    pub path: String,
+    pub contract_id: String,
+    pub contract_hash: SemanticHash,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// One explicit composite boundary-to-child port relationship.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredExportV2 {
+    pub path: String,
+    pub composite_path: String,
+    pub direction: conduit_panel::ExportDirection,
+    pub id: String,
+    pub target: String,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// One explicit composite parameter-to-child configuration relationship.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredBindingV2 {
+    pub path: String,
+    pub composite_path: String,
+    pub parameter: String,
+    pub target: String,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// Corrected complete lowered source closure. It remains semantic input to
+/// planning, never an exact ExecutionPlan.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredSourceV2 {
+    pub schema_version: u16,
+    pub source_ast_schema_version: u16,
+    pub root_selection: Option<LoweredRootSelectionV2>,
+    pub nodes: Vec<LoweredNodeV2>,
+    pub cords: Vec<LoweredCordV2>,
+    pub composites: Vec<LoweredCompositeV2>,
+    pub composite_children: Vec<LoweredCompositeChildV2>,
+    pub exports: Vec<LoweredExportV2>,
+    pub bindings: Vec<LoweredBindingV2>,
+    pub group_ports: Vec<LoweredGroupPort>,
+    pub pools: Vec<LoweredPool>,
+    pub source_map: Vec<SourceMapEntry>,
+    pub semantic_hash: SemanticHash,
+}
+
+/// Explicit read/lower result for persisted schema selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VersionedLoweredSource {
+    V1(LoweredSource),
+    V2(Box<LoweredSourceV2>),
+}
+
 /// Structured, value-safe lowering diagnostic.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LoweringDiagnostic {
@@ -360,12 +473,20 @@ pub fn lower_source(
     graph: &ModuleGraph,
     catalog: &impl SourceContractCatalog,
 ) -> Result<LoweredSource, LoweringDiagnostic> {
+    lower_source_with_identity(graph, catalog, conduit_panel::semantic_source_hash_v1)
+}
+
+fn lower_source_with_identity(
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+    source_identity: fn(&Panel) -> String,
+) -> Result<LoweredSource, LoweringDiagnostic> {
     let mut definitions = BTreeMap::new();
     for module in &graph.modules {
         for definition in &module.panel.definitions {
             definitions.insert(
                 (module.canonical_uri.clone(), definition.id.clone()),
-                definition_schema(definition, catalog, module)?,
+                definition_schema(definition, catalog, module, source_identity)?,
             );
         }
     }
@@ -401,10 +522,403 @@ pub fn lower_source(
     })
 }
 
+/// Lowers the corrected schema version 2 closure while retaining every
+/// plan-relevant authored topology fact and unresolved constraint.
+pub fn lower_source_v2(
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+) -> Result<LoweredSourceV2, LoweringDiagnostic> {
+    let base = lower_source_with_identity(graph, catalog, conduit_panel::semantic_source_hash_v2)?;
+    let mut source_nodes = BTreeMap::new();
+    for module in &graph.modules {
+        let uri = &module.canonical_uri;
+        for node in &module.panel.nodes {
+            source_nodes.insert(format!("{uri}/node/{}", node.id), (node, module));
+        }
+        for definition in &module.panel.definitions {
+            for node in &definition.nodes {
+                source_nodes.insert(
+                    format!("{uri}/definition/{}/node/{}", definition.id, node.id),
+                    (node, module),
+                );
+            }
+        }
+    }
+
+    let mut source_map = base.source_map.clone();
+    let mut nodes = Vec::with_capacity(base.nodes.len());
+    for node in base.nodes {
+        let (source_node, module) = source_nodes.get(&node.path).ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-012",
+                &node.path,
+                None,
+                None,
+                "version 2 node provenance cannot be reconstructed",
+            )
+        })?;
+        let node_origin = origin(
+            &module.canonical_uri,
+            &module.content_hash,
+            source_node.source_span,
+        );
+        if let Some(span) = source_node.constraint_span {
+            source_map.push(SourceMapEntry {
+                semantic_path: format!("{}/constraint", node.path),
+                origins: vec![origin(&module.canonical_uri, &module.content_hash, span)],
+            });
+        }
+        let config_hash = hash_config(&node.contract_id, &node.config);
+        let semantic_hash = hash_node_v2(
+            &node.path,
+            &node.contract_id,
+            node.contract_hash,
+            source_node.constraint.as_deref(),
+            config_hash,
+        );
+        nodes.push(LoweredNodeV2 {
+            path: node.path,
+            contract_id: node.contract_id,
+            contract_hash: node.contract_hash,
+            unresolved_constraint: source_node.constraint.clone(),
+            config: node.config,
+            semantic_hash,
+            origin: node_origin,
+        });
+    }
+
+    let mut cords = Vec::new();
+    let mut composites = Vec::new();
+    let mut composite_children = Vec::new();
+    let mut exports = Vec::new();
+    let mut bindings = Vec::new();
+    for module in &graph.modules {
+        let uri = &module.canonical_uri;
+        for cord in &module.panel.cords {
+            let lowered = lower_cord_v2(cord, uri, uri, &module.content_hash);
+            source_map.push(SourceMapEntry {
+                semantic_path: lowered.path.clone(),
+                origins: vec![lowered.origin.clone()],
+            });
+            cords.push(lowered);
+        }
+        for definition in &module.panel.definitions {
+            let composite_path = format!("{uri}/definition/{}", definition.id);
+            let schema = definition_schema(
+                definition,
+                catalog,
+                module,
+                conduit_panel::semantic_source_hash_v2,
+            )?;
+            let contract_hash = schema.semantic_hash();
+            let composite_origin = origin(uri, &module.content_hash, definition.source_span);
+            let contract_hash_text = contract_hash.to_string();
+            composites.push(LoweredCompositeV2 {
+                path: composite_path.clone(),
+                contract_id: schema.id.clone(),
+                contract_hash,
+                semantic_hash: hash_parts(
+                    "conduit/lowered-composite/v2",
+                    &[&composite_path, &schema.id, &contract_hash_text],
+                ),
+                origin: composite_origin.clone(),
+            });
+            source_map.push(SourceMapEntry {
+                semantic_path: composite_path.clone(),
+                origins: vec![composite_origin],
+            });
+            for child in &definition.nodes {
+                let child_path = format!("{composite_path}/node/{}", child.id);
+                let relationship_path = format!("{composite_path}/child/{}", child.id);
+                let child_origin = origin(uri, &module.content_hash, child.source_span);
+                composite_children.push(LoweredCompositeChildV2 {
+                    composite_path: composite_path.clone(),
+                    child_path: child_path.clone(),
+                    semantic_hash: hash_parts(
+                        "conduit/lowered-composite-child/v2",
+                        &[&composite_path, &child_path],
+                    ),
+                    origin: child_origin.clone(),
+                });
+                source_map.push(SourceMapEntry {
+                    semantic_path: relationship_path,
+                    origins: vec![child_origin],
+                });
+            }
+            for cord in &definition.cords {
+                let lowered = lower_cord_v2(cord, &composite_path, uri, &module.content_hash);
+                source_map.push(SourceMapEntry {
+                    semantic_path: lowered.path.clone(),
+                    origins: vec![lowered.origin.clone()],
+                });
+                cords.push(lowered);
+            }
+            for export in &definition.exports {
+                let path = format!("{composite_path}/export/{}", export.id);
+                let target = format!(
+                    "{composite_path}/node/{}/port/{}",
+                    export.target.node, export.target.port
+                );
+                let direction = match export.direction {
+                    conduit_panel::ExportDirection::Input => "input",
+                    conduit_panel::ExportDirection::Output => "output",
+                };
+                let export_origin = origin(uri, &module.content_hash, export.source_span);
+                exports.push(LoweredExportV2 {
+                    path: path.clone(),
+                    composite_path: composite_path.clone(),
+                    direction: export.direction,
+                    id: export.id.clone(),
+                    target: target.clone(),
+                    semantic_hash: hash_parts(
+                        "conduit/lowered-export/v2",
+                        &[&composite_path, direction, &export.id, &target],
+                    ),
+                    origin: export_origin.clone(),
+                });
+                source_map.push(SourceMapEntry {
+                    semantic_path: path,
+                    origins: vec![export_origin],
+                });
+            }
+            for binding in &definition.bindings {
+                let path = format!("{composite_path}/binding/{}", binding.parameter);
+                let target = format!(
+                    "{composite_path}/node/{}/config/{}",
+                    binding.target.node, binding.target.port
+                );
+                let binding_origin = origin(uri, &module.content_hash, binding.source_span);
+                bindings.push(LoweredBindingV2 {
+                    path: path.clone(),
+                    composite_path: composite_path.clone(),
+                    parameter: binding.parameter.clone(),
+                    target: target.clone(),
+                    semantic_hash: hash_parts(
+                        "conduit/lowered-binding/v2",
+                        &[&composite_path, &binding.parameter, &target],
+                    ),
+                    origin: binding_origin.clone(),
+                });
+                source_map.push(SourceMapEntry {
+                    semantic_path: path,
+                    origins: vec![binding_origin],
+                });
+            }
+        }
+    }
+
+    let root_selection = lower_root_selection_v2(graph)?;
+    if let Some(selection) = &root_selection {
+        source_map.push(SourceMapEntry {
+            semantic_path: format!("{}/selected-root/{}", selection.entry_uri, selection.target),
+            origins: vec![selection.origin.clone()],
+        });
+    }
+
+    let mut facts = Vec::new();
+    facts.extend(nodes.iter().map(|node| node.semantic_hash));
+    facts.extend(cords.iter().map(|cord| cord.semantic_hash));
+    facts.extend(composites.iter().map(|composite| composite.semantic_hash));
+    facts.extend(composite_children.iter().map(|child| child.semantic_hash));
+    facts.extend(exports.iter().map(|export| export.semantic_hash));
+    facts.extend(bindings.iter().map(|binding| binding.semantic_hash));
+    facts.extend(base.group_ports.iter().map(|port| port.semantic_hash));
+    facts.extend(base.pools.iter().map(|pool| pool.semantic_hash));
+    facts.extend(
+        root_selection
+            .iter()
+            .map(|selection| selection.semantic_hash),
+    );
+    facts.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
+    let semantic_hash = hash_facts_v2(&facts);
+
+    Ok(LoweredSourceV2 {
+        schema_version: LOWERED_SOURCE_SCHEMA_V2,
+        source_ast_schema_version: SOURCE_AST_SCHEMA_V2,
+        root_selection,
+        nodes,
+        cords,
+        composites,
+        composite_children,
+        exports,
+        bindings,
+        group_ports: base.group_ports,
+        pools: base.pools,
+        source_map,
+        semantic_hash,
+    })
+}
+
+/// Selects a persisted lowering schema explicitly.
+pub fn lower_source_version(
+    schema_version: u16,
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+) -> Result<VersionedLoweredSource, LoweringDiagnostic> {
+    match schema_version {
+        LOWERED_SOURCE_SCHEMA_V1 => lower_source(graph, catalog).map(VersionedLoweredSource::V1),
+        LOWERED_SOURCE_SCHEMA_V2 => lower_source_v2(graph, catalog)
+            .map(Box::new)
+            .map(VersionedLoweredSource::V2),
+        _ => Err(diagnostic(
+            "CND-LWR-011",
+            &graph.entry_uri,
+            None,
+            None,
+            format!("unsupported lowered-source schema version {schema_version}"),
+        )),
+    }
+}
+
+/// Migrates a frozen v1 record only by checking it against its exact resolved
+/// source input and re-lowering that input under version 2.
+pub fn migrate_lowered_source_v1(
+    persisted: &LoweredSource,
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+) -> Result<LoweredSourceV2, LoweringDiagnostic> {
+    let reproduced = lower_source(graph, catalog)?;
+    let represented_modules: BTreeMap<_, _> = persisted
+        .source_map
+        .iter()
+        .flat_map(|entry| &entry.origins)
+        .map(|origin| (origin.module_uri.as_str(), origin.module_hash.as_str()))
+        .collect();
+    let complete_provenance = graph.modules.iter().all(|module| {
+        represented_modules
+            .get(module.canonical_uri.as_str())
+            .is_some_and(|hash| *hash == module.content_hash)
+    });
+    if !complete_provenance
+        || reproduced.semantic_hash != persisted.semantic_hash
+        || reproduced.source_map != persisted.source_map
+    {
+        return Err(diagnostic(
+            "CND-LWR-012",
+            &graph.entry_uri,
+            None,
+            None,
+            "persisted v1 lowering lacks exact provenance or does not match the supplied resolved source graph",
+        ));
+    }
+    lower_source_v2(graph, catalog)
+}
+
+fn lower_root_selection_v2(
+    graph: &ModuleGraph,
+) -> Result<Option<LoweredRootSelectionV2>, LoweringDiagnostic> {
+    let Some(selection) = &graph.root_selection else {
+        return Ok(None);
+    };
+    let module = graph
+        .modules
+        .iter()
+        .find(|module| module.canonical_uri == graph.entry_uri)
+        .ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-012",
+                &graph.entry_uri,
+                None,
+                None,
+                "entry module is absent from the resolved graph",
+            )
+        })?;
+    let declared = module
+        .panel
+        .roots
+        .iter()
+        .find(|root| root.target == selection.target)
+        .ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-012",
+                &graph.entry_uri,
+                None,
+                None,
+                "resolved root is absent from the authored entry module",
+            )
+        })?;
+    let authored_source_hash = conduit_panel::semantic_source_hash_v2(&module.panel);
+    let semantic_hash = hash_parts(
+        "conduit/lowered-root-selection/v2",
+        &[&graph.entry_uri, &selection.target, &authored_source_hash],
+    );
+    Ok(Some(LoweredRootSelectionV2 {
+        entry_uri: graph.entry_uri.clone(),
+        target: selection.target.clone(),
+        mode: selection.mode,
+        authored_source_hash,
+        semantic_hash,
+        origin: origin(
+            &module.canonical_uri,
+            &module.content_hash,
+            declared.source_span,
+        ),
+    }))
+}
+
+fn lower_cord_v2(
+    cord: &conduit_panel::Cord,
+    scope: &str,
+    uri: &str,
+    module_hash: &str,
+) -> LoweredCordV2 {
+    let path = format!("{scope}/cord/{}", cord.id);
+    let from = format!("{scope}/node/{}/port/{}", cord.from.node, cord.from.port);
+    let to = format!("{scope}/node/{}/port/{}", cord.to.node, cord.to.port);
+    let pressure = pressure_identity(&cord.pressure);
+    let numeric = [
+        cord.capacity_items.to_string(),
+        cord.max_value_bytes.to_string(),
+        cord.max_queued_bytes.to_string(),
+        cord.low_watermark_items.to_string(),
+        cord.high_watermark_items.to_string(),
+    ];
+    let semantic_hash = hash_parts(
+        "conduit/lowered-cord/v2",
+        &[
+            &path,
+            &from,
+            &to,
+            &numeric[0],
+            &numeric[1],
+            &numeric[2],
+            &numeric[3],
+            &numeric[4],
+            &pressure,
+        ],
+    );
+    LoweredCordV2 {
+        path,
+        from,
+        to,
+        capacity_items: cord.capacity_items,
+        max_value_bytes: cord.max_value_bytes,
+        max_queued_bytes: cord.max_queued_bytes,
+        low_watermark_items: cord.low_watermark_items,
+        high_watermark_items: cord.high_watermark_items,
+        pressure: cord.pressure.clone(),
+        semantic_hash,
+        origin: origin(uri, module_hash, cord.source_span),
+    }
+}
+
+fn pressure_identity(pressure: &SourcePressure) -> String {
+    match pressure {
+        SourcePressure::Block => "block".to_owned(),
+        SourcePressure::Reject => "reject".to_owned(),
+        SourcePressure::Coalesce { relation } => format!("coalesce/{relation}"),
+        SourcePressure::Sample { every, offset } => format!("sample/{every}/{offset}"),
+        SourcePressure::DropDisposable => "drop-disposable".to_owned(),
+        SourcePressure::Disconnect => "disconnect".to_owned(),
+        SourcePressure::Fail => "fail".to_owned(),
+    }
+}
+
 fn definition_schema(
     definition: &conduit_panel::CompositeDefinition,
     catalog: &impl SourceContractCatalog,
     module: &conduit_panel::ResolvedModule,
+    source_identity: fn(&Panel) -> String,
 ) -> Result<OwnedNodeSchema, LoweringDiagnostic> {
     let mut fields = Vec::new();
     for parameter in &definition.parameters {
@@ -474,11 +988,7 @@ fn definition_schema(
         });
     }
     Ok(OwnedNodeSchema {
-        id: format!(
-            "{}#{}",
-            conduit_panel::semantic_source_hash(&module.panel),
-            definition.id
-        ),
+        id: format!("{}#{}", source_identity(&module.panel), definition.id),
         fields,
     })
 }
@@ -1156,6 +1666,15 @@ fn hash_facts(kind: &str, facts: &[SemanticHash]) -> SemanticHash {
     SemanticHash::from_bytes(digest.finalize().into())
 }
 
+fn hash_facts_v2(facts: &[SemanticHash]) -> SemanticHash {
+    let mut digest = Sha256::new();
+    digest.update(b"conduit.lowered-source/v2\0");
+    for fact in facts {
+        digest.update(fact.as_bytes());
+    }
+    SemanticHash::from_bytes(digest.finalize().into())
+}
+
 fn hash_node(
     path: &str,
     contract: &str,
@@ -1171,4 +1690,32 @@ fn hash_node(
     digest.update(contract_hash.as_bytes());
     digest.update(config.as_bytes());
     SemanticHash::from_bytes(digest.finalize().into())
+}
+
+fn hash_node_v2(
+    path: &str,
+    contract: &str,
+    contract_hash: SemanticHash,
+    unresolved_constraint: Option<&str>,
+    config: SemanticHash,
+) -> SemanticHash {
+    let constraint = unresolved_constraint.unwrap_or("");
+    let constraint_presence = if unresolved_constraint.is_some() {
+        "present"
+    } else {
+        "absent"
+    };
+    let contract_hash = contract_hash.to_string();
+    let config = config.to_string();
+    hash_parts(
+        "conduit/lowered-node/v2",
+        &[
+            path,
+            contract,
+            &contract_hash,
+            constraint_presence,
+            constraint,
+            &config,
+        ],
+    )
 }

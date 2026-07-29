@@ -4,11 +4,15 @@ use conduit_core::{
     CanonicalValue, ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability,
     ConfigRequirement, Id, NodeContract, SemanticHash, Sensitivity, TypeContractRef,
 };
-use conduit_panel::{LoadedModule, ModuleLoader, SourceValue, resolve_modules};
+use conduit_panel::{
+    LoadedModule, ModuleLoader, RootSelectionMode, SourceValue, resolve_modules,
+    semantic_source_hash_v1, semantic_source_hash_v2, semantic_source_hash_version,
+};
 use conduit_runtime::{
     ConfigProvenance, LiteralValidationError, LoweredConfigValue, OwnedConfigFieldSchema,
     OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference, OwnedSemanticValue,
-    OwnedTypeReference, SourceContractCatalog, lower_source,
+    OwnedTypeReference, SourceContractCatalog, VersionedLoweredSource, lower_source,
+    lower_source_v2, lower_source_version, migrate_lowered_source_v1,
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest as _, Sha256};
@@ -285,6 +289,14 @@ fn hosted_schemas_copy_core_contract_facts_and_hash_every_exact_change() {
 }
 
 fn fixture_graph(case: &Value, source_field: &str) -> Result<conduit_panel::ModuleGraph, String> {
+    fixture_graph_with_root(case, source_field, None)
+}
+
+fn fixture_graph_with_root(
+    case: &Value,
+    source_field: &str,
+    selected_root: Option<&str>,
+) -> Result<conduit_panel::ModuleGraph, String> {
     let entry_uri = case
         .get("entry_uri")
         .and_then(Value::as_str)
@@ -301,7 +313,8 @@ fn fixture_graph(case: &Value, source_field: &str) -> Result<conduit_panel::Modu
             )
         }));
     }
-    resolve_modules(entry_uri, None, &MemoryLoader(modules)).map_err(|error| error.code.to_owned())
+    resolve_modules(entry_uri, selected_root, &MemoryLoader(modules))
+        .map_err(|error| error.code.to_owned())
 }
 
 fn diagnostic_result(
@@ -483,6 +496,260 @@ fn every_normative_source_lowering_vector_has_the_exact_result() {
             other => panic!("{id}: unknown assertion {other}"),
         };
         assert_eq!(actual, Value::Object(expected.clone()), "{id}");
+    }
+}
+
+fn relation(left: SemanticHash, right: SemanticHash) -> &'static str {
+    if left == right { "equal" } else { "different" }
+}
+
+fn text_relation(left: &str, right: &str) -> &'static str {
+    if left == right { "equal" } else { "different" }
+}
+
+fn root_mode(mode: RootSelectionMode) -> &'static str {
+    match mode {
+        RootSelectionMode::Explicit => "explicit",
+        RootSelectionMode::ImplicitSole => "implicit-sole",
+    }
+}
+
+#[test]
+fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c3/source-lowering-v2.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["source_ast_schema_version"], 2);
+    assert_eq!(fixture["lowering_schema_version"], 2);
+
+    for case in fixture["cases"].as_array().unwrap() {
+        let id = case["id"].as_str().unwrap();
+        let expected = &case["expected"];
+        let actual = match case["assertion"].as_str().unwrap() {
+            "source-root-selection" => {
+                let roots = case["selected_roots"].as_array().unwrap();
+                let first = fixture_graph_with_root(case, "source", roots[0].as_str()).unwrap();
+                let second = fixture_graph_with_root(case, "source", roots[1].as_str()).unwrap();
+                let first = &first.modules.last().unwrap().panel;
+                let second = &second.modules.last().unwrap().panel;
+                json!({
+                    "v1_relation": text_relation(
+                        &semantic_source_hash_v1(first),
+                        &semantic_source_hash_v1(second),
+                    ),
+                    "v2_relation": text_relation(
+                        &semantic_source_hash_v2(first),
+                        &semantic_source_hash_v2(second),
+                    ),
+                })
+            }
+            "lowering-root-selection" => {
+                let roots = case["selected_roots"].as_array().unwrap();
+                let first = lower_source_v2(
+                    &fixture_graph_with_root(case, "source", roots[0].as_str()).unwrap(),
+                    &Catalog,
+                )
+                .unwrap();
+                let second = lower_source_v2(
+                    &fixture_graph_with_root(case, "source", roots[1].as_str()).unwrap(),
+                    &Catalog,
+                )
+                .unwrap();
+                json!({
+                    "relation": relation(first.semantic_hash, second.semantic_hash),
+                    "targets": [
+                        first.root_selection.unwrap().target,
+                        second.root_selection.unwrap().target,
+                    ],
+                })
+            }
+            "implicit-explicit-root" => {
+                let implicit =
+                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let explicit = lower_source_v2(
+                    &fixture_graph_with_root(case, "source", Some("app")).unwrap(),
+                    &Catalog,
+                )
+                .unwrap();
+                let implicit_selection = implicit.root_selection.unwrap();
+                let explicit_selection = explicit.root_selection.unwrap();
+                json!({
+                    "relation": relation(implicit.semantic_hash, explicit.semantic_hash),
+                    "implicit_mode": root_mode(implicit_selection.mode),
+                    "explicit_mode": root_mode(explicit_selection.mode),
+                })
+            }
+            "compare" => {
+                let first_graph = fixture_graph(case, "source").unwrap();
+                let second_graph = fixture_graph(case, "comparison_source").unwrap();
+                let first_panel = &first_graph.modules.last().unwrap().panel;
+                let second_panel = &second_graph.modules.last().unwrap().panel;
+                let first = lower_source_v2(&first_graph, &Catalog).unwrap();
+                let second = lower_source_v2(&second_graph, &Catalog).unwrap();
+                json!({
+                    "source_relation": text_relation(
+                        &semantic_source_hash_v2(first_panel),
+                        &semantic_source_hash_v2(second_panel),
+                    ),
+                    "lowering_relation": relation(first.semantic_hash, second.semantic_hash),
+                    "content_relation": text_relation(
+                        &first_graph.modules.last().unwrap().content_hash,
+                        &second_graph.modules.last().unwrap().content_hash,
+                    ),
+                })
+            }
+            "constraint" => {
+                let first =
+                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let second =
+                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                        .unwrap();
+                let constraint_origin = first
+                    .source_map
+                    .iter()
+                    .find(|entry| entry.semantic_path.ends_with("/constraint"))
+                    .and_then(|entry| entry.origins.first())
+                    .unwrap();
+                json!({
+                    "constraint": first.nodes[0].unresolved_constraint,
+                    "relation": relation(first.semantic_hash, second.semantic_hash),
+                    "origin_line": constraint_origin.span.line,
+                    "origin_column": constraint_origin.span.column,
+                })
+            }
+            "cord" => {
+                let first =
+                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let second =
+                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                        .unwrap();
+                json!({
+                    "cords": first.cords.len(),
+                    "capacity": first.cords[0].capacity_items,
+                    "relation": relation(first.semantic_hash, second.semantic_hash),
+                    "origin_line": first.cords[0].origin.span.line,
+                })
+            }
+            "export" => {
+                let first =
+                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let second =
+                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                        .unwrap();
+                json!({
+                    "composites": first.composites.len(),
+                    "children": first.composite_children.len(),
+                    "exports": first.exports.len(),
+                    "target_ends": first.exports[0]
+                        .target
+                        .strip_prefix("mem://fixture/root.panel/definition/box")
+                        .unwrap(),
+                    "relation": relation(first.semantic_hash, second.semantic_hash),
+                    "origin_line": first.exports[0].origin.span.line,
+                })
+            }
+            "binding" => {
+                let first =
+                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let second =
+                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                        .unwrap();
+                json!({
+                    "composites": first.composites.len(),
+                    "bindings": first.bindings.len(),
+                    "target_ends": first.bindings[0]
+                        .target
+                        .strip_prefix("mem://fixture/root.panel/definition/box")
+                        .unwrap(),
+                    "relation": relation(first.semantic_hash, second.semantic_hash),
+                    "origin_line": first.bindings[0].origin.span.line,
+                })
+            }
+            "imported-topology" => {
+                let lowered =
+                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let child_export = lowered
+                    .exports
+                    .iter()
+                    .find(|export| export.origin.module_uri == "mem://fixture/child.panel")
+                    .unwrap();
+                json!({
+                    "composites": lowered.composites.len(),
+                    "children": lowered.composite_children.len(),
+                    "cords": lowered.cords.len(),
+                    "exports": lowered.exports.len(),
+                    "constraints": lowered
+                        .nodes
+                        .iter()
+                        .filter(|node| node.unresolved_constraint.is_some())
+                        .count(),
+                    "child_origin_uri": child_export.origin.module_uri,
+                    "child_export_line": child_export.origin.span.line,
+                })
+            }
+            "v1-preservation" => {
+                let graph = fixture_graph(case, "source").unwrap();
+                let direct = lower_source(&graph, &Catalog).unwrap();
+                let VersionedLoweredSource::V1(versioned) =
+                    lower_source_version(1, &graph, &Catalog).unwrap()
+                else {
+                    panic!("{id}: expected v1");
+                };
+                json!({
+                    "schema_version": 1,
+                    "relation": relation(direct.semantic_hash, versioned.semantic_hash),
+                })
+            }
+            "migration" => {
+                let graph = fixture_graph(case, "source").unwrap();
+                let v1 = lower_source(&graph, &Catalog).unwrap();
+                let migrated = migrate_lowered_source_v1(&v1, &graph, &Catalog).unwrap();
+                json!({
+                    "outcome": "migrated",
+                    "schema_version": migrated.schema_version,
+                    "constraint": migrated.nodes[0].unresolved_constraint,
+                })
+            }
+            "stale-migration" => {
+                let persisted =
+                    lower_source(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let graph = fixture_graph(case, "comparison_source").unwrap();
+                let error = migrate_lowered_source_v1(&persisted, &graph, &Catalog).unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            "ambiguous-migration" => {
+                let graph = fixture_graph(case, "source").unwrap();
+                let persisted = lower_source(&graph, &Catalog).unwrap();
+                let error = migrate_lowered_source_v1(&persisted, &graph, &Catalog).unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            "unsupported-source-version" => {
+                let panel = conduit_panel::parse(case["source"].as_str().unwrap()).unwrap();
+                let error = semantic_source_hash_version(
+                    &panel,
+                    case["schema_version"].as_u64().unwrap() as u16,
+                )
+                .unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            "unsupported-lowering-version" => {
+                let graph = fixture_graph(case, "source").unwrap();
+                let error = lower_source_version(
+                    case["schema_version"].as_u64().unwrap() as u16,
+                    &graph,
+                    &Catalog,
+                )
+                .unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            "parse-diagnostic" => {
+                let error = conduit_panel::parse(case["source"].as_str().unwrap()).unwrap_err();
+                json!({"outcome": "rejected", "code": error.code})
+            }
+            assertion => panic!("{id}: unknown assertion {assertion}"),
+        };
+        assert_eq!(actual, *expected, "{id}");
     }
 }
 

@@ -9,9 +9,12 @@ use conduit_diagnostics::{
     OwnedDiagnosticArgument, OwnedDiagnosticArgumentValue, OwnedDiagnosticEdit, OwnedDiagnosticFix,
     OwnedDiagnosticSeverity, OwnedDiagnosticSpan, OwnedFixApplicability, PlanDiagnosticContext,
     TerminalColor, TerminalVerbosity, check_fix, from_lowering_error, from_module_error,
-    from_parse_error, from_plan_error, from_validation_error, render_terminal,
+    from_parse_error, from_plan_error, from_source_schema_error, from_validation_error,
+    render_terminal,
 };
-use conduit_panel::{LoadedModule, ModuleLoader, SourceSpan, parse, resolve_modules};
+use conduit_panel::{
+    LoadedModule, ModuleLoader, SourceSpan, parse, resolve_modules, semantic_source_hash_version,
+};
 use conduit_runtime::{LoweringDiagnostic, OwnedTypeReference, SourceOrigin};
 use serde_json::Value;
 
@@ -68,6 +71,15 @@ fn resolver_and_plan_failures_have_structured_adapters() {
             .iter()
             .any(|argument| argument.name == "collection")
     );
+}
+
+#[test]
+fn unsupported_source_schema_has_a_structured_adapter() {
+    let panel = parse("panel 1\nnode app : fixture/handler\n").unwrap();
+    let error = semantic_source_hash_version(&panel, 99).unwrap_err();
+    let diagnostic = from_source_schema_error(&error);
+    assert_eq!(diagnostic.code, "CND-SRC-011");
+    assert_eq!(diagnostic.arguments[0].name, "schema_version");
 }
 
 #[test]
