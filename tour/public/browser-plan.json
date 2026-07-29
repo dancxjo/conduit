@@ -7,8 +7,8 @@
     {
       "id": "browser-host-adapter",
       "path": "../../browser/conduit-browser-host.mjs",
-      "sha256": "b6a1355ab26376d5ddb22c14e6c428869d1020d966442313304662e9c195511b",
-      "bytes": 20320
+      "sha256": "5bfeb5226a1d1dee1f673c3ab94acbad73803094feca97c475b606c0c2336096",
+      "bytes": 21038
     },
     {
       "id": "tour-worker",
@@ -29,7 +29,7 @@
       "bytes": 391420
     }
   ],
-  "plan_identity": "2a0881c3b422d846cc71fcbd803e1b770a38f85c74951012342adf4339f319dd",
+  "plan_identity": "193f2f89dc2ad136e59362ff0b96aa86636c238895aeb3f257262b122db13206",
   "observation_id": "conduit/tour-static-browser-observation-v1",
   "bounds": {
     "maximum_pending": 1,
