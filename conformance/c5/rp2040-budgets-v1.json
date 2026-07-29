@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.rp2040-budget/v1",
+  "target": "thumbv6m-none-eabi",
+  "artifact": "target/thumbv6m-none-eabi/release/conduit-rp2040-hil",
+  "maximum_flash_bytes": 98304,
+  "maximum_static_ram_bytes": 65536,
+  "declared_stack_budget_bytes": 4096,
+  "allocator_symbols_forbidden": [
+    "__rust_alloc",
+    "__rust_alloc_zeroed",
+    "__rust_dealloc",
+    "__rust_realloc",
+    "__rg_alloc",
+    "__rg_dealloc",
+    "__rg_realloc"
+  ]
+}

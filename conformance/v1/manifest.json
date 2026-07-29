@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 29,
+  "manifest_revision": 31,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3377,6 +3377,133 @@
       "reference_tests": [
         {"package": "conduit-core", "test": "distributed_vectors"},
         {"package": "conduit-runtime", "test": "distributed_backend"}
+      ]
+    },
+    {
+      "id": "embedded-rp2040",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "EMB-001", "EMB-002", "EMB-003", "EMB-004", "EMB-005", "EMB-006",
+        "EMB-007", "EMB-008", "EMB-009", "EMB-010", "EMB-011", "EMB-012"
+      ],
+      "artifacts": [{
+        "id": "embedded-rp2040-v1",
+        "path": "../c5/embedded-rp2040-v1.json",
+        "sha256": "sha256:6150572d2a6dda3a04174e533b6a1253c95df2b5c02312fdfda98aa419244193",
+        "operation": "embedded-rp2040-v1",
+        "requirement_ids": [
+          "EMB-001", "EMB-002", "EMB-003", "EMB-004", "EMB-005", "EMB-006",
+          "EMB-007", "EMB-008", "EMB-009", "EMB-010", "EMB-011", "EMB-012"
+        ],
+        "default_rule": "EMB-006",
+        "case_rules": {
+          "representative-sensor-threshold-indicator": "EMB-006",
+          "exact-storage-shape": "EMB-003",
+          "profile-identity-mutation": "EMB-003",
+          "node-maximum-rejected-before-start": "EMB-004",
+          "cord-maximum-rejected-before-start": "EMB-004",
+          "port-maximum-rejected-before-start": "EMB-004",
+          "queue-maximum-rejected-before-start": "EMB-004",
+          "value-maximum-rejected-before-start": "EMB-004",
+          "caller-static-storage-rejected-before-start": "EMB-005",
+          "overlapping-queue-layout": "EMB-004",
+          "duplicate-node-semantic-path": "EMB-002",
+          "duplicate-cord-semantic-id": "EMB-002",
+          "unsupported-fanout-layout": "EMB-010",
+          "nesting-maximum-rejected-before-start": "EMB-004",
+          "maximum-supported-graph-preflights": "EMB-004",
+          "decision-ceiling-is-terminal": "EMB-006",
+          "evidence-ceiling-is-terminal": "EMB-008",
+          "evidence-reservation-precedes-host-effects": "EMB-008",
+          "ignored-step-context-error-is-terminal": "EMB-006",
+          "queue-pressure-and-clear-are-evidenced": "EMB-008",
+          "timer-wraparound-wakes-exactly": "EMB-007",
+          "ambiguous-timer-wraparound-is-rejected": "EMB-007",
+          "abort-cancellation-is-bounded": "EMB-006",
+          "reboot-changes-session-attribution": "EMB-008",
+          "hil-request-round-trip": "EMB-012",
+          "foreign-hil-version-rejected": "EMB-012",
+          "stateful-hot-replacement-rejected": "EMB-010",
+          "quiescent-overlap-must-fit": "EMB-010"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }, {
+        "id": "embedded-equivalence-v1",
+        "path": "../c5/embedded-equivalence-v1.json",
+        "sha256": "sha256:322772343cfe7944034a0dcf05bdb7ce1db39e3cccc305d7eaedb9ffd80ac069",
+        "operation": "embedded-equivalence-v1",
+        "requirement_ids": ["EMB-002", "EMB-006", "EMB-008", "EMB-012"],
+        "default_rule": "EMB-006",
+        "case_rules": {
+          "same-plan-normalized-equivalence": "EMB-008",
+          "same-plan-abort-cancellation-equivalence": "EMB-006"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }, {
+        "id": "rp2040-firmware-hil-v1",
+        "path": "../c5/rp2040-firmware-hil-v1.json",
+        "sha256": "sha256:1d252a0bd889e0f40378edd63e6ec6cb724a09c8e8eafac76668c1f7765d2ad5",
+        "operation": "rp2040-firmware-hil-v1",
+        "requirement_ids": ["EMB-006", "EMB-008", "EMB-011", "EMB-012"],
+        "default_rule": "EMB-012",
+        "case_rules": {
+          "linked-firmware-stream-matches-hil-oracle": "EMB-012"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "embedded-rp2040-v1#representative-sensor-threshold-indicator",
+          "embedded-rp2040-v1#exact-storage-shape",
+          "embedded-rp2040-v1#timer-wraparound-wakes-exactly",
+          "embedded-rp2040-v1#hil-request-round-trip",
+          "embedded-equivalence-v1#same-plan-normalized-equivalence",
+          "rp2040-firmware-hil-v1#linked-firmware-stream-matches-hil-oracle"
+        ],
+        "negative": [
+          "embedded-rp2040-v1#profile-identity-mutation",
+          "embedded-rp2040-v1#overlapping-queue-layout",
+          "embedded-rp2040-v1#duplicate-node-semantic-path",
+          "embedded-rp2040-v1#duplicate-cord-semantic-id",
+          "embedded-rp2040-v1#unsupported-fanout-layout",
+          "embedded-rp2040-v1#ignored-step-context-error-is-terminal",
+          "embedded-rp2040-v1#ambiguous-timer-wraparound-is-rejected",
+          "embedded-rp2040-v1#foreign-hil-version-rejected",
+          "embedded-rp2040-v1#stateful-hot-replacement-rejected"
+        ],
+        "boundary": [
+          "embedded-rp2040-v1#node-maximum-rejected-before-start",
+          "embedded-rp2040-v1#cord-maximum-rejected-before-start",
+          "embedded-rp2040-v1#port-maximum-rejected-before-start",
+          "embedded-rp2040-v1#queue-maximum-rejected-before-start",
+          "embedded-rp2040-v1#value-maximum-rejected-before-start",
+          "embedded-rp2040-v1#caller-static-storage-rejected-before-start",
+          "embedded-rp2040-v1#maximum-supported-graph-preflights",
+          "embedded-rp2040-v1#decision-ceiling-is-terminal",
+          "embedded-rp2040-v1#evidence-ceiling-is-terminal",
+          "embedded-rp2040-v1#evidence-reservation-precedes-host-effects",
+          "embedded-rp2040-v1#queue-pressure-and-clear-are-evidenced"
+        ],
+        "migration": [
+          "embedded-rp2040-v1#abort-cancellation-is-bounded",
+          "embedded-rp2040-v1#reboot-changes-session-attribution",
+          "embedded-rp2040-v1#quiescent-overlap-must-fit",
+          "embedded-equivalence-v1#same-plan-abort-cancellation-equivalence"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-embedded", "test": "embedded_vectors"},
+        {"package": "conduit-runtime", "test": "embedded_equivalence"},
+        {"package": "conduit-rp2040-hil", "test": "firmware_contract"}
       ]
     },
     {

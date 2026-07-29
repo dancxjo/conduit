@@ -1,0 +1,17 @@
+[package]
+name = "conduit-embedded"
+description = "Allocator-free fixed-storage Conduit executor for constrained firmware"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+
+[target.'cfg(not(target_arch = "arm"))'.dev-dependencies]
+serde_json = "1.0.149"
+
+[lints]
+workspace = true

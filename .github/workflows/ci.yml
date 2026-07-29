@@ -55,6 +55,8 @@ jobs:
         with:
           targets: thumbv6m-none-eabi
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
+      - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
+      - run: python3 tools/embedded_gate.py
 
   msrv:
     runs-on: ubuntu-latest
@@ -65,3 +67,5 @@ jobs:
           targets: thumbv6m-none-eabi
       - run: cargo check --workspace --all-targets
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
+      - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
+      - run: python3 tools/embedded_gate.py

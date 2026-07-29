@@ -137,6 +137,9 @@ The current documents are candidates, not a claim of ecosystem stability:
   plan-v9 cross-host bindings, realm-aware live handshakes, finite delivery,
   retry/dedup/reconnect state, carrier-neutral readiness, and correlatable
   transport evidence.
+- [`038-embedded-rp2040-v1.md`](038-embedded-rp2040-v1.md) defines the
+  allocator-free fixed-storage executor, compact exact-plan binding, linked
+  RP2040 firmware budgets, and physical HIL proof boundary.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

@@ -1,0 +1,19 @@
+{
+  "fixture_version": "conduit.rp2040-firmware-hil/v1",
+  "cases": [
+    {
+      "id": "linked-firmware-stream-matches-hil-oracle",
+      "runner": "conduit-rp2040-hil/firmware_contract",
+      "expected": {
+        "same_firmware_path": true,
+        "exact_rp2040_plan_hash": true,
+        "build_input_identity": true,
+        "fresh_capability_report_identity": true,
+        "values": ["0000002a", "01"],
+        "pressure_entered": true,
+        "pressure_cleared": true,
+        "terminal": "succeeded"
+      }
+    }
+  ]
+}

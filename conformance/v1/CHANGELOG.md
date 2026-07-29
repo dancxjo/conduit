@@ -1,5 +1,34 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 31 — 2026-07-29
+
+- Added two independently executed desktop/embedded equivalence cases for the
+  same source-semantic identity and distinct host-specific exact plans:
+  normalized lifecycle, value, pressure, and terminal evidence, plus abort
+  cancellation.
+- Registered the hosted reference beside the allocator-free embedded vectors;
+  the firmware compact representation is pinned to the RP2040 exact plan while
+  both implementations retain the same three-node, two-cord semantic topology.
+
+## Manifest revision 30 — 2026-07-29
+
+- Registered 28 independently executed embedded-profile, fixed-storage,
+  preflight, pressure, timer-wrap, cancellation, reboot, HIL-codec, and
+  replacement-limit cases for issue #28.
+- Proved the maximum supported graph fits RP2040 SRAM, rejected duplicate
+  semantic mappings, retained ignored step-operation faults, and reserved
+  normative evidence before host effects or queue commits.
+- Added a real allocator-free RP2040 firmware ELF and separate cross-link gate
+  for flash, static RAM, declared stack, and forbidden allocator symbols.
+- Shared the exact linked-firmware topology and node path with a host oracle
+  that round-trips every HIL frame and requires the expected values, pressure
+  transitions, and successful terminal event.
+- Bound the linked reference build to a 96 KiB flash profile after including
+  the real generic capability-report path; static RAM remains independently
+  capped at 64 KiB.
+- Kept physical HIL execution distinct: the fixture and codec are software
+  proof, while issue closure still requires an attached-device report.
+
 ## Manifest revision 29 — 2026-07-29
 
 - Registered eight independently executed compile-source limit cases for

@@ -14,10 +14,13 @@ test:
 
 embedded:
     cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
+    cargo check -p conduit-embedded --target thumbv6m-none-eabi
+    python3 tools/embedded_gate.py
 
 msrv:
     cargo +1.85.0 check --workspace --all-targets
     cargo +1.85.0 check -p conduit-core --no-default-features --target thumbv6m-none-eabi
+    cargo +1.85.0 check -p conduit-embedded --target thumbv6m-none-eabi
 
 cli-assets:
     cargo run -p conduct --bin generate-conduct-assets

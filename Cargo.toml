@@ -4,6 +4,7 @@ members = [
     "crates/conduit-compile",
     "crates/conduit-core",
     "crates/conduit-diagnostics",
+    "crates/conduit-embedded",
     "crates/conduit-inspect",
     "crates/conduit-package",
     "crates/conduit-panel",
@@ -11,6 +12,7 @@ members = [
     "crates/conduit-runtime",
     "crates/conduit-web",
     "crates/conduct",
+    "firmware/conduit-rp2040-hil",
 ]
 resolver = "2"
 

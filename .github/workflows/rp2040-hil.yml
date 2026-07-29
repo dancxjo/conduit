@@ -1,0 +1,32 @@
+name: RP2040 HIL
+
+on:
+  workflow_dispatch:
+    inputs:
+      serial_port:
+        description: Pre-flashed Conduit RP2040 HIL USB-CDC path
+        required: true
+        type: string
+      expected_plan_hash:
+        description: Exact full execution-plan hash compiled into the firmware
+        required: true
+        default: sha256:9a413d9dbe0986ff14e47bda7ced704241db96261429d3c39998cef91fa9694f
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  physical-rp2040:
+    runs-on: [self-hosted, rp2040-hil]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv6m-none-eabi
+      - run: python3 tools/embedded_gate.py
+      - run: >-
+          python3 tools/rp2040_hil.py
+          --require-hardware
+          --port "${{ inputs.serial_port }}"
+          --expected-plan-hash "${{ inputs.expected_plan_hash }}"
