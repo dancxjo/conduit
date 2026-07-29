@@ -7,9 +7,15 @@ use wasm_bindgen::prelude::*;
 pub fn parse_panel(source: String) -> String {
     match conduit_panel::parse(&source) {
         Ok(panel) => format!(
-            "{{\"ok\":true,\"nodes\":{},\"cords\":{}}}",
+            "{{\"ok\":true,\"nodes\":{},\"cords\":{},\"node_labels\":[{}]}}",
             panel.nodes.len(),
-            panel.cords.len()
+            panel.cords.len(),
+            panel
+                .nodes
+                .iter()
+                .map(|node| format!("{:?}", format!("{} : {}", node.id, node.kind)))
+                .collect::<Vec<_>>()
+                .join(",")
         ),
         Err(error) => format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
     }

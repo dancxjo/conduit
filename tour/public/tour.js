@@ -10,7 +10,7 @@ function show(lesson) {
   document.querySelector("#goal").textContent = `Production parser check; ${lesson.profile}.`;
   source.value = localStorage.getItem(key(lesson.id)) ?? lesson.source; check();
 }
-function check() { const value = JSON.parse(parse_panel(source.value)); result.textContent = value.ok ? `Valid panel: ${value.nodes} nodes, ${value.cords} cords.` : value.diagnostic; }
+function check() { const value = JSON.parse(parse_panel(source.value)); result.textContent = value.ok ? `Valid panel: ${value.nodes} nodes, ${value.cords} cords.` : value.diagnostic; document.querySelector("#panel").replaceChildren(...(value.node_labels ?? []).map(label => { const item = document.createElement("li"); item.textContent = label; return item; })); }
 for (const lesson of lessons.lessons) { const button = document.createElement("button"); button.textContent = lesson.title; button.onclick = () => show(lesson); const item = document.createElement("li"); item.append(button); document.querySelector("#lessons").append(item); }
 source.addEventListener("input", () => { localStorage.setItem(key(current.id), source.value); check(); });
 document.querySelector("#check").onclick = check;
