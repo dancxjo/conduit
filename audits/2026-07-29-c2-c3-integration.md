@@ -85,6 +85,50 @@ PRs reviewed: #40, #43, #46–#52, #54, #55, and #58. Their merge commits are
 recorded in Git history and all referenced source/specification/fixture files
 exist at the audited baseline.
 
+## Fixture-class map
+
+The manifest's named coverage representatives are not execution filters; the
+reference runs every case. “Malicious/adversarial” below names the cases that
+attempt malformed identities, boundary bypass, hidden data, unbounded state,
+or protocol ambiguity even where the manifest classifies them under negative
+or boundary coverage.
+
+| Issue | Positive | Negative | Boundary | Migration/order | Malicious/adversarial |
+|---|---|---|---|---|---|
+| #5 | exact nominal and provider acceptance | malformed reference and rejected provider decision | missing provider/unknown strategy | directional provider decision | descriptor identity mismatch and invalid provider decision |
+| #6 | complete port acceptance and canonical defaults | direction/type/cardinality/sensitivity failures | committed-to-progressive and optional/default cases | explicit/default equivalence | protected default/semantic identity and implicit adapter rejection |
+| #7 | block/reject and every exact policy | zero/inconsistent capacity and forbidden loss | byte/item/watermark/sample limits | discovery-order-independent type facts | attempted hidden overflow/loss and absent coalescer/disposability proof |
+| #8 | every legal node/composite/run/cord edge | illegal edge and missing cause | terminal-race permutations and storage limits | composite equivalence/new restart attempt | cancellation cycle, overflow, undersized discard/evidence storage |
+| #9 | one-level/nested transparent exports | recursion, dangling/incompatible export/binding | fan-out and nested path flattening | logical/expanded equivalence | direct child-boundary bypass and recursive definitions |
+| #10 | exact capability+grant binding | missing/mismatched/expired/revoked grant | delegation, time, aggregation storage | deterministic candidate order | capability-as-permission attempt and protected-value recording leakage |
+| #11 | minimal/nested exact plan | dangling, unresolved, stale, over-budget, hash mismatch | bounded pool and scratch limits | collection-order-independent identity | duplicate/dangling facts, partial authority, unbounded/overflow allocation |
+| #12 | causal chain and NDJSON replay | malformed payload/reference/sequence | distributed timestamp inversion and redaction | replay/correction equivalence | protected inline data, forged cause, mutation by correction/retraction |
+| #13 | complete request/reference/check round trip | malformed manifest/result and unsupported profile | byte/depth/order seeds | revision versus semantic-version rules | digest drift, duplicate/missing/extra request/result identities |
+| #14 | every grammar production and resolved import | malformed syntax, duplicate, cycle, bad pin | multiple roots, groups, pools, exact literals | trivia/format equivalence and legacy top level | boundary bypass, path escape, unbounded/overflow group/pool, provisional lowering |
+| #15 | all literals/defaults/imports/groups/pools | unknown/missing/mistyped/provider errors | integer limits, protected binding, source origins | map/default/definition format equivalence | nested secret smuggling and protected literal echo attempts |
+| #16 | human/ANSI/JSON render and guarded fixes | stale fix and provider indeterminacy | redaction, multi-file, non-UTF-8 bytes | JSON/fix round trip | malformed schema/spans/fixes, overlapping edits, protected argument leakage |
+
+## Persisted field inventory
+
+This inventory is the compatibility surface downstream issues must reference
+rather than duplicate:
+
+| Record | Persisted semantic fields |
+|---|---|
+| `TypeContractRef` | `contract_id`, `schema_version`, `semantic_hash` |
+| `PortContract` | `id`, `direction`, `value_type`, `presence`, connection/value cardinality, `delivery`, `temporal`, `terminal`, `sensitivity`, `flow.loss` |
+| `ConfigFieldContract` | `key`, exact `value_type`, required/optional/defaulted value, `sensitivity`, `mutability`, semantic/plan `identity` |
+| `FlowPolicy` | item/per-value/aggregate-byte capacity, pressure variant and parameters, low/high watermarks, FIFO block fairness |
+| lifecycle/cancellation | managed or cord state, stable subject/scope/resource identity, parent scope, finite deadline, drain/abort policy, structured terminal cause and causal parent |
+| composite | definition/boundary contract, child IDs/definitions/contracts, bounded internal cords, explicit exports, explicit config bindings, logical instance paths |
+| authority | effect/action/requester/audience/resource selector/constraints, observed capability/host/time window, immutable grant/scope/delegation/audit identity, exact resolved binding, separate revocation observation |
+| `ExecutionPlan` | schema/identity/source hash, resolver/policy/creation time, aggregate budget, host observations, resources, artifacts, nodes, cords, authorities, composite mappings/exports, groups/members, pools/grants, unresolved selectors |
+| `ExecutionEvent` | schema/identity/event/run/plan, append and observer sequences, recorder/observer, logical and expanded paths, kind/detail, named times, correlation, causal/derivation/correction relations, terminality, typed/redacted payload |
+| conformance request/result | protocol/fixture version, stable request and fixture IDs, suite/profile/operation/requirements, deterministic environment, exact input/result fields and structured differences |
+| source/CST/module | exact source bytes/tokens/spans, grammar version, imports/definitions/nodes/cords/roots/groups/pools, module URI/content hash/import edges; selected root is a known A1 correction |
+| lowered source | node path/contract/config/provenance/hash, group member/direction/maximum/port hash/origin, pool policies/bounds/template/hash/origin, source map, aggregate hash; missing topology/constraints are A1 |
+| `Diagnostic` | schema/code/severity/message, primary/related spans, public or redacted arguments, notes/help, guarded unapplied fixes, semantic path, causal codes |
+
 ## Persisted schema and compatibility commitments
 
 | Identity or record | Version/domain | Compatibility commitment |
