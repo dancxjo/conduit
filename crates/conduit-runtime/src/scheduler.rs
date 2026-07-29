@@ -78,6 +78,11 @@ pub struct SchedulerReservation {
 /// Exact preallocation report retained as run-start evidence.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct SchedulerAllocation {
+    pub node_memory_bytes: u64,
+    pub cord_memory_bytes: u64,
+    pub pool_memory_bytes: u64,
+    pub event_stream_memory_bytes: u64,
+    pub job_memory_bytes: u64,
     pub planned_memory_bytes: u64,
     pub planned_evidence_bytes: u64,
     pub queue_payload_bytes: u64,
@@ -88,6 +93,17 @@ pub struct SchedulerAllocation {
     pub wake_interest_slots: u64,
     pub transaction_slots: u64,
     pub event_slots: u32,
+}
+
+/// Deterministic high-water observations. These are measurements of one run,
+/// not semantic guarantees or substitutes for the plan reservation.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct SchedulerHighWater {
+    pub queue_items: u64,
+    pub queue_payload_bytes: u64,
+    pub ready_slots: u32,
+    pub event_slots: u32,
+    pub decisions: u64,
 }
 
 /// Deterministic run state.
@@ -1320,6 +1336,8 @@ pub struct DeterministicExecutor<'p, N> {
     next_event_sequence: u64,
     max_ready_depth: u32,
     max_cord_occupancy: u16,
+    max_queue_items: u64,
+    max_queue_payload_bytes: u64,
     cancellation_started: Option<(u64, StopPolicy)>,
 }
 
@@ -1439,6 +1457,8 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             next_event_sequence: 0,
             max_ready_depth: 0,
             max_cord_occupancy: 0,
+            max_queue_items: 0,
+            max_queue_payload_bytes: 0,
             cancellation_started: None,
         };
         executor.record(
@@ -1519,6 +1539,17 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
     #[must_use]
     pub const fn max_cord_occupancy(&self) -> u16 {
         self.max_cord_occupancy
+    }
+
+    #[must_use]
+    pub fn high_water(&self) -> SchedulerHighWater {
+        SchedulerHighWater {
+            queue_items: self.max_queue_items,
+            queue_payload_bytes: self.max_queue_payload_bytes,
+            ready_slots: self.max_ready_depth,
+            event_slots: u32::try_from(self.events.len).unwrap_or(u32::MAX),
+            decisions: self.decisions,
+        }
     }
 
     #[must_use]
@@ -1869,6 +1900,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
                 return Err(SchedulerError::StepContractViolation);
             }
             self.record_cord_events(input.cord, events)?;
+            self.observe_queue_high_water()?;
             self.wake_for_cord(input.cord)?;
         }
         for output_index in 0..self.workspaces[node].outputs.len() {
@@ -1926,8 +1958,25 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             self.max_cord_occupancy = self
                 .max_cord_occupancy
                 .max(self.cords[output.cord].occupancy_items());
+            self.observe_queue_high_water()?;
             self.wake_for_cord(output.cord)?;
         }
+        Ok(())
+    }
+
+    fn observe_queue_high_water(&mut self) -> Result<(), SchedulerError> {
+        let (items, bytes) = self
+            .cords
+            .iter()
+            .try_fold((0_u64, 0_u64), |(items, bytes), cord| {
+                Some((
+                    items.checked_add(u64::from(cord.occupancy_items()))?,
+                    bytes.checked_add(cord.occupancy_bytes())?,
+                ))
+            })
+            .ok_or(SchedulerError::ArithmeticOverflow)?;
+        self.max_queue_items = self.max_queue_items.max(items);
+        self.max_queue_payload_bytes = self.max_queue_payload_bytes.max(bytes);
         Ok(())
     }
 
@@ -2191,7 +2240,29 @@ fn compute_allocation(
     plan: &ExecutionPlan<'_>,
     policy: SchedulerPolicy,
 ) -> Result<SchedulerAllocation, SchedulerError> {
-    let planned_memory_bytes = planned_memory(plan)?;
+    let node_memory_bytes = sum_memory(plan.nodes.iter().map(|node| node.allocation.memory_bytes))?;
+    let cord_memory_bytes = sum_memory(plan.cords.iter().map(|cord| cord.queue_memory_bytes))?;
+    let pool_memory_bytes = sum_memory(
+        plan.instance_pools
+            .iter()
+            .map(|pool| pool.worst_case_budget.memory_bytes),
+    )?;
+    let event_stream_memory_bytes = sum_memory(
+        plan.event_streams
+            .iter()
+            .map(|stream| stream.allocation.memory_bytes),
+    )?;
+    let job_memory_bytes = sum_memory(plan.jobs.iter().map(|job| job.allocation.memory_bytes))?;
+    let planned_memory_bytes = [
+        node_memory_bytes,
+        cord_memory_bytes,
+        pool_memory_bytes,
+        event_stream_memory_bytes,
+        job_memory_bytes,
+    ]
+    .into_iter()
+    .try_fold(0_u64, u64::checked_add)
+    .ok_or(SchedulerError::ArithmeticOverflow)?;
     let planned_evidence_bytes = planned_evidence(plan)?;
     let queue_payload_bytes = plan.cords.iter().try_fold(0_u64, |total, cord| {
         total.checked_add(cord.queue_memory_bytes)
@@ -2272,6 +2343,11 @@ fn compute_allocation(
     .ok_or(SchedulerError::ArithmeticOverflow)?;
 
     Ok(SchedulerAllocation {
+        node_memory_bytes,
+        cord_memory_bytes,
+        pool_memory_bytes,
+        event_stream_memory_bytes,
+        job_memory_bytes,
         planned_memory_bytes,
         planned_evidence_bytes,
         queue_payload_bytes: queue_payload_bytes.ok_or(SchedulerError::ArithmeticOverflow)?,
@@ -2285,19 +2361,9 @@ fn compute_allocation(
     })
 }
 
-fn planned_memory(plan: &ExecutionPlan<'_>) -> Result<u64, SchedulerError> {
-    let nodes = plan.nodes.iter().try_fold(0_u64, |total, node| {
-        total.checked_add(node.allocation.memory_bytes)
-    });
-    let cords = plan.cords.iter().try_fold(0_u64, |total, cord| {
-        total.checked_add(cord.queue_memory_bytes)
-    });
-    let pools = plan.instance_pools.iter().try_fold(0_u64, |total, pool| {
-        total.checked_add(pool.worst_case_budget.memory_bytes)
-    });
-    nodes
-        .and_then(|value| value.checked_add(cords?))
-        .and_then(|value| value.checked_add(pools?))
+fn sum_memory(mut values: impl Iterator<Item = u64>) -> Result<u64, SchedulerError> {
+    values
+        .try_fold(0_u64, u64::checked_add)
         .ok_or(SchedulerError::ArithmeticOverflow)
 }
 
@@ -2305,10 +2371,18 @@ fn planned_evidence(plan: &ExecutionPlan<'_>) -> Result<u64, SchedulerError> {
     let nodes = plan.nodes.iter().try_fold(0_u64, |total, node| {
         total.checked_add(node.allocation.evidence_bytes)
     });
+    let streams = plan.event_streams.iter().try_fold(0_u64, |total, stream| {
+        total.checked_add(stream.allocation.evidence_bytes)
+    });
+    let jobs = plan.jobs.iter().try_fold(0_u64, |total, job| {
+        total.checked_add(job.allocation.evidence_bytes)
+    });
     let pools = plan.instance_pools.iter().try_fold(0_u64, |total, pool| {
         total.checked_add(pool.worst_case_budget.evidence_bytes)
     });
     nodes
+        .and_then(|value| value.checked_add(streams?))
+        .and_then(|value| value.checked_add(jobs?))
         .and_then(|value| value.checked_add(pools?))
         .ok_or(SchedulerError::ArithmeticOverflow)
 }

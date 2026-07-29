@@ -687,6 +687,12 @@ fn exact_preallocation_and_atomic_startup() {
         )
         .unwrap();
         let allocation = executor.allocation();
+        assert_eq!(allocation.node_memory_bytes, 1_024);
+        assert_eq!(allocation.cord_memory_bytes, 128);
+        assert_eq!(allocation.pool_memory_bytes, 0);
+        assert_eq!(allocation.event_stream_memory_bytes, 0);
+        assert_eq!(allocation.job_memory_bytes, 0);
+        assert_eq!(allocation.planned_memory_bytes, 1_152);
         assert_eq!(allocation.queue_payload_bytes, 128);
         assert_eq!(allocation.queue_slots, 2);
         assert_eq!(allocation.ready_slots, 2);
@@ -694,6 +700,8 @@ fn exact_preallocation_and_atomic_startup() {
         assert!(allocation.scheduler_evidence_bytes > 0);
         assert_eq!(executor.policy(), policy(100, 1_000));
         assert!(allocation.planned_memory_bytes + allocation.executor_overhead_bytes <= 32_000_000);
+        assert_eq!(executor.high_water().queue_items, 0);
+        assert_eq!(executor.high_water().queue_payload_bytes, 0);
 
         let mut no_evidence_plan = ExecutionPlan {
             identity: ZERO,
@@ -932,6 +940,14 @@ fn bounded_fragments_preserve_zero_copy_handle_identity() {
         );
         assert_eq!(&*seen.borrow(), &[u64::MAX - 3, u64::MAX - 2, u64::MAX - 1]);
         assert!(executor.max_cord_occupancy() <= 2);
+        let high_water = executor.high_water();
+        assert!(high_water.queue_items <= 2);
+        assert!(high_water.queue_payload_bytes <= plan.cords[0].queue_memory_bytes);
+        assert_eq!(high_water.decisions, executor.decisions());
+        assert_eq!(
+            usize::try_from(high_water.event_slots).unwrap(),
+            executor.event_count()
+        );
     });
 }
 

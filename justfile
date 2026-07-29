@@ -25,7 +25,10 @@ cli-assets:
 cli-assets-check:
     cargo run -p conduct --bin generate-conduct-assets -- --check
 
-sup: fmt lint test embedded
+perf:
+    python3 tools/performance_gate.py
+
+sup: fmt lint test embedded perf
 
 run panel="examples/hello.panel":
     cargo run -p conduct -- {{panel}}

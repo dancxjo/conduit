@@ -108,6 +108,9 @@ The current documents are candidates, not a claim of ecosystem stability:
   executor observations into immutable ExecutionEvent v1 records on the
   shared Resonance fabric with plan-v8 sampling, capacity, path, latency,
   derivation, redaction, and terminal invariants.
+- [`030-performance-and-resource-accounting-v1.md`](030-performance-and-resource-accounting-v1.md)
+  defines reproducible report metadata, strict deterministic resource/size
+  gates, reviewed baselines, and explicit future workload ownership.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

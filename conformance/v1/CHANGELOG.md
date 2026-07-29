@@ -1,5 +1,17 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 18 — 2026-07-29
+
+- Added the `performance-accounting` suite for issue #24.
+- Added reviewed report metadata, workload inventory, category-complete
+  scheduler allocation/high-water accounting, release artifact size gates,
+  and explicit future-workload ownership.
+- Shared-runner wall time remains report-only; deterministic resource and
+  artifact-growth gates are strict.
+- Requirement IDs: `PRF-001` through `PRF-008`.
+- Migration: CI must run the checked-in performance gate; benchmarks do not
+  become #83 workload or deadline guarantees.
+
 ## Manifest revision 17 — 2026-07-29
 
 - Added the `runtime-evidence` suite for issue #23.

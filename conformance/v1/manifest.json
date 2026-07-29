@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 17,
+  "manifest_revision": 18,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2833,6 +2833,101 @@
         {
           "package": "conduct",
           "test": "run_stream"
+        }
+      ]
+    },
+    {
+      "id": "performance-accounting",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "PRF-001",
+        "PRF-002",
+        "PRF-003",
+        "PRF-004",
+        "PRF-005",
+        "PRF-006",
+        "PRF-007",
+        "PRF-008"
+      ],
+      "artifacts": [
+        {
+          "id": "performance-v1",
+          "path": "../c4/performance-v1.json",
+          "sha256": "sha256:c84b12e3441b398294a114ef537337dbc26b059780666480e223d6b2ca9f1e0b",
+          "operation": "performance-v1",
+          "requirement_ids": [
+            "PRF-001",
+            "PRF-002",
+            "PRF-003",
+            "PRF-004",
+            "PRF-005",
+            "PRF-006",
+            "PRF-007",
+            "PRF-008"
+          ],
+          "default_rule": "PRF-001",
+          "case_rules": {
+            "canonicalization-workload": "PRF-002",
+            "compatibility-workload": "PRF-002",
+            "panel-parse-and-lowering-workloads": "PRF-002",
+            "small-medium-reviewed-maximum-graphs": "PRF-002",
+            "plan-validation-workload": "PRF-002",
+            "scheduler-latency-throughput-workload": "PRF-002",
+            "fanout-pressure-workload": "PRF-002",
+            "evidence-recording-workload": "PRF-002",
+            "wall-time-never-portable-hard-gate": "PRF-003",
+            "planned-memory-reconciles-all-categories": "PRF-004",
+            "executor-overhead-is-separate-and-complete": "PRF-004",
+            "allocation-overflow-fails-before-prepare": "PRF-004",
+            "queue-ready-event-decision-high-water": "PRF-005",
+            "process-rss-not-hard-memory-profile": "PRF-005",
+            "conduct-release-size-tracked": "PRF-006",
+            "core-release-size-tracked": "PRF-006",
+            "thumb-core-size-tracked-with-honest-label": "PRF-006",
+            "growth-requires-percent-and-absolute-policy": "PRF-007",
+            "growth-over-limit-fails": "PRF-007",
+            "baseline-owner-and-update-procedure": "PRF-008",
+            "no-opaque-local-cache-baseline": "PRF-008",
+            "future-workloads-keep-owning-issues": "PRF-008",
+            "benchmark-never-becomes-deadline-guarantee": "PRF-003"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "performance-v1#report-identifies-commit-toolchain-target-host-cpu-fixture",
+          "performance-v1#planned-memory-reconciles-all-categories",
+          "performance-v1#queue-ready-event-decision-high-water",
+          "performance-v1#conduct-release-size-tracked"
+        ],
+        "negative": [
+          "performance-v1#allocation-overflow-fails-before-prepare",
+          "performance-v1#growth-over-limit-fails",
+          "performance-v1#process-rss-not-hard-memory-profile",
+          "performance-v1#benchmark-never-becomes-deadline-guarantee"
+        ],
+        "boundary": [
+          "performance-v1#wall-time-never-portable-hard-gate",
+          "performance-v1#thumb-core-size-tracked-with-honest-label",
+          "performance-v1#growth-requires-percent-and-absolute-policy"
+        ],
+        "migration": [
+          "performance-v1#baseline-owner-and-update-procedure",
+          "performance-v1#future-workloads-keep-owning-issues"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "performance_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "scheduler"
         }
       ]
     }

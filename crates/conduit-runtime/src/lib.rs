@@ -50,8 +50,8 @@ pub use runtime_evidence::{
 };
 pub use scheduler::{
     DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerAllocation, SchedulerError,
-    SchedulerEvent, SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus,
-    SchedulerStep, SchedulerSubject, SendStatus, StepIo,
+    SchedulerEvent, SchedulerEventKind, SchedulerHighWater, SchedulerNode, SchedulerReservation,
+    SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LiteralValidationError,

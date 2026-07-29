@@ -1,0 +1,29 @@
+{
+  "suite": "conduit.performance/v1",
+  "cases": [
+    {"id":"report-identifies-commit-toolchain-target-host-cpu-fixture","runner":"performance-gate","expected":{"metadata_complete":true}},
+    {"id":"canonicalization-workload","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"compatibility-workload","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"panel-parse-and-lowering-workloads","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"small-medium-reviewed-maximum-graphs","runner":"performance-gate","expected":{"nodes":[2,32,256]}},
+    {"id":"plan-validation-workload","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"scheduler-latency-throughput-workload","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"fanout-pressure-workload","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"evidence-recording-workload","runner":"performance-gate","expected":{"timing":"report-only"}},
+    {"id":"wall-time-never-portable-hard-gate","runner":"performance-gate","expected":{"portable_guarantee":false}},
+    {"id":"planned-memory-reconciles-all-categories","runner":"runtime-accounting","expected":{"node":true,"cord":true,"pool":true,"event_stream":true,"job":true}},
+    {"id":"executor-overhead-is-separate-and-complete","runner":"runtime-accounting","expected":{"queue":true,"ready":true,"wake":true,"transaction":true,"evidence":true,"metadata":true,"startup":true}},
+    {"id":"allocation-overflow-fails-before-prepare","runner":"runtime-accounting","expected":{"prepared":false}},
+    {"id":"queue-ready-event-decision-high-water","runner":"runtime-accounting","expected":{"bounded":true,"guarantee":false}},
+    {"id":"process-rss-not-hard-memory-profile","runner":"runtime-accounting","expected":{"accepted":false}},
+    {"id":"conduct-release-size-tracked","runner":"performance-gate","expected":{"kind":"host-executable"}},
+    {"id":"core-release-size-tracked","runner":"performance-gate","expected":{"kind":"host-library-archive"}},
+    {"id":"thumb-core-size-tracked-with-honest-label","runner":"performance-gate","expected":{"kind":"embedded-library-archive-not-flash"}},
+    {"id":"growth-requires-percent-and-absolute-policy","runner":"performance-gate","expected":{"reviewed_thresholds":true}},
+    {"id":"growth-over-limit-fails","runner":"performance-gate","expected":{"exit_status":1}},
+    {"id":"baseline-owner-and-update-procedure","runner":"performance-gate","expected":{"owner":true,"reviewed_update":true}},
+    {"id":"no-opaque-local-cache-baseline","runner":"performance-gate","expected":{"accepted":false}},
+    {"id":"future-workloads-keep-owning-issues","runner":"performance-gate","expected":{"tongues":31,"netherwick":33,"rp2040":28,"transition":57}},
+    {"id":"benchmark-never-becomes-deadline-guarantee","runner":"performance-gate","expected":{"owner":83}}
+  ]
+}
