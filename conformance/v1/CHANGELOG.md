@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 9 — 2026-07-29
+
+- Added the `inspection` suite and language-neutral
+  `conformance/c3/inspection-v1.json` fixture for issue #19.
+- Added bounded marker-only inspection for panel source, typed lowerings and
+  plans, execution evidence, structured diagnostics, and conformance data.
+- Froze structural redaction, local-reference confinement, no-execution
+  behavior, finite CLI streams, generated assets, and output-failure policy.
+- Requirement IDs: `INSP-001` through `INSP-015`.
+- Migration: the additive `conduct inspect` secondary operation preserves the
+  canonical run/check/explain path and rejects ad-hoc plan/lowering encodings
+  until an owning standalone codec is specified.
+
 ## Manifest revision 8 — 2026-07-29
 
 - Added the `conduct-output` suite and language-neutral

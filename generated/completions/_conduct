@@ -30,13 +30,46 @@ _conduct() {
 '-V[Print version]' \
 '--version[Print version]' \
 '::panel -- Read editable source from this file, or `-`/no path for stdin:_files' \
+":: :_conduct_commands" \
+"*::: :->conduct" \
 && ret=0
+    case $state in
+    (conduct)
+        words=($line[2] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:conduct-command-$line[2]:"
+        case $line[2] in
+            (inspect)
+_arguments "${_arguments_options[@]}" : \
+'--type=[Select a frozen artifact kind, or use marker-only detection]:TYPE:(auto panel lowered-source execution-plan evidence diagnostic conformance)' \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':artifact -- Read the artifact from this file, or `-` for stdin:_files' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
 }
 
 (( $+functions[_conduct_commands] )) ||
 _conduct_commands() {
-    local commands; commands=()
+    local commands; commands=(
+'inspect:Validate and describe one artifact without executing it' \
+    )
     _describe -t commands 'conduct commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__inspect_commands] )) ||
+_conduct__subcmd__inspect_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct inspect commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_conduct" ]; then

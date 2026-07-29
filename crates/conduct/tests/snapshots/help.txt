@@ -2,6 +2,9 @@ Conduct a typed node arrangement.
 
 Usage: conduct [--check | --explain | --run] [PANEL | -]
 
+Commands:
+  inspect  Validate and describe one artifact without executing it
+
 Arguments:
   [PANEL]  Read editable source from this file, or `-`/no path for stdin
 

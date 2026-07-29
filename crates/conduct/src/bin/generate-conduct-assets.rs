@@ -72,6 +72,33 @@ Two indicates a command, source, resolution, runtime, or non-broken output failu
 "#,
     );
     assets.push((PathBuf::from("generated/man/conduct.1"), manual));
+
+    let mut inspect = command()
+        .find_subcommand("inspect")
+        .expect("the shared command model defines inspect")
+        .clone();
+    inspect = inspect.name("conduct-inspect").bin_name("conduct inspect");
+    let mut inspect_manual = Vec::new();
+    clap_mangen::Man::new(inspect)
+        .render(&mut inspect_manual)
+        .expect("rendering the inspect command into memory cannot fail");
+    inspect_manual = trim_trailing_whitespace(&inspect_manual);
+    inspect_manual.extend_from_slice(
+        br#".SH SAFETY
+Inspection is read-only, bounded, marker-based, and non-executing.
+It performs no network access, provider discovery, secret resolution, authority acquisition, dynamic loading, or artifact execution.
+.SH STREAMS
+Human or conduit.result/v1 inspection results are written to stdout.
+Human or versioned JSON diagnostics are written to stderr.
+.SH EXIT STATUS
+Zero indicates successful validation or normal downstream pipe closure.
+Two indicates a command, input, validation, limit, or non-broken output failure.
+"#,
+    );
+    assets.push((
+        PathBuf::from("generated/man/conduct-inspect.1"),
+        inspect_manual,
+    ));
     assets
 }
 

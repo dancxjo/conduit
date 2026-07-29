@@ -2,7 +2,9 @@
 
 use std::path::PathBuf;
 
-use clap::{ArgAction, ArgGroup, Command, CommandFactory, Parser, ValueEnum};
+use clap::{
+    ArgAction, ArgGroup, Args as ClapArgs, Command, CommandFactory, Parser, Subcommand, ValueEnum,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Mode {
@@ -35,6 +37,38 @@ pub enum OutputFormat {
     Ndjson,
 }
 
+/// Frozen artifact marker requested for read-only inspection.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub enum InspectKind {
+    #[default]
+    Auto,
+    Panel,
+    LoweredSource,
+    ExecutionPlan,
+    Evidence,
+    Diagnostic,
+    Conformance,
+}
+
+/// Additive operations that do not reinterpret ordinary paths after `--`.
+#[derive(Debug, Eq, PartialEq, Subcommand)]
+pub enum SecondaryCommand {
+    /// Validate and describe one artifact without executing it.
+    Inspect(InspectArguments),
+}
+
+/// Inputs for bounded, non-executing artifact inspection.
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct InspectArguments {
+    /// Select a frozen artifact kind, or use marker-only detection.
+    #[arg(long = "type", value_name = "TYPE", value_enum, default_value_t)]
+    pub kind: InspectKind,
+
+    /// Read the artifact from this file, or `-` for stdin.
+    #[arg(value_name = "ARTIFACT")]
+    pub artifact: PathBuf,
+}
+
 /// Check, explain, and run one typed node arrangement.
 #[derive(Debug, Eq, Parser, PartialEq)]
 #[command(
@@ -59,32 +93,41 @@ pub struct Arguments {
     pub run: bool,
 
     /// Select human, finite JSON, or streaming NDJSON primary output.
-    #[arg(long, value_enum, default_value_t)]
+    #[arg(long, value_enum, default_value_t, global = true)]
     pub format: OutputFormat,
 
     /// Select human or lossless JSON diagnostics on stderr.
-    #[arg(long, value_enum, default_value_t)]
+    #[arg(long, value_enum, default_value_t, global = true)]
     pub diagnostic_format: DiagnosticFormat,
 
     /// Select diagnostic terminal styling.
-    #[arg(long, value_enum, default_value_t)]
+    #[arg(long, value_enum, default_value_t, global = true)]
     pub color: ColorChoice,
 
     /// Suppress nonessential status and progress, never values or diagnostics.
-    #[arg(short, long, conflicts_with = "verbose")]
+    #[arg(short, long, conflicts_with = "verbose", global = true)]
     pub quiet: bool,
 
     /// Add bounded resolution status detail; repeat for future detail levels.
-    #[arg(short = 'v', action = ArgAction::Count, conflicts_with = "quiet")]
+    #[arg(
+        short = 'v',
+        action = ArgAction::Count,
+        conflicts_with = "quiet",
+        global = true
+    )]
     pub verbose: u8,
 
     /// Include related spans, notes, paths, and causes.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub verbose_diagnostics: bool,
 
     /// Read editable source from this file, or `-`/no path for stdin.
     #[arg(value_name = "PANEL")]
     pub panel: Option<PathBuf>,
+
+    /// Additive read-only operations.
+    #[command(subcommand)]
+    pub secondary: Option<SecondaryCommand>,
 }
 
 impl Arguments {

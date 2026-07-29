@@ -8,10 +8,16 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 use clap::error::ErrorKind;
-use conduct::{Arguments, ColorChoice, DiagnosticFormat, Mode, OutputFormat};
+use conduct::{
+    Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, SecondaryCommand,
+};
 use conduit_diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, DiagnosticSource, OwnedDiagnostic, TerminalColor, TerminalVerbosity,
     from_parse_error, from_resolution_error, from_runtime_error, render_terminal,
+};
+use conduit_inspect::{
+    ArtifactKind, InspectLimits, RequestedKind, inspect_bytes, inspect_conformance_manifest_path,
+    inspect_panel_path, read_bounded, read_stream_bounded,
 };
 use conduit_panel::parse;
 use conduit_runtime::{ExecutionSummary, Registry, ResolvedPanelView, RunIo};
@@ -211,6 +217,15 @@ fn run(
     };
     let presentation = presentation(&arguments);
     validate_output_format(&arguments, presentation)?;
+    if let Some(SecondaryCommand::Inspect(inspect)) = &arguments.secondary {
+        return run_inspect(
+            &arguments,
+            inspect,
+            presentation,
+            environment,
+            stderr_is_terminal,
+        );
+    }
     let started = Instant::now();
 
     let stdin = io::stdin();
@@ -479,14 +494,33 @@ fn validate_output_format(
     arguments: &Arguments,
     presentation: PresentationOptions,
 ) -> Result<(), CliError> {
-    let message = match (arguments.mode(), arguments.format) {
-        (Mode::Check | Mode::Explain, OutputFormat::Ndjson) => {
-            Some("finite check and explain operations use `--format=human` or `--format=json`")
+    if arguments.secondary.is_some() && (arguments.check || arguments.explain || arguments.run) {
+        return Err(cli_error(
+            simple_diagnostic(
+                "CND-CLI-004",
+                "secondary operations cannot be combined with check, explain, or run",
+            ),
+            presentation,
+            vec![],
+        ));
+    }
+    let message = if arguments.secondary.is_some() {
+        match arguments.format {
+            OutputFormat::Human | OutputFormat::Json => None,
+            OutputFormat::Ndjson => {
+                Some("finite inspect operations use `--format=human` or `--format=json`")
+            }
         }
-        (Mode::Run, OutputFormat::Json) => {
-            Some("streaming run output uses `--format=human` or `--format=ndjson`")
+    } else {
+        match (arguments.mode(), arguments.format) {
+            (Mode::Check | Mode::Explain, OutputFormat::Ndjson) => {
+                Some("finite check and explain operations use `--format=human` or `--format=json`")
+            }
+            (Mode::Run, OutputFormat::Json) => {
+                Some("streaming run output uses `--format=human` or `--format=ndjson`")
+            }
+            _ => None,
         }
-        _ => None,
     };
     if let Some(message) = message {
         let mut diagnostic = simple_diagnostic("CND-CLI-003", message);
@@ -497,6 +531,103 @@ fn validate_output_format(
         return Err(cli_error(diagnostic, presentation, vec![]));
     }
     Ok(())
+}
+
+fn run_inspect(
+    arguments: &Arguments,
+    inspect: &conduct::InspectArguments,
+    presentation: PresentationOptions,
+    environment: &EnvironmentPolicy,
+    stderr_is_terminal: bool,
+) -> Result<Completion, CliError> {
+    let started = Instant::now();
+    let limits = InspectLimits::default();
+    let status_enabled = !arguments.quiet
+        && arguments.format == OutputFormat::Human
+        && environment.status_enabled(arguments.diagnostic_format, stderr_is_terminal);
+    let label = inspect.artifact.display().to_string();
+    emit_status(status_enabled, "Inspecting", &label);
+    let requested = requested_inspect_kind(inspect.kind);
+    let extension = inspect
+        .artifact
+        .extension()
+        .and_then(|value| value.to_str());
+    let (bytes, local_path) = if inspect.artifact.as_os_str() == "-" {
+        let stdin = io::stdin();
+        let mut stdin = stdin.lock();
+        (
+            read_stream_bounded(&mut stdin, limits.max_input_bytes)
+                .map_err(|error| inspection_error(error, presentation))?,
+            None,
+        )
+    } else {
+        (
+            read_bounded(&inspect.artifact, limits.max_input_bytes)
+                .map_err(|error| inspection_error(error, presentation))?,
+            Some(inspect.artifact.as_path()),
+        )
+    };
+    let mut report = inspect_bytes(&bytes, requested, extension, limits)
+        .map_err(|error| inspection_error(error, presentation))?;
+    if report.kind == ArtifactKind::PanelSource {
+        if let Some(path) = local_path {
+            report = inspect_panel_path(path, limits)
+                .map_err(|error| inspection_error(error, presentation))?;
+        }
+    } else if report.kind == ArtifactKind::ConformanceManifest {
+        if let Some(path) = local_path {
+            report = inspect_conformance_manifest_path(path, limits)
+                .map_err(|error| inspection_error(error, presentation))?;
+        }
+    }
+    if arguments.verbose > 0 {
+        emit_status(
+            status_enabled,
+            "Identified",
+            &format!("{} v{}", report.kind.as_str(), report.artifact_version),
+        );
+    }
+    let completion = match arguments.format {
+        OutputFormat::Human => write_primary(report.render_human().as_bytes(), presentation)?,
+        OutputFormat::Json => write_json_primary(
+            &FiniteResult {
+                schema: "conduit.result/v1",
+                schema_version: 1,
+                operation: "inspect",
+                result: report,
+            },
+            presentation,
+        )?,
+        OutputFormat::Ndjson => unreachable!("validated above"),
+    };
+    if completion == Completion::BrokenPipe {
+        return Ok(completion);
+    }
+    emit_finished(status_enabled, "inspect", started.elapsed(), &label);
+    Ok(Completion::Success)
+}
+
+const fn requested_inspect_kind(kind: InspectKind) -> RequestedKind {
+    match kind {
+        InspectKind::Auto => RequestedKind::Auto,
+        InspectKind::Panel => RequestedKind::Panel,
+        InspectKind::LoweredSource => RequestedKind::LoweredSource,
+        InspectKind::ExecutionPlan => RequestedKind::ExecutionPlan,
+        InspectKind::Evidence => RequestedKind::Evidence,
+        InspectKind::Diagnostic => RequestedKind::Diagnostic,
+        InspectKind::Conformance => RequestedKind::Conformance,
+    }
+}
+
+fn inspection_error(
+    error: conduit_inspect::InspectionError,
+    presentation: PresentationOptions,
+) -> CliError {
+    cli_error(
+        simple_diagnostic(error.code, &error.message),
+        presentation,
+        vec![],
+    )
 }
 
 const fn mode_name(mode: Mode) -> &'static str {

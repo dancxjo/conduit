@@ -3,6 +3,7 @@ members = [
     "crates/conduit-conformance",
     "crates/conduit-core",
     "crates/conduit-diagnostics",
+    "crates/conduit-inspect",
     "crates/conduit-panel",
     "crates/conduit-runtime",
     "crates/conduct",

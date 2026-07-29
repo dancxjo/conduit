@@ -88,6 +88,20 @@ completion. Primary `--format` is separate: check/explain use finite
 general terminal status detail and remains distinct from
 `--verbose-diagnostics`.
 
+Safely inspect supported artifacts without executing them:
+
+```sh
+conduct inspect examples/hello.panel
+conduct inspect --format=json conformance/v1/manifest.json
+conduct inspect --type=evidence run-events.ndjson
+```
+
+Inspection uses frozen markers, fixed byte/record/depth/module limits, and
+structural redaction. It performs no network access, provider discovery,
+secret resolution, authority acquisition, dynamic loading, or artifact
+execution. Source, lowering, exact plans, evidence, diagnostics, content
+digests, and inspection reports retain distinct identities.
+
 ## Why the runtime is opinionated
 
 Conduit treats runtime behavior as part of the system’s meaning rather than as
@@ -141,6 +155,8 @@ This repository contains the first executable Plan C foundation:
   module resolution, reusable definitions, groups, and finite pools;
 - `conduit-diagnostics`: owned structured diagnostics, lossless JSON, guarded
   source fixes, cross-file spans, and concise/verbose terminal rendering;
+- `conduit-inspect`: hosted bounded, marker-only, non-executing artifact
+  validation and value-safe reports;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
   one-shot executor;
 - `conduct`: the Unix command-line interface.

@@ -142,6 +142,10 @@ infer result schema from diagnostic format, treat run records as finite
 results, treat a summary as immutable evidence, or silently fall back from an
 unsupported format.
 
+Specification 021 adds finite `inspect` results and a generated
+`conduct-inspect(1)` page without changing the result/diagnostic selectors or
+the canonical run/check/explain defaults here.
+
 ## Normative requirements
 
 | ID | Obligation |

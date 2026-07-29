@@ -76,6 +76,9 @@ The current documents are candidates, not a claim of ecosystem stability:
   completions and manuals, independent result and diagnostic selectors,
   finite result JSON, ordered run NDJSON, quiet/verbosity, bounded progress,
   and machine-safe stream behavior.
+- [`021-safe-inspection-v1.md`](021-safe-inspection-v1.md) freezes bounded,
+  marker-only, non-executing inspection across source, lowering, plan,
+  evidence, diagnostic, and conformance identities with structural redaction.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
