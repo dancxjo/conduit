@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 5,
+  "manifest_revision": 6,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1436,6 +1436,117 @@
           "package": "conduit-diagnostics",
           "test": "diagnostic_vectors"
         },
+        {
+          "package": "conduct",
+          "test": "diagnostics_cli"
+        }
+      ]
+    },
+    {
+      "id": "conduct-cli",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003",
+        "CLI-004",
+        "CLI-005",
+        "CLI-006",
+        "CLI-007",
+        "CLI-008",
+        "CLI-009",
+        "CLI-010",
+        "CLI-011",
+        "CLI-012"
+      ],
+      "artifacts": [
+        {
+          "id": "conduct-cli-command-v1",
+          "path": "../c3/conduct-cli-v1.json",
+          "sha256": "sha256:fc581865fbb40dd5f0f2ca7db0936fdb3ce85378fbc9b86cf74ebe10ea375306",
+          "operation": "conduct-cli-command-v1",
+          "requirement_ids": [
+            "CLI-001",
+            "CLI-002",
+            "CLI-003",
+            "CLI-004",
+            "CLI-005",
+            "CLI-006",
+            "CLI-009",
+            "CLI-010",
+            "CLI-011",
+            "CLI-012"
+          ],
+          "default_rule": "CLI-001",
+          "case_rules": {
+            "mutually-exclusive-modes-human": "CLI-002",
+            "canonical-diagnostic-flags": "CLI-003",
+            "diagnostic-json-clean-stdout": "CLI-006",
+            "broken-stdout-pipe": "CLI-009",
+            "closed-stderr": "CLI-010",
+            "stdout-write-failure": "CLI-010",
+            "warning-presentation": "CLI-004"
+          },
+          "format": "json-vectors",
+          "collection": "command_cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        },
+        {
+          "id": "conduct-cli-presentation-v1",
+          "path": "../c3/conduct-cli-v1.json",
+          "sha256": "sha256:fc581865fbb40dd5f0f2ca7db0936fdb3ce85378fbc9b86cf74ebe10ea375306",
+          "operation": "conduct-cli-presentation-v1",
+          "requirement_ids": [
+            "CLI-005",
+            "CLI-007",
+            "CLI-008",
+            "CLI-011"
+          ],
+          "default_rule": "CLI-007",
+          "case_rules": {
+            "non-tty-auto": "CLI-008",
+            "term-dumb": "CLI-008",
+            "diagnostic-json-tty": "CLI-011",
+            "run-has-no-spinner": "CLI-008"
+          },
+          "format": "json-vectors",
+          "collection": "presentation_cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "conduct-cli-command-v1#default-run-file",
+          "conduct-cli-command-v1#check-file",
+          "conduct-cli-command-v1#diagnostic-json-clean-stdout"
+        ],
+        "negative": [
+          "conduct-cli-command-v1#mutually-exclusive-modes-human",
+          "conduct-cli-command-v1#missing-file",
+          "conduct-cli-command-v1#stdout-write-failure"
+        ],
+        "boundary": [
+          "conduct-cli-command-v1#invalid-utf8-stdin",
+          "conduct-cli-command-v1#broken-stdout-pipe",
+          "conduct-cli-presentation-v1#term-dumb"
+        ],
+        "migration": [
+          "conduct-cli-command-v1#ordinary-run-path-not-subcommand",
+          "conduct-cli-command-v1#canonical-diagnostic-flags",
+          "conduct-cli-presentation-v1#diagnostic-json-tty"
+        ]
+      },
+      "reference_tests": [
         {
           "package": "conduct",
           "test": "diagnostics_cli"

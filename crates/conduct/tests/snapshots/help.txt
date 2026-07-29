@@ -1,0 +1,24 @@
+Conduct a typed node arrangement.
+
+Usage: conduct [--check | --explain | --run] [PANEL | -]
+
+Arguments:
+  [PANEL]  Read editable source from this file, or `-`/no path for stdin
+
+Options:
+      --check
+          Parse, resolve, and validate without starting nodes
+      --explain
+          Show exact node, port, cord, type, and flow resolution
+      --run
+          Run the panel (the default mode)
+      --diagnostic-format <DIAGNOSTIC_FORMAT>
+          Select human or lossless JSON diagnostics on stderr [default: human] [possible values: human, json]
+      --color <COLOR>
+          Select diagnostic terminal styling [default: auto] [possible values: auto, always, never]
+      --verbose-diagnostics
+          Include related spans, notes, paths, and causes
+  -h, --help
+          Print help
+  -V, --version
+          Print version

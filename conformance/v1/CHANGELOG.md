@@ -1,5 +1,22 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 6 — 2026-07-29
+
+- Added the `conduct-cli` suite and language-neutral
+  `conformance/c3/conduct-cli-v1.json` command and presentation cases for
+  issue #17.
+- Preserved the canonical no-subcommand invocation and structured diagnostic
+  flags while freezing stream ownership, TTY/environment color precedence,
+  bounded status, broken-pipe, closed-stderr, and input/output failure
+  behavior.
+- Recorded help and argument snapshots plus release startup and binary-size
+  measurements; result/evidence formats and progress machinery remain owned by
+  issue #18.
+- Requirement IDs: `CLI-001` through `CLI-012`.
+- Migration: runners supporting `conduit.c3` but not these hosted CLI
+  operations must report them as unsupported rather than silently skipping
+  them.
+
 ## Manifest revision 5 — 2026-07-29
 
 - Added the `port-groups-correlation` suite and the language-neutral

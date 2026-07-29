@@ -1,0 +1,2 @@
+error[CND-CLI-001]: the argument '--check' cannot be used with '--run'
+help: run `conduct --help` for the canonical invocation

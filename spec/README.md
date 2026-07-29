@@ -64,6 +64,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   reconciles finite keyed/indexed port groups through source, lowering,
   plan-v2, exports, and evidence, and freezes distinct correlation identity
   allocators, scopes, lifetimes, and propagation.
+- [`018-conduct-cli-v1.md`](018-conduct-cli-v1.md) freezes the canonical
+  `conduct` command model, structured failure routing, stdout/stderr ownership,
+  terminal and color policy, broken-pipe behavior, and measured dependency
+  cost.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
