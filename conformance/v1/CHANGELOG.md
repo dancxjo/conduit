@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 21 — 2026-07-29
+
+- Added the `realms-passports` C2/C4 suite for issue #88.
+- Froze separate realm, entity, public-key, credential, role, delegation,
+  grant, capability, artifact, transport, federation, status, and event
+  authorship identities without admitting private key material.
+- Added bounded rotation/replacement, stale/revoked status, attribution,
+  directional federation, offline, redaction, constrained-host, and
+  resolver-no-mutation vectors.
+- Requirement IDs: `RLM-001` through `RLM-024`.
+- Migration: browser and host reporters may bind an exact realm/passport
+  status result, but neither report collection nor resolution enrolls or
+  prompts an entity.
+
 ## Manifest revision 20 — 2026-07-29
 
 - Added the `host-resolution` C5 suite for issue #26.

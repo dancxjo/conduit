@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 20,
+  "manifest_revision": 21,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3113,6 +3113,52 @@
           "test": "inspection"
         }
       ]
+    },
+    {
+      "id": "realms-passports",
+      "profile": "conduit.c2-c4",
+      "requirement_ids": [
+        "RLM-001", "RLM-002", "RLM-003", "RLM-004", "RLM-005", "RLM-006",
+        "RLM-007", "RLM-008", "RLM-009", "RLM-010", "RLM-011", "RLM-012",
+        "RLM-013", "RLM-014", "RLM-015", "RLM-016", "RLM-017", "RLM-018",
+        "RLM-019", "RLM-020", "RLM-021", "RLM-022", "RLM-023", "RLM-024"
+      ],
+      "artifacts": [
+        {
+          "id": "realms-passports-v1",
+          "path": "../c2/realms-passports-v1.json",
+          "sha256": "sha256:4f22bf06c0b4e10497aa58feb6838291008981525aad28f117647859436a291c",
+          "operation": "realms-passports-v1",
+          "requirement_ids": [
+            "RLM-001", "RLM-002", "RLM-003", "RLM-004", "RLM-005", "RLM-006",
+            "RLM-007", "RLM-008", "RLM-009", "RLM-010", "RLM-011", "RLM-012",
+            "RLM-013", "RLM-014", "RLM-015", "RLM-016", "RLM-017", "RLM-018",
+            "RLM-019", "RLM-020", "RLM-021", "RLM-022", "RLM-023", "RLM-024"
+          ],
+          "default_rule": "RLM-001",
+          "case_rules": {
+            "entity-identity-survives-key-rotation": "RLM-013",
+            "key-control-challenge-failure": "RLM-011",
+            "membership-role-and-grant-are-distinct": "RLM-019",
+            "stale-status-and-revocation-gap": "RLM-008",
+            "direct-batch-recorder-attribution-distinct": "RLM-015",
+            "bridge-preserves-remote-authorship": "RLM-016",
+            "federation-is-non-transitive": "RLM-020",
+            "resolver-never-enrolls-or-prompts": "RLM-022"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": ["realms-passports-v1#create-realm-and-enroll-software-key-member", "realms-passports-v1#entity-identity-survives-key-rotation", "realms-passports-v1#bridge-preserves-remote-authorship"],
+        "negative": ["realms-passports-v1#key-control-challenge-failure", "realms-passports-v1#membership-role-and-grant-are-distinct", "realms-passports-v1#federation-is-non-transitive"],
+        "boundary": ["realms-passports-v1#cloned-software-key-conflicting-sessions", "realms-passports-v1#offline-credential-expiry-is-bounded", "realms-passports-v1#conflicting-root-rotation-rejected"],
+        "migration": ["realms-passports-v1#entity-identity-survives-key-rotation", "realms-passports-v1#realm-identity-survives-root-succession"]
+      },
+      "reference_tests": [{"package": "conduit-core", "test": "realm_vectors"}]
     }
   ]
 }

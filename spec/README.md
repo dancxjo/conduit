@@ -119,6 +119,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   freezes fresh canonical host observations, deterministic bounded placement,
   complete candidate rejection, and exact existing-plan sealing without host
   provisioning or mutation.
+- [`033-realms-passports-v1.md`](033-realms-passports-v1.md) defines bounded
+  realm, entity, key, membership, role, delegation, federation, fresh-status,
+  and event-authorship identities without treating any of them as an ambient
+  capability or effect grant.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

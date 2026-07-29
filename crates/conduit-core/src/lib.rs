@@ -24,6 +24,7 @@ mod job;
 mod lifecycle;
 mod manifest;
 mod port;
+mod realm;
 mod resonance;
 mod runtime_evidence;
 mod satisfaction;
@@ -134,6 +135,16 @@ pub use port::{
     PortCompatibilityReason, PortContract, PortFlowConstraints, Presence, Sensitivity,
     TemporalContract, TerminalContract, ValueCardinality, assess_port_connection,
     assess_port_substitution,
+};
+pub use realm::{
+    AttributionStrength, AuthenticatedResonanceEnvelope, EntityPassport, EventAuthorship,
+    FederationPolicy, KeyProtection, MAX_DELEGATION_DEPTH, MAX_FEDERATION_STREAMS,
+    MAX_PASSPORT_EXTENSIONS, MAX_PASSPORT_KEYS, MAX_PASSPORT_ROLES, MAX_REALM_ROOT_KEYS,
+    MembershipCredential, PassportStatus, PassportStatusObservation, PublicKeyRef,
+    REALM_SCHEMA_VERSION, RealmControlKind, RealmDescriptor, RealmIdentityError, RealmReason,
+    RoleBinding, RootSuccession, WorkloadDelegation, validate_authenticated_resonance_envelope,
+    validate_delegation, validate_event_authorship, validate_federation, validate_passport,
+    validate_passport_status, validate_realm,
 };
 pub use resonance::{
     AppendCommit, AppendOutcome, AppendRecovery, BoundedEventRing, EventClass, EventPayloadRef,

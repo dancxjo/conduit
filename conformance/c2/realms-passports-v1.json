@@ -1,0 +1,32 @@
+{
+  "suite": "conduit.realms-passports/v1",
+  "cases": [
+    {"id":"create-realm-and-enroll-software-key-member","runner":"realm","expected":{"accepted":true}},
+    {"id":"physical-presence-exportable-key-limitation","runner":"passport","expected":{"accepted":true,"attestation":"exportable-software-key"}},
+    {"id":"key-control-challenge-failure","runner":"credential","expected":{"accepted":false,"code":"CND-RLM-004"}},
+    {"id":"entity-identity-survives-key-rotation","runner":"passport","expected":{"accepted":true,"entity_changed":false}},
+    {"id":"realm-identity-survives-root-succession","runner":"realm","expected":{"accepted":true,"realm_changed":false}},
+    {"id":"replacement-part-has-new-identity-and-old-role","runner":"passport","expected":{"accepted":true,"entity_changed":true,"role_reassigned":true}},
+    {"id":"old-authorship-remains-old-entity","runner":"event-authorship","expected":{"accepted":true,"rewritten":false}},
+    {"id":"current-role-does-not-rewrite-history","runner":"event-authorship","expected":{"accepted":true,"rewritten":false}},
+    {"id":"membership-role-and-grant-are-distinct","runner":"delegation","expected":{"accepted":false,"code":"CND-RLM-009"}},
+    {"id":"artifact-signature-not-member-passport","runner":"credential","expected":{"accepted":false,"code":"CND-RLM-004"}},
+    {"id":"member-passport-not-artifact-signature","runner":"credential","expected":{"accepted":false,"code":"CND-RLM-004"}},
+    {"id":"transport-auth-not-effect-grant","runner":"delegation","expected":{"accepted":false,"code":"CND-RLM-009"}},
+    {"id":"workload-delegation-one-run-epoch","runner":"delegation","expected":{"accepted":true,"exact_epoch":true}},
+    {"id":"expired-suspended-revoked-retired-compromised-status","runner":"status","expected":{"accepted":false,"code":"CND-RLM-005"}},
+    {"id":"stale-status-and-revocation-gap","runner":"status","expected":{"accepted":false,"code":"CND-RLM-005"}},
+    {"id":"replayed-credential-or-event-rejected","runner":"credential","expected":{"accepted":false,"code":"CND-RLM-004"}},
+    {"id":"cloned-software-key-conflicting-sessions","runner":"status","expected":{"accepted":false,"code":"CND-RLM-005"}},
+    {"id":"direct-batch-recorder-attribution-distinct","runner":"event-authorship","expected":{"accepted":true,"attribution_distinct":true}},
+    {"id":"authentic-event-is-not-asserted-true","runner":"event-authorship","expected":{"accepted":true,"truth_claimed":false}},
+    {"id":"directional-federation-allows-stream-denies-effect","runner":"federation","expected":{"accepted":true,"effect_allowed":false}},
+    {"id":"federation-is-non-transitive","runner":"federation","expected":{"accepted":false,"code":"CND-RLM-007"}},
+    {"id":"conflicting-root-rotation-rejected","runner":"realm","expected":{"accepted":false,"code":"CND-RLM-003"}},
+    {"id":"bridge-preserves-remote-authorship","runner":"event-authorship","expected":{"accepted":true,"remote_authorship_preserved":true}},
+    {"id":"offline-credential-expiry-is-bounded","runner":"status","expected":{"accepted":false,"code":"CND-RLM-005"}},
+    {"id":"passport-presentation-is-redacted","runner":"presentation","expected":{"accepted":true,"private_material":false}},
+    {"id":"constrained-host-honestly-lacks-attestation","runner":"passport","expected":{"accepted":true,"attestation":"unsupported"}},
+    {"id":"resolver-never-enrolls-or-prompts","runner":"resolver","expected":{"enrolled":false,"prompted":false,"mutated":false}}
+  ]
+}
