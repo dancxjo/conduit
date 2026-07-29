@@ -24,6 +24,7 @@ mod genesis;
 mod hazard_closure;
 mod host;
 mod implementation;
+mod inhibit;
 mod job;
 mod lifecycle;
 mod manifest;
@@ -106,14 +107,14 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
     EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
     EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
-    EXECUTION_PLAN_SCHEMA_VERSION_V12, ExecutionPlan, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
-    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
-    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
-    PlanSatisfactionSubject, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHazardClosure,
+    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
+    PlanPolicyBudget, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -161,6 +162,18 @@ pub use implementation::{
     StepOutcomeKind, StepUsage, TransactionResolution, TransactionState, ValueRepresentation,
     WakeInterest, WakeInterestKind, prepare_all, start_all, validate_host_operation,
     validate_instantiation, validate_plan_execution_profile,
+};
+pub use inhibit::{
+    EnvelopeValue, HAZARDOUS_HOST_PROFILE_SCHEMA_VERSION, HazardArmRequest, HazardControlPhase,
+    HazardControlState, HazardEvidenceKind, HazardEvidenceRecord, HazardousCommand,
+    HazardousHostBinding, HazardousHostProfile, HostLifecycleChange,
+    INHIBIT_OBSERVATION_SCHEMA_VERSION, ImplementationConfinement, InhibitCause,
+    InhibitClearRequest, InhibitIdentityError, InhibitLatchState, InhibitObservation,
+    InhibitReason, MAX_HAZARDOUS_HOST_BINDINGS, MAX_OPERATING_ENVELOPE_LIMITS,
+    OperatingEnvelopeLimit, accept_hazardous_command, arm_hazardous_host, clear_inhibit,
+    enforce_command_expiry, inhibit_hazardous_host, recover_after_host_change,
+    validate_hazard_evidence, validate_hazardous_host_binding, validate_hazardous_host_profile,
+    validate_required_hazardous_host_binding,
 };
 pub use job::{
     CHECKPOINT_SCHEMA_VERSION, CancellationCheckpointPolicy, CheckpointCommit, CheckpointEnvelope,

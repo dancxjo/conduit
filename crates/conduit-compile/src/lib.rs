@@ -15,20 +15,22 @@ use conduit_core::{
     BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
     ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
     DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12, EffectClassBinding,
-    EffectClassTraits, EffectFlowBinding, EffectRequirement, ExecutionLimits, ExecutionPlan,
-    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason,
-    GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
-    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HostCapability,
-    HostDistributionKind, Id, ImplementationManifest, InstancePath, MAX_HAZARD_PROOF_NODES,
+    EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12,
+    EXECUTION_PLAN_SCHEMA_VERSION_V13, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
+    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
+    FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason, GrantStatus, HandleDisposition,
+    HazardClosureContext, HazardClosureLimits, HazardClosurePolicy, HazardClosureReason,
+    HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding, HazardousHostProfile,
+    HostCapability, HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest,
+    InhibitLatchState, InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES,
     ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
-    ObservedGrant, OwnershipModel, PassportStatus, PassportStatusObservation,
-    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping,
-    PlanExportBinding, PlanHazardClosure, PlanHostObservation, PlanInstancePool, PlanPolicyBudget,
-    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
-    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure,
-    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
+    ObservedGrant, OperatingEnvelopeLimit, OwnershipModel, PassportStatus,
+    PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure, PlanHostObservation,
+    PlanInstancePool, PlanPolicyBudget, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability,
+    PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
+    Pressure, ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
     ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
     ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
     ResolvedPlanPort, ResourceRef, ResourceSelector, RollingLimit, SampleSchedule, SemanticHash,
@@ -719,6 +721,69 @@ pub struct HazardPermitDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct OperatingEnvelopeLimitDocument {
+    pub dimension: PinDocument,
+    pub minimum: i64,
+    pub maximum: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HazardousHostProfileDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub safe_state: PinDocument,
+    pub inhibit_boundary: PinDocument,
+    pub watchdog: PinDocument,
+    pub effect_boundary: PinDocument,
+    pub command_effect_class: PinDocument,
+    pub clear_effect_class: PinDocument,
+    pub clear_operation: PinDocument,
+    pub clear_ceremony: PinDocument,
+    pub time_basis: String,
+    pub maximum_command_horizon_ticks: u64,
+    pub maximum_observation_age_ticks: u64,
+    pub maximum_evidence_records: u32,
+    pub require_physical_presence_to_clear: bool,
+    pub require_isolated_implementation: bool,
+    pub envelope: Vec<OperatingEnvelopeLimitDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct InhibitObservationDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub profile_identity: String,
+    pub host: String,
+    pub safe_state: PinDocument,
+    pub inhibit_boundary: PinDocument,
+    pub watchdog: PinDocument,
+    pub effect_boundary: PinDocument,
+    pub time_basis: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub latch_generation: u64,
+    pub latch_state: String,
+    pub independent_from_plan: bool,
+    pub local_safe_path: bool,
+    pub survives_executor_loss: bool,
+    pub survives_partition: bool,
+    pub graph_cannot_replace: bool,
+    pub confinement: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HazardousHostBindingDocument {
+    pub host: String,
+    pub profile: HazardousHostProfileDocument,
+    pub observation: InhibitObservationDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct HazardClosureDocument {
     pub epoch: u64,
     pub plan_subject: String,
@@ -726,6 +791,8 @@ pub struct HazardClosureDocument {
     pub flows: Vec<EffectFlowBindingDocument>,
     pub permits: Vec<HazardPermitDocument>,
     pub decision_identity: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hazardous_hosts: Vec<HazardousHostBindingDocument>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1755,7 +1822,8 @@ impl ExactPlanDocument {
             || (self.schema == POLICY_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V12)
             || (self.schema == HAZARD_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
+                && (self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V13
+                    || self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION));
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
         }
@@ -2565,21 +2633,24 @@ fn compile_topology(
             )
         })
         .transpose()?;
-    let plan_schema_version = if hazard_closure.is_some() {
-        EXECUTION_PLAN_SCHEMA_VERSION
-    } else if plan_authorities
-        .iter()
-        .any(|authority| !authority.policy_budgets.is_empty())
-    {
-        EXECUTION_PLAN_SCHEMA_VERSION_V12
-    } else if plan_authorities
-        .iter()
-        .any(|authority| authority.containment.is_some())
-    {
-        EXECUTION_PLAN_SCHEMA_VERSION_V11
-    } else {
-        EXECUTION_PLAN_SCHEMA_VERSION_V3
-    };
+    let plan_schema_version =
+        if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
+            EXECUTION_PLAN_SCHEMA_VERSION
+        } else if hazard_closure.is_some() {
+            EXECUTION_PLAN_SCHEMA_VERSION_V13
+        } else if plan_authorities
+            .iter()
+            .any(|authority| !authority.policy_budgets.is_empty())
+        {
+            EXECUTION_PLAN_SCHEMA_VERSION_V12
+        } else if plan_authorities
+            .iter()
+            .any(|authority| authority.containment.is_some())
+        {
+            EXECUTION_PLAN_SCHEMA_VERSION_V11
+        } else {
+            EXECUTION_PLAN_SCHEMA_VERSION_V3
+        };
     let mut plan = ExecutionPlan {
         schema_version: plan_schema_version,
         identity: SemanticHash::from_bytes([0; 32]),
@@ -3367,6 +3438,34 @@ fn seal_hazard_closure(document: &mut HazardClosureDocument) -> Result<(), Compi
             })?
             .to_string();
     }
+    for binding in &mut document.hazardous_hosts {
+        binding.profile.identity.clone_from(&zero);
+        binding.observation.profile_identity.clone_from(&zero);
+        binding.observation.identity.clone_from(&zero);
+        {
+            let arena = Bump::new();
+            let value = hazardous_host_binding(binding, &arena)?;
+            let mut scratch = vec![SemanticHash::from_bytes([0; 32]); value.profile.envelope.len()];
+            binding.profile.identity = value
+                .profile
+                .computed_semantic_hash(&mut scratch)
+                .map_err(|_| CompileError::new(CompileReason::PlanInvalid))?
+                .to_string();
+        }
+        binding
+            .observation
+            .profile_identity
+            .clone_from(&binding.profile.identity);
+        {
+            let arena = Bump::new();
+            let value = hazardous_host_binding(binding, &arena)?;
+            binding.observation.identity = value
+                .observation
+                .computed_semantic_hash()
+                .map_err(|_| CompileError::new(CompileReason::PlanInvalid))?
+                .to_string();
+        }
+    }
     parse_hash(&document.plan_subject)?;
     parse_hash(&document.decision_identity)?;
     Ok(())
@@ -3930,6 +4029,11 @@ fn plan_hazard_closure<'a>(
             HazardClosureReason::IdentityMismatch,
         )));
     }
+    let hazardous_hosts = document
+        .hazardous_hosts
+        .iter()
+        .map(|binding| hazardous_host_binding(binding, arena))
+        .collect::<Result<Vec<_>, CompileError>>()?;
     Ok(PlanHazardClosure {
         epoch: document.epoch,
         plan_subject,
@@ -3937,6 +4041,79 @@ fn plan_hazard_closure<'a>(
         flows,
         permits,
         decision_identity,
+        hazardous_hosts: arena.alloc_slice_copy(&hazardous_hosts),
+    })
+}
+
+fn hazardous_host_binding<'a>(
+    document: &'a HazardousHostBindingDocument,
+    arena: &'a Bump,
+) -> Result<HazardousHostBinding<'a>, CompileError> {
+    let envelope = document
+        .profile
+        .envelope
+        .iter()
+        .map(|limit| {
+            Ok(OperatingEnvelopeLimit {
+                dimension: pin(&limit.dimension)?,
+                minimum: limit.minimum,
+                maximum: limit.maximum,
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    let profile = HazardousHostProfile {
+        schema_version: document.profile.schema_version,
+        identity: parse_hash(&document.profile.identity)?,
+        descriptor: pin(&document.profile.descriptor)?,
+        safe_state: pin(&document.profile.safe_state)?,
+        inhibit_boundary: pin(&document.profile.inhibit_boundary)?,
+        watchdog: pin(&document.profile.watchdog)?,
+        effect_boundary: pin(&document.profile.effect_boundary)?,
+        command_effect_class: pin(&document.profile.command_effect_class)?,
+        clear_effect_class: pin(&document.profile.clear_effect_class)?,
+        clear_operation: pin(&document.profile.clear_operation)?,
+        clear_ceremony: pin(&document.profile.clear_ceremony)?,
+        time_basis: id(&document.profile.time_basis)?,
+        maximum_command_horizon_ticks: document.profile.maximum_command_horizon_ticks,
+        maximum_observation_age_ticks: document.profile.maximum_observation_age_ticks,
+        maximum_evidence_records: document.profile.maximum_evidence_records,
+        require_physical_presence_to_clear: document.profile.require_physical_presence_to_clear,
+        require_isolated_implementation: document.profile.require_isolated_implementation,
+        envelope: arena.alloc_slice_copy(&envelope),
+    };
+    let observation = InhibitObservation {
+        schema_version: document.observation.schema_version,
+        identity: parse_hash(&document.observation.identity)?,
+        profile_identity: parse_hash(&document.observation.profile_identity)?,
+        host: id(&document.observation.host)?,
+        safe_state: pin(&document.observation.safe_state)?,
+        inhibit_boundary: pin(&document.observation.inhibit_boundary)?,
+        watchdog: pin(&document.observation.watchdog)?,
+        effect_boundary: pin(&document.observation.effect_boundary)?,
+        time_basis: id(&document.observation.time_basis)?,
+        observed_at_tick: document.observation.observed_at_tick,
+        valid_until_tick: document.observation.valid_until_tick,
+        latch_generation: document.observation.latch_generation,
+        latch_state: match document.observation.latch_state.as_str() {
+            "safe-disarmed" => InhibitLatchState::SafeDisarmed,
+            "inhibited" => InhibitLatchState::Inhibited,
+            _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+        },
+        independent_from_plan: document.observation.independent_from_plan,
+        local_safe_path: document.observation.local_safe_path,
+        survives_executor_loss: document.observation.survives_executor_loss,
+        survives_partition: document.observation.survives_partition,
+        graph_cannot_replace: document.observation.graph_cannot_replace,
+        confinement: match document.observation.confinement.as_str() {
+            "effect-boundary-enforced" => ImplementationConfinement::EffectBoundaryEnforced,
+            "unconfined-native" => ImplementationConfinement::UnconfinedNative,
+            _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+        },
+    };
+    Ok(HazardousHostBinding {
+        host: id(&document.host)?,
+        profile,
+        observation,
     })
 }
 
@@ -4975,6 +5152,78 @@ fn hazard_closure_document(value: PlanHazardClosure<'_>) -> HazardClosureDocumen
             })
             .collect(),
         decision_identity: value.decision_identity.to_string(),
+        hazardous_hosts: value
+            .hazardous_hosts
+            .iter()
+            .copied()
+            .map(hazardous_host_binding_document)
+            .collect(),
+    }
+}
+
+fn hazardous_host_binding_document(
+    value: HazardousHostBinding<'_>,
+) -> HazardousHostBindingDocument {
+    HazardousHostBindingDocument {
+        host: value.host.to_string(),
+        profile: HazardousHostProfileDocument {
+            schema_version: value.profile.schema_version,
+            identity: value.profile.identity.to_string(),
+            descriptor: pin_document(value.profile.descriptor),
+            safe_state: pin_document(value.profile.safe_state),
+            inhibit_boundary: pin_document(value.profile.inhibit_boundary),
+            watchdog: pin_document(value.profile.watchdog),
+            effect_boundary: pin_document(value.profile.effect_boundary),
+            command_effect_class: pin_document(value.profile.command_effect_class),
+            clear_effect_class: pin_document(value.profile.clear_effect_class),
+            clear_operation: pin_document(value.profile.clear_operation),
+            clear_ceremony: pin_document(value.profile.clear_ceremony),
+            time_basis: value.profile.time_basis.to_string(),
+            maximum_command_horizon_ticks: value.profile.maximum_command_horizon_ticks,
+            maximum_observation_age_ticks: value.profile.maximum_observation_age_ticks,
+            maximum_evidence_records: value.profile.maximum_evidence_records,
+            require_physical_presence_to_clear: value.profile.require_physical_presence_to_clear,
+            require_isolated_implementation: value.profile.require_isolated_implementation,
+            envelope: value
+                .profile
+                .envelope
+                .iter()
+                .map(|limit| OperatingEnvelopeLimitDocument {
+                    dimension: pin_document(limit.dimension),
+                    minimum: limit.minimum,
+                    maximum: limit.maximum,
+                })
+                .collect(),
+        },
+        observation: InhibitObservationDocument {
+            schema_version: value.observation.schema_version,
+            identity: value.observation.identity.to_string(),
+            profile_identity: value.observation.profile_identity.to_string(),
+            host: value.observation.host.to_string(),
+            safe_state: pin_document(value.observation.safe_state),
+            inhibit_boundary: pin_document(value.observation.inhibit_boundary),
+            watchdog: pin_document(value.observation.watchdog),
+            effect_boundary: pin_document(value.observation.effect_boundary),
+            time_basis: value.observation.time_basis.to_string(),
+            observed_at_tick: value.observation.observed_at_tick,
+            valid_until_tick: value.observation.valid_until_tick,
+            latch_generation: value.observation.latch_generation,
+            latch_state: match value.observation.latch_state {
+                InhibitLatchState::SafeDisarmed => "safe-disarmed",
+                InhibitLatchState::Inhibited => "inhibited",
+            }
+            .to_owned(),
+            independent_from_plan: value.observation.independent_from_plan,
+            local_safe_path: value.observation.local_safe_path,
+            survives_executor_loss: value.observation.survives_executor_loss,
+            survives_partition: value.observation.survives_partition,
+            graph_cannot_replace: value.observation.graph_cannot_replace,
+            confinement: match value.observation.confinement {
+                ImplementationConfinement::EffectBoundaryEnforced => "effect-boundary-enforced",
+                ImplementationConfinement::UnconfinedNative => "unconfined-native",
+            }
+            .to_owned(),
+        },
     }
 }
 
@@ -6952,6 +7201,7 @@ mod tests {
             flows: Vec::new(),
             permits: Vec::new(),
             decision_identity: hash(146),
+            hazardous_hosts: Vec::new(),
         };
         seal_hazard_closure(&mut closure).unwrap();
         {
@@ -6977,9 +7227,81 @@ mod tests {
         input.seal().unwrap();
         let plan = compile_panel(&panel, &input).unwrap();
         assert_eq!(plan.schema, HAZARD_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V13);
         assert!(plan.hazard_closure.is_some());
         plan.validate().unwrap();
+
+        let mut hazardous = input.clone();
+        hazardous
+            .hazard_closure
+            .as_mut()
+            .unwrap()
+            .hazardous_hosts
+            .push(HazardousHostBindingDocument {
+                host: "host-local".to_owned(),
+                profile: HazardousHostProfileDocument {
+                    schema_version: conduit_core::HAZARDOUS_HOST_PROFILE_SCHEMA_VERSION,
+                    identity: hash(0),
+                    descriptor: pin_doc("profile.fixture-hazardous-host", 147),
+                    safe_state: pin_doc("domain.fixture-safe-state", 148),
+                    inhibit_boundary: pin_doc("host.fixture-inhibit", 149),
+                    watchdog: pin_doc("host.fixture-watchdog", 150),
+                    effect_boundary: pin_doc("host.fixture-effect-boundary", 151),
+                    command_effect_class: pin_doc("effect.fixture-command", 152),
+                    clear_effect_class: pin_doc("effect.fixture-clear", 153),
+                    clear_operation: pin_doc("operation.fixture-clear", 154),
+                    clear_ceremony: pin_doc("ceremony.fixture-physical", 155),
+                    time_basis: "clock/compile".to_owned(),
+                    maximum_command_horizon_ticks: 5,
+                    maximum_observation_age_ticks: 10,
+                    maximum_evidence_records: 16,
+                    require_physical_presence_to_clear: true,
+                    require_isolated_implementation: true,
+                    envelope: vec![OperatingEnvelopeLimitDocument {
+                        dimension: pin_doc("domain.fixture-axis", 156),
+                        minimum: -5,
+                        maximum: 5,
+                    }],
+                },
+                observation: InhibitObservationDocument {
+                    schema_version: conduit_core::INHIBIT_OBSERVATION_SCHEMA_VERSION,
+                    identity: hash(0),
+                    profile_identity: hash(0),
+                    host: "host-local".to_owned(),
+                    safe_state: pin_doc("domain.fixture-safe-state", 148),
+                    inhibit_boundary: pin_doc("host.fixture-inhibit", 149),
+                    watchdog: pin_doc("host.fixture-watchdog", 150),
+                    effect_boundary: pin_doc("host.fixture-effect-boundary", 151),
+                    time_basis: "clock/compile".to_owned(),
+                    observed_at_tick: 10,
+                    valid_until_tick: 15,
+                    latch_generation: 1,
+                    latch_state: "safe-disarmed".to_owned(),
+                    independent_from_plan: true,
+                    local_safe_path: true,
+                    survives_executor_loss: true,
+                    survives_partition: true,
+                    graph_cannot_replace: true,
+                    confinement: "effect-boundary-enforced".to_owned(),
+                },
+            });
+        hazardous.seal().unwrap();
+        let hazardous_plan = compile_panel(&panel, &hazardous).unwrap();
+        assert_eq!(hazardous_plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        let hazardous_arena = Bump::new();
+        let hazardous_core = hazardous_plan.as_plan(&hazardous_arena).unwrap();
+        let stale = validate_hosted_execution_plan(
+            &hazardous_core,
+            PlanValidationContext {
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+                now: AuthorityTime {
+                    basis: Id("clock/compile"),
+                    tick: 15,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(stale.code.as_str(), "CND-INH-004");
 
         let mut toxic = input;
         toxic.hazard_closure.as_mut().unwrap().policy.rules[0].patterns[0].class = present_class;

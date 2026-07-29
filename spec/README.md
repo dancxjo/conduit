@@ -164,6 +164,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   defines isolated realm genesis, local-only bootstrap into quarantine,
   bounded deliberately-public operations, safe hosted/browser/constrained
   distribution defaults, exact provider opt-in, and monotonic recovery.
+- [`045-independent-inhibit-plane-v1.md`](045-independent-inhibit-plane-v1.md)
+  defines plan-v14 hazardous-host bindings, fresh independent inhibit
+  observations, finite command leases and domain-owned envelopes, local
+  fail-safe transitions, retained latches, and separately approved clear.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

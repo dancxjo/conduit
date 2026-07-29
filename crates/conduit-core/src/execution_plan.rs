@@ -10,16 +10,16 @@ use crate::{
     ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectFlowBinding,
     EffectRequirement, EventProviderCapabilities, EventStreamContract, ExecutionProfile,
     FanOutMode, FieldDisposition, FlowPolicy, GrantStatus, HazardClosureContext,
-    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofNode, HostCapability, Id,
-    InstancePath, JobContract, MAX_HAZARD_PROOF_NODES, MapField, MergeOrdering,
-    MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
+    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofNode, HazardousHostBinding,
+    HostCapability, Id, InhibitReason, InstancePath, JobContract, MAX_HAZARD_PROOF_NODES, MapField,
+    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
     PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus, Pressure,
     ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
     SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef, analyze_effect_closure,
     validate_administrative_proof, validate_authority_at_use, validate_distributed_binding,
-    validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
-    validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
-    validate_stream_contract,
+    validate_hazardous_host_binding, validate_job_contract, validate_offline_lease,
+    validate_plan_execution_profile, validate_policy_budget_status,
+    validate_runtime_evidence_policy, validate_satisfaction_proof, validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -34,9 +34,11 @@ use crate::{
 /// administrative containment proofs on exact authority bindings. Schema 12
 /// pins persistent policy-budget status and optional finite offline leases.
 /// Schema 13 pins whole-plan hazardous-effect closure policy, exact stage
-/// transfers, permits, and the resulting decision.
+/// transfers, permits, and the resulting decision. Schema 14 pins hazardous
+/// host profiles and independently observed inhibit boundaries into that
+/// closure and revalidates their freshness at run start.
 /// Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 13;
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 14;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -49,6 +51,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V9: u32 = 9;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V10: u32 = 10;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V11: u32 = 11;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V12: u32 = 12;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V13: u32 = 13;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -315,6 +318,7 @@ pub struct PlanHazardClosure<'a> {
     pub flows: &'a [EffectFlowBinding<'a>],
     pub permits: &'a [HazardPermit<'a>],
     pub decision_identity: SemanticHash,
+    pub hazardous_hosts: &'a [HazardousHostBinding<'a>],
 }
 
 /// One logical boundary export retained alongside primitive expansion.
@@ -470,6 +474,7 @@ pub enum PlanCollection {
     SatisfactionProofs,
     Authorities,
     HazardClosure,
+    HazardousHosts,
     Composites,
     PortGroups,
     InstancePools,
@@ -502,6 +507,7 @@ pub enum PlanDiagnosticCode {
     Containment(ContainmentReason),
     PolicyBudget(PolicyBudgetReason),
     HazardClosure(HazardClosureReason),
+    Inhibit(InhibitReason),
     Distributed(crate::DistributedReason),
     ScratchTooSmall,
 }
@@ -533,6 +539,7 @@ impl PlanDiagnosticCode {
             Self::Containment(reason) => reason.code(),
             Self::PolicyBudget(reason) => reason.code(),
             Self::HazardClosure(reason) => reason.code(),
+            Self::Inhibit(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
@@ -648,6 +655,12 @@ impl ExecutionPlan<'_> {
                     .iter()
                     .map(|binding| binding.proof.identity_fact_count()),
             )
+            .chain(
+                self.hazard_closure
+                    .into_iter()
+                    .flat_map(|closure| closure.hazardous_hosts)
+                    .map(|binding| binding.profile.envelope.len()),
+            )
             .fold(plan, usize::max))
     }
 
@@ -728,7 +741,7 @@ impl ExecutionPlan<'_> {
             push!(hash_authority(self.schema_version, *value));
         }
         if let Some(closure) = self.hazard_closure {
-            push!(hash_hazard_closure(closure));
+            push!(hash_hazard_closure(self.schema_version, closure));
         }
         for composite in self.composites {
             push!(hash_composite(*composite));
@@ -1793,6 +1806,54 @@ pub fn validate_execution_plan(
             ));
         }
         Some(closure) => {
+            if (!closure.hazardous_hosts.is_empty() && plan.schema_version < 14)
+                || (plan.schema_version >= 14 && closure.hazardous_hosts.is_empty())
+                || closure.hazardous_hosts.len() > crate::MAX_HAZARDOUS_HOST_BINDINGS
+            {
+                return Err(error(
+                    PlanDiagnosticCode::UnsupportedVersion,
+                    PlanCollection::HazardousHosts,
+                    None,
+                ));
+            }
+            for (index, binding) in closure.hazardous_hosts.iter().enumerate() {
+                if closure.hazardous_hosts[..index]
+                    .iter()
+                    .any(|prior| prior.host == binding.host)
+                {
+                    return Err(indexed(
+                        PlanDiagnosticCode::DuplicateIdentity,
+                        PlanCollection::HazardousHosts,
+                        index,
+                    ));
+                }
+                validate_hazardous_host_binding(
+                    *binding,
+                    plan.created_at.basis,
+                    plan.created_at.tick,
+                    identity_scratch,
+                )
+                .map_err(|reason| {
+                    indexed(
+                        PlanDiagnosticCode::Inhibit(reason),
+                        PlanCollection::HazardousHosts,
+                        index,
+                    )
+                })?;
+                validate_hazardous_host_binding(
+                    *binding,
+                    context.now.basis,
+                    context.now.tick,
+                    identity_scratch,
+                )
+                .map_err(|reason| {
+                    indexed(
+                        PlanDiagnosticCode::Inhibit(reason),
+                        PlanCollection::HazardousHosts,
+                        index,
+                    )
+                })?;
+            }
             let mut proof = [None::<HazardProofNode<'_>>; MAX_HAZARD_PROOF_NODES];
             let report = analyze_effect_closure(
                 closure.policy,
@@ -2878,10 +2939,12 @@ fn hash_authority(
 }
 
 fn hash_hazard_closure(
+    plan_schema_version: u32,
     value: PlanHazardClosure<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     if value.flows.len() > crate::MAX_HAZARD_FLOWS
         || value.permits.len() > crate::MAX_HAZARD_PERMITS
+        || value.hazardous_hosts.len() > crate::MAX_HAZARDOUS_HOST_BINDINGS
     {
         return Err(CanonicalError::LengthOverflow);
     }
@@ -2900,25 +2963,74 @@ fn hash_hazard_closure(
         Id("permits"),
         &permits[..value.permits.len()],
     )?;
+    let mut hosts = [SemanticHash::from_bytes([0; 32]); crate::MAX_HAZARDOUS_HOST_BINDINGS];
+    for (index, binding) in value.hazardous_hosts.iter().enumerate() {
+        hosts[index] = descriptor_hash(
+            Id("conduit/plan-hazardous-host"),
+            &[
+                semantic("host", CanonicalValue::Identifier(binding.host)),
+                semantic(
+                    "profile_identity",
+                    CanonicalValue::Bytes(binding.profile.identity.as_bytes()),
+                ),
+                semantic(
+                    "observation_identity",
+                    CanonicalValue::Bytes(binding.observation.identity.as_bytes()),
+                ),
+            ],
+        )?;
+    }
+    let host_set = if plan_schema_version >= 14 {
+        Some(semantic_hash_with_hash_set(
+            Id("conduit/plan-hazardous-hosts"),
+            1,
+            &[],
+            Id("hosts"),
+            &hosts[..value.hazardous_hosts.len()],
+        )?)
+    } else {
+        None
+    };
+    let legacy_fields = [
+        semantic("epoch", CanonicalValue::Integer(i128::from(value.epoch))),
+        semantic(
+            "plan_subject",
+            CanonicalValue::Bytes(value.plan_subject.as_bytes()),
+        ),
+        semantic(
+            "policy_identity",
+            CanonicalValue::Bytes(value.policy.identity.as_bytes()),
+        ),
+        semantic(
+            "decision_identity",
+            CanonicalValue::Bytes(value.decision_identity.as_bytes()),
+        ),
+        semantic("permits", CanonicalValue::Bytes(permit_set.as_bytes())),
+    ];
+    if let Some(host_set) = host_set {
+        let fields = [
+            legacy_fields[0],
+            legacy_fields[1],
+            legacy_fields[2],
+            legacy_fields[3],
+            legacy_fields[4],
+            semantic(
+                "hazardous_hosts",
+                CanonicalValue::Bytes(host_set.as_bytes()),
+            ),
+        ];
+        return semantic_hash_with_hash_set(
+            Id("conduit/plan-hazard-closure"),
+            1,
+            &fields,
+            Id("flows"),
+            &flows[..value.flows.len()],
+        );
+    }
     semantic_hash_with_hash_set(
         Id("conduit/plan-hazard-closure"),
         1,
-        &[
-            semantic("epoch", CanonicalValue::Integer(i128::from(value.epoch))),
-            semantic(
-                "plan_subject",
-                CanonicalValue::Bytes(value.plan_subject.as_bytes()),
-            ),
-            semantic(
-                "policy_identity",
-                CanonicalValue::Bytes(value.policy.identity.as_bytes()),
-            ),
-            semantic(
-                "decision_identity",
-                CanonicalValue::Bytes(value.decision_identity.as_bytes()),
-            ),
-            semantic("permits", CanonicalValue::Bytes(permit_set.as_bytes())),
-        ],
+        &legacy_fields,
         Id("flows"),
         &flows[..value.flows.len()],
     )

@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 38 — 2026-07-29
+
+- Registered 29 independently dispatched inhibit-plane cases for fresh exact
+  boundary evidence, command lease/sequence/epoch/authority/envelope checks,
+  local partition and executor-failure behavior, retained latches through host
+  changes, and separately approved physical clear.
+- Added plan schema 14 hazardous-host profile and observation bindings with
+  compiler round-trip and run-start freshness validation, while preserving
+  schema-13 identities when no hazardous-host binding exists.
+- Added a constrained deterministic failure/reboot hook and kept the proof
+  boundary explicit: these fixtures are not physical HIL, domain safety
+  certification, or evidence that an operating system confines privileged
+  native code.
+
 ## Manifest revision 37 — 2026-07-29
 
 - Registered 31 independently dispatched safe-genesis cases for isolated fresh

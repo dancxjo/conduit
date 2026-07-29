@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 37,
+  "manifest_revision": 38,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3954,6 +3954,104 @@
         {"package": "conduit-compile", "test": "distribution_profiles"},
         {"package": "conduct", "test": "compile_cli"},
         {"package": "conduit-embedded", "test": "genesis_defaults"}
+      ]
+    },
+    {
+      "id": "independent-inhibit-plane",
+      "profile": "conduit.c4-c5",
+      "requirement_ids": [
+        "INH-001", "INH-002", "INH-003", "INH-004", "INH-005",
+        "INH-006", "INH-007", "INH-008", "INH-009", "INH-010"
+      ],
+      "artifacts": [{
+        "id": "inhibit-plane-v1",
+        "path": "../c4/inhibit-plane-v1.json",
+        "sha256": "sha256:fb472ed79afbb92682814e732e1c7f2de44fc9bb18c2354666ed7b6f76231f88",
+        "operation": "independent-inhibit-plane-v1",
+        "requirement_ids": [
+          "INH-001", "INH-002", "INH-003", "INH-004", "INH-005",
+          "INH-006", "INH-007", "INH-008", "INH-009", "INH-010"
+        ],
+        "default_rule": "INH-001",
+        "case_rules": {
+          "exact-independent-boundary-is-accepted": "INH-002",
+          "missing-interlock-is-not-observed-as-present": "INH-002",
+          "absent-inhibit-evidence-fails-resolution": "INH-003",
+          "stale-inhibit-evidence-fails-run-start": "INH-003",
+          "unconfined-native-rejected-for-high-assurance": "INH-002",
+          "safe-disarmed-host-arms-exact-epoch": "INH-004",
+          "latched-host-cannot-arm": "INH-004",
+          "finite-command-lease-is-accepted": "INH-005",
+          "expired-command-is-rejected": "INH-005",
+          "delayed-command-is-rejected": "INH-005",
+          "duplicate-command-is-rejected": "INH-005",
+          "stale-epoch-command-is-rejected": "INH-005",
+          "wrong-authority-command-is-rejected": "INH-005",
+          "over-envelope-command-is-rejected": "INH-005",
+          "command-expiry-enters-inhibited-safe-state": "INH-006",
+          "partition-inhibits-without-remote-participation": "INH-007",
+          "executor-death-inhibits-without-plan-callback": "INH-007",
+          "plan-transition-drops-old-command": "INH-008",
+          "rollback-retains-inhibit-latch": "INH-008",
+          "reboot-retains-inhibit-latch": "INH-008",
+          "firmware-update-retains-inhibit-latch": "INH-008",
+          "reconnect-retains-inhibit-latch": "INH-008",
+          "realm-recovery-retains-inhibit-latch": "INH-008",
+          "stop-request-needs-no-clear-authority": "INH-007",
+          "remote-plan-clear-without-ceremony-fails": "INH-009",
+          "clear-without-required-physical-presence-fails": "INH-009",
+          "approved-clear-returns-safe-disarmed-not-armed": "INH-009",
+          "safe-state-evidence-has-exact-identity": "INH-010",
+          "evidence-capacity-is-bounded": "INH-010"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "inhibit-plane-v1#exact-independent-boundary-is-accepted",
+          "inhibit-plane-v1#safe-disarmed-host-arms-exact-epoch",
+          "inhibit-plane-v1#finite-command-lease-is-accepted",
+          "inhibit-plane-v1#command-expiry-enters-inhibited-safe-state",
+          "inhibit-plane-v1#partition-inhibits-without-remote-participation",
+          "inhibit-plane-v1#executor-death-inhibits-without-plan-callback",
+          "inhibit-plane-v1#stop-request-needs-no-clear-authority",
+          "inhibit-plane-v1#approved-clear-returns-safe-disarmed-not-armed",
+          "inhibit-plane-v1#safe-state-evidence-has-exact-identity"
+        ],
+        "negative": [
+          "inhibit-plane-v1#missing-interlock-is-not-observed-as-present",
+          "inhibit-plane-v1#absent-inhibit-evidence-fails-resolution",
+          "inhibit-plane-v1#unconfined-native-rejected-for-high-assurance",
+          "inhibit-plane-v1#latched-host-cannot-arm",
+          "inhibit-plane-v1#expired-command-is-rejected",
+          "inhibit-plane-v1#delayed-command-is-rejected",
+          "inhibit-plane-v1#duplicate-command-is-rejected",
+          "inhibit-plane-v1#stale-epoch-command-is-rejected",
+          "inhibit-plane-v1#wrong-authority-command-is-rejected",
+          "inhibit-plane-v1#over-envelope-command-is-rejected",
+          "inhibit-plane-v1#remote-plan-clear-without-ceremony-fails",
+          "inhibit-plane-v1#clear-without-required-physical-presence-fails"
+        ],
+        "boundary": [
+          "inhibit-plane-v1#stale-inhibit-evidence-fails-run-start",
+          "inhibit-plane-v1#evidence-capacity-is-bounded"
+        ],
+        "migration": [
+          "inhibit-plane-v1#plan-transition-drops-old-command",
+          "inhibit-plane-v1#rollback-retains-inhibit-latch",
+          "inhibit-plane-v1#reboot-retains-inhibit-latch",
+          "inhibit-plane-v1#firmware-update-retains-inhibit-latch",
+          "inhibit-plane-v1#reconnect-retains-inhibit-latch",
+          "inhibit-plane-v1#realm-recovery-retains-inhibit-latch"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "inhibit_vectors"},
+        {"package": "conduit-compile", "test": "compile_vectors"},
+        {"package": "conduit-embedded", "test": "inhibit_boundary"}
       ]
     },
     {
