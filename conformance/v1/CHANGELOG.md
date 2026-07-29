@@ -1,5 +1,21 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 37 — 2026-07-29
+
+- Registered 31 independently dispatched safe-genesis cases for isolated fresh
+  and hostile-network state, local-only bounded bootstrap, implicit browser and
+  transport rejection, member quarantine, deliberately public operations,
+  hosted/browser/constrained distribution defaults, exact provider opt-in, and
+  monotonic reset and recovery.
+- Added three sealed reference distribution profiles and explicit compile
+  diagnostics for absent, disabled, and unsupported providers without turning
+  package inventory into an execution plan, capability grant, installation, or
+  host enforcement claim.
+- Kept the proof boundary explicit: browser membership signals execute in the
+  browser engine, while package-manager exclusion, physical ceremony,
+  cryptographic receipts, durable deployment storage, and complete domain
+  effect taxonomies remain external responsibilities.
+
 ## Manifest revision 36 — 2026-07-29
 
 - Registered 22 independently dispatched hazardous-effect-closure cases for

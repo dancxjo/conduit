@@ -160,6 +160,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   defines plan-v13 domain-owned effect classes, bounded whole-plan and
   transition closure, exact toxic combinations and declared propagation,
   independent expiring permits, and secret-safe proof trees.
+- [`044-safe-genesis-and-distribution-v1.md`](044-safe-genesis-and-distribution-v1.md)
+  defines isolated realm genesis, local-only bootstrap into quarantine,
+  bounded deliberately-public operations, safe hosted/browser/constrained
+  distribution defaults, exact provider opt-in, and monotonic recovery.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

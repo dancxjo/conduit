@@ -20,6 +20,7 @@ mod distributed;
 mod evidence;
 mod execution_plan;
 mod flow;
+mod genesis;
 mod hazard_closure;
 mod host;
 mod implementation;
@@ -119,6 +120,23 @@ pub use flow::{
     FlowOffer, FlowPolicy, FlowPolicyDecision, FlowPolicyError, FlowPolicyReason, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, OfferDisposition, OfferTransition, PopTransition, Pressure,
     QueueError, SampleSchedule, TraitProof,
+};
+pub use genesis::{
+    AuthoritySurface, BootstrapAttempt, BootstrapChannel, BootstrapOrigin,
+    DISTRIBUTION_PROFILE_SCHEMA_VERSION, DistributionProvider, GENESIS_CONTROL_SCHEMA_VERSION,
+    GENESIS_PROFILE_SCHEMA_VERSION, GenesisControlKind, GenesisControlRecord, GenesisIdentityError,
+    GenesisPhase, GenesisReason, GenesisStateObservation, HostDistributionKind,
+    MAX_BOOTSTRAP_CHANNELS, MAX_DISTRIBUTION_PROVIDERS, MAX_GENESIS_MEMBERS,
+    MAX_MEMBER_DELEGATIONS, MAX_MEMBER_GRANTS, MAX_MEMBER_ROLES, MAX_PUBLIC_OPERATIONS,
+    MemberDisposition, MemberSecurityState, ProviderAvailability, ProviderDecision,
+    ProviderEnablement, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
+    PublicGenesisOperation, RealmGenesisClass, RealmGenesisProfile, RecoveryKind,
+    RecoveryTransition, ReferenceDistributionProfile, SafePlanDisposition,
+    assess_provider_requirement, authorize_public_operation, provider_enablement_subject,
+    require_provider, validate_bootstrap_attempt,
+    validate_control_record as validate_genesis_control_record, validate_genesis_profile,
+    validate_provider_enablement, validate_quarantined_member, validate_recovery_transition,
+    validate_reference_distribution, validate_safe_initial_state,
 };
 pub use hazard_closure::{
     EffectClassBinding, EffectClassTraits, EffectFlowBinding, HAZARD_CLOSURE_POLICY_SCHEMA_VERSION,

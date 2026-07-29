@@ -16,6 +16,7 @@ import {
   BoundedPortQueue,
   BrowserExecutionAdapter,
   BrowserHostReason,
+  BrowserMembershipSignal,
   DedicatedWorkerExecutionAdapter,
   PermissionState,
   Placement,
@@ -25,6 +26,7 @@ import {
   WebGpuExecutionAdapter,
   WindowExecutionAdapter,
   observeBrowserHost,
+  assessBrowserMembershipSignal,
   resolveBrowserPlacement,
   verifyExactArtifact,
 } from "./conduit-browser-host.mjs";
@@ -42,6 +44,13 @@ const bounded = (promise, milliseconds, label) => Promise.race([
 ]);
 const evidence = [];
 const emitEvidence = (event) => evidence.push(event);
+const membershipSignals = Object.values(BrowserMembershipSignal).map((signal) =>
+  assessBrowserMembershipSignal(signal));
+assert(
+  membershipSignals.every((decision) =>
+    decision.ok === false && decision.code === BrowserHostReason.ImplicitEnrollment),
+  "navigation, PWA, permission, transport, and report signals never enroll",
+);
 const placement = (id, available, lifetime, scheduling, transfer, terminalRisks = []) => ({
   id,
   available,
@@ -341,6 +350,7 @@ globalThis.__conduitBrowserResults = Object.freeze({
   uaBranch: false,
   resolverEffects: Object.freeze({ prompted: false, fetched: false, mutated: false }),
   terminalEvidence: evidence.filter((event) => event.kind === "terminal").length,
+  membershipSignals: Object.freeze(membershipSignals),
 });
 document.querySelector("#result").textContent = "ok";
 </script>

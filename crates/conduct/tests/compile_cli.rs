@@ -7,13 +7,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    CompileSourceLimits, ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument,
-    ImplementationDocument, PinDocument, builtin_catalog_document, compile_source,
+    CompileSourceLimits, DistributionProviderDocument, ExecutionLimitsDocument,
+    ExecutionProfileDocument, HostReportDocument, ImplementationDocument, PinDocument,
+    ProviderRequirementDocument, ProviderRiskTraitsDocument, ReferenceDistributionDocument,
+    builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
+    DISTRIBUTION_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
 };
 use conduit_panel::parse;
 use conduit_runtime::Registry;
@@ -207,6 +209,7 @@ fn input(source: &str) -> CompileInput {
         catalog: builtin_catalog_document().unwrap(),
         pool_bindings: Vec::new(),
         hazard_closure: None,
+        distribution: None,
         source_semantic_hash: topology.source_semantic_hash.to_string(),
         resolver: pin("conduit/exact-compiler-resolver", 70),
         resolver_policy_hash: String::new(),
@@ -233,6 +236,42 @@ fn input(source: &str) -> CompileInput {
         candidates,
     };
     input.seal().unwrap();
+    input
+}
+
+fn absent_provider_input(source: &str) -> CompileInput {
+    let firmware_traits = ProviderRiskTraitsDocument {
+        firmware_mutation: true,
+        ..ProviderRiskTraitsDocument::default()
+    };
+    let mut input = input(source);
+    input.distribution = Some(ReferenceDistributionDocument {
+        schema: conduit_compile::REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA.to_owned(),
+        schema_version: DISTRIBUTION_PROFILE_SCHEMA_VERSION,
+        identity: String::new(),
+        descriptor: pin("distribution.reference", 180),
+        kind: "hosted".to_owned(),
+        genesis_profile: hash(181),
+        control_recorder: pin("recorder.genesis", 182),
+        provider_enablement_effect_class: pin("effect.provider-enable", 183),
+        provider_enablement_operation: pin("operation.provider-enable", 184),
+        providers: vec![DistributionProviderDocument {
+            provider: pin("provider.firmware", 185),
+            artifact: None,
+            availability: "absent".to_owned(),
+            traits: firmware_traits,
+        }],
+        maximum_provider_enablement_ticks: 20,
+        maximum_provider_install_attempts: 2,
+        maximum_evidence_events: 16,
+        requirements: Vec::new(),
+    });
+    input.seal().unwrap();
+    input.distribution.as_mut().unwrap().requirements = vec![ProviderRequirementDocument {
+        provider: pin("provider.firmware", 185),
+        traits: firmware_traits,
+    }];
+    input.identity = input.computed_identity().unwrap();
     input
 }
 
@@ -655,6 +694,52 @@ fn check_and_explain_name_the_whole_plan_toxic_combination() {
         );
         assert!(
             !diagnostic.contains("resource budget"),
+            "{mode}: {diagnostic}"
+        );
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn check_and_explain_name_intentionally_absent_dangerous_provider() {
+    let root = temporary_directory();
+    let source = include_str!("../../../examples/hello.panel");
+    let panel = root.join("hello.panel");
+    let input_path = root.join("compile-input.json");
+    std::fs::write(&panel, source).unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&absent_provider_input(source)).unwrap(),
+    )
+    .unwrap();
+
+    for mode in ["--check", "--explain"] {
+        let output = command()
+            .arg(mode)
+            .arg("--compile-input")
+            .arg(&input_path)
+            .arg(&panel)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{mode}");
+        assert!(output.stdout.is_empty(), "{mode}");
+        let diagnostic = String::from_utf8(output.stderr).unwrap();
+        assert!(diagnostic.contains("CND-GEN-010"), "{mode}: {diagnostic}");
+        assert!(
+            diagnostic
+                .contains("required provider is intentionally absent, disabled, or unsupported"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            diagnostic.contains("provider provider.firmware"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            diagnostic.contains("availability absent"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            !diagnostic.contains("implementation, artifact, host, or authority resolution failed"),
             "{mode}: {diagnostic}"
         );
     }

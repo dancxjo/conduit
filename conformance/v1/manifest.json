@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 36,
+  "manifest_revision": 37,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3849,6 +3849,111 @@
       },
       "reference_tests": [
         {"package": "conduit-core", "test": "policy_budget_vectors"}
+      ]
+    },
+    {
+      "id": "safe-genesis",
+      "profile": "conduit.c4-c5",
+      "requirement_ids": [
+        "GEN-001", "GEN-002", "GEN-003", "GEN-004", "GEN-005",
+        "GEN-006", "GEN-007", "GEN-008", "GEN-009", "GEN-010",
+        "GEN-011", "GEN-012", "GEN-013", "GEN-014"
+      ],
+      "artifacts": [{
+        "id": "safe-genesis-v1",
+        "path": "../c4/safe-genesis-v1.json",
+        "sha256": "sha256:6d34f1805e8f35b37f45bb1bd81f1a6423764de0dac425880db8628d209da0a2",
+        "operation": "safe-genesis-v1",
+        "requirement_ids": [
+          "GEN-001", "GEN-002", "GEN-003", "GEN-004", "GEN-005",
+          "GEN-006", "GEN-007", "GEN-008", "GEN-009", "GEN-010",
+          "GEN-011", "GEN-012", "GEN-013", "GEN-014"
+        ],
+        "default_rule": "GEN-001",
+        "case_rules": {
+          "fresh-unconfigured-is-isolated": "GEN-002",
+          "hostile-lan-does-not-change-safe-state": "GEN-002",
+          "local-bootstrap-yields-quarantine": "GEN-003",
+          "expired-local-bootstrap-denied": "GEN-006",
+          "replayed-local-bootstrap-denied": "GEN-006",
+          "bootstrap-retry-limit-enforced": "GEN-006",
+          "browser-navigation-does-not-enroll": "GEN-004",
+          "pwa-install-does-not-enroll": "GEN-004",
+          "browser-permission-does-not-enroll": "GEN-004",
+          "transport-handshake-does-not-enroll": "GEN-004",
+          "capability-report-does-not-enroll": "GEN-004",
+          "quarantined-member-has-no-ambient-authority": "GEN-005",
+          "role-breaks-quarantine": "GEN-005",
+          "grant-breaks-quarantine": "GEN-005",
+          "public-profile-exact-bounded-operation": "GEN-007",
+          "public-profile-administration-denied": "GEN-007",
+          "hosted-reference-dangerous-providers-absent": "GEN-009",
+          "browser-profile-unsupported-is-explicit": "GEN-009",
+          "constrained-profile-unsupported-is-explicit": "GEN-009",
+          "dangerous-provider-enabled-by-default-denied": "GEN-009",
+          "absent-provider-requirement-is-exact": "GEN-010",
+          "deliberate-provider-opt-in-is-exact": "GEN-011",
+          "provider-opt-in-does-not-grant-effects": "GEN-011",
+          "factory-reset-returns-to-isolation": "GEN-012",
+          "failed-root-recovery-returns-to-isolation": "GEN-012",
+          "failed-recovery-cannot-create-ambient-root": "GEN-013",
+          "authorized-restore-uses-exact-snapshot-ceiling": "GEN-013",
+          "restore-snapshot-mismatch-denied": "GEN-013",
+          "emergency-recovery-cannot-create-universal-root": "GEN-013",
+          "genesis-evidence-capacity-is-bounded": "GEN-014",
+          "local-bootstrap-allows-only-pinned-identity": "GEN-002"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "safe-genesis-v1#fresh-unconfigured-is-isolated",
+          "safe-genesis-v1#hostile-lan-does-not-change-safe-state",
+          "safe-genesis-v1#local-bootstrap-yields-quarantine",
+          "safe-genesis-v1#quarantined-member-has-no-ambient-authority",
+          "safe-genesis-v1#public-profile-exact-bounded-operation",
+          "safe-genesis-v1#hosted-reference-dangerous-providers-absent",
+          "safe-genesis-v1#deliberate-provider-opt-in-is-exact",
+          "safe-genesis-v1#factory-reset-returns-to-isolation",
+          "safe-genesis-v1#failed-root-recovery-returns-to-isolation",
+          "safe-genesis-v1#authorized-restore-uses-exact-snapshot-ceiling"
+        ],
+        "negative": [
+          "safe-genesis-v1#browser-navigation-does-not-enroll",
+          "safe-genesis-v1#pwa-install-does-not-enroll",
+          "safe-genesis-v1#browser-permission-does-not-enroll",
+          "safe-genesis-v1#transport-handshake-does-not-enroll",
+          "safe-genesis-v1#capability-report-does-not-enroll",
+          "safe-genesis-v1#role-breaks-quarantine",
+          "safe-genesis-v1#grant-breaks-quarantine",
+          "safe-genesis-v1#public-profile-administration-denied",
+          "safe-genesis-v1#dangerous-provider-enabled-by-default-denied",
+          "safe-genesis-v1#absent-provider-requirement-is-exact",
+          "safe-genesis-v1#provider-opt-in-does-not-grant-effects",
+          "safe-genesis-v1#failed-recovery-cannot-create-ambient-root",
+          "safe-genesis-v1#restore-snapshot-mismatch-denied",
+          "safe-genesis-v1#emergency-recovery-cannot-create-universal-root"
+        ],
+        "boundary": [
+          "safe-genesis-v1#expired-local-bootstrap-denied",
+          "safe-genesis-v1#replayed-local-bootstrap-denied",
+          "safe-genesis-v1#bootstrap-retry-limit-enforced",
+          "safe-genesis-v1#browser-profile-unsupported-is-explicit",
+          "safe-genesis-v1#constrained-profile-unsupported-is-explicit",
+          "safe-genesis-v1#genesis-evidence-capacity-is-bounded"
+        ],
+        "migration": [
+          "safe-genesis-v1#local-bootstrap-allows-only-pinned-identity"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "genesis_vectors"},
+        {"package": "conduit-compile", "test": "distribution_profiles"},
+        {"package": "conduct", "test": "compile_cli"},
+        {"package": "conduit-embedded", "test": "genesis_defaults"}
       ]
     },
     {

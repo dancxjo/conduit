@@ -1,0 +1,123 @@
+{
+  "schema": "conduit.reference-distribution/v1",
+  "schema_version": 1,
+  "identity": "sha256:a97a384b24c20a6552c4130b0b7009b6bc2399b23662390b4092e01a10e9c199",
+  "descriptor": {
+    "id": "distribution/reference-constrained",
+    "schema_version": 1,
+    "semantic_hash": "sha256:3131313131313131313131313131313131313131313131313131313131313131"
+  },
+  "kind": "constrained",
+  "genesis_profile": "sha256:3232323232323232323232323232323232323232323232323232323232323232",
+  "control_recorder": {
+    "id": "recorder/genesis-control",
+    "schema_version": 1,
+    "semantic_hash": "sha256:0303030303030303030303030303030303030303030303030303030303030303"
+  },
+  "provider_enablement_effect_class": {
+    "id": "effect/provider-enablement",
+    "schema_version": 1,
+    "semantic_hash": "sha256:0404040404040404040404040404040404040404040404040404040404040404"
+  },
+  "provider_enablement_operation": {
+    "id": "operation/provider-enable",
+    "schema_version": 1,
+    "semantic_hash": "sha256:0505050505050505050505050505050505050505050505050505050505050505"
+  },
+  "providers": [
+    {
+      "provider": {
+        "id": "provider/enrollment-issuer",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1010101010101010101010101010101010101010101010101010101010101010"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"enrollment_issuer": true}
+    },
+    {
+      "provider": {
+        "id": "provider/unrestricted-native",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"unrestricted_native_execution": true}
+    },
+    {
+      "provider": {
+        "id": "provider/remote-artifact-install",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"remote_artifact_installation": true}
+    },
+    {
+      "provider": {
+        "id": "provider/firmware-mutation",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"firmware_mutation": true}
+    },
+    {
+      "provider": {
+        "id": "provider/unrestricted-network",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1414141414141414141414141414141414141414141414141414141414141414"
+      },
+      "artifact": null,
+      "availability": "absent",
+      "traits": {"unrestricted_network": true}
+    },
+    {
+      "provider": {
+        "id": "provider/realm-root-admin",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1515151515151515151515151515151515151515151515151515151515151515"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"realm_root_administration": true}
+    },
+    {
+      "provider": {
+        "id": "provider/remote-plan-activation",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1616161616161616161616161616161616161616161616161616161616161616"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"remote_plan_activation": true}
+    },
+    {
+      "provider": {
+        "id": "provider/actuating-effects",
+        "schema_version": 1,
+        "semantic_hash": "sha256:1717171717171717171717171717171717171717171717171717171717171717"
+      },
+      "artifact": null,
+      "availability": "unsupported",
+      "traits": {"actuating_effects": true}
+    },
+    {
+      "provider": {
+        "id": "provider/bounded-embedded-runtime",
+        "schema_version": 1,
+        "semantic_hash": "sha256:3838383838383838383838383838383838383838383838383838383838383838"
+      },
+      "artifact": null,
+      "availability": "enabled",
+      "traits": {}
+    }
+  ],
+  "maximum_provider_enablement_ticks": 30,
+  "maximum_provider_install_attempts": 1,
+  "maximum_evidence_events": 16,
+  "requirements": []
+}

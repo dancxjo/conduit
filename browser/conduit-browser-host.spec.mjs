@@ -26,6 +26,9 @@ test("executes browser-host vectors without engine-name branches", async ({ page
     mutated: false,
   });
   expect(result.terminalEvidence).toBeGreaterThanOrEqual(2);
+  expect(result.membershipSignals).toHaveLength(5);
+  expect(result.membershipSignals.every((decision) =>
+    decision.ok === false && decision.code === "CND-GEN-005")).toBe(true);
   expect(result.placementOutcomes.window).toBe("executed");
   expect(result.placementOutcomes["dedicated-worker"]).toBe("executed");
   expect(result.placementOutcomes.wasm).toBe("executed");

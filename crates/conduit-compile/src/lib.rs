@@ -14,25 +14,27 @@ use conduit_core::{
     ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope, AuthorityTime,
     BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
     ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
-    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
+    DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12, EffectClassBinding,
     EffectClassTraits, EffectFlowBinding, EffectRequirement, ExecutionLimits, ExecutionPlan,
-    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GrantStatus,
-    HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
-    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HostCapability, Id,
-    ImplementationManifest, InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef,
-    ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
-    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanExportBinding,
-    PlanHazardClosure, PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext,
-    PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits,
-    PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure, ReplacementSupport,
-    ReportCapability, ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
-    RollingLimit, SampleSchedule, SemanticHash, StopPolicy, ToxicCombinationRule,
-    ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement, TypeContractRef,
-    ValueRepresentation, analyze_effect_closure, resolve_authority, validate_administrative_proof,
+    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason,
+    GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
+    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HostCapability,
+    HostDistributionKind, Id, ImplementationManifest, InstancePath, MAX_HAZARD_PROOF_NODES,
+    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
+    ObservedGrant, OwnershipModel, PassportStatus, PassportStatusObservation,
+    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping,
+    PlanExportBinding, PlanHazardClosure, PlanHostObservation, PlanInstancePool, PlanPolicyBudget,
+    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
+    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure,
+    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
+    ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
+    ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, ResourceRef, ResourceSelector, RollingLimit, SampleSchedule, SemanticHash,
+    StopPolicy, ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
+    TypeContractRef, ValueRepresentation, analyze_effect_closure, assess_provider_requirement,
+    resolve_authority, validate_administrative_proof, validate_reference_distribution,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -51,6 +53,7 @@ pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
 pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4";
 pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
 pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
+pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -864,6 +867,80 @@ pub struct PoolBindingDocument {
     pub child_cords: u16,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ProviderRiskTraitsDocument {
+    pub enrollment_issuer: bool,
+    pub unrestricted_native_execution: bool,
+    pub remote_artifact_installation: bool,
+    pub firmware_mutation: bool,
+    pub unrestricted_network: bool,
+    pub realm_root_administration: bool,
+    pub remote_plan_activation: bool,
+    pub actuating_effects: bool,
+}
+
+impl From<ProviderRiskTraitsDocument> for ProviderRiskTraits {
+    fn from(value: ProviderRiskTraitsDocument) -> Self {
+        Self {
+            enrollment_issuer: value.enrollment_issuer,
+            unrestricted_native_execution: value.unrestricted_native_execution,
+            remote_artifact_installation: value.remote_artifact_installation,
+            firmware_mutation: value.firmware_mutation,
+            unrestricted_network: value.unrestricted_network,
+            realm_root_administration: value.realm_root_administration,
+            remote_plan_activation: value.remote_plan_activation,
+            actuating_effects: value.actuating_effects,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DistributionProviderDocument {
+    pub provider: PinDocument,
+    pub artifact: Option<String>,
+    pub availability: String,
+    pub traits: ProviderRiskTraitsDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProviderRequirementDocument {
+    pub provider: PinDocument,
+    pub traits: ProviderRiskTraitsDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReferenceDistributionDocument {
+    pub schema: String,
+    pub schema_version: u32,
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub kind: String,
+    pub genesis_profile: String,
+    pub control_recorder: PinDocument,
+    pub provider_enablement_effect_class: PinDocument,
+    pub provider_enablement_operation: PinDocument,
+    pub providers: Vec<DistributionProviderDocument>,
+    pub maximum_provider_enablement_ticks: u64,
+    pub maximum_provider_install_attempts: u16,
+    pub maximum_evidence_events: u32,
+    #[serde(default)]
+    pub requirements: Vec<ProviderRequirementDocument>,
+}
+
+impl ReferenceDistributionDocument {
+    pub fn seal(&mut self) -> Result<(), CompileError> {
+        seal_distribution(self)
+    }
+
+    pub fn validate(&self) -> Result<(), CompileError> {
+        validate_distribution_document(self)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CandidateDocument {
@@ -900,6 +977,8 @@ pub struct CompileInput {
     pub pool_bindings: Vec<PoolBindingDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hazard_closure: Option<HazardClosureDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub distribution: Option<ReferenceDistributionDocument>,
     pub source_semantic_hash: String,
     pub resolver: PinDocument,
     pub resolver_policy_hash: String,
@@ -932,6 +1011,7 @@ struct CompileIdentityProjection<'a> {
     catalog: &'a CompileCatalogDocument,
     pool_bindings: &'a [PoolBindingDocument],
     hazard_closure: &'a Option<HazardClosureDocument>,
+    distribution: &'a Option<ReferenceDistributionDocument>,
     source_semantic_hash: &'a str,
     resolver: &'a PinDocument,
     resolver_policy_hash: &'a str,
@@ -998,6 +1078,9 @@ impl CompileInput {
         if let Some(closure) = &mut self.hazard_closure {
             seal_hazard_closure(closure)?;
         }
+        if let Some(distribution) = &mut self.distribution {
+            seal_distribution(distribution)?;
+        }
         self.resolver_policy_hash = policy_hash(self)?;
         self.identity = self.computed_identity()?;
         self.validate()
@@ -1016,6 +1099,7 @@ impl CompileInput {
             catalog: &canonical.catalog,
             pool_bindings: &canonical.pool_bindings,
             hazard_closure: &canonical.hazard_closure,
+            distribution: &canonical.distribution,
             source_semantic_hash: &canonical.source_semantic_hash,
             resolver: &canonical.resolver,
             resolver_policy_hash: &canonical.resolver_policy_hash,
@@ -1124,6 +1208,9 @@ impl CompileInput {
                     HazardClosureReason::PermitScopeMismatch,
                 )));
             }
+        }
+        if let Some(distribution) = &self.distribution {
+            validate_distribution_document(distribution)?;
         }
         if self.identity != self.computed_identity()? {
             return Err(CompileError::new(CompileReason::InvalidInput));
@@ -3285,6 +3372,104 @@ fn seal_hazard_closure(document: &mut HazardClosureDocument) -> Result<(), Compi
     Ok(())
 }
 
+fn seal_distribution(document: &mut ReferenceDistributionDocument) -> Result<(), CompileError> {
+    document.identity = SemanticHash::from_bytes([0; 32]).to_string();
+    let arena = Bump::new();
+    let profile = reference_distribution(document, &arena)?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); profile.identity_fact_count()];
+    document.identity = profile
+        .computed_semantic_hash(&mut scratch)
+        .map_err(|_| CompileError::new(CompileReason::Genesis(GenesisReason::InvalidDescriptor)))?
+        .to_string();
+    validate_distribution_document(document)
+}
+
+fn validate_distribution_document(
+    document: &ReferenceDistributionDocument,
+) -> Result<(), CompileError> {
+    if document.schema != REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA {
+        return Err(CompileError::new(CompileReason::Genesis(
+            GenesisReason::UnsupportedVersion,
+        )));
+    }
+    let arena = Bump::new();
+    let profile = reference_distribution(document, &arena)?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); profile.identity_fact_count()];
+    validate_reference_distribution(profile, &mut scratch)
+        .map_err(|reason| CompileError::new(CompileReason::Genesis(reason)))?;
+    for requirement in &document.requirements {
+        let requirement = ProviderRequirement {
+            provider: pin(&requirement.provider)?,
+            traits: requirement.traits.into(),
+        };
+        let decision = assess_provider_requirement(profile, requirement)
+            .map_err(|reason| CompileError::new(CompileReason::Genesis(reason)))?;
+        if decision.selection != ProviderSelection::Available {
+            return Err(CompileError::provider(
+                GenesisReason::ProviderUnavailable,
+                decision.provider.id.as_str(),
+                decision.selection,
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn reference_distribution<'a>(
+    document: &'a ReferenceDistributionDocument,
+    arena: &'a Bump,
+) -> Result<ReferenceDistributionProfile<'a>, CompileError> {
+    let providers = document
+        .providers
+        .iter()
+        .map(|provider| {
+            Ok(DistributionProvider {
+                provider: pin(&provider.provider)?,
+                artifact: provider.artifact.as_deref().map(parse_digest).transpose()?,
+                availability: provider_availability(&provider.availability)?,
+                traits: provider.traits.into(),
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    Ok(ReferenceDistributionProfile {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        descriptor: pin(&document.descriptor)?,
+        kind: distribution_kind(&document.kind)?,
+        genesis_profile: parse_hash(&document.genesis_profile)?,
+        control_recorder: pin(&document.control_recorder)?,
+        provider_enablement_effect_class: pin(&document.provider_enablement_effect_class)?,
+        provider_enablement_operation: pin(&document.provider_enablement_operation)?,
+        providers: arena.alloc_slice_copy(&providers),
+        maximum_provider_enablement_ticks: document.maximum_provider_enablement_ticks,
+        maximum_provider_install_attempts: document.maximum_provider_install_attempts,
+        maximum_evidence_events: document.maximum_evidence_events,
+    })
+}
+
+fn distribution_kind(value: &str) -> Result<HostDistributionKind, CompileError> {
+    match value {
+        "hosted" => Ok(HostDistributionKind::Hosted),
+        "browser" => Ok(HostDistributionKind::Browser),
+        "constrained" => Ok(HostDistributionKind::Constrained),
+        _ => Err(CompileError::new(CompileReason::Genesis(
+            GenesisReason::InvalidDescriptor,
+        ))),
+    }
+}
+
+fn provider_availability(value: &str) -> Result<ProviderAvailability, CompileError> {
+    match value {
+        "absent" => Ok(ProviderAvailability::Absent),
+        "disabled" => Ok(ProviderAvailability::Disabled),
+        "enabled" => Ok(ProviderAvailability::Enabled),
+        "unsupported" => Ok(ProviderAvailability::Unsupported),
+        _ => Err(CompileError::new(CompileReason::Genesis(
+            GenesisReason::InvalidDescriptor,
+        ))),
+    }
+}
+
 fn authority_constraints<'a>(
     documents: &'a [AuthorityConstraintDocument],
     arena: &'a Bump,
@@ -4973,6 +5158,16 @@ fn canonicalize_compile_input(input: &mut CompileInput) {
             permit.approval.commit.approvals.sort();
         }
     }
+    if let Some(distribution) = &mut input.distribution {
+        distribution.providers.sort_by(|left, right| {
+            (&left.provider.id, &left.provider.semantic_hash)
+                .cmp(&(&right.provider.id, &right.provider.semantic_hash))
+        });
+        distribution.requirements.sort_by(|left, right| {
+            (&left.provider.id, &left.provider.semantic_hash)
+                .cmp(&(&right.provider.id, &right.provider.semantic_hash))
+        });
+    }
     input.candidates.sort_by(|left, right| {
         (
             &left.implementation.id,
@@ -5349,6 +5544,7 @@ pub enum CompileReason {
     Containment(ContainmentReason),
     PolicyBudget(PolicyBudgetReason),
     HazardClosure(HazardClosureReason),
+    Genesis(GenesisReason),
 }
 
 impl CompileReason {
@@ -5367,6 +5563,7 @@ impl CompileReason {
             Self::Containment(reason) => reason.code(),
             Self::PolicyBudget(reason) => reason.code(),
             Self::HazardClosure(reason) => reason.code(),
+            Self::Genesis(reason) => reason.code(),
         }
     }
 }
@@ -5380,9 +5577,16 @@ pub struct CompileHazardProofNode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompileProviderDenial {
+    pub provider: String,
+    pub availability: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompileError {
     reason: CompileReason,
     hazard_proof: Vec<CompileHazardProofNode>,
+    provider_denial: Option<CompileProviderDenial>,
 }
 
 impl CompileError {
@@ -5390,6 +5594,7 @@ impl CompileError {
         Self {
             reason,
             hazard_proof: Vec::new(),
+            provider_denial: None,
         }
     }
 
@@ -5415,6 +5620,25 @@ impl CompileError {
         Self {
             reason: CompileReason::HazardClosure(denial.reason),
             hazard_proof,
+            provider_denial: None,
+        }
+    }
+
+    fn provider(reason: GenesisReason, provider: &str, selection: ProviderSelection) -> Self {
+        let availability = match selection {
+            ProviderSelection::Available => "available",
+            ProviderSelection::Absent => "absent",
+            ProviderSelection::Disabled => "disabled",
+            ProviderSelection::Unsupported => "unsupported",
+            ProviderSelection::TraitMismatch => "trait-mismatch",
+        };
+        Self {
+            reason: CompileReason::Genesis(reason),
+            hazard_proof: Vec::new(),
+            provider_denial: Some(CompileProviderDenial {
+                provider: provider.to_owned(),
+                availability,
+            }),
         }
     }
 
@@ -5426,6 +5650,11 @@ impl CompileError {
     #[must_use]
     pub fn hazard_proof(&self) -> &[CompileHazardProofNode] {
         &self.hazard_proof
+    }
+
+    #[must_use]
+    pub fn provider_denial(&self) -> Option<&CompileProviderDenial> {
+        self.provider_denial.as_ref()
     }
 }
 
@@ -5493,6 +5722,19 @@ impl fmt::Display for CompileError {
             CompileReason::HazardClosure(_) => {
                 "whole-plan effect-closure proof or exact permit is invalid"
             }
+            CompileReason::Genesis(GenesisReason::ProviderUnavailable) => {
+                "required provider is intentionally absent, disabled, or unsupported"
+            }
+            CompileReason::Genesis(GenesisReason::DangerousProviderEnabledByDefault) => {
+                "reference distribution enables a dangerous provider by default"
+            }
+            CompileReason::Genesis(GenesisReason::QuarantineViolated) => {
+                "enrolled member is not in the required authority-free quarantine"
+            }
+            CompileReason::Genesis(GenesisReason::RecoveryWidened) => {
+                "reset or recovery would widen authority"
+            }
+            CompileReason::Genesis(_) => "safe genesis or reference-distribution proof is invalid",
         };
         formatter.write_str(message)?;
         if let Some(rule) = self.hazard_proof.iter().find(|node| node.kind == "rule") {
@@ -5507,6 +5749,13 @@ impl fmt::Display for CompileError {
                     write!(formatter, ", {effect}")?;
                 }
             }
+        }
+        if let Some(denial) = &self.provider_denial {
+            write!(
+                formatter,
+                "; provider {}; availability {}",
+                denial.provider, denial.availability
+            )?;
         }
         Ok(())
     }
@@ -5854,6 +6103,7 @@ mod tests {
             catalog: builtin_catalog_document().unwrap(),
             pool_bindings: Vec::new(),
             hazard_closure: None,
+            distribution: None,
             source_semantic_hash: topology.source_semantic_hash.to_string(),
             resolver: pin_doc("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),
@@ -5883,6 +6133,44 @@ mod tests {
         input
     }
 
+    fn reference_distribution_document() -> ReferenceDistributionDocument {
+        ReferenceDistributionDocument {
+            schema: REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA.to_owned(),
+            schema_version: conduit_core::DISTRIBUTION_PROFILE_SCHEMA_VERSION,
+            identity: String::new(),
+            descriptor: pin_doc("distribution.reference", 180),
+            kind: "hosted".to_owned(),
+            genesis_profile: hash(181),
+            control_recorder: pin_doc("recorder.genesis", 182),
+            provider_enablement_effect_class: pin_doc("effect.provider-enable", 183),
+            provider_enablement_operation: pin_doc("operation.provider-enable", 184),
+            providers: vec![
+                DistributionProviderDocument {
+                    provider: pin_doc("provider.safe", 185),
+                    artifact: None,
+                    availability: "enabled".to_owned(),
+                    traits: ProviderRiskTraitsDocument::default(),
+                },
+                DistributionProviderDocument {
+                    provider: pin_doc("provider.firmware", 186),
+                    artifact: Some(format!("sha256:{}", "bb".repeat(32))),
+                    availability: "disabled".to_owned(),
+                    traits: ProviderRiskTraitsDocument {
+                        firmware_mutation: true,
+                        ..ProviderRiskTraitsDocument::default()
+                    },
+                },
+            ],
+            maximum_provider_enablement_ticks: 20,
+            maximum_provider_install_attempts: 2,
+            maximum_evidence_events: 16,
+            requirements: vec![ProviderRequirementDocument {
+                provider: pin_doc("provider.safe", 185),
+                traits: ProviderRiskTraitsDocument::default(),
+            }],
+        }
+    }
+
     #[test]
     fn identical_explicit_inputs_emit_byte_identical_portable_plans() {
         let source = include_str!("../../../examples/hello.panel");
@@ -5900,6 +6188,50 @@ mod tests {
         let mut mismatched_catalog = input;
         mismatched_catalog.catalog.nodes[0].semantic_hash = hash(99);
         assert_eq!(mismatched_catalog.seal().unwrap_err().code(), "CND-CMP-002");
+    }
+
+    #[test]
+    fn reference_distribution_is_identity_bound_and_absent_provider_is_exact() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let mut input = compile_input(source, &panel);
+        input.distribution = Some(reference_distribution_document());
+        input.seal().unwrap();
+        input.validate().unwrap();
+
+        let distribution = input.distribution.as_mut().unwrap();
+        distribution.requirements = vec![ProviderRequirementDocument {
+            provider: pin_doc("provider.firmware", 186),
+            traits: ProviderRiskTraitsDocument {
+                firmware_mutation: true,
+                ..ProviderRiskTraitsDocument::default()
+            },
+        }];
+        input.identity = input.computed_identity().unwrap();
+        let error = input.validate().unwrap_err();
+        assert_eq!(error.code(), "CND-GEN-010");
+        assert_eq!(
+            error.to_string(),
+            "required provider is intentionally absent, disabled, or unsupported; provider provider.firmware; availability disabled"
+        );
+        assert_eq!(
+            error.provider_denial(),
+            Some(&CompileProviderDenial {
+                provider: "provider.firmware".to_owned(),
+                availability: "disabled",
+            })
+        );
+
+        let distribution = input.distribution.as_mut().unwrap();
+        distribution.requirements.clear();
+        distribution
+            .providers
+            .iter_mut()
+            .find(|provider| provider.provider.id == "provider.firmware")
+            .unwrap()
+            .availability = "enabled".to_owned();
+        let error = input.seal().unwrap_err();
+        assert_eq!(error.code(), "CND-GEN-011");
     }
 
     #[test]
@@ -5995,6 +6327,7 @@ mod tests {
             catalog: builtin_catalog_document().unwrap(),
             pool_bindings: Vec::new(),
             hazard_closure: None,
+            distribution: None,
             source_semantic_hash: hash(1),
             resolver: pin_doc("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),

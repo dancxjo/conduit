@@ -31,6 +31,15 @@ export const BrowserHostReason = Object.freeze({
   QueueCapacity: "CND-BRW-007",
   PlacementUnavailable: "CND-BRW-008",
   Terminal: "CND-BRW-009",
+  ImplicitEnrollment: "CND-GEN-005",
+});
+
+export const BrowserMembershipSignal = Object.freeze({
+  Navigation: "browser-navigation",
+  PwaInstall: "pwa-install",
+  Permission: "browser-permission",
+  TransportHandshake: "transport-handshake",
+  CapabilityReport: "capability-report",
 });
 
 function fail(code, detail) {
@@ -43,6 +52,17 @@ function sortedUnique(values) {
 
 function cloneFact(fact) {
   return Object.freeze({ ...fact });
+}
+
+/**
+ * Browser lifecycle and capability signals are observations only. They never
+ * become a realm enrollment request, passport, role, or effect grant.
+ */
+export function assessBrowserMembershipSignal(signal) {
+  if (!Object.values(BrowserMembershipSignal).includes(signal)) {
+    return fail(BrowserHostReason.InvalidReport, "unknown browser membership signal");
+  }
+  return fail(BrowserHostReason.ImplicitEnrollment, signal);
 }
 
 function validStatusBinding(reporter, tick) {
