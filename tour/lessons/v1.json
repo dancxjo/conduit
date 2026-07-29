@@ -11,6 +11,7 @@
       "vocabulary": ["node", "cord", "capacity"],
       "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Hello from the Tour.\\n\"\n}\nnode output : conduit/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
+      "commands": ["conduct --check lesson.panel", "conduct --run lesson.panel"],
       "expected_stdout": "Hello from the Tour.\n",
       "profile": "browser-local-deterministic",
       "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
@@ -57,6 +58,26 @@
       "hints": ["Only the value configuration needs to change.", "Moving a selected node does not rewrite source."],
       "solution": "Set greeting.value to the desired text and retain its explicit cord.",
       "accessibility": {"non_audio": "The output and source selection do not depend on color or sound.", "reduced_motion": true}
+    },
+    {
+      "id": "welcome.nothing-up-our-sleeves",
+      "chapter": 0,
+      "title": "Nothing up our sleeves",
+      "prerequisites": ["welcome.hello-panel", "welcome.change-message"],
+      "objective": "Take the exact authored panel home and run it with the canonical command.",
+      "prose": "Download preserves the real source you just ran. The same source is checked with conduct --check and executed with conduct --run outside the Tour.",
+      "vocabulary": ["conduct", "check", "run"],
+      "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"No hidden interpreter.\\n\"\n}\nnode output : conduit/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "commands": ["conduct --check lesson.panel", "conduct --run lesson.panel"],
+      "expected_stdout": "No hidden interpreter.\n",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "stdout", "value": "No hidden interpreter.\n"},
+      "hints": ["Use Download after editing.", "The command shown is the normal conduit command, not a Tour command."],
+      "solution": "Download the source, then run conduct --check lesson.panel followed by conduct --run lesson.panel.",
+      "accessibility": {"non_audio": "The executable result is represented by text output and canonical commands.", "reduced_motion": true}
     }
   ]
 }

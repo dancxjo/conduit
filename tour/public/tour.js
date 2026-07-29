@@ -10,6 +10,7 @@ function show(lesson) {
   current = lesson; document.querySelector("#title").textContent = lesson.title;
   document.querySelector("#goal").textContent = lesson.objective;
   document.querySelector("#prose").textContent = lesson.prose;
+  document.querySelector("#command").textContent = (lesson.commands ?? [lesson.command]).join("  ·  ");
   source.value = localStorage.getItem(key(lesson.id)) ?? lesson.source;
   acceptedSource = source.value; selectedNode = null; positions = {}; check();
 }

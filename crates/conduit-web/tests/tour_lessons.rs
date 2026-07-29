@@ -41,6 +41,10 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
                 .starts_with("conduct "),
             "{id} uses the canonical conduct command"
         );
+        assert!(
+            lesson["commands"].is_null() || lesson["commands"].is_array(),
+            "{id} commands are an optional canonical command list"
+        );
         assert_eq!(
             lesson["profile"], "browser-local-deterministic",
             "{id} declares the bounded browser profile"
