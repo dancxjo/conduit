@@ -133,6 +133,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   explicit exact-plan compilation, distinct input identities, deterministic
   heterogeneous package manifests, pathless envelopes, bounded extraction,
   and non-executing inspection.
+- [`037-distributed-cord-v1.md`](037-distributed-cord-v1.md) defines exact
+  plan-v9 cross-host bindings, realm-aware live handshakes, finite delivery,
+  retry/dedup/reconnect state, carrier-neutral readiness, and correlatable
+  transport evidence.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

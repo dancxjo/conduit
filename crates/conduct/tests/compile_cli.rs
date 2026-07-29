@@ -130,7 +130,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
             identity: String::new(),
             id: format!("fixture/report-{ordinal}"),
-            host: format!("fixture/host-{ordinal}"),
+            host: "fixture/host-local".to_owned(),
             reporter: pin("fixture/reporter", 50),
             trust: pin("fixture/report-trust", 51),
             membership: None,

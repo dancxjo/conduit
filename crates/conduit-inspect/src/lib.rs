@@ -977,6 +977,7 @@ pub fn inspect_execution_plan(
         plan.artifacts.len(),
         plan.nodes.len(),
         plan.cords.len(),
+        plan.distributed_cords.len(),
         plan.fanouts.len(),
         plan.merges.len(),
         plan.event_streams.len(),
@@ -1055,6 +1056,10 @@ pub fn inspect_execution_plan(
             .count() as u64,
     );
     counts.insert("cords".to_owned(), plan.cords.len() as u64);
+    counts.insert(
+        "distributed_cords".to_owned(),
+        plan.distributed_cords.len() as u64,
+    );
     counts.insert("fanouts".to_owned(), plan.fanouts.len() as u64);
     counts.insert("merges".to_owned(), plan.merges.len() as u64);
     counts.insert("event_streams".to_owned(), plan.event_streams.len() as u64);
@@ -1078,6 +1083,24 @@ pub fn inspect_execution_plan(
     budgets.insert("transports".to_owned(), u64::from(plan.budget.transports));
     budgets.insert("checkpoints".to_owned(), u64::from(plan.budget.checkpoints));
     budgets.insert("evidence_bytes".to_owned(), plan.budget.evidence_bytes);
+    budgets.insert(
+        "distributed_memory_bytes".to_owned(),
+        plan.distributed_cords
+            .iter()
+            .try_fold(0_u64, |total, binding| {
+                total.checked_add(binding.budget.allocated_memory_bytes)
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "distributed memory budget overflow"))?,
+    );
+    budgets.insert(
+        "distributed_evidence_events".to_owned(),
+        plan.distributed_cords
+            .iter()
+            .try_fold(0_u64, |total, binding| {
+                total.checked_add(u64::from(binding.budget.maximum_evidence_events))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "distributed evidence budget overflow"))?,
+    );
     budgets.insert(
         "implementation_memory_bytes".to_owned(),
         plan.nodes
@@ -1180,6 +1203,33 @@ pub fn inspect_execution_plan(
         category: "authority".to_owned(),
         value: format!("{}@{}", value.grant.id, value.grant_hash),
     }));
+    for binding in plan.distributed_cords {
+        references.extend([
+            InspectionReference {
+                category: "distributed-binding".to_owned(),
+                value: format!("{}@{}", binding.cord, binding.identity),
+            },
+            InspectionReference {
+                category: "distributed-backend".to_owned(),
+                value: format!("{}@{}", binding.backend.id, binding.backend.semantic_hash),
+            },
+            InspectionReference {
+                category: "carrier-security".to_owned(),
+                value: format!(
+                    "{}@{}",
+                    binding.carrier_security.id, binding.carrier_security.semantic_hash
+                ),
+            },
+            InspectionReference {
+                category: "writer-passport".to_owned(),
+                value: binding.writer.passport.to_string(),
+            },
+            InspectionReference {
+                category: "reader-passport".to_owned(),
+                value: binding.reader.passport.to_string(),
+            },
+        ]);
+    }
     enforce_collection_bound(references.len(), limits, "plan references")?;
     stable_references(&mut references);
     Ok(base_report(

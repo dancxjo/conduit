@@ -107,7 +107,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
             identity: String::new(),
             id: format!("fixture/report-{ordinal}"),
-            host: format!("fixture/host-{ordinal}"),
+            host: "fixture/host-local".to_owned(),
             reporter: pin("fixture/reporter", 50),
             trust: pin("fixture/report-trust", 51),
             membership: None,
@@ -312,4 +312,17 @@ fn every_compile_vector_executes_independently() {
     for id in compile_ids {
         compile_case(id);
     }
+}
+
+#[test]
+fn cross_host_compile_fails_closed_without_distributed_session_input() {
+    let mut sealed = input(SOURCE);
+    for (index, candidate) in sealed.candidates.iter_mut().enumerate() {
+        candidate.host_report.host = format!("fixture/host-{index}");
+    }
+    sealed.seal().unwrap();
+    assert_eq!(
+        compile_source(SOURCE, &sealed).unwrap_err().code(),
+        "CND-CMP-008"
+    );
 }

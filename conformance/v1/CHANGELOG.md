@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 28 — 2026-07-29
+
+- Registered the `distributed-cord` C5 suite for issue #27 with 16
+  independently executed handshake, delivery, retry, duplicate, reorder,
+  partition, reconnect, cancellation, terminal, pressure, and hostile-frame
+  scenarios.
+- Added exact plan-v9 distributed bindings without changing semantic cord
+  identity, and kept live passport status, session-key possession, and
+  workload delegation as fresh handshake observations.
+- Added the allocator-free session machine plus the carrier-neutral hosted
+  backend boundary and bounded fault reference. Zenoh remains explicitly
+  deferred to issue #41.
+
 ## Manifest revision 27 — 2026-07-29
 
 - Registered the `exact-compile-package` C5 suite for issue #61 after replacing

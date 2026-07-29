@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 27,
+  "manifest_revision": 28,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3274,6 +3274,79 @@
         {"package": "conduit-package", "test": "package_vectors"},
         {"package": "conduct", "test": "compile_cli"},
         {"package": "conduct", "test": "package_cli"}
+      ]
+    },
+    {
+      "id": "distributed-cord",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "DST-001", "DST-002", "DST-003", "DST-004", "DST-005", "DST-006",
+        "DST-007", "DST-008", "DST-009", "DST-010", "DST-011", "DST-012",
+        "DST-013", "DST-014", "DST-015", "DST-016"
+      ],
+      "artifacts": [{
+        "id": "distributed-cord-v1",
+        "path": "../c5/distributed-cord-v1.json",
+        "sha256": "sha256:43f6e03580c62cb8850e9e981d280c50da2bbad4f1a35b91a0c1514ce5382d98",
+        "operation": "distributed-cord-v1",
+        "requirement_ids": [
+          "DST-001", "DST-002", "DST-003", "DST-004", "DST-005", "DST-006",
+          "DST-007", "DST-008", "DST-009", "DST-010", "DST-011", "DST-012",
+          "DST-013", "DST-014", "DST-015", "DST-016"
+        ],
+        "default_rule": "DST-001",
+        "case_rules": {
+          "successful-realm-aware-handshake": "DST-003",
+          "plan-type-policy-mismatch": "DST-003",
+          "stale-peer-status": "DST-004",
+          "replayed-possession-proof": "DST-004",
+          "wrong-delegation-audience": "DST-004",
+          "lost-ack-bounded-retry": "DST-006",
+          "duplicate-outside-dedup-window": "DST-007",
+          "reordering-within-window": "DST-007",
+          "retry-window-exhaustion": "DST-007",
+          "partition-is-explicit": "DST-009",
+          "reconnect-same-epoch-proof": "DST-008",
+          "reconnect-new-epoch": "DST-008",
+          "cancellation-requires-ack": "DST-010",
+          "terminal-ack-loss-remains-pending": "DST-010",
+          "transport-buffer-full": "DST-011",
+          "hostile-oversized-frame": "DST-015"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "distributed-cord-v1#successful-realm-aware-handshake",
+          "distributed-cord-v1#lost-ack-bounded-retry",
+          "distributed-cord-v1#reconnect-same-epoch-proof",
+          "distributed-cord-v1#reconnect-new-epoch"
+        ],
+        "negative": [
+          "distributed-cord-v1#plan-type-policy-mismatch",
+          "distributed-cord-v1#stale-peer-status",
+          "distributed-cord-v1#replayed-possession-proof",
+          "distributed-cord-v1#wrong-delegation-audience",
+          "distributed-cord-v1#retry-window-exhaustion",
+          "distributed-cord-v1#hostile-oversized-frame"
+        ],
+        "boundary": [
+          "distributed-cord-v1#duplicate-outside-dedup-window",
+          "distributed-cord-v1#reordering-within-window",
+          "distributed-cord-v1#partition-is-explicit",
+          "distributed-cord-v1#transport-buffer-full"
+        ],
+        "migration": [
+          "distributed-cord-v1#cancellation-requires-ack",
+          "distributed-cord-v1#terminal-ack-loss-remains-pending"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "distributed_vectors"},
+        {"package": "conduit-runtime", "test": "distributed_backend"}
       ]
     },
     {

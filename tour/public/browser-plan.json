@@ -25,11 +25,11 @@
     {
       "id": "conduit-web-wasm",
       "path": "./conduit_web_bg.wasm",
-      "sha256": "559358b75f6f92ecf6559f143302dea0bb73b9802cd1c2df85f4a9dd2d7ce63c",
-      "bytes": 391038
+      "sha256": "39800ac4085db63da99f1fbc793bbf7070acabe4e09e2707cd11e51f8f0874f3",
+      "bytes": 391420
     }
   ],
-  "plan_identity": "27395f418d0ee4f100e81599579d3d2f775953eb986118cd6628ec627c0de6d2",
+  "plan_identity": "2a0881c3b422d846cc71fcbd803e1b770a38f85c74951012342adf4339f319dd",
   "observation_id": "conduit/tour-static-browser-observation-v1",
   "bounds": {
     "maximum_pending": 1,

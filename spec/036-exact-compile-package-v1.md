@@ -66,6 +66,14 @@ unsupported versions, arithmetic overflow, and any budget violation
 primitive, round-trips through the schema-3 exact-plan decoder, and passes
 portable validation without provider access or execution (`CMP-009`).
 
+The v1 compile-input and `conduit.execution-plan/v3` document predate the live
+distributed-session requirements in specification 037. This workflow
+therefore rejects a placement whose cord endpoints select different hosts
+instead of emitting an older plan with hidden transport semantics. A schema-9
+planner must supply one exact `PlanDistributedCord` per cross-host cord; a
+future compile-input migration may expose those fields without reinterpreting
+v1 input.
+
 ## Package manifest
 
 `conduit.package/v1` contains:

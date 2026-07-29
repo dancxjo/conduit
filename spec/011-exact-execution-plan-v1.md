@@ -28,6 +28,14 @@ Specification
 [`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md) adds exact
 accepted satisfaction-proof bindings in plan schema 7 without changing
 schema-1 through schema-6 identity.
+Specification
+[`029-runtime-evidence-v1.md`](029-runtime-evidence-v1.md) adds one exact
+runtime-evidence projection policy in plan schema 8 without changing
+schema-1 through schema-7 identity.
+Specification
+[`037-distributed-cord-v1.md`](037-distributed-cord-v1.md) adds exact
+cross-host cord bindings in plan schema 9 without changing schema-1 through
+schema-8 identity.
 
 ## Identity boundary
 
@@ -46,7 +54,8 @@ when every semantic input, observation, resolution choice, and bound remains
 the same. A change to source meaning, resolver policy, implementation,
 artifact, host report, resource allocation, queue policy, authority, expansion,
 pool maximum, event stream, durable-job contract/provider, or accepted
-satisfaction proof changes the identity.
+satisfaction proof, runtime-evidence policy, or distributed-cord binding
+changes the identity.
 
 `PlanGraph` is the earlier semantic topology used for node/cord compatibility
 before implementation resolution. It is not an `ExecutionPlan` and cannot be
@@ -212,11 +221,13 @@ collection order. Before any node starts it checks:
 3. host-report and artifact references;
 4. node implementation, contract, and resource pins;
 5. endpoint existence, direction, type identity, and finite queue accounting;
-6. complete required authority and run-start validity;
-7. bounded event-stream and durable-job providers, references, and allocations;
-8. composite, export, port-group, and instance-pool references and maxima;
-9. checked aggregate budget; and
-10. canonical plan identity using caller-owned scratch.
+6. one exact bounded distributed binding for every cross-host cord and none
+   for local cords in schema 9;
+7. complete required authority and run-start validity;
+8. bounded event-stream and durable-job providers, references, and allocations;
+9. composite, export, port-group, and instance-pool references and maxima;
+10. checked aggregate budget; and
+11. canonical plan identity using caller-owned scratch.
 
 The validation context contains only supported schema and a named deterministic
 run-start time observation. It does not alter identity. A host report or grant
@@ -251,6 +262,7 @@ validating.
 | `CND-STR-005` | merge ordering is invalid or unbounded |
 | `CND-RSN-003` | event-stream provider or bound is invalid |
 | `CND-JOB-016` | durable-job evidence/checkpoint provider or bound is invalid |
+| `CND-DST-001` through `CND-DST-022` | distributed-cord version, identity, peer, authority, delivery, sequence, budget, or state is invalid |
 | `CND-PLN-007` | caller identity scratch is too small |
 
 `conformance/c2/execution-plan-v1.tsv` freezes valid minimal and nested plans,

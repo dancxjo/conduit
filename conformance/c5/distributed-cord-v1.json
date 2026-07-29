@@ -1,0 +1,23 @@
+{
+  "suite": "distributed-cord",
+  "schema": "conduit.conformance/distributed-cord/v1",
+  "protocol_version": 1,
+  "cases": [
+    {"id": "successful-realm-aware-handshake", "expected": {"accepted": true}},
+    {"id": "plan-type-policy-mismatch", "expected": {"accepted": false, "reason": "CND-DST-012"}},
+    {"id": "stale-peer-status", "expected": {"accepted": false, "reason": "CND-DST-008"}},
+    {"id": "replayed-possession-proof", "expected": {"accepted": false, "reason": "CND-DST-009"}},
+    {"id": "wrong-delegation-audience", "expected": {"accepted": false, "reason": "CND-DST-010"}},
+    {"id": "lost-ack-bounded-retry", "expected": {"retry": true, "duplicate": "suppressed"}},
+    {"id": "duplicate-outside-dedup-window", "expected": {"duplicate": "redelivered"}},
+    {"id": "reordering-within-window", "expected": {"disposition": "held-for-missing-sequence"}},
+    {"id": "retry-window-exhaustion", "expected": {"accepted": false, "reason": "CND-DST-015"}},
+    {"id": "partition-is-explicit", "expected": {"state": "disconnected", "reason": "CND-DST-021"}},
+    {"id": "reconnect-same-epoch-proof", "expected": {"accepted": true, "epoch": 1}},
+    {"id": "reconnect-new-epoch", "expected": {"accepted": true, "epoch": 2, "sequence_reset": true}},
+    {"id": "cancellation-requires-ack", "expected": {"before": "cancel-pending", "after": "closed"}},
+    {"id": "terminal-ack-loss-remains-pending", "expected": {"state": "terminal-pending"}},
+    {"id": "transport-buffer-full", "expected": {"accepted": false, "reason": "CND-DST-020"}},
+    {"id": "hostile-oversized-frame", "expected": {"accepted": false, "reason": "CND-DST-013"}}
+  ]
+}

@@ -9,11 +9,11 @@ use crate::{
     CheckpointProviderCapabilities, DescriptorRef, Direction, DuplicationRule, EffectRequirement,
     EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
     FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
-    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, Pressure,
-    ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
+    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PlanDistributedCord,
+    Pressure, ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
     SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef, validate_authority_at_use,
-    validate_job_contract, validate_plan_execution_profile, validate_runtime_evidence_policy,
-    validate_satisfaction_proof, validate_stream_contract,
+    validate_distributed_binding, validate_job_contract, validate_plan_execution_profile,
+    validate_runtime_evidence_policy, validate_satisfaction_proof, validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -21,10 +21,10 @@ use crate::{
 /// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
 /// exact implementation execution profile per primitive node. Schema 4 adds
 /// structural flow, schema 5 adds Resonance streams, and schema 6 adds durable
-/// jobs, schema 7 adds implicit-satisfaction proof bindings, and schema 8 adds
-/// one exact runtime-evidence recording policy. Earlier schemas remain
-/// readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 8;
+/// jobs, schema 7 adds implicit-satisfaction proof bindings, schema 8 adds one
+/// exact runtime-evidence recording policy, and schema 9 adds distributed-cord
+/// bindings. Earlier schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 9;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -32,6 +32,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V4: u32 = 4;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V5: u32 = 5;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V6: u32 = 6;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V7: u32 = 7;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V8: u32 = 8;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -381,6 +382,8 @@ pub struct ExecutionPlan<'a> {
     pub artifacts: &'a [PlanArtifact<'a>],
     pub nodes: &'a [ResolvedPlanNode<'a>],
     pub cords: &'a [ResolvedPlanCord<'a>],
+    /// Exact transport-neutral cross-host bindings introduced in schema 9.
+    pub distributed_cords: &'a [PlanDistributedCord<'a>],
     /// Structural plan facts introduced in schema 4.
     pub fanouts: &'a [PlanFanOut<'a>],
     pub merges: &'a [PlanMerge<'a>],
@@ -415,6 +418,7 @@ pub enum PlanCollection {
     Artifacts,
     Nodes,
     Cords,
+    DistributedCords,
     FanOuts,
     Merges,
     EventStreams,
@@ -451,6 +455,7 @@ pub enum PlanDiagnosticCode {
     RuntimeEvidenceInvalid,
     JobInvalid,
     SatisfactionInvalid,
+    Distributed(crate::DistributedReason),
     ScratchTooSmall,
 }
 
@@ -478,6 +483,7 @@ impl PlanDiagnosticCode {
             Self::RuntimeEvidenceInvalid => "CND-RTE-002",
             Self::JobInvalid => "CND-JOB-016",
             Self::SatisfactionInvalid => "CND-IMP-017",
+            Self::Distributed(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -525,6 +531,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.artifacts.len()))
             .and_then(|value| value.checked_add(self.nodes.len()))
             .and_then(|value| value.checked_add(self.cords.len()))
+            .and_then(|value| value.checked_add(self.distributed_cords.len()))
             .and_then(|value| value.checked_add(self.fanouts.len()))
             .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.event_streams.len()))
@@ -638,6 +645,9 @@ impl ExecutionPlan<'_> {
         }
         for value in self.cords {
             push!(hash_cord(*value));
+        }
+        for value in self.distributed_cords {
+            push!(hash_distributed_cord(*value));
         }
         for fanout in self.fanouts {
             push!(hash_fanout(*fanout));
@@ -1054,6 +1064,118 @@ pub fn validate_execution_plan(
                     index,
                 )
             })?;
+    }
+
+    if plan.schema_version < 9 && !plan.distributed_cords.is_empty() {
+        return Err(error(
+            PlanDiagnosticCode::Distributed(crate::DistributedReason::UnsupportedVersion),
+            PlanCollection::DistributedCords,
+            Some(0),
+        ));
+    }
+    for (index, binding) in plan.distributed_cords.iter().enumerate() {
+        validate_distributed_binding(binding).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::Distributed(reason),
+                PlanCollection::DistributedCords,
+                index,
+            )
+        })?;
+        if plan.distributed_cords[..index]
+            .iter()
+            .any(|prior| prior.cord == binding.cord || prior.identity == binding.identity)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicateIdentity,
+                PlanCollection::DistributedCords,
+                index,
+            ));
+        }
+        let Some(cord) = plan.cords.iter().find(|cord| cord.id == binding.cord) else {
+            return Err(indexed(
+                PlanDiagnosticCode::DanglingReference,
+                PlanCollection::DistributedCords,
+                index,
+            ));
+        };
+        if binding.writer_port_contract_hash != cord.from.port_contract_hash
+            || binding.reader_port_contract_hash != cord.to.port_contract_hash
+            || binding.flow != cord.flow
+            || binding.writer.node != cord.from.node
+            || binding.reader.node != cord.to.node
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::Distributed(crate::DistributedReason::FlowMismatch),
+                PlanCollection::DistributedCords,
+                index,
+            ));
+        }
+        let writer_node = plan
+            .nodes
+            .iter()
+            .find(|node| node.instance == cord.from.node);
+        let reader_node = plan.nodes.iter().find(|node| node.instance == cord.to.node);
+        if writer_node.is_none_or(|node| node.host_observation != binding.writer.host_observation)
+            || reader_node
+                .is_none_or(|node| node.host_observation != binding.reader.host_observation)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::Distributed(crate::DistributedReason::PeerMismatch),
+                PlanCollection::DistributedCords,
+                index,
+            ));
+        }
+        for peer in [binding.writer, binding.reader] {
+            if !plan.authorities.iter().any(|authority| {
+                authority.node == peer.node
+                    && authority.grant_hash == peer.grant_hash
+                    && authority.grant.audience == peer.audience
+                    && authority.binding.grant_id == authority.grant.id
+                    && authority.binding.host
+                        == plan
+                            .host_observations
+                            .iter()
+                            .find(|observation| observation.id == peer.host_observation)
+                            .map_or(Id("invalid/host"), |observation| observation.host)
+            }) {
+                return Err(indexed(
+                    PlanDiagnosticCode::Distributed(crate::DistributedReason::AuthorityDenied),
+                    PlanCollection::DistributedCords,
+                    index,
+                ));
+            }
+        }
+        allocated = allocated.checked_add(binding.allocation).ok_or_else(|| {
+            indexed(
+                PlanDiagnosticCode::BudgetExceeded,
+                PlanCollection::DistributedCords,
+                index,
+            )
+        })?;
+    }
+    if plan.schema_version >= 9 {
+        for (index, cord) in plan.cords.iter().enumerate() {
+            let writer = plan
+                .nodes
+                .iter()
+                .find(|node| node.instance == cord.from.node);
+            let reader = plan.nodes.iter().find(|node| node.instance == cord.to.node);
+            let is_cross_host = writer
+                .zip(reader)
+                .is_some_and(|(writer, reader)| writer.host != reader.host);
+            let binding_count = plan
+                .distributed_cords
+                .iter()
+                .filter(|binding| binding.cord == cord.id)
+                .count();
+            if (is_cross_host && binding_count != 1) || (!is_cross_host && binding_count != 0) {
+                return Err(indexed(
+                    PlanDiagnosticCode::Distributed(crate::DistributedReason::PeerMismatch),
+                    PlanCollection::Cords,
+                    index,
+                ));
+            }
+        }
     }
 
     if plan.schema_version < 4 && (!plan.fanouts.is_empty() || !plan.merges.is_empty()) {
@@ -1901,6 +2023,21 @@ fn hash_cord(value: ResolvedPlanCord<'_>) -> Result<SemanticHash, CanonicalError
             semantic(
                 "queue_memory_bytes",
                 CanonicalValue::Integer(i128::from(value.queue_memory_bytes)),
+            ),
+        ],
+    )
+}
+
+fn hash_distributed_cord(
+    value: PlanDistributedCord<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-distributed-cord"),
+        &[
+            semantic("cord", CanonicalValue::Identifier(value.cord)),
+            semantic(
+                "binding_identity",
+                CanonicalValue::Bytes(value.identity.as_bytes()),
             ),
         ],
     )

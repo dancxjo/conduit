@@ -287,6 +287,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        distributed_cords: &[],
         fanouts: &[],
         merges: &[],
         event_streams: &[],

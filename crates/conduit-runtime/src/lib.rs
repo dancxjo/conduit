@@ -25,6 +25,7 @@ use serde::Serialize;
 
 mod artifact_verification;
 mod config_resolution;
+mod distributed;
 mod evidence_ndjson;
 mod host_resolution;
 mod implementation_binding;
@@ -37,6 +38,11 @@ pub use artifact_verification::{HostedArtifactVerificationError, verify_artifact
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,
+};
+pub use distributed::{
+    DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,
+    HostedDistributedEvidence, InMemoryDistributedCordBackend, InMemoryTransportFault,
+    OutboundDistributedFrame, ReceivedDistributedFrame,
 };
 pub use evidence_ndjson::{
     NdjsonError, OwnedEventCorrelation, OwnedEventPayload, OwnedEventRelations,

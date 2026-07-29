@@ -1347,6 +1347,7 @@ impl ExactPlanDocument {
             artifacts: arena.alloc_slice_copy(&artifacts),
             nodes: arena.alloc_slice_copy(&nodes),
             cords: arena.alloc_slice_copy(&cords),
+            distributed_cords: &[],
             fanouts: &[],
             merges: &[],
             event_streams: &[],
@@ -1867,6 +1868,20 @@ fn compile_topology(
             child_cords: binding.child_cords,
         });
     }
+    // This v1 compile-input/document workflow has no field for live
+    // distributed-session requirements. Fail closed instead of emitting an
+    // older plan schema whose cross-host cord would have hidden transport
+    // semantics. A planner using the core schema-9 API must supply an exact
+    // `PlanDistributedCord` for each such cord.
+    if cords.iter().any(|cord| {
+        let writer = nodes.iter().find(|node| node.instance == cord.from.node);
+        let reader = nodes.iter().find(|node| node.instance == cord.to.node);
+        writer
+            .zip(reader)
+            .is_some_and(|(writer, reader)| writer.host != reader.host)
+    }) {
+        return Err(CompileError::new(CompileReason::PlanInvalid));
+    }
     let mut plan = ExecutionPlan {
         schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
         identity: SemanticHash::from_bytes([0; 32]),
@@ -1883,6 +1898,7 @@ fn compile_topology(
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        distributed_cords: &[],
         fanouts: &[],
         merges: &[],
         event_streams: &[],
@@ -3599,7 +3615,7 @@ mod tests {
                 schema_version: conduit_core::CAPABILITY_REPORT_SCHEMA_VERSION,
                 identity: String::new(),
                 id: format!("fixture/report-{ordinal}"),
-                host: format!("fixture/host-{ordinal}"),
+                host: "fixture/host-local".to_owned(),
                 reporter: pin_doc("fixture/reporter", 50),
                 trust: pin_doc("fixture/report-trust", 51),
                 membership: None,

@@ -154,7 +154,8 @@ system for building long-lived, evolvable arrangements.
 
 Important parts of that direction include:
 
-- distributed transport, including Zenoh;
+- production distributed carriers, including Zenoh, behind the implemented
+  plan-v9 transport-neutral session and bounded backend boundary;
 - composable HTTP/HTTPS serving through host backends;
 - standard node libraries and host-service interfaces;
 - port groups and bounded composite replication;
@@ -178,8 +179,8 @@ This repository contains the first executable Plan C foundation:
 
 - `conduit-core`: allocator-free contracts, canonical semantic hashes,
   opaque type references, port/config schemas, bounded flow-policy state
-  machines, host-neutral implementation steps/transactions, compatibility,
-  and plan validation;
+  machines, host-neutral implementation steps/transactions, realm-aware
+  distributed-cord sessions, compatibility, and plan validation;
 - `conduit-panel`: the versioned `.panel` grammar, lossless CST/source AST,
   module resolution, reusable definitions, groups, and finite pools;
 - `conduit-diagnostics`: owned structured diagnostics, lossless JSON, guarded
@@ -188,7 +189,8 @@ This repository contains the first executable Plan C foundation:
   validation and value-safe reports;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer,
   one-shot executor, deterministic bounded streaming executor, and
-  native/message step-binding examples;
+  native/message step-binding examples, plus a carrier-neutral distributed
+  backend boundary and bounded fault reference;
 - `conduct`: the Unix command-line interface.
 
 The initial runtime includes intentionally small proof handlers for literal

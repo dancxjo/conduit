@@ -845,6 +845,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &[],
+        distributed_cords: &[],
         fanouts: &[],
         merges: &[],
         event_streams: &[],

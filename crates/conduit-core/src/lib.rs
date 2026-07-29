@@ -15,6 +15,7 @@ mod compatibility;
 mod composite;
 mod config;
 mod diagnostic;
+mod distributed;
 mod evidence;
 mod execution_plan;
 mod flow;
@@ -65,6 +66,16 @@ pub use diagnostic::{
     DiagnosticContractError, DiagnosticEdit, DiagnosticFix, DiagnosticRelated, DiagnosticSeverity,
     DiagnosticSpan, FixApplicability,
 };
+pub use distributed::{
+    AcknowledgementMode, DISTRIBUTED_CORD_PROTOCOL_VERSION, DisconnectPolicy,
+    DistributedAuthorityContext, DistributedCordBudget, DistributedCordHandshake,
+    DistributedDelivery, DistributedEvidence, DistributedEvidenceKind, DistributedHandshakeContext,
+    DistributedIdentityError, DistributedOrdering, DistributedPeerProof,
+    DistributedPeerRequirement, DistributedReason, DistributedSessionMachine,
+    DistributedSessionState, PendingControl, PlanDistributedCord, ReceiveDisposition,
+    ReconnectMode, ResumeProof, validate_distributed_authority_at_use,
+    validate_distributed_binding, validate_distributed_handshake,
+};
 pub use evidence::{
     EXECUTION_EVENT_SCHEMA_VERSION, EventCorrelation, EventPayload, EventPayloadShape,
     EventRelations, EventTerminality, EventTime, EventTimeKind, EvidenceError, EvidencePolicy,
@@ -75,14 +86,14 @@ pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1,
     EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
-    EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
-    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
-    PlanSatisfactionSubject, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
+    EXECUTION_PLAN_SCHEMA_VERSION_V8, ExecutionPlan, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding,
+    PlanFanOut, PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge,
+    PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
