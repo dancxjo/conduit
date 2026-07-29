@@ -78,6 +78,44 @@
       "hints": ["Use Download after editing.", "The command shown is the normal conduit command, not a Tour command."],
       "solution": "Download the source, then run conduct --check lesson.panel followed by conduct --run lesson.panel.",
       "accessibility": {"non_audio": "The executable result is represented by text output and canonical commands.", "reduced_motion": true}
+    },
+    {
+      "id": "nodes.direction-matters",
+      "chapter": 1,
+      "title": "Direction matters",
+      "prerequisites": ["welcome.pull-the-cord"],
+      "objective": "See a wrong-direction cord rejected at the exact destination port.",
+      "prose": "Ports are directional contracts. An output cannot stand in for an input, even when both nodes produce the same text type.",
+      "vocabulary": ["input", "output", "directional compatibility"],
+      "source": "panel 1\n\nnode first : conduit/literal {\n    value = \"First.\\n\"\n}\nnode second : conduit/literal {\n    value = \"Second.\\n\"\n}\n\ncord first.out -> second.out {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --check lesson.panel",
+      "expected_diagnostic": "CND-CMP-003",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 0, "queue_bytes": 0, "evidence_events": 0},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "diagnostic", "value": "CND-CMP-003"},
+      "hints": ["Look at the port after the arrow.", "A literal node only exposes an output port."],
+      "solution": "Connect an output port to an input port, such as conduit/stdout.in.",
+      "accessibility": {"non_audio": "The direction failure is exposed as a structured text diagnostic.", "reduced_motion": true}
+    },
+    {
+      "id": "nodes.fan-out-is-a-choice",
+      "chapter": 1,
+      "title": "Fan-out is a choice",
+      "prerequisites": ["welcome.hello-panel"],
+      "objective": "Declare each consumer explicitly when one output feeds more than one sink.",
+      "prose": "The literal output contract permits one or more connections. The two bounded cords are visible in source and each sink receives one value.",
+      "vocabulary": ["fan-out", "sink", "bounded cord"],
+      "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Fan out.\\n\"\n}\nnode first : conduit/stdout\nnode second : conduit/stdout\n\ncord greeting.out -> first.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord greeting.out -> second.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "expected_stdout": "Fan out.\nFan out.\n",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "stdout", "value": "Fan out.\nFan out.\n"},
+      "hints": ["The output node contract accepts more than one connection.", "Each cord declares its own finite capacity and pressure rule."],
+      "solution": "Keep two explicit cords from greeting.out, one to each sink input.",
+      "accessibility": {"non_audio": "Both delivered values appear as text output.", "reduced_motion": true}
     }
   ]
 }
