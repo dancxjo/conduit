@@ -1,0 +1,26 @@
+# This source contains no browser-specific node kind. A browser report and
+# exact implementation manifest select the WASM placement outside the panel.
+panel 1
+
+node greeting : conduit/literal {
+    value = "Browser-local semantics stay portable.\n"
+}
+node transform : conduit/uppercase
+node output : conduit/stdout
+
+cord greeting.out -> transform.in {
+    capacity = 2
+    max_value_bytes = 1024
+    max_queued_bytes = 2048
+    low_watermark = 0
+    high_watermark = 2
+    pressure = block
+}
+cord transform.out -> output.in {
+    capacity = 2
+    max_value_bytes = 1024
+    max_queued_bytes = 2048
+    low_watermark = 0
+    high_watermark = 2
+    pressure = block
+}
