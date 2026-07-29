@@ -24,6 +24,7 @@ use conduit_panel::{
 
 mod config_resolution;
 mod evidence_ndjson;
+mod source_lowering;
 mod type_registry;
 
 pub use config_resolution::{
@@ -34,6 +35,13 @@ pub use evidence_ndjson::{
     NdjsonError, OwnedEventCorrelation, OwnedEventPayload, OwnedEventRelations,
     OwnedEventTerminality, OwnedEventTime, OwnedExecutionEvent, OwnedPayloadShape, OwnedTypeRef,
     decode_event_ndjson, encode_event_ndjson, encode_owned_event_ndjson,
+};
+pub use source_lowering::{
+    ConfigProvenance, LiteralValidationError, LoweredConfigEntry, LoweredConfigValue,
+    LoweredGroupPort, LoweredNode, LoweredPool, LoweredSource, LoweringDiagnostic,
+    OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference,
+    OwnedSemanticValue, OwnedTypeReference, SourceContractCatalog, SourceMapEntry, SourceOrigin,
+    lower_source,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
@@ -913,8 +921,10 @@ fn apply_bindings(
         .iter()
         .filter(|binding| binding.target.node == child.id)
     {
-        let value = source
-            .config(&binding.parameter)
+        let source_entry = source
+            .config
+            .iter()
+            .find(|entry| entry.key == binding.parameter)
             .ok_or_else(|| {
                 ResolutionError::new(
                     "CND-CMP-007",
@@ -923,8 +933,7 @@ fn apply_bindings(
                         definition.id, binding.parameter
                     ),
                 )
-            })?
-            .to_owned();
+            })?;
         if child
             .config
             .iter()
@@ -940,7 +949,8 @@ fn apply_bindings(
         }
         child.config.push(ConfigEntry {
             key: binding.target.port.clone(),
-            value,
+            value: source_entry.value.clone(),
+            source_span: source_entry.source_span,
         });
     }
     for binding in &definition.bindings {

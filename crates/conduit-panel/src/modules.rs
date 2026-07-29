@@ -25,7 +25,19 @@ pub trait ModuleLoader {
 pub struct ResolvedModule {
     pub canonical_uri: String,
     pub content_hash: String,
+    /// Exact source bytes retained separately from the semantic AST.
+    pub source: String,
+    /// Alias-to-canonical-module edges in authored order.
+    pub imports: Vec<ResolvedImport>,
     pub panel: Panel,
+}
+
+/// One exact resolved import edge.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedImport {
+    pub alias: String,
+    pub canonical_uri: String,
+    pub content_hash: String,
 }
 
 /// Complete deterministic import closure in dependency-first order.
@@ -168,6 +180,19 @@ impl<L: ModuleLoader> Resolver<'_, L> {
             self.visit(&imported_uri, import.content_hash.as_deref(), false, None)?;
         }
         validate_qualified_symbols(uri, &panel, &self.resolved, &self.visiting)?;
+        let imports = panel
+            .imports
+            .iter()
+            .map(|import| {
+                let canonical_uri = resolve_import_uri(uri, &import.target)
+                    .expect("import URI was validated above");
+                ResolvedImport {
+                    alias: import.alias.clone(),
+                    content_hash: self.resolved[&canonical_uri].content_hash.clone(),
+                    canonical_uri,
+                }
+            })
+            .collect();
 
         self.visiting.pop();
         self.order.push(uri.to_owned());
@@ -176,6 +201,8 @@ impl<L: ModuleLoader> Resolver<'_, L> {
             ResolvedModule {
                 canonical_uri: uri.to_owned(),
                 content_hash,
+                source: loaded.source,
+                imports,
                 panel,
             },
         );

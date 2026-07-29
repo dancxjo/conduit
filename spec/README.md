@@ -53,6 +53,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`014-panel-grammar-modules-v1.md`](014-panel-grammar-modules-v1.md) freezes
   `.panel` grammar version 1, lossless CST/source-AST separation, deterministic
   imports and roots, and bounded group/pool authoring forms.
+- [`015-typed-source-lowering-v1.md`](015-typed-source-lowering-v1.md) freezes
+  exact typed literals, schema validation and defaults, provenance-safe
+  semantic lowering, cross-module source maps, and finite group/pool
+  expansion.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

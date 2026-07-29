@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 3 — 2026-07-28
+
+- Added the independent `source-lowering` suite and
+  `conformance/c3/source-lowering-v1.json` cases for issue #15.
+- Extended the existing panel grammar artifact with typed-literal acceptance
+  and malformed exact-decimal cases required by source lowering.
+- Existing version 1 requests and expected outputs are unchanged.
+- Expected version: new `source-lowering-v1` operation; no previous operation
+  result was replaced.
+- Requirement IDs: `LWR-001` through `LWR-012`.
+- Migration: runners supporting `conduit.c3` but not typed lowering must report
+  this operation as unsupported rather than silently skipping its cases.
+
 ## Manifest revision 2 — 2026-07-28
 
 - Added the independent `panel-source` suite and

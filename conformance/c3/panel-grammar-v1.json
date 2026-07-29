@@ -85,6 +85,33 @@
       "outcome": "accepted", "code": "-"
     },
     {
+      "id": "typed-literal-forms",
+      "mode": "parse",
+      "productions": ["source-value", "boolean", "integer", "literal-call", "record-field"],
+      "source": "panel 1\nnode value : fixture/all { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") token = secret(\"binding\") amount = decimal(\"0.100\") items = list(true,false) nested = record(name=\"nested\",count=7) }\n",
+      "selected_root": null,
+      "round_trip": true,
+      "outcome": "accepted", "code": "-"
+    },
+    {
+      "id": "invalid-exact-decimal",
+      "mode": "parse",
+      "productions": ["source-value", "literal-call"],
+      "source": "panel 1\nnode value : fixture/all { amount = decimal(\"1e-3\") }\n",
+      "selected_root": null,
+      "round_trip": false,
+      "outcome": "rejected", "code": "CND-SRC-010"
+    },
+    {
+      "id": "trailing-literal-comma",
+      "mode": "parse",
+      "productions": ["source-value", "literal-call"],
+      "source": "panel 1\nnode value : fixture/all { items = list(true,) }\n",
+      "selected_root": null,
+      "round_trip": false,
+      "outcome": "rejected", "code": "CND-SRC-001"
+    },
+    {
       "id": "unsupported-version",
       "mode": "parse",
       "productions": ["version"],

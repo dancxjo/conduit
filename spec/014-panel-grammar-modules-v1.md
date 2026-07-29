@@ -27,15 +27,18 @@ word-rest       = letter | digit | "_" | "-" | "." | "/" | "@"
                 | "[" | "]" ;
 word            = word-start, { word-rest } ;
 number          = digit, { digit } ;
+integer         = [ "-" ], number ;
 string          = '"', { string-character | escape }, '"' ;
 escape          = "\", ( "n" | "r" | "t" | '"' | "\" ) ;
 qualified-name  = word ;
 endpoint        = word, ".", word ;
 ```
 
-`number` is an unsigned 64-bit decimal integer. Individual productions impose
-narrower portable bounds. A newline inside a string is preserved. Version 1
-does not normalize Unicode string contents.
+`number` is an unsigned 64-bit decimal integer. `integer` is a signed `i128`
+source value whose expected type contract may impose narrower bounds.
+Individual non-literal productions impose the portable bounds stated below. A
+newline inside a string is preserved. Version 1 does not normalize Unicode
+string contents.
 
 Names containing `/` are semantic namespaces. An imported name uses the exact
 alias prefix `alias.symbol`. Group member syntax such as `routes[home]` remains
@@ -84,7 +87,22 @@ node-instance   = "node", word, ":", qualified-name,
                   [ constraint ], [ config-block ] ;
 
 config-block    = "{", { word, "=", source-value }, "}" ;
-source-value    = string | word | number ;
+source-value    = boolean
+                | integer
+                | string
+                | word
+                | literal-call ;
+boolean         = "true" | "false" ;
+literal-call    = "bytes", "(", string, ")"
+                | "ref", "(", ( string | word ), ")"
+                | "contract", "(", ( string | word ), ")"
+                | "secret", "(", ( string | word ), ")"
+                | "decimal", "(", string, ")"
+                | "list", "(", [ source-value,
+                  { ",", source-value } ], ")"
+                | ( "record" | "map" ), "(",
+                  [ record-field, { ",", record-field } ], ")" ;
+record-field    = word, "=", source-value ;
 
 cord            = "cord", endpoint, "->", endpoint, [ cord-policy ] ;
 cord-policy     = "{", { cord-field }, "}" ;
@@ -240,6 +258,7 @@ a grammar-version change.
 | `CND-SRC-007` | unsupported grammar version |
 | `CND-SRC-008` | zero, missing, overflowed, or unbounded group/pool maximum |
 | `CND-SRC-009` | inaccessible child or boundary bypass |
+| `CND-SRC-010` | malformed or unknown exact literal constructor |
 
 Recovery never guesses semantics. The lossless scanner continues through the
 complete byte string, so editors can always preserve and display malformed
@@ -253,10 +272,11 @@ until a strict parse succeeds.
 
 `conformance/c3/panel-grammar-v1.json` is normative. It contains complete UTF-8
 source cases rather than implementation snapshots. It covers every EBNF
-production above, exact round trips, formatting equivalence, imports, aliases,
-pins, cycles, duplicate symbols, malformed cords, boundary bypass, root
-selection, compile-time groups, bounded pools, pressure policies, and
-unsupported versions.
+production above, exact round trips, formatting equivalence, exact literal
+forms, imports, aliases, pins, cycles, duplicate symbols, malformed cords,
+boundary bypass, root selection, compile-time groups, bounded pools, pressure
+policies, and unsupported versions. Typed validation and lowering cases are
+separately frozen by `conformance/c3/source-lowering-v1.json`.
 
 ## Normative requirements
 

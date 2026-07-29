@@ -14,7 +14,8 @@ pub use document::{
     semantic_source_hash,
 };
 pub use modules::{
-    LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedModule, resolve_modules,
+    LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
+    resolve_modules,
 };
 
 /// Parsed editable panel source.
@@ -84,7 +85,11 @@ pub struct CompositeDefinition {
 pub struct Parameter {
     pub id: String,
     pub value_type: String,
-    pub default: Option<String>,
+    pub default: Option<SourceValue>,
+    /// Exact authored parameter extent.
+    pub source_span: SourceSpan,
+    /// Exact authored default extent, absent when the parameter has no default.
+    pub default_span: Option<SourceSpan>,
 }
 
 /// Direction of one explicitly exported boundary port.
@@ -120,6 +125,8 @@ pub struct Node {
     pub constraint: Option<String>,
     /// Source configuration entries.
     pub config: Vec<ConfigEntry>,
+    /// Exact authored instance extent.
+    pub source_span: SourceSpan,
 }
 
 /// Shape of a compile-time group of ordinary ports.
@@ -140,6 +147,7 @@ pub struct PortGroup {
     pub port_contract: String,
     pub maximum: u16,
     pub shape: PortGroupShape,
+    pub source_span: SourceSpan,
 }
 
 /// Admission policy for a finite instance pool.
@@ -179,16 +187,79 @@ pub struct InstancePool {
     pub idle_timeout_ms: u64,
     pub supervision: PoolSupervision,
     pub cleanup: PoolCleanup,
+    pub source_span: SourceSpan,
 }
 
 impl Node {
-    /// Returns one configuration value.
+    /// Returns one exact unresolved source value.
     #[must_use]
-    pub fn config(&self, key: &str) -> Option<&str> {
+    pub fn config_value(&self, key: &str) -> Option<&SourceValue> {
         self.config
             .iter()
             .find(|entry| entry.key == key)
-            .map(|entry| entry.value.as_str())
+            .map(|entry| &entry.value)
+    }
+
+    /// Returns one configuration value.
+    #[must_use]
+    pub fn config(&self, key: &str) -> Option<&str> {
+        self.config_value(key).and_then(SourceValue::public_text)
+    }
+}
+
+/// Exact source literal. Parsing never resolves references or secrets.
+#[derive(Clone, Eq, PartialEq)]
+pub enum SourceValue {
+    Boolean(bool),
+    Integer(i128),
+    Text(String),
+    Bytes(Vec<u8>),
+    Reference(String),
+    ContractReference(String),
+    SecretReference(String),
+    ExactDecimal(String),
+    List(Vec<SourceValue>),
+    Record(Vec<(String, SourceValue)>),
+}
+
+impl SourceValue {
+    /// Returns directly authored public text without resolving references.
+    #[must_use]
+    pub fn public_text(&self) -> Option<&str> {
+        match self {
+            Self::Text(value) | Self::Reference(value) | Self::ContractReference(value) => {
+                Some(value)
+            }
+            Self::Boolean(_)
+            | Self::Integer(_)
+            | Self::Bytes(_)
+            | Self::SecretReference(_)
+            | Self::ExactDecimal(_)
+            | Self::List(_)
+            | Self::Record(_) => None,
+        }
+    }
+}
+
+impl fmt::Debug for SourceValue {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Boolean(value) => formatter.debug_tuple("Boolean").field(value).finish(),
+            Self::Integer(value) => formatter.debug_tuple("Integer").field(value).finish(),
+            Self::Text(value) => formatter.debug_tuple("Text").field(value).finish(),
+            Self::Bytes(value) => formatter.debug_tuple("Bytes").field(value).finish(),
+            Self::Reference(value) => formatter.debug_tuple("Reference").field(value).finish(),
+            Self::ContractReference(value) => formatter
+                .debug_tuple("ContractReference")
+                .field(value)
+                .finish(),
+            Self::SecretReference(_) => formatter.write_str("SecretReference([REDACTED])"),
+            Self::ExactDecimal(value) => {
+                formatter.debug_tuple("ExactDecimal").field(value).finish()
+            }
+            Self::List(values) => formatter.debug_tuple("List").field(values).finish(),
+            Self::Record(fields) => formatter.debug_tuple("Record").field(fields).finish(),
+        }
     }
 }
 
@@ -197,8 +268,19 @@ impl Node {
 pub struct ConfigEntry {
     /// Configuration field name.
     pub key: String,
-    /// String representation lowered by the selected contract.
-    pub value: String,
+    /// Typed source literal, still unresolved.
+    pub value: SourceValue,
+    /// Exact authored value extent.
+    pub source_span: SourceSpan,
+}
+
+/// One-based source extent retained on semantic source structures.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SourceSpan {
+    pub line: usize,
+    pub column: usize,
+    pub end_line: usize,
+    pub end_column: usize,
 }
 
 /// An unresolved source endpoint.
@@ -305,7 +387,7 @@ impl std::error::Error for ParseError {}
 enum TokenKind {
     Word(String),
     String(String),
-    Number(u64),
+    Number(i128),
     Colon,
     Comma,
     Equals,
@@ -322,6 +404,8 @@ struct Token {
     kind: TokenKind,
     line: usize,
     column: usize,
+    end_line: usize,
+    end_column: usize,
 }
 
 /// Parses normative `.panel` grammar version 1.
@@ -382,6 +466,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::Colon,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -391,6 +477,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::Comma,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -400,6 +488,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::Equals,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -409,6 +499,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::LeftBrace,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -418,6 +510,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::RightBrace,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -427,6 +521,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::LeftParen,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -436,6 +532,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::RightParen,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 1,
                 });
                 index += 1;
                 column += 1;
@@ -445,9 +543,38 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::Arrow,
                     line,
                     column,
+                    end_line: line,
+                    end_column: column + 2,
                 });
                 index += 2;
                 column += 2;
+            }
+            b'-' if bytes.get(index + 1).is_some_and(u8::is_ascii_digit) => {
+                let start = index;
+                let start_column = column;
+                index += 1;
+                column += 1;
+                while bytes
+                    .get(index)
+                    .is_some_and(|candidate| candidate.is_ascii_digit())
+                {
+                    index += 1;
+                    column += 1;
+                }
+                let text = &source[start..index];
+                let value = text.parse::<i128>().map_err(|error| ParseError {
+                    code: "CND-SRC-001",
+                    line,
+                    column: start_column,
+                    message: format!("invalid integer: {error}"),
+                })?;
+                tokens.push(Token {
+                    kind: TokenKind::Number(value),
+                    line,
+                    column: start_column,
+                    end_line: line,
+                    end_column: column,
+                });
             }
             b'"' => {
                 let start_line = line;
@@ -519,6 +646,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::String(value),
                     line: start_line,
                     column: start_column,
+                    end_line: line,
+                    end_column: column,
                 });
             }
             b'0'..=b'9' => {
@@ -532,7 +661,7 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     column += 1;
                 }
                 let text = &source[start..index];
-                let value = text.parse::<u64>().map_err(|error| ParseError {
+                let value = text.parse::<i128>().map_err(|error| ParseError {
                     code: "CND-SRC-001",
                     line,
                     column: start_column,
@@ -542,6 +671,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::Number(value),
                     line,
                     column: start_column,
+                    end_line: line,
+                    end_column: column,
                 });
             }
             _ if is_word_start_byte(byte) => {
@@ -558,6 +689,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     kind: TokenKind::Word(source[start..index].to_owned()),
                     line,
                     column: start_column,
+                    end_line: line,
+                    end_column: column,
                 });
             }
             _ => {
@@ -575,6 +708,8 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
         kind: TokenKind::Eof,
         line,
         column,
+        end_line: line,
+        end_column: column,
     });
     Ok(tokens)
 }
@@ -625,6 +760,8 @@ impl Parser {
             match declaration.as_str() {
                 "import" => imports.push(self.parse_import()?),
                 "node" => {
+                    let start_line = self.current().line;
+                    let start_column = self.current().column;
                     let id = self.expect_any_word()?;
                     if matches!(
                         self.current().kind,
@@ -632,7 +769,7 @@ impl Parser {
                     ) {
                         definitions.push(self.parse_definition_after_id(id)?);
                     } else {
-                        nodes.push(self.parse_node_after_id(id)?);
+                        nodes.push(self.parse_node_after_id(id, start_line, start_column)?);
                     }
                 }
                 "composite" => {
@@ -792,19 +929,41 @@ impl Parser {
         self.expect_simple(TokenKind::LeftParen, "`(`")?;
         let mut parameters = Vec::new();
         while !matches!(self.current().kind, TokenKind::RightParen) {
+            let start_line = self.current().line;
+            let start_column = self.current().column;
             let id = self.expect_any_word()?;
             self.expect_simple(TokenKind::Colon, "`:`")?;
             let value_type = self.expect_any_word()?;
-            let default = if matches!(self.current().kind, TokenKind::Equals) {
+            let (default, default_span) = if matches!(self.current().kind, TokenKind::Equals) {
                 self.advance();
-                Some(self.expect_source_value()?)
+                let start_line = self.current().line;
+                let start_column = self.current().column;
+                let value = self.expect_source_value()?;
+                let (end_line, end_column) = self.previous_end();
+                (
+                    Some(value),
+                    Some(SourceSpan {
+                        line: start_line,
+                        column: start_column,
+                        end_line,
+                        end_column,
+                    }),
+                )
             } else {
-                None
+                (None, None)
             };
+            let (end_line, end_column) = self.previous_end();
             parameters.push(Parameter {
                 id,
                 value_type,
                 default,
+                source_span: SourceSpan {
+                    line: start_line,
+                    column: start_column,
+                    end_line,
+                    end_column,
+                },
+                default_span,
             });
             if matches!(self.current().kind, TokenKind::Comma) {
                 self.advance();
@@ -817,11 +976,18 @@ impl Parser {
     }
 
     fn parse_node(&mut self) -> Result<Node, ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
         let id = self.expect_any_word()?;
-        self.parse_node_after_id(id)
+        self.parse_node_after_id(id, start_line, start_column)
     }
 
-    fn parse_node_after_id(&mut self, id: String) -> Result<Node, ParseError> {
+    fn parse_node_after_id(
+        &mut self,
+        id: String,
+        start_line: usize,
+        start_column: usize,
+    ) -> Result<Node, ParseError> {
         self.expect_simple(TokenKind::Colon, "`:`")?;
         let kind = self.expect_any_word()?;
         let constraint = if self.current_word_is("using") {
@@ -836,15 +1002,24 @@ impl Parser {
         } else {
             Vec::new()
         };
+        let (end_line, end_column) = self.previous_end();
         Ok(Node {
             id,
             kind,
             constraint,
             config,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
         })
     }
 
     fn parse_port_group(&mut self) -> Result<PortGroup, ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
         let id = self.expect_any_word()?;
         let direction = match self.expect_any_word()?.as_str() {
             "input" => ExportDirection::Input,
@@ -893,16 +1068,25 @@ impl Parser {
             }
             _ => return Err(self.error("port-group shape must be `keyed` or `indexed`")),
         };
+        let (end_line, end_column) = self.previous_end();
         Ok(PortGroup {
             id,
             direction,
             port_contract,
             maximum,
             shape,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
         })
     }
 
     fn parse_pool(&mut self) -> Result<InstancePool, ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
         let id = self.expect_any_word()?;
         self.expect_simple(TokenKind::Colon, "`:`")?;
         let template = self.expect_any_word()?;
@@ -1019,6 +1203,7 @@ impl Parser {
             "abort" => PoolCleanup::Abort,
             _ => return Err(self.error("pool cleanup must be `drain` or `abort`")),
         };
+        let (end_line, end_column) = self.previous_end();
         Ok(InstancePool {
             id,
             template,
@@ -1029,6 +1214,12 @@ impl Parser {
                 .ok_or_else(|| self.error("pool requires `idle_timeout_ms`"))?,
             supervision,
             cleanup,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
         })
     }
 
@@ -1150,8 +1341,20 @@ impl Parser {
                 ));
             }
             self.expect_simple(TokenKind::Equals, "`=`")?;
+            let start_line = self.current().line;
+            let start_column = self.current().column;
             let value = self.expect_source_value()?;
-            entries.push(ConfigEntry { key, value });
+            let (end_line, end_column) = self.previous_end();
+            entries.push(ConfigEntry {
+                key,
+                value,
+                source_span: SourceSpan {
+                    line: start_line,
+                    column: start_column,
+                    end_line,
+                    end_column,
+                },
+            });
         }
         self.advance();
         Ok(entries)
@@ -1175,17 +1378,109 @@ impl Parser {
         })
     }
 
-    fn expect_source_value(&mut self) -> Result<String, ParseError> {
+    fn expect_source_value(&mut self) -> Result<SourceValue, ParseError> {
         match self.current().kind.clone() {
-            TokenKind::String(value) | TokenKind::Word(value) => {
+            TokenKind::String(value) => {
                 self.advance();
-                Ok(value)
+                Ok(SourceValue::Text(value))
             }
             TokenKind::Number(value) => {
                 self.advance();
-                Ok(value.to_string())
+                Ok(SourceValue::Integer(value))
+            }
+            TokenKind::Word(value) => {
+                self.advance();
+                match value.as_str() {
+                    "true" => Ok(SourceValue::Boolean(true)),
+                    "false" => Ok(SourceValue::Boolean(false)),
+                    _ if matches!(self.current().kind, TokenKind::LeftParen) => {
+                        self.parse_value_call(&value)
+                    }
+                    _ => Ok(SourceValue::Reference(value)),
+                }
             }
             _ => Err(self.error("expected source value")),
+        }
+    }
+
+    fn parse_value_call(&mut self, function: &str) -> Result<SourceValue, ParseError> {
+        self.expect_simple(TokenKind::LeftParen, "`(`")?;
+        match function {
+            "bytes" => {
+                let value = self.expect_string()?;
+                self.expect_simple(TokenKind::RightParen, "`)`")?;
+                Ok(SourceValue::Bytes(decode_source_hex(&value).map_err(
+                    |message| self.error_code("CND-SRC-010", message),
+                )?))
+            }
+            "ref" | "contract" | "secret" | "decimal" => {
+                let value = match self.current().kind.clone() {
+                    TokenKind::String(value) | TokenKind::Word(value) => {
+                        self.advance();
+                        value
+                    }
+                    _ => return Err(self.error("literal function requires text argument")),
+                };
+                self.expect_simple(TokenKind::RightParen, "`)`")?;
+                match function {
+                    "ref" => Ok(SourceValue::Reference(value)),
+                    "contract" => Ok(SourceValue::ContractReference(value)),
+                    "secret" => Ok(SourceValue::SecretReference(value)),
+                    "decimal" => {
+                        if !valid_exact_decimal(&value) {
+                            return Err(self.error_code(
+                                "CND-SRC-010",
+                                "decimal requires exact base-10 text without exponent",
+                            ));
+                        }
+                        Ok(SourceValue::ExactDecimal(value))
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            "list" => {
+                let mut values = Vec::new();
+                while !matches!(self.current().kind, TokenKind::RightParen) {
+                    values.push(self.expect_source_value()?);
+                    self.expect_comma_or_right_paren()?;
+                }
+                self.advance();
+                Ok(SourceValue::List(values))
+            }
+            "record" | "map" => {
+                let mut fields = Vec::new();
+                let mut keys = BTreeSet::new();
+                while !matches!(self.current().kind, TokenKind::RightParen) {
+                    let key = self.expect_any_word()?;
+                    if !keys.insert(key.clone()) {
+                        return Err(self
+                            .error_code("CND-SRC-002", format!("duplicate record field `{key}`")));
+                    }
+                    self.expect_simple(TokenKind::Equals, "`=`")?;
+                    fields.push((key, self.expect_source_value()?));
+                    self.expect_comma_or_right_paren()?;
+                }
+                self.advance();
+                Ok(SourceValue::Record(fields))
+            }
+            _ => Err(self.error_code(
+                "CND-SRC-010",
+                format!("unknown literal constructor `{function}`"),
+            )),
+        }
+    }
+
+    fn expect_comma_or_right_paren(&mut self) -> Result<(), ParseError> {
+        if matches!(self.current().kind, TokenKind::Comma) {
+            self.advance();
+            if matches!(self.current().kind, TokenKind::RightParen) {
+                return Err(self.error("trailing comma is not part of source grammar version 1"));
+            }
+            Ok(())
+        } else if matches!(self.current().kind, TokenKind::RightParen) {
+            Ok(())
+        } else {
+            Err(self.error("expected `,` or `)`"))
         }
     }
 
@@ -1229,7 +1524,7 @@ impl Parser {
     fn expect_number(&mut self) -> Result<u64, ParseError> {
         if let TokenKind::Number(value) = self.current().kind {
             self.advance();
-            Ok(value)
+            u64::try_from(value).map_err(|_| self.error("expected non-negative u64 integer"))
         } else {
             Err(self.error("expected integer"))
         }
@@ -1252,6 +1547,11 @@ impl Parser {
         &self.tokens[self.index]
     }
 
+    fn previous_end(&self) -> (usize, usize) {
+        let previous = &self.tokens[self.index.saturating_sub(1)];
+        (previous.end_line, previous.end_column)
+    }
+
     fn advance(&mut self) {
         self.index += 1;
     }
@@ -1268,6 +1568,37 @@ impl Parser {
             message: message.into(),
         }
     }
+}
+
+fn decode_source_hex(value: &str) -> Result<Vec<u8>, &'static str> {
+    if value.len() % 2 != 0 {
+        return Err("bytes literal must have even hexadecimal length");
+    }
+    value
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            let pair = std::str::from_utf8(pair)
+                .map_err(|_| "bytes literal must contain ASCII hexadecimal")?;
+            u8::from_str_radix(pair, 16)
+                .map_err(|_| "bytes literal contains non-hexadecimal digits")
+        })
+        .collect()
+}
+
+fn valid_exact_decimal(value: &str) -> bool {
+    let value = value
+        .strip_prefix('-')
+        .or_else(|| value.strip_prefix('+'))
+        .unwrap_or(value);
+    let Some((integer, fraction)) = value.split_once('.') else {
+        return !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit());
+    };
+    !integer.is_empty()
+        && !fraction.is_empty()
+        && integer.bytes().all(|byte| byte.is_ascii_digit())
+        && fraction.bytes().all(|byte| byte.is_ascii_digit())
+        && !fraction.contains('.')
 }
 
 fn validate_source_symbols(
