@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 11,
+  "manifest_revision": 12,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2015,6 +2015,109 @@
         {
           "package": "conduit-runtime",
           "test": "implementation_bindings"
+        }
+      ]
+    },
+    {
+      "id": "structural-flow",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-008",
+        "STR-009",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-013",
+        "STR-014"
+      ],
+      "artifacts": [
+        {
+          "id": "structural-flow-v1",
+          "path": "../c4/structural-flow-v1.json",
+          "sha256": "sha256:03f56b1577ef2f922bf64f7e4f2175af66d8b2d2e8f87827ae39130560585578",
+          "operation": "structural-flow-v1",
+          "requirement_ids": [
+            "STR-001",
+            "STR-002",
+            "STR-003",
+            "STR-004",
+            "STR-005",
+            "STR-006",
+            "STR-007",
+            "STR-008",
+            "STR-009",
+            "STR-010",
+            "STR-011",
+            "STR-012",
+            "STR-013",
+            "STR-014"
+          ],
+          "default_rule": "STR-001",
+          "case_rules": {
+            "plan-v4-coupled-fanout-pinned": "STR-003",
+            "plan-v4-isolated-duplicator-pinned": "STR-006",
+            "plan-v4-multi-edge-without-fanout-rejected": "STR-003",
+            "plan-v4-partial-fanout-rejected": "STR-003",
+            "non-copyable-value-rejected": "STR-004",
+            "coupled-slow-branch": "STR-005",
+            "isolated-slow-branch": "STR-006",
+            "branch-cancellation": "STR-009",
+            "arrival-tie": "STR-007",
+            "deterministic-round-robin": "STR-007",
+            "equal-priority-tie": "STR-007",
+            "priority-starvation-bound": "STR-008",
+            "event-time-waits-for-watermark": "STR-008",
+            "event-time-late-value": "STR-008",
+            "one-input-completes-early": "STR-009",
+            "merge-cancellation": "STR-009",
+            "nested-composite-logical-path": "STR-011",
+            "explicit-adapter-only": "STR-010",
+            "fallback-is-not-plan-transition": "STR-012",
+            "plan-v1-v3-identities-preserved": "STR-014"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "structural-flow-v1#plan-v4-coupled-fanout-pinned",
+          "structural-flow-v1#deterministic-round-robin",
+          "structural-flow-v1#isolated-slow-branch"
+        ],
+        "negative": [
+          "structural-flow-v1#plan-v4-multi-edge-without-fanout-rejected",
+          "structural-flow-v1#non-copyable-value-rejected",
+          "structural-flow-v1#explicit-adapter-only"
+        ],
+        "boundary": [
+          "structural-flow-v1#coupled-slow-branch",
+          "structural-flow-v1#priority-starvation-bound",
+          "structural-flow-v1#event-time-late-value"
+        ],
+        "migration": [
+          "structural-flow-v1#plan-v1-v3-identities-preserved",
+          "structural-flow-v1#nested-composite-logical-path",
+          "structural-flow-v1#fallback-is-not-plan-transition"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "scheduler"
         }
       ]
     },

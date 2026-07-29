@@ -1,13 +1,15 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
-    BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, EffectRequirement,
-    ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowPolicy, FlowWatermarks,
-    GrantStatus, HostCapability, Id, InstancePath, ObservedGrant, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding,
-    PlanHostObservation, PlanInstancePool, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, ResourceRef, ResourceSelector, SemanticHash, StopPolicy, TypeContractRef,
-    UnresolvedPlanConstraint, UnresolvedPlanKind, resolve_authority, validate_execution_plan,
+    BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
+    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity,
+    FlowPolicy, FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, MergeOrdering,
+    MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding, PlanFanOut,
+    PlanHostObservation, PlanInstancePool, PlanMerge, PlanMergeInput, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
+    SemanticHash, StopPolicy, TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind,
+    resolve_authority, validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -278,6 +280,8 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        fanouts: &[],
+        merges: &[],
         authorities: &authorities,
         composites: &composites,
         port_groups: &groups,
@@ -598,6 +602,214 @@ fn plan_v3_pins_bounded_execution_profiles_without_rewriting_v1_or_v2() {
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::InvalidDescriptor
+        );
+    });
+}
+
+#[test]
+fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
+    with_plan(|plan, scratch| {
+        let fixture = include_str!("../../../conformance/c4/structural-flow-v1.json");
+        for case in [
+            "plan-v4-coupled-fanout-pinned",
+            "plan-v4-multi-edge-without-fanout-rejected",
+            "non-copyable-value-rejected",
+            "deterministic-round-robin",
+            "event-time-late-value",
+            "plan-v1-v3-identities-preserved",
+        ] {
+            assert!(fixture.contains(&format!("\"id\":\"{case}\"")));
+        }
+        let mut profile = ExecutionProfile {
+            id: Id("fixture/structural-profile"),
+            schema_version: 1,
+            semantic_hash: ZERO_HASH,
+            boundedness: BoundednessProfile::Hard,
+            cancellation: CancellationGuarantee::Bounded,
+            step_bound_enforced: true,
+            limits: ExecutionLimits {
+                max_step_work: 8,
+                max_transactions: 1,
+                cancellation_ticks: 1,
+                max_retained_values: 0,
+                max_retained_bytes: 0,
+                max_scratch_bytes: 0,
+                max_input_leases: 0,
+                max_input_bytes: 0,
+                max_output_reservations: 0,
+                max_output_bytes: 0,
+                max_fragments_per_step: 0,
+                max_pending_operations: 0,
+                max_timers: 0,
+                max_child_tasks: 0,
+                max_host_buffer_bytes: 0,
+                max_foreign_queue_items: 0,
+                max_foreign_queue_bytes: 0,
+                max_checkpoint_bytes: 0,
+                implementation_memory_bytes: 0,
+            },
+            representations: &[],
+            memory_claims: &[],
+            checkpoint: None,
+        };
+        profile.semantic_hash = profile.computed_semantic_hash(&mut []).unwrap();
+        let nodes = [
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                ..plan.nodes[0]
+            },
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                ..plan.nodes[1]
+            },
+        ];
+        let cords = [
+            plan.cords[0],
+            ResolvedPlanCord {
+                id: Id("values-secondary"),
+                ..plan.cords[0]
+            },
+        ];
+        let branches = [cords[0].id, cords[1].id];
+        let fanouts = [PlanFanOut {
+            id: Id("fixture/fanout"),
+            producer: cords[0].from,
+            mode: FanOutMode::Coupled,
+            branches: &branches,
+            duplicator: None,
+            duplicator_input: None,
+            duplication: DuplicationRule::Copy(pin("fixture/copy-value", 70)),
+        }];
+        let merge_inputs = [
+            PlanMergeInput {
+                cord: cords[0].id,
+                ordinal: 0,
+                priority: 0,
+            },
+            PlanMergeInput {
+                cord: cords[1].id,
+                ordinal: 1,
+                priority: 0,
+            },
+        ];
+        let merges = [PlanMerge {
+            id: Id("fixture/merge"),
+            node: nodes[1].instance,
+            inputs: &merge_inputs,
+            ordering: MergeOrdering::RoundRobin,
+            terminal: MergeTerminalPolicy::DrainAll,
+        }];
+        let mut v4 = ExecutionPlan {
+            schema_version: 4,
+            identity: ZERO_HASH,
+            nodes: &nodes,
+            cords: &cords,
+            fanouts: &fanouts,
+            merges: &merges,
+            ..plan
+        };
+        v4.identity = v4.semantic_hash(scratch).unwrap();
+        let context = PlanValidationContext {
+            supported_schema_version: 4,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v4, context, scratch), Ok(()));
+
+        let mut implicit = ExecutionPlan {
+            identity: ZERO_HASH,
+            fanouts: &[],
+            ..v4
+        };
+        implicit.identity = implicit.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&implicit, context, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::StructuralInvalid
+        );
+
+        let invalid_share = [PlanFanOut {
+            duplication: DuplicationRule::SharedHandle,
+            ..fanouts[0]
+        }];
+        let mut non_copyable = ExecutionPlan {
+            identity: ZERO_HASH,
+            fanouts: &invalid_share,
+            ..v4
+        };
+        non_copyable.identity = non_copyable.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&non_copyable, context, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::DuplicationUnauthorized
+        );
+
+        let isolated_cords = [
+            cords[0],
+            cords[1],
+            ResolvedPlanCord {
+                id: Id("duplicator-input"),
+                from: ResolvedPlanPort {
+                    node: nodes[1].instance,
+                    port: Id("out"),
+                    direction: Direction::Output,
+                    ..cords[0].from
+                },
+                to: ResolvedPlanPort {
+                    node: nodes[0].instance,
+                    port: Id("in"),
+                    direction: Direction::Input,
+                    ..cords[0].to
+                },
+                ..cords[0]
+            },
+        ];
+        let isolated_fanouts = [PlanFanOut {
+            mode: FanOutMode::Isolated,
+            duplicator: Some(nodes[0].instance),
+            duplicator_input: Some(isolated_cords[2].id),
+            ..fanouts[0]
+        }];
+        let mut isolated = ExecutionPlan {
+            identity: ZERO_HASH,
+            cords: &isolated_cords,
+            fanouts: &isolated_fanouts,
+            ..v4
+        };
+        isolated.identity = isolated.semantic_hash(scratch).unwrap();
+        assert_eq!(validate_execution_plan(&isolated, context, scratch), Ok(()));
+        assert_ne!(isolated.identity, v4.identity);
+
+        let mut changed = ExecutionPlan {
+            identity: ZERO_HASH,
+            merges: &[PlanMerge {
+                ordering: MergeOrdering::Arrival,
+                ..merges[0]
+            }],
+            ..v4
+        };
+        changed.identity = changed.semantic_hash(scratch).unwrap();
+        assert_ne!(changed.identity, v4.identity);
+
+        let mut illegal_v3 = ExecutionPlan {
+            schema_version: 3,
+            identity: ZERO_HASH,
+            ..v4
+        };
+        illegal_v3.identity = illegal_v3.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(
+                &illegal_v3,
+                PlanValidationContext {
+                    supported_schema_version: 3,
+                    now: time(20)
+                },
+                scratch
+            )
+            .unwrap_err()
+            .code,
+            PlanDiagnosticCode::StructuralInvalid
         );
     });
 }

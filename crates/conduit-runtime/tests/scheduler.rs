@@ -4,12 +4,13 @@ use std::time::Instant;
 
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowPolicy,
-    FlowQueueState, FlowWatermarks, Id, ImplementationMachine, InstancePath, InstantiationContext,
-    LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact,
-    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION,
-    SchedulerDecisionReason, SchedulerPolicy, SemanticHash, StopPolicy, TypeContractRef,
+    Direction, DuplicationRule, ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode,
+    FlowCapacity, FlowPolicy, FlowQueueState, FlowWatermarks, Id, ImplementationMachine,
+    InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting, MemoryCategory,
+    MemoryClaim, PinnedDescriptor, PlanArtifact, PlanFanOut, PlanHostObservation,
+    PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SchedulerDecisionReason,
+    SchedulerPolicy, SemanticHash, StopPolicy, TypeContractRef,
 };
 use conduit_runtime::{
     DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerError, SchedulerEventKind,
@@ -215,6 +216,8 @@ fn with_plan(
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        fanouts: &[],
+        merges: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],
@@ -260,8 +263,15 @@ enum FixtureNode {
         start_count: Rc<Cell<u32>>,
         fail_prepare: bool,
     },
+    CoupledSource {
+        next: u64,
+        total: u64,
+        prepare_count: Rc<Cell<u32>>,
+        start_count: Rc<Cell<u32>>,
+    },
     Sink {
         seen: Rc<RefCell<Vec<u64>>>,
+        cord: usize,
         yields_remaining: u32,
         rollback_once: bool,
         rolled_back: bool,
@@ -332,8 +342,13 @@ impl FixtureNode {
     }
 
     fn sink(seen: Rc<RefCell<Vec<u64>>>) -> Self {
+        Self::sink_on(seen, 0)
+    }
+
+    fn sink_on(seen: Rc<RefCell<Vec<u64>>>, cord: usize) -> Self {
         Self::Sink {
             seen,
+            cord,
             yields_remaining: 0,
             rollback_once: false,
             rolled_back: false,
@@ -345,6 +360,11 @@ impl FixtureNode {
     fn counts(&self) -> (Rc<Cell<u32>>, Rc<Cell<u32>>) {
         match self {
             Self::Source {
+                prepare_count,
+                start_count,
+                ..
+            }
+            | Self::CoupledSource {
                 prepare_count,
                 start_count,
                 ..
@@ -441,8 +461,36 @@ impl SchedulerNode for FixtureNode {
                     },
                 }
             }
+            Self::CoupledSource { next, total, .. } => {
+                if *next == *total {
+                    return SchedulerStep::Completed;
+                }
+                let value = RuntimeValue {
+                    handle: *next,
+                    accounted_bytes: 8,
+                };
+                match io.send_coupled(0, &[value, value], &[None, None]).unwrap() {
+                    SendStatus::Reserved => {
+                        *next += 1;
+                        SchedulerStep::Progress
+                    }
+                    SendStatus::WouldBlock => {
+                        io.wait_for_output(0).unwrap();
+                        io.wait_for_output(1).unwrap();
+                        SchedulerStep::Pending
+                    }
+                    SendStatus::Terminated => SchedulerStep::Completed,
+                    SendStatus::Rejected
+                    | SendStatus::Dropped
+                    | SendStatus::Disconnected
+                    | SendStatus::Failed => SchedulerStep::Failed {
+                        code: Id("fixture/coupled-output-not-published"),
+                    },
+                }
+            }
             Self::Sink {
                 seen,
+                cord,
                 yields_remaining,
                 rollback_once,
                 rolled_back,
@@ -453,7 +501,7 @@ impl SchedulerNode for FixtureNode {
                     io.consume_work(4).unwrap();
                     return SchedulerStep::Yielded;
                 }
-                if let Some(value) = io.receive(0).unwrap() {
+                if let Some(value) = io.receive(*cord).unwrap() {
                     if *rollback_once && !*rolled_back {
                         *rolled_back = true;
                         io.wait_for_timer(Id("timer/retry"), io.tick() + 1).unwrap();
@@ -463,7 +511,7 @@ impl SchedulerNode for FixtureNode {
                     return SchedulerStep::Progress;
                 }
                 if matches!(
-                    io.input_state(0).unwrap(),
+                    io.input_state(*cord).unwrap(),
                     FlowQueueState::Completed
                         | FlowQueueState::Cancelled
                         | FlowQueueState::Failed
@@ -471,7 +519,7 @@ impl SchedulerNode for FixtureNode {
                 ) {
                     SchedulerStep::Completed
                 } else {
-                    io.wait_for_input(0).unwrap();
+                    io.wait_for_input(*cord).unwrap();
                     SchedulerStep::Pending
                 }
             }
@@ -709,6 +757,110 @@ fn full_queue_wakes_blocked_producer_after_consume_and_drains() {
         assert!(kinds.contains(&SchedulerEventKind::Cord(
             conduit_core::FlowEventKind::ProducerReady
         )));
+    });
+}
+
+#[test]
+fn coupled_fanout_admits_all_branches_atomically_under_slow_pressure() {
+    with_plan(1, 64, |base, profile| {
+        let sink_b = ResolvedPlanNode {
+            instance: InstancePath::new("root/sink-b").unwrap(),
+            ..base.nodes[1]
+        };
+        let nodes = [base.nodes[0], base.nodes[1], sink_b];
+        let cords = [
+            ResolvedPlanCord {
+                id: Id("branch/a"),
+                ..base.cords[0]
+            },
+            ResolvedPlanCord {
+                id: Id("branch/b"),
+                to: ResolvedPlanPort {
+                    node: sink_b.instance,
+                    ..base.cords[0].to
+                },
+                ..base.cords[0]
+            },
+        ];
+        let branches = [cords[0].id, cords[1].id];
+        let fanouts = [PlanFanOut {
+            id: Id("fanout/coupled"),
+            producer: cords[0].from,
+            mode: FanOutMode::Coupled,
+            branches: &branches,
+            duplicator: None,
+            duplicator_input: None,
+            duplication: DuplicationRule::Copy(pin("fixture/copy", 31)),
+        }];
+        let mut plan = ExecutionPlan {
+            schema_version: 4,
+            identity: ZERO,
+            budget: PlanResourceBudget {
+                cpu_units: 3,
+                timers: 3,
+                ..base.budget
+            },
+            nodes: &nodes,
+            cords: &cords,
+            fanouts: &fanouts,
+            ..base
+        };
+        plan.identity = plan.semantic_hash(&mut [ZERO; 16]).unwrap();
+
+        let seen_a = Rc::new(RefCell::new(Vec::new()));
+        let seen_b = Rc::new(RefCell::new(Vec::new()));
+        let mut slow = FixtureNode::sink_on(seen_b.clone(), 1);
+        if let FixtureNode::Sink {
+            yields_remaining, ..
+        } = &mut slow
+        {
+            *yields_remaining = 3;
+        }
+        let scheduled = vec![
+            ScheduledNode {
+                driver: FixtureNode::CoupledSource {
+                    next: 0,
+                    total: 8,
+                    prepare_count: Rc::new(Cell::new(0)),
+                    start_count: Rc::new(Cell::new(0)),
+                },
+                machine: machine(profile, &plan.nodes[0]),
+            },
+            ScheduledNode {
+                driver: FixtureNode::sink_on(seen_a.clone(), 0),
+                machine: machine(profile, &plan.nodes[1]),
+            },
+            ScheduledNode {
+                driver: slow,
+                machine: machine(profile, &plan.nodes[2]),
+            },
+        ];
+        let mut executor = DeterministicExecutor::start(
+            &plan,
+            PlanValidationContext {
+                supported_schema_version: 4,
+                now: AuthorityTime {
+                    basis: Id("clock/monotonic"),
+                    tick: 2,
+                },
+            },
+            policy(1_000, 10_000),
+            reservation(),
+            scheduled,
+        )
+        .unwrap();
+        assert_eq!(
+            executor.run_until_stalled().unwrap(),
+            SchedulerStatus::Succeeded
+        );
+        assert_eq!(&*seen_a.borrow(), &[0, 1, 2, 3, 4, 5, 6, 7]);
+        assert_eq!(&*seen_b.borrow(), &[0, 1, 2, 3, 4, 5, 6, 7]);
+        assert_eq!(executor.max_cord_occupancy(), 1);
+        assert!(executor.events().any(|event| {
+            event.subject == conduit_runtime::SchedulerSubject::Cord(1)
+                && event.kind
+                    == SchedulerEventKind::Cord(conduit_core::FlowEventKind::PressureEntered)
+        }));
     });
 }
 

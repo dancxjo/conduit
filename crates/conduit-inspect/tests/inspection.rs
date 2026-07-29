@@ -127,6 +127,8 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        fanouts: &[],
+        merges: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],

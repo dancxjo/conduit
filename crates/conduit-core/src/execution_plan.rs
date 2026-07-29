@@ -6,8 +6,9 @@ use core::fmt;
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue, Direction,
-    EffectRequirement, ExecutionProfile, FieldDisposition, FlowPolicy, GrantStatus, HostCapability,
-    Id, InstancePath, MapField, ObservedGrant, Pressure, ResolvedAuthorityBinding, SemanticHash,
+    DuplicationRule, EffectRequirement, ExecutionProfile, FanOutMode, FieldDisposition, FlowPolicy,
+    GrantStatus, HostCapability, Id, InstancePath, MapField, MergeOrdering, MergeTerminalPolicy,
+    ObservedGrant, OwnershipModel, Pressure, ResolvedAuthorityBinding, SemanticHash,
     TypeContractRef, validate_authority_at_use, validate_plan_execution_profile,
 };
 
@@ -16,9 +17,10 @@ use crate::{
 /// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
 /// exact implementation execution profile per primitive node. Earlier schemas
 /// remain readable with their frozen identities and validation behavior.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 3;
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 4;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -178,6 +180,37 @@ pub struct ResolvedPlanCord<'a> {
     pub queue_memory_bytes: u64,
 }
 
+/// One plan-visible fan-out group. Coupled groups publish atomically to every
+/// branch. Isolated groups name an ordinary duplicator and its input cord.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanFanOut<'a> {
+    pub id: Id<'a>,
+    pub producer: ResolvedPlanPort<'a>,
+    pub mode: FanOutMode,
+    pub branches: &'a [Id<'a>],
+    pub duplicator: Option<InstancePath<'a>>,
+    pub duplicator_input: Option<Id<'a>>,
+    pub duplication: DuplicationRule<'a>,
+}
+
+/// One deterministic merge input and its policy-owned priority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanMergeInput<'a> {
+    pub cord: Id<'a>,
+    pub ordinal: u16,
+    pub priority: u16,
+}
+
+/// One explicit ordinary merge node and exact ordering/terminal policy.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanMerge<'a> {
+    pub id: Id<'a>,
+    pub node: InstancePath<'a>,
+    pub inputs: &'a [PlanMergeInput<'a>],
+    pub ordering: MergeOrdering<'a>,
+    pub terminal: MergeTerminalPolicy,
+}
+
 /// Exact authority material used by one selected node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanAuthority<'a> {
@@ -295,6 +328,9 @@ pub struct ExecutionPlan<'a> {
     pub artifacts: &'a [PlanArtifact<'a>],
     pub nodes: &'a [ResolvedPlanNode<'a>],
     pub cords: &'a [ResolvedPlanCord<'a>],
+    /// Structural plan facts introduced in schema 4.
+    pub fanouts: &'a [PlanFanOut<'a>],
+    pub merges: &'a [PlanMerge<'a>],
     pub authorities: &'a [PlanAuthority<'a>],
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
@@ -318,6 +354,8 @@ pub enum PlanCollection {
     Artifacts,
     Nodes,
     Cords,
+    FanOuts,
+    Merges,
     Authorities,
     Composites,
     PortGroups,
@@ -341,6 +379,9 @@ pub enum PlanDiagnosticCode {
     QueueInvalid,
     DirectionInvalid,
     ContractMismatch,
+    StructuralInvalid,
+    DuplicationUnauthorized,
+    StructuralOrderingInvalid,
     ScratchTooSmall,
 }
 
@@ -361,6 +402,9 @@ impl PlanDiagnosticCode {
             Self::QueueInvalid => "CND-FLW-001",
             Self::DirectionInvalid => "CND-PRT-001",
             Self::ContractMismatch => "CND-TYP-001",
+            Self::StructuralInvalid => "CND-STR-003",
+            Self::DuplicationUnauthorized => "CND-STR-004",
+            Self::StructuralOrderingInvalid => "CND-STR-005",
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -408,6 +452,8 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.artifacts.len()))
             .and_then(|value| value.checked_add(self.nodes.len()))
             .and_then(|value| value.checked_add(self.cords.len()))
+            .and_then(|value| value.checked_add(self.fanouts.len()))
+            .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
             .and_then(|value| value.checked_add(self.unresolved.len()))
             .ok_or(PlanIdentityError::FactCountOverflow)?;
@@ -427,6 +473,16 @@ impl ExecutionPlan<'_> {
                 .checked_add(1)
                 .and_then(|value| value.checked_add(composite.members.len()))
                 .and_then(|value| value.checked_add(composite.exports.len()))
+                .ok_or(PlanIdentityError::FactCountOverflow)?;
+        }
+        for fanout in self.fanouts {
+            count = count
+                .checked_add(fanout.branches.len())
+                .ok_or(PlanIdentityError::FactCountOverflow)?;
+        }
+        for merge in self.merges {
+            count = count
+                .checked_add(merge.inputs.len())
                 .ok_or(PlanIdentityError::FactCountOverflow)?;
         }
         for group in self.port_groups {
@@ -500,6 +556,18 @@ impl ExecutionPlan<'_> {
         }
         for value in self.cords {
             push!(hash_cord(*value));
+        }
+        for fanout in self.fanouts {
+            push!(hash_fanout(*fanout));
+            for branch in fanout.branches {
+                push!(hash_fanout_branch(fanout.id, *branch));
+            }
+        }
+        for merge in self.merges {
+            push!(hash_merge(*merge));
+            for input in merge.inputs {
+                push!(hash_merge_input(merge.id, *input));
+            }
         }
         for value in self.authorities {
             push!(hash_authority(*value));
@@ -887,6 +955,180 @@ pub fn validate_execution_plan(
                     index,
                 )
             })?;
+    }
+
+    if plan.schema_version < 4 && (!plan.fanouts.is_empty() || !plan.merges.is_empty()) {
+        return Err(error(
+            PlanDiagnosticCode::StructuralInvalid,
+            PlanCollection::Header,
+            None,
+        ));
+    }
+    for (index, fanout) in plan.fanouts.iter().enumerate() {
+        let valid_copy = match fanout.duplication {
+            DuplicationRule::SharedHandle => plan
+                .nodes
+                .iter()
+                .find(|node| node.instance == fanout.producer.node)
+                .and_then(|node| node.execution_profile)
+                .is_some_and(|profile| {
+                    profile.representations.iter().any(|representation| {
+                        representation.direction == Direction::Output
+                            && representation.port == fanout.producer.port
+                            && representation.ownership == OwnershipModel::SharedHandle
+                    })
+                }),
+            DuplicationRule::Copy(pin) => valid_pin(pin),
+        };
+        let branches_valid = fanout.branches.len() >= 2
+            && fanout
+                .branches
+                .iter()
+                .enumerate()
+                .all(|(branch_index, branch)| {
+                    valid_id(*branch)
+                        && !fanout.branches[..branch_index].contains(branch)
+                        && plan.cords.iter().any(|cord| {
+                            cord.id == *branch
+                                && cord.from.node == fanout.producer.node
+                                && cord.from.port == fanout.producer.port
+                        })
+                });
+        let mode_valid = match fanout.mode {
+            FanOutMode::Coupled => fanout.duplicator.is_none() && fanout.duplicator_input.is_none(),
+            FanOutMode::Isolated => {
+                fanout.duplicator == Some(fanout.producer.node)
+                    && fanout.duplicator_input.is_some_and(|input| {
+                        plan.cords.iter().any(|cord| {
+                            cord.id == input
+                                && cord.to.node == fanout.producer.node
+                                && !fanout.branches.contains(&input)
+                        })
+                    })
+            }
+        };
+        if !valid_copy {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicationUnauthorized,
+                PlanCollection::FanOuts,
+                index,
+            ));
+        }
+        if !valid_id(fanout.id)
+            || !valid_port(fanout.producer)
+            || fanout.producer.direction != Direction::Output
+            || !branches_valid
+            || !mode_valid
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::StructuralInvalid,
+                PlanCollection::FanOuts,
+                index,
+            ));
+        }
+        if plan.fanouts[..index].iter().any(|prior| {
+            prior.id == fanout.id
+                || prior
+                    .branches
+                    .iter()
+                    .any(|branch| fanout.branches.contains(branch))
+        }) {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicateIdentity,
+                PlanCollection::FanOuts,
+                index,
+            ));
+        }
+    }
+    if plan.schema_version >= 4 {
+        for (cord_index, cord) in plan.cords.iter().enumerate() {
+            if plan.cords[..cord_index]
+                .iter()
+                .any(|prior| prior.from == cord.from)
+            {
+                continue;
+            }
+            let outgoing = plan
+                .cords
+                .iter()
+                .filter(|candidate| candidate.from == cord.from)
+                .count();
+            if outgoing > 1 {
+                let exact = plan.fanouts.iter().filter(|fanout| {
+                    fanout.producer == cord.from
+                        && fanout.branches.len() == outgoing
+                        && plan
+                            .cords
+                            .iter()
+                            .filter(|candidate| candidate.from == cord.from)
+                            .all(|candidate| fanout.branches.contains(&candidate.id))
+                });
+                if exact.count() != 1 {
+                    return Err(indexed(
+                        PlanDiagnosticCode::StructuralInvalid,
+                        PlanCollection::Cords,
+                        cord_index,
+                    ));
+                }
+            }
+        }
+    }
+    for (index, merge) in plan.merges.iter().enumerate() {
+        let ordering_valid = match merge.ordering {
+            MergeOrdering::Arrival | MergeOrdering::RoundRobin => {
+                merge.inputs.iter().all(|input| input.priority == 0)
+            }
+            MergeOrdering::Priority { starvation_turns } => starvation_turns > 0,
+            MergeOrdering::EventTime {
+                timestamp_type,
+                maximum_lateness_ticks,
+                ..
+            } => {
+                timestamp_type.validate().is_ok()
+                    && maximum_lateness_ticks > 0
+                    && merge.inputs.iter().all(|input| input.priority == 0)
+            }
+        };
+        let inputs_valid = merge.inputs.len() >= 2
+            && merge.inputs.iter().enumerate().all(|(input_index, input)| {
+                input.ordinal == input_index as u16
+                    && valid_id(input.cord)
+                    && !merge.inputs[..input_index]
+                        .iter()
+                        .any(|prior| prior.cord == input.cord)
+                    && plan
+                        .cords
+                        .iter()
+                        .any(|cord| cord.id == input.cord && cord.to.node == merge.node)
+            });
+        if !ordering_valid {
+            return Err(indexed(
+                PlanDiagnosticCode::StructuralOrderingInvalid,
+                PlanCollection::Merges,
+                index,
+            ));
+        }
+        if !valid_id(merge.id)
+            || !valid_path(merge.node)
+            || !plan.nodes.iter().any(|node| node.instance == merge.node)
+            || !inputs_valid
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::StructuralInvalid,
+                PlanCollection::Merges,
+                index,
+            ));
+        }
+        if plan.merges[..index]
+            .iter()
+            .any(|prior| prior.id == merge.id)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicateIdentity,
+                PlanCollection::Merges,
+                index,
+            ));
+        }
     }
 
     for (index, authority) in plan.authorities.iter().enumerate() {
@@ -1326,6 +1568,162 @@ fn hash_cord(value: ResolvedPlanCord<'_>) -> Result<SemanticHash, CanonicalError
             semantic(
                 "queue_memory_bytes",
                 CanonicalValue::Integer(i128::from(value.queue_memory_bytes)),
+            ),
+        ],
+    )
+}
+
+fn hash_fanout(value: PlanFanOut<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let producer = port_fields(&value.producer);
+    let copy = match value.duplication {
+        DuplicationRule::SharedHandle => None,
+        DuplicationRule::Copy(pin) => Some(pin),
+    };
+    let copy_hash = copy.map(|pin| pin.semantic_hash);
+    descriptor_hash(
+        Id("conduit/plan-fanout-v1"),
+        &[
+            semantic("id", CanonicalValue::Identifier(value.id)),
+            semantic("producer", CanonicalValue::Map(&producer)),
+            semantic("mode", CanonicalValue::Identifier(Id(value.mode.as_str()))),
+            semantic(
+                "duplicator",
+                value.duplicator.map_or(CanonicalValue::Null, |path| {
+                    CanonicalValue::Text(path.as_str())
+                }),
+            ),
+            semantic(
+                "duplicator_input",
+                value
+                    .duplicator_input
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "duplication",
+                CanonicalValue::Identifier(Id(if copy.is_some() {
+                    "copy"
+                } else {
+                    "shared-handle"
+                })),
+            ),
+            semantic(
+                "copy_id",
+                copy.map_or(CanonicalValue::Null, |pin| {
+                    CanonicalValue::Identifier(pin.id)
+                }),
+            ),
+            semantic(
+                "copy_version",
+                copy.map_or(CanonicalValue::Null, |pin| {
+                    CanonicalValue::Integer(i128::from(pin.schema_version))
+                }),
+            ),
+            semantic(
+                "copy_hash",
+                copy_hash.as_ref().map_or(CanonicalValue::Null, |hash| {
+                    CanonicalValue::Bytes(hash.as_bytes())
+                }),
+            ),
+        ],
+    )
+}
+
+fn hash_fanout_branch(
+    fanout: Id<'_>,
+    cord: Id<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-fanout-branch-v1"),
+        &[
+            semantic("fanout", CanonicalValue::Identifier(fanout)),
+            semantic("cord", CanonicalValue::Identifier(cord)),
+        ],
+    )
+}
+
+fn hash_merge(value: PlanMerge<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let (starvation, timestamp, lateness, late) = match value.ordering {
+        MergeOrdering::Arrival | MergeOrdering::RoundRobin => (0, None, 0, None),
+        MergeOrdering::Priority { starvation_turns } => (starvation_turns, None, 0, None),
+        MergeOrdering::EventTime {
+            timestamp_type,
+            maximum_lateness_ticks,
+            late_values,
+        } => (
+            0,
+            Some(timestamp_type),
+            maximum_lateness_ticks,
+            Some(late_values),
+        ),
+    };
+    let timestamp_hash = timestamp.map(|value| value.semantic_hash);
+    descriptor_hash(
+        Id("conduit/plan-merge-v1"),
+        &[
+            semantic("id", CanonicalValue::Identifier(value.id)),
+            semantic("node", CanonicalValue::Text(value.node.as_str())),
+            semantic(
+                "ordering",
+                CanonicalValue::Identifier(Id(value.ordering.as_str())),
+            ),
+            semantic(
+                "starvation_turns",
+                CanonicalValue::Integer(i128::from(starvation)),
+            ),
+            semantic(
+                "timestamp_type_id",
+                timestamp.map_or(CanonicalValue::Null, |value| {
+                    CanonicalValue::Identifier(value.contract_id)
+                }),
+            ),
+            semantic(
+                "timestamp_type_version",
+                timestamp.map_or(CanonicalValue::Null, |value| {
+                    CanonicalValue::Integer(i128::from(value.schema_version))
+                }),
+            ),
+            semantic(
+                "timestamp_type_hash",
+                timestamp_hash
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
+            ),
+            semantic(
+                "maximum_lateness_ticks",
+                CanonicalValue::Integer(i128::from(lateness)),
+            ),
+            semantic(
+                "late_values",
+                late.map_or(CanonicalValue::Null, |value| {
+                    CanonicalValue::Identifier(Id(value.as_str()))
+                }),
+            ),
+            semantic(
+                "terminal",
+                CanonicalValue::Identifier(Id(value.terminal.as_str())),
+            ),
+        ],
+    )
+}
+
+fn hash_merge_input(
+    merge: Id<'_>,
+    input: PlanMergeInput<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-merge-input-v1"),
+        &[
+            semantic("merge", CanonicalValue::Identifier(merge)),
+            semantic("cord", CanonicalValue::Identifier(input.cord)),
+            semantic(
+                "ordinal",
+                CanonicalValue::Integer(i128::from(input.ordinal)),
+            ),
+            semantic(
+                "priority",
+                CanonicalValue::Integer(i128::from(input.priority)),
             ),
         ],
     )

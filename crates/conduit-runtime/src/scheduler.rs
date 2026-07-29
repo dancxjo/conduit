@@ -9,11 +9,11 @@ use std::fmt;
 use std::mem::size_of;
 
 use conduit_core::{
-    ExecutionPlan, FlowEventKind, FlowPolicy, FlowQueueState, Id, ImplementationError,
-    ImplementationMachine, InstancePhase, LifecycleUsage, OfferDisposition, PlanResourceBudget,
-    PrepareOutcome, Pressure, ReadyQueueDiscipline, SchedulerDecisionReason, SchedulerPolicy,
-    StepObservation, StepOutcome, StepOutcomeKind, StepUsage, StopPolicy, TerminalClass,
-    WakeInterest, WakeInterestKind, prepare_all, start_all,
+    DuplicationRule, ExecutionPlan, FanOutMode, FlowEventKind, FlowPolicy, FlowQueueState, Id,
+    ImplementationError, ImplementationMachine, InstancePhase, LifecycleUsage, OfferDisposition,
+    PlanResourceBudget, PrepareOutcome, Pressure, ReadyQueueDiscipline, SchedulerDecisionReason,
+    SchedulerPolicy, StepObservation, StepOutcome, StepOutcomeKind, StepUsage, StopPolicy,
+    TerminalClass, WakeInterest, WakeInterestKind, prepare_all, start_all,
 };
 
 /// Opaque executor-mediated value. Payload ownership remains in the exact
@@ -919,6 +919,47 @@ impl<'p> StepIo<'_, 'p> {
         Ok(expected)
     }
 
+    /// Stage every branch of one plan-pinned coupled fan-out. If any branch
+    /// cannot accept, the caller returns pending/failed and all earlier
+    /// reservations roll back together.
+    pub fn send_coupled(
+        &mut self,
+        fanout: usize,
+        branch_values: &[RuntimeValue],
+        coalesce_targets: &[Option<u16>],
+    ) -> Result<SendStatus, SchedulerError> {
+        let contract = self
+            .plan
+            .fanouts
+            .get(fanout)
+            .ok_or(SchedulerError::PortAccessViolation)?;
+        if contract.mode != FanOutMode::Coupled
+            || contract.producer.node != self.plan.nodes[self.node].instance
+            || contract.branches.len() != branch_values.len()
+            || contract.branches.len() != coalesce_targets.len()
+        {
+            return Err(SchedulerError::PortAccessViolation);
+        }
+        if matches!(contract.duplication, DuplicationRule::SharedHandle)
+            && branch_values.windows(2).any(|pair| pair[0] != pair[1])
+        {
+            return Err(SchedulerError::StepContractViolation);
+        }
+        for (index, branch) in contract.branches.iter().enumerate() {
+            let cord = self
+                .plan
+                .cords
+                .iter()
+                .position(|cord| cord.id == *branch)
+                .ok_or(SchedulerError::PortAccessViolation)?;
+            let status = self.send(cord, branch_values[index], coalesce_targets[index])?;
+            if status != SendStatus::Reserved {
+                return Ok(status);
+            }
+        }
+        Ok(SendStatus::Reserved)
+    }
+
     pub fn wait_for_input(&mut self, cord: usize) -> Result<(), SchedulerError> {
         let plan_cord = self
             .plan
@@ -1546,6 +1587,9 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
 
         self.apply_probes(node)?;
         let commit = matches!(step, SchedulerStep::Progress | SchedulerStep::Completed);
+        if commit {
+            self.validate_coupled_publication(node)?;
+        }
         let usage = self.step_usage(node, commit)?;
         for interest_index in 0..self.workspaces[node].interests.len() {
             let condition = self.workspaces[node].interests[interest_index];
@@ -1659,6 +1703,38 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             fragments: workspace.fragments,
             ..StepUsage::default()
         })
+    }
+
+    fn validate_coupled_publication(&self, node: usize) -> Result<(), SchedulerError> {
+        for fanout in self.plan.fanouts.iter().filter(|fanout| {
+            fanout.mode == FanOutMode::Coupled
+                && fanout.producer.node == self.plan.nodes[node].instance
+        }) {
+            let mut first = None;
+            let mut published = 0_usize;
+            for branch in fanout.branches {
+                if let Some(output) = self.workspaces[node]
+                    .outputs
+                    .iter()
+                    .find(|output| self.plan.cords[output.cord].id == *branch)
+                {
+                    if output.expected != SendStatus::Reserved {
+                        return Err(SchedulerError::StepContractViolation);
+                    }
+                    if matches!(fanout.duplication, DuplicationRule::SharedHandle) {
+                        if first.is_some_and(|value| value != output.value) {
+                            return Err(SchedulerError::StepContractViolation);
+                        }
+                        first = Some(output.value);
+                    }
+                    published += 1;
+                }
+            }
+            if published != 0 && published != fanout.branches.len() {
+                return Err(SchedulerError::StepContractViolation);
+            }
+        }
+        Ok(())
     }
 
     fn apply_probes(&mut self, node: usize) -> Result<(), SchedulerError> {

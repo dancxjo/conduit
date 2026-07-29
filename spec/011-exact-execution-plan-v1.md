@@ -12,6 +12,10 @@ Specification
 [`022-host-neutral-implementation-step-v1.md`](022-host-neutral-implementation-step-v1.md)
 adds one exact implementation execution profile per primitive in plan schema
 3 without changing schema-1 or schema-2 identity.
+Specification
+[`024-structural-flow-v1.md`](024-structural-flow-v1.md) adds explicit fan-out
+and merge facts in plan schema 4 without changing schema-1 through schema-3
+identity.
 
 ## Identity boundary
 
@@ -226,6 +230,9 @@ validating.
 | `CND-FLW-001` | queue allocation is zero, inconsistent, or unbounded |
 | `CND-PRT-001` | endpoint direction is invalid |
 | `CND-TYP-001` | pinned endpoint type contracts differ |
+| `CND-STR-003` | structural topology is implicit, dangling, or inconsistent |
+| `CND-STR-004` | duplication lacks an authorized copy/share rule |
+| `CND-STR-005` | merge ordering is invalid or unbounded |
 | `CND-PLN-007` | caller identity scratch is too small |
 
 `conformance/c2/execution-plan-v1.tsv` freezes valid minimal and nested plans,

@@ -22,6 +22,7 @@ mod implementation;
 mod lifecycle;
 mod port;
 mod scheduler;
+mod structural;
 mod type_contract;
 
 pub use authority::{
@@ -65,9 +66,10 @@ pub use evidence::{
 };
 pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1,
-    EXECUTION_PLAN_SCHEMA_VERSION_V2, ExecutionPlan, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding,
-    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanPortGroup, PlanPortGroupMember,
+    EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanExportBinding, PlanFanOut, PlanHostObservation, PlanIdentityError,
+    PlanInstancePool, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember,
     PlanResourceBinding, PlanResourceBudget, PlanValidationContext, PlanValidationError,
     ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
     UnresolvedPlanKind, validate_execution_plan,
@@ -106,6 +108,11 @@ pub use scheduler::{
     PoolPopulation, ReadyQueueDiscipline, RestartAssessment, RestartDecision,
     SCHEDULER_CONTRACT_VERSION, SchedulerContractError, SchedulerDecisionReason, SchedulerPolicy,
     assess_restart,
+};
+pub use structural::{
+    AdapterContract, DuplicationRule, FanOutMode, LateValuePolicy, MergeCandidate, MergeOrdering,
+    MergeSelection, MergeTerminalPolicy, StructuralError, StructuralNodeKind, StructuralNodeLimits,
+    select_merge,
 };
 pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
 

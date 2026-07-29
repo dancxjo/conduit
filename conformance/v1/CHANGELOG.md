@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 12 — 2026-07-29
+
+- Added the `structural-flow` suite for issue #21.
+- Froze plan-v4 coupled and isolated fan-out, deterministic merge selection,
+  bounded structural nodes, explicit adapters, terminal/cancellation cases,
+  and the separation between in-plan fallback and plan transitions.
+- Added reference coverage for atomic publication under a slow branch,
+  priority starvation, event-time lateness, and rejection of implicit or
+  unauthorized duplication.
+- Requirement IDs: `STR-001` through `STR-014`.
+- Migration: plan v1-v3 identities remain readable and unchanged; structural
+  topology is explicitly re-lowered into plan v4.
+
 ## Manifest revision 10 — 2026-07-29
 
 - Added the `implementation-step` suite and language-neutral
