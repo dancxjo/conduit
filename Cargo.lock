@@ -374,6 +374,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-http"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-runtime",
+ "rcgen",
+ "rustls",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "conduit-inspect"
 version = "0.1.0"
 dependencies = [

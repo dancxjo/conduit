@@ -226,6 +226,9 @@ The implemented foundation includes:
   one-shot executor, deterministic bounded streaming executor, and
   native/message step-binding examples, plus a carrier-neutral distributed
   backend boundary and bounded fault reference;
+- `conduit-http`: domain-owned HTTP types and ordinary serving composites,
+  exact bounded host selection, deterministic routing/session faults, and real
+  Linux TCP/rustls backends without adding HTTP concepts to the core;
 - `conduct`: the Unix command-line interface.
 
 The initial runtime includes intentionally small proof handlers for literal

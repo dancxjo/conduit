@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 40 — 2026-07-29
+
+- Added 49 independently dispatched HTTP serving cases for issue #42,
+  covering domain/type boundaries, exact host selection, deterministic
+  routing and correlation, finite request/response/admission/session limits,
+  assets, proxy trust, certificate freshness, shutdown, and transition floors.
+- Added real Linux TCP plaintext and rustls loopback exchanges through the
+  same poll-based backend contract as the deterministic fault oracle.
+- Kept the constrained profile and deployment boundary honest: the inspected
+  Netherwick Pico W firmware demonstrates useful fixed Embassy/CYW43 buffer
+  shapes but does not yet consume a Conduit service binding or provide direct
+  TLS, so that selection remains unsupported before start.
+
 ## Manifest revision 39 — 2026-07-29
 
 - Added the `adversarial-containment` C5 suite for issue #98.

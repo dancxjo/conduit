@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 39,
+  "manifest_revision": 40,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -4140,6 +4140,139 @@
         {"package": "conduit-core", "test": "hazard_closure_vectors"},
         {"package": "conduit-compile", "test": "compile_vectors"},
         {"package": "conduct", "test": "compile_cli"}
+      ]
+    },
+    {
+      "id": "http-serving",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "HTTP-001", "HTTP-002", "HTTP-003", "HTTP-004", "HTTP-005",
+        "HTTP-006", "HTTP-007", "HTTP-008", "HTTP-009", "HTTP-010",
+        "HTTP-011", "HTTP-012", "HTTP-013", "HTTP-014", "HTTP-015",
+        "HTTP-016", "HTTP-017", "HTTP-018"
+      ],
+      "artifacts": [{
+        "id": "http-serving-v1",
+        "path": "../c5/http-serving-v1.json",
+        "sha256": "sha256:a908ad201b5ec0a363d9bbbb72f721fc828835ee155d1fae938ecf01a96008a7",
+        "operation": "http-serving-v1",
+        "requirement_ids": [
+          "HTTP-001", "HTTP-002", "HTTP-003", "HTTP-004", "HTTP-005",
+          "HTTP-006", "HTTP-007", "HTTP-008", "HTTP-009", "HTTP-010",
+          "HTTP-011", "HTTP-012", "HTTP-013", "HTTP-014", "HTTP-015",
+          "HTTP-016", "HTTP-017", "HTTP-018"
+        ],
+        "default_rule": "HTTP-004",
+        "case_rules": {
+          "domain-types-stay-outside-core": "HTTP-001",
+          "serve-is-an-exported-composite": "HTTP-002",
+          "nested-view-reuses-domain-exports": "HTTP-002",
+          "exact-resolver-selection": "HTTP-005",
+          "artifact-drift-rejected": "HTTP-005",
+          "resource-underaccounted-rejected": "HTTP-004",
+          "serving-grant-missing-rejected": "HTTP-005",
+          "high-assurance-observed-stack-rejected": "HTTP-004",
+          "constrained-host-unsupported-before-start": "HTTP-013",
+          "route-order-is-explicit": "HTTP-003",
+          "route-fallthrough-is-deterministic": "HTTP-003",
+          "path-parameters-are-typed-output": "HTTP-003",
+          "response-correlation-mismatch-rejected": "HTTP-003",
+          "bounded-request-response": "HTTP-004",
+          "oversized-request-head-rejected": "HTTP-009",
+          "header-count-rejected": "HTTP-009",
+          "oversized-body-rejected": "HTTP-009",
+          "malformed-request-rejected": "HTTP-009",
+          "admission-pressure-is-bounded": "HTTP-004",
+          "slow-handler-times-out": "HTTP-009",
+          "slow-client-times-out": "HTTP-009",
+          "cancellation-is-terminal": "HTTP-009",
+          "oversized-response-rejected": "HTTP-009",
+          "oversized-response-headers-rejected": "HTTP-009",
+          "plaintext-must-be-explicit": "HTTP-007",
+          "required-tls-never-downgrades": "HTTP-007",
+          "direct-tls-needs-secret-handles": "HTTP-006",
+          "expired-serving-authority-rejected": "HTTP-008",
+          "real-linux-plaintext-loopback": "HTTP-012",
+          "real-linux-tls-loopback": "HTTP-012",
+          "trusted-proxy-security-accepted": "HTTP-007",
+          "untrusted-forwarded-headers-rejected": "HTTP-007",
+          "wrong-proxy-peer-rejected": "HTTP-007",
+          "proxy-principal-is-explicit": "HTTP-008",
+          "websocket-session-is-bounded": "HTTP-011",
+          "sse-session-is-bounded": "HTTP-011",
+          "unsupported-upgrade-rejected": "HTTP-011",
+          "session-capacity-rejected": "HTTP-011",
+          "session-update-queue-is-bounded": "HTTP-011",
+          "static-asset-exact-binding": "HTTP-010",
+          "static-asset-grant-mismatch": "HTTP-010",
+          "static-asset-size-rejected": "HTTP-010",
+          "certificate-expiry-rejected": "HTTP-007",
+          "evidence-capacity-is-bounded": "HTTP-004",
+          "evidence-exhaustion-precedes-admission": "HTTP-004",
+          "graceful-shutdown-stops-admission": "HTTP-014",
+          "transition-drains-and-rebinds": "HTTP-015",
+          "transition-security-downgrade-rejected": "HTTP-015",
+          "transition-overlap-must-fit": "HTTP-015"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "http-serving-v1#domain-types-stay-outside-core",
+          "http-serving-v1#serve-is-an-exported-composite",
+          "http-serving-v1#nested-view-reuses-domain-exports",
+          "http-serving-v1#exact-resolver-selection",
+          "http-serving-v1#route-order-is-explicit",
+          "http-serving-v1#bounded-request-response",
+          "http-serving-v1#real-linux-plaintext-loopback",
+          "http-serving-v1#real-linux-tls-loopback",
+          "http-serving-v1#trusted-proxy-security-accepted",
+          "http-serving-v1#websocket-session-is-bounded",
+          "http-serving-v1#sse-session-is-bounded",
+          "http-serving-v1#static-asset-exact-binding"
+        ],
+        "negative": [
+          "http-serving-v1#artifact-drift-rejected",
+          "http-serving-v1#serving-grant-missing-rejected",
+          "http-serving-v1#constrained-host-unsupported-before-start",
+          "http-serving-v1#malformed-request-rejected",
+          "http-serving-v1#required-tls-never-downgrades",
+          "http-serving-v1#untrusted-forwarded-headers-rejected",
+          "http-serving-v1#wrong-proxy-peer-rejected",
+          "http-serving-v1#expired-serving-authority-rejected",
+          "http-serving-v1#unsupported-upgrade-rejected",
+          "http-serving-v1#static-asset-grant-mismatch",
+          "http-serving-v1#certificate-expiry-rejected",
+          "http-serving-v1#transition-security-downgrade-rejected"
+        ],
+        "boundary": [
+          "http-serving-v1#resource-underaccounted-rejected",
+          "http-serving-v1#high-assurance-observed-stack-rejected",
+          "http-serving-v1#oversized-request-head-rejected",
+          "http-serving-v1#header-count-rejected",
+          "http-serving-v1#oversized-body-rejected",
+          "http-serving-v1#admission-pressure-is-bounded",
+          "http-serving-v1#slow-handler-times-out",
+          "http-serving-v1#slow-client-times-out",
+          "http-serving-v1#oversized-response-rejected",
+          "http-serving-v1#oversized-response-headers-rejected",
+          "http-serving-v1#session-capacity-rejected",
+          "http-serving-v1#session-update-queue-is-bounded",
+          "http-serving-v1#static-asset-size-rejected",
+          "http-serving-v1#evidence-capacity-is-bounded",
+          "http-serving-v1#evidence-exhaustion-precedes-admission",
+          "http-serving-v1#transition-overlap-must-fit"
+        ],
+        "migration": [
+          "http-serving-v1#graceful-shutdown-stops-admission",
+          "http-serving-v1#transition-drains-and-rebinds"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-http", "test": "http_vectors"}
       ]
     },
     {

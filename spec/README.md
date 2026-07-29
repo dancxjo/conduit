@@ -184,6 +184,10 @@ containment program is tracked by
   defines deterministic valid-composition attacks, per-step global
   containment checks, reproducible campaigns, and honest hosted,
   constrained, and physical-HIL claim boundaries.
+- [`048-http-serving-profile-v1.md`](048-http-serving-profile-v1.md) defines
+  domain-owned HTTP types and ordinary serving composites, exact bounded host
+  selection, explicit plaintext/direct-TLS/trusted-proxy modes, deterministic
+  routing and session behavior, and real Linux TCP/rustls proof.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
