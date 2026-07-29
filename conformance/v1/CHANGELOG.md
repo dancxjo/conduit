@@ -1,5 +1,16 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 44 — 2026-07-29
+
+- Corrected the generic RP2040 firmware report so it advertises only linked
+  and initialized executor, target, ABI, and fixed-pool facts; Wi-Fi, AP,
+  CYW43, and Zenoh-Pico now remain absent.
+- Added nine independently executed capability-truth, freshness, forgery,
+  resolution, and exact reporter-pin cases for issue #104.
+- Made resolver reporter trust compare the complete reporter descriptor pin,
+  so a board/profile name cannot be changed while reusing a trusted firmware
+  hash.
+
 ## Manifest revision 40 — 2026-07-29
 
 - Added 49 independently dispatched HTTP serving cases for issue #42,

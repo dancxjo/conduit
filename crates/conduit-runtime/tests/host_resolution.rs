@@ -9,6 +9,7 @@ use conduit_core::{
     SatisfactionObligation, SatisfactionPin, SatisfactionProof, SatisfactionReason,
     SatisfactionRole, SemanticHash,
 };
+use conduit_rp2040_hil::FIRMWARE_IDENTITY;
 use conduit_runtime::{
     CandidateRejectionReason, CapabilityPredicate, HostResolverPolicy, PlacementCandidate,
     PlacementRequest, ResolverTiePolicy, ResourcePredicate, resolve_host_placement,
@@ -17,6 +18,8 @@ use conduit_runtime::{
 use serde_json::Value;
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/host-resolution-v1.json");
+const RP2040_TRUTH_FIXTURE: &str =
+    include_str!("../../../conformance/c5/rp2040-firmware-hil-v1.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const CONTRACT: PinnedDescriptor<'static> = pin("fixture/wifi-network", 1);
 const PROFILE: PinnedDescriptor<'static> = pin("fixture/execution-profile", 2);
@@ -225,7 +228,7 @@ fn policy(
         time_basis: Id("fixture/clock"),
         current_tick: 20,
         plan_version: 1,
-        trusted_reporters: &[REPORTER.semantic_hash],
+        trusted_reporters: &[REPORTER],
         trusted_report_trust: &[TRUST.semantic_hash],
         required_realm: None,
         trusted_entities: &[],
@@ -272,6 +275,122 @@ fn membership(status: PassportStatus) -> ReportMembership<'static> {
 fn identify_report(report: &mut CapabilityReport<'_>) {
     let mut scratch = [ZERO; 8];
     report.identity = report.computed_semantic_hash(&mut scratch).unwrap();
+}
+
+fn rp2040_truth_expected(id: &str) -> Value {
+    let fixture: Value = serde_json::from_str(RP2040_TRUTH_FIXTURE).unwrap();
+    fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == id)
+        .unwrap()["expected"]
+        .clone()
+}
+
+fn generic_rp2040_rejections(
+    mutate: impl FnOnce(&mut CapabilityReport<'_>),
+    require_wifi: bool,
+) -> Vec<CandidateRejectionReason> {
+    let firmware_artifact = artifact("fixture/pico-blob", PICO_DIGEST);
+    let manifest = implementation(
+        "fixture/generic-rp2040",
+        ExecutorKind::Firmware,
+        &PICO_REF,
+        &[],
+    );
+    conduit_rp2040_hil::with_capability_report(10, |fresh| {
+        let expected_reporter = fresh.reporter;
+        let mut report = fresh;
+        mutate(&mut report);
+        identify_report(&mut report);
+        let artifacts = [&firmware_artifact];
+        let wifi = [capability_requirement()];
+        let capabilities = if require_wifi { &wifi[..] } else { &[] };
+        let candidates = [PlacementCandidate {
+            manifest: &manifest,
+            artifacts: &artifacts,
+            report: &report,
+            allocation: budget(8, 1, 1),
+            capabilities,
+            resources: &[],
+            topology: &[],
+            authorities: &[],
+        }];
+        let requests = [PlacementRequest {
+            instance: InstancePath::new("root/generic-rp2040").unwrap(),
+            semantic_contract: CONTRACT,
+            candidates: &candidates,
+        }];
+        let trusted_reporters = [expected_reporter];
+        let trusted_report_trust = [report.trust.semantic_hash];
+        let mut resolver_policy = HostResolverPolicy {
+            resolver: RESOLVER,
+            policy_hash: ZERO,
+            time_basis: Id("clock/boot-ticks"),
+            current_tick: 20,
+            plan_version: 8,
+            trusted_reporters: &trusted_reporters,
+            trusted_report_trust: &trusted_report_trust,
+            required_realm: None,
+            trusted_entities: &[],
+            trusted_status_reporters: &[],
+            require_active_passport: false,
+            allowed_implementations: &[],
+            implementation_preference: &[],
+            tie_policy: ResolverTiePolicy::LowestCanonicalIdentity,
+            maximum_search_states: 8,
+        };
+        resolver_policy.policy_hash = resolver_policy.computed_semantic_hash().unwrap();
+        resolve_host_placement(&requests, resolver_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .clone()
+    })
+}
+
+#[test]
+fn generic_rp2040_wifi_requirement_fails_resolution() {
+    let reasons = generic_rp2040_rejections(|_| {}, true);
+    assert!(reasons.contains(&CandidateRejectionReason::CapabilityMissing));
+    assert_eq!(
+        serde_json::json!({
+            "reason": CandidateRejectionReason::CapabilityMissing.code()
+        }),
+        rp2040_truth_expected("generic-rp2040-wifi-resolution-rejected")
+    );
+}
+
+#[test]
+fn mismatched_rp2040_board_reporter_is_rejected() {
+    let reasons = generic_rp2040_rejections(
+        |report| report.reporter.id = Id("conduit/pico-w-firmware"),
+        false,
+    );
+    assert!(reasons.contains(&CandidateRejectionReason::ReportTrustRejected));
+    assert_eq!(
+        serde_json::json!({
+            "reason": CandidateRejectionReason::ReportTrustRejected.code()
+        }),
+        rp2040_truth_expected("mismatched-board-reporter-rejected")
+    );
+}
+
+#[test]
+fn mismatched_rp2040_firmware_reporter_is_rejected() {
+    let reasons = generic_rp2040_rejections(
+        |report| report.reporter.semantic_hash = SemanticHash::from_bytes([99; 32]),
+        false,
+    );
+    assert!(reasons.contains(&CandidateRejectionReason::ReportTrustRejected));
+    assert_eq!(
+        serde_json::json!({
+            "reason": CandidateRejectionReason::ReportTrustRejected.code()
+        }),
+        rp2040_truth_expected("mismatched-firmware-reporter-rejected")
+    );
+    assert_ne!(FIRMWARE_IDENTITY, SemanticHash::from_bytes([99; 32]));
 }
 
 #[test]

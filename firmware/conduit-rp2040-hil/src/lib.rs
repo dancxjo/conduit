@@ -2,8 +2,7 @@
 
 use conduit_core::{
     CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, ExecutorKind, Id, PinnedDescriptor,
-    PlanResourceBudget, ReportCapability, ReportResource, ResourceRef, SemanticHash,
-    validate_capability_report,
+    PlanResourceBudget, ReportResource, ResourceRef, SemanticHash, validate_capability_report,
 };
 use conduit_embedded::{
     EmbeddedHostServices, EmbeddedInterest, EmbeddedNode, EmbeddedOutcome, EmbeddedProfile,
@@ -18,6 +17,27 @@ pub const PLAN_HASH: SemanticHash = SemanticHash::from_bytes([
     154, 65, 61, 157, 190, 9, 134, 255, 20, 228, 123, 218, 124, 237, 112, 66, 65, 219, 150, 38, 20,
     41, 211, 195, 153, 152, 206, 249, 31, 169, 105, 79,
 ]);
+/// Identity of the generic RP2040 board profile implemented by this artifact.
+///
+/// This profile deliberately does not identify a Pico W or its CYW43 radio.
+pub const GENERIC_RP2040_BOARD_PROFILE: PinnedDescriptor<'static> = PinnedDescriptor {
+    id: Id("conduit/board.rp2040-generic"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        48, 7, 31, 188, 116, 146, 112, 76, 78, 248, 103, 199, 60, 133, 163, 94, 176, 13, 182, 55,
+        152, 215, 186, 1, 209, 45, 185, 134, 65, 89, 253, 23,
+    ]),
+};
+
+pub const FIXED_EXECUTOR_BUDGET: PlanResourceBudget = PlanResourceBudget {
+    memory_bytes: 64 * 1024,
+    storage_bytes: 0,
+    cpu_units: 1,
+    timers: 4,
+    transports: 1,
+    checkpoints: 0,
+    evidence_bytes: 16 * 1024,
+};
 
 pub const NODES: [StaticNode<'static>; 3] = [
     StaticNode {
@@ -104,25 +124,6 @@ pub fn with_capability_report<R>(
     action: impl FnOnce(CapabilityReport<'_>) -> R,
 ) -> R {
     let selected = profile();
-    let capabilities = [ReportCapability {
-        interface: PinnedDescriptor {
-            id: Id("conduit/host.wifi-network"),
-            schema_version: 1,
-            semantic_hash: SemanticHash::from_bytes([13; 32]),
-        },
-        mode: Id("ap"),
-        subject: Id("cyw43"),
-        details: SemanticHash::from_bytes([15; 32]),
-        capacity: PlanResourceBudget {
-            memory_bytes: 64 * 1024,
-            storage_bytes: 0,
-            cpu_units: 1,
-            timers: 4,
-            transports: 1,
-            checkpoints: 0,
-            evidence_bytes: 16 * 1024,
-        },
-    }];
     let resources = [ReportResource {
         resource: ResourceRef {
             kind: Id("conduit/static-memory-pool"),
@@ -133,20 +134,24 @@ pub fn with_capability_report<R>(
             schema_version: 1,
             semantic_hash: selected.identity,
         },
-        capacity: capabilities[0].capacity,
+        capacity: FIXED_EXECUTOR_BUDGET,
         exclusive: true,
     }];
     let executors = [ExecutorKind::Firmware];
     let targets = [Id("thumbv6m-none-eabi")];
     let abis = [Id("conduit-static-step-v1")];
-    let constraints = [selected.identity, FIRMWARE_IDENTITY];
+    let constraints = [
+        GENERIC_RP2040_BOARD_PROFILE.semantic_hash,
+        selected.identity,
+        FIRMWARE_IDENTITY,
+    ];
     let mut report = CapabilityReport {
         schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
         identity: SemanticHash::from_bytes([0; 32]),
-        id: Id("conduit/rp2040-firmware-report"),
-        host: Id("conduit/rp2040"),
+        id: Id("conduit/rp2040-generic-firmware-report"),
+        host: Id("conduit/rp2040-generic"),
         reporter: PinnedDescriptor {
-            id: Id("conduit/rp2040-firmware"),
+            id: Id("conduit/rp2040-generic-firmware"),
             schema_version: 1,
             semantic_hash: FIRMWARE_IDENTITY,
         },
@@ -159,8 +164,8 @@ pub fn with_capability_report<R>(
         time_basis: Id("clock/boot-ticks"),
         observed_at_tick,
         valid_until_tick: observed_at_tick.saturating_add(1_000),
-        available: capabilities[0].capacity,
-        capabilities: &capabilities,
+        available: FIXED_EXECUTOR_BUDGET,
+        capabilities: &[],
         resources: &resources,
         topology: &[],
         supported_executors: &executors,

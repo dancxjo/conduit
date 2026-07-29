@@ -25,8 +25,10 @@ It rejects malformed identity, time-basis mismatch, observations from the
 future, expiry, and unsupported plan versions with stable `CND-HST-*` reasons
 (`HST-006`). Expiry invalidates a plan input and requires explicit
 re-resolution; it never silently refreshes or substitutes a host (`HST-007`).
-Reporter trust is a resolver policy input and capability never implies
-authority (`HST-008`).
+Reporter trust is a resolver policy input and matches the complete reporter
+descriptor pin: ID, schema version, and semantic hash. Reusing an admitted
+hash under a different board/profile reporter ID fails closed. Capability
+never implies authority (`HST-008`).
 
 Capability-report schema 2 optionally binds one exact realm, entity, passport
 identity, and fresh `PassportStatusObservation` from specification 033
@@ -64,9 +66,9 @@ requirements without changing semantic node identity (`RES-002`).
 
 Every implementation manifest, artifact manifest, and report is validated
 before selection (`RES-003`). Required artifacts, target, ABI, executor,
-plan-version, capability, capacity, resource, topology, report trust, policy,
-and authority boundaries all fail closed (`RES-004`). Capability satisfaction
-never manufactures a grant (`RES-005`).
+plan-version, capability, capacity, resource, topology, exact reporter trust,
+policy, and authority boundaries all fail closed (`RES-004`). Capability
+satisfaction never manufactures a grant (`RES-005`).
 
 Requests and candidates are canonicalized before selection. Discovery,
 registry, filesystem, map, and input order cannot affect the result

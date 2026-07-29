@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 43,
+  "manifest_revision": 44,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3448,12 +3448,24 @@
       }, {
         "id": "rp2040-firmware-hil-v1",
         "path": "../c5/rp2040-firmware-hil-v1.json",
-        "sha256": "sha256:1d252a0bd889e0f40378edd63e6ec6cb724a09c8e8eafac76668c1f7765d2ad5",
+        "sha256": "sha256:ea85b41b0b69028b8d39a0207ed75de4f9c0db08266daeb26b11d47426d4740f",
         "operation": "rp2040-firmware-hil-v1",
-        "requirement_ids": ["EMB-006", "EMB-008", "EMB-011", "EMB-012"],
+        "requirement_ids": [
+          "EMB-003", "EMB-006", "EMB-008", "EMB-009", "EMB-010", "EMB-011",
+          "EMB-012"
+        ],
         "default_rule": "EMB-012",
         "case_rules": {
-          "linked-firmware-stream-matches-hil-oracle": "EMB-012"
+          "linked-firmware-stream-matches-hil-oracle": "EMB-012",
+          "generic-report-excludes-unlinked-radio-services": "EMB-009",
+          "generic-report-binds-board-firmware-and-executor-profile": "EMB-009",
+          "generic-report-has-bounded-resource-shape": "EMB-003",
+          "forged-generic-report-identity-rejected": "EMB-009",
+          "stale-generic-report-rejected": "EMB-009",
+          "future-generic-report-rejected": "EMB-009",
+          "generic-rp2040-wifi-resolution-rejected": "EMB-010",
+          "mismatched-board-reporter-rejected": "EMB-009",
+          "mismatched-firmware-reporter-rejected": "EMB-009"
         },
         "format": "json-vectors",
         "collection": "cases",
@@ -3467,7 +3479,9 @@
           "embedded-rp2040-v1#timer-wraparound-wakes-exactly",
           "embedded-rp2040-v1#hil-request-round-trip",
           "embedded-equivalence-v1#same-plan-normalized-equivalence",
-          "rp2040-firmware-hil-v1#linked-firmware-stream-matches-hil-oracle"
+          "rp2040-firmware-hil-v1#linked-firmware-stream-matches-hil-oracle",
+          "rp2040-firmware-hil-v1#generic-report-binds-board-firmware-and-executor-profile",
+          "rp2040-firmware-hil-v1#generic-report-has-bounded-resource-shape"
         ],
         "negative": [
           "embedded-rp2040-v1#profile-identity-mutation",
@@ -3478,7 +3492,12 @@
           "embedded-rp2040-v1#ignored-step-context-error-is-terminal",
           "embedded-rp2040-v1#ambiguous-timer-wraparound-is-rejected",
           "embedded-rp2040-v1#foreign-hil-version-rejected",
-          "embedded-rp2040-v1#stateful-hot-replacement-rejected"
+          "embedded-rp2040-v1#stateful-hot-replacement-rejected",
+          "rp2040-firmware-hil-v1#generic-report-excludes-unlinked-radio-services",
+          "rp2040-firmware-hil-v1#forged-generic-report-identity-rejected",
+          "rp2040-firmware-hil-v1#generic-rp2040-wifi-resolution-rejected",
+          "rp2040-firmware-hil-v1#mismatched-board-reporter-rejected",
+          "rp2040-firmware-hil-v1#mismatched-firmware-reporter-rejected"
         ],
         "boundary": [
           "embedded-rp2040-v1#node-maximum-rejected-before-start",
@@ -3491,7 +3510,9 @@
           "embedded-rp2040-v1#decision-ceiling-is-terminal",
           "embedded-rp2040-v1#evidence-ceiling-is-terminal",
           "embedded-rp2040-v1#evidence-reservation-precedes-host-effects",
-          "embedded-rp2040-v1#queue-pressure-and-clear-are-evidenced"
+          "embedded-rp2040-v1#queue-pressure-and-clear-are-evidenced",
+          "rp2040-firmware-hil-v1#stale-generic-report-rejected",
+          "rp2040-firmware-hil-v1#future-generic-report-rejected"
         ],
         "migration": [
           "embedded-rp2040-v1#abort-cancellation-is-bounded",
@@ -3503,7 +3524,9 @@
       "reference_tests": [
         {"package": "conduit-embedded", "test": "embedded_vectors"},
         {"package": "conduit-runtime", "test": "embedded_equivalence"},
-        {"package": "conduit-rp2040-hil", "test": "firmware_contract"}
+        {"package": "conduit-rp2040-hil", "test": "firmware_contract"},
+        {"package": "conduit-rp2040-hil", "test": "capability_truth"},
+        {"package": "conduit-runtime", "test": "host_resolution"}
       ]
     },
     {

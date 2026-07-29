@@ -3,8 +3,8 @@ use conduit_embedded::{
     RunIdentity, RunStatus, execute_static_plan,
 };
 use conduit_rp2040_hil::{
-    FIRMWARE_IDENTITY, PLAN_HASH, ReferenceHost, ReferenceStorage, drivers, plan, profile,
-    with_capability_report,
+    FIRMWARE_IDENTITY, GENERIC_RP2040_BOARD_PROFILE, PLAN_HASH, ReferenceHost, ReferenceStorage,
+    drivers, plan, profile, with_capability_report,
 };
 use sha2::{Digest, Sha256};
 
@@ -54,8 +54,13 @@ fn linked_firmware_path_matches_the_physical_hil_oracle() {
         plan_hash: PLAN_HASH,
         firmware_identity: FIRMWARE_IDENTITY,
         capability_report_hash: with_capability_report(0, |report| {
-            assert_eq!(report.current_constraints[0], selected.identity);
-            assert_eq!(report.current_constraints[1], FIRMWARE_IDENTITY);
+            assert_eq!(
+                report.current_constraints[0],
+                GENERIC_RP2040_BOARD_PROFILE.semantic_hash
+            );
+            assert_eq!(report.current_constraints[1], selected.identity);
+            assert_eq!(report.current_constraints[2], FIRMWARE_IDENTITY);
+            assert!(report.capabilities.is_empty());
             assert_eq!(
                 report.supported_targets,
                 &[conduit_core::Id("thumbv6m-none-eabi")]

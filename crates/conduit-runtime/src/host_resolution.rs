@@ -84,7 +84,9 @@ pub struct HostResolverPolicy<'a> {
     pub time_basis: Id<'a>,
     pub current_tick: u64,
     pub plan_version: u32,
-    pub trusted_reporters: &'a [SemanticHash],
+    /// Exact reporter pins admitted by policy. Reporter IDs, schema versions,
+    /// and semantic identities remain inseparable.
+    pub trusted_reporters: &'a [PinnedDescriptor<'a>],
     pub trusted_report_trust: &'a [SemanticHash],
     /// Optional exact realm required for authenticated host reports.
     pub required_realm: Option<Id<'a>>,
@@ -104,8 +106,30 @@ pub struct HostResolverPolicy<'a> {
 
 impl HostResolverPolicy<'_> {
     pub fn computed_semantic_hash(&self) -> Result<SemanticHash, CanonicalError<Infallible>> {
-        let trusted = self
+        let trusted_hashes = self
             .trusted_reporters
+            .iter()
+            .map(|reporter| {
+                let fields = [
+                    policy_field("id", CanonicalValue::Identifier(reporter.id)),
+                    policy_field(
+                        "version",
+                        CanonicalValue::Integer(i128::from(reporter.schema_version)),
+                    ),
+                    policy_field(
+                        "hash",
+                        CanonicalValue::Bytes(reporter.semantic_hash.as_bytes()),
+                    ),
+                ];
+                CanonicalDescriptor {
+                    kind: Id("conduit/trusted-host-reporter"),
+                    schema_version: 1,
+                    body: CanonicalValue::Map(&fields),
+                }
+                .semantic_hash()
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let trusted = trusted_hashes
             .iter()
             .map(|identity| CanonicalValue::Bytes(identity.as_bytes()))
             .collect::<Vec<_>>();
@@ -732,7 +756,7 @@ fn evaluate_candidate(
     if !policy.trusted_reporters.is_empty()
         && !policy
             .trusted_reporters
-            .contains(&candidate.report.reporter.semantic_hash)
+            .contains(&candidate.report.reporter)
     {
         reasons.push(CandidateRejectionReason::ReportTrustRejected);
     }

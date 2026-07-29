@@ -52,10 +52,11 @@ supported feature subset before `prepare` is called (`EMB-001` through
 Version 1 supports one cord per local input/output ordinal. Fan-out, merge,
 dynamic pools, checkpoints, distributed cords, and stateful hot replacement
 therefore fail during preflight or host resolution. This is an honest subset,
-not an implicit rewrite. The device may advertise
-`can-host-wifi-network` independently, but it does not advertise a Zenoh
-distributed-cord backend until issue #41 supplies an exact compatible
-firmware build and budgets.
+not an implicit rewrite. The shipped generic RP2040 firmware initializes
+clocks and USB CDC only. Its fresh report advertises no Wi-Fi, AP, CYW43, or
+Zenoh-Pico capability. A future Pico W report requires a distinct exact
+firmware artifact that links and initializes CYW43 plus its bounded network
+services before it may advertise those capabilities.
 
 ## Fixed execution
 

@@ -3713,9 +3713,20 @@ fn resolver_policy<'a>(
     let mut trusted_reporters = input
         .candidates
         .iter()
-        .map(|candidate| parse_hash(&candidate.host_report.reporter.semantic_hash))
+        .map(|candidate| pin(&candidate.host_report.reporter))
         .collect::<Result<Vec<_>, _>>()?;
-    trusted_reporters.sort_by_key(SemanticHash::to_string);
+    trusted_reporters.sort_by(|left, right| {
+        (
+            left.id.as_str(),
+            left.schema_version,
+            left.semantic_hash.as_bytes(),
+        )
+            .cmp(&(
+                right.id.as_str(),
+                right.schema_version,
+                right.semantic_hash.as_bytes(),
+            ))
+    });
     trusted_reporters.dedup();
     let mut report_trust = input
         .candidates

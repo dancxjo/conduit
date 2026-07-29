@@ -704,7 +704,7 @@ fn host_resolver_selects_the_exact_zenoh_implementation_artifact_and_profile() {
         time_basis: Id("fixture/clock"),
         current_tick: 20,
         plan_version: 10,
-        trusted_reporters: &[report.reporter.semantic_hash],
+        trusted_reporters: &[report.reporter],
         trusted_report_trust: &[report.trust.semantic_hash],
         required_realm: None,
         trusted_entities: &[],
@@ -881,7 +881,7 @@ fn linux_and_pico_manifests_share_the_transport_contract_through_distinct_bounda
         topology: &[],
         authorities: &[],
     };
-    let trusted_reporters = [hosted_report.reporter.semantic_hash];
+    let trusted_reporters = [hosted_report.reporter];
     let trusted_report_trust = [hosted_report.trust.semantic_hash];
     let mut policy = HostResolverPolicy {
         resolver: support::pin("fixture/host-resolver", 77),
