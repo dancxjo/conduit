@@ -131,6 +131,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         merges: &[],
         event_streams: &[],
         jobs: &[],
+        satisfaction_proofs: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],

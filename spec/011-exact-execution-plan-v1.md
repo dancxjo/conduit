@@ -24,6 +24,10 @@ Specification
 [`026-durable-jobs-checkpoints-v1.md`](026-durable-jobs-checkpoints-v1.md)
 adds explicit durable-job/checkpoint-provider/allocation facts in plan schema
 6 without changing schema-1 through schema-5 identity.
+Specification
+[`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md) adds exact
+accepted satisfaction-proof bindings in plan schema 7 without changing
+schema-1 through schema-6 identity.
 
 ## Identity boundary
 
@@ -41,8 +45,8 @@ Equivalent source formatting or presentation produces the same plan identity
 when every semantic input, observation, resolution choice, and bound remains
 the same. A change to source meaning, resolver policy, implementation,
 artifact, host report, resource allocation, queue policy, authority, expansion,
-pool maximum, event stream, or durable-job contract/provider changes the
-identity.
+pool maximum, event stream, durable-job contract/provider, or accepted
+satisfaction proof changes the identity.
 
 `PlanGraph` is the earlier semantic topology used for node/cord compatibility
 before implementation resolution. It is not an `ExecutionPlan` and cannot be
@@ -100,8 +104,10 @@ prevent omission from being interpreted as “no resource or grant required.”
 Each `ResolvedPlanCord` pins stable cord ID, output and input paths/port IDs,
 port-contract hashes, exact type references, full `FlowPolicy`, and accounted
 queue memory. The source endpoint is structurally output and the destination
-is structurally input. Type references match exactly. Queue memory equals the
-finite aggregate byte capacity; there is no sentinel for unbounded capacity.
+is structurally input. In schemas 1 through 6 type references match exactly.
+Schema 7 also admits a non-exact pair only through the complete compatible
+proof binding defined by specification 027. Queue memory equals the finite
+aggregate byte capacity; there is no sentinel for unbounded capacity.
 
 ### Host observations and artifacts
 

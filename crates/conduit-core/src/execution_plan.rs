@@ -6,13 +6,13 @@ use core::fmt;
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue,
-    CheckpointProviderCapabilities, Direction, DuplicationRule, EffectRequirement,
+    CheckpointProviderCapabilities, DescriptorRef, Direction, DuplicationRule, EffectRequirement,
     EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
     FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
     MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, Pressure,
-    ResolvedAuthorityBinding, RetentionPolicy, SemanticHash, SubscriberCoupling, TypeContractRef,
-    validate_authority_at_use, validate_job_contract, validate_plan_execution_profile,
-    validate_stream_contract,
+    ResolvedAuthorityBinding, RetentionPolicy, SatisfactionProof, SatisfactionRole, SemanticHash,
+    SubscriberCoupling, TypeContractRef, validate_authority_at_use, validate_job_contract,
+    validate_plan_execution_profile, validate_satisfaction_proof, validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -20,13 +20,15 @@ use crate::{
 /// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
 /// exact implementation execution profile per primitive node. Schema 4 adds
 /// structural flow, schema 5 adds Resonance streams, and schema 6 adds durable
-/// jobs. Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 6;
+/// jobs, and schema 7 adds implicit-satisfaction proof bindings. Earlier
+/// schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 7;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V4: u32 = 4;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V5: u32 = 5;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V6: u32 = 6;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -238,6 +240,27 @@ pub struct PlanJob<'a> {
     pub allocation: PlanResourceBudget,
 }
 
+/// Exact plan location justified by a satisfaction proof.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PlanSatisfactionSubject<'a> {
+    /// A non-exact output-to-input cord relation.
+    Cord(Id<'a>),
+    /// An implementation selected for one semantic node contract.
+    Implementation(InstancePath<'a>),
+    /// A host capability report satisfying a requirement for one node.
+    HostCapability {
+        node: InstancePath<'a>,
+        host_observation: Id<'a>,
+    },
+}
+
+/// One accepted proof retained by the exact runnable plan.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanSatisfactionProof<'a> {
+    pub subject: PlanSatisfactionSubject<'a>,
+    pub proof: SatisfactionProof<'a>,
+}
+
 /// Exact authority material used by one selected node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanAuthority<'a> {
@@ -362,6 +385,8 @@ pub struct ExecutionPlan<'a> {
     pub event_streams: &'a [PlanEventStream<'a>],
     /// Durable finite-job facts introduced in schema 6.
     pub jobs: &'a [PlanJob<'a>],
+    /// Accepted implicit-satisfaction proofs introduced in schema 7.
+    pub satisfaction_proofs: &'a [PlanSatisfactionProof<'a>],
     pub authorities: &'a [PlanAuthority<'a>],
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
@@ -389,6 +414,7 @@ pub enum PlanCollection {
     Merges,
     EventStreams,
     Jobs,
+    SatisfactionProofs,
     Authorities,
     Composites,
     PortGroups,
@@ -417,6 +443,7 @@ pub enum PlanDiagnosticCode {
     StructuralOrderingInvalid,
     EventStreamInvalid,
     JobInvalid,
+    SatisfactionInvalid,
     ScratchTooSmall,
 }
 
@@ -442,6 +469,7 @@ impl PlanDiagnosticCode {
             Self::StructuralOrderingInvalid => "CND-STR-005",
             Self::EventStreamInvalid => "CND-RSN-003",
             Self::JobInvalid => "CND-JOB-016",
+            Self::SatisfactionInvalid => "CND-IMP-017",
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -493,6 +521,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.event_streams.len()))
             .and_then(|value| value.checked_add(self.jobs.len()))
+            .and_then(|value| value.checked_add(self.satisfaction_proofs.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
             .and_then(|value| value.checked_add(self.unresolved.len()))
             .ok_or(PlanIdentityError::FactCountOverflow)?;
@@ -547,6 +576,11 @@ impl ExecutionPlan<'_> {
             .iter()
             .filter_map(|node| node.execution_profile)
             .map(ExecutionProfile::identity_fact_count)
+            .chain(
+                self.satisfaction_proofs
+                    .iter()
+                    .map(|binding| binding.proof.identity_fact_count()),
+            )
             .fold(plan, usize::max))
     }
 
@@ -613,6 +647,9 @@ impl ExecutionPlan<'_> {
         }
         for job in self.jobs {
             push!(hash_job(*job));
+        }
+        for proof in self.satisfaction_proofs {
+            push!(hash_satisfaction_proof(*proof));
         }
         for value in self.authorities {
             push!(hash_authority(*value));
@@ -981,7 +1018,12 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
-        if cord.from.value_type != cord.to.value_type {
+        if cord.from.value_type != cord.to.value_type
+            && (plan.schema_version < 7
+                || !plan.satisfaction_proofs.iter().any(|binding| {
+                    matches!(binding.subject, PlanSatisfactionSubject::Cord(id) if id == cord.id)
+                }))
+        {
             return Err(indexed(
                 PlanDiagnosticCode::ContractMismatch,
                 PlanCollection::Cords,
@@ -1256,6 +1298,93 @@ pub fn validate_execution_plan(
                 index,
             )
         })?;
+    }
+
+    if plan.schema_version < 7 && !plan.satisfaction_proofs.is_empty() {
+        return Err(error(
+            PlanDiagnosticCode::SatisfactionInvalid,
+            PlanCollection::Header,
+            None,
+        ));
+    }
+    for (index, binding) in plan.satisfaction_proofs.iter().enumerate() {
+        let subject_valid = match binding.subject {
+            PlanSatisfactionSubject::Cord(id) => {
+                binding.proof.role == SatisfactionRole::PortConnection
+                    && plan
+                        .cords
+                        .iter()
+                        .find(|cord| cord.id == id)
+                        .is_some_and(|cord| {
+                            binding.proof.required
+                                == DescriptorRef {
+                                    kind: Id("conduit/port-contract"),
+                                    schema_version: 1,
+                                    semantic_hash: cord.to.port_contract_hash,
+                                }
+                                && binding.proof.offered
+                                    == DescriptorRef {
+                                        kind: Id("conduit/port-contract"),
+                                        schema_version: 1,
+                                        semantic_hash: cord.from.port_contract_hash,
+                                    }
+                                && binding.proof.obligations.iter().any(|obligation| {
+                                    obligation.id == Id("semantic-type")
+                                        && obligation.required_hash
+                                            == cord.to.value_type.semantic_hash
+                                        && obligation.offered_hash
+                                            == cord.from.value_type.semantic_hash
+                                })
+                        })
+            }
+            PlanSatisfactionSubject::Implementation(instance) => {
+                binding.proof.role == SatisfactionRole::Implementation
+                    && plan
+                        .nodes
+                        .iter()
+                        .find(|node| node.instance == instance)
+                        .is_some_and(|node| {
+                            binding.proof.required
+                                == DescriptorRef {
+                                    kind: node.contract.id,
+                                    schema_version: node.contract.schema_version,
+                                    semantic_hash: node.contract.semantic_hash,
+                                }
+                                && binding.proof.offered
+                                    == DescriptorRef {
+                                        kind: node.implementation.id,
+                                        schema_version: node.implementation.schema_version,
+                                        semantic_hash: node.implementation.semantic_hash,
+                                    }
+                        })
+            }
+            PlanSatisfactionSubject::HostCapability {
+                node,
+                host_observation,
+            } => {
+                binding.proof.role == SatisfactionRole::HostCapability
+                    && plan.nodes.iter().any(|candidate| {
+                        candidate.instance == node && candidate.host_observation == host_observation
+                    })
+                    && plan.host_observations.iter().any(|observation| {
+                        observation.id == host_observation
+                            && binding.proof.offered.semantic_hash == observation.semantic_hash
+                    })
+            }
+        };
+        if !subject_valid
+            || binding.proof.outcome != crate::CompatibilityOutcome::Compatible
+            || validate_satisfaction_proof(&binding.proof, identity_scratch).is_err()
+            || plan.satisfaction_proofs[..index]
+                .iter()
+                .any(|prior| prior.subject == binding.subject)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::SatisfactionInvalid,
+                PlanCollection::SatisfactionProofs,
+                index,
+            ));
+        }
     }
 
     for (index, authority) in plan.authorities.iter().enumerate() {
@@ -2135,6 +2264,36 @@ fn hash_job(value: PlanJob<'_>) -> Result<SemanticHash, CanonicalError<Infallibl
             semantic(
                 "allocation_hash",
                 CanonicalValue::Bytes(allocation_hash.as_bytes()),
+            ),
+        ],
+    )
+}
+
+fn hash_satisfaction_proof(
+    value: PlanSatisfactionProof<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let (subject_kind, subject, host_observation) = match value.subject {
+        PlanSatisfactionSubject::Cord(id) => ("cord", id.as_str(), None),
+        PlanSatisfactionSubject::Implementation(instance) => {
+            ("implementation", instance.as_str(), None)
+        }
+        PlanSatisfactionSubject::HostCapability {
+            node,
+            host_observation,
+        } => ("host-capability", node.as_str(), Some(host_observation)),
+    };
+    descriptor_hash(
+        Id("conduit/plan-satisfaction-proof"),
+        &[
+            semantic("subject_kind", CanonicalValue::Identifier(Id(subject_kind))),
+            semantic("subject", CanonicalValue::Text(subject)),
+            semantic(
+                "host_observation",
+                host_observation.map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "proof_identity",
+                CanonicalValue::Bytes(value.proof.identity.as_bytes()),
             ),
         ],
     )

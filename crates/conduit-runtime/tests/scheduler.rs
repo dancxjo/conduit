@@ -220,6 +220,7 @@ fn with_plan(
         merges: &[],
         event_streams: &[],
         jobs: &[],
+        satisfaction_proofs: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],

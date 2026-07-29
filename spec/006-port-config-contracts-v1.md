@@ -101,6 +101,13 @@ The decision retains both complete port operands and the complete nested
 TypeContract decision. The portable plan validator maps these reasons to
 stable `CND-PRT-*`, `CND-TYP-*`, `CND-AUT-*`, and `CND-FLW-*` diagnostics.
 
+Specification
+[`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md)
+operationalizes accepted non-exact port relations as complete immutable
+proofs. It adds no new implicit port rule: every version-1 field plus
+authority, concrete representation/ownership, and bounded flow remain
+separate required obligations.
+
 ## Flow and lifecycle ownership
 
 Every resolved cord still requires a positive finite item capacity. Version 1

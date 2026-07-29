@@ -5,8 +5,8 @@ use std::fmt;
 
 use conduit_core::{
     CanonicalDescriptor, CompatibilityClass, CompatibilityDecision, CompatibilityOutcome,
-    CompatibilityQuery, CompatibilityReason, FlowPolicy, FlowPolicyDecision, FlowTypeFacts, Id,
-    SemanticHash, TraitProof, TypeContractRef,
+    CompatibilityQuery, CompatibilityReason, DescriptorRef, FlowPolicy, FlowPolicyDecision,
+    FlowTypeFacts, Id, SemanticHash, TraitProof, TypeContractRef,
 };
 
 /// Comparison behavior declared by an exact type-contract descriptor.
@@ -49,6 +49,9 @@ pub struct ProviderTypeDecision<'a> {
 
 /// A namespace-scoped source of type descriptors and compatibility rules.
 pub trait TypeContractProvider {
+    /// Exact immutable provider descriptor used to attribute proof rules.
+    fn provider_descriptor(&self) -> DescriptorRef<'static>;
+
     /// Namespace selected from the contract identifier before `/`.
     fn namespace(&self) -> &str;
 
@@ -66,6 +69,21 @@ pub trait TypeContractProvider {
     ) -> ProviderTypeDecision<'a>;
 }
 
+/// Exact proof inputs retained alongside a directional type decision.
+///
+/// The report does not apply adapters or turn provider observations into
+/// authority. A hosted resolver can use these stable inputs to construct the
+/// portable `SatisfactionProof` pinned by plan schema 7.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TypeSatisfactionReport<'a> {
+    pub decision: CompatibilityDecision<'a>,
+    pub consumer_provider: Option<DescriptorRef<'static>>,
+    pub producer_provider: Option<DescriptorRef<'static>>,
+    pub provider_rule: Option<Id<'a>>,
+    pub consumer_structural_facet: Option<SemanticHash>,
+    pub producer_structural_facet: Option<SemanticHash>,
+}
+
 /// Provider registration failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TypeRegistryError {
@@ -73,6 +91,8 @@ pub enum TypeRegistryError {
     InvalidNamespace(String),
     /// A provider is already registered for the namespace.
     DuplicateNamespace(String),
+    /// Provider proof identity is malformed.
+    InvalidProviderDescriptor(String),
 }
 
 impl fmt::Display for TypeRegistryError {
@@ -84,6 +104,12 @@ impl fmt::Display for TypeRegistryError {
             Self::DuplicateNamespace(namespace) => {
                 write!(formatter, "duplicate type provider namespace `{namespace}`")
             }
+            Self::InvalidProviderDescriptor(namespace) => {
+                write!(
+                    formatter,
+                    "type provider `{namespace}` has an invalid proof descriptor"
+                )
+            }
         }
     }
 }
@@ -93,7 +119,12 @@ impl std::error::Error for TypeRegistryError {}
 /// Deterministically ordered hosted registry of domain type providers.
 #[derive(Default)]
 pub struct TypeRegistry {
-    providers: BTreeMap<String, Box<dyn TypeContractProvider>>,
+    providers: BTreeMap<String, RegisteredProvider>,
+}
+
+struct RegisteredProvider {
+    descriptor: DescriptorRef<'static>,
+    provider: Box<dyn TypeContractProvider>,
 }
 
 impl TypeRegistry {
@@ -109,8 +140,19 @@ impl TypeRegistry {
         if self.providers.contains_key(namespace) {
             return Err(TypeRegistryError::DuplicateNamespace(namespace.to_owned()));
         }
-        self.providers
-            .insert(namespace.to_owned(), Box::new(provider));
+        let descriptor = provider.provider_descriptor();
+        if Id::new(descriptor.kind.as_str()).is_err() || descriptor.schema_version == 0 {
+            return Err(TypeRegistryError::InvalidProviderDescriptor(
+                namespace.to_owned(),
+            ));
+        }
+        self.providers.insert(
+            namespace.to_owned(),
+            RegisteredProvider {
+                descriptor,
+                provider: Box::new(provider),
+            },
+        );
         Ok(())
     }
 
@@ -250,6 +292,57 @@ impl TypeRegistry {
         }
     }
 
+    /// Returns the decision plus exact provider/facet operands needed for a
+    /// plan-recorded satisfaction proof.
+    #[must_use]
+    pub fn consumer_satisfaction_report<'a>(
+        &'a self,
+        consumer: TypeContractRef<'a>,
+        producer: TypeContractRef<'a>,
+    ) -> TypeSatisfactionReport<'a> {
+        let decision = self.consumer_accepts_producer(consumer, producer);
+        let exact = consumer == producer;
+        let consumer_provider = if exact {
+            None
+        } else {
+            self.provider_entry(consumer).map(|entry| entry.descriptor)
+        };
+        let producer_provider = if exact {
+            None
+        } else {
+            self.provider_entry(producer).map(|entry| entry.descriptor)
+        };
+        let consumer_strategy = self
+            .describe(consumer)
+            .map(|description| description.strategy);
+        let producer_strategy = self
+            .describe(producer)
+            .map(|description| description.strategy);
+        let structural_facet = |strategy| match strategy {
+            Some(TypeComparisonStrategy::Structural { shape }) => Some(shape),
+            _ => None,
+        };
+        let provider_rule = match decision.reason {
+            CompatibilityReason::TypeStructuralAccepted
+            | CompatibilityReason::TypeStructuralMismatch => {
+                Some(Id("conduit/structural-projection-v1"))
+            }
+            CompatibilityReason::TypeProviderAccepted
+            | CompatibilityReason::TypeProviderRejected
+            | CompatibilityReason::TypeProviderIndeterminate
+            | CompatibilityReason::TypeProviderDecisionInvalid => decision.subject,
+            _ => None,
+        };
+        TypeSatisfactionReport {
+            decision,
+            consumer_provider,
+            producer_provider,
+            provider_rule,
+            consumer_structural_facet: structural_facet(consumer_strategy),
+            producer_structural_facet: structural_facet(producer_strategy),
+        }
+    }
+
     /// Assesses one exact flow policy against provider-owned type facts.
     #[must_use]
     pub fn assess_flow_policy(
@@ -268,8 +361,13 @@ impl TypeRegistry {
     }
 
     fn provider(&self, reference: TypeContractRef<'_>) -> Option<&dyn TypeContractProvider> {
+        self.provider_entry(reference)
+            .map(|entry| entry.provider.as_ref())
+    }
+
+    fn provider_entry(&self, reference: TypeContractRef<'_>) -> Option<&RegisteredProvider> {
         let namespace = reference.namespace().ok()?;
-        self.providers.get(namespace.as_str()).map(Box::as_ref)
+        self.providers.get(namespace.as_str())
     }
 }
 

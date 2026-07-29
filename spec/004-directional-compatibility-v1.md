@@ -172,6 +172,12 @@ Without an exact match or a provider decision, type compatibility is
 indeterminate. Conduit core does not infer equivalence from names, JSON shape,
 Rust layout, Python class, WASM type, or byte length.
 
+Specification
+[`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md) retains
+this three-outcome algebra and exact direction in a canonical provider proof.
+It does not add a Boolean compatibility path or reinterpret any frozen
+compatibility or migration result.
+
 An adapter is an explicit node and contract. Its existence does not make the
 unadapted endpoints directly compatible.
 

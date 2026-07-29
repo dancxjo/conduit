@@ -43,6 +43,14 @@ and semantic hash match the requested reference. A provider cannot replace or
 mutate a descriptor after its identity has been named. Dynamic loading, FFI,
 process protocols, and provider distribution are outside this contract.
 
+Specification
+[`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md) extends
+the hosted provider contract with an exact immutable provider descriptor and a
+`TypeSatisfactionReport`. The report retains the existing decision plus both
+provider identities, the stable provider rule, and bilateral structural facet
+hashes so a resolver can construct a plan-recorded proof. It does not change
+the frozen comparison strategies or make structural comparison a fallback.
+
 Missing providers and unknown exact contracts are indeterminate, not
 incompatible. Their stable reasons name the unavailable namespace or contract.
 

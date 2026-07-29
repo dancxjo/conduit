@@ -1,16 +1,19 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationCheckpointPolicy, CancellationGuarantee,
-    CheckpointProviderCapabilities, DelegationPolicy, DeliveryClaim, Direction, DuplicatePolicy,
-    DuplicationRule, EffectRequirement, EventClass, EventProviderCapabilities, EventStreamContract,
-    ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy,
-    FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, JobContract, MergeOrdering,
-    MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding,
-    PlanFanOut, PlanHostObservation, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
-    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanValidationContext, Pressure, ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, ResourceRef, ResourceSelector, RestartPolicy, RetentionPolicy, SemanticHash,
+    CheckpointProviderCapabilities, DelegationPolicy, DeliveryClaim, DescriptorRef, Direction,
+    DuplicatePolicy, DuplicationRule, EffectRequirement, EventClass, EventProviderCapabilities,
+    EventStreamContract, ExecutionLimits, ExecutionPlan, ExecutionProfile,
+    ExplicitSatisfactionRequirement, FanOutMode, FlowCapacity, FlowPolicy, FlowWatermarks,
+    GrantStatus, HostCapability, Id, InstancePath, JobContract, MergeOrdering, MergeTerminalPolicy,
+    ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection,
+    PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut,
+    PlanHostObservation, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
+    PlanSatisfactionSubject, PlanValidationContext, Pressure, ReplayDelivery, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RestartPolicy,
+    RetentionPolicy, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation,
+    SatisfactionPin, SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
     Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef, UnresolvedPlanConstraint,
     UnresolvedPlanKind, resolve_authority, validate_execution_plan,
 };
@@ -287,6 +290,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         merges: &[],
         event_streams: &[],
         jobs: &[],
+        satisfaction_proofs: &[],
         authorities: &authorities,
         composites: &composites,
         port_groups: &groups,
@@ -997,6 +1001,283 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         };
         assert_eq!(validate_execution_plan(&v6, context6, scratch), Ok(()));
         assert_ne!(v6.identity, v5.identity);
+
+        let alternate_type = TypeContractRef {
+            contract_id: Id("fixture/alternate-value"),
+            schema_version: 1,
+            semantic_hash: hash(91),
+        };
+        let structural_cords = [
+            ResolvedPlanCord {
+                from: ResolvedPlanPort {
+                    value_type: alternate_type,
+                    ..v6.cords[0].from
+                },
+                ..v6.cords[0]
+            },
+            ResolvedPlanCord {
+                from: ResolvedPlanPort {
+                    value_type: alternate_type,
+                    ..v6.cords[1].from
+                },
+                ..v6.cords[1]
+            },
+        ];
+        let structural_fanouts = [PlanFanOut {
+            producer: structural_cords[0].from,
+            ..v6.fanouts[0]
+        }];
+        let obligation_ids = [
+            "direction",
+            "semantic-type",
+            "presence",
+            "connection-cardinality",
+            "value-cardinality",
+            "delivery",
+            "temporal",
+            "terminal",
+            "sensitivity",
+            "authority",
+            "representation",
+            "ownership-lifetime",
+            "flow",
+            "boundedness",
+        ];
+        let obligations = obligation_ids.map(|id| {
+            let (required_hash, offered_hash) = if id == "semantic-type" {
+                (
+                    structural_cords[0].to.value_type.semantic_hash,
+                    structural_cords[0].from.value_type.semantic_hash,
+                )
+            } else {
+                (hash(92), hash(92))
+            };
+            SatisfactionObligation {
+                id: Id(id),
+                required_hash,
+                offered_hash,
+                outcome: conduit_core::CompatibilityOutcome::Compatible,
+                reason: Id("fixture/accepted"),
+            }
+        });
+        let facets = [SatisfactionFacet {
+            id: Id("fixture/complete-port"),
+            required_hash: hash(93),
+            offered_hash: hash(93),
+        }];
+        let mut satisfaction = SatisfactionProof {
+            schema_version: 1,
+            identity: ZERO_HASH,
+            role: SatisfactionRole::PortConnection,
+            method: SatisfactionMethod::StructuralFacets,
+            required: DescriptorRef {
+                kind: Id("conduit/port-contract"),
+                schema_version: 1,
+                semantic_hash: structural_cords[0].to.port_contract_hash,
+            },
+            offered: DescriptorRef {
+                kind: Id("conduit/port-contract"),
+                schema_version: 1,
+                semantic_hash: structural_cords[0].from.port_contract_hash,
+            },
+            provider: Some(SatisfactionPin {
+                descriptor: DescriptorRef {
+                    kind: Id("fixture/type-provider"),
+                    schema_version: 1,
+                    semantic_hash: hash(94),
+                },
+            }),
+            provider_rule: Some(Id("fixture/structural-port-v1")),
+            policy: None,
+            facets: &facets,
+            obligations: &obligations,
+            outcome: conduit_core::CompatibilityOutcome::Compatible,
+            reason: SatisfactionReason::Satisfied,
+            explanation: Id("fixture/complete-directional-proof"),
+            explicit_requirement: ExplicitSatisfactionRequirement::None,
+        };
+        satisfaction.identity = satisfaction.semantic_hash(&mut [ZERO_HASH; 15]).unwrap();
+        let implementation_obligation_ids = [
+            "semantic-contract",
+            "ports",
+            "configuration",
+            "representation",
+            "ownership-lifetime",
+            "lifecycle",
+            "authority",
+            "resources",
+            "boundedness",
+        ];
+        let implementation_obligations =
+            implementation_obligation_ids.map(|id| SatisfactionObligation {
+                id: Id(id),
+                required_hash: hash(95),
+                offered_hash: hash(95),
+                outcome: conduit_core::CompatibilityOutcome::Compatible,
+                reason: Id("fixture/accepted"),
+            });
+        let mut implementation_proof = SatisfactionProof {
+            schema_version: 1,
+            identity: ZERO_HASH,
+            role: SatisfactionRole::Implementation,
+            method: SatisfactionMethod::ProviderRule,
+            required: DescriptorRef {
+                kind: v6.nodes[0].contract.id,
+                schema_version: v6.nodes[0].contract.schema_version,
+                semantic_hash: v6.nodes[0].contract.semantic_hash,
+            },
+            offered: DescriptorRef {
+                kind: v6.nodes[0].implementation.id,
+                schema_version: v6.nodes[0].implementation.schema_version,
+                semantic_hash: v6.nodes[0].implementation.semantic_hash,
+            },
+            provider: Some(SatisfactionPin {
+                descriptor: DescriptorRef {
+                    kind: Id("fixture/implementation-provider"),
+                    schema_version: 1,
+                    semantic_hash: hash(96),
+                },
+            }),
+            provider_rule: Some(Id("fixture/implementation-satisfies-v1")),
+            policy: None,
+            facets: &[],
+            obligations: &implementation_obligations,
+            outcome: conduit_core::CompatibilityOutcome::Compatible,
+            reason: SatisfactionReason::Satisfied,
+            explanation: Id("fixture/implementation-proof"),
+            explicit_requirement: ExplicitSatisfactionRequirement::None,
+        };
+        implementation_proof.identity = implementation_proof
+            .semantic_hash(&mut [ZERO_HASH; 10])
+            .unwrap();
+        let proof_bindings = [
+            PlanSatisfactionProof {
+                subject: PlanSatisfactionSubject::Cord(structural_cords[0].id),
+                proof: satisfaction,
+            },
+            PlanSatisfactionProof {
+                subject: PlanSatisfactionSubject::Cord(structural_cords[1].id),
+                proof: satisfaction,
+            },
+            PlanSatisfactionProof {
+                subject: PlanSatisfactionSubject::Implementation(v6.nodes[0].instance),
+                proof: implementation_proof,
+            },
+        ];
+        let mut v7 = ExecutionPlan {
+            schema_version: 7,
+            identity: ZERO_HASH,
+            cords: &structural_cords,
+            fanouts: &structural_fanouts,
+            satisfaction_proofs: &proof_bindings,
+            ..v6
+        };
+        v7.identity = v7.semantic_hash(scratch).unwrap();
+        let context7 = PlanValidationContext {
+            supported_schema_version: 7,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v7, context7, scratch), Ok(()));
+        assert_eq!(v7.source_semantic_hash, v6.source_semantic_hash);
+        assert_ne!(v7.identity, v6.identity);
+
+        let alternate_nodes = [
+            ResolvedPlanNode {
+                implementation: pin("fixture/alternate-source-impl", 97),
+                ..v7.nodes[0]
+            },
+            v7.nodes[1],
+        ];
+        let mut alternate_implementation_proof = implementation_proof;
+        alternate_implementation_proof.offered = DescriptorRef {
+            kind: alternate_nodes[0].implementation.id,
+            schema_version: alternate_nodes[0].implementation.schema_version,
+            semantic_hash: alternate_nodes[0].implementation.semantic_hash,
+        };
+        alternate_implementation_proof.identity = alternate_implementation_proof
+            .semantic_hash(&mut [ZERO_HASH; 10])
+            .unwrap();
+        let alternate_proof_bindings = [
+            proof_bindings[0],
+            proof_bindings[1],
+            PlanSatisfactionProof {
+                subject: PlanSatisfactionSubject::Implementation(alternate_nodes[0].instance),
+                proof: alternate_implementation_proof,
+            },
+        ];
+        let mut alternate_v7 = ExecutionPlan {
+            identity: ZERO_HASH,
+            nodes: &alternate_nodes,
+            satisfaction_proofs: &alternate_proof_bindings,
+            ..v7
+        };
+        alternate_v7.identity = alternate_v7.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&alternate_v7, context7, scratch),
+            Ok(())
+        );
+        assert_eq!(alternate_v7.source_semantic_hash, v7.source_semantic_hash);
+        assert_ne!(alternate_v7.identity, v7.identity);
+
+        let mut missing_proof = ExecutionPlan {
+            identity: ZERO_HASH,
+            satisfaction_proofs: &[],
+            ..v7
+        };
+        missing_proof.identity = missing_proof.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&missing_proof, context7, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::ContractMismatch
+        );
+
+        let mut wrong_type_obligations = obligations;
+        wrong_type_obligations
+            .iter_mut()
+            .find(|obligation| obligation.id == Id("semantic-type"))
+            .unwrap()
+            .offered_hash = hash(98);
+        let mut wrong_type_proof = satisfaction;
+        wrong_type_proof.obligations = &wrong_type_obligations;
+        wrong_type_proof.identity = wrong_type_proof
+            .semantic_hash(&mut [ZERO_HASH; 15])
+            .unwrap();
+        let wrong_type_bindings = [
+            PlanSatisfactionProof {
+                subject: proof_bindings[0].subject,
+                proof: wrong_type_proof,
+            },
+            proof_bindings[1],
+            proof_bindings[2],
+        ];
+        let mut wrong_type_plan = ExecutionPlan {
+            identity: ZERO_HASH,
+            satisfaction_proofs: &wrong_type_bindings,
+            ..v7
+        };
+        wrong_type_plan.identity = wrong_type_plan.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&wrong_type_plan, context7, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::SatisfactionInvalid
+        );
+
+        let mut illegal_v6_proof = ExecutionPlan {
+            schema_version: 6,
+            identity: ZERO_HASH,
+            cords: v6.cords,
+            fanouts: v6.fanouts,
+            ..v7
+        };
+        illegal_v6_proof.identity = illegal_v6_proof.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&illegal_v6_proof, context6, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::SatisfactionInvalid
+        );
 
         let incapable_jobs = [PlanJob {
             checkpoint_provider_capabilities: Some(CheckpointProviderCapabilities {

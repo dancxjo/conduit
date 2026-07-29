@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 14,
+  "manifest_revision": 15,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2466,6 +2466,120 @@
         {
           "package": "conduit-runtime",
           "test": "scheduler"
+        }
+      ]
+    },
+    {
+      "id": "implicit-satisfaction",
+      "profile": "conduit.c2-c5",
+      "requirement_ids": [
+        "SAT-001",
+        "SAT-002",
+        "SAT-003",
+        "SAT-004",
+        "SAT-005",
+        "SAT-006",
+        "SAT-007",
+        "SAT-008",
+        "SAT-009",
+        "SAT-010",
+        "SAT-011",
+        "SAT-012",
+        "SAT-013",
+        "SAT-014"
+      ],
+      "artifacts": [
+        {
+          "id": "implicit-satisfaction-v1",
+          "path": "../c2/implicit-satisfaction-v1.json",
+          "sha256": "sha256:e90b7894a79c76a028c1e09248cc865f27f112fdfa0e3d28404aec4c17dd8ee7",
+          "operation": "implicit-satisfaction-v1",
+          "requirement_ids": [
+            "SAT-001",
+            "SAT-002",
+            "SAT-003",
+            "SAT-004",
+            "SAT-005",
+            "SAT-006",
+            "SAT-007",
+            "SAT-008",
+            "SAT-009",
+            "SAT-010",
+            "SAT-011",
+            "SAT-012",
+            "SAT-013",
+            "SAT-014"
+          ],
+          "default_rule": "SAT-003",
+          "case_rules": {
+            "directional-structural-port-success": "SAT-003",
+            "exact-nominal-success": "SAT-014",
+            "same-shape-different-semantics-rejected": "SAT-005",
+            "missing-provider-indeterminate": "SAT-002",
+            "stale-provider-indeterminate": "SAT-002",
+            "stale-host-report-indeterminate": "SAT-002",
+            "deterministic-policy-selection": "SAT-008",
+            "unresolved-candidate-ambiguity": "SAT-008",
+            "explicit-adapter-required": "SAT-006",
+            "sensitivity-violation": "SAT-003",
+            "ownership-lifetime-violation": "SAT-003",
+            "delivery-violation": "SAT-003",
+            "temporal-violation": "SAT-003",
+            "cardinality-violation": "SAT-003",
+            "linux-capability-success": "SAT-004",
+            "pico-capability-success": "SAT-004",
+            "distinct-host-realizations": "SAT-013",
+            "shuffled-facets-and-obligations": "SAT-009",
+            "proof-identity-mutation-rejected": "SAT-010",
+            "proof-operand-omission-rejected": "SAT-010",
+            "source-identity-stable-across-realizations": "SAT-012",
+            "proof-grants-no-authority": "SAT-007",
+            "proof-performs-no-provisioning": "SAT-007",
+            "proof-does-not-select-plan-epoch": "SAT-007"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "implicit-satisfaction-v1#directional-structural-port-success",
+          "implicit-satisfaction-v1#exact-nominal-success",
+          "implicit-satisfaction-v1#linux-capability-success",
+          "implicit-satisfaction-v1#pico-capability-success"
+        ],
+        "negative": [
+          "implicit-satisfaction-v1#same-shape-different-semantics-rejected",
+          "implicit-satisfaction-v1#sensitivity-violation",
+          "implicit-satisfaction-v1#ownership-lifetime-violation",
+          "implicit-satisfaction-v1#proof-operand-omission-rejected"
+        ],
+        "boundary": [
+          "implicit-satisfaction-v1#missing-provider-indeterminate",
+          "implicit-satisfaction-v1#stale-host-report-indeterminate",
+          "implicit-satisfaction-v1#unresolved-candidate-ambiguity",
+          "implicit-satisfaction-v1#explicit-adapter-required"
+        ],
+        "migration": [
+          "implicit-satisfaction-v1#proof-identity-mutation-rejected",
+          "implicit-satisfaction-v1#source-identity-stable-across-realizations",
+          "implicit-satisfaction-v1#proof-does-not-select-plan-epoch"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "satisfaction_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "type_contract_vectors"
         }
       ]
     }

@@ -97,6 +97,9 @@ The current documents are candidates, not a claim of ecosystem stability:
   freezes plan-v6 finite attempts/leases, Resonance-backed durable progress,
   explicit effect commit and domain acceptance, integrity-protected
   checkpoints, exact resume, and explicit migration.
+- [`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md) freezes
+  language-neutral implicit-satisfaction proofs, complete port/implementation/
+  host obligations, deterministic ambiguity policy, and plan-v7 proof identity.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

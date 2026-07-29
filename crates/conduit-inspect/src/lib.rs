@@ -478,6 +478,7 @@ pub fn inspect_execution_plan(
         plan.merges.len(),
         plan.event_streams.len(),
         plan.jobs.len(),
+        plan.satisfaction_proofs.len(),
         plan.authorities.len(),
         plan.composites.len(),
         plan.port_groups.len(),
@@ -526,6 +527,12 @@ pub fn inspect_execution_plan(
             .checked_add(pool.authority_grants.len())
             .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
     }
+    for binding in plan.satisfaction_proofs {
+        structural_items = structural_items
+            .checked_add(binding.proof.facets.len())
+            .and_then(|value| value.checked_add(binding.proof.obligations.len()))
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
     enforce_collection_bound(structural_items, limits, "plan structural items")?;
     validate_hosted_execution_plan(plan, context)
         .map_err(|error| failure(error.code.as_str(), error.to_string()))?;
@@ -549,6 +556,10 @@ pub fn inspect_execution_plan(
     counts.insert("merges".to_owned(), plan.merges.len() as u64);
     counts.insert("event_streams".to_owned(), plan.event_streams.len() as u64);
     counts.insert("jobs".to_owned(), plan.jobs.len() as u64);
+    counts.insert(
+        "satisfaction_proofs".to_owned(),
+        plan.satisfaction_proofs.len() as u64,
+    );
     counts.insert("authorities".to_owned(), plan.authorities.len() as u64);
     counts.insert("composites".to_owned(), plan.composites.len() as u64);
     counts.insert("port_groups".to_owned(), plan.port_groups.len() as u64);
@@ -647,6 +658,14 @@ pub fn inspect_execution_plan(
             });
         }
     }
+    references.extend(
+        plan.satisfaction_proofs
+            .iter()
+            .map(|binding| InspectionReference {
+                category: "satisfaction-proof".to_owned(),
+                value: binding.proof.identity.to_string(),
+            }),
+    );
     references.extend(plan.resources.iter().map(|value| InspectionReference {
         category: "resource".to_owned(),
         value: format!(

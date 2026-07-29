@@ -23,6 +23,7 @@ mod job;
 mod lifecycle;
 mod port;
 mod resonance;
+mod satisfaction;
 mod scheduler;
 mod structural;
 mod type_contract;
@@ -69,13 +70,14 @@ pub use evidence::{
 pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1,
     EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
-    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext,
-    PlanValidationError, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
+    EXECUTION_PLAN_SCHEMA_VERSION_V6, ExecutionPlan, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding,
+    PlanFanOut, PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge,
+    PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -125,6 +127,13 @@ pub use resonance::{
     SubscriberCoupling, SubscriptionContract, extend_execution_event, validate_envelope,
     validate_projection, validate_projection_snapshot, validate_stream_contract,
     validate_subscription,
+};
+pub use satisfaction::{
+    ExplicitSatisfactionRequirement, SATISFACTION_PROOF_SCHEMA_VERSION, SatisfactionCandidate,
+    SatisfactionFacet, SatisfactionIdentityError, SatisfactionMethod, SatisfactionObligation,
+    SatisfactionPin, SatisfactionProof, SatisfactionProofError, SatisfactionReason,
+    SatisfactionRole, SatisfactionSelection, select_satisfaction_candidate,
+    validate_port_satisfaction_proof, validate_satisfaction_proof,
 };
 pub use scheduler::{
     PoolPopulation, ReadyQueueDiscipline, RestartAssessment, RestartDecision,

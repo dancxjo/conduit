@@ -1,7 +1,7 @@
 use conduit_core::{
     CanonicalDescriptor, CanonicalValue, CompatibilityClass, CompatibilityOutcome,
-    CompatibilityQuery, CompatibilityReason, FlowTypeFacts, Id, SemanticHash, TraitProof,
-    TypeContractRef,
+    CompatibilityQuery, CompatibilityReason, DescriptorRef, FlowTypeFacts, Id, SemanticHash,
+    TraitProof, TypeContractRef,
 };
 use conduit_runtime::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
@@ -11,6 +11,14 @@ use conduit_runtime::{
 struct FixtureProvider;
 
 impl TypeContractProvider for FixtureProvider {
+    fn provider_descriptor(&self) -> DescriptorRef<'static> {
+        DescriptorRef {
+            kind: Id("fixture/type-provider"),
+            schema_version: 1,
+            semantic_hash: SemanticHash::from_bytes([0x91; 32]),
+        }
+    }
+
     fn namespace(&self) -> &str {
         "fixture"
     }
@@ -210,6 +218,38 @@ fn type_compatibility_matches_frozen_vectors() {
 }
 
 #[test]
+fn satisfaction_report_retains_provider_rule_and_bilateral_facets() {
+    let mut registry = TypeRegistry::default();
+    registry.register(FixtureProvider).unwrap();
+    let consumer = reference("fixture/record-a", 1);
+    let producer = reference("fixture/record-b", 1);
+
+    let report = registry.consumer_satisfaction_report(consumer, producer);
+
+    assert_eq!(report.decision.outcome, CompatibilityOutcome::Compatible);
+    assert_eq!(
+        report.provider_rule,
+        Some(Id("conduit/structural-projection-v1"))
+    );
+    assert_eq!(
+        report.consumer_provider,
+        Some(FixtureProvider.provider_descriptor())
+    );
+    assert_eq!(report.consumer_provider, report.producer_provider);
+    assert_eq!(
+        report.consumer_structural_facet,
+        report.producer_structural_facet
+    );
+    assert!(report.consumer_structural_facet.is_some());
+
+    let exact = registry.consumer_satisfaction_report(consumer, consumer);
+    assert_eq!(exact.decision.class, Some(CompatibilityClass::Exact));
+    assert_eq!(exact.consumer_provider, None);
+    assert_eq!(exact.producer_provider, None);
+    assert_eq!(exact.provider_rule, None);
+}
+
+#[test]
 fn discovery_returns_the_exact_immutable_descriptor() {
     let mut registry = TypeRegistry::default();
     registry.register(FixtureProvider).unwrap();
@@ -228,6 +268,14 @@ fn discovery_returns_the_exact_immutable_descriptor() {
 fn registration_rejects_invalid_and_duplicate_namespaces() {
     struct NamedProvider(&'static str);
     impl TypeContractProvider for NamedProvider {
+        fn provider_descriptor(&self) -> DescriptorRef<'static> {
+            DescriptorRef {
+                kind: Id("fixture/named-provider"),
+                schema_version: 1,
+                semantic_hash: SemanticHash::from_bytes([0x92; 32]),
+            }
+        }
+
         fn namespace(&self) -> &str {
             self.0
         }

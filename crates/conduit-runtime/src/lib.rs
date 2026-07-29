@@ -12,11 +12,11 @@ use std::io::{Read, Write};
 use conduit_core::{
     BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome, ConfigContract,
     ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
-    ConnectionCardinality, Delivery, Direction, Endpoint as CoreEndpoint, FlowCapacity, FlowPolicy,
-    FlowTypeFacts, FlowWatermarks, Id, LossAcceptance, NodeContract, PlanCord, PlanGraph, PlanNode,
-    PortContract, PortFlowConstraints, Presence, Pressure, SampleSchedule, SemanticHash,
-    Sensitivity, TemporalContract, TerminalContract, TraitProof, TypeContractRef, ValueCardinality,
-    validate_plan_graph,
+    ConnectionCardinality, Delivery, DescriptorRef, Direction, Endpoint as CoreEndpoint,
+    FlowCapacity, FlowPolicy, FlowTypeFacts, FlowWatermarks, Id, LossAcceptance, NodeContract,
+    PlanCord, PlanGraph, PlanNode, PortContract, PortFlowConstraints, Presence, Pressure,
+    SampleSchedule, SemanticHash, Sensitivity, TemporalContract, TerminalContract, TraitProof,
+    TypeContractRef, ValueCardinality, validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
@@ -61,7 +61,7 @@ pub use source_lowering::{
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
-    TypeRegistry, TypeRegistryError,
+    TypeRegistry, TypeRegistryError, TypeSatisfactionReport,
 };
 
 /// Allocator-aware convenience around the core-compatible exact-plan validator.
@@ -409,6 +409,14 @@ impl Registry {
 struct BuiltinTypeProvider;
 
 impl TypeContractProvider for BuiltinTypeProvider {
+    fn provider_descriptor(&self) -> DescriptorRef<'static> {
+        DescriptorRef {
+            kind: Id("conduit/builtin-type-provider"),
+            schema_version: 1,
+            semantic_hash: SemanticHash::from_bytes([0x24; 32]),
+        }
+    }
+
     fn namespace(&self) -> &str {
         "conduit"
     }

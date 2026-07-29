@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 15 — 2026-07-29
+
+- Added the `implicit-satisfaction` suite for issue #84.
+- Froze language-neutral exact/provider/structural proofs with complete
+  port, implementation, and host obligations and three-valued outcomes.
+- Added deterministic candidate selection, explicit adapter-only behavior,
+  missing/stale provider and host handling, order-independent proof identity,
+  and mutation/omission rejection.
+- Added plan-v7 satisfaction-proof bindings while preserving source identity
+  across alternate compatible realizations.
+- Requirement IDs: `SAT-001` through `SAT-014`.
+- Migration: plan-v1 through plan-v6 identities remain unchanged and contain
+  no satisfaction-proof facts.
+
 ## Manifest revision 14 — 2026-07-29
 
 - Added the `durable-job` suite for issue #22.
