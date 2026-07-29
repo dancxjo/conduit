@@ -89,6 +89,7 @@ dependencies = [
  "clap_complete",
  "clap_mangen",
  "conduit-diagnostics",
+ "conduit-inspect",
  "conduit-panel",
  "conduit-runtime",
  "serde",
@@ -116,6 +117,20 @@ name = "conduit-diagnostics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-inspect"
+version = "0.1.0"
+dependencies = [
+ "conduit-conformance",
+ "conduit-core",
+ "conduit-diagnostics",
  "conduit-panel",
  "conduit-runtime",
  "serde",

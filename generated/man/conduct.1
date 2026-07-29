@@ -4,7 +4,7 @@
 .SH NAME
 conduct \- Conduct a typed node arrangement.
 .SH SYNOPSIS
-\fBconduct\fR [\fB\-\-check\fR] [\fB\-\-explain\fR] [\fB\-\-run\fR] [\fB\-\-format\fR] [\fB\-\-diagnostic\-format\fR] [\fB\-\-color\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-v \fR]... [\fB\-\-verbose\-diagnostics\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIPANEL\fR]
+\fBconduct\fR [\fB\-\-check\fR] [\fB\-\-explain\fR] [\fB\-\-run\fR] [\fB\-\-format\fR] [\fB\-\-diagnostic\-format\fR] [\fB\-\-color\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-v \fR]... [\fB\-\-verbose\-diagnostics\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIPANEL\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 Conduct a typed node arrangement.
 .SH OPTIONS
@@ -78,6 +78,10 @@ Print version
 .TP
 [\fIPANEL\fR]
 Read editable source from this file, or `\-`/no path for stdin
+.SH SUBCOMMANDS
+.TP
+conduct\-inspect(1)
+Validate and describe one artifact without executing it
 .SH VERSION
 v0.1.0
 .SH STREAMS

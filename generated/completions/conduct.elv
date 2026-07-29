@@ -32,6 +32,19 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --help 'Print help'
             cand -V 'Print version'
             cand --version 'Print version'
+            cand inspect 'Validate and describe one artifact without executing it'
+        }
+        &'conduct;inspect'= {
+            cand --type 'Select a frozen artifact kind, or use marker-only detection'
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
         }
     ]
     $completions[$command]

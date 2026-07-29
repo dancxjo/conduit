@@ -16,6 +16,9 @@ _conduct() {
             ",$1")
                 cmd="conduct"
                 ;;
+            conduct,inspect)
+                cmd="conduct__subcmd__inspect"
+                ;;
             *)
                 ;;
         esac
@@ -23,12 +26,42 @@ _conduct() {
 
     case "${cmd}" in
         conduct)
-            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --help --version"
+            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --help --version inspect"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__inspect)
+            opts="-q -v -h --type --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --type)
+                    COMPREPLY=($(compgen -W "auto panel lowered-source execution-plan evidence diagnostic conformance" -- "${cur}"))
+                    return 0
+                    ;;
                 --format)
                     COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
                     return 0

@@ -1,0 +1,48 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH conduct-inspect 1  "conduct-inspect "
+.SH NAME
+conduct\-inspect \- Validate and describe one artifact without executing it
+.SH SYNOPSIS
+\fBconduct inspect\fR [\fB\-\-type\fR] [\fB\-h\fR|\fB\-\-help\fR] <\fIARTIFACT\fR>
+.SH DESCRIPTION
+Validate and describe one artifact without executing it
+.SH OPTIONS
+.TP
+\fB\-\-type\fR \fI<TYPE>\fR [default: auto]
+Select a frozen artifact kind, or use marker\-only detection
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+auto
+.IP \(bu 2
+panel
+.IP \(bu 2
+lowered\-source
+.IP \(bu 2
+execution\-plan
+.IP \(bu 2
+evidence
+.IP \(bu 2
+diagnostic
+.IP \(bu 2
+conformance
+.RE
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+<\fIARTIFACT\fR>
+Read the artifact from this file, or `\-` for stdin
+.SH SAFETY
+Inspection is read-only, bounded, marker-based, and non-executing.
+It performs no network access, provider discovery, secret resolution, authority acquisition, dynamic loading, or artifact execution.
+.SH STREAMS
+Human or conduit.result/v1 inspection results are written to stdout.
+Human or versioned JSON diagnostics are written to stderr.
+.SH EXIT STATUS
+Zero indicates successful validation or normal downstream pipe closure.
+Two indicates a command, input, validation, limit, or non-broken output failure.

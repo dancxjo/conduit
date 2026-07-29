@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const OUTPUT_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-output-v1.json");
+const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection-v1.json");
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -49,4 +50,31 @@ fn checked_in_assets_match_the_shared_command_model() {
     for section in ["STREAMS", "MACHINE OUTPUT", "EXIT STATUS"] {
         assert!(manual.contains(section), "{section}");
     }
+    let inspect_manual = read("generated/man/conduct-inspect.1");
+    for section in ["SAFETY", "STREAMS", "EXIT STATUS"] {
+        assert!(inspect_manual.contains(section), "{section}");
+    }
+    for value in ["--type", "lowered-source", "execution-plan", "conformance"] {
+        assert!(
+            inspect_manual.replace("\\-", "-").contains(value),
+            "{value}"
+        );
+    }
+
+    let inspection: serde_json::Value = serde_json::from_str(INSPECTION_FIXTURE).unwrap();
+    let generated = inspection["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|case| case["runner"] == "generated")
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        generated,
+        [
+            "inspect-help",
+            "generated-inspect-completions",
+            "generated-inspect-man"
+        ]
+    );
 }

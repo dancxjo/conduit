@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 8,
+  "manifest_revision": 9,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1786,6 +1786,113 @@
         {
           "package": "conduct",
           "test": "machine_output_cli"
+        },
+        {
+          "package": "conduct",
+          "test": "generated_assets"
+        }
+      ]
+    },
+    {
+      "id": "inspection",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "INSP-001",
+        "INSP-002",
+        "INSP-003",
+        "INSP-004",
+        "INSP-005",
+        "INSP-006",
+        "INSP-007",
+        "INSP-008",
+        "INSP-009",
+        "INSP-010",
+        "INSP-011",
+        "INSP-012",
+        "INSP-013",
+        "INSP-014",
+        "INSP-015"
+      ],
+      "artifacts": [
+        {
+          "id": "inspection-v1",
+          "path": "../c3/inspection-v1.json",
+          "sha256": "sha256:3c26933035f3e9729ba500329e9a517a0480e68a56f8193593e9f59898ace0cf",
+          "operation": "safe-inspection-v1",
+          "requirement_ids": [
+            "INSP-001",
+            "INSP-002",
+            "INSP-003",
+            "INSP-004",
+            "INSP-005",
+            "INSP-006",
+            "INSP-007",
+            "INSP-008",
+            "INSP-009",
+            "INSP-010",
+            "INSP-011",
+            "INSP-012",
+            "INSP-013",
+            "INSP-014",
+            "INSP-015"
+          ],
+          "default_rule": "INSP-001",
+          "case_rules": {
+            "lowered-source-typed": "INSP-006",
+            "execution-plan-typed": "INSP-006",
+            "conformance-manifest": "INSP-008",
+            "unknown-native-bytes": "INSP-003",
+            "ambiguous-json-markers": "INSP-003",
+            "input-byte-limit": "INSP-004",
+            "module-count-limit": "INSP-004",
+            "panel-module-path": "INSP-005",
+            "evidence-ndjson": "INSP-007",
+            "structured-diagnostic": "INSP-007",
+            "redacted-panel-secret": "INSP-009",
+            "identity-categories-remain-distinct": "INSP-002",
+            "json-result-stdout": "INSP-010",
+            "diagnostic-json-isolated": "INSP-011",
+            "secondary-path-escape": "INSP-012",
+            "broken-pipe-success": "INSP-013",
+            "standalone-plan-encoding-not-invented": "INSP-014",
+            "generated-inspect-man": "INSP-015"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "inspection-v1#panel-bytes",
+          "inspection-v1#execution-plan-typed",
+          "inspection-v1#conformance-manifest"
+        ],
+        "negative": [
+          "inspection-v1#unknown-native-bytes",
+          "inspection-v1#ambiguous-json-markers",
+          "inspection-v1#native-bytes-never-executed"
+        ],
+        "boundary": [
+          "inspection-v1#input-byte-limit",
+          "inspection-v1#module-count-limit",
+          "inspection-v1#broken-pipe-success"
+        ],
+        "migration": [
+          "inspection-v1#secondary-path-escape",
+          "inspection-v1#standalone-plan-encoding-not-invented",
+          "inspection-v1#generated-inspect-man"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-inspect",
+          "test": "inspection"
+        },
+        {
+          "package": "conduct",
+          "test": "inspect_cli"
         },
         {
           "package": "conduct",
