@@ -1,0 +1,13 @@
+{
+  "suite": "conduit.patchbay-protocol/v1",
+  "cases": [
+    {"id":"move-only-preserves-semantic-identity","expected":{"source_unchanged":true,"presentation_changed":true}},
+    {"id":"source-edit-creates-new-semantic-revision","expected":{"source_changed":true,"semantic_changed":true}},
+    {"id":"stale-edit-is-atomic-conflict","expected":{"accepted":false,"code":"CND-PBY-003"}},
+    {"id":"invalid-source-is-atomic-diagnostic","expected":{"accepted":false,"code":"CND-PBY-004"}},
+    {"id":"run-remains-pinned-while-source-changes","expected":{"run_plan_unchanged":true}},
+    {"id":"logical-and-expanded-subjects-are-distinct","expected":{"logical_expanded_distinct":true}},
+    {"id":"projection-gap-requires-resync","expected":{"gap_explicit":true}},
+    {"id":"protocol-version-mismatch-fails-closed","expected":{"accepted":false,"code":"CND-PBY-001"}}
+  ]
+}

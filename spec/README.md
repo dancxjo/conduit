@@ -126,6 +126,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`034-browser-host-v1.md`](034-browser-host-v1.md) defines typed browser
   observations, placement boundaries, explicit permission/activation state,
   exact artifact loading, bounded adapter queues, and UI/host separation.
+- [`035-patchbay-protocol-v1.md`](035-patchbay-protocol-v1.md) defines
+  transport-neutral source, presentation, plan, run, and bounded projection
+  resources without turning layout or client state into semantics.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

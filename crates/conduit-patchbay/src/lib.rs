@@ -1,0 +1,370 @@
+//! Transport-neutral Patchbay authoring and observation protocol.
+//!
+//! This crate intentionally owns only mutable authoring and presentation
+//! projections.  It never makes layout part of `.panel` semantics, resolves a
+//! plan, executes a node, or appends executor evidence.
+
+use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
+use sha2::{Digest as _, Sha256};
+
+pub const PATCHBAY_PROTOCOL_V1: u16 = 1;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SourceSnapshot {
+    pub document_id: String,
+    pub revision: u64,
+    pub source: String,
+    pub semantic_hash: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct NodePosition {
+    pub x: i32,
+    pub y: i32,
+}
+
+/// Presentation-only state. Its identity deliberately excludes source,
+/// descriptor, plan, run, and evidence identities.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PresentationSnapshot {
+    pub document_id: String,
+    pub revision: u64,
+    pub node_positions: BTreeMap<String, NodePosition>,
+    pub identity: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SemanticSnapshot {
+    pub source_semantic_hash: String,
+    pub descriptor_identity: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PlanSnapshot {
+    pub identity: String,
+    pub source_semantic_hash: String,
+}
+
+/// A run is pinned to its resolved plan even if source changes later.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RunSnapshot {
+    pub run_id: String,
+    pub plan_identity: String,
+    pub source_semantic_hash: String,
+    pub state: RunState,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum RunState {
+    Prepared,
+    Running,
+    Terminal,
+}
+
+/// Addressing remains explicit about authored/logical versus expanded paths.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SubjectPath {
+    Logical(String),
+    Expanded(String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct EvidenceCursor {
+    pub stream_id: String,
+    pub cursor: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum ProjectionUpdate {
+    Snapshot {
+        cursor: EvidenceCursor,
+    },
+    Delta {
+        cursor: EvidenceCursor,
+        subject: SubjectPath,
+    },
+    /// Consumers must obtain a new snapshot; they may not infer missing state.
+    Gap {
+        requested: u64,
+        earliest_available: u64,
+    },
+}
+
+/// A finite reference projection stream. The authoritative evidence stream is
+/// owned by Resonance; this only models Patchbay's rebuildable view cursor.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectionLog {
+    stream_id: String,
+    capacity: usize,
+    earliest_available: u64,
+    next_cursor: u64,
+    subjects: Vec<SubjectPath>,
+}
+
+impl ProjectionLog {
+    pub fn new(stream_id: impl Into<String>, capacity: usize) -> Result<Self, ProtocolError> {
+        if capacity == 0 {
+            return Err(ProtocolError {
+                code: "CND-PBY-006",
+                message: "projection retention capacity must be finite and nonzero".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
+        Ok(Self {
+            stream_id: stream_id.into(),
+            capacity,
+            earliest_available: 1,
+            next_cursor: 1,
+            subjects: Vec::new(),
+        })
+    }
+
+    pub fn append(&mut self, subject: SubjectPath) -> EvidenceCursor {
+        let cursor = EvidenceCursor {
+            stream_id: self.stream_id.clone(),
+            cursor: self.next_cursor,
+        };
+        self.next_cursor += 1;
+        self.subjects.push(subject);
+        if self.subjects.len() > self.capacity {
+            self.subjects.remove(0);
+            self.earliest_available += 1;
+        }
+        cursor
+    }
+
+    /// Returns a gap rather than inventing missing projection deltas.
+    #[must_use]
+    pub fn observe_from(&self, cursor: u64) -> Vec<ProjectionUpdate> {
+        if cursor.saturating_add(1) < self.earliest_available {
+            return vec![ProjectionUpdate::Gap {
+                requested: cursor,
+                earliest_available: self.earliest_available,
+            }];
+        }
+        let first = cursor.saturating_add(1).max(self.earliest_available);
+        self.subjects
+            .iter()
+            .enumerate()
+            .filter_map(|(index, subject)| {
+                let event_cursor = self.earliest_available + index as u64;
+                (event_cursor >= first).then(|| ProjectionUpdate::Delta {
+                    cursor: EvidenceCursor {
+                        stream_id: self.stream_id.clone(),
+                        cursor: event_cursor,
+                    },
+                    subject: subject.clone(),
+                })
+            })
+            .collect()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum EditOperation {
+    /// Replaces editable source atomically after it parses through conduit-panel.
+    ReplaceSource { source: String },
+    /// Updates layout only. The node name is validated against parsed source.
+    MoveNode {
+        node_id: String,
+        position: NodePosition,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct EditRequest {
+    pub protocol_version: u16,
+    pub document_id: String,
+    pub expected_source_revision: u64,
+    pub expected_presentation_revision: u64,
+    pub operations: Vec<EditOperation>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct EditResult {
+    pub source: SourceSnapshot,
+    pub presentation: PresentationSnapshot,
+    pub semantic: SemanticSnapshot,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolError {
+    pub code: &'static str,
+    pub message: String,
+    pub diagnostics: Vec<String>,
+}
+
+impl std::fmt::Display for ProtocolError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}: {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for ProtocolError {}
+
+/// In-memory reference model for atomic Patchbay edits. Network transports
+/// adapt these versioned request and result values; they do not alter them.
+#[derive(Clone, Debug)]
+pub struct Workspace {
+    source: SourceSnapshot,
+    presentation: PresentationSnapshot,
+    descriptor_identity: Option<String>,
+}
+
+impl Workspace {
+    pub fn new(
+        document_id: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Result<Self, ProtocolError> {
+        let document_id = document_id.into();
+        let source = source.into();
+        let document = conduit_panel::parse_document(&source);
+        let semantic_hash = document.semantic_hash_v2().ok_or_else(|| ProtocolError {
+            code: "CND-PBY-004",
+            message: "initial source must parse".to_owned(),
+            diagnostics: document
+                .diagnostics
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+        })?;
+        let presentation = presentation_snapshot(&document_id, 0, BTreeMap::new());
+        Ok(Self {
+            source: SourceSnapshot {
+                document_id,
+                revision: 0,
+                source,
+                semantic_hash,
+            },
+            presentation,
+            descriptor_identity: None,
+        })
+    }
+
+    #[must_use]
+    pub fn source(&self) -> &SourceSnapshot {
+        &self.source
+    }
+
+    #[must_use]
+    pub fn presentation(&self) -> &PresentationSnapshot {
+        &self.presentation
+    }
+
+    #[must_use]
+    pub fn semantic(&self) -> SemanticSnapshot {
+        SemanticSnapshot {
+            source_semantic_hash: self.source.semantic_hash.clone(),
+            descriptor_identity: self.descriptor_identity.clone(),
+        }
+    }
+
+    /// Binds an externally resolved descriptor without making it source or
+    /// presentation state. Callers must supply the exact resolver result.
+    pub fn set_descriptor_identity(&mut self, identity: Option<String>) {
+        self.descriptor_identity = identity;
+    }
+
+    pub fn apply(&mut self, request: EditRequest) -> Result<EditResult, ProtocolError> {
+        if request.protocol_version != PATCHBAY_PROTOCOL_V1 {
+            return Err(ProtocolError {
+                code: "CND-PBY-001",
+                message: "unsupported Patchbay protocol version".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
+        if request.document_id != self.source.document_id {
+            return Err(ProtocolError {
+                code: "CND-PBY-002",
+                message: "request names another source document".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
+        if request.expected_source_revision != self.source.revision
+            || request.expected_presentation_revision != self.presentation.revision
+        {
+            return Err(ProtocolError {
+                code: "CND-PBY-003",
+                message: "stale source or presentation base revision".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
+
+        let mut candidate_source = self.source.clone();
+        let mut positions = self.presentation.node_positions.clone();
+        let mut source_changed = false;
+        let mut presentation_changed = false;
+        for operation in request.operations {
+            match operation {
+                EditOperation::ReplaceSource { source } => {
+                    let document = conduit_panel::parse_document(&source);
+                    let semantic_hash =
+                        document.semantic_hash_v2().ok_or_else(|| ProtocolError {
+                            code: "CND-PBY-004",
+                            message: "source edit did not parse; transaction was not applied"
+                                .to_owned(),
+                            diagnostics: document
+                                .diagnostics
+                                .iter()
+                                .map(ToString::to_string)
+                                .collect(),
+                        })?;
+                    candidate_source.source = source;
+                    candidate_source.semantic_hash = semantic_hash;
+                    source_changed = true;
+                }
+                EditOperation::MoveNode { node_id, position } => {
+                    let document = conduit_panel::parse_document(&candidate_source.source);
+                    let panel = document.panel().map_err(|error| ProtocolError {
+                        code: "CND-PBY-004",
+                        message: "current source is not editable".to_owned(),
+                        diagnostics: vec![error.to_string()],
+                    })?;
+                    if !panel.nodes.iter().any(|node| node.id == node_id) {
+                        return Err(ProtocolError {
+                            code: "CND-PBY-005",
+                            message: format!("unknown source node `{node_id}`"),
+                            diagnostics: Vec::new(),
+                        });
+                    }
+                    positions.insert(node_id, position);
+                    presentation_changed = true;
+                }
+            }
+        }
+        if source_changed {
+            candidate_source.revision += 1;
+        }
+        let presentation_revision = self.presentation.revision + u64::from(presentation_changed);
+        let candidate_presentation =
+            presentation_snapshot(&self.source.document_id, presentation_revision, positions);
+        self.source = candidate_source;
+        self.presentation = candidate_presentation;
+        Ok(EditResult {
+            source: self.source.clone(),
+            presentation: self.presentation.clone(),
+            semantic: self.semantic(),
+        })
+    }
+}
+
+fn presentation_snapshot(
+    document_id: &str,
+    revision: u64,
+    node_positions: BTreeMap<String, NodePosition>,
+) -> PresentationSnapshot {
+    let mut identity_input =
+        format!("conduit.patchbay-presentation/v1\0{document_id}\0{revision}\0");
+    for (node, position) in &node_positions {
+        identity_input.push_str(&format!("{node}\0{}\0{}\0", position.x, position.y));
+    }
+    let identity = format!("sha256:{:x}", Sha256::digest(identity_input.as_bytes()));
+    PresentationSnapshot {
+        document_id: document_id.to_owned(),
+        revision,
+        node_positions,
+        identity,
+    }
+}

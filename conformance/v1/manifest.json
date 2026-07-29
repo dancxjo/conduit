@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 22,
+  "manifest_revision": 23,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3176,6 +3176,36 @@
       }],
       "coverage": {"positive":["browser-host-v1#report-requires-realm-passport-status"],"negative":["browser-host-v1#prompt-is-not-granted","browser-host-v1#stale-report-rejected"],"boundary":["browser-host-v1#adapter-queue-is-bounded","browser-host-v1#unsupported-feature-is-explicit"],"migration":["browser-host-v1#presentation-and-host-identities-separate"]},
       "reference_tests": []
+    },
+    {
+      "id": "patchbay-protocol",
+      "profile": "conduit.c8",
+      "requirement_ids": ["PBY-001", "PBY-002", "PBY-003", "PBY-004", "PBY-005", "PBY-006", "PBY-007", "PBY-008"],
+      "artifacts": [{
+        "id": "patchbay-protocol-v1",
+        "path": "../c8/patchbay-protocol-v1.json",
+        "sha256": "sha256:149618aad5d887cf95417fb6f58b99d5bfe6233336600f1d3511eb2ac1df53ca",
+        "operation": "patchbay-protocol-v1",
+        "requirement_ids": ["PBY-001", "PBY-002", "PBY-003", "PBY-004", "PBY-005", "PBY-006", "PBY-007", "PBY-008"],
+        "default_rule": "PBY-001",
+        "case_rules": {
+          "source-edit-creates-new-semantic-revision": "PBY-002",
+          "stale-edit-is-atomic-conflict": "PBY-003",
+          "invalid-source-is-atomic-diagnostic": "PBY-004",
+          "run-remains-pinned-while-source-changes": "PBY-005",
+          "logical-and-expanded-subjects-are-distinct": "PBY-006",
+          "projection-gap-requires-resync": "PBY-007",
+          "protocol-version-mismatch-fails-closed": "PBY-008"
+        },
+        "format": "json-vectors", "collection": "cases", "case_fields": ["id"], "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": ["patchbay-protocol-v1#move-only-preserves-semantic-identity", "patchbay-protocol-v1#source-edit-creates-new-semantic-revision"],
+        "negative": ["patchbay-protocol-v1#stale-edit-is-atomic-conflict", "patchbay-protocol-v1#invalid-source-is-atomic-diagnostic", "patchbay-protocol-v1#protocol-version-mismatch-fails-closed"],
+        "boundary": ["patchbay-protocol-v1#projection-gap-requires-resync"],
+        "migration": ["patchbay-protocol-v1#run-remains-pinned-while-source-changes"]
+      },
+      "reference_tests": [{"package": "conduit-patchbay", "test": "protocol"}]
     }
   ]
 }

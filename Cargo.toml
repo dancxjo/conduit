@@ -5,6 +5,7 @@ members = [
     "crates/conduit-diagnostics",
     "crates/conduit-inspect",
     "crates/conduit-panel",
+    "crates/conduit-patchbay",
     "crates/conduit-runtime",
     "crates/conduit-web",
     "crates/conduct",

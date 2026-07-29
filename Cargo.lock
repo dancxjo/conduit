@@ -155,6 +155,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-patchbay"
+version = "0.1.0"
+dependencies = [
+ "conduit-panel",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-runtime"
 version = "0.1.0"
 dependencies = [
