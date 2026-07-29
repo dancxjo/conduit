@@ -1,0 +1,17 @@
+{
+  "suite": "conduit.browser-host/v1",
+  "engines": ["chromium", "firefox", "webkit"],
+  "cases": [
+    {"id":"report-requires-realm-passport-status","runner":"browser-host","expected":{"accepted":true,"identity_bound":true}},
+    {"id":"window-worker-service-worklet-wasm-gpu-distinct","runner":"browser-host","expected":{"placements_distinct":true}},
+    {"id":"prompt-is-not-granted","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-002"}},
+    {"id":"activation-required","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-003"}},
+    {"id":"stale-report-rejected","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-004"}},
+    {"id":"artifact-bytes-must-match-pin","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-006"}},
+    {"id":"adapter-queue-is-bounded","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-007"}},
+    {"id":"worker-freeze-gpu-loss-terminal-evidence","runner":"browser-host","expected":{"terminal_evidence":true}},
+    {"id":"presentation-and-host-identities-separate","runner":"browser-host","expected":{"layout_semantic":false}},
+    {"id":"unsupported-feature-is-explicit","runner":"browser-host","expected":{"unsupported_outcome":true,"ua_branch":false}},
+    {"id":"resolver-has-no-prompt-fetch-or-mutation","runner":"browser-host","expected":{"prompted":false,"fetched":false,"mutated":false}}
+  ]
+}

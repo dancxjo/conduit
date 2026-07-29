@@ -1,5 +1,13 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 22 — 2026-07-29
+
+- Added the `browser-host` C5 suite for issue #86.
+- Froze realm/passport/status-bound browser reports, placement distinction,
+  prompt/activation/freshness rejection, exact artifact loading, bounded
+  queues, terminal evidence, presentation separation, and explicit
+  per-feature unsupported outcomes.
+
 ## Manifest revision 21 — 2026-07-29
 
 - Added the `realms-passports` C2/C4 suite for issue #88.
