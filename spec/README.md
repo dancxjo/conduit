@@ -61,6 +61,11 @@ The current documents are candidates, not a claim of ecosystem stability:
   freezes allocator-free diagnostic data, exact source spans, structural
   redaction, guarded fixes, lossless JSON, and hosted terminal rendering.
 
+The retrospective
+[`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
+maps specifications 005–016 to their implementations, persisted schemas,
+fixtures, compatibility commitments, and downstream freeze decisions.
+
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.
 

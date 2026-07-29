@@ -26,8 +26,15 @@ Without `just`:
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+python3 conformance/c1/verify_canonical_v1.py
 cargo check -p conduit-core --no-default-features \
   --target thumbv6m-none-eabi
+```
+
+The declared Rust 1.85 minimum is checked separately:
+
+```sh
+just msrv
 ```
 
 Changes to stable contract identity, port meaning, delivery, lifecycle,

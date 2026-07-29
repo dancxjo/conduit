@@ -10,9 +10,14 @@ lint:
 test:
     cargo test --workspace
     cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
+    python3 conformance/c1/verify_canonical_v1.py
 
 embedded:
     cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
+
+msrv:
+    cargo +1.85.0 check --workspace --all-targets
+    cargo +1.85.0 check -p conduit-core --no-default-features --target thumbv6m-none-eabi
 
 sup: fmt lint test embedded
 
