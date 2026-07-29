@@ -10,9 +10,10 @@ use crate::{
     EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
     FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
     MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, Pressure,
-    ResolvedAuthorityBinding, RetentionPolicy, SatisfactionProof, SatisfactionRole, SemanticHash,
-    SubscriberCoupling, TypeContractRef, validate_authority_at_use, validate_job_contract,
-    validate_plan_execution_profile, validate_satisfaction_proof, validate_stream_contract,
+    ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
+    SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef, validate_authority_at_use,
+    validate_job_contract, validate_plan_execution_profile, validate_runtime_evidence_policy,
+    validate_satisfaction_proof, validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -20,15 +21,17 @@ use crate::{
 /// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
 /// exact implementation execution profile per primitive node. Schema 4 adds
 /// structural flow, schema 5 adds Resonance streams, and schema 6 adds durable
-/// jobs, and schema 7 adds implicit-satisfaction proof bindings. Earlier
-/// schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 7;
+/// jobs, schema 7 adds implicit-satisfaction proof bindings, and schema 8 adds
+/// one exact runtime-evidence recording policy. Earlier schemas remain
+/// readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 8;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V4: u32 = 4;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V5: u32 = 5;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V6: u32 = 6;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V7: u32 = 7;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -383,6 +386,8 @@ pub struct ExecutionPlan<'a> {
     pub merges: &'a [PlanMerge<'a>],
     /// Resonance stream facts introduced in schema 5.
     pub event_streams: &'a [PlanEventStream<'a>],
+    /// Exact executor-evidence projection policy introduced in schema 8.
+    pub runtime_evidence: Option<RuntimeEvidencePolicy<'a>>,
     /// Durable finite-job facts introduced in schema 6.
     pub jobs: &'a [PlanJob<'a>],
     /// Accepted implicit-satisfaction proofs introduced in schema 7.
@@ -413,6 +418,7 @@ pub enum PlanCollection {
     FanOuts,
     Merges,
     EventStreams,
+    RuntimeEvidence,
     Jobs,
     SatisfactionProofs,
     Authorities,
@@ -442,6 +448,7 @@ pub enum PlanDiagnosticCode {
     DuplicationUnauthorized,
     StructuralOrderingInvalid,
     EventStreamInvalid,
+    RuntimeEvidenceInvalid,
     JobInvalid,
     SatisfactionInvalid,
     ScratchTooSmall,
@@ -468,6 +475,7 @@ impl PlanDiagnosticCode {
             Self::DuplicationUnauthorized => "CND-STR-004",
             Self::StructuralOrderingInvalid => "CND-STR-005",
             Self::EventStreamInvalid => "CND-RSN-003",
+            Self::RuntimeEvidenceInvalid => "CND-RTE-002",
             Self::JobInvalid => "CND-JOB-016",
             Self::SatisfactionInvalid => "CND-IMP-017",
             Self::ScratchTooSmall => "CND-PLN-007",
@@ -520,6 +528,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.fanouts.len()))
             .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.event_streams.len()))
+            .and_then(|value| value.checked_add(usize::from(self.runtime_evidence.is_some())))
             .and_then(|value| value.checked_add(self.jobs.len()))
             .and_then(|value| value.checked_add(self.satisfaction_proofs.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
@@ -644,6 +653,9 @@ impl ExecutionPlan<'_> {
         }
         for stream in self.event_streams {
             push!(hash_event_stream(*stream));
+        }
+        if let Some(policy) = self.runtime_evidence {
+            push!(hash_runtime_evidence_policy(policy));
         }
         for job in self.jobs {
             push!(hash_job(*job));
@@ -1250,6 +1262,29 @@ pub fn validate_execution_plan(
                 index,
             )
         })?;
+    }
+
+    if plan.schema_version < 8 && plan.runtime_evidence.is_some() {
+        return Err(error(
+            PlanDiagnosticCode::RuntimeEvidenceInvalid,
+            PlanCollection::Header,
+            None,
+        ));
+    }
+    if let Some(policy) = plan.runtime_evidence {
+        let stream = policy.stream.and_then(|stream_id| {
+            plan.event_streams
+                .iter()
+                .find(|stream| stream.contract.id == stream_id)
+                .map(|stream| (stream.contract, stream.provider_capabilities))
+        });
+        if validate_runtime_evidence_policy(policy, stream).is_err() {
+            return Err(error(
+                PlanDiagnosticCode::RuntimeEvidenceInvalid,
+                PlanCollection::RuntimeEvidence,
+                None,
+            ));
+        }
     }
 
     if plan.schema_version < 6 && !plan.jobs.is_empty() {
@@ -2199,6 +2234,55 @@ fn hash_event_stream(
             semantic(
                 "allocation_hash",
                 CanonicalValue::Bytes(allocation_hash.as_bytes()),
+            ),
+        ],
+    )
+}
+
+fn hash_runtime_evidence_policy(
+    value: RuntimeEvidencePolicy<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/runtime-evidence-policy-v1"),
+        &[
+            semantic(
+                "schema_version",
+                CanonicalValue::Integer(i128::from(value.schema_version)),
+            ),
+            semantic("mode", CanonicalValue::Identifier(Id(value.mode.as_str()))),
+            semantic(
+                "stream",
+                value
+                    .stream
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "maximum_events",
+                CanonicalValue::Integer(i128::from(value.maximum_events)),
+            ),
+            semantic(
+                "maximum_bytes",
+                CanonicalValue::Integer(i128::from(value.maximum_bytes)),
+            ),
+            semantic(
+                "required_reserve_events",
+                CanonicalValue::Integer(i128::from(value.required_reserve_events)),
+            ),
+            semantic(
+                "required_reserve_bytes",
+                CanonicalValue::Integer(i128::from(value.required_reserve_bytes)),
+            ),
+            semantic(
+                "telemetry_period",
+                CanonicalValue::Integer(i128::from(value.telemetry_period)),
+            ),
+            semantic(
+                "telemetry_offset",
+                CanonicalValue::Integer(i128::from(value.telemetry_offset)),
+            ),
+            semantic(
+                "gap_summary_bytes",
+                CanonicalValue::Integer(i128::from(value.gap_summary_bytes)),
             ),
         ],
     )

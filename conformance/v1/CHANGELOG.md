@@ -1,5 +1,22 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 17 — 2026-07-29
+
+- Added the `runtime-evidence` suite for issue #23.
+- Added plan-v8 exact runtime-evidence mode, shared normative Resonance stream,
+  event/byte reserves, deterministic telemetry sampling, and explicit
+  sampling summaries while preserving plan-v1 through plan-v7 identities.
+- Projected fixed scheduler lifecycle, occupancy, pressure, loss, local
+  latency, cancellation, terminal, and derivation observations into immutable
+  ExecutionEvent v1 with logical and expanded paths.
+- Added direct bounded run-v2 serialization, redaction/value-byte separation,
+  distributed causation boundaries, and fail-closed required/summary/terminal
+  cases.
+- Requirement IDs: `RTE-001` through `RTE-016`.
+- Migration: re-lower old plans into schema 8 with an explicit disabled or
+  recording policy; semantic value/clock work remains #80 and deadline
+  guarantees remain #83.
+
 ## Manifest revision 16 — 2026-07-29
 
 - Added the `conduct-run-stream` suite for issue #72.

@@ -130,6 +130,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         fanouts: &[],
         merges: &[],
         event_streams: &[],
+        runtime_evidence: None,
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],

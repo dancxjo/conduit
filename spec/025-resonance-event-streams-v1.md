@@ -141,3 +141,8 @@ projections but is neither store nor run model.
 - RSN-016: support embedded retained profiles without false durability.
 
 The normative fixture is `conformance/c4/resonance-v1.json`.
+
+Specification 029 instantiates the normative-evidence profile for live
+scheduler observations. It uses these exact stream/provider/subscriber/gap
+contracts and preserves the inner ExecutionEvent identity; it does not add a
+recorder-specific bus.

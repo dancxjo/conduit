@@ -110,6 +110,14 @@ pub struct SchedulerEvent {
     pub kind: SchedulerEventKind,
     pub occupancy_items: u16,
     pub occupancy_bytes: u64,
+    /// Opaque executor handle observed at this transaction boundary.
+    pub value_handle: Option<u64>,
+    /// Prior or input handle related to `value_handle`.
+    pub related_value_handle: Option<u64>,
+    /// Exact local scheduler ticks from readiness to selection.
+    pub scheduling_latency_ticks: u64,
+    /// Exact deterministic executor ticks charged to the selected step.
+    pub processing_latency_ticks: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -127,6 +135,9 @@ pub enum SchedulerEventKind {
     Decision { reason: SchedulerDecisionReason },
     NodeOutcome { outcome: StepOutcomeKind },
     Cord(FlowEventKind),
+    ValueAccepted,
+    ValueConsumed,
+    DerivationCommitted,
     NodeWoken { reason: SchedulerDecisionReason },
     CancellationRequested { stop: StopPolicy },
     Terminal(TerminalClass),
@@ -230,21 +241,23 @@ struct RuntimeCord<'p> {
 
 #[derive(Clone, Copy, Debug)]
 struct CordEventBatch {
-    values: [Option<CordEvent>; 3],
+    values: [Option<CordEvent>; 4],
     len: u8,
 }
 
 #[derive(Clone, Copy, Debug)]
 struct CordEvent {
-    kind: FlowEventKind,
+    kind: SchedulerEventKind,
     occupancy_items: u16,
     occupancy_bytes: u64,
+    value_handle: Option<u64>,
+    related_value_handle: Option<u64>,
 }
 
 impl CordEventBatch {
     const fn new() -> Self {
         Self {
-            values: [None, None, None],
+            values: [None, None, None, None],
             len: 0,
         }
     }
@@ -367,12 +380,22 @@ impl<'p> RuntimeCord<'p> {
         self.arrival_sequence = self.arrival_sequence.wrapping_add(1);
         if let Pressure::Sample(schedule) = self.policy.pressure {
             if arrival % u64::from(schedule.every()) != u64::from(schedule.offset()) {
-                self.emit(&mut events, FlowEventKind::ValueSampledOut);
+                self.emit_value(
+                    &mut events,
+                    FlowEventKind::ValueSampledOut,
+                    value.handle,
+                    None,
+                );
                 return (OfferDisposition::Dropped(value), events);
             }
         }
         if value.accounted_bytes > self.policy.capacity.max_value_bytes() {
-            self.emit(&mut events, FlowEventKind::ValueRejected);
+            self.emit_value(
+                &mut events,
+                FlowEventKind::ValueRejected,
+                value.handle,
+                None,
+            );
             return (OfferDisposition::Rejected(value), events);
         }
         let fits = self.len < self.policy.capacity.items()
@@ -382,6 +405,12 @@ impl<'p> RuntimeCord<'p> {
                 .is_some_and(|bytes| bytes <= self.policy.capacity.max_queued_bytes());
         if fits {
             self.push_back(value);
+            self.emit_scheduler(
+                &mut events,
+                SchedulerEventKind::ValueAccepted,
+                Some(value.handle),
+                None,
+            );
             if self.len >= self.policy.watermarks.high_items() && !self.pressured {
                 self.pressured = true;
                 self.emit(&mut events, FlowEventKind::PressureEntered);
@@ -402,16 +431,31 @@ impl<'p> RuntimeCord<'p> {
                 OfferDisposition::Pending(value)
             }
             Pressure::Reject => {
-                self.emit(&mut events, FlowEventKind::ValueRejected);
+                self.emit_value(
+                    &mut events,
+                    FlowEventKind::ValueRejected,
+                    value.handle,
+                    None,
+                );
                 OfferDisposition::Rejected(value)
             }
             Pressure::Coalesce { .. } => {
                 let Some(target) = coalesce_target else {
-                    self.emit(&mut events, FlowEventKind::ValueRejected);
+                    self.emit_value(
+                        &mut events,
+                        FlowEventKind::ValueRejected,
+                        value.handle,
+                        None,
+                    );
                     return (OfferDisposition::Rejected(value), events);
                 };
                 if target >= self.len {
-                    self.emit(&mut events, FlowEventKind::ValueRejected);
+                    self.emit_value(
+                        &mut events,
+                        FlowEventKind::ValueRejected,
+                        value.handle,
+                        None,
+                    );
                     return (OfferDisposition::Rejected(value), events);
                 }
                 let slot = (self.head + usize::from(target)) % self.slots.len();
@@ -419,7 +463,12 @@ impl<'p> RuntimeCord<'p> {
                 let new_bytes =
                     self.queued_bytes - u64::from(old.bytes) + u64::from(value.accounted_bytes);
                 if new_bytes > self.policy.capacity.max_queued_bytes() {
-                    self.emit(&mut events, FlowEventKind::ValueRejected);
+                    self.emit_value(
+                        &mut events,
+                        FlowEventKind::ValueRejected,
+                        value.handle,
+                        None,
+                    );
                     return (OfferDisposition::Rejected(value), events);
                 }
                 self.slots[slot] = Some(QueuedValue {
@@ -427,27 +476,42 @@ impl<'p> RuntimeCord<'p> {
                     bytes: value.accounted_bytes,
                 });
                 self.queued_bytes = new_bytes;
-                self.emit(&mut events, FlowEventKind::ValueCoalesced { target });
+                self.emit_value(
+                    &mut events,
+                    FlowEventKind::ValueCoalesced { target },
+                    value.handle,
+                    Some(old.value.handle),
+                );
                 OfferDisposition::Coalesced {
                     replaced: old.value,
                 }
             }
             Pressure::Sample(_) => {
-                self.emit(&mut events, FlowEventKind::ValueSampledOut);
+                self.emit_value(
+                    &mut events,
+                    FlowEventKind::ValueSampledOut,
+                    value.handle,
+                    None,
+                );
                 OfferDisposition::Dropped(value)
             }
             Pressure::DropDisposable => {
-                self.emit(&mut events, FlowEventKind::ValueDroppedDisposable);
+                self.emit_value(
+                    &mut events,
+                    FlowEventKind::ValueDroppedDisposable,
+                    value.handle,
+                    None,
+                );
                 OfferDisposition::Dropped(value)
             }
             Pressure::Disconnect => {
                 self.state = FlowQueueState::Disconnected;
-                self.emit(&mut events, FlowEventKind::Disconnected);
+                self.emit_value(&mut events, FlowEventKind::Disconnected, value.handle, None);
                 OfferDisposition::Disconnected(value)
             }
             Pressure::Fail => {
                 self.state = FlowQueueState::Failed;
-                self.emit(&mut events, FlowEventKind::Failed);
+                self.emit_value(&mut events, FlowEventKind::Failed, value.handle, None);
                 OfferDisposition::Failed(value)
             }
         };
@@ -466,6 +530,12 @@ impl<'p> RuntimeCord<'p> {
         self.head = (self.head + 1) % self.slots.len();
         self.len -= 1;
         self.queued_bytes -= u64::from(entry.bytes);
+        self.emit_scheduler(
+            &mut events,
+            SchedulerEventKind::ValueConsumed,
+            Some(entry.value.handle),
+            None,
+        );
         if self.pressured && self.len <= self.policy.watermarks.low_items() {
             self.pressured = false;
             self.emit(&mut events, FlowEventKind::PressureCleared);
@@ -618,12 +688,39 @@ impl<'p> RuntimeCord<'p> {
     }
 
     fn emit(&mut self, events: &mut CordEventBatch, kind: FlowEventKind) {
+        self.emit_scheduler(events, SchedulerEventKind::Cord(kind), None, None);
+    }
+
+    fn emit_value(
+        &mut self,
+        events: &mut CordEventBatch,
+        kind: FlowEventKind,
+        value_handle: u64,
+        related_value_handle: Option<u64>,
+    ) {
+        self.emit_scheduler(
+            events,
+            SchedulerEventKind::Cord(kind),
+            Some(value_handle),
+            related_value_handle,
+        );
+    }
+
+    fn emit_scheduler(
+        &mut self,
+        events: &mut CordEventBatch,
+        kind: SchedulerEventKind,
+        value_handle: Option<u64>,
+        related_value_handle: Option<u64>,
+    ) {
         let _sequence = self.flow_sequence;
         self.flow_sequence = self.flow_sequence.wrapping_add(1);
         events.push(CordEvent {
             kind,
             occupancy_items: self.len,
             occupancy_bytes: self.queued_bytes,
+            value_handle,
+            related_value_handle,
         });
     }
 }
@@ -1123,6 +1220,7 @@ fn push_bounded<T>(values: &mut Vec<T>, value: T) -> Result<(), SchedulerError> 
 struct ReadyEntry {
     node: usize,
     reason: SchedulerDecisionReason,
+    ready_tick: u64,
 }
 
 struct FixedReadyQueue {
@@ -1462,12 +1560,20 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         };
         self.enqueued[entry.node] = false;
         self.status = SchedulerStatus::Running;
-        self.record(
+        let scheduling_latency_ticks = self
+            .tick
+            .checked_sub(entry.ready_tick)
+            .ok_or(SchedulerError::ClockLimitExceeded)?;
+        self.record_observation(
             SchedulerSubject::Node(as_u16(entry.node)?),
             SchedulerEventKind::Decision {
                 reason: entry.reason,
             },
             0,
+            0,
+            None,
+            None,
+            scheduling_latency_ticks,
             0,
         )?;
         self.decisions += 1;
@@ -1610,13 +1716,17 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         let observation = self.machines[node]
             .observe_step(outcome, usage)
             .map_err(map_implementation_error)?;
-        self.record(
+        self.record_observation(
             SchedulerSubject::Node(as_u16(node)?),
             SchedulerEventKind::NodeOutcome {
                 outcome: observation.outcome(),
             },
             0,
             0,
+            None,
+            None,
+            0,
+            1,
         )?;
 
         if commit {
@@ -1766,6 +1876,10 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             let (disposition, events) =
                 self.cords[output.cord].offer(output.value, output.coalesce_target);
             self.record_cord_events(output.cord, events)?;
+            let committed_publication = matches!(
+                disposition,
+                OfferDisposition::Enqueued | OfferDisposition::Coalesced { .. }
+            );
             let actual = match &disposition {
                 OfferDisposition::Enqueued | OfferDisposition::Coalesced { .. } => {
                     SendStatus::Reserved
@@ -1793,6 +1907,21 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
                 | OfferDisposition::Coalesced { .. }
                 | OfferDisposition::Dropped(_)
                 | OfferDisposition::Terminated(_) => {}
+            }
+            if committed_publication {
+                for input_index in 0..self.workspaces[node].inputs.len() {
+                    let input = self.workspaces[node].inputs[input_index];
+                    self.record_observation(
+                        SchedulerSubject::Node(as_u16(node)?),
+                        SchedulerEventKind::DerivationCommitted,
+                        0,
+                        0,
+                        Some(output.value.handle),
+                        Some(input.value.handle),
+                        0,
+                        0,
+                    )?;
+                }
             }
             self.max_cord_occupancy = self
                 .max_cord_occupancy
@@ -1874,7 +2003,11 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         {
             return Ok(());
         }
-        self.ready.push(ReadyEntry { node, reason })?;
+        self.ready.push(ReadyEntry {
+            node,
+            reason,
+            ready_tick: self.tick,
+        })?;
         self.enqueued[node] = true;
         self.max_ready_depth = self
             .max_ready_depth
@@ -1893,11 +2026,15 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         events: CordEventBatch,
     ) -> Result<(), SchedulerError> {
         for event in events.iter() {
-            self.record(
+            self.record_observation(
                 SchedulerSubject::Cord(as_u16(cord)?),
-                SchedulerEventKind::Cord(event.kind),
+                event.kind,
                 event.occupancy_items,
                 event.occupancy_bytes,
+                event.value_handle,
+                event.related_value_handle,
+                0,
+                0,
             )?;
         }
         Ok(())
@@ -1910,6 +2047,30 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         occupancy_items: u16,
         occupancy_bytes: u64,
     ) -> Result<(), SchedulerError> {
+        self.record_observation(
+            subject,
+            kind,
+            occupancy_items,
+            occupancy_bytes,
+            None,
+            None,
+            0,
+            0,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn record_observation(
+        &mut self,
+        subject: SchedulerSubject,
+        kind: SchedulerEventKind,
+        occupancy_items: u16,
+        occupancy_bytes: u64,
+        value_handle: Option<u64>,
+        related_value_handle: Option<u64>,
+        scheduling_latency_ticks: u64,
+        processing_latency_ticks: u64,
+    ) -> Result<(), SchedulerError> {
         let sequence = self.next_event_sequence;
         self.next_event_sequence = sequence
             .checked_add(1)
@@ -1921,6 +2082,10 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             kind,
             occupancy_items,
             occupancy_bytes,
+            value_handle,
+            related_value_handle,
+            scheduling_latency_ticks,
+            processing_latency_ticks,
         })
     }
 
@@ -2273,7 +2438,12 @@ mod tests {
                         .collect::<Vec<_>>(),
                     hosted_events
                         .iter()
-                        .map(|event| event.kind)
+                        .filter_map(|event| match event.kind {
+                            SchedulerEventKind::Cord(kind) => Some(kind),
+                            SchedulerEventKind::ValueAccepted
+                            | SchedulerEventKind::ValueConsumed => None,
+                            _ => panic!("unexpected non-cord queue event"),
+                        })
                         .collect::<Vec<_>>(),
                     "policy {} arrival {sequence}",
                     policy.pressure.as_str()

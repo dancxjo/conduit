@@ -169,10 +169,12 @@ flow pressure/occupancy transition, wake, cancellation, and terminal result.
 Sequence and simulated tick are monotonic. Filling normative evidence storage
 is terminal `CND-SCH-010`; observations never spill into an unplanned log.
 
-These scheduler observations are executor facts. They can later be projected
-into specification-012 `ExecutionEvent` records by issue #23, but are not
-themselves a new plan or evidence identity. Domain logs and requested domain
-evidence cannot replace them.
+These scheduler observations are executor facts. Specification 029 projects
+them into specification-012 `ExecutionEvent` records without making the
+scheduler log a second evidence identity. Domain logs and requested domain
+evidence cannot replace them. Accepted/consumed handles, local scheduling and
+processing ticks, and committed derivation pairs extend the same fixed event
+storage and remain plan-accounted executor observations.
 
 `DeterministicExecutor` exposes bounded metrics: decisions, maximum ready
 depth, maximum cord occupancy, exact allocation, and event count. The

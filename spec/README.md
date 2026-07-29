@@ -104,6 +104,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   unreleased v1 run writer and freezes bounded, nonsemantic channel chunks,
   direct structured executor records, version rejection, and exact stream
   failure behavior.
+- [`029-runtime-evidence-v1.md`](029-runtime-evidence-v1.md) projects bounded
+  executor observations into immutable ExecutionEvent v1 records on the
+  shared Resonance fabric with plan-v8 sampling, capacity, path, latency,
+  derivation, redaction, and terminal invariants.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

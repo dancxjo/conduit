@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 16,
+  "manifest_revision": 17,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2714,6 +2714,125 @@
         {
           "package": "conduit-runtime",
           "test": "type_contract_vectors"
+        }
+      ]
+    },
+    {
+      "id": "runtime-evidence",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "RTE-001",
+        "RTE-002",
+        "RTE-003",
+        "RTE-004",
+        "RTE-005",
+        "RTE-006",
+        "RTE-007",
+        "RTE-008",
+        "RTE-009",
+        "RTE-010",
+        "RTE-011",
+        "RTE-012",
+        "RTE-013",
+        "RTE-014",
+        "RTE-015",
+        "RTE-016"
+      ],
+      "artifacts": [
+        {
+          "id": "runtime-evidence-v1",
+          "path": "../c4/runtime-evidence-v1.json",
+          "sha256": "sha256:be39b2f3db412e7638364997b46556750ab631804de8b9a0dc0e89dac7142abf",
+          "operation": "runtime-evidence-v1",
+          "requirement_ids": [
+            "RTE-001",
+            "RTE-002",
+            "RTE-003",
+            "RTE-004",
+            "RTE-005",
+            "RTE-006",
+            "RTE-007",
+            "RTE-008",
+            "RTE-009",
+            "RTE-010",
+            "RTE-011",
+            "RTE-012",
+            "RTE-013",
+            "RTE-014",
+            "RTE-015",
+            "RTE-016"
+          ],
+          "default_rule": "RTE-001",
+          "case_rules": {
+            "explicit-disabled-policy": "RTE-002",
+            "plan-v8-policy-identity": "RTE-002",
+            "plan-v1-v7-identities-preserved": "RTE-013",
+            "pre-v8-policy-rejected": "RTE-013",
+            "normative-resonance-profile-required": "RTE-003",
+            "lossy-recorder-stream-rejected": "RTE-003",
+            "pressure-loss-golden-sequence": "RTE-005",
+            "scheduling-latency-monotonic": "RTE-006",
+            "processing-latency-monotonic": "RTE-006",
+            "derivation-links-accepted-input": "RTE-007",
+            "logical-and-expanded-paths": "RTE-007",
+            "telemetry-sampling-summary": "RTE-009",
+            "required-capacity-fails-closed": "RTE-010",
+            "summary-capacity-fails-closed": "RTE-010",
+            "terminal-survives-sampling": "RTE-011",
+            "redaction-does-not-copy-value-bytes": "RTE-012",
+            "shared-resonance-envelope": "RTE-003",
+            "channel-bytes-not-evidence-input": "RTE-004",
+            "value-clock-semantics-deferred": "RTE-015",
+            "deadline-guarantee-deferred": "RTE-015",
+            "transition-evidence-future-required": "RTE-016"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "runtime-evidence-v1#lifecycle-golden-sequence",
+          "runtime-evidence-v1#pressure-loss-golden-sequence",
+          "runtime-evidence-v1#shared-resonance-envelope",
+          "runtime-evidence-v1#run-terminal-exactly-once"
+        ],
+        "negative": [
+          "runtime-evidence-v1#lossy-recorder-stream-rejected",
+          "runtime-evidence-v1#required-capacity-fails-closed",
+          "runtime-evidence-v1#channel-bytes-not-evidence-input"
+        ],
+        "boundary": [
+          "runtime-evidence-v1#explicit-disabled-policy",
+          "runtime-evidence-v1#telemetry-sampling-summary",
+          "runtime-evidence-v1#logical-and-expanded-paths",
+          "runtime-evidence-v1#redaction-does-not-copy-value-bytes"
+        ],
+        "migration": [
+          "runtime-evidence-v1#plan-v1-v7-identities-preserved",
+          "runtime-evidence-v1#pre-v8-policy-rejected",
+          "runtime-evidence-v1#value-clock-semantics-deferred",
+          "runtime-evidence-v1#deadline-guarantee-deferred"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "runtime_evidence_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "scheduler"
+        },
+        {
+          "package": "conduct",
+          "test": "run_stream"
         }
       ]
     }

@@ -26,6 +26,7 @@ use serde::Serialize;
 mod config_resolution;
 mod evidence_ndjson;
 mod implementation_binding;
+mod runtime_evidence;
 mod scheduler;
 mod source_lowering;
 mod type_registry;
@@ -43,6 +44,9 @@ pub use implementation_binding::{
     ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,
     NativeStepBinding, NativeStepImplementation, OwnedStepOutcome, OwnedStepReply,
     OwnedWakeInterest,
+};
+pub use runtime_evidence::{
+    RuntimeEvidenceContext, RuntimeEvidenceError, record_scheduler_evidence,
 };
 pub use scheduler::{
     DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerAllocation, SchedulerError,

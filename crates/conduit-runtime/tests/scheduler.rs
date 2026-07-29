@@ -3,18 +3,26 @@ use std::rc::Rc;
 use std::time::Instant;
 
 use conduit_core::{
-    ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    Direction, DuplicationRule, ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode,
-    FlowCapacity, FlowPolicy, FlowQueueState, FlowWatermarks, Id, ImplementationMachine,
-    InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting, MemoryCategory,
-    MemoryClaim, PinnedDescriptor, PlanArtifact, PlanFanOut, PlanHostObservation,
-    PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SchedulerDecisionReason,
-    SchedulerPolicy, SemanticHash, StopPolicy, TypeContractRef,
+    ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
+    BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
+    EffectRequirement, EventClass, EventCorrelation, EventProviderCapabilities,
+    EventStreamContract, EvidencePolicy, EvidenceStreamExtension, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowQueueState, FlowWatermarks,
+    GrantStatus, HostCapability, Id, ImplementationMachine, InstancePath, InstantiationContext,
+    LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor,
+    PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanEventStream, PlanExportBinding,
+    PlanFanOut, PlanHostObservation, PlanResourceBinding, PlanResourceBudget,
+    PlanValidationContext, Pressure, RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline,
+    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
+    ResourceSelector, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy,
+    SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerDecisionReason, SchedulerPolicy,
+    SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef,
+    extend_execution_event, resolve_authority,
 };
 use conduit_runtime::{
-    DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerError, SchedulerEventKind,
-    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    DeterministicExecutor, OwnedEventPayload, RuntimeEvidenceContext, RuntimeValue, ScheduledNode,
+    SchedulerError, SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus,
+    SchedulerStep, SendStatus, StepIo, record_scheduler_evidence,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -209,7 +217,7 @@ fn with_plan(
             timers: 2,
             transports: 0,
             checkpoints: 0,
-            evidence_bytes: 16_000_000,
+            evidence_bytes: 32_000_000,
         },
         host_observations: &observation,
         resources: &[],
@@ -219,6 +227,7 @@ fn with_plan(
         fanouts: &[],
         merges: &[],
         event_streams: &[],
+        runtime_evidence: None,
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],
@@ -451,17 +460,20 @@ impl SchedulerNode for FixtureNode {
                         *next += 1;
                         SchedulerStep::Progress
                     }
+                    SendStatus::Dropped => {
+                        *next += 1;
+                        SchedulerStep::Progress
+                    }
                     SendStatus::WouldBlock => {
                         io.wait_for_output(*cord).unwrap();
                         SchedulerStep::Pending
                     }
                     SendStatus::Terminated => SchedulerStep::Completed,
-                    SendStatus::Rejected
-                    | SendStatus::Dropped
-                    | SendStatus::Disconnected
-                    | SendStatus::Failed => SchedulerStep::Failed {
-                        code: Id("fixture/output-not-published"),
-                    },
+                    SendStatus::Rejected | SendStatus::Disconnected | SendStatus::Failed => {
+                        SchedulerStep::Failed {
+                            code: Id("fixture/output-not-published"),
+                        }
+                    }
                 }
             }
             Self::CoupledSource { next, total, .. } => {
@@ -616,7 +628,7 @@ fn start_executor<'a>(
     DeterministicExecutor::start(
         plan,
         PlanValidationContext {
-            supported_schema_version: 3,
+            supported_schema_version: plan.schema_version,
             now: AuthorityTime {
                 basis: Id("clock/monotonic"),
                 tick: 2,
@@ -1233,6 +1245,371 @@ fn decision_and_evidence_limits_fail_closed() {
             executor.status(),
             SchedulerStatus::Failed(SchedulerError::EvidenceCapacityExceeded)
         );
+    });
+}
+
+#[test]
+fn scheduler_observations_become_bounded_execution_events_on_resonance() {
+    with_plan(1, 64, |plan, profile| {
+        let resource = ResourceRef {
+            kind: Id("fixture/device"),
+            id: Id("fixture/device-a"),
+        };
+        let effect = EffectRequirement {
+            id: Id("read"),
+            action: Id("fixture/read"),
+            resource: ResourceSelector::Exact(resource),
+            requester: plan.nodes[0].instance,
+            audience: Id("fixture/run"),
+            constraints: &[],
+            check_at_use: true,
+        };
+        let capability = HostCapability {
+            id: Id("fixture/capability"),
+            action: effect.action,
+            resource,
+            host: plan.nodes[0].host,
+            time_basis: Id("clock/monotonic"),
+            observed_at_tick: 0,
+            valid_until_tick: 1_000,
+        };
+        let grant = AuthorityGrant {
+            id: Id("fixture/grant"),
+            action: effect.action,
+            resource,
+            scope: AuthorityScope {
+                root: effect.requester,
+                descendants: false,
+            },
+            audience: effect.audience,
+            constraints: &[],
+            time_basis: Id("clock/monotonic"),
+            not_before_tick: 0,
+            expires_at_tick: 1_000,
+            issued_for_host: plan.nodes[0].host,
+            delegation: DelegationPolicy::None,
+            audit_id: Id("fixture/audit"),
+            terminal_policy: StopPolicy::Abort,
+        };
+        let binding = resolve_authority(
+            effect,
+            plan.nodes[0].host,
+            AuthorityTime {
+                basis: Id("clock/monotonic"),
+                tick: 2,
+            },
+            &[capability],
+            &[ObservedGrant {
+                grant,
+                status: GrantStatus::Active,
+            }],
+        )
+        .unwrap();
+        let effect_hash = effect.semantic_hash().unwrap();
+        let required_resources = [Id("fixture/source-device")];
+        let required_effects = [effect_hash];
+        let nodes = [
+            ResolvedPlanNode {
+                required_resources: &required_resources,
+                required_effects: &required_effects,
+                ..plan.nodes[0]
+            },
+            plan.nodes[1],
+        ];
+        let resources = [PlanResourceBinding {
+            id: required_resources[0],
+            node: nodes[0].instance,
+            resource,
+            host_observation: nodes[0].host_observation,
+        }];
+        let authorities = [PlanAuthority {
+            node: nodes[0].instance,
+            effect_hash,
+            grant_hash: grant.semantic_hash().unwrap(),
+            effect,
+            capability,
+            grant,
+            binding,
+        }];
+        let members = [nodes[0].instance, nodes[1].instance];
+        let exports = [
+            PlanExportBinding {
+                boundary_port: Id("out"),
+                member: plan.nodes[0].instance,
+                member_port: Id("out"),
+                direction: Direction::Output,
+            },
+            PlanExportBinding {
+                boundary_port: Id("in"),
+                member: plan.nodes[1].instance,
+                member_port: Id("in"),
+                direction: Direction::Input,
+            },
+        ];
+        let composites = [PlanCompositeMapping {
+            instance: InstancePath::new("root").unwrap(),
+            definition_hash: hash(40),
+            members: &members,
+            exports: &exports,
+        }];
+        let stream = PlanEventStream {
+            publisher: plan.nodes[0].instance,
+            contract: EventStreamContract {
+                id: Id("stream/runtime"),
+                event_class: EventClass::NormativeEvidence,
+                payload_type: TypeContractRef {
+                    contract_id: Id("conduit/runtime-observation"),
+                    schema_version: 1,
+                    semantic_hash: hash(0x23),
+                },
+                retention: RetentionPolicy::Ring {
+                    maximum_events: 1_000,
+                    maximum_bytes: 2_000_000,
+                },
+                subscriber_coupling: SubscriberCoupling::Coupled(plan.cords[0].flow),
+                delivery: ReplayDelivery::AtLeastOnce,
+                maximum_publishers: 1,
+                maximum_subscribers: 2,
+                maximum_pending_operations: 2,
+                maximum_projection_bytes: 64_000,
+                provider: pin("provider/evidence", 41),
+                recording_authority: None,
+                sensitivity: Sensitivity::Public,
+                terminal_evidence_required: true,
+            },
+            provider_capabilities: EventProviderCapabilities {
+                ephemeral: true,
+                retained: true,
+                durable: false,
+                checkpoint_cursor: false,
+                integrity: true,
+                redaction: true,
+                maximum_events: 1_000,
+                maximum_bytes: 2_000_000,
+                maximum_subscribers: 2,
+                maximum_pending_operations: 2,
+            },
+            allocation: PlanResourceBudget {
+                memory_bytes: 2_000_000,
+                evidence_bytes: 2_000_000,
+                ..PlanResourceBudget::ZERO
+            },
+        };
+        let evidence_policy = RuntimeEvidencePolicy {
+            schema_version: RUNTIME_EVIDENCE_POLICY_VERSION,
+            mode: RuntimeEvidenceMode::Record,
+            stream: Some(stream.contract.id),
+            maximum_events: 1_000,
+            maximum_bytes: 2_000_000,
+            required_reserve_events: 1,
+            required_reserve_bytes: 4_096,
+            telemetry_period: 2,
+            telemetry_offset: 0,
+            gap_summary_bytes: 2_048,
+        };
+        let mut plan = ExecutionPlan {
+            schema_version: 8,
+            identity: ZERO,
+            resources: &resources,
+            nodes: &nodes,
+            event_streams: std::slice::from_ref(&stream),
+            runtime_evidence: Some(evidence_policy),
+            authorities: &authorities,
+            composites: &composites,
+            ..plan
+        };
+        let mut scratch = [ZERO; 64];
+        plan.identity = plan.semantic_hash(&mut scratch).unwrap();
+
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let mut executor = start_executor(
+            &plan,
+            profile,
+            FixtureNode::source(2),
+            FixtureNode::sink(seen),
+            policy(100, 2_000),
+        )
+        .unwrap();
+        assert_eq!(
+            executor.run_until_stalled().unwrap(),
+            SchedulerStatus::Succeeded
+        );
+        assert!(executor.events().any(|event| {
+            event.processing_latency_ticks == 1
+                && matches!(event.kind, SchedulerEventKind::NodeOutcome { .. })
+        }));
+        let observations = executor.events().copied().collect::<Vec<_>>();
+        let events = record_scheduler_evidence(
+            &plan,
+            RuntimeEvidenceContext {
+                run: Id("run/fixture"),
+                recorder: Id("recorder/runtime"),
+                observer: Id("observer/executor"),
+                monotonic_basis: Id("clock/scheduler"),
+                correlation: EventCorrelation {
+                    request: Some(Id("request/fixture")),
+                    correlation: Some(Id("correlation/fixture")),
+                    ..EventCorrelation::default()
+                },
+            },
+            &observations,
+        )
+        .unwrap();
+
+        assert!(
+            events
+                .iter()
+                .any(|event| event.detail == "runtime/run-started")
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| event.detail == "runtime/value-accepted")
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| event.detail == "runtime/pressure-entered")
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| event.detail == "runtime/pressure-cleared")
+        );
+        assert!(events.iter().any(|event| {
+            event.kind == "derivation" && !event.relations.derived_from.is_empty()
+        }));
+        assert!(
+            events
+                .iter()
+                .any(|event| event.detail == "runtime/telemetry-summary")
+        );
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| matches!(
+                    event.terminality,
+                    conduit_runtime::OwnedEventTerminality::Terminal { .. }
+                ))
+                .count(),
+            1
+        );
+        assert!(matches!(
+            events.last().unwrap().terminality,
+            conduit_runtime::OwnedEventTerminality::Terminal { .. }
+        ));
+        assert!(events.iter().any(|event| {
+            event.logical_template.as_deref() == Some("root") && event.subject.starts_with("root/")
+        }));
+        assert!(events.iter().any(|event| {
+            event.detail == "runtime/resource-bound"
+                && matches!(
+                    &event.payload,
+                    OwnedEventPayload::InlinePublic { bytes, .. }
+                        if bytes == b"fixture/source-device"
+                )
+        }));
+        assert!(events.iter().any(|event| {
+            event.detail == "runtime/authority-bound.a0"
+                && matches!(
+                    &event.payload,
+                    OwnedEventPayload::Redacted {
+                        sensitivity,
+                        reason,
+                        ..
+                    } if sensitivity == "secret" && reason == "authority/redacted"
+                )
+        }));
+        assert!(
+            events
+                .iter()
+                .filter(|event| {
+                    !matches!(
+                        event.detail.as_str(),
+                        "runtime/resource-bound" | "runtime/authority-bound.a0"
+                    )
+                })
+                .all(|event| match &event.payload {
+                    OwnedEventPayload::InlinePublic { bytes, .. } => bytes.len() == 52,
+                    _ => false,
+                })
+        );
+
+        let first = &events[0];
+        let mut derivations = [Id(""); 16];
+        let core = first.as_event(&mut derivations).unwrap();
+        let envelope = extend_execution_event(
+            core,
+            EvidencePolicy {
+                max_inline_payload_bytes: 52,
+                reveal_redacted_byte_length: false,
+                reveal_redacted_item_count: false,
+            },
+            EvidenceStreamExtension {
+                stream: stream.contract.id,
+                producer: stream.publisher,
+                payload_type_when_none: stream.contract.payload_type,
+                provenance: Id("runtime/executor"),
+                recording_authority: None,
+                integrity: hash(42),
+            },
+        )
+        .unwrap();
+        assert_eq!(envelope.class, EventClass::NormativeEvidence);
+        assert_eq!(envelope.event, core.event_id);
+        assert_eq!(envelope.plan_epoch, plan.identity);
+
+        let sampled_flow = FlowPolicy::new(
+            plan.cords[0].flow.capacity,
+            Pressure::Sample(SampleSchedule::new(2, 0).unwrap()),
+            plan.cords[0].flow.watermarks,
+        )
+        .unwrap();
+        let sampled_cords = [ResolvedPlanCord {
+            flow: sampled_flow,
+            ..plan.cords[0]
+        }];
+        let mut loss_plan = ExecutionPlan {
+            identity: ZERO,
+            cords: &sampled_cords,
+            ..plan
+        };
+        loss_plan.identity = loss_plan.semantic_hash(&mut scratch).unwrap();
+        let mut loss_executor = start_executor(
+            &loss_plan,
+            profile,
+            FixtureNode::source(3),
+            FixtureNode::sink(Rc::new(RefCell::new(Vec::new()))),
+            policy(100, 2_000),
+        )
+        .unwrap();
+        assert_eq!(
+            loss_executor.run_until_stalled().unwrap(),
+            SchedulerStatus::Succeeded
+        );
+        let loss_observations = loss_executor.events().copied().collect::<Vec<_>>();
+        let loss_events = record_scheduler_evidence(
+            &loss_plan,
+            RuntimeEvidenceContext {
+                run: Id("run/loss"),
+                recorder: Id("recorder/runtime"),
+                observer: Id("observer/executor"),
+                monotonic_basis: Id("clock/scheduler"),
+                correlation: EventCorrelation::default(),
+            },
+            &loss_observations,
+        )
+        .unwrap();
+        assert!(
+            loss_events
+                .iter()
+                .any(|event| event.detail == "runtime/value-sampled-out")
+        );
+        assert!(matches!(
+            loss_events.last().unwrap().terminality,
+            conduit_runtime::OwnedEventTerminality::Terminal { ref class, .. }
+                if class == "succeeded"
+        ));
     });
 }
 

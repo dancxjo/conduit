@@ -86,7 +86,8 @@ completion. Primary `--format` is separate: check/explain use finite
 `conduit.result/v1` JSON, while run uses ordered, bounded
 `conduit.run/v2` NDJSON. Its `channel_chunk` records preserve compatibility
 stdout/stderr bytes without claiming that implementation write boundaries are
-semantic values.
+semantic values. Executor-owned immutable evidence uses a distinct bounded
+`execution_event` record and the plan-visible normative Resonance profile.
 `--quiet` suppresses status but never primary values or diagnostics; `-v` adds
 general terminal status detail and remains distinct from
 `--verbose-diagnostics`.

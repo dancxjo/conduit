@@ -10,12 +10,13 @@ use conduit_core::{
     PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut,
     PlanHostObservation, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
     PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
-    PlanSatisfactionSubject, PlanValidationContext, Pressure, ReplayDelivery, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RestartPolicy,
-    RetentionPolicy, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation,
-    SatisfactionPin, SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
-    Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef, UnresolvedPlanConstraint,
-    UnresolvedPlanKind, resolve_authority, validate_execution_plan,
+    PlanSatisfactionSubject, PlanValidationContext, Pressure, RUNTIME_EVIDENCE_POLICY_VERSION,
+    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
+    ResourceSelector, RestartPolicy, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy,
+    SatisfactionFacet, SatisfactionMethod, SatisfactionObligation, SatisfactionPin,
+    SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy,
+    SubscriberCoupling, TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind,
+    resolve_authority, validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -289,6 +290,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         fanouts: &[],
         merges: &[],
         event_streams: &[],
+        runtime_evidence: None,
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &authorities,
@@ -843,6 +845,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             schema_version: 5,
             identity: ZERO_HASH,
             event_streams: &[stream],
+            runtime_evidence: None,
             ..v4
         };
         v5.identity = v5.semantic_hash(scratch).unwrap();
@@ -864,6 +867,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
                 },
                 ..stream
             }],
+            runtime_evidence: None,
             ..v5
         };
         incapable.identity = incapable.semantic_hash(scratch).unwrap();
@@ -991,6 +995,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
                 evidence_bytes: 64,
             },
             event_streams: &job_streams,
+            runtime_evidence: None,
             jobs: &jobs,
             ..v5
         };
@@ -1277,6 +1282,61 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::SatisfactionInvalid
+        );
+
+        let runtime_policy = RuntimeEvidencePolicy {
+            schema_version: RUNTIME_EVIDENCE_POLICY_VERSION,
+            mode: RuntimeEvidenceMode::Record,
+            stream: Some(job_stream.contract.id),
+            maximum_events: 4,
+            maximum_bytes: 64,
+            required_reserve_events: 1,
+            required_reserve_bytes: 16,
+            telemetry_period: 2,
+            telemetry_offset: 0,
+            gap_summary_bytes: 8,
+        };
+        let mut v8 = ExecutionPlan {
+            schema_version: 8,
+            identity: ZERO_HASH,
+            runtime_evidence: Some(runtime_policy),
+            ..v7
+        };
+        v8.identity = v8.semantic_hash(scratch).unwrap();
+        let context8 = PlanValidationContext {
+            supported_schema_version: 8,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v8, context8, scratch), Ok(()));
+        assert_ne!(v8.identity, v7.identity);
+        assert_eq!(v8.source_semantic_hash, v7.source_semantic_hash);
+
+        let mut changed_evidence = ExecutionPlan {
+            identity: ZERO_HASH,
+            runtime_evidence: Some(RuntimeEvidencePolicy {
+                telemetry_period: 3,
+                ..runtime_policy
+            }),
+            ..v8
+        };
+        changed_evidence.identity = changed_evidence.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&changed_evidence, context8, scratch),
+            Ok(())
+        );
+        assert_ne!(changed_evidence.identity, v8.identity);
+
+        let mut illegal_v7_evidence = ExecutionPlan {
+            schema_version: 7,
+            identity: ZERO_HASH,
+            ..v8
+        };
+        illegal_v7_evidence.identity = illegal_v7_evidence.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&illegal_v7_evidence, context7, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::RuntimeEvidenceInvalid
         );
 
         let incapable_jobs = [PlanJob {
