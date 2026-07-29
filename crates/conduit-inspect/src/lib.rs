@@ -712,6 +712,10 @@ pub fn inspect_capability_report(
         "current_constraints".to_owned(),
         report.current_constraints.len() as u64,
     );
+    counts.insert(
+        "membership_bindings".to_owned(),
+        u64::from(report.membership.is_some()),
+    );
     let mut budgets = BTreeMap::new();
     budgets.insert(
         "available_memory_bytes".to_owned(),
@@ -739,6 +743,29 @@ pub fn inspect_capability_report(
             value: format!("{}@{}", report.trust.id, report.trust.semantic_hash),
         },
     ];
+    if let Some(membership) = report.membership {
+        references.extend([
+            InspectionReference {
+                category: "realm".to_owned(),
+                value: membership.realm.to_string(),
+            },
+            InspectionReference {
+                category: "entity".to_owned(),
+                value: membership.entity.to_string(),
+            },
+            InspectionReference {
+                category: "passport-identity".to_owned(),
+                value: membership.passport.to_string(),
+            },
+            InspectionReference {
+                category: "passport-status-reporter".to_owned(),
+                value: format!(
+                    "{}@{}",
+                    membership.status.reporter.id, membership.status.reporter.semantic_hash
+                ),
+            },
+        ]);
+    }
     references.extend(
         report
             .capabilities

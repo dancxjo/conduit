@@ -1,11 +1,13 @@
 use conduit_core::{
-    ArtifactDigest, ArtifactManifest, ArtifactProvenance, AuthorityTime, CapabilityReport,
-    CompatibilityOutcome, DescriptorRef, ExecutionPlan, ExecutorKind,
-    ExplicitSatisfactionRequirement, Id, ImplementationManifest, InstancePath, ManifestArtifactRef,
-    ManifestEntrypoint, PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget,
-    PlanValidationContext, ReportCapability, ReportResource, ReproducibilityClaim,
-    ResolvedPlanNode, ResourceRef, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation,
-    SatisfactionPin, SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
+    ArtifactDigest, ArtifactManifest, ArtifactProvenance, AuthorityTime,
+    CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, CompatibilityOutcome, DescriptorRef,
+    ExecutionPlan, ExecutorKind, ExplicitSatisfactionRequirement, Id, ImplementationManifest,
+    InstancePath, ManifestArtifactRef, ManifestEntrypoint, PassportStatus,
+    PassportStatusObservation, PinnedDescriptor, PlanArtifact, PlanHostObservation,
+    PlanResourceBudget, PlanValidationContext, ReportCapability, ReportMembership, ReportResource,
+    ReproducibilityClaim, ResolvedPlanNode, ResourceRef, SatisfactionFacet, SatisfactionMethod,
+    SatisfactionObligation, SatisfactionPin, SatisfactionProof, SatisfactionReason,
+    SatisfactionRole, SemanticHash,
 };
 use conduit_runtime::{
     CandidateRejectionReason, CapabilityPredicate, HostResolverPolicy, PlacementCandidate,
@@ -22,6 +24,14 @@ const CAPABILITY: PinnedDescriptor<'static> = pin("conduit/host.wifi-network", 3
 const REPORTER: PinnedDescriptor<'static> = pin("fixture/reporter", 4);
 const TRUST: PinnedDescriptor<'static> = pin("fixture/trust", 5);
 const RESOLVER: PinnedDescriptor<'static> = pin("fixture/resolver", 6);
+const STATUS_REPORTER: PinnedDescriptor<'static> = pin("fixture/status-reporter", 7);
+const REALM: Id<'static> = Id("fixture/realm");
+const ENTITY: Id<'static> = Id("fixture/entity");
+const PASSPORT: SemanticHash = SemanticHash::from_bytes([8; 32]);
+static TRUSTED_ENTITIES: [Id<'static>; 1] = [ENTITY];
+static OTHER_ENTITIES: [Id<'static>; 1] = [Id("fixture/other-entity")];
+static TRUSTED_STATUS_REPORTERS: [SemanticHash; 1] = [STATUS_REPORTER.semantic_hash];
+static OTHER_STATUS_REPORTERS: [SemanticHash; 1] = [SemanticHash::from_bytes([9; 32])];
 const LINUX_DIGEST: ArtifactDigest = ArtifactDigest::from_bytes([10; 32]);
 const PICO_DIGEST: ArtifactDigest = ArtifactDigest::from_bytes([11; 32]);
 const LINUX_REF: ManifestArtifactRef<'static> = artifact_ref("fixture/linux-blob", LINUX_DIGEST);
@@ -150,12 +160,13 @@ fn report<'a>(
     executors: &'a [ExecutorKind],
 ) -> CapabilityReport<'a> {
     let mut report = CapabilityReport {
-        schema_version: 1,
+        schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
         identity: ZERO,
         id: Id(id),
         host: Id(host),
         reporter: REPORTER,
         trust: TRUST,
+        membership: None,
         time_basis: Id("fixture/clock"),
         observed_at_tick: 10,
         valid_until_tick,
@@ -187,6 +198,10 @@ fn policy(
         plan_version: 1,
         trusted_reporters: &[REPORTER.semantic_hash],
         trusted_report_trust: &[TRUST.semantic_hash],
+        required_realm: None,
+        trusted_entities: &[],
+        trusted_status_reporters: &[],
+        require_active_passport: false,
         allowed_implementations: &[],
         implementation_preference: preference,
         tie_policy,
@@ -205,6 +220,158 @@ fn capability_requirement() -> CapabilityPredicate<'static> {
         minimum_capacity: budget(8, 1, 1),
         satisfaction_proof: None,
     }
+}
+
+fn membership(status: PassportStatus) -> ReportMembership<'static> {
+    ReportMembership {
+        realm: REALM,
+        entity: ENTITY,
+        passport: PASSPORT,
+        status: PassportStatusObservation {
+            passport: PASSPORT,
+            realm: REALM,
+            entity: ENTITY,
+            reporter: STATUS_REPORTER,
+            time_basis: Id("fixture/clock"),
+            observed_at_tick: 10,
+            valid_until_tick: 30,
+            status,
+        },
+    }
+}
+
+fn identify_report(report: &mut CapabilityReport<'_>) {
+    let mut scratch = [ZERO; 8];
+    report.identity = report.computed_semantic_hash(&mut scratch).unwrap();
+}
+
+#[test]
+fn resolver_enforces_realm_entity_and_fresh_passport_status() {
+    let linux_artifact = artifact("fixture/linux-blob", LINUX_DIGEST);
+    let manifest = implementation(
+        "fixture/linux",
+        ExecutorKind::NativeInProcess,
+        &LINUX_REF,
+        &[],
+    );
+    let mut authenticated_report = report(
+        "fixture/authenticated-report",
+        "linux",
+        30,
+        budget(16, 2, 2),
+        &[LINUX_CAPABILITY],
+        &[ExecutorKind::NativeInProcess],
+    );
+    authenticated_report.membership = Some(membership(PassportStatus::Active));
+    identify_report(&mut authenticated_report);
+    let artifacts = [&linux_artifact];
+    let required = [capability_requirement()];
+    let candidate = PlacementCandidate {
+        manifest: &manifest,
+        artifacts: &artifacts,
+        report: &authenticated_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &required,
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    };
+    let candidates = [candidate];
+    let requests = [PlacementRequest {
+        instance: InstancePath::new("root/wifi").unwrap(),
+        semantic_contract: CONTRACT,
+        candidates: &candidates,
+    }];
+    let mut authenticated_policy = policy(&[], ResolverTiePolicy::LowestCanonicalIdentity);
+    authenticated_policy.required_realm = Some(REALM);
+    authenticated_policy.trusted_entities = &TRUSTED_ENTITIES;
+    authenticated_policy.trusted_status_reporters = &TRUSTED_STATUS_REPORTERS;
+    authenticated_policy.require_active_passport = true;
+    authenticated_policy.policy_hash = authenticated_policy.computed_semantic_hash().unwrap();
+    assert!(resolve_host_placement(&requests, authenticated_policy).is_ok());
+
+    let mut missing_report = authenticated_report;
+    missing_report.membership = None;
+    identify_report(&mut missing_report);
+    let missing_candidate = PlacementCandidate {
+        report: &missing_report,
+        ..candidate
+    };
+    let missing_candidates = [missing_candidate];
+    let missing_requests = [PlacementRequest {
+        candidates: &missing_candidates,
+        ..requests[0]
+    }];
+    assert!(
+        resolve_host_placement(&missing_requests, authenticated_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .contains(&CandidateRejectionReason::PassportStatusRejected)
+    );
+    let mut entity_only_policy = policy(&[], ResolverTiePolicy::LowestCanonicalIdentity);
+    entity_only_policy.trusted_entities = &TRUSTED_ENTITIES;
+    entity_only_policy.policy_hash = entity_only_policy.computed_semantic_hash().unwrap();
+    assert!(
+        resolve_host_placement(&missing_requests, entity_only_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .contains(&CandidateRejectionReason::PassportStatusRejected)
+    );
+
+    let mut wrong_realm_policy = authenticated_policy;
+    wrong_realm_policy.required_realm = Some(Id("fixture/other-realm"));
+    wrong_realm_policy.policy_hash = wrong_realm_policy.computed_semantic_hash().unwrap();
+    assert!(
+        resolve_host_placement(&requests, wrong_realm_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .contains(&CandidateRejectionReason::RealmMismatch)
+    );
+
+    let mut wrong_entity_policy = authenticated_policy;
+    wrong_entity_policy.trusted_entities = &OTHER_ENTITIES;
+    wrong_entity_policy.policy_hash = wrong_entity_policy.computed_semantic_hash().unwrap();
+    assert!(
+        resolve_host_placement(&requests, wrong_entity_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .contains(&CandidateRejectionReason::EntityRejected)
+    );
+
+    let mut untrusted_status_policy = authenticated_policy;
+    untrusted_status_policy.trusted_status_reporters = &OTHER_STATUS_REPORTERS;
+    untrusted_status_policy.policy_hash = untrusted_status_policy.computed_semantic_hash().unwrap();
+    assert!(
+        resolve_host_placement(&requests, untrusted_status_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .contains(&CandidateRejectionReason::PassportStatusRejected)
+    );
+
+    let mut revoked_report = authenticated_report;
+    revoked_report.membership = Some(membership(PassportStatus::Revoked));
+    identify_report(&mut revoked_report);
+    let revoked_candidate = PlacementCandidate {
+        report: &revoked_report,
+        ..candidate
+    };
+    let revoked_candidates = [revoked_candidate];
+    let revoked_requests = [PlacementRequest {
+        candidates: &revoked_candidates,
+        ..requests[0]
+    }];
+    assert!(
+        resolve_host_placement(&revoked_requests, authenticated_policy)
+            .unwrap_err()
+            .candidates[0]
+            .reasons
+            .contains(&CandidateRejectionReason::PassportStatusRejected)
+    );
 }
 
 #[test]
@@ -495,13 +662,18 @@ fn c5_fixture_owns_host_network_wifi_and_no_provisioning_boundaries() {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
     assert_eq!(fixture["suite"], "conduit.host-resolution/v1");
     let cases = fixture["cases"].as_array().unwrap();
-    assert_eq!(cases.len(), 53);
+    assert_eq!(cases.len(), 58);
     for required in [
         "single-match",
         "deterministic-tie",
         "explicit-policy-preference",
         "same-inputs-shuffled",
         "stale-report-rejected",
+        "report-membership-binds-realm-entity-passport-status",
+        "stale-passport-status",
+        "required-realm-mismatch",
+        "trusted-entity-rejected",
+        "missing-revoked-or-untrusted-passport-status",
         "capability-present-resource-insufficient",
         "authority-denial",
         "linux-pico-equivalent-capability",

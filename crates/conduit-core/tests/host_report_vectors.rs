@@ -1,6 +1,7 @@
 use conduit_core::{
-    CapabilityReport, ExecutorKind, HostReportReason, Id, PinnedDescriptor, PlanResourceBudget,
-    ReportCapability, SemanticHash, validate_capability_report,
+    CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, ExecutorKind, HostReportReason, Id,
+    PassportStatus, PassportStatusObservation, PinnedDescriptor, PlanResourceBudget,
+    ReportCapability, ReportMembership, SemanticHash, validate_capability_report,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -41,12 +42,13 @@ fn report<'a>(
     targets: &'a [Id<'a>],
 ) -> CapabilityReport<'a> {
     let mut report = CapabilityReport {
-        schema_version: 1,
+        schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
         identity: ZERO,
         id: Id("fixture/report"),
         host: Id("fixture/host"),
         reporter: pin("fixture/reporter", 5),
         trust: pin("fixture/trust", 6),
+        membership: None,
         time_basis: Id("fixture/clock"),
         observed_at_tick: 10,
         valid_until_tick: 20,
@@ -114,5 +116,49 @@ fn freshness_time_basis_and_identity_fail_closed() {
     assert_eq!(
         validate_capability_report(&changed, Id("fixture/clock"), 15, 1, &mut scratch),
         Err(HostReportReason::IdentityMismatch)
+    );
+}
+
+#[test]
+fn membership_binding_is_identified_and_status_checked_at_resolution_time() {
+    let capabilities = [CAP_A];
+    let executors = [ExecutorKind::WasmComponent];
+    let targets = [Id("wasm32-wasip2")];
+    let mut bound = report(&capabilities, &executors, &targets);
+    let membership = ReportMembership {
+        realm: Id("fixture/realm"),
+        entity: Id("fixture/entity"),
+        passport: SemanticHash::from_bytes([7; 32]),
+        status: PassportStatusObservation {
+            passport: SemanticHash::from_bytes([7; 32]),
+            realm: Id("fixture/realm"),
+            entity: Id("fixture/entity"),
+            reporter: pin("fixture/status-reporter", 8),
+            time_basis: Id("fixture/clock"),
+            observed_at_tick: 9,
+            valid_until_tick: 18,
+            status: PassportStatus::Active,
+        },
+    };
+    let unbound_identity = bound.identity;
+    bound.membership = Some(membership);
+    let mut scratch = [ZERO; 16];
+    bound.identity = bound.computed_semantic_hash(&mut scratch).unwrap();
+    assert_ne!(bound.identity, unbound_identity);
+    assert_eq!(
+        validate_capability_report(&bound, Id("fixture/clock"), 15, 1, &mut scratch),
+        Ok(())
+    );
+    assert_eq!(
+        validate_capability_report(&bound, Id("fixture/clock"), 18, 1, &mut scratch),
+        Err(HostReportReason::MembershipInvalid)
+    );
+
+    let mut mismatched = bound;
+    mismatched.membership.as_mut().unwrap().status.entity = Id("fixture/other-entity");
+    mismatched.identity = mismatched.computed_semantic_hash(&mut scratch).unwrap();
+    assert_eq!(
+        validate_capability_report(&mismatched, Id("fixture/clock"), 15, 1, &mut scratch),
+        Err(HostReportReason::MembershipInvalid)
     );
 }

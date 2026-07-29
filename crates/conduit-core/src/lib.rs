@@ -92,7 +92,7 @@ pub use flow::{
 };
 pub use host::{
     CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, HostReportIdentityError, HostReportReason,
-    ReportCapability, ReportResource, ReportTopology, validate_capability_report,
+    ReportCapability, ReportMembership, ReportResource, ReportTopology, validate_capability_report,
 };
 pub use implementation::{
     BoundednessProfile, CancellationGuarantee, CheckpointRequest, ExecutionLimits,

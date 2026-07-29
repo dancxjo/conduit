@@ -54,7 +54,7 @@ typed extension; core has no organism, body-part, vendor, or role-name enum
 (`RLM-007`).
 
 `PassportStatusObservation` is separately fresh and names the exact passport,
-realm, status source, named time basis, observation tick, expiry, current
+realm, entity, status source, named time basis, observation tick, expiry, current
 membership/key state, and bounded revocation/gap outcome. Safety/authority
 sensitive verification fails closed if current required status is stale,
 unavailable, gapped, suspended, revoked, retired, or compromised
@@ -127,6 +127,10 @@ browser/user-agent state are invalid inputs (`RLM-021`). Inputs and output
 reason trees are bounded by the selected profile. Resolution can bind a
 passport/status/delegation to a plan or reject it; it does not enroll, rotate,
 revoke, fetch, prompt, discover, connect, sign, or provision (`RLM-022`).
+Capability-report schema 2 consumes this boundary through an identified
+realm/entity/passport/status binding. Resolver policy independently selects
+required realms, trusted entities, and trusted status reporters; successful
+membership validation still does not create an authority grant.
 
 ## Control events and presentation
 

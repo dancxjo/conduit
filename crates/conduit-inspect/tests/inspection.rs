@@ -3,9 +3,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use conduit_core::{
     ArtifactDigest, ArtifactLocation, ArtifactLocationKind, ArtifactManifest, ArtifactProvenance,
-    AuthorityTime, BlockingFairness, CapabilityReport, Direction, ExecutionPlan, ExecutorKind,
-    FlowCapacity, FlowPolicy, FlowWatermarks, Id, InstancePath, PinnedDescriptor, PlanArtifact,
-    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord,
+    AuthorityTime, BlockingFairness, CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, Direction,
+    ExecutionPlan, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, Id, InstancePath,
+    PassportStatus, PassportStatusObservation, PinnedDescriptor, PlanArtifact, PlanHostObservation,
+    PlanResourceBudget, PlanValidationContext, Pressure, ReportMembership, ResolvedPlanCord,
     ResolvedPlanNode, ResolvedPlanPort, SemanticHash, TypeContractRef,
 };
 use conduit_inspect::{
@@ -106,12 +107,27 @@ fn artifact_manifest_inspection_exposes_license_provenance_and_remote_hint_witho
 #[test]
 fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
     let mut report = CapabilityReport {
-        schema_version: 1,
+        schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
         identity: ZERO_HASH,
         id: Id("fixture/browser-report"),
         host: Id("browser/a"),
         reporter: pin("fixture/reporter", 41),
         trust: pin("fixture/trust", 42),
+        membership: Some(ReportMembership {
+            realm: Id("fixture/realm"),
+            entity: Id("fixture/browser"),
+            passport: hash(43),
+            status: PassportStatusObservation {
+                passport: hash(43),
+                realm: Id("fixture/realm"),
+                entity: Id("fixture/browser"),
+                reporter: pin("fixture/status-reporter", 44),
+                time_basis: Id("clock/monotonic"),
+                observed_at_tick: 9,
+                valid_until_tick: 20,
+                status: PassportStatus::Active,
+            },
+        }),
         time_basis: Id("clock/monotonic"),
         observed_at_tick: 10,
         valid_until_tick: 20,
@@ -135,6 +151,10 @@ fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
     let inspected = inspect_capability_report(&report, DIGEST, InspectLimits::default()).unwrap();
     assert_eq!(inspected.kind, ArtifactKind::CapabilityReport);
     assert_eq!(inspected.budgets["available_memory_bytes"], 1024);
+    assert_eq!(inspected.counts["membership_bindings"], 1);
+    assert!(inspected.references.iter().any(|reference| {
+        reference.category == "passport-identity" && reference.value == hash(43).to_string()
+    }));
     assert!(
         inspected
             .notes

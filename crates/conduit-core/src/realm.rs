@@ -223,10 +223,24 @@ pub enum PassportStatus {
     Compromised,
     Gap,
 }
+impl PassportStatus {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Suspended => "suspended",
+            Self::Revoked => "revoked",
+            Self::Retired => "retired",
+            Self::Compromised => "compromised",
+            Self::Gap => "gap",
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PassportStatusObservation<'a> {
     pub passport: SemanticHash,
     pub realm: Id<'a>,
+    pub entity: Id<'a>,
     pub reporter: PinnedDescriptor<'a>,
     pub time_basis: Id<'a>,
     pub observed_at_tick: u64,
@@ -490,13 +504,16 @@ pub fn validate_passport_status(
     status: PassportStatusObservation<'_>,
     passport: SemanticHash,
     realm: Id<'_>,
+    entity: Id<'_>,
     time_basis: Id<'_>,
     tick: u64,
 ) -> Result<(), RealmReason> {
     if status.passport != passport
         || status.realm != realm
+        || status.entity != entity
         || status.time_basis != time_basis
         || !valid_id(status.realm)
+        || !valid_id(status.entity)
         || !valid_id(status.time_basis)
         || !valid_pin(status.reporter)
         || status.observed_at_tick > status.valid_until_tick
@@ -556,6 +573,7 @@ pub fn validate_event_authorship(
         authorship.status,
         passport.identity,
         realm.id,
+        passport.entity,
         time_basis,
         tick,
     )

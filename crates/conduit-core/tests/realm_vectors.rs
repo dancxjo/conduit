@@ -97,6 +97,7 @@ fn realm_passport_status_and_delegation_are_explicit_and_bounded() {
     let status = PassportStatusObservation {
         passport: passport.identity,
         realm: realm.id,
+        entity: passport.entity,
         reporter: pin("fixture/status", 11),
         time_basis: Id("fixture/clock"),
         observed_at_tick: 10,
@@ -104,11 +105,25 @@ fn realm_passport_status_and_delegation_are_explicit_and_bounded() {
         status: PassportStatus::Active,
     };
     assert_eq!(
-        validate_passport_status(status, passport.identity, realm.id, Id("fixture/clock"), 15),
+        validate_passport_status(
+            status,
+            passport.identity,
+            realm.id,
+            passport.entity,
+            Id("fixture/clock"),
+            15
+        ),
         Ok(())
     );
     assert_eq!(
-        validate_passport_status(status, passport.identity, realm.id, Id("fixture/clock"), 20),
+        validate_passport_status(
+            status,
+            passport.identity,
+            realm.id,
+            passport.entity,
+            Id("fixture/clock"),
+            20
+        ),
         Err(RealmReason::StatusUnavailable)
     );
     let delegation = WorkloadDelegation {

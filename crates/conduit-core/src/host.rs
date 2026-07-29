@@ -5,10 +5,24 @@ use core::convert::Infallible;
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     CanonicalDescriptor, CanonicalError, CanonicalValue, ExecutorKind, FieldDisposition, Id,
-    MapField, PinnedDescriptor, PlanResourceBudget, ResourceRef, SemanticHash,
+    MapField, PassportStatusObservation, PinnedDescriptor, PlanResourceBudget, RealmReason,
+    ResourceRef, SemanticHash, validate_passport_status,
 };
 
-pub const CAPABILITY_REPORT_SCHEMA_VERSION: u32 = 1;
+pub const CAPABILITY_REPORT_SCHEMA_VERSION: u32 = 2;
+
+/// Exact realm membership/status evidence attached to one host observation.
+///
+/// This proves only the report's current membership identity. It grants no
+/// effects and says nothing about implementation, artifact, or transport
+/// authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReportMembership<'a> {
+    pub realm: Id<'a>,
+    pub entity: Id<'a>,
+    pub passport: SemanticHash,
+    pub status: PassportStatusObservation<'a>,
+}
 
 /// One currently available semantic host/backend capability.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -55,6 +69,7 @@ pub struct CapabilityReport<'a> {
     pub host: Id<'a>,
     pub reporter: PinnedDescriptor<'a>,
     pub trust: PinnedDescriptor<'a>,
+    pub membership: Option<ReportMembership<'a>>,
     pub time_basis: Id<'a>,
     pub observed_at_tick: u64,
     pub valid_until_tick: u64,
@@ -121,6 +136,12 @@ impl CapabilityReport<'_> {
         }
         let reporter = self.reporter;
         let trust = self.trust;
+        let membership = self.membership.map(hash_membership).transpose()?;
+        let membership_value = membership
+            .as_ref()
+            .map_or(CanonicalValue::Null, |identity| {
+                CanonicalValue::Bytes(identity.as_bytes())
+            });
         let fields = [
             semantic("id", CanonicalValue::Identifier(self.id)),
             semantic("host", CanonicalValue::Identifier(self.host)),
@@ -142,6 +163,7 @@ impl CapabilityReport<'_> {
                 "trust_hash",
                 CanonicalValue::Bytes(trust.semantic_hash.as_bytes()),
             ),
+            semantic("membership", membership_value),
             semantic("time_basis", CanonicalValue::Identifier(self.time_basis)),
             semantic(
                 "observed_at_tick",
@@ -214,6 +236,7 @@ pub enum HostReportReason {
     NotYetObserved,
     Stale,
     UnsupportedPlanVersion,
+    MembershipInvalid,
 }
 
 impl HostReportReason {
@@ -227,6 +250,7 @@ impl HostReportReason {
             Self::TimeBasisMismatch => "CND-HST-005",
             Self::NotYetObserved => "CND-HST-006",
             Self::UnsupportedPlanVersion => "CND-HST-007",
+            Self::MembershipInvalid => "CND-HST-008",
         }
     }
 }
@@ -272,6 +296,17 @@ pub fn validate_capability_report(
     if report.time_basis != time_basis {
         return Err(HostReportReason::TimeBasisMismatch);
     }
+    if let Some(membership) = report.membership {
+        validate_passport_status(
+            membership.status,
+            membership.passport,
+            membership.realm,
+            membership.entity,
+            time_basis,
+            current_tick,
+        )
+        .map_err(|_error: RealmReason| HostReportReason::MembershipInvalid)?;
+    }
     if current_tick < report.observed_at_tick {
         return Err(HostReportReason::NotYetObserved);
     }
@@ -288,6 +323,62 @@ pub fn validate_capability_report(
         return Err(HostReportReason::IdentityMismatch);
     }
     Ok(())
+}
+
+fn hash_membership(value: ReportMembership<'_>) -> Result<SemanticHash, HostReportIdentityError> {
+    let reporter = value.status.reporter;
+    let fields = [
+        semantic("realm", CanonicalValue::Identifier(value.realm)),
+        semantic("entity", CanonicalValue::Identifier(value.entity)),
+        semantic("passport", CanonicalValue::Bytes(value.passport.as_bytes())),
+        semantic(
+            "status_passport",
+            CanonicalValue::Bytes(value.status.passport.as_bytes()),
+        ),
+        semantic(
+            "status_realm",
+            CanonicalValue::Identifier(value.status.realm),
+        ),
+        semantic(
+            "status_entity",
+            CanonicalValue::Identifier(value.status.entity),
+        ),
+        semantic(
+            "status_reporter_id",
+            CanonicalValue::Identifier(reporter.id),
+        ),
+        semantic(
+            "status_reporter_version",
+            CanonicalValue::Integer(i128::from(reporter.schema_version)),
+        ),
+        semantic(
+            "status_reporter_hash",
+            CanonicalValue::Bytes(reporter.semantic_hash.as_bytes()),
+        ),
+        semantic(
+            "status_time_basis",
+            CanonicalValue::Identifier(value.status.time_basis),
+        ),
+        semantic(
+            "status_observed_at_tick",
+            CanonicalValue::Integer(i128::from(value.status.observed_at_tick)),
+        ),
+        semantic(
+            "status_valid_until_tick",
+            CanonicalValue::Integer(i128::from(value.status.valid_until_tick)),
+        ),
+        semantic(
+            "status",
+            CanonicalValue::Identifier(Id(value.status.status.as_str())),
+        ),
+    ];
+    CanonicalDescriptor {
+        kind: Id("conduit/host-report-membership"),
+        schema_version: 1,
+        body: CanonicalValue::Map(&fields),
+    }
+    .semantic_hash()
+    .map_err(HostReportIdentityError::Canonical)
 }
 
 fn hash_capability(value: &ReportCapability<'_>) -> Result<SemanticHash, HostReportIdentityError> {

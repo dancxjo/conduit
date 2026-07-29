@@ -1,7 +1,7 @@
 # Fresh host reports and deterministic resolution version 1
 
 Status: candidate normative C5 contract. `conformance/c5/host-resolution-v1.json`
-exercises `HST-001` through `HST-012` and `RES-001` through `RES-026`.
+exercises `HST-001` through `HST-014` and `RES-001` through `RES-029`.
 
 ## Fresh capability reports
 
@@ -27,6 +27,16 @@ future, expiry, and unsupported plan versions with stable `CND-HST-*` reasons
 re-resolution; it never silently refreshes or substitutes a host (`HST-007`).
 Reporter trust is a resolver policy input and capability never implies
 authority (`HST-008`).
+
+Capability-report schema 2 optionally binds one exact realm, entity, passport
+identity, and fresh `PassportStatusObservation` from specification 033
+(`HST-013`). The binding and status fields participate in report identity.
+Status names the same realm/entity/passport, a status reporter, time basis,
+observation interval, and exact active/suspended/revoked/retired/compromised/
+gap outcome. Invalid, stale, non-active, or mismatched status fails with
+`CND-HST-008`. This binding establishes only current report membership; it is
+not an effect grant, artifact signature, transport credential, or capability
+claim (`HST-014`).
 
 Reports say what is available now. They do not request or perform discovery,
 installation, login, flashing, scans, association, interface/address/route
@@ -85,6 +95,13 @@ Failure retains every statically rejected candidate with a stable ordered set
 of reasons and separately records global ambiguity, aggregate capacity, or
 search-limit failure (`RES-012`). The tree contains no protected values.
 
+Resolver policy may require an exact realm, restrict accepted entity IDs,
+require fresh active passport status, and restrict status reporters
+(`RES-027`). Missing membership, realm mismatch, entity rejection, and
+untrusted/non-active status remain distinct deterministic candidate reasons
+(`RES-028`). These checks do not replace the independently required authority
+decision (`RES-029`).
+
 Linux and RP2040 hosts can satisfy the same semantic capability through
 different executors, subjects, artifacts, resource bounds, and reports
 (`RES-013`). Multiple instances may be placed across reports only after
@@ -133,7 +150,20 @@ inputs (`RES-026`).
 - `CND-HST-005` time-basis mismatch
 - `CND-HST-006` observation is from the future
 - `CND-HST-007` unsupported plan version
+- `CND-HST-008` mismatched, stale, or non-active attached passport status
 - `CND-RES-001` through `CND-RES-019` candidate/search reasons defined by
   `CandidateRejectionReason`
 - `CND-RES-020` through `CND-RES-026` exact-plan sealing reasons defined by
   `PlanSealingReason`
+- `CND-RES-027` required realm mismatch
+- `CND-RES-028` reporter entity rejected
+- `CND-RES-029` passport status missing, rejected, or untrusted
+
+## Capability-report schema migration
+
+Schema 1 reports did not bind realm membership or passport status. Schema 2
+adds the optional identified membership field and is the only schema accepted
+by this candidate implementation. Producers must recompute report identity.
+Policies that do not require authenticated membership may continue to emit
+`membership = none`; policies that require it fail closed on absent schema-2
+membership. No schema-1 identity is reinterpreted as schema 2.

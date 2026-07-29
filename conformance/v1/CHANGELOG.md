@@ -1,5 +1,30 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 24 — 2026-07-29
+
+- Migrated capability reports to schema 2 with an optional, identity-bound
+  realm, entity, passport, and fresh status observation.
+- Added independently executed validation and resolver cases for stale or
+  mismatched membership, required-realm mismatch, entity rejection, revoked
+  status, and untrusted status reporters.
+- Kept host membership evidence separate from grants and authority; neither
+  report collection nor resolution enrolls an entity or mutates a realm.
+- Requirement IDs: added `HST-013`, `HST-014`, and `RES-027` through
+  `RES-029`.
+- Migration: schema-1 report identities are not reinterpreted. Producers must
+  emit schema 2, while policies that do not require authenticated membership
+  may accept a schema-2 report with no membership binding.
+
+## Manifest revision 23 — 2026-07-29
+
+- Added the `patchbay-protocol` C8 suite for issue #34.
+- Froze source/plan/run/view identity separation, protocol/version negotiation,
+  bounded snapshot-plus-delta recovery, lifecycle and pressure projections,
+  explicit control requests/results, and truthful partial views.
+- Requirement IDs: `PBY-001` through `PBY-008`.
+- Migration: hosted clients must negotiate the Patchbay protocol explicitly;
+  presentation state never becomes plan or run evidence.
+
 ## Manifest revision 22 — 2026-07-29
 
 - Added the `browser-host` C5 suite for issue #86.

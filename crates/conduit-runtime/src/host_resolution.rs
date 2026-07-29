@@ -86,6 +86,14 @@ pub struct HostResolverPolicy<'a> {
     pub plan_version: u32,
     pub trusted_reporters: &'a [SemanticHash],
     pub trusted_report_trust: &'a [SemanticHash],
+    /// Optional exact realm required for authenticated host reports.
+    pub required_realm: Option<Id<'a>>,
+    /// Empty accepts any entity whose active status otherwise satisfies policy.
+    pub trusted_entities: &'a [Id<'a>],
+    /// Empty accepts any structurally valid status reporter.
+    pub trusted_status_reporters: &'a [SemanticHash],
+    /// When true, candidates without a fresh active passport binding fail.
+    pub require_active_passport: bool,
     pub allowed_implementations: &'a [Id<'a>],
     /// Earlier entries are preferred. Omitted implementations share the last
     /// rank and are never ordered by discovery order.
@@ -106,6 +114,19 @@ impl HostResolverPolicy<'_> {
             .iter()
             .map(|identity| CanonicalValue::Bytes(identity.as_bytes()))
             .collect::<Vec<_>>();
+        let trusted_entities = self
+            .trusted_entities
+            .iter()
+            .map(|id| CanonicalValue::Identifier(*id))
+            .collect::<Vec<_>>();
+        let status_reporters = self
+            .trusted_status_reporters
+            .iter()
+            .map(|identity| CanonicalValue::Bytes(identity.as_bytes()))
+            .collect::<Vec<_>>();
+        let required_realm = self
+            .required_realm
+            .map_or(CanonicalValue::Null, CanonicalValue::Identifier);
         let allowed = self
             .allowed_implementations
             .iter()
@@ -134,6 +155,19 @@ impl HostResolverPolicy<'_> {
             policy_field(
                 "trusted_report_trust",
                 CanonicalValue::Set(report_trust.as_slice()),
+            ),
+            policy_field("required_realm", required_realm),
+            policy_field(
+                "trusted_entities",
+                CanonicalValue::Set(trusted_entities.as_slice()),
+            ),
+            policy_field(
+                "trusted_status_reporters",
+                CanonicalValue::Set(status_reporters.as_slice()),
+            ),
+            policy_field(
+                "require_active_passport",
+                CanonicalValue::Boolean(self.require_active_passport),
             ),
             policy_field(
                 "allowed_implementations",
@@ -171,6 +205,9 @@ pub enum CandidateRejectionReason {
     StaleReport,
     InvalidReport,
     ReportTrustRejected,
+    RealmMismatch,
+    EntityRejected,
+    PassportStatusRejected,
     UnsupportedPlanVersion,
     ExecutorMismatch,
     MissingArtifact,
@@ -210,6 +247,9 @@ impl CandidateRejectionReason {
             Self::PolicyRejected => "CND-RES-017",
             Self::Ambiguous => "CND-RES-018",
             Self::SearchLimit => "CND-RES-019",
+            Self::RealmMismatch => "CND-RES-027",
+            Self::EntityRejected => "CND-RES-028",
+            Self::PassportStatusRejected => "CND-RES-029",
         }
     }
 }
@@ -685,6 +725,7 @@ fn evaluate_candidate(
             HostReportReason::UnsupportedPlanVersion => {
                 CandidateRejectionReason::UnsupportedPlanVersion
             }
+            HostReportReason::MembershipInvalid => CandidateRejectionReason::PassportStatusRejected,
             _ => CandidateRejectionReason::InvalidReport,
         });
     }
@@ -701,6 +742,36 @@ fn evaluate_candidate(
             .contains(&candidate.report.trust.semantic_hash)
     {
         reasons.push(CandidateRejectionReason::ReportTrustRejected);
+    }
+    match candidate.report.membership {
+        Some(membership) => {
+            if policy
+                .required_realm
+                .is_some_and(|realm| realm != membership.realm)
+            {
+                reasons.push(CandidateRejectionReason::RealmMismatch);
+            }
+            if !policy.trusted_entities.is_empty()
+                && !policy.trusted_entities.contains(&membership.entity)
+            {
+                reasons.push(CandidateRejectionReason::EntityRejected);
+            }
+            if !policy.trusted_status_reporters.is_empty()
+                && !policy
+                    .trusted_status_reporters
+                    .contains(&membership.status.reporter.semantic_hash)
+            {
+                reasons.push(CandidateRejectionReason::PassportStatusRejected);
+            }
+        }
+        None if policy.require_active_passport
+            || policy.required_realm.is_some()
+            || !policy.trusted_entities.is_empty()
+            || !policy.trusted_status_reporters.is_empty() =>
+        {
+            reasons.push(CandidateRejectionReason::PassportStatusRejected);
+        }
+        None => {}
     }
     if !policy.allowed_implementations.is_empty()
         && !policy
