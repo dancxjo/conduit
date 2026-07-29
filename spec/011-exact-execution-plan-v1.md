@@ -209,7 +209,8 @@ aggregate-budget fields plus a canonical set of domain-separated leaf fact
 hashes. Leaf descriptors cover each host observation, concrete resource
 binding, artifact, node, required resource/effect relation, cord, authority
 binding, composite/member/export relation, port-group/member relation,
-instance pool/grant relation, and unresolved selector.
+instance pool/grant relation, plan-v15 supervision/action/target relation, and
+unresolved selector.
 
 Canonical set ordering makes identity independent of registry discovery,
 hash-map, filesystem, and input collection order. Wall clock and run-start
@@ -237,8 +238,10 @@ collection order. Before any node starts it checks:
    run-start validity;
 8. bounded event-stream and durable-job providers, references, and allocations;
 9. composite, export, port-group, and instance-pool references and maxima;
-10. checked aggregate budget; and
-11. canonical plan identity using caller-owned scratch.
+10. plan-v15 supervision subjects, handlers, compatible targets, nesting,
+    timers, limits, and complete minimum allocation;
+11. checked aggregate budget; and
+12. canonical plan identity using caller-owned scratch.
 
 The validation context contains only supported schema and a named deterministic
 run-start time observation. It does not alter identity. A host report or grant
@@ -274,6 +277,7 @@ validating.
 | `CND-RSN-003` | event-stream provider or bound is invalid |
 | `CND-JOB-016` | durable-job evidence/checkpoint provider or bound is invalid |
 | `CND-DST-001` through `CND-DST-022` | distributed-cord version, identity, peer, authority, delivery, sequence, budget, or state is invalid |
+| `CND-SUP-001` through `CND-SUP-017` | supervision contract, action, timing, nesting, profile, correlation, or allocation is invalid |
 | `CND-PLN-007` | caller identity scratch is too small |
 
 `conformance/c2/execution-plan-v1.tsv` freezes valid minimal and nested plans,

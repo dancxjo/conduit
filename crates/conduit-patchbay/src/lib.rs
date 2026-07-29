@@ -11,6 +11,189 @@ use sha2::{Digest as _, Sha256};
 
 pub const PATCHBAY_PROTOCOL_V1: u16 = 1;
 
+/// Presentation projection of the portable supervision contract. Every
+/// identity remains pinned to its source, plan, run, binding, and evidence
+/// origin; this view does not become execution evidence itself.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SupervisionProjection {
+    pub source_semantic_hash: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    pub evidence_stream_id: String,
+    pub evidence_cursor: u64,
+    pub evidence_gap_resume_at: Option<u64>,
+    pub semantic_subject: String,
+    pub expanded_subject: String,
+    pub handler: String,
+    pub boundary_id: String,
+    pub scope: String,
+    pub failure_mode: String,
+    pub terminal_class: String,
+    pub terminal_cause: String,
+    pub terminal_phase: String,
+    pub generation: u32,
+    pub attempt: u16,
+    pub retry: String,
+    pub resource: Option<String>,
+    pub host: Option<String>,
+    pub artifact: Option<String>,
+    pub remaining_observations: u16,
+    pub remaining_decisions: u16,
+    pub remaining_attempts: u16,
+    pub remaining_evidence_events: u16,
+    pub actions: Vec<SupervisionActionProjection>,
+    pub latest_evidence: Option<SupervisionEvidenceProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SupervisionActionProjection {
+    pub action_index: u16,
+    pub kind: String,
+    pub target: Option<String>,
+    pub maximum_uses: u16,
+    pub requires_new_epoch: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SupervisionEvidenceProjection {
+    pub sequence: u64,
+    pub kind: String,
+    pub action_index: Option<u16>,
+    pub rejection_code: Option<String>,
+}
+
+/// Build a rebuildable Patchbay view from the exact portable values.
+#[must_use]
+pub fn project_supervision(
+    source_semantic_hash: &str,
+    observation: conduit_core::TerminalObservation<'_>,
+    contract: conduit_core::SupervisionContract<'_>,
+    evidence: &[conduit_core::SupervisionEvidence],
+    cursor_status: conduit_core::EvidenceCursorStatus,
+) -> SupervisionProjection {
+    use conduit_core::{
+        RetryDeclaration, SupervisionEvidenceKind, SupervisionFailureMode, SupervisionScope,
+        TerminalClass, TerminalPhase,
+    };
+    let actions = contract
+        .actions
+        .iter()
+        .enumerate()
+        .filter_map(|(index, action)| {
+            Some(SupervisionActionProjection {
+                action_index: u16::try_from(index).ok()?,
+                kind: supervision_action_name(action.kind).to_owned(),
+                target: action.target.map(|target| target.to_string()),
+                maximum_uses: action.maximum_uses,
+                requires_new_epoch: action.requires_new_epoch,
+            })
+        })
+        .collect();
+    let latest_evidence = evidence.last().map(|item| SupervisionEvidenceProjection {
+        sequence: item.sequence,
+        kind: match item.kind {
+            SupervisionEvidenceKind::TerminalObserved => "terminal-observed",
+            SupervisionEvidenceKind::ObservationAdmitted => "observation-admitted",
+            SupervisionEvidenceKind::DecisionAccepted => "decision-accepted",
+            SupervisionEvidenceKind::DecisionRejected => "decision-rejected",
+            SupervisionEvidenceKind::AttemptStarted => "attempt-started",
+            SupervisionEvidenceKind::FallbackSelected => "fallback-selected",
+            SupervisionEvidenceKind::DegradedSelected => "degraded-selected",
+            SupervisionEvidenceKind::OperatorActionRequested => "operator-action-requested",
+            SupervisionEvidenceKind::Exhausted => "exhausted",
+            SupervisionEvidenceKind::Propagated => "propagated",
+            SupervisionEvidenceKind::CleanupStarted => "cleanup-started",
+            SupervisionEvidenceKind::CleanupFailed => "cleanup-failed",
+            SupervisionEvidenceKind::Cancelled => "cancelled",
+            SupervisionEvidenceKind::HandlerFailed => "handler-failed",
+            SupervisionEvidenceKind::FinalOutcome => "final-outcome",
+        }
+        .to_owned(),
+        action_index: item.action_index,
+        rejection_code: item.reason.map(|reason| reason.code().to_owned()),
+    });
+    SupervisionProjection {
+        source_semantic_hash: source_semantic_hash.to_owned(),
+        plan_identity: observation.plan_identity.to_string(),
+        plan_epoch: observation.plan_epoch,
+        run_id: observation.run.to_string(),
+        evidence_stream_id: observation.evidence.stream.to_string(),
+        evidence_cursor: observation.evidence.sequence,
+        evidence_gap_resume_at: match cursor_status {
+            conduit_core::EvidenceCursorStatus::Gap { resume_at } => Some(resume_at),
+            conduit_core::EvidenceCursorStatus::Available
+            | conduit_core::EvidenceCursorStatus::Future { .. } => None,
+        },
+        semantic_subject: observation.semantic_subject.as_str().to_owned(),
+        expanded_subject: observation.expanded_subject.as_str().to_owned(),
+        handler: contract.handler.as_str().to_owned(),
+        boundary_id: contract.id.to_string(),
+        scope: match contract.scope {
+            SupervisionScope::Child => "child",
+            SupervisionScope::NamedGroup => "named-group",
+            SupervisionScope::CompositeBoundary => "composite-boundary",
+            SupervisionScope::ReplicatedChild => "replicated-child",
+        }
+        .to_owned(),
+        failure_mode: match contract.failure_mode {
+            SupervisionFailureMode::FailTogether => "fail-together",
+            SupervisionFailureMode::IsolatedOptional => "isolated-optional",
+        }
+        .to_owned(),
+        terminal_class: match observation.class {
+            TerminalClass::Succeeded => "succeeded",
+            TerminalClass::Cancelled => "cancelled",
+            TerminalClass::Failed => "failed",
+            TerminalClass::Disconnected => "disconnected",
+        }
+        .to_owned(),
+        terminal_cause: observation.code.as_str().to_owned(),
+        terminal_phase: match observation.phase {
+            TerminalPhase::Prepare => "prepare",
+            TerminalPhase::Start => "start",
+            TerminalPhase::Step => "step",
+            TerminalPhase::HostOperation => "host-operation",
+            TerminalPhase::Drain => "drain",
+            TerminalPhase::Cleanup => "cleanup",
+        }
+        .to_owned(),
+        generation: observation.generation,
+        attempt: observation.attempt,
+        retry: match observation.retry {
+            RetryDeclaration::Undeclared => "undeclared",
+            RetryDeclaration::Idempotent => "idempotent",
+            RetryDeclaration::RestartOnly => "restart-only",
+        }
+        .to_owned(),
+        resource: observation.context.resource.map(|value| value.to_string()),
+        host: observation.context.host.map(|value| value.to_string()),
+        artifact: observation.context.artifact.map(|value| value.to_string()),
+        remaining_observations: observation.budget.remaining_observations,
+        remaining_decisions: observation.budget.remaining_decisions,
+        remaining_attempts: observation.budget.remaining_attempts,
+        remaining_evidence_events: observation.budget.remaining_evidence_events,
+        actions,
+        latest_evidence,
+    }
+}
+
+fn supervision_action_name(kind: conduit_core::SupervisionActionKind) -> &'static str {
+    match kind {
+        conduit_core::SupervisionActionKind::Propagate => "propagate",
+        conduit_core::SupervisionActionKind::StopScope => "stop-scope",
+        conduit_core::SupervisionActionKind::RestartSame => "restart-same",
+        conduit_core::SupervisionActionKind::RetrySame => "retry-same",
+        conduit_core::SupervisionActionKind::ActivateDeclaredFallback => {
+            "activate-declared-fallback"
+        }
+        conduit_core::SupervisionActionKind::ContinueDeclaredDegradedMode => {
+            "continue-declared-degraded-mode"
+        }
+        conduit_core::SupervisionActionKind::RequestOperatorAction => "request-operator-action",
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SourceSnapshot {
     pub document_id: String,

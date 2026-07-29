@@ -385,6 +385,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         composites: &[],
         port_groups: &[],
         instance_pools: &[],
+        supervisions: &[],
         unresolved: &[],
     };
     let mut scratch = [ZERO_HASH; 8];

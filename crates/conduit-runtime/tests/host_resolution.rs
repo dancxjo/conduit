@@ -857,6 +857,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
         composites: &[],
         port_groups: &[],
         instance_pools: &[],
+        supervisions: &[],
         unresolved: &[],
     };
     let mut plan_scratch = [ZERO; 16];

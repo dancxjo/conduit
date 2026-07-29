@@ -427,6 +427,7 @@ dependencies = [
 name = "conduit-patchbay"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
  "conduit-panel",
  "serde",
  "serde_json",

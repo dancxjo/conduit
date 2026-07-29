@@ -32,6 +32,7 @@ mod implementation_binding;
 mod runtime_evidence;
 mod scheduler;
 mod source_lowering;
+mod supervision;
 mod transport;
 mod type_registry;
 
@@ -75,15 +76,17 @@ pub use scheduler::{
     SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
 };
 pub use source_lowering::{
-    ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LiteralValidationError,
-    LoweredBindingV2, LoweredCompositeChildV2, LoweredCompositeV2, LoweredConfigEntry,
-    LoweredConfigValue, LoweredCordV2, LoweredExportV2, LoweredGroupPort, LoweredNode,
-    LoweredNodeV2, LoweredPool, LoweredRootSelectionV2, LoweredSource, LoweredSourceV2,
-    LoweringDiagnostic, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedNodeSchema,
-    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_V2,
+    ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LOWERED_SOURCE_SCHEMA_V3,
+    LiteralValidationError, LoweredBindingV2, LoweredCompositeChildV2, LoweredCompositeV2,
+    LoweredConfigEntry, LoweredConfigValue, LoweredCordV2, LoweredExportV2, LoweredGroupPort,
+    LoweredNode, LoweredNodeV2, LoweredPool, LoweredRootSelectionV2, LoweredSource,
+    LoweredSourceV2, LoweredSourceV3, LoweredSupervisionV3, LoweringDiagnostic,
+    OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference,
+    OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3,
     SourceContractCatalog, SourceMapEntry, SourceOrigin, VersionedLoweredSource, lower_source,
-    lower_source_v2, lower_source_version, migrate_lowered_source_v1,
+    lower_source_v2, lower_source_v3, lower_source_version, migrate_lowered_source_v1,
 };
+pub use supervision::BoundedSupervisionRuntime;
 pub use transport::{
     CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_FIXED_BYTES,
     DISTRIBUTED_ENVELOPE_VERSION, DecodedDistributedEnvelope, ResolvedTransportSelection,
@@ -118,6 +121,24 @@ const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
         0x23, 0xf6, 0xb8, 0xc6, 0xd7, 0x84, 0x79, 0x9a, 0x10, 0x09, 0xbd, 0x45, 0x32, 0x26, 0x67,
         0x0d, 0xdd, 0x91, 0x80, 0xe0, 0x06, 0xd4, 0xc2, 0x32, 0x70, 0x55, 0xcb, 0xf3, 0x50, 0x77,
         0x6e, 0x9b,
+    ]),
+};
+const TERMINAL_OBSERVATION_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("conduit/terminal-observation"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0xd3, 0x21, 0xc6, 0xa0, 0x12, 0xe8, 0x1f, 0x84, 0xc4, 0x6a, 0x6f, 0xd6, 0x23, 0x11, 0xdc,
+        0x81, 0x37, 0x46, 0x0f, 0x92, 0x85, 0x68, 0x6b, 0x68, 0x45, 0x9d, 0xc1, 0xb6, 0x45, 0x54,
+        0x5b, 0x58,
+    ]),
+};
+const SUPERVISION_DECISION_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("conduit/supervision-decision"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x30, 0xc7, 0x67, 0x8a, 0x03, 0x31, 0xd9, 0xbb, 0x2d, 0x03, 0x38, 0x9d, 0xda, 0xe0, 0xb5,
+        0x0d, 0x62, 0xf6, 0x6e, 0x2a, 0xe3, 0x45, 0xe2, 0x32, 0x57, 0x9e, 0x2e, 0xad, 0xfd, 0xff,
+        0x7e, 0xee,
     ]),
 };
 const EMPTY_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
@@ -161,6 +182,39 @@ const OUTPUT_TEXT: PortContract<'static> = PortContract {
         loss: LossAcceptance::LosslessOnly,
     },
 };
+const TERMINAL_OBSERVATION_INPUT: PortContract<'static> = PortContract {
+    id: Id("terminal"),
+    direction: Direction::Input,
+    value_type: TERMINAL_OBSERVATION_TYPE,
+    // This typed value is delivered by the exact supervision binding on the
+    // control plane, not by a source-authored data cord.
+    presence: Presence::Optional,
+    connections: ConnectionCardinality::ZeroOrOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Progressive,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Restricted,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const SUPERVISION_DECISION_OUTPUT: PortContract<'static> = PortContract {
+    id: Id("decision"),
+    direction: Direction::Output,
+    value_type: SUPERVISION_DECISION_TYPE,
+    // The exact supervision binding consumes this control value directly.
+    presence: Presence::Optional,
+    connections: ConnectionCardinality::ZeroOrOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Progressive,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Restricted,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
 
 const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/literal"),
@@ -191,6 +245,12 @@ const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
+};
+const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/supervisor"),
+    config: EMPTY_CONFIG,
+    inputs: &[TERMINAL_OBSERVATION_INPUT],
+    outputs: &[SUPERVISION_DECISION_OUTPUT],
 };
 
 /// Typed runtime value.
@@ -288,6 +348,14 @@ impl Default for Registry {
             RegisteredNode {
                 contract: &STDERR_CONTRACT,
                 factory: || Box::new(Stderr),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            SUPERVISOR_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &SUPERVISOR_CONTRACT,
+                factory: || Box::new(Supervisor),
                 validate_config: validate_empty_config,
             },
         );
@@ -422,6 +490,7 @@ impl Registry {
             nodes,
             cords,
             logical_composites: expanded.logical_composites,
+            supervisions: expanded.supervisions,
         })
     }
 
@@ -445,7 +514,16 @@ impl SourceContractCatalog for Registry {
     }
 
     fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
-        (id == TEXT_TYPE.contract_id.as_str()).then(|| TEXT_TYPE.into())
+        match id {
+            value if value == TEXT_TYPE.contract_id.as_str() => Some(TEXT_TYPE.into()),
+            value if value == TERMINAL_OBSERVATION_TYPE.contract_id.as_str() => {
+                Some(TERMINAL_OBSERVATION_TYPE.into())
+            }
+            value if value == SUPERVISION_DECISION_TYPE.contract_id.as_str() => {
+                Some(SUPERVISION_DECISION_TYPE.into())
+            }
+            _ => None,
+        }
     }
 
     fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
@@ -515,11 +593,20 @@ impl TypeContractProvider for BuiltinTypeProvider {
         &'a self,
         reference: TypeContractRef<'a>,
     ) -> Option<TypeContractDescription<'a>> {
-        (reference == TEXT_TYPE).then_some(TypeContractDescription {
-            human_name: "UTF-8 text",
+        let (reference, human_name) = if reference == TEXT_TYPE {
+            (TEXT_TYPE, "UTF-8 text")
+        } else if reference == TERMINAL_OBSERVATION_TYPE {
+            (TERMINAL_OBSERVATION_TYPE, "terminal observation")
+        } else if reference == SUPERVISION_DECISION_TYPE {
+            (SUPERVISION_DECISION_TYPE, "supervision decision")
+        } else {
+            return None;
+        };
+        Some(TypeContractDescription {
+            human_name,
             descriptor: CanonicalDescriptor {
-                kind: TEXT_TYPE.contract_id,
-                schema_version: TEXT_TYPE.schema_version,
+                kind: reference.contract_id,
+                schema_version: reference.schema_version,
                 body: CanonicalValue::Null,
             },
             strategy: TypeComparisonStrategy::Nominal,
@@ -547,6 +634,7 @@ struct ExpandedSource {
     nodes: Vec<Node>,
     cords: Vec<Cord>,
     logical_composites: Vec<LogicalComposite>,
+    supervisions: Vec<ExpandedSupervision>,
 }
 
 #[derive(Debug)]
@@ -557,6 +645,14 @@ struct LogicalComposite {
     cords: Vec<(String, String)>,
     exports: Vec<(ExportDirection, String, Endpoint)>,
     bindings: Vec<(String, String)>,
+}
+
+#[derive(Debug)]
+struct ExpandedSupervision {
+    instance: String,
+    source_binding_hash: String,
+    subject: String,
+    handler: String,
 }
 
 type BoundaryMap = BTreeMap<(u8, String), Endpoint>;
@@ -572,6 +668,7 @@ fn expand_panel(
         nodes: Vec::new(),
         cords: Vec::new(),
         logical_composites: Vec::new(),
+        supervisions: Vec::new(),
     };
     let mut roots = BTreeMap::<String, BoundaryMap>::new();
     for node in &panel.nodes {
@@ -597,6 +694,14 @@ fn expand_panel(
         let to = resolve_boundary_endpoint(&roots, &cord.to, ExportDirection::Input)?;
         push_expanded_cord(&mut expanded, cord, from, to);
     }
+    expand_supervision_bindings(
+        panel,
+        primitives,
+        &panel.nodes,
+        &panel.supervisions,
+        "",
+        &mut expanded,
+    )?;
     Ok(expanded)
 }
 
@@ -941,6 +1046,14 @@ fn expand_instance(
         let to = resolve_boundary_endpoint(&children, &cord.to, ExportDirection::Input)?;
         push_expanded_cord(expanded, cord, from, to);
     }
+    expand_supervision_bindings(
+        panel,
+        primitives,
+        &definition.nodes,
+        &definition.supervisions,
+        path,
+        expanded,
+    )?;
 
     let mut boundary = BoundaryMap::new();
     let mut logical_exports = Vec::new();
@@ -1121,6 +1234,81 @@ fn push_expanded_cord(expanded: &mut ExpandedSource, source: &Cord, from: Endpoi
     expanded.cords.push(cord);
 }
 
+fn expand_supervision_bindings(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+    nodes: &[Node],
+    bindings: &[conduit_panel::SupervisionBinding],
+    parent_path: &str,
+    expanded: &mut ExpandedSource,
+) -> Result<(), ResolutionError> {
+    for binding in bindings {
+        let subject = nodes
+            .iter()
+            .find(|node| node.id == binding.subject)
+            .ok_or_else(|| {
+                ResolutionError::new(
+                    "CND-SRC-012",
+                    format!("supervision subject `{}` is unavailable", binding.subject),
+                )
+            })?;
+        let handler = nodes
+            .iter()
+            .find(|node| node.id == binding.handler)
+            .ok_or_else(|| {
+                ResolutionError::new(
+                    "CND-SRC-012",
+                    format!("supervision handler `{}` is unavailable", binding.handler),
+                )
+            })?;
+        let source_binding_hash = binding.resolved_identity.clone().ok_or_else(|| {
+            ResolutionError::new(
+                "CND-LWR-012",
+                "supervision binding lacks its exact lowered identity",
+            )
+        })?;
+        let logical_subject = join_instance_path(parent_path, &subject.id);
+        let logical_handler = join_instance_path(parent_path, &handler.id);
+        expanded.supervisions.push(ExpandedSupervision {
+            instance: format!("root/supervision/{logical_subject}"),
+            source_binding_hash,
+            subject: exact_supervision_subject(panel, primitives, subject, &logical_subject)?,
+            handler: exact_supervision_subject(panel, primitives, handler, &logical_handler)?,
+        });
+    }
+    Ok(())
+}
+
+fn join_instance_path(parent: &str, child: &str) -> String {
+    if parent.is_empty() {
+        child.to_owned()
+    } else {
+        format!("{parent}/{child}")
+    }
+}
+
+fn exact_supervision_subject(
+    panel: &Panel,
+    primitives: &BTreeMap<&'static str, RegisteredNode>,
+    node: &Node,
+    logical_path: &str,
+) -> Result<String, ResolutionError> {
+    if primitives.contains_key(node.kind.as_str()) {
+        Ok(format!("root/{}", expanded_id(logical_path)))
+    } else if panel
+        .definitions
+        .iter()
+        .any(|definition| definition.id == node.kind)
+    {
+        Ok(format!("root/{logical_path}"))
+    } else {
+        Err(ResolutionError::new(
+            "CND-IMP-001",
+            format!("supervision subject `{logical_path}` has no resolved implementation"),
+        ))
+    }
+}
+
 const fn direction_key(direction: ExportDirection) -> u8 {
     match direction {
         ExportDirection::Input => 0,
@@ -1166,6 +1354,7 @@ pub struct ResolvedPanel<'a> {
     nodes: Vec<ResolvedNode<'a>>,
     cords: Vec<ResolvedCord>,
     logical_composites: Vec<LogicalComposite>,
+    supervisions: Vec<ExpandedSupervision>,
 }
 
 /// Presentation-neutral structured view of one validated hosted resolution.
@@ -1258,6 +1447,7 @@ pub struct ExactTopologyView {
     pub nodes: Vec<ExactTopologyNode>,
     pub cords: Vec<ExactTopologyCord>,
     pub composites: Vec<ExactTopologyComposite>,
+    pub supervisions: Vec<ExactTopologySupervision>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1308,13 +1498,25 @@ pub struct ExactTopologyExport {
     pub direction: Direction,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologySupervision {
+    pub instance: String,
+    pub source_binding_hash: SemanticHash,
+    pub subject: String,
+    pub handler: String,
+}
+
 impl ResolvedPanel<'_> {
     /// Returns only semantic/source topology needed before exact host binding.
     pub fn exact_topology(&self) -> Result<ExactTopologyView, ResolutionError> {
-        let source_semantic_hash = semantic_hash_text(&conduit_panel::semantic_source_hash_v2(
-            self.source,
-        ))
-        .ok_or_else(|| ResolutionError::new("CND-CMP-002", "semantic source hash is malformed"))?;
+        let source_hash = if self.source.version >= 2 {
+            conduit_panel::semantic_source_hash_v3(self.source)
+        } else {
+            conduit_panel::semantic_source_hash_v2(self.source)
+        };
+        let source_semantic_hash = semantic_hash_text(&source_hash).ok_or_else(|| {
+            ResolutionError::new("CND-CMP-002", "semantic source hash is malformed")
+        })?;
         let nodes = self
             .nodes
             .iter()
@@ -1408,11 +1610,31 @@ impl ResolvedPanel<'_> {
                 })
             })
             .collect::<Result<Vec<_>, ResolutionError>>()?;
+        let mut supervisions = self
+            .supervisions
+            .iter()
+            .map(|supervision| {
+                Ok(ExactTopologySupervision {
+                    instance: supervision.instance.clone(),
+                    source_binding_hash: semantic_hash_text(&supervision.source_binding_hash)
+                        .ok_or_else(|| {
+                            ResolutionError::new(
+                                "CND-LWR-012",
+                                "supervision source-binding hash is malformed",
+                            )
+                        })?,
+                    subject: supervision.subject.clone(),
+                    handler: supervision.handler.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>, ResolutionError>>()?;
+        supervisions.sort_by(|left, right| left.instance.cmp(&right.instance));
         Ok(ExactTopologyView {
             source_semantic_hash,
             nodes,
             cords,
             composites,
+            supervisions,
         })
     }
 
@@ -2075,6 +2297,22 @@ impl Handler for Stderr {
             .write_all(&input.bytes)
             .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
         Ok(Vec::new())
+    }
+}
+
+struct Supervisor;
+
+impl Handler for Supervisor {
+    fn run(
+        &mut self,
+        _node: &Node,
+        _inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        Err(RuntimeError::new(
+            "CND-SUP-015",
+            "typed supervisors run through the bounded supervision scheduler, not the legacy one-shot executor",
+        ))
     }
 }
 

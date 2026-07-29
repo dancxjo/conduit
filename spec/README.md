@@ -188,6 +188,11 @@ containment program is tracked by
   domain-owned HTTP types and ordinary serving composites, exact bounded host
   selection, explicit plaintext/direct-TLS/trusted-proxy modes, deterministic
   routing and session behavior, and real Linux TCP/rustls proof.
+- [`049-typed-supervision-v1.md`](049-typed-supervision-v1.md) defines the
+  allocator-free terminal-observation and finite decision contract, explicit
+  grammar-v2 bindings, lowered-source v3, exact plan-v15 accounting,
+  deterministic nesting/races/failure propagation, and hosted, browser, and
+  constrained witnesses.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

@@ -29,6 +29,22 @@ test("executes browser-host vectors without engine-name branches", async ({ page
   expect(result.membershipSignals).toHaveLength(5);
   expect(result.membershipSignals.every((decision) =>
     decision.ok === false && decision.code === "CND-GEN-005")).toBe(true);
+  expect(result.supervision).toEqual({
+    restartAttempt: 2,
+    restartAffectedScope: "observed-subject",
+    restartNotBeforeTick: 3,
+    evidenceKinds: [
+      "terminal-observed",
+      "observation-admitted",
+      "decision-accepted",
+      "attempt-started",
+    ],
+    constrainedCode: "CND-SUP-015",
+    correlationCode: "CND-SUP-003",
+    correlationEvidenceReason: "CND-SUP-003",
+    handlerTimeoutCode: "CND-SUP-008",
+    handlerTimeoutSubject: "root/handler",
+  });
   expect(result.placementOutcomes.window).toBe("executed");
   expect(result.placementOutcomes["dedicated-worker"]).toBe("executed");
   expect(result.placementOutcomes.wasm).toBe("executed");

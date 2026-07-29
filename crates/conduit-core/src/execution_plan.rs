@@ -15,11 +15,12 @@ use crate::{
     MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
     PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus, Pressure,
     ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
-    SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef, analyze_effect_closure,
-    validate_administrative_proof, validate_authority_at_use, validate_distributed_binding,
-    validate_hazardous_host_binding, validate_job_contract, validate_offline_lease,
-    validate_plan_execution_profile, validate_policy_budget_status,
-    validate_runtime_evidence_policy, validate_satisfaction_proof, validate_stream_contract,
+    SatisfactionRole, SemanticHash, StopPolicy, SubscriberCoupling, SupervisionActionKind,
+    SupervisionContract, TypeContractRef, analyze_effect_closure, validate_administrative_proof,
+    validate_authority_at_use, validate_distributed_binding, validate_hazardous_host_binding,
+    validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
+    validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
+    validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -36,9 +37,11 @@ use crate::{
 /// Schema 13 pins whole-plan hazardous-effect closure policy, exact stage
 /// transfers, permits, and the resulting decision. Schema 14 pins hazardous
 /// host profiles and independently observed inhibit boundaries into that
-/// closure and revalidates their freshness at run start.
+/// closure and revalidates their freshness at run start. Schema 15 pins typed
+/// supervision bindings, admitted actions, ordinary handler placement, and
+/// complete finite recovery resources.
 /// Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 14;
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 15;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -52,6 +55,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V10: u32 = 10;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V11: u32 = 11;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V12: u32 = 12;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V13: u32 = 13;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V14: u32 = 14;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -379,6 +383,69 @@ pub struct PlanInstancePool<'a> {
     pub child_cords: u16,
 }
 
+/// Exact mapping from a plan-scoped fallback/degraded/operator choice to an
+/// already resolved subject. No choice performs discovery or changes epochs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanSupervisionTarget<'a> {
+    pub choice: Id<'a>,
+    pub target: InstancePath<'a>,
+}
+
+/// Exact plan entry for one explicit source supervision relationship.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanSupervision<'a> {
+    pub instance: InstancePath<'a>,
+    pub source_binding_hash: SemanticHash,
+    pub contract: SupervisionContract<'a>,
+    pub policy: PinnedDescriptor<'a>,
+    pub observation_contract: PinnedDescriptor<'a>,
+    pub decision_contract: PinnedDescriptor<'a>,
+    pub action_targets: &'a [PlanSupervisionTarget<'a>],
+    pub allocation: PlanResourceBudget,
+    pub deadline_timer: Id<'a>,
+    pub backoff_timer: Id<'a>,
+    pub cooldown_timer: Id<'a>,
+}
+
+/// Minimum exact-plan allocation implied by one portable supervision limit
+/// set. Implementations may reserve more, but never less.
+pub fn minimum_supervision_allocation(
+    limits: crate::SupervisionLimits,
+) -> Result<PlanResourceBudget, crate::SupervisionReason> {
+    limits.validate()?;
+    let queue_bytes = u64::from(limits.maximum_in_flight)
+        .checked_mul(u64::from(limits.observation_bytes))
+        .and_then(|value| {
+            u64::from(limits.maximum_in_flight)
+                .checked_mul(u64::from(limits.decision_bytes))
+                .and_then(|decisions| value.checked_add(decisions))
+        })
+        .and_then(|value| value.checked_add(u64::from(limits.scratch_bytes)))
+        .ok_or(crate::SupervisionReason::InvalidContract)?;
+    Ok(PlanResourceBudget {
+        memory_bytes: queue_bytes,
+        storage_bytes: 0,
+        cpu_units: 1,
+        timers: 3,
+        transports: 0,
+        checkpoints: 0,
+        evidence_bytes: u64::from(limits.maximum_evidence_events),
+    })
+}
+
+/// Validate that an exact plan reserves the full declared supervision worst
+/// case before activation.
+pub fn validate_supervision_allocation(
+    limits: crate::SupervisionLimits,
+    allocation: PlanResourceBudget,
+) -> Result<(), crate::SupervisionReason> {
+    if minimum_supervision_allocation(limits)?.fits_within(allocation) {
+        Ok(())
+    } else {
+        Err(crate::SupervisionReason::InvalidContract)
+    }
+}
+
 /// Selector category retained only in a non-runnable draft plan.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnresolvedPlanKind {
@@ -446,6 +513,8 @@ pub struct ExecutionPlan<'a> {
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
     pub instance_pools: &'a [PlanInstancePool<'a>],
+    /// Typed supervision entries introduced in schema 15.
+    pub supervisions: &'a [PlanSupervision<'a>],
     pub unresolved: &'a [UnresolvedPlanConstraint<'a>],
 }
 
@@ -478,6 +547,7 @@ pub enum PlanCollection {
     Composites,
     PortGroups,
     InstancePools,
+    Supervisions,
     Unresolved,
 }
 
@@ -508,6 +578,7 @@ pub enum PlanDiagnosticCode {
     PolicyBudget(PolicyBudgetReason),
     HazardClosure(HazardClosureReason),
     Inhibit(InhibitReason),
+    Supervision(crate::SupervisionReason),
     Distributed(crate::DistributedReason),
     ScratchTooSmall,
 }
@@ -540,6 +611,7 @@ impl PlanDiagnosticCode {
             Self::PolicyBudget(reason) => reason.code(),
             Self::HazardClosure(reason) => reason.code(),
             Self::Inhibit(reason) => reason.code(),
+            Self::Supervision(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
@@ -597,6 +669,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.satisfaction_proofs.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
             .and_then(|value| value.checked_add(usize::from(self.hazard_closure.is_some())))
+            .and_then(|value| value.checked_add(self.supervisions.len()))
             .and_then(|value| value.checked_add(self.unresolved.len()))
             .ok_or(PlanIdentityError::FactCountOverflow)?;
         for node in self.nodes {
@@ -637,6 +710,13 @@ impl ExecutionPlan<'_> {
             count = count
                 .checked_add(1)
                 .and_then(|value| value.checked_add(pool.authority_grants.len()))
+                .ok_or(PlanIdentityError::FactCountOverflow)?;
+        }
+        for supervision in self.supervisions {
+            count = count
+                .checked_add(supervision.contract.members.len())
+                .and_then(|value| value.checked_add(supervision.action_targets.len()))
+                .and_then(|value| value.checked_add(supervision.contract.actions.len()))
                 .ok_or(PlanIdentityError::FactCountOverflow)?;
         }
         Ok(count)
@@ -762,6 +842,18 @@ impl ExecutionPlan<'_> {
             push!(hash_instance_pool(*pool));
             for grant in pool.authority_grants {
                 push!(hash_pool_authority(pool.instance, *grant));
+            }
+        }
+        for supervision in self.supervisions {
+            push!(hash_supervision(*supervision));
+            for member in supervision.contract.members {
+                push!(hash_supervision_member(supervision.instance, *member));
+            }
+            for action in supervision.contract.actions {
+                push!(hash_supervision_action(supervision.instance, *action));
+            }
+            for target in supervision.action_targets {
+                push!(hash_supervision_target(supervision.instance, *target));
             }
         }
         for value in self.unresolved {
@@ -2036,6 +2128,198 @@ pub fn validate_execution_plan(
                 indexed(
                     PlanDiagnosticCode::BudgetExceeded,
                     PlanCollection::InstancePools,
+                    index,
+                )
+            })?;
+    }
+
+    if (plan.schema_version < 15 && !plan.supervisions.is_empty())
+        || (plan.schema_version == 15 && plan.supervisions.is_empty())
+    {
+        return Err(error(
+            PlanDiagnosticCode::UnsupportedVersion,
+            PlanCollection::Supervisions,
+            None,
+        ));
+    }
+    for (index, supervision) in plan.supervisions.iter().enumerate() {
+        let limits = supervision.contract.limits;
+        let contract_valid = supervision.contract.validate().is_ok();
+        let subject_exists = plan
+            .nodes
+            .iter()
+            .any(|node| node.instance == supervision.contract.subject)
+            || plan
+                .composites
+                .iter()
+                .any(|composite| composite.instance == supervision.contract.subject);
+        let handler_exists = plan
+            .nodes
+            .iter()
+            .any(|node| node.instance == supervision.contract.handler)
+            || plan
+                .composites
+                .iter()
+                .any(|composite| composite.instance == supervision.contract.handler);
+        let members_exist = supervision.contract.members.iter().all(|member| {
+            plan.nodes.iter().any(|node| node.instance == *member)
+                || plan
+                    .composites
+                    .iter()
+                    .any(|composite| composite.instance == *member)
+        });
+        let target_set_valid = supervision
+            .contract
+            .actions
+            .iter()
+            .filter_map(|action| action.target)
+            .all(|choice| {
+                supervision
+                    .action_targets
+                    .iter()
+                    .filter(|target| target.choice == choice)
+                    .count()
+                    == 1
+            })
+            && supervision.action_targets.iter().all(|target| {
+                let action = supervision
+                    .contract
+                    .actions
+                    .iter()
+                    .find(|action| action.target == Some(target.choice));
+                let exact_semantic_match = plan
+                    .nodes
+                    .iter()
+                    .find(|node| node.instance == supervision.contract.subject)
+                    .zip(
+                        plan.nodes
+                            .iter()
+                            .find(|node| node.instance == target.target),
+                    )
+                    .is_some_and(|(subject, alternative)| {
+                        subject.contract.semantic_hash == alternative.contract.semantic_hash
+                    })
+                    || plan
+                        .composites
+                        .iter()
+                        .find(|composite| composite.instance == supervision.contract.subject)
+                        .zip(
+                            plan.composites
+                                .iter()
+                                .find(|composite| composite.instance == target.target),
+                        )
+                        .is_some_and(|(subject, alternative)| {
+                            subject.definition_hash == alternative.definition_hash
+                        });
+                let compatible_choice = action.is_some_and(|action| {
+                    !matches!(
+                        action.kind,
+                        SupervisionActionKind::ActivateDeclaredFallback
+                            | SupervisionActionKind::ContinueDeclaredDegradedMode
+                    ) || exact_semantic_match
+                });
+                valid_id(target.choice)
+                    && valid_path(target.target)
+                    && compatible_choice
+                    && (plan.nodes.iter().any(|node| node.instance == target.target)
+                        || plan
+                            .composites
+                            .iter()
+                            .any(|composite| composite.instance == target.target))
+            })
+            && !supervision
+                .action_targets
+                .iter()
+                .enumerate()
+                .any(|(target_index, target)| {
+                    supervision.action_targets[..target_index]
+                        .iter()
+                        .any(|prior| prior.choice == target.choice)
+                });
+        if !valid_path(supervision.instance)
+            || !contract_valid
+            || !valid_pin(supervision.policy)
+            || !valid_pin(supervision.observation_contract)
+            || !valid_pin(supervision.decision_contract)
+            || !valid_id(supervision.deadline_timer)
+            || !valid_id(supervision.backoff_timer)
+            || !valid_id(supervision.cooldown_timer)
+            || supervision.deadline_timer == supervision.backoff_timer
+            || supervision.deadline_timer == supervision.cooldown_timer
+            || supervision.backoff_timer == supervision.cooldown_timer
+            || !subject_exists
+            || !handler_exists
+            || !members_exist
+            || !target_set_valid
+            || validate_supervision_allocation(limits, supervision.allocation).is_err()
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::Supervision(crate::SupervisionReason::InvalidContract),
+                PlanCollection::Supervisions,
+                index,
+            ));
+        }
+        if plan.supervisions[..index].iter().any(|prior| {
+            prior.instance == supervision.instance
+                || prior.contract.id == supervision.contract.id
+                || prior.contract.subject == supervision.contract.subject
+        }) {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicateIdentity,
+                PlanCollection::Supervisions,
+                index,
+            ));
+        }
+        if let Some(outer) = supervision.contract.outer {
+            if outer == supervision.contract.id
+                || !plan
+                    .supervisions
+                    .iter()
+                    .any(|candidate| candidate.contract.id == outer)
+            {
+                return Err(indexed(
+                    PlanDiagnosticCode::Supervision(crate::SupervisionReason::InvalidContract),
+                    PlanCollection::Supervisions,
+                    index,
+                ));
+            }
+            let mut cursor = Some(outer);
+            for depth in 0..plan.supervisions.len() {
+                if depth >= usize::from(supervision.contract.limits.maximum_nested_depth) {
+                    return Err(indexed(
+                        PlanDiagnosticCode::Supervision(crate::SupervisionReason::InvalidContract),
+                        PlanCollection::Supervisions,
+                        index,
+                    ));
+                }
+                let Some(id) = cursor else { break };
+                if id == supervision.contract.id {
+                    return Err(indexed(
+                        PlanDiagnosticCode::Supervision(crate::SupervisionReason::InvalidContract),
+                        PlanCollection::Supervisions,
+                        index,
+                    ));
+                }
+                cursor = plan
+                    .supervisions
+                    .iter()
+                    .find(|candidate| candidate.contract.id == id)
+                    .and_then(|candidate| candidate.contract.outer);
+            }
+            if cursor.is_some() {
+                return Err(indexed(
+                    PlanDiagnosticCode::Supervision(crate::SupervisionReason::InvalidContract),
+                    PlanCollection::Supervisions,
+                    index,
+                ));
+            }
+        }
+        allocated = allocated
+            .checked_add(supervision.allocation)
+            .ok_or_else(|| {
+                indexed(
+                    PlanDiagnosticCode::BudgetExceeded,
+                    PlanCollection::Supervisions,
                     index,
                 )
             })?;
@@ -3324,6 +3608,264 @@ fn hash_pool_authority(
             semantic("grant", CanonicalValue::Identifier(grant)),
         ],
     )
+}
+
+fn hash_supervision(
+    value: PlanSupervision<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let limits = value.contract.limits;
+    let allocation = budget_fields(value.allocation);
+    descriptor_hash(
+        Id("conduit/plan-supervision-v1"),
+        &[
+            semantic("instance", CanonicalValue::Text(value.instance.as_str())),
+            semantic(
+                "source_binding_hash",
+                CanonicalValue::Bytes(value.source_binding_hash.as_bytes()),
+            ),
+            semantic("contract_id", CanonicalValue::Identifier(value.contract.id)),
+            semantic(
+                "scope",
+                CanonicalValue::Identifier(Id(supervision_scope_name(value.contract.scope))),
+            ),
+            semantic(
+                "subject",
+                CanonicalValue::Text(value.contract.subject.as_str()),
+            ),
+            semantic(
+                "handler",
+                CanonicalValue::Text(value.contract.handler.as_str()),
+            ),
+            semantic(
+                "failure_mode",
+                CanonicalValue::Identifier(Id(supervision_failure_mode_name(
+                    value.contract.failure_mode,
+                ))),
+            ),
+            semantic(
+                "outer",
+                match value.contract.outer {
+                    Some(outer) => CanonicalValue::Identifier(outer),
+                    None => CanonicalValue::Null,
+                },
+            ),
+            semantic(
+                "cleanup",
+                CanonicalValue::Identifier(Id(stop_policy_name(value.contract.cleanup))),
+            ),
+            semantic(
+                "required_behavior",
+                CanonicalValue::Boolean(value.contract.required_behavior),
+            ),
+            semantic(
+                "maximum_observations",
+                CanonicalValue::Integer(i128::from(limits.maximum_observations)),
+            ),
+            semantic(
+                "maximum_decisions",
+                CanonicalValue::Integer(i128::from(limits.maximum_decisions)),
+            ),
+            semantic(
+                "maximum_in_flight",
+                CanonicalValue::Integer(i128::from(limits.maximum_in_flight)),
+            ),
+            semantic(
+                "maximum_cause_depth",
+                CanonicalValue::Integer(i128::from(limits.maximum_cause_depth)),
+            ),
+            semantic(
+                "maximum_nested_depth",
+                CanonicalValue::Integer(i128::from(limits.maximum_nested_depth)),
+            ),
+            semantic(
+                "maximum_handler_ticks",
+                CanonicalValue::Integer(i128::from(limits.maximum_handler_ticks)),
+            ),
+            semantic(
+                "maximum_recovery_ticks",
+                CanonicalValue::Integer(i128::from(limits.maximum_recovery_ticks)),
+            ),
+            semantic(
+                "restart_window_ticks",
+                CanonicalValue::Integer(i128::from(limits.restart_window_ticks)),
+            ),
+            semantic(
+                "backoff_ticks",
+                CanonicalValue::Integer(i128::from(limits.backoff_ticks)),
+            ),
+            semantic(
+                "cooldown_ticks",
+                CanonicalValue::Integer(i128::from(limits.cooldown_ticks)),
+            ),
+            semantic(
+                "operator_wait_ticks",
+                CanonicalValue::Integer(i128::from(limits.operator_wait_ticks)),
+            ),
+            semantic(
+                "maximum_evidence_events",
+                CanonicalValue::Integer(i128::from(limits.maximum_evidence_events)),
+            ),
+            semantic(
+                "observation_bytes",
+                CanonicalValue::Integer(i128::from(limits.observation_bytes)),
+            ),
+            semantic(
+                "decision_bytes",
+                CanonicalValue::Integer(i128::from(limits.decision_bytes)),
+            ),
+            semantic(
+                "scratch_bytes",
+                CanonicalValue::Integer(i128::from(limits.scratch_bytes)),
+            ),
+            semantic("policy_id", CanonicalValue::Identifier(value.policy.id)),
+            semantic(
+                "policy_version",
+                CanonicalValue::Integer(i128::from(value.policy.schema_version)),
+            ),
+            semantic(
+                "policy_hash",
+                CanonicalValue::Bytes(value.policy.semantic_hash.as_bytes()),
+            ),
+            semantic(
+                "observation_contract_id",
+                CanonicalValue::Identifier(value.observation_contract.id),
+            ),
+            semantic(
+                "observation_contract_version",
+                CanonicalValue::Integer(i128::from(value.observation_contract.schema_version)),
+            ),
+            semantic(
+                "observation_contract_hash",
+                CanonicalValue::Bytes(value.observation_contract.semantic_hash.as_bytes()),
+            ),
+            semantic(
+                "decision_contract_id",
+                CanonicalValue::Identifier(value.decision_contract.id),
+            ),
+            semantic(
+                "decision_contract_version",
+                CanonicalValue::Integer(i128::from(value.decision_contract.schema_version)),
+            ),
+            semantic(
+                "decision_contract_hash",
+                CanonicalValue::Bytes(value.decision_contract.semantic_hash.as_bytes()),
+            ),
+            semantic("allocation", CanonicalValue::Map(&allocation)),
+            semantic(
+                "deadline_timer",
+                CanonicalValue::Identifier(value.deadline_timer),
+            ),
+            semantic(
+                "backoff_timer",
+                CanonicalValue::Identifier(value.backoff_timer),
+            ),
+            semantic(
+                "cooldown_timer",
+                CanonicalValue::Identifier(value.cooldown_timer),
+            ),
+        ],
+    )
+}
+
+fn hash_supervision_member(
+    supervision: InstancePath<'_>,
+    member: InstancePath<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-supervision-member-v1"),
+        &[
+            semantic("supervision", CanonicalValue::Text(supervision.as_str())),
+            semantic("member", CanonicalValue::Text(member.as_str())),
+        ],
+    )
+}
+
+fn hash_supervision_action(
+    supervision: InstancePath<'_>,
+    action: crate::AdmittedSupervisionAction<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-supervision-action-v1"),
+        &[
+            semantic("supervision", CanonicalValue::Text(supervision.as_str())),
+            semantic(
+                "kind",
+                CanonicalValue::Identifier(Id(supervision_action_name(action.kind))),
+            ),
+            semantic(
+                "target",
+                match action.target {
+                    Some(target) => CanonicalValue::Identifier(target),
+                    None => CanonicalValue::Null,
+                },
+            ),
+            semantic(
+                "maximum_uses",
+                CanonicalValue::Integer(i128::from(action.maximum_uses)),
+            ),
+            semantic(
+                "permits_effect_replay",
+                CanonicalValue::Boolean(action.permits_effect_replay),
+            ),
+            semantic(
+                "preserves_required_guarantees",
+                CanonicalValue::Boolean(action.preserves_required_guarantees),
+            ),
+            semantic(
+                "requires_new_epoch",
+                CanonicalValue::Boolean(action.requires_new_epoch),
+            ),
+        ],
+    )
+}
+
+fn hash_supervision_target(
+    supervision: InstancePath<'_>,
+    target: PlanSupervisionTarget<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-supervision-target-v1"),
+        &[
+            semantic("supervision", CanonicalValue::Text(supervision.as_str())),
+            semantic("choice", CanonicalValue::Identifier(target.choice)),
+            semantic("target", CanonicalValue::Text(target.target.as_str())),
+        ],
+    )
+}
+
+const fn supervision_scope_name(value: crate::SupervisionScope) -> &'static str {
+    match value {
+        crate::SupervisionScope::Child => "child",
+        crate::SupervisionScope::NamedGroup => "named-group",
+        crate::SupervisionScope::CompositeBoundary => "composite-boundary",
+        crate::SupervisionScope::ReplicatedChild => "replicated-child",
+    }
+}
+
+const fn supervision_failure_mode_name(value: crate::SupervisionFailureMode) -> &'static str {
+    match value {
+        crate::SupervisionFailureMode::FailTogether => "fail-together",
+        crate::SupervisionFailureMode::IsolatedOptional => "isolated-optional",
+    }
+}
+
+const fn supervision_action_name(value: SupervisionActionKind) -> &'static str {
+    match value {
+        SupervisionActionKind::Propagate => "propagate",
+        SupervisionActionKind::StopScope => "stop-scope",
+        SupervisionActionKind::RestartSame => "restart-same",
+        SupervisionActionKind::RetrySame => "retry-same",
+        SupervisionActionKind::ActivateDeclaredFallback => "activate-declared-fallback",
+        SupervisionActionKind::ContinueDeclaredDegradedMode => "continue-declared-degraded-mode",
+        SupervisionActionKind::RequestOperatorAction => "request-operator-action",
+    }
+}
+
+const fn stop_policy_name(value: StopPolicy) -> &'static str {
+    match value {
+        StopPolicy::Drain => "drain",
+        StopPolicy::Abort => "abort",
+    }
 }
 
 fn hash_unresolved(

@@ -10,9 +10,10 @@ mod document;
 mod modules;
 
 pub use document::{
-    CstToken, CstTokenKind, SOURCE_AST_SCHEMA_V1, SOURCE_AST_SCHEMA_V2, SourceDocument,
-    SourceSchemaError, Span, parse_document, parse_document_with_root, semantic_source_hash,
-    semantic_source_hash_v1, semantic_source_hash_v2, semantic_source_hash_version,
+    CstToken, CstTokenKind, SOURCE_AST_SCHEMA_V1, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3,
+    SourceDocument, SourceSchemaError, Span, parse_document, parse_document_with_root,
+    semantic_source_hash, semantic_source_hash_v1, semantic_source_hash_v2,
+    semantic_source_hash_v3, semantic_source_hash_version,
 };
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
@@ -48,6 +49,9 @@ pub struct Panel {
     pub port_groups: Vec<PortGroup>,
     /// Plan-visible top-level bounded instance pools.
     pub pools: Vec<InstancePool>,
+    /// Explicit terminal-supervision bindings. Only grammar version 2 may
+    /// author these; version 1 remains frozen.
+    pub supervisions: Vec<SupervisionBinding>,
 }
 
 /// One deterministic source import. Parsing never fetches it.
@@ -91,6 +95,8 @@ pub struct CompositeDefinition {
     pub port_groups: Vec<PortGroup>,
     /// Finite pools of this definition's child templates.
     pub pools: Vec<InstancePool>,
+    /// Explicit supervision bindings between children in this definition.
+    pub supervisions: Vec<SupervisionBinding>,
     /// Exact authored composite extent.
     pub source_span: SourceSpan,
 }
@@ -216,6 +222,20 @@ pub struct InstancePool {
     pub idle_timeout_ms: u64,
     pub supervision: PoolSupervision,
     pub cleanup: PoolCleanup,
+    pub source_span: SourceSpan,
+}
+
+/// One explicit binding from a semantic subject to an ordinary handler node.
+///
+/// Bounds and admitted decisions are resolved into the exact plan; source does
+/// not create a hidden callback, handler registry, or universal error port.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SupervisionBinding {
+    pub subject: String,
+    pub handler: String,
+    /// Planner-supplied source-binding identity annotation. Parsing leaves it
+    /// absent and source semantic identity deliberately ignores it.
+    pub resolved_identity: Option<String>,
     pub source_span: SourceSpan,
 }
 
@@ -773,6 +793,7 @@ struct Parser {
     tokens: Vec<Token>,
     index: usize,
     source_value_depth: u8,
+    panel_version: u16,
 }
 
 impl Parser {
@@ -781,6 +802,7 @@ impl Parser {
             tokens,
             index: 0,
             source_value_depth: 0,
+            panel_version: 0,
         }
     }
 
@@ -793,12 +815,13 @@ impl Parser {
         let version = self.expect_number()?;
         let version =
             u16::try_from(version).map_err(|_| self.error("panel version does not fit in u16"))?;
-        if version != 1 {
+        if !matches!(version, 1 | 2) {
             return Err(self.error_code(
                 "CND-SRC-007",
                 format!("unsupported panel version {version}"),
             ));
         }
+        self.panel_version = version;
 
         let mut imports = Vec::new();
         let mut definitions = Vec::new();
@@ -807,6 +830,7 @@ impl Parser {
         let mut roots = Vec::new();
         let mut port_groups = Vec::new();
         let mut pools = Vec::new();
+        let mut supervisions = Vec::new();
         while !matches!(self.current().kind, TokenKind::Eof) {
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
@@ -859,9 +883,10 @@ impl Parser {
                 }
                 "port-group" => port_groups.push(self.parse_port_group()?),
                 "pool" => pools.push(self.parse_pool()?),
+                "supervise" => supervisions.push(self.parse_supervision()?),
                 _ => {
                     return Err(self.error(format!(
-                        "expected import, node, composite, cord, root, port-group, or pool; found `{declaration}`"
+                        "expected import, node, composite, cord, root, port-group, pool, or supervise; found `{declaration}`"
                     )));
                 }
             }
@@ -903,6 +928,7 @@ impl Parser {
             selected_root,
             port_groups,
             pools,
+            supervisions,
         };
         validate_source_symbols(panel, self.current().line, self.current().column)
     }
@@ -951,6 +977,7 @@ impl Parser {
         let mut bindings = Vec::new();
         let mut port_groups = Vec::new();
         let mut pools = Vec::new();
+        let mut supervisions = Vec::new();
         while !matches!(self.current().kind, TokenKind::RightBrace) {
             if matches!(self.current().kind, TokenKind::Eof) {
                 return Err(self.error("unterminated node definition"));
@@ -1012,9 +1039,10 @@ impl Parser {
                 }
                 "port-group" => port_groups.push(self.parse_port_group()?),
                 "pool" => pools.push(self.parse_pool()?),
+                "supervise" => supervisions.push(self.parse_supervision()?),
                 _ => {
                     return Err(self.error(format!(
-                        "expected child, cord, export, binding, port-group, or pool; found `{declaration}`"
+                        "expected child, cord, export, binding, port-group, pool, or supervise; found `{declaration}`"
                     )));
                 }
             }
@@ -1030,6 +1058,7 @@ impl Parser {
             bindings,
             port_groups,
             pools,
+            supervisions,
             source_span: SourceSpan {
                 line: start_line,
                 column: start_column,
@@ -1352,6 +1381,32 @@ impl Parser {
                 .ok_or_else(|| self.error("pool requires `idle_timeout_ms`"))?,
             supervision,
             cleanup,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
+        })
+    }
+
+    fn parse_supervision(&mut self) -> Result<SupervisionBinding, ParseError> {
+        if self.panel_version < 2 {
+            return Err(self.error_code(
+                "CND-SRC-007",
+                "`supervise` requires `panel 2`; grammar version 1 is frozen",
+            ));
+        }
+        let start_line = self.current().line;
+        let start_column = self.current().column;
+        let subject = self.expect_any_word()?;
+        self.expect_word("with")?;
+        let handler = self.expect_any_word()?;
+        let (end_line, end_column) = self.previous_end();
+        Ok(SupervisionBinding {
+            subject,
+            handler,
+            resolved_identity: None,
             source_span: SourceSpan {
                 line: start_line,
                 column: start_column,
@@ -1838,6 +1893,26 @@ fn validate_source_symbols(
             .iter()
             .map(|node| node.id.as_str())
             .collect();
+        let mut supervised = BTreeSet::new();
+        for supervision in &definition.supervisions {
+            if !supervised.insert(supervision.subject.as_str()) {
+                return Err(duplicate("supervision subject", &supervision.subject));
+            }
+            if supervision.subject == supervision.handler
+                || !children.contains(supervision.subject.as_str())
+                || !children.contains(supervision.handler.as_str())
+            {
+                return Err(ParseError {
+                    code: "CND-SRC-012",
+                    line: supervision.source_span.line,
+                    column: supervision.source_span.column,
+                    message: format!(
+                        "supervision in `{}` requires distinct declared child subject `{}` and handler `{}`",
+                        definition.id, supervision.subject, supervision.handler
+                    ),
+                });
+            }
+        }
         for endpoint in definition
             .cords
             .iter()
@@ -1912,6 +1987,27 @@ fn validate_source_symbols(
                 message: format!(
                     "top-level endpoint bypasses or names no instance `{}`",
                     endpoint.node
+                ),
+            });
+        }
+    }
+    let top_nodes: BTreeSet<&str> = panel.nodes.iter().map(|node| node.id.as_str()).collect();
+    let mut supervised = BTreeSet::new();
+    for supervision in &panel.supervisions {
+        if !supervised.insert(supervision.subject.as_str()) {
+            return Err(duplicate("supervision subject", &supervision.subject));
+        }
+        if supervision.subject == supervision.handler
+            || !top_nodes.contains(supervision.subject.as_str())
+            || !top_nodes.contains(supervision.handler.as_str())
+        {
+            return Err(ParseError {
+                code: "CND-SRC-012",
+                line: supervision.source_span.line,
+                column: supervision.source_span.column,
+                message: format!(
+                    "top-level supervision requires distinct declared node subject `{}` and handler `{}`",
+                    supervision.subject, supervision.handler
                 ),
             });
         }

@@ -794,6 +794,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         composites: &[],
         port_groups: &[],
         instance_pools: &[],
+        supervisions: &[],
         unresolved: &[],
     };
     let mut scratch = [ZERO; 64];

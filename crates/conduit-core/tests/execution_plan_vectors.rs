@@ -304,6 +304,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         composites: &composites,
         port_groups: &groups,
         instance_pools: &pools,
+        supervisions: &[],
         unresolved: &[],
     };
     let mut scratch = [ZERO_HASH; 64];
@@ -1559,6 +1560,7 @@ fn portable_validator_rejects_every_required_malformed_class() {
             kind: UnresolvedPlanKind::Implementation,
         }];
         let unresolved = ExecutionPlan {
+            supervisions: &[],
             unresolved: &unresolved_items,
             ..plan
         };

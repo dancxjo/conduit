@@ -189,6 +189,7 @@ fn input(source: &str) -> CompileInput {
         }],
         catalog: builtin_catalog_document().unwrap(),
         pool_bindings: Vec::new(),
+        supervision_bindings: Vec::new(),
         hazard_closure: None,
         distribution: None,
         source_semantic_hash: topology.source_semantic_hash.to_string(),

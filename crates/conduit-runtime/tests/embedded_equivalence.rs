@@ -318,6 +318,7 @@ fn with_equivalence_plans(
         composites: &[],
         port_groups: &[],
         instance_pools: &[],
+        supervisions: &[],
         unresolved: &[],
     };
     let mut rp2040_plan = ExecutionPlan {

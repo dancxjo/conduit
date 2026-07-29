@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 40,
+  "manifest_revision": 42,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar-v1",
           "path": "../c3/panel-grammar-v1.json",
-          "sha256": "sha256:a3e0f6feec56da7556d15de7354eb4b013e5ac099a099e46a9c7abf53f626d00",
+          "sha256": "sha256:a848279642ed08251aee007760bad6f26d8917bf8cbfcbc3a1046cfce281bc88",
           "operation": "panel-source-v1",
           "requirement_ids": [
             "SRC-001",
@@ -4273,6 +4273,132 @@
       },
       "reference_tests": [
         {"package": "conduit-http", "test": "http_vectors"}
+      ]
+    },
+    {
+      "id": "typed-supervision",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "SUP-001", "SUP-002", "SUP-003", "SUP-004", "SUP-005",
+        "SUP-006", "SUP-007", "SUP-008", "SUP-009", "SUP-010",
+        "SUP-011", "SUP-012", "SUP-013", "SUP-014", "SUP-015"
+      ],
+      "artifacts": [{
+        "id": "supervision-v1",
+        "path": "../c4/supervision-v1.json",
+        "sha256": "sha256:0d31891db32e214cb4a766263791d091f64ef6a927d002517308aa119abd2b30",
+        "operation": "typed-supervision-v1",
+        "requirement_ids": [
+          "SUP-001", "SUP-002", "SUP-003", "SUP-004", "SUP-005",
+          "SUP-006", "SUP-007", "SUP-008", "SUP-009", "SUP-010",
+          "SUP-011", "SUP-012", "SUP-013", "SUP-014", "SUP-015"
+        ],
+        "default_rule": "SUP-009",
+        "case_rules": {
+          "domain-outcome-is-value": "SUP-001",
+          "admission-diagnostic-skips-handler": "SUP-001",
+          "terminal-without-handler-propagates": "SUP-002",
+          "bounded-restart-new-attempt": "SUP-004",
+          "restart-attempts-exhausted": "SUP-004",
+          "retry-non-idempotent-rejected": "SUP-005",
+          "declared-fallback-selected": "SUP-006",
+          "required-degraded-mode-rejected": "SUP-006",
+          "self-supervision-rejected": "SUP-009",
+          "replicated-child-attempt-bounded": "SUP-004",
+          "replacement-is-candidate-epoch": "SUP-007",
+          "authority-expansion-not-an-action": "SUP-010",
+          "hosted-browser-fake-normalized": "SUP-013",
+          "constrained-profile-subset": "SUP-014",
+          "evidence-gap-resync-no-invention": "SUP-011",
+          "evidence-exhaustion-before-action": "SUP-008",
+          "observation-limit": "SUP-008",
+          "decision-limit": "SUP-008",
+          "in-flight-limit": "SUP-008",
+          "recovery-deadline-expired": "SUP-008",
+          "panel-v1-supervise-rejected": "SUP-012",
+          "panel-v2-supervision-lowers": "SUP-012",
+          "exact-plan-resources-required": "SUP-008",
+          "action-changes-plan-identity": "SUP-012",
+          "unknown-fallback-target-rejected": "SUP-006",
+          "outer-supervision-cycle-rejected": "SUP-009",
+          "domain-negative-can-continue": "SUP-001",
+          "operator-wait-is-bounded": "SUP-008",
+          "observation-carries-identities-not-values": "SUP-003",
+          "source-self-supervision-rejected": "SUP-012",
+          "compile-roundtrip-schema-15": "SUP-012",
+          "browser-profile-explicit-action": "SUP-013",
+          "allocator-free-profile-equivalent": "SUP-003",
+          "cleanup-policy-is-exact": "SUP-009",
+          "decision-correlation-required": "SUP-009",
+          "hosted-pending-queue-bounded": "SUP-008"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "supervision-v1#domain-outcome-is-value",
+          "supervision-v1#terminal-without-handler-propagates",
+          "supervision-v1#bounded-restart-new-attempt",
+          "supervision-v1#declared-fallback-selected",
+          "supervision-v1#child-race-order-independent",
+          "supervision-v1#nearest-nested-boundary",
+          "supervision-v1#hosted-browser-fake-normalized",
+          "supervision-v1#panel-v2-supervision-lowers",
+          "supervision-v1#action-changes-plan-identity",
+          "supervision-v1#domain-negative-can-continue",
+          "supervision-v1#old-new-generation-race",
+          "supervision-v1#compile-roundtrip-schema-15",
+          "supervision-v1#browser-profile-explicit-action",
+          "supervision-v1#cross-host-decisions-normalized",
+          "supervision-v1#allocator-free-profile-equivalent",
+          "supervision-v1#cleanup-policy-is-exact",
+          "supervision-v1#named-group-fail-together",
+          "supervision-v1#named-group-isolated-optional"
+        ],
+        "negative": [
+          "supervision-v1#admission-diagnostic-skips-handler",
+          "supervision-v1#restart-attempts-exhausted",
+          "supervision-v1#retry-non-idempotent-rejected",
+          "supervision-v1#required-degraded-mode-rejected",
+          "supervision-v1#handler-trap-propagates",
+          "supervision-v1#handler-timeout-propagates",
+          "supervision-v1#handler-cancelled-propagates",
+          "supervision-v1#cleanup-failure-propagates",
+          "supervision-v1#self-supervision-rejected",
+          "supervision-v1#replicated-child-attempt-bounded",
+          "supervision-v1#authority-expansion-not-an-action",
+          "supervision-v1#hostile-handler-invents-action-rejected",
+          "supervision-v1#constrained-profile-subset",
+          "supervision-v1#panel-v1-supervise-rejected",
+          "supervision-v1#unknown-fallback-target-rejected",
+          "supervision-v1#outer-supervision-cycle-rejected",
+          "supervision-v1#source-self-supervision-rejected"
+        ],
+        "boundary": [
+          "supervision-v1#cancellation-pending-handler",
+          "supervision-v1#evidence-gap-resync-no-invention",
+          "supervision-v1#evidence-exhaustion-before-action",
+          "supervision-v1#observation-limit",
+          "supervision-v1#decision-limit",
+          "supervision-v1#in-flight-limit",
+          "supervision-v1#recovery-deadline-expired",
+          "supervision-v1#exact-plan-resources-required",
+          "supervision-v1#handler-cancellation-race",
+          "supervision-v1#operator-wait-is-bounded",
+          "supervision-v1#observation-carries-identities-not-values",
+          "supervision-v1#decision-correlation-required",
+          "supervision-v1#hosted-pending-queue-bounded"
+        ],
+        "migration": [
+          "supervision-v1#replacement-is-candidate-epoch"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-runtime", "test": "supervision_vectors"},
+        {"package": "conduit-embedded", "test": "supervision_profile"}
       ]
     },
     {

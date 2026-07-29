@@ -9,6 +9,7 @@ use crate::{
 
 pub const SOURCE_AST_SCHEMA_V1: u16 = 1;
 pub const SOURCE_AST_SCHEMA_V2: u16 = 2;
+pub const SOURCE_AST_SCHEMA_V3: u16 = 3;
 
 /// Explicit persisted source-AST schema selection failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -85,6 +86,12 @@ impl SourceDocument {
     #[must_use]
     pub fn semantic_hash_v2(&self) -> Option<String> {
         self.ast.as_ref().map(semantic_source_hash_v2)
+    }
+
+    /// Hashes grammar-v2 supervision bindings under source-AST schema 3.
+    #[must_use]
+    pub fn semantic_hash_v3(&self) -> Option<String> {
+        self.ast.as_ref().map(semantic_source_hash_v3)
     }
 }
 
@@ -164,6 +171,27 @@ pub fn semantic_source_hash_v2(panel: &Panel) -> String {
     )
 }
 
+/// Version 3 authored-source hash including explicit supervision bindings.
+///
+/// The normalized writer also sees these fields under older hash functions,
+/// but grammar version 1 cannot author them. A distinct domain prevents a
+/// grammar-v2 document from being mistaken for persisted schema 2.
+#[must_use]
+pub fn semantic_source_hash_v3(panel: &Panel) -> String {
+    let mut normalized = String::new();
+    write_panel(panel, &mut normalized, false);
+    format!(
+        "sha256:{:x}",
+        Sha256::digest(
+            [
+                b"conduit.panel-source/v3\0".as_slice(),
+                normalized.as_bytes()
+            ]
+            .concat()
+        )
+    )
+}
+
 /// Hashes one explicitly selected source-AST schema.
 pub fn semantic_source_hash_version(
     panel: &Panel,
@@ -172,6 +200,7 @@ pub fn semantic_source_hash_version(
     match schema_version {
         SOURCE_AST_SCHEMA_V1 => Ok(semantic_source_hash_v1(panel)),
         SOURCE_AST_SCHEMA_V2 => Ok(semantic_source_hash_v2(panel)),
+        SOURCE_AST_SCHEMA_V3 => Ok(semantic_source_hash_v3(panel)),
         _ => Err(SourceSchemaError {
             code: "CND-SRC-011",
             schema_version,
@@ -309,6 +338,9 @@ fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) 
         for pool in &definition.pools {
             write_pool(pool, output);
         }
+        for supervision in &definition.supervisions {
+            write_supervision(supervision, output);
+        }
         output.push('}');
     }
     for node in &panel.nodes {
@@ -330,6 +362,9 @@ fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) 
     }
     for pool in &panel.pools {
         write_pool(pool, output);
+    }
+    for supervision in &panel.supervisions {
+        write_supervision(supervision, output);
     }
 }
 
@@ -480,6 +515,13 @@ fn write_pool(pool: &crate::InstancePool, output: &mut String) {
         PoolCleanup::Drain => output.push_str("cleanup:drain;"),
         PoolCleanup::Abort => output.push_str("cleanup:abort;"),
     }
+    output.push('}');
+}
+
+fn write_supervision(supervision: &crate::SupervisionBinding, output: &mut String) {
+    output.push_str("supervision{");
+    text(output, &supervision.subject);
+    text(output, &supervision.handler);
     output.push('}');
 }
 

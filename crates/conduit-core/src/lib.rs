@@ -37,6 +37,7 @@ mod satisfaction;
 mod scheduler;
 mod standard;
 mod structural;
+mod supervision;
 mod type_contract;
 
 pub use authority::{
@@ -108,14 +109,16 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
     EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
     EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
-    EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHazardClosure,
-    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
-    PlanPolicyBudget, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
-    UnresolvedPlanKind, validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
+    EXECUTION_PLAN_SCHEMA_VERSION_V14, ExecutionPlan, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
+    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
+    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
+    PlanSatisfactionSubject, PlanSupervision, PlanSupervisionTarget, PlanValidationContext,
+    PlanValidationError, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    UnresolvedPlanConstraint, UnresolvedPlanKind, minimum_supervision_allocation,
+    validate_execution_plan, validate_supervision_allocation,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -260,12 +263,23 @@ pub use scheduler::{
 pub use standard::{
     BackoffSchedule, HostServiceContract, HostServiceRisk, RetryContract, StandardContractError,
     StandardNodeContract, StandardNodeKind, StandardNodeLimits, validate_host_service_contract,
-    validate_retry_contract, validate_standard_node_contract,
+    validate_retry_contract, validate_standard_node_contract, validate_standard_supervisor,
 };
 pub use structural::{
     AdapterContract, DuplicationRule, FanOutMode, LateValuePolicy, MergeCandidate, MergeOrdering,
     MergeSelection, MergeTerminalPolicy, StructuralError, StructuralNodeKind, StructuralNodeLimits,
     select_merge,
+};
+pub use supervision::{
+    ActionUsage, AdmittedSupervisionAction, DecisionOutcome, DecisionTiming, EvidenceCursor,
+    EvidenceCursorStatus, FailurePlane, RecoveryBudget, RetryDeclaration,
+    SUPERVISION_CONTRACT_VERSION, SupervisionActionKind, SupervisionAdmissionEvidence,
+    SupervisionAffectedScope, SupervisionCauseRef, SupervisionContract, SupervisionDecision,
+    SupervisionEvidence, SupervisionEvidenceKind, SupervisionFailureMode, SupervisionHostProfile,
+    SupervisionLimits, SupervisionReason, SupervisionScope, SupervisionState, TerminalContext,
+    TerminalObservation, TerminalPhase, classify_evidence_cursor, handler_deadline_tick,
+    nearest_supervision_boundary, outward_handler_observation, select_terminal_observation,
+    terminal_observations_correlate, validate_supervision_nesting,
 };
 pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
 

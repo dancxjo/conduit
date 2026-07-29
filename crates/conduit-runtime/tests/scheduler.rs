@@ -236,6 +236,7 @@ fn with_plan(
         composites: &[],
         port_groups: &[],
         instance_pools: &[],
+        supervisions: &[],
         unresolved: &[],
     };
     let mut scratch = [ZERO; 16];

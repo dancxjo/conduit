@@ -10,40 +10,43 @@ use bumpalo::Bump;
 use conduit_core::{
     AdministrativeApproval, AdministrativeApprovalStatus, AdministrativeApprover,
     AdministrativeCommit, AdministrativeExecution, AdministrativePrincipal, AdministrativeProof,
-    AdministrativeProposal, AdministrativeSubject, ArtifactDigest, ArtifactManifest,
-    ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope, AuthorityTime,
-    BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
+    AdministrativeProposal, AdministrativeSubject, AdmittedSupervisionAction, ArtifactDigest,
+    ArtifactManifest, ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope,
+    AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
     ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
     DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12,
-    EXECUTION_PLAN_SCHEMA_VERSION_V13, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
-    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
-    FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason, GrantStatus, HandleDisposition,
-    HazardClosureContext, HazardClosureLimits, HazardClosurePolicy, HazardClosureReason,
-    HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding, HazardousHostProfile,
-    HostCapability, HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest,
-    InhibitLatchState, InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES,
-    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
-    ObservedGrant, OperatingEnvelopeLimit, OwnershipModel, PassportStatus,
-    PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure, PlanHostObservation,
-    PlanInstancePool, PlanPolicyBudget, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability,
-    PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
-    Pressure, ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
+    EXECUTION_PLAN_SCHEMA_VERSION_V13, EXECUTION_PLAN_SCHEMA_VERSION_V14, EffectClassBinding,
+    EffectClassTraits, EffectFlowBinding, EffectRequirement, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason,
+    GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
+    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding,
+    HazardousHostProfile, HostCapability, HostDistributionKind, Id, ImplementationConfinement,
+    ImplementationManifest, InhibitLatchState, InhibitObservation, InstancePath,
+    MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting,
+    MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit, OwnershipModel,
+    PassportStatus, PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor,
+    PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure,
+    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPortGroup, PlanPortGroupMember,
+    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
+    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
+    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure,
+    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
     ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
     ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
     ResolvedPlanPort, ResourceRef, ResourceSelector, RollingLimit, SampleSchedule, SemanticHash,
-    StopPolicy, ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
-    TypeContractRef, ValueRepresentation, analyze_effect_closure, assess_provider_requirement,
-    resolve_authority, validate_administrative_proof, validate_reference_distribution,
+    StopPolicy, SupervisionActionKind, SupervisionContract, SupervisionFailureMode,
+    SupervisionLimits, SupervisionScope, ToxicCombinationRule, ToxicEffectPattern,
+    ToxicFlowRequirement, TraitRequirement, TypeContractRef, ValueRepresentation,
+    analyze_effect_closure, assess_provider_requirement, resolve_authority,
+    validate_administrative_proof, validate_reference_distribution,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
     CandidateAuthority, CapabilityPredicate, ExactTopologyView, HostResolverPolicy,
     LiteralValidationError, OwnedNodeSchema, OwnedPortReference, OwnedSemanticValue,
     OwnedTypeReference, PlacementCandidate, PlacementRequest, Registry, ResolverTiePolicy,
-    ResourcePredicate, SourceContractCatalog, TopologyPredicate, lower_source_v2,
+    ResourcePredicate, SourceContractCatalog, TopologyPredicate, lower_source_v2, lower_source_v3,
     resolve_host_placement, seal_resolved_execution_plan, validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
@@ -55,6 +58,7 @@ pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
 pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4";
 pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
 pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
+pub const SUPERVISION_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v7";
 pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -934,6 +938,115 @@ pub struct PoolBindingDocument {
     pub child_cords: u16,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SupervisionLimitsDocument {
+    pub maximum_observations: u16,
+    pub maximum_decisions: u16,
+    pub maximum_in_flight: u16,
+    pub maximum_cause_depth: u16,
+    pub maximum_nested_depth: u8,
+    pub maximum_handler_ticks: u64,
+    pub maximum_recovery_ticks: u64,
+    pub restart_window_ticks: u64,
+    pub backoff_ticks: u64,
+    pub cooldown_ticks: u64,
+    pub operator_wait_ticks: u64,
+    pub maximum_evidence_events: u16,
+    pub observation_bytes: u32,
+    pub decision_bytes: u32,
+    pub scratch_bytes: u32,
+}
+
+impl From<SupervisionLimitsDocument> for SupervisionLimits {
+    fn from(value: SupervisionLimitsDocument) -> Self {
+        Self {
+            maximum_observations: value.maximum_observations,
+            maximum_decisions: value.maximum_decisions,
+            maximum_in_flight: value.maximum_in_flight,
+            maximum_cause_depth: value.maximum_cause_depth,
+            maximum_nested_depth: value.maximum_nested_depth,
+            maximum_handler_ticks: value.maximum_handler_ticks,
+            maximum_recovery_ticks: value.maximum_recovery_ticks,
+            restart_window_ticks: value.restart_window_ticks,
+            backoff_ticks: value.backoff_ticks,
+            cooldown_ticks: value.cooldown_ticks,
+            operator_wait_ticks: value.operator_wait_ticks,
+            maximum_evidence_events: value.maximum_evidence_events,
+            observation_bytes: value.observation_bytes,
+            decision_bytes: value.decision_bytes,
+            scratch_bytes: value.scratch_bytes,
+        }
+    }
+}
+
+impl From<SupervisionLimits> for SupervisionLimitsDocument {
+    fn from(value: SupervisionLimits) -> Self {
+        Self {
+            maximum_observations: value.maximum_observations,
+            maximum_decisions: value.maximum_decisions,
+            maximum_in_flight: value.maximum_in_flight,
+            maximum_cause_depth: value.maximum_cause_depth,
+            maximum_nested_depth: value.maximum_nested_depth,
+            maximum_handler_ticks: value.maximum_handler_ticks,
+            maximum_recovery_ticks: value.maximum_recovery_ticks,
+            restart_window_ticks: value.restart_window_ticks,
+            backoff_ticks: value.backoff_ticks,
+            cooldown_ticks: value.cooldown_ticks,
+            operator_wait_ticks: value.operator_wait_ticks,
+            maximum_evidence_events: value.maximum_evidence_events,
+            observation_bytes: value.observation_bytes,
+            decision_bytes: value.decision_bytes,
+            scratch_bytes: value.scratch_bytes,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SupervisionActionDocument {
+    pub kind: String,
+    pub target: Option<String>,
+    pub maximum_uses: u16,
+    pub permits_effect_replay: bool,
+    pub preserves_required_guarantees: bool,
+    pub requires_new_epoch: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SupervisionTargetDocument {
+    pub choice: String,
+    pub target: String,
+}
+
+/// Exact planner input for one expanded source supervision binding.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SupervisionBindingDocument {
+    pub instance: String,
+    pub source_binding_hash: String,
+    pub id: String,
+    pub scope: String,
+    pub subject: String,
+    pub handler: String,
+    pub members: Vec<String>,
+    pub failure_mode: String,
+    pub outer: Option<String>,
+    pub policy: PinDocument,
+    pub observation_contract: PinDocument,
+    pub decision_contract: PinDocument,
+    pub actions: Vec<SupervisionActionDocument>,
+    pub action_targets: Vec<SupervisionTargetDocument>,
+    pub limits: SupervisionLimitsDocument,
+    pub allocation: BudgetDocument,
+    pub deadline_timer: String,
+    pub backoff_timer: String,
+    pub cooldown_timer: String,
+    pub cleanup: String,
+    pub required_behavior: bool,
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ProviderRiskTraitsDocument {
@@ -1042,6 +1155,8 @@ pub struct CompileInput {
     pub catalog: CompileCatalogDocument,
     #[serde(default)]
     pub pool_bindings: Vec<PoolBindingDocument>,
+    #[serde(default)]
+    pub supervision_bindings: Vec<SupervisionBindingDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hazard_closure: Option<HazardClosureDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1077,6 +1192,7 @@ struct CompileIdentityProjection<'a> {
     modules: &'a [CompileModuleDocument],
     catalog: &'a CompileCatalogDocument,
     pool_bindings: &'a [PoolBindingDocument],
+    supervision_bindings: &'a [SupervisionBindingDocument],
     hazard_closure: &'a Option<HazardClosureDocument>,
     distribution: &'a Option<ReferenceDistributionDocument>,
     source_semantic_hash: &'a str,
@@ -1165,6 +1281,7 @@ impl CompileInput {
             modules: &canonical.modules,
             catalog: &canonical.catalog,
             pool_bindings: &canonical.pool_bindings,
+            supervision_bindings: &canonical.supervision_bindings,
             hazard_closure: &canonical.hazard_closure,
             distribution: &canonical.distribution,
             source_semantic_hash: &canonical.source_semantic_hash,
@@ -1201,6 +1318,40 @@ impl CompileInput {
         self.validate_module_source_limits()?;
         if self.pool_bindings.len() > 4096 {
             return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        if self.supervision_bindings.len() > 4096 {
+            return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        for supervision in &self.supervision_bindings {
+            instance(&supervision.instance)?;
+            parse_hash(&supervision.source_binding_hash)?;
+            id(&supervision.id)?;
+            instance(&supervision.subject)?;
+            instance(&supervision.handler)?;
+            supervision
+                .members
+                .iter()
+                .map(|member| instance(member))
+                .collect::<Result<Vec<_>, _>>()?;
+            supervision_failure_mode(&supervision.failure_mode)?;
+            supervision.outer.as_deref().map(id).transpose()?;
+            pin(&supervision.policy)?;
+            pin(&supervision.observation_contract)?;
+            pin(&supervision.decision_contract)?;
+            id(&supervision.deadline_timer)?;
+            id(&supervision.backoff_timer)?;
+            id(&supervision.cooldown_timer)?;
+            let limits: SupervisionLimits = supervision.limits.into();
+            limits
+                .validate()
+                .map_err(|_| CompileError::new(CompileReason::BudgetInvalid))?;
+            for action in &supervision.actions {
+                supervision_action(action)?;
+            }
+            for target in &supervision.action_targets {
+                id(&target.choice)?;
+                instance(&target.target)?;
+            }
         }
         for pool in &self.pool_bindings {
             parse_hash(&pool.pool_semantic_hash)?;
@@ -1370,45 +1521,59 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
     let registry = Registry::default();
     let mut catalog = CompileCatalogDocument {
         identity: String::new(),
-        nodes: ["conduit/literal", "conduit/stdout", "conduit/uppercase"]
-            .into_iter()
-            .map(|id| {
-                let schema = registry
-                    .node_schema(id)
-                    .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
-                Ok(PinDocument {
-                    id: id.to_owned(),
-                    schema_version: 1,
-                    semantic_hash: schema.semantic_hash().to_string(),
-                })
+        nodes: [
+            "conduit/literal",
+            "conduit/stdout",
+            "conduit/uppercase",
+            "conduit/supervisor",
+        ]
+        .into_iter()
+        .map(|id| {
+            let schema = registry
+                .node_schema(id)
+                .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
+            Ok(PinDocument {
+                id: id.to_owned(),
+                schema_version: 1,
+                semantic_hash: schema.semantic_hash().to_string(),
             })
-            .collect::<Result<Vec<_>, CompileError>>()?,
-        types: ["conduit/text.utf8"]
-            .into_iter()
-            .map(|id| {
-                let reference = registry
-                    .type_reference(id)
-                    .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
-                Ok(PinDocument {
-                    id: id.to_owned(),
-                    schema_version: reference.schema_version,
-                    semantic_hash: reference.semantic_hash.to_string(),
-                })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?,
+        types: [
+            "conduit/text.utf8",
+            "conduit/terminal-observation",
+            "conduit/supervision-decision",
+        ]
+        .into_iter()
+        .map(|id| {
+            let reference = registry
+                .type_reference(id)
+                .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
+            Ok(PinDocument {
+                id: id.to_owned(),
+                schema_version: reference.schema_version,
+                semantic_hash: reference.semantic_hash.to_string(),
             })
-            .collect::<Result<Vec<_>, CompileError>>()?,
-        ports: ["conduit/input-text", "conduit/output-text"]
-            .into_iter()
-            .map(|id| {
-                let reference = registry
-                    .port_contract(id)
-                    .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
-                Ok(PinDocument {
-                    id: id.to_owned(),
-                    schema_version: 1,
-                    semantic_hash: reference.semantic_hash.to_string(),
-                })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?,
+        ports: [
+            "conduit/input-text",
+            "conduit/output-text",
+            "terminal",
+            "decision",
+        ]
+        .into_iter()
+        .map(|id| {
+            let reference = registry
+                .port_contract(id)
+                .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
+            Ok(PinDocument {
+                id: id.to_owned(),
+                schema_version: 1,
+                semantic_hash: reference.semantic_hash.to_string(),
             })
-            .collect::<Result<Vec<_>, CompileError>>()?,
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?,
     };
     canonicalize_catalog(&mut catalog);
     catalog.identity = catalog_identity(&catalog)?;
@@ -1569,12 +1734,34 @@ fn resolve_source_graph(input: &CompileInput) -> Result<ModuleGraph, CompileErro
     Ok(graph)
 }
 
+struct CompileLoweredSource {
+    topology: conduit_runtime::LoweredSourceV2,
+    supervisions: Vec<conduit_runtime::LoweredSupervisionV3>,
+    semantic_hash: SemanticHash,
+}
+
 fn lower_compile_source(
     graph: &ModuleGraph,
     catalog: &CompileCatalogDocument,
-) -> Result<conduit_runtime::LoweredSourceV2, CompileError> {
-    lower_source_v2(graph, &PinnedCatalog::new(catalog)?)
-        .map_err(|_| CompileError::new(CompileReason::LoweringFailed))
+) -> Result<CompileLoweredSource, CompileError> {
+    let catalog = PinnedCatalog::new(catalog)?;
+    if graph.modules.iter().any(|module| module.panel.version >= 2) {
+        let lowered = lower_source_v3(graph, &catalog)
+            .map_err(|_| CompileError::new(CompileReason::LoweringFailed))?;
+        Ok(CompileLoweredSource {
+            topology: *lowered.topology,
+            supervisions: lowered.supervisions,
+            semantic_hash: lowered.semantic_hash,
+        })
+    } else {
+        let topology = lower_source_v2(graph, &catalog)
+            .map_err(|_| CompileError::new(CompileReason::LoweringFailed))?;
+        Ok(CompileLoweredSource {
+            semantic_hash: topology.semantic_hash,
+            topology,
+            supervisions: Vec::new(),
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1772,6 +1959,8 @@ pub struct ExactPlanDocument {
     pub composites: Vec<PlanCompositeDocument>,
     pub port_groups: Vec<PlanPortGroupDocument>,
     pub instance_pools: Vec<PlanInstancePoolDocument>,
+    #[serde(default)]
+    pub supervisions: Vec<SupervisionBindingDocument>,
     pub unresolved_selectors: Vec<String>,
 }
 
@@ -1823,7 +2012,9 @@ impl ExactPlanDocument {
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V12)
             || (self.schema == HAZARD_PLAN_DOCUMENT_SCHEMA
                 && (self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V13
-                    || self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION));
+                    || self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V14))
+            || (self.schema == SUPERVISION_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
         }
@@ -2063,6 +2254,58 @@ impl ExactPlanDocument {
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
+        let supervisions = self
+            .supervisions
+            .iter()
+            .map(|supervision| {
+                let actions = supervision
+                    .actions
+                    .iter()
+                    .map(supervision_action)
+                    .collect::<Result<Vec<_>, CompileError>>()?;
+                let action_targets = supervision
+                    .action_targets
+                    .iter()
+                    .map(|target| {
+                        Ok(PlanSupervisionTarget {
+                            choice: id(&target.choice)?,
+                            target: instance(&target.target)?,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, CompileError>>()?;
+                let members = supervision
+                    .members
+                    .iter()
+                    .map(|member| instance(member))
+                    .collect::<Result<Vec<_>, CompileError>>()?;
+                Ok(PlanSupervision {
+                    instance: instance(&supervision.instance)?,
+                    source_binding_hash: parse_hash(&supervision.source_binding_hash)?,
+                    contract: SupervisionContract {
+                        schema_version: 1,
+                        id: id(&supervision.id)?,
+                        scope: supervision_scope(&supervision.scope)?,
+                        subject: instance(&supervision.subject)?,
+                        handler: instance(&supervision.handler)?,
+                        members: arena.alloc_slice_copy(&members),
+                        failure_mode: supervision_failure_mode(&supervision.failure_mode)?,
+                        outer: supervision.outer.as_deref().map(id).transpose()?,
+                        actions: arena.alloc_slice_copy(&actions),
+                        limits: supervision.limits.into(),
+                        cleanup: stop_policy(&supervision.cleanup)?,
+                        required_behavior: supervision.required_behavior,
+                    },
+                    policy: pin(&supervision.policy)?,
+                    observation_contract: pin(&supervision.observation_contract)?,
+                    decision_contract: pin(&supervision.decision_contract)?,
+                    action_targets: arena.alloc_slice_copy(&action_targets),
+                    allocation: supervision.allocation.into(),
+                    deadline_timer: id(&supervision.deadline_timer)?,
+                    backoff_timer: id(&supervision.backoff_timer)?,
+                    cooldown_timer: id(&supervision.cooldown_timer)?,
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?;
         Ok(ExecutionPlan {
             schema_version: self.schema_version,
             identity: parse_hash(&self.identity)?,
@@ -2091,6 +2334,7 @@ impl ExactPlanDocument {
             composites: arena.alloc_slice_copy(&composites),
             port_groups: arena.alloc_slice_copy(&port_groups),
             instance_pools: arena.alloc_slice_copy(&instance_pools),
+            supervisions: arena.alloc_slice_copy(&supervisions),
             unresolved: &[],
         })
     }
@@ -2138,7 +2382,7 @@ fn compile_graph(
     if lowered.semantic_hash != parse_hash(&input.source_semantic_hash)? {
         return Err(CompileError::new(CompileReason::InvalidInput));
     }
-    let panel = executable_panel(graph)?;
+    let panel = executable_panel(graph, &lowered.supervisions)?;
     let registry = Registry::default();
     let resolved = registry
         .resolve(&panel)
@@ -2150,7 +2394,10 @@ fn compile_graph(
     compile_topology(&topology, &lowered, input)
 }
 
-fn executable_panel(graph: &ModuleGraph) -> Result<conduit_panel::Panel, CompileError> {
+fn executable_panel(
+    graph: &ModuleGraph,
+    lowered_supervisions: &[conduit_runtime::LoweredSupervisionV3],
+) -> Result<conduit_panel::Panel, CompileError> {
     let modules = graph
         .modules
         .iter()
@@ -2160,6 +2407,11 @@ fn executable_panel(graph: &ModuleGraph) -> Result<conduit_panel::Panel, Compile
     for module in &graph.modules {
         for source in &module.panel.definitions {
             let mut definition = source.clone();
+            annotate_supervisions(
+                &mut definition.supervisions,
+                &format!("{}/definition/{}", module.canonical_uri, source.id),
+                lowered_supervisions,
+            )?;
             definition.id = compiled_definition_id(module, &source.id)?;
             definition.port_groups.clear();
             definition.pools.clear();
@@ -2174,11 +2426,19 @@ fn executable_panel(graph: &ModuleGraph) -> Result<conduit_panel::Panel, Compile
         .get(graph.entry_uri.as_str())
         .copied()
         .ok_or_else(|| CompileError::new(CompileReason::SourceInvalid))?;
-    let (mut nodes, cords) = match graph.selected_root.as_deref() {
-        None => (entry.panel.nodes.clone(), entry.panel.cords.clone()),
+    let (mut nodes, cords, supervisions) = match graph.selected_root.as_deref() {
+        None => (entry.panel.nodes.clone(), entry.panel.cords.clone(), {
+            let mut supervisions = entry.panel.supervisions.clone();
+            annotate_supervisions(
+                &mut supervisions,
+                &entry.canonical_uri,
+                lowered_supervisions,
+            )?;
+            supervisions
+        }),
         Some(selected) => {
             if let Some(node) = entry.panel.nodes.iter().find(|node| node.id == selected) {
-                (vec![node.clone()], Vec::new())
+                (vec![node.clone()], Vec::new(), Vec::new())
             } else if let Some(definition) = entry
                 .panel
                 .definitions
@@ -2201,6 +2461,7 @@ fn executable_panel(graph: &ModuleGraph) -> Result<conduit_panel::Panel, Compile
                         source_span: root.source_span,
                     }],
                     Vec::new(),
+                    Vec::new(),
                 )
             } else {
                 return Err(CompileError::new(CompileReason::SourceInvalid));
@@ -2220,7 +2481,24 @@ fn executable_panel(graph: &ModuleGraph) -> Result<conduit_panel::Panel, Compile
         selected_root: None,
         port_groups: Vec::new(),
         pools: Vec::new(),
+        supervisions,
     })
+}
+
+fn annotate_supervisions(
+    bindings: &mut [conduit_panel::SupervisionBinding],
+    owner_path: &str,
+    lowered: &[conduit_runtime::LoweredSupervisionV3],
+) -> Result<(), CompileError> {
+    for binding in bindings {
+        let path = format!("{owner_path}/supervision/{}", binding.subject);
+        let exact = lowered
+            .iter()
+            .find(|candidate| candidate.path == path)
+            .ok_or_else(|| CompileError::new(CompileReason::LoweringFailed))?;
+        binding.resolved_identity = Some(exact.semantic_hash.to_string());
+    }
+    Ok(())
 }
 
 fn prepare_source_node(
@@ -2296,7 +2574,7 @@ fn compiled_definition_id(
 
 fn compile_topology(
     topology: &ExactTopologyView,
-    lowered: &conduit_runtime::LoweredSourceV2,
+    lowered: &CompileLoweredSource,
     input: &CompileInput,
 ) -> Result<ExactPlanDocument, CompileError> {
     let arena = Bump::new();
@@ -2517,7 +2795,7 @@ fn compile_topology(
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
     let mut lowered_groups = BTreeMap::<String, Vec<&conduit_runtime::LoweredGroupPort>>::new();
-    for member in &lowered.group_ports {
+    for member in &lowered.topology.group_ports {
         lowered_groups
             .entry(member.logical_group_path.clone())
             .or_default()
@@ -2560,12 +2838,12 @@ fn compile_topology(
             members: arena.alloc_slice_copy(&plan_members),
         });
     }
-    if lowered.pools.len() != input.pool_bindings.len() {
+    if lowered.topology.pools.len() != input.pool_bindings.len() {
         return Err(CompileError::new(CompileReason::BudgetInvalid));
     }
-    let mut instance_pools = Vec::with_capacity(lowered.pools.len());
+    let mut instance_pools = Vec::with_capacity(lowered.topology.pools.len());
     let mut seen_pool_bindings = BTreeSet::new();
-    for pool in &lowered.pools {
+    for pool in &lowered.topology.pools {
         let pool_hash = pool.semantic_hash.to_string();
         let binding = input
             .pool_bindings
@@ -2604,6 +2882,74 @@ fn compile_topology(
             child_cords: binding.child_cords,
         });
     }
+    if topology.supervisions.len() != input.supervision_bindings.len() {
+        return Err(CompileError::new(CompileReason::BudgetInvalid));
+    }
+    let mut supervisions = Vec::with_capacity(topology.supervisions.len());
+    let mut seen_supervision_bindings = BTreeSet::new();
+    for topology_binding in &topology.supervisions {
+        let binding = input
+            .supervision_bindings
+            .iter()
+            .find(|binding| {
+                binding.instance == topology_binding.instance
+                    && binding.source_binding_hash
+                        == topology_binding.source_binding_hash.to_string()
+            })
+            .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?;
+        if !seen_supervision_bindings.insert(binding.instance.as_str())
+            || binding.subject != topology_binding.subject
+            || binding.handler != topology_binding.handler
+        {
+            return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        let actions = binding
+            .actions
+            .iter()
+            .map(supervision_action)
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        let action_targets = binding
+            .action_targets
+            .iter()
+            .map(|target| {
+                Ok(PlanSupervisionTarget {
+                    choice: id(&target.choice)?,
+                    target: instance(&target.target)?,
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        let members = binding
+            .members
+            .iter()
+            .map(|member| instance(member))
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        supervisions.push(PlanSupervision {
+            instance: instance(&binding.instance)?,
+            source_binding_hash: parse_hash(&binding.source_binding_hash)?,
+            contract: SupervisionContract {
+                schema_version: 1,
+                id: id(&binding.id)?,
+                scope: supervision_scope(&binding.scope)?,
+                subject: instance(&binding.subject)?,
+                handler: instance(&binding.handler)?,
+                members: arena.alloc_slice_copy(&members),
+                failure_mode: supervision_failure_mode(&binding.failure_mode)?,
+                outer: binding.outer.as_deref().map(id).transpose()?,
+                actions: arena.alloc_slice_copy(&actions),
+                limits: binding.limits.into(),
+                cleanup: stop_policy(&binding.cleanup)?,
+                required_behavior: binding.required_behavior,
+            },
+            policy: pin(&binding.policy)?,
+            observation_contract: pin(&binding.observation_contract)?,
+            decision_contract: pin(&binding.decision_contract)?,
+            action_targets: arena.alloc_slice_copy(&action_targets),
+            allocation: binding.allocation.into(),
+            deadline_timer: id(&binding.deadline_timer)?,
+            backoff_timer: id(&binding.backoff_timer)?,
+            cooldown_timer: id(&binding.cooldown_timer)?,
+        });
+    }
     // This v1 compile-input/document workflow has no field for live
     // distributed-session requirements. Fail closed instead of emitting an
     // older plan schema whose cross-host cord would have hidden transport
@@ -2633,24 +2979,25 @@ fn compile_topology(
             )
         })
         .transpose()?;
-    let plan_schema_version =
-        if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
-            EXECUTION_PLAN_SCHEMA_VERSION
-        } else if hazard_closure.is_some() {
-            EXECUTION_PLAN_SCHEMA_VERSION_V13
-        } else if plan_authorities
-            .iter()
-            .any(|authority| !authority.policy_budgets.is_empty())
-        {
-            EXECUTION_PLAN_SCHEMA_VERSION_V12
-        } else if plan_authorities
-            .iter()
-            .any(|authority| authority.containment.is_some())
-        {
-            EXECUTION_PLAN_SCHEMA_VERSION_V11
-        } else {
-            EXECUTION_PLAN_SCHEMA_VERSION_V3
-        };
+    let plan_schema_version = if !supervisions.is_empty() {
+        EXECUTION_PLAN_SCHEMA_VERSION
+    } else if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
+        EXECUTION_PLAN_SCHEMA_VERSION_V14
+    } else if hazard_closure.is_some() {
+        EXECUTION_PLAN_SCHEMA_VERSION_V13
+    } else if plan_authorities
+        .iter()
+        .any(|authority| !authority.policy_budgets.is_empty())
+    {
+        EXECUTION_PLAN_SCHEMA_VERSION_V12
+    } else if plan_authorities
+        .iter()
+        .any(|authority| authority.containment.is_some())
+    {
+        EXECUTION_PLAN_SCHEMA_VERSION_V11
+    } else {
+        EXECUTION_PLAN_SCHEMA_VERSION_V3
+    };
     let mut plan = ExecutionPlan {
         schema_version: plan_schema_version,
         identity: SemanticHash::from_bytes([0; 32]),
@@ -2679,6 +3026,7 @@ fn compile_topology(
         composites: &composites,
         port_groups: &port_groups,
         instance_pools: &instance_pools,
+        supervisions: &supervisions,
         unresolved: &[],
     };
     let mut scratch = vec![
@@ -4536,8 +4884,88 @@ fn plan_document(
             child_cords: pool.child_cords,
         })
         .collect();
+    let supervisions = plan
+        .supervisions
+        .iter()
+        .map(|supervision| SupervisionBindingDocument {
+            instance: supervision.instance.as_str().to_owned(),
+            source_binding_hash: supervision.source_binding_hash.to_string(),
+            id: supervision.contract.id.to_string(),
+            scope: match supervision.contract.scope {
+                SupervisionScope::Child => "child",
+                SupervisionScope::NamedGroup => "named-group",
+                SupervisionScope::CompositeBoundary => "composite-boundary",
+                SupervisionScope::ReplicatedChild => "replicated-child",
+            }
+            .to_owned(),
+            subject: supervision.contract.subject.as_str().to_owned(),
+            handler: supervision.contract.handler.as_str().to_owned(),
+            members: supervision
+                .contract
+                .members
+                .iter()
+                .map(|member| member.as_str().to_owned())
+                .collect(),
+            failure_mode: match supervision.contract.failure_mode {
+                SupervisionFailureMode::FailTogether => "fail-together",
+                SupervisionFailureMode::IsolatedOptional => "isolated-optional",
+            }
+            .to_owned(),
+            outer: supervision.contract.outer.map(|value| value.to_string()),
+            policy: pin_document(supervision.policy),
+            observation_contract: pin_document(supervision.observation_contract),
+            decision_contract: pin_document(supervision.decision_contract),
+            actions: supervision
+                .contract
+                .actions
+                .iter()
+                .map(|action| SupervisionActionDocument {
+                    kind: match action.kind {
+                        SupervisionActionKind::Propagate => "propagate",
+                        SupervisionActionKind::StopScope => "stop-scope",
+                        SupervisionActionKind::RestartSame => "restart-same",
+                        SupervisionActionKind::RetrySame => "retry-same",
+                        SupervisionActionKind::ActivateDeclaredFallback => {
+                            "activate-declared-fallback"
+                        }
+                        SupervisionActionKind::ContinueDeclaredDegradedMode => {
+                            "continue-declared-degraded-mode"
+                        }
+                        SupervisionActionKind::RequestOperatorAction => "request-operator-action",
+                    }
+                    .to_owned(),
+                    target: action.target.map(|value| value.to_string()),
+                    maximum_uses: action.maximum_uses,
+                    permits_effect_replay: action.permits_effect_replay,
+                    preserves_required_guarantees: action.preserves_required_guarantees,
+                    requires_new_epoch: action.requires_new_epoch,
+                })
+                .collect(),
+            action_targets: supervision
+                .action_targets
+                .iter()
+                .map(|target| SupervisionTargetDocument {
+                    choice: target.choice.to_string(),
+                    target: target.target.as_str().to_owned(),
+                })
+                .collect(),
+            limits: supervision.contract.limits.into(),
+            allocation: supervision.allocation.into(),
+            deadline_timer: supervision.deadline_timer.to_string(),
+            backoff_timer: supervision.backoff_timer.to_string(),
+            cooldown_timer: supervision.cooldown_timer.to_string(),
+            cleanup: match supervision.contract.cleanup {
+                StopPolicy::Drain => "drain",
+                StopPolicy::Abort => "abort",
+            }
+            .to_owned(),
+            required_behavior: supervision.contract.required_behavior,
+        })
+        .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 13 {
+        schema: if plan.schema_version >= 15 {
+            SUPERVISION_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 13 {
             HAZARD_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else if plan.schema_version >= 12 {
             POLICY_PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -4564,6 +4992,7 @@ fn plan_document(
         composites,
         port_groups,
         instance_pools,
+        supervisions,
         unresolved_selectors: Vec::new(),
     })
 }
@@ -5349,6 +5778,18 @@ fn canonicalize_compile_input(input: &mut CompileInput) {
     input
         .pool_bindings
         .sort_by(|left, right| left.pool_semantic_hash.cmp(&right.pool_semantic_hash));
+    for supervision in &mut input.supervision_bindings {
+        supervision.members.sort();
+        supervision
+            .actions
+            .sort_by(|left, right| (&left.kind, &left.target).cmp(&(&right.kind, &right.target)));
+        supervision
+            .action_targets
+            .sort_by(|left, right| left.choice.cmp(&right.choice));
+    }
+    input
+        .supervision_bindings
+        .sort_by(|left, right| left.instance.cmp(&right.instance));
     input.trusted_entities.sort();
     input.trusted_status_reporters.sort();
     input.implementation_preference.sort();
@@ -5630,6 +6071,48 @@ fn direction(value: &str) -> Result<Direction, CompileError> {
         "input" => Ok(Direction::Input),
         "output" => Ok(Direction::Output),
         _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn supervision_action(
+    value: &SupervisionActionDocument,
+) -> Result<AdmittedSupervisionAction<'_>, CompileError> {
+    Ok(AdmittedSupervisionAction {
+        kind: match value.kind.as_str() {
+            "propagate" => SupervisionActionKind::Propagate,
+            "stop-scope" => SupervisionActionKind::StopScope,
+            "restart-same" => SupervisionActionKind::RestartSame,
+            "retry-same" => SupervisionActionKind::RetrySame,
+            "activate-declared-fallback" => SupervisionActionKind::ActivateDeclaredFallback,
+            "continue-declared-degraded-mode" => {
+                SupervisionActionKind::ContinueDeclaredDegradedMode
+            }
+            "request-operator-action" => SupervisionActionKind::RequestOperatorAction,
+            _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+        },
+        target: value.target.as_deref().map(id).transpose()?,
+        maximum_uses: value.maximum_uses,
+        permits_effect_replay: value.permits_effect_replay,
+        preserves_required_guarantees: value.preserves_required_guarantees,
+        requires_new_epoch: value.requires_new_epoch,
+    })
+}
+
+fn supervision_scope(value: &str) -> Result<SupervisionScope, CompileError> {
+    match value {
+        "child" => Ok(SupervisionScope::Child),
+        "named-group" => Ok(SupervisionScope::NamedGroup),
+        "composite-boundary" => Ok(SupervisionScope::CompositeBoundary),
+        "replicated-child" => Ok(SupervisionScope::ReplicatedChild),
+        _ => Err(CompileError::new(CompileReason::InvalidInput)),
+    }
+}
+
+fn supervision_failure_mode(value: &str) -> Result<SupervisionFailureMode, CompileError> {
+    match value {
+        "fail-together" => Ok(SupervisionFailureMode::FailTogether),
+        "isolated-optional" => Ok(SupervisionFailureMode::IsolatedOptional),
+        _ => Err(CompileError::new(CompileReason::InvalidInput)),
     }
 }
 
@@ -6351,6 +6834,7 @@ mod tests {
             }],
             catalog: builtin_catalog_document().unwrap(),
             pool_bindings: Vec::new(),
+            supervision_bindings: Vec::new(),
             hazard_closure: None,
             distribution: None,
             source_semantic_hash: topology.source_semantic_hash.to_string(),
@@ -6380,6 +6864,85 @@ mod tests {
         };
         input.seal().unwrap();
         input
+    }
+
+    fn supervision_binding(
+        lowered: &CompileLoweredSource,
+        allocation_memory_bytes: u64,
+    ) -> SupervisionBindingDocument {
+        SupervisionBindingDocument {
+            instance: "root/supervision/subject".to_owned(),
+            source_binding_hash: lowered.supervisions[0].semantic_hash.to_string(),
+            id: "supervision.subject".to_owned(),
+            scope: "child".to_owned(),
+            subject: "root/subject".to_owned(),
+            handler: "root/handler".to_owned(),
+            members: Vec::new(),
+            failure_mode: "fail-together".to_owned(),
+            outer: None,
+            policy: pin_doc("conduit/bounded-supervision", 201),
+            observation_contract: pin_doc("conduit/terminal-observation", 202),
+            decision_contract: pin_doc("conduit/supervision-decision", 203),
+            actions: vec![
+                SupervisionActionDocument {
+                    kind: "propagate".to_owned(),
+                    target: None,
+                    maximum_uses: 4,
+                    permits_effect_replay: false,
+                    preserves_required_guarantees: true,
+                    requires_new_epoch: false,
+                },
+                SupervisionActionDocument {
+                    kind: "restart-same".to_owned(),
+                    target: None,
+                    maximum_uses: 2,
+                    permits_effect_replay: false,
+                    preserves_required_guarantees: true,
+                    requires_new_epoch: false,
+                },
+                SupervisionActionDocument {
+                    kind: "activate-declared-fallback".to_owned(),
+                    target: Some("fallback".to_owned()),
+                    maximum_uses: 1,
+                    permits_effect_replay: false,
+                    preserves_required_guarantees: true,
+                    requires_new_epoch: false,
+                },
+            ],
+            action_targets: vec![SupervisionTargetDocument {
+                choice: "fallback".to_owned(),
+                target: "root/fallback".to_owned(),
+            }],
+            limits: SupervisionLimitsDocument {
+                maximum_observations: 4,
+                maximum_decisions: 4,
+                maximum_in_flight: 2,
+                maximum_cause_depth: 4,
+                maximum_nested_depth: 4,
+                maximum_handler_ticks: 10,
+                maximum_recovery_ticks: 20,
+                restart_window_ticks: 10,
+                backoff_ticks: 2,
+                cooldown_ticks: 3,
+                operator_wait_ticks: 5,
+                maximum_evidence_events: 32,
+                observation_bytes: 256,
+                decision_bytes: 64,
+                scratch_bytes: 128,
+            },
+            allocation: BudgetDocument {
+                memory_bytes: allocation_memory_bytes,
+                cpu_units: 1,
+                timers: 3,
+                evidence_bytes: 32,
+                ..BudgetDocument::default()
+            },
+            deadline_timer: "supervision-deadline".to_owned(),
+            backoff_timer: "supervision-backoff".to_owned(),
+            cooldown_timer: "supervision-cooldown".to_owned(),
+            cleanup: "abort".to_owned(),
+            required_behavior: true,
+        }
     }
 
     fn reference_distribution_document() -> ReferenceDistributionDocument {
@@ -6437,6 +7000,65 @@ mod tests {
         let mut mismatched_catalog = input;
         mismatched_catalog.catalog.nodes[0].semantic_hash = hash(99);
         assert_eq!(mismatched_catalog.seal().unwrap_err().code(), "CND-CMP-002");
+    }
+
+    #[test]
+    fn typed_supervision_compiles_to_schema_15_and_round_trips_exactly() {
+        let source = "panel 2\n\
+            node subject : conduit/literal { value = \"primary\" }\n\
+            node subject_sink : conduit/stdout\n\
+            node fallback : conduit/literal { value = \"fallback\" }\n\
+            node fallback_sink : conduit/stdout\n\
+            node handler : conduit/supervisor\n\
+            cord subject.out -> subject_sink.in\n\
+            cord fallback.out -> fallback_sink.in\n\
+            supervise subject with handler\n";
+        let panel = parse(source).unwrap();
+        let mut topology_panel = panel.clone();
+        topology_panel.supervisions.clear();
+        let mut input = compile_input(source, &topology_panel);
+        for candidate in &mut input.candidates {
+            candidate.implementation.minimum_plan_version = 1;
+            candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+            candidate.host_report.minimum_plan_version = 1;
+            candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        }
+        input.seal().unwrap();
+        let graph = resolve_source_graph(&input).unwrap();
+        let lowered = lower_compile_source(&graph, &input.catalog).unwrap();
+        assert_eq!(lowered.supervisions.len(), 1);
+        input.source_semantic_hash = lowered.semantic_hash.to_string();
+        input.supervision_bindings = vec![supervision_binding(&lowered, 768)];
+        input.seal().unwrap();
+
+        let plan = compile_panel(&panel, &input).unwrap();
+        assert_eq!(plan.schema, SUPERVISION_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.supervisions.len(), 1);
+        assert_eq!(plan.supervisions[0].subject, "root/subject");
+        assert_eq!(plan.supervisions[0].handler, "root/handler");
+        plan.validate().unwrap();
+
+        let bytes = serde_json::to_vec(&plan).unwrap();
+        let decoded: ExactPlanDocument = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(decoded, plan);
+        decoded.validate().unwrap();
+
+        let mut changed = input.clone();
+        changed.supervision_bindings[0].actions[1].maximum_uses = 3;
+        changed.seal().unwrap();
+        let changed_plan = compile_panel(&panel, &changed).unwrap();
+        assert_ne!(changed_plan.identity, plan.identity);
+
+        let mut underallocated = input;
+        underallocated.supervision_bindings[0]
+            .allocation
+            .memory_bytes = 767;
+        underallocated.seal().unwrap();
+        assert_eq!(
+            compile_panel(&panel, &underallocated).unwrap_err().code(),
+            "CND-CMP-008"
+        );
     }
 
     #[test]
@@ -6575,6 +7197,7 @@ mod tests {
             ],
             catalog: builtin_catalog_document().unwrap(),
             pool_bindings: Vec::new(),
+            supervision_bindings: Vec::new(),
             hazard_closure: None,
             distribution: None,
             source_semantic_hash: hash(1),
@@ -6614,7 +7237,7 @@ mod tests {
             &loader,
         )
         .unwrap();
-        let executable = executable_panel(&graph).unwrap();
+        let executable = executable_panel(&graph, &[]).unwrap();
         let topology = Registry::default()
             .resolve(&executable)
             .unwrap()
@@ -7287,7 +7910,10 @@ mod tests {
             });
         hazardous.seal().unwrap();
         let hazardous_plan = compile_panel(&panel, &hazardous).unwrap();
-        assert_eq!(hazardous_plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(
+            hazardous_plan.schema_version,
+            EXECUTION_PLAN_SCHEMA_VERSION_V14
+        );
         let hazardous_arena = Bump::new();
         let hazardous_core = hazardous_plan.as_plan(&hazardous_arena).unwrap();
         let stale = validate_hosted_execution_plan(
@@ -7360,9 +7986,9 @@ mod tests {
         input.modules[0].content_hash = content_hash(&source);
         let graph = resolve_source_graph(&input).unwrap();
         let lowered = lower_compile_source(&graph, &input.catalog).unwrap();
-        assert_eq!(lowered.pools.len(), 1);
+        assert_eq!(lowered.topology.pools.len(), 1);
         input.pool_bindings.push(PoolBindingDocument {
-            pool_semantic_hash: lowered.pools[0].semantic_hash.to_string(),
+            pool_semantic_hash: lowered.topology.pools[0].semantic_hash.to_string(),
             admission_policy: pin_doc("fixture/pool-admission", 111),
             supervision_policy: pin_doc("fixture/pool-supervision", 112),
             per_instance_budget: BudgetDocument {

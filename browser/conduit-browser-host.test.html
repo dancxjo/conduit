@@ -30,6 +30,10 @@ import {
   resolveBrowserPlacement,
   verifyExactArtifact,
 } from "./conduit-browser-host.mjs";
+import {
+  BoundedBrowserSupervisor,
+  SupervisionReason,
+} from "./conduit-supervision.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -339,6 +343,124 @@ assert(
   "GPU loss terminal evidence",
 );
 
+const supervisionBinding = Object.freeze({
+  schemaVersion: 1,
+  id: "fixture/browser-supervisor",
+  scope: "child",
+  subject: "root/subject",
+  handler: "root/handler",
+  members: [],
+  failureMode: "fail-together",
+  requiredBehavior: true,
+  limits: {
+    maximumObservations: 2,
+    maximumDecisions: 2,
+    maximumInFlight: 1,
+    maximumCauseDepth: 2,
+    maximumNestedDepth: 2,
+    maximumHandlerTicks: 8,
+    maximumRecoveryTicks: 16,
+    restartWindowTicks: 8,
+    backoffTicks: 2,
+    cooldownTicks: 2,
+    operatorWaitTicks: 8,
+    maximumEvidenceEvents: 8,
+  },
+  actions: [
+    {
+      kind: "propagate",
+      target: null,
+      maximumUses: 1,
+      permitsEffectReplay: false,
+      preservesRequiredGuarantees: true,
+      requiresNewEpoch: false,
+    },
+    {
+      kind: "restart-same",
+      target: null,
+      maximumUses: 1,
+      permitsEffectReplay: false,
+      preservesRequiredGuarantees: true,
+      requiresNewEpoch: false,
+    },
+    {
+      kind: "activate-declared-fallback",
+      target: "fallback",
+      maximumUses: 1,
+      permitsEffectReplay: false,
+      preservesRequiredGuarantees: true,
+      requiresNewEpoch: false,
+    },
+  ],
+});
+const terminalObservation = Object.freeze({
+  subject: "root/subject",
+  expandedSubject: "root/subject",
+  run: "fixture/run",
+  planIdentity: "fixture/plan",
+  planEpoch: 1,
+  generation: 1,
+  attempt: 1,
+  causedBy: [],
+  retry: "restart-only",
+  budget: {
+    remainingObservations: 2,
+    remainingDecisions: 2,
+    remainingAttempts: 1,
+    remainingEvidenceEvents: 8,
+    nowTick: 1,
+    deadlineTick: 10,
+  },
+});
+const browserSupervisor = new BoundedBrowserSupervisor(supervisionBinding, "browser");
+assert(browserSupervisor.admit(terminalObservation).ok, "browser supervisor admits terminal");
+const browserRestart = browserSupervisor.decide(
+  terminalObservation,
+  { kind: "restart-same", target: null },
+);
+assert(browserRestart.ok && browserRestart.nextAttempt === 2, "browser restart is explicit");
+const constrainedSupervisor = new BoundedBrowserSupervisor(supervisionBinding, "constrained");
+assert(constrainedSupervisor.admit(terminalObservation).ok, "constrained observation admitted");
+const constrainedFallback = constrainedSupervisor.decide(
+  terminalObservation,
+  { kind: "activate-declared-fallback", target: "fallback" },
+);
+assert(
+  !constrainedFallback.ok && constrainedFallback.code === SupervisionReason.UnsupportedProfile,
+  "constrained profile rejects richer action",
+);
+const correlationSupervisor = new BoundedBrowserSupervisor(supervisionBinding, "browser");
+assert(correlationSupervisor.admit(terminalObservation).ok, "correlation observation admitted");
+const wrongCorrelation = correlationSupervisor.decide(
+  { ...terminalObservation, run: "fixture/other-run" },
+  { kind: "propagate", target: null },
+);
+assert(
+  !wrongCorrelation.ok && wrongCorrelation.code === SupervisionReason.ObservationInvalid,
+  "browser decisions require exact correlation",
+);
+const timeoutSupervisor = new BoundedBrowserSupervisor(supervisionBinding, "browser");
+assert(timeoutSupervisor.admit({
+  ...terminalObservation,
+  run: "fixture/timeout-run",
+  code: "node-failed",
+  phase: "step",
+}).ok, "timeout observation admitted");
+const earlyHandlerTimeout = timeoutSupervisor.handlerTerminated("timeout", 8);
+assert(
+  !earlyHandlerTimeout.ok &&
+  earlyHandlerTimeout.code === SupervisionReason.ObservationInvalid,
+  "handler cannot time out before its exact deadline",
+);
+const handlerTimeout = timeoutSupervisor.handlerTerminated("timeout", 9);
+assert(
+  !handlerTimeout.ok &&
+  handlerTimeout.code === SupervisionReason.DeadlineExpired &&
+  handlerTimeout.outward.subject === "root/handler" &&
+  handlerTimeout.outward.causedBy.length === 1,
+  "handler timeout propagates a complete bounded chain",
+);
+
 globalThis.__conduitBrowserResults = Object.freeze({
   placementOutcomes: Object.freeze(placementOutcomes),
   reportedAvailability: Object.freeze(Object.fromEntries(
@@ -351,6 +473,17 @@ globalThis.__conduitBrowserResults = Object.freeze({
   resolverEffects: Object.freeze({ prompted: false, fetched: false, mutated: false }),
   terminalEvidence: evidence.filter((event) => event.kind === "terminal").length,
   membershipSignals: Object.freeze(membershipSignals),
+  supervision: Object.freeze({
+    restartAttempt: browserRestart.nextAttempt,
+    restartAffectedScope: browserRestart.affectedScope,
+    restartNotBeforeTick: browserRestart.timing.attemptNotBeforeTick,
+    evidenceKinds: browserSupervisor.evidence.map((item) => item.kind),
+    constrainedCode: constrainedFallback.code,
+    correlationCode: wrongCorrelation.code,
+    correlationEvidenceReason: correlationSupervisor.evidence.at(-1).reason,
+    handlerTimeoutCode: handlerTimeout.code,
+    handlerTimeoutSubject: handlerTimeout.outward.subject,
+  }),
 });
 document.querySelector("#result").textContent = "ok";
 </script>

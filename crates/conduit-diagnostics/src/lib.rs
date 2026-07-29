@@ -777,11 +777,11 @@ fn parse_fixes(
             })
             .unwrap_or(primary.byte_end);
         (
-            "use-panel-version-1",
-            "replace the unsupported grammar version with version 1",
+            "use-panel-version-2",
+            "replace the unsupported grammar version with version 2",
             version_start,
             version_end,
-            "1",
+            "2",
         )
     } else if error.message.contains("trailing comma") {
         let comma = source

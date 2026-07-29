@@ -4,7 +4,7 @@
 //! registry. Hosted libraries may implement these contracts, but discovery is
 //! not authority and no contract here can mint a grant or resource handle.
 
-use crate::Id;
+use crate::{Id, SupervisionContract};
 
 /// A behavior family supplied by a standard node library.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -18,6 +18,10 @@ pub enum StandardNodeKind {
     Throttle,
     Delay,
     Retry,
+    Supervisor,
+    TerminalProjection,
+    OperatorAction,
+    FaultSource,
     Probe,
 }
 
@@ -108,6 +112,33 @@ pub enum StandardContractError {
     Unbounded,
     IncompatibleLimits,
     UnsafeReferenceDefault,
+    IncompatibleSupervisionContract,
+}
+
+/// Validate that an ordinary standard supervisor node has enough exact
+/// resources to consume the portable typed supervision contract.
+pub fn validate_standard_supervisor(
+    standard: StandardNodeContract<'_>,
+    supervision: SupervisionContract<'_>,
+) -> Result<(), StandardContractError> {
+    validate_standard_node_contract(standard)?;
+    supervision
+        .validate()
+        .map_err(|_| StandardContractError::IncompatibleSupervisionContract)?;
+    let required_bytes = u64::from(supervision.limits.observation_bytes)
+        .checked_add(u64::from(supervision.limits.decision_bytes))
+        .and_then(|value| value.checked_add(u64::from(supervision.limits.scratch_bytes)))
+        .ok_or(StandardContractError::IncompatibleLimits)?;
+    if standard.kind != StandardNodeKind::Supervisor
+        || standard.limits.retained_values < u32::from(supervision.limits.maximum_in_flight)
+        || standard.limits.retained_bytes < required_bytes
+        || standard.limits.pending_operations < supervision.limits.maximum_in_flight
+        || standard.limits.timers < 3
+        || standard.limits.evidence_events < u32::from(supervision.limits.maximum_evidence_events)
+    {
+        return Err(StandardContractError::IncompatibleSupervisionContract);
+    }
+    Ok(())
 }
 
 /// Validate finite storage, work, cancellation, terminal, and evidence facts.
@@ -128,13 +159,17 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::Throttle
             | StandardNodeKind::Delay
             | StandardNodeKind::Retry
+            | StandardNodeKind::Supervisor
     );
     if needs_timer && limits.timers == 0 {
         return Err(StandardContractError::IncompatibleLimits);
     }
     let needs_state = matches!(
         contract.kind,
-        StandardNodeKind::Fold | StandardNodeKind::Window | StandardNodeKind::Debounce
+        StandardNodeKind::Fold
+            | StandardNodeKind::Window
+            | StandardNodeKind::Debounce
+            | StandardNodeKind::Supervisor
     );
     if needs_state && (limits.retained_values == 0 || limits.retained_bytes == 0) {
         return Err(StandardContractError::IncompatibleLimits);

@@ -95,6 +95,13 @@ schema marker/version to `conduit.compile-input/v2` / 2, and resealing the
 compile-input identity. This does not change the canonical primary `conduct`
 invocation or execution-plan document schema.
 
+The additive `conduit.execution-plan/v7` document carries plan-v15 typed
+supervision bindings from specification 049. Compile input must supply one
+exact action/resource/timer binding for every lowered grammar-v2 supervision
+relationship. Missing, extra, incompatible, or underallocated bindings fail
+before a partial plan is emitted; older documents remain readable under their
+frozen plan versions.
+
 ## Package manifest
 
 `conduit.package/v1` contains:

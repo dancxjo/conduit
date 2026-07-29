@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+conduit-core = { path = "../conduit-core" }
 conduit-panel = { path = "../conduit-panel" }
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10.9"

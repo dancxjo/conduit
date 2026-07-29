@@ -1,6 +1,6 @@
 use conduit_patchbay::{
     EditOperation, EditRequest, NodePosition, PATCHBAY_PROTOCOL_V1, PlanSnapshot, ProjectionLog,
-    ProjectionUpdate, RunSnapshot, RunState, SubjectPath, Workspace,
+    ProjectionUpdate, RunSnapshot, RunState, SubjectPath, Workspace, project_supervision,
 };
 
 const SOURCE: &str = "panel 1\nnode greeting : conduit/literal { value = \"hello\\n\" }\nnode output : conduit/stdout\ncord greeting.out -> output.in\n";
@@ -160,4 +160,112 @@ fn fixture_names_each_required_protocol_boundary() {
     ] {
         assert!(ids.contains(required), "fixture covers {required}");
     }
+}
+
+#[test]
+fn supervision_projection_retains_exact_origins_actions_rejection_and_gap() {
+    use conduit_core::{
+        AdmittedSupervisionAction, EvidenceCursor, EvidenceCursorStatus, Id, InstancePath,
+        RecoveryBudget, RetryDeclaration, SemanticHash, StopPolicy, SupervisionActionKind,
+        SupervisionContract, SupervisionEvidence, SupervisionEvidenceKind, SupervisionFailureMode,
+        SupervisionLimits, SupervisionReason, SupervisionScope, TerminalCauseCode, TerminalClass,
+        TerminalContext, TerminalObservation, TerminalPhase,
+    };
+    let actions = [AdmittedSupervisionAction {
+        kind: SupervisionActionKind::ActivateDeclaredFallback,
+        target: Some(Id("fallback")),
+        maximum_uses: 1,
+        permits_effect_replay: false,
+        preserves_required_guarantees: true,
+        requires_new_epoch: true,
+    }];
+    let contract = SupervisionContract {
+        schema_version: 1,
+        id: Id("supervision.subject"),
+        scope: SupervisionScope::Child,
+        subject: InstancePath::new("root/subject").unwrap(),
+        handler: InstancePath::new("root/handler").unwrap(),
+        members: &[],
+        failure_mode: SupervisionFailureMode::FailTogether,
+        outer: None,
+        actions: &actions,
+        limits: SupervisionLimits {
+            maximum_observations: 2,
+            maximum_decisions: 2,
+            maximum_in_flight: 1,
+            maximum_cause_depth: 2,
+            maximum_nested_depth: 2,
+            maximum_handler_ticks: 8,
+            maximum_recovery_ticks: 16,
+            restart_window_ticks: 8,
+            backoff_ticks: 2,
+            cooldown_ticks: 2,
+            operator_wait_ticks: 8,
+            maximum_evidence_events: 8,
+            observation_bytes: 256,
+            decision_bytes: 64,
+            scratch_bytes: 64,
+        },
+        cleanup: StopPolicy::Abort,
+        required_behavior: true,
+    };
+    let observation = TerminalObservation {
+        semantic_subject: contract.subject,
+        expanded_subject: InstancePath::new("root/subject-3").unwrap(),
+        run: Id("run-1"),
+        plan_identity: SemanticHash::from_bytes([7; 32]),
+        plan_epoch: 4,
+        generation: 3,
+        attempt: 2,
+        class: TerminalClass::Failed,
+        code: TerminalCauseCode::NodeFailed,
+        phase: TerminalPhase::Step,
+        caused_by: &[],
+        retry: RetryDeclaration::RestartOnly,
+        context: TerminalContext {
+            resource: Some(Id("gpu")),
+            host: Some(Id("browser")),
+            artifact: Some(Id("worker")),
+            ..TerminalContext::default()
+        },
+        evidence: EvidenceCursor {
+            stream: Id("evidence-run-1"),
+            sequence: 17,
+        },
+        budget: RecoveryBudget {
+            remaining_observations: 1,
+            remaining_decisions: 1,
+            remaining_attempts: 0,
+            remaining_evidence_events: 2,
+            now_tick: 10,
+            deadline_tick: 20,
+        },
+    };
+    let evidence = [SupervisionEvidence {
+        sequence: 18,
+        kind: SupervisionEvidenceKind::DecisionRejected,
+        action_index: Some(0),
+        reason: Some(SupervisionReason::CandidateEpochRequired),
+    }];
+    let projection = project_supervision(
+        "sha256:source",
+        observation,
+        contract,
+        &evidence,
+        EvidenceCursorStatus::Gap { resume_at: 15 },
+    );
+    assert_eq!(projection.semantic_subject, "root/subject");
+    assert_eq!(projection.expanded_subject, "root/subject-3");
+    assert_eq!(projection.plan_epoch, 4);
+    assert_eq!(projection.evidence_gap_resume_at, Some(15));
+    assert_eq!(projection.actions[0].target.as_deref(), Some("fallback"));
+    assert!(projection.actions[0].requires_new_epoch);
+    assert_eq!(
+        projection
+            .latest_evidence
+            .unwrap()
+            .rejection_code
+            .as_deref(),
+        Some("CND-SUP-013")
+    );
 }

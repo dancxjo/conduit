@@ -3,7 +3,7 @@
 Status: proposed portable contract
 
 Depends on: specifications 007, 008, 010, 012, 022, 024, 039, 041, 042,
-043, 044, and 045
+043, 044, 045, and the common supervision contract in 049
 
 ## Boundary
 
@@ -36,16 +36,20 @@ plan and are never restored as node state.
 
 ## Retry and supervision
 
-Retry pins a positive maximum attempt count, deadline, finite backoff, exact
-provider binding, resource binding, grant, cancellation scope, and enough
-evidence capacity for every attempt. Every attempt retains those identities.
-Retry cannot discover or select another provider, enlarge a request, mint or
+Retry and the standard supervisor consume `TerminalObservation` and emit only
+the finite `SupervisionDecision` vocabulary from specification 049. Retry pins
+a positive maximum attempt count, deadline, finite backoff, exact provider
+binding, resource binding, grant, cancellation scope, and enough evidence
+capacity for every attempt. Every attempt retains those identities. Retry
+cannot discover or select another provider, enlarge a request, mint or
 delegate a grant, reset a persistent budget, or change a hazardous admission.
 
-Fallback is an explicitly planned value-flow branch. It cannot mean “try a
-more permissive provider.” Supervision may restart implementation state within
-its existing plan contract, but cannot treat restart or checkpoint restore as
-an authority epoch.
+Fallback is an explicitly planned compatible choice. It cannot mean “try a
+more permissive provider.” Standard retry, fallback, circuit-breaker,
+supervisor, health-gate, terminal-projection, operator-action, and fault-source
+nodes do not own parallel error semantics. Supervision may restart
+implementation state within its existing plan contract, but cannot treat
+restart or checkpoint restore as an authority epoch.
 
 ## Narrow host-service interfaces
 

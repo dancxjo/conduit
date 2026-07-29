@@ -171,6 +171,9 @@ an incidental library detail:
 - nonblocking node steps use executor-mediated input leases, output
   reservations, exact wake interests, and finite retained/scratch/host bounds;
 - diagnostics and evidence can be durably associated with an exact run and plan;
+- typed supervision keeps expected domain outcomes, runtime terminal causes,
+  and pre-run diagnostics separate while allowing only finite, exact-plan
+  admitted recovery decisions;
 - composite definitions expose only explicit typed ports and explain both their
   logical and flattened primitive forms.
 
