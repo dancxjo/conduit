@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit browser host adapter vectors</title>
+<pre id="result">running</pre>
+<script type="module">
+import {
+  BoundedPortQueue, BrowserExecutionAdapter, BrowserHostReason, PermissionState,
+  Placement, observeBrowserHost, resolveBrowserPlacement, verifyExactArtifact,
+} from "./conduit-browser-host.mjs";
+
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
+const report = observeBrowserHost({
+  hostId: "fixture/browser", observationId: "fixture/observation",
+  reporter: { realmId: "fixture/realm", entityId: "fixture/browser-entity", passportIdentity: "fixture/passport", statusObservation: "fixture/status" },
+  tick: 10, validUntilTick: 20,
+  context: { secureContext: true, origin: "https://fixture.invalid", crossOriginIsolated: true },
+  placements: [{ id: Placement.Window, available: true, lifetime: "page", scheduling: "cooperative", transfer: "clone", limits: { queueBytes: 8 }, terminalRisks: ["freeze", "discard"] }],
+  permissions: [{ capability: "microphone", state: PermissionState.Prompt, scope: "origin" }],
+  resources: { queueBytes: 8 },
+});
+assert(report.ok !== false, "report accepted");
+assert(resolveBrowserPlacement(report, { tick: 11, placement: Placement.Window, permissions: ["microphone"] }).code === BrowserHostReason.PromptIsNotGrant, "prompt is never a grant");
+assert(resolveBrowserPlacement(report, { tick: 21, placement: Placement.Window }).code === BrowserHostReason.StaleObservation, "stale report rejected");
+const queue = new BoundedPortQueue(1);
+assert(queue.offer("one").ok && queue.offer("two").code === BrowserHostReason.QueueCapacity, "queue bounded");
+const digest = await verifyExactArtifact(new TextEncoder().encode("conduit"), "41a01f9945b8b394953d4d44a1522eb9c7654c7fc86a572b71fc63408e854440");
+assert(digest.ok, "artifact verified");
+const evidence = [];
+const adapter = new BrowserExecutionAdapter({ planIdentity: "fixture/plan", placement: Placement.Window }, (event) => evidence.push(event));
+assert(adapter.start().ok && adapter.terminate("page-frozen").ok && evidence.length === 2, "lifecycle evidenced");
+document.querySelector("#result").textContent = "ok";
+</script>

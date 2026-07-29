@@ -123,6 +123,9 @@ The current documents are candidates, not a claim of ecosystem stability:
   realm, entity, key, membership, role, delegation, federation, fresh-status,
   and event-authorship identities without treating any of them as an ambient
   capability or effect grant.
+- [`034-browser-host-v1.md`](034-browser-host-v1.md) defines typed browser
+  observations, placement boundaries, explicit permission/activation state,
+  exact artifact loading, bounded adapter queues, and UI/host separation.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
