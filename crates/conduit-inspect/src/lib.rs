@@ -468,9 +468,7 @@ pub fn inspect_execution_plan(
     limits: InspectLimits,
 ) -> Result<InspectionReport, InspectionError> {
     require_digest(content_digest, "content digest")?;
-    validate_hosted_execution_plan(plan, context)
-        .map_err(|error| failure(error.code.as_str(), error.to_string()))?;
-    let structural_items = [
+    let mut structural_items = [
         plan.host_observations.len(),
         plan.resources.len(),
         plan.artifacts.len(),
@@ -485,7 +483,38 @@ pub fn inspect_execution_plan(
     .into_iter()
     .try_fold(0_usize, usize::checked_add)
     .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    for node in plan.nodes {
+        structural_items = structural_items
+            .checked_add(node.required_resources.len())
+            .and_then(|value| value.checked_add(node.required_effects.len()))
+            .and_then(|value| {
+                node.execution_profile.map_or(Some(value), |profile| {
+                    value
+                        .checked_add(profile.representations.len())
+                        .and_then(|sum| sum.checked_add(profile.memory_claims.len()))
+                })
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
+    for composite in plan.composites {
+        structural_items = structural_items
+            .checked_add(composite.members.len())
+            .and_then(|value| value.checked_add(composite.exports.len()))
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
+    for group in plan.port_groups {
+        structural_items = structural_items
+            .checked_add(group.members.len())
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
+    for pool in plan.instance_pools {
+        structural_items = structural_items
+            .checked_add(pool.authority_grants.len())
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
     enforce_collection_bound(structural_items, limits, "plan structural items")?;
+    validate_hosted_execution_plan(plan, context)
+        .map_err(|error| failure(error.code.as_str(), error.to_string()))?;
     let mut counts = BTreeMap::new();
     counts.insert(
         "host_observations".to_owned(),
@@ -494,6 +523,13 @@ pub fn inspect_execution_plan(
     counts.insert("resources".to_owned(), plan.resources.len() as u64);
     counts.insert("artifacts".to_owned(), plan.artifacts.len() as u64);
     counts.insert("nodes".to_owned(), plan.nodes.len() as u64);
+    counts.insert(
+        "execution_profiles".to_owned(),
+        plan.nodes
+            .iter()
+            .filter(|node| node.execution_profile.is_some())
+            .count() as u64,
+    );
     counts.insert("cords".to_owned(), plan.cords.len() as u64);
     counts.insert("authorities".to_owned(), plan.authorities.len() as u64);
     counts.insert("composites".to_owned(), plan.composites.len() as u64);
@@ -510,6 +546,21 @@ pub fn inspect_execution_plan(
     budgets.insert("transports".to_owned(), u64::from(plan.budget.transports));
     budgets.insert("checkpoints".to_owned(), u64::from(plan.budget.checkpoints));
     budgets.insert("evidence_bytes".to_owned(), plan.budget.evidence_bytes);
+    budgets.insert(
+        "implementation_memory_bytes".to_owned(),
+        plan.nodes
+            .iter()
+            .filter_map(|node| node.execution_profile)
+            .try_fold(0_u64, |total, profile| {
+                total.checked_add(profile.limits.implementation_memory_bytes)
+            })
+            .ok_or_else(|| {
+                failure(
+                    "CND-INSP-007",
+                    "implementation profile memory budget overflow",
+                )
+            })?,
+    );
     let mut references = vec![
         InspectionReference {
             category: "source-semantic".to_owned(),
@@ -553,6 +604,12 @@ pub fn inspect_execution_plan(
                 ),
             },
         ]);
+        if let Some(profile) = node.execution_profile {
+            references.push(InspectionReference {
+                category: "execution-profile".to_owned(),
+                value: format!("{}@{}", profile.id, profile.semantic_hash),
+            });
+        }
     }
     references.extend(plan.resources.iter().map(|value| InspectionReference {
         category: "resource".to_owned(),

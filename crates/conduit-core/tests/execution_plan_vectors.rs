@@ -1,13 +1,13 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
-    DelegationPolicy, Direction, EffectRequirement, ExecutionPlan, FlowCapacity, FlowPolicy,
-    FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, ObservedGrant, PinnedDescriptor,
-    PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode,
-    PlanExportBinding, PlanHostObservation, PlanInstancePool, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, SemanticHash, StopPolicy,
-    TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind, resolve_authority,
-    validate_execution_plan,
+    BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, EffectRequirement,
+    ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowPolicy, FlowWatermarks,
+    GrantStatus, HostCapability, Id, InstancePath, ObservedGrant, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding,
+    PlanHostObservation, PlanInstancePool, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, ResourceRef, ResourceSelector, SemanticHash, StopPolicy, TypeContractRef,
+    UnresolvedPlanConstraint, UnresolvedPlanKind, resolve_authority, validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -148,6 +148,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
             contract: pin("fixture/source-contract", 13),
             implementation: pin("fixture/source-impl", 14),
             lifecycle_policy: pin("fixture/source-lifecycle", 28),
+            execution_profile: None,
             artifact: artifacts[0].id,
             host_observation: observations[0].id,
             host: observations[0].host,
@@ -160,6 +161,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
             contract: pin("fixture/sink-contract", 15),
             implementation: pin("fixture/sink-impl", 16),
             lifecycle_policy: pin("fixture/sink-lifecycle", 29),
+            execution_profile: None,
             artifact: artifacts[1].id,
             host_observation: observations[0].id,
             host: observations[0].host,
@@ -484,6 +486,118 @@ fn plan_v2_pins_group_maximum_and_direction_without_rewriting_v1() {
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::UnsupportedVersion
+        );
+    });
+}
+
+#[test]
+fn plan_v3_pins_bounded_execution_profiles_without_rewriting_v1_or_v2() {
+    with_plan(|plan, scratch| {
+        let fixture = include_str!("../../../conformance/c4/implementation-step-v1.json");
+        for case in [
+            "plan-v3-profile-pinned",
+            "plan-v1-v2-identities-preserved",
+            "plan-v3-missing-profile-rejected",
+            "plan-v2-profile-rejected",
+        ] {
+            assert!(fixture.contains(&format!("\"id\":\"{case}\"")));
+        }
+        let mut profile = ExecutionProfile {
+            id: Id("fixture/execution-profile"),
+            schema_version: 1,
+            semantic_hash: ZERO_HASH,
+            boundedness: BoundednessProfile::Hard,
+            cancellation: CancellationGuarantee::Bounded,
+            step_bound_enforced: true,
+            limits: ExecutionLimits {
+                max_step_work: 8,
+                max_retained_values: 0,
+                max_retained_bytes: 0,
+                max_scratch_bytes: 0,
+                max_input_leases: 0,
+                max_input_bytes: 0,
+                max_output_reservations: 0,
+                max_output_bytes: 0,
+                max_transactions: 1,
+                max_fragments_per_step: 0,
+                max_pending_operations: 0,
+                max_timers: 0,
+                max_child_tasks: 0,
+                max_host_buffer_bytes: 0,
+                max_foreign_queue_items: 0,
+                max_foreign_queue_bytes: 0,
+                max_checkpoint_bytes: 0,
+                implementation_memory_bytes: 0,
+                cancellation_ticks: 1,
+            },
+            representations: &[],
+            memory_claims: &[],
+            checkpoint: None,
+        };
+        profile.semantic_hash = profile.computed_semantic_hash(&mut []).unwrap();
+        let nodes = [
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                ..plan.nodes[0]
+            },
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                ..plan.nodes[1]
+            },
+        ];
+        let mut v3 = ExecutionPlan {
+            schema_version: 3,
+            identity: ZERO_HASH,
+            nodes: &nodes,
+            ..plan
+        };
+        v3.identity = v3.semantic_hash(scratch).unwrap();
+        let v3_context = PlanValidationContext {
+            supported_schema_version: 3,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v3, v3_context, scratch), Ok(()));
+        assert_ne!(v3.identity, plan.identity);
+
+        let mut v2_with_profile = ExecutionPlan {
+            schema_version: 2,
+            identity: ZERO_HASH,
+            nodes: &nodes,
+            ..plan
+        };
+        v2_with_profile.identity = v2_with_profile.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(
+                &v2_with_profile,
+                PlanValidationContext {
+                    supported_schema_version: 2,
+                    now: time(20)
+                },
+                scratch
+            )
+            .unwrap_err()
+            .code,
+            PlanDiagnosticCode::InvalidDescriptor
+        );
+
+        let missing_profile_nodes = [
+            ResolvedPlanNode {
+                execution_profile: None,
+                ..nodes[0]
+            },
+            nodes[1],
+        ];
+        let mut missing = ExecutionPlan {
+            identity: ZERO_HASH,
+            nodes: &missing_profile_nodes,
+            ..v3
+        };
+        missing.identity = missing.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&missing, v3_context, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::InvalidDescriptor
         );
     });
 }

@@ -6,7 +6,7 @@ pub use conduit_core::DIAGNOSTIC_SCHEMA_VERSION;
 use conduit_core::{
     Diagnostic, DiagnosticArgument, DiagnosticArgumentValue, DiagnosticContractError,
     DiagnosticEdit, DiagnosticFix, DiagnosticRelated, DiagnosticSeverity, DiagnosticSpan,
-    FixApplicability, PlanValidationError, ValidationError,
+    FixApplicability, ImplementationError, PlanValidationError, ValidationError,
 };
 use conduit_panel::{ModuleResolutionError, ParseError, SourceSchemaError, SourceSpan};
 use conduit_runtime::{LoweringDiagnostic, ResolutionError, RuntimeError};
@@ -561,6 +561,12 @@ pub fn from_resolution_error(error: &ResolutionError) -> OwnedDiagnostic {
 #[must_use]
 pub fn from_runtime_error(error: &RuntimeError) -> OwnedDiagnostic {
     base(error.code, &error.message, None, Vec::new())
+}
+
+/// Converts a host-neutral implementation contract violation.
+#[must_use]
+pub fn from_implementation_error(error: ImplementationError) -> OwnedDiagnostic {
+    base(error.code(), &error.to_string(), None, Vec::new())
 }
 
 /// Source-aware context for a portable compatibility failure.

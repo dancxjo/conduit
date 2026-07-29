@@ -111,7 +111,9 @@ an incidental library detail:
 - cancellation and terminal behavior are deterministic;
 - queues use caller-provided fixed storage at the allocator-free boundary;
 - execution plans pin implementation, artifact, host, resources, authority,
-  and provenance before start;
+  bounded execution profile, and provenance before start;
+- nonblocking node steps use executor-mediated input leases, output
+  reservations, exact wake interests, and finite retained/scratch/host bounds;
 - diagnostics and evidence can be durably associated with an exact run and plan;
 - composite definitions expose only explicit typed ports and explain both their
   logical and flattened primitive forms.
@@ -150,15 +152,16 @@ This repository contains the first executable Plan C foundation:
 
 - `conduit-core`: allocator-free contracts, canonical semantic hashes,
   opaque type references, port/config schemas, bounded flow-policy state
-  machines, compatibility, and plan validation;
+  machines, host-neutral implementation steps/transactions, compatibility,
+  and plan validation;
 - `conduit-panel`: the versioned `.panel` grammar, lossless CST/source AST,
   module resolution, reusable definitions, groups, and finite pools;
 - `conduit-diagnostics`: owned structured diagnostics, lossless JSON, guarded
   source fixes, cross-file spans, and concise/verbose terminal rendering;
 - `conduit-inspect`: hosted bounded, marker-only, non-executing artifact
   validation and value-safe reports;
-- `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
-  one-shot executor;
+- `conduit-runtime`: a hosted registry, typed-config resolver, explainer,
+  one-shot executor, and native/message step-binding examples;
 - `conduct`: the Unix command-line interface.
 
 The initial runtime includes intentionally small proof handlers for literal

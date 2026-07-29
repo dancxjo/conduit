@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 9,
+  "manifest_revision": 10,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1897,6 +1897,124 @@
         {
           "package": "conduct",
           "test": "generated_assets"
+        }
+      ]
+    },
+    {
+      "id": "implementation-step",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "IMP-001",
+        "IMP-002",
+        "IMP-003",
+        "IMP-004",
+        "IMP-005",
+        "IMP-006",
+        "IMP-007",
+        "IMP-008",
+        "IMP-009",
+        "IMP-010",
+        "IMP-011",
+        "IMP-012",
+        "IMP-013",
+        "IMP-014",
+        "IMP-015",
+        "IMP-016"
+      ],
+      "artifacts": [
+        {
+          "id": "implementation-step-v1",
+          "path": "../c4/implementation-step-v1.json",
+          "sha256": "sha256:91d7965f2a32f261bffc429643dd37c5ee0bfa5edd23564e93e8860cd80e7e77",
+          "operation": "implementation-step-v1",
+          "requirement_ids": [
+            "IMP-001",
+            "IMP-002",
+            "IMP-003",
+            "IMP-004",
+            "IMP-005",
+            "IMP-006",
+            "IMP-007",
+            "IMP-008",
+            "IMP-009",
+            "IMP-010",
+            "IMP-011",
+            "IMP-012",
+            "IMP-013",
+            "IMP-014",
+            "IMP-015",
+            "IMP-016"
+          ],
+          "default_rule": "IMP-004",
+          "case_rules": {
+            "profile-identity": "IMP-003",
+            "semantic-representation-separation": "IMP-002",
+            "prepare-all-atomic-success": "IMP-005",
+            "prepare-work-bound-rejected": "IMP-005",
+            "start-pending-work-rejected": "IMP-007",
+            "stateless-transform-zero-retained": "IMP-006",
+            "false-progress-rejected": "IMP-007",
+            "join-two-inputs": "IMP-008",
+            "output-full-rollback": "IMP-009",
+            "bounded-incremental-output": "IMP-010",
+            "host-operation-exact-binding": "IMP-011",
+            "checkpoint-is-optional-and-pinned": "IMP-012",
+            "executor-evidence-cannot-be-suppressed": "IMP-013",
+            "hard-profile-rejects-observed-memory": "IMP-014",
+            "foreign-unbounded-step-rejected": "IMP-014",
+            "exact-instantiation-binding": "IMP-016",
+            "unvalidated-configuration-rejected": "IMP-016",
+            "caller-memory-mismatch-rejected": "IMP-016",
+            "missing-resource-handle-rejected": "IMP-016",
+            "ambient-grant-rejected": "IMP-016",
+            "profile-binding-mismatch-rejected": "IMP-016",
+            "plan-v3-profile-pinned": "IMP-003",
+            "plan-v1-v2-identities-preserved": "IMP-003",
+            "plan-v3-missing-profile-rejected": "IMP-003",
+            "plan-v2-profile-rejected": "IMP-003",
+            "native-message-binding-equivalence": "IMP-015",
+            "foreign-protocol-version-rejected": "IMP-001"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "implementation-step-v1#profile-identity",
+          "implementation-step-v1#join-two-inputs",
+          "implementation-step-v1#native-message-binding-equivalence"
+        ],
+        "negative": [
+          "implementation-step-v1#false-progress-rejected",
+          "implementation-step-v1#output-full-rollback",
+          "implementation-step-v1#host-operation-ambient-binding-rejected"
+        ],
+        "boundary": [
+          "implementation-step-v1#scratch-bound",
+          "implementation-step-v1#bounded-incremental-output",
+          "implementation-step-v1#foreign-unbounded-cancellation-rejected"
+        ],
+        "migration": [
+          "implementation-step-v1#semantic-representation-separation",
+          "implementation-step-v1#checkpoint-is-optional-and-pinned",
+          "implementation-step-v1#foreign-protocol-version-rejected"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "implementation_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "implementation_bindings"
         }
       ]
     }

@@ -36,7 +36,7 @@ evidence payload material.
 |---|---|---|
 | panel source | UTF-8 `.panel` bytes or local path | lossless CST/source AST, source-v2 identity, local module graph and pins |
 | lowered source v2 | typed `LoweredSourceV2` | schema pair, semantic/source references, topology counts and aggregate authored bounds |
-| execution plan v1/v2 | typed `ExecutionPlan` plus explicit validation context | portable exact-plan validation, identity, pins, staleness, budgets and references |
+| execution plan v1/v2/v3 | typed `ExecutionPlan` plus explicit validation context | portable exact-plan validation, identity, implementation execution profiles, pins, staleness, budgets and references |
 | execution evidence v1 | hosted immutable-event NDJSON | record bounds, owned decoding, core event/stream validation, identity/order/redaction |
 | structured diagnostic v1 | hosted diagnostic JSON | exact owned schema and allocator-free contract validation |
 | conformance manifest v1 | JSON bytes or local path | header/schema, uniqueness, digest syntax, and bounded local referenced-digest verification |

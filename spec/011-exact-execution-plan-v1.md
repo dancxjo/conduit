@@ -8,6 +8,10 @@ This document remains the frozen schema-1 contract. Specification
 [`017-port-groups-correlation-v1.md`](017-port-groups-correlation-v1.md)
 defines the compatible reader behavior and the explicit port-group correction
 in ExecutionPlan schema 2; it does not change any schema-1 identity.
+Specification
+[`022-host-neutral-implementation-step-v1.md`](022-host-neutral-implementation-step-v1.md)
+adds one exact implementation execution profile per primitive in plan schema
+3 without changing schema-1 or schema-2 identity.
 
 ## Identity boundary
 

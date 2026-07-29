@@ -76,6 +76,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         contract: pin("fixture/contract", 6),
         implementation: pin("fixture/implementation", 7),
         lifecycle_policy: pin("fixture/lifecycle", 8),
+        execution_profile: None,
         artifact: Id("artifact/a"),
         host_observation: Id("observation/a"),
         host: Id("host/a"),

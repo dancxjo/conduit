@@ -25,6 +25,7 @@ use serde::Serialize;
 
 mod config_resolution;
 mod evidence_ndjson;
+mod implementation_binding;
 mod source_lowering;
 mod type_registry;
 
@@ -36,6 +37,11 @@ pub use evidence_ndjson::{
     NdjsonError, OwnedEventCorrelation, OwnedEventPayload, OwnedEventRelations,
     OwnedEventTerminality, OwnedEventTime, OwnedExecutionEvent, OwnedPayloadShape, OwnedTypeRef,
     decode_event_ndjson, encode_event_ndjson, encode_owned_event_ndjson,
+};
+pub use implementation_binding::{
+    ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,
+    NativeStepBinding, NativeStepImplementation, OwnedStepOutcome, OwnedStepReply,
+    OwnedWakeInterest,
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LiteralValidationError,
@@ -57,13 +63,13 @@ pub fn validate_hosted_execution_plan(
     plan: &conduit_core::ExecutionPlan<'_>,
     context: conduit_core::PlanValidationContext<'_>,
 ) -> Result<(), conduit_core::PlanValidationError> {
-    let fact_count = plan
-        .identity_fact_count()
-        .map_err(|_| conduit_core::PlanValidationError {
-            code: conduit_core::PlanDiagnosticCode::InvalidDescriptor,
-            collection: conduit_core::PlanCollection::Header,
-            subject_index: None,
-        })?;
+    let fact_count =
+        plan.validation_scratch_count()
+            .map_err(|_| conduit_core::PlanValidationError {
+                code: conduit_core::PlanDiagnosticCode::InvalidDescriptor,
+                collection: conduit_core::PlanCollection::Header,
+                subject_index: None,
+            })?;
     let mut scratch = vec![SemanticHash::from_bytes([0; 32]); fact_count];
     conduit_core::validate_execution_plan(plan, context, &mut scratch)
 }

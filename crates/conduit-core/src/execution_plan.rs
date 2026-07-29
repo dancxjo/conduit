@@ -6,17 +6,19 @@ use core::fmt;
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue, Direction,
-    EffectRequirement, FieldDisposition, FlowPolicy, GrantStatus, HostCapability, Id, InstancePath,
-    MapField, ObservedGrant, Pressure, ResolvedAuthorityBinding, SemanticHash, TypeContractRef,
-    validate_authority_at_use,
+    EffectRequirement, ExecutionProfile, FieldDisposition, FlowPolicy, GrantStatus, HostCapability,
+    Id, InstancePath, MapField, ObservedGrant, Pressure, ResolvedAuthorityBinding, SemanticHash,
+    TypeContractRef, validate_authority_at_use, validate_plan_execution_profile,
 };
 
 /// Latest exact schema supported by the portable validator.
 ///
-/// Schema 2 adds explicit port-group maximum and direction. Schema 1 remains
-/// readable with its frozen identity and validation behavior.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 2;
+/// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
+/// exact implementation execution profile per primitive node. Earlier schemas
+/// remain readable with their frozen identities and validation behavior.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 3;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -146,6 +148,8 @@ pub struct ResolvedPlanNode<'a> {
     pub contract: PinnedDescriptor<'a>,
     pub implementation: PinnedDescriptor<'a>,
     pub lifecycle_policy: PinnedDescriptor<'a>,
+    /// Exact bounded execution profile in plan schema 3; absent in v1/v2.
+    pub execution_profile: Option<&'a ExecutionProfile<'a>>,
     pub artifact: Id<'a>,
     pub host_observation: Id<'a>,
     pub host: Id<'a>,
@@ -411,6 +415,11 @@ impl ExecutionPlan<'_> {
             count = count
                 .checked_add(node.required_resources.len())
                 .and_then(|value| value.checked_add(node.required_effects.len()))
+                .and_then(|value| {
+                    value.checked_add(usize::from(
+                        self.schema_version >= 3 && node.execution_profile.is_some(),
+                    ))
+                })
                 .ok_or(PlanIdentityError::FactCountOverflow)?;
         }
         for composite in self.composites {
@@ -433,6 +442,17 @@ impl ExecutionPlan<'_> {
                 .ok_or(PlanIdentityError::FactCountOverflow)?;
         }
         Ok(count)
+    }
+
+    /// Scratch slots sufficient for both embedded profile and plan validation.
+    pub fn validation_scratch_count(&self) -> Result<usize, PlanIdentityError> {
+        let plan = self.identity_fact_count()?;
+        Ok(self
+            .nodes
+            .iter()
+            .filter_map(|node| node.execution_profile)
+            .map(ExecutionProfile::identity_fact_count)
+            .fold(plan, usize::max))
     }
 
     /// Canonical semantic identity, independent of every collection's input order.
@@ -463,6 +483,14 @@ impl ExecutionPlan<'_> {
         }
         for value in self.nodes {
             push!(hash_node(*value));
+            if self.schema_version >= 3 {
+                if let Some(profile) = value.execution_profile {
+                    push!(hash_node_execution_profile(
+                        value.instance,
+                        profile.semantic_hash
+                    ));
+                }
+            }
             for resource in value.required_resources {
                 push!(hash_node_resource(value.instance, *resource));
             }
@@ -711,6 +739,26 @@ pub fn validate_execution_plan(
                 PlanCollection::Nodes,
                 index,
             ));
+        }
+        match (plan.schema_version >= 3, node.execution_profile) {
+            (true, Some(profile)) => {
+                validate_plan_execution_profile(profile, node.allocation, identity_scratch)
+                    .map_err(|_| {
+                        indexed(
+                            PlanDiagnosticCode::InvalidDescriptor,
+                            PlanCollection::Nodes,
+                            index,
+                        )
+                    })?;
+            }
+            (false, None) => {}
+            _ => {
+                return Err(indexed(
+                    PlanDiagnosticCode::InvalidDescriptor,
+                    PlanCollection::Nodes,
+                    index,
+                ));
+            }
         }
         if plan.nodes[..index]
             .iter()
@@ -1218,6 +1266,22 @@ fn hash_node(value: ResolvedPlanNode<'_>) -> Result<SemanticHash, CanonicalError
             ),
             semantic("host", CanonicalValue::Identifier(value.host)),
             semantic("allocation", CanonicalValue::Map(&budget)),
+        ],
+    )
+}
+
+fn hash_node_execution_profile(
+    node: InstancePath<'_>,
+    profile_hash: SemanticHash,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-node-execution-profile"),
+        &[
+            semantic("node", CanonicalValue::Text(node.as_str())),
+            semantic(
+                "execution_profile_hash",
+                CanonicalValue::Bytes(profile_hash.as_bytes()),
+            ),
         ],
     )
 }

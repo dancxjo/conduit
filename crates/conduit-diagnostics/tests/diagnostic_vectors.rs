@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    DiagnosticCode, PlanCollection, PlanDiagnosticCode, PlanValidationError, SemanticHash,
-    ValidationError,
+    DiagnosticCode, ImplementationError, PlanCollection, PlanDiagnosticCode, PlanValidationError,
+    SemanticHash, ValidationError,
 };
 use conduit_diagnostics::{
     CompatibilityDiagnosticContext, DiagnosticSource, FixStatus, KnownAdapterFix,
     OwnedDiagnosticArgument, OwnedDiagnosticArgumentValue, OwnedDiagnosticEdit, OwnedDiagnosticFix,
     OwnedDiagnosticSeverity, OwnedDiagnosticSpan, OwnedFixApplicability, PlanDiagnosticContext,
-    TerminalColor, TerminalVerbosity, check_fix, from_lowering_error, from_module_error,
-    from_parse_error, from_plan_error, from_source_schema_error, from_validation_error,
-    render_terminal,
+    TerminalColor, TerminalVerbosity, check_fix, from_implementation_error, from_lowering_error,
+    from_module_error, from_parse_error, from_plan_error, from_source_schema_error,
+    from_validation_error, render_terminal,
 };
 use conduit_panel::{
     LoadedModule, ModuleLoader, SourceSpan, parse, resolve_modules, semantic_source_hash_version,
@@ -71,6 +71,10 @@ fn resolver_and_plan_failures_have_structured_adapters() {
             .iter()
             .any(|argument| argument.name == "collection")
     );
+
+    let implementation = from_implementation_error(ImplementationError::FalseProgress);
+    assert_eq!(implementation.code, "CND-IMP-006");
+    implementation.validate().unwrap();
 }
 
 #[test]
