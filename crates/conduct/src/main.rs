@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::fs;
+use std::fs::OpenOptions;
 use std::io::{self, IsTerminal, Read, Write};
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
@@ -10,8 +11,10 @@ use clap::Parser;
 use clap::error::ErrorKind;
 use conduct::run_stream::{RUN_CHANNEL_CHUNK_MAX_BYTES, RunNdjsonState};
 use conduct::{
-    Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, SecondaryCommand,
+    Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, PackageOperation,
+    SecondaryCommand,
 };
+use conduit_compile::{CompileInput, compile_panel};
 use conduit_diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, DiagnosticSource, OwnedDiagnostic, TerminalColor, TerminalVerbosity,
     from_parse_error, from_resolution_error, from_runtime_error, render_terminal,
@@ -20,6 +23,7 @@ use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_bytes, inspect_conformance_manifest_path,
     inspect_panel_path, read_bounded, read_stream_bounded,
 };
+use conduit_package::{PackageLimits, PackageManifest, decode_package, encode_package};
 use conduit_panel::parse;
 use conduit_runtime::{Registry, ResolvedPanelView, RunIo};
 use serde::Serialize;
@@ -53,6 +57,23 @@ struct CheckResult {
     definitions: usize,
     root_nodes: usize,
     root_cords: usize,
+}
+
+#[derive(Serialize)]
+struct PackageCreateResult {
+    identity: String,
+    objects: usize,
+    embedded_objects: usize,
+    package_bytes: usize,
+    output: String,
+}
+
+#[derive(Serialize)]
+struct PackageExtractResult {
+    identity: String,
+    extracted_objects: usize,
+    extracted_bytes: u64,
+    output_directory: String,
 }
 
 impl PresentationOptions {
@@ -197,14 +218,30 @@ fn run(
     };
     let presentation = presentation(&arguments);
     validate_output_format(&arguments, presentation)?;
-    if let Some(SecondaryCommand::Inspect(inspect)) = &arguments.secondary {
-        return run_inspect(
-            &arguments,
-            inspect,
-            presentation,
-            environment,
-            stderr_is_terminal,
-        );
+    if let Some(secondary) = &arguments.secondary {
+        return match secondary {
+            SecondaryCommand::Inspect(inspect) => run_inspect(
+                &arguments,
+                inspect,
+                presentation,
+                environment,
+                stderr_is_terminal,
+            ),
+            SecondaryCommand::Compile(compile) => run_compile(
+                &arguments,
+                compile,
+                presentation,
+                environment,
+                stderr_is_terminal,
+            ),
+            SecondaryCommand::Package(package) => run_package(
+                &arguments,
+                &package.operation,
+                presentation,
+                environment,
+                stderr_is_terminal,
+            ),
+        };
     }
     let started = Instant::now();
 
@@ -488,7 +525,7 @@ fn validate_output_format(
         match arguments.format {
             OutputFormat::Human | OutputFormat::Json => None,
             OutputFormat::Ndjson => {
-                Some("finite inspect operations use `--format=human` or `--format=json`")
+                Some("finite secondary operations use `--format=human` or `--format=json`")
             }
         }
     } else {
@@ -596,7 +633,308 @@ const fn requested_inspect_kind(kind: InspectKind) -> RequestedKind {
         InspectKind::Evidence => RequestedKind::Evidence,
         InspectKind::Diagnostic => RequestedKind::Diagnostic,
         InspectKind::Conformance => RequestedKind::Conformance,
+        InspectKind::Package => RequestedKind::Package,
     }
+}
+
+fn run_compile(
+    arguments: &Arguments,
+    compile: &conduct::CompileArguments,
+    presentation: PresentationOptions,
+    environment: &EnvironmentPolicy,
+    stderr_is_terminal: bool,
+) -> Result<Completion, CliError> {
+    let started = Instant::now();
+    let status_enabled = !arguments.quiet
+        && arguments.format == OutputFormat::Human
+        && environment.status_enabled(arguments.diagnostic_format, stderr_is_terminal);
+    let document_id = if compile.panel.as_os_str() == "-" {
+        "stdin".to_owned()
+    } else {
+        compile.panel.display().to_string()
+    };
+    emit_status(status_enabled, "Compiling", &document_id);
+    let input_bytes = read_bounded(&compile.input, 8 * 1024 * 1024)
+        .map_err(|error| inspection_error(error, presentation))?;
+    let input: CompileInput = serde_json::from_slice(&input_bytes).map_err(|_| {
+        package_error(
+            "CND-CMP-002",
+            "compile input is not valid conduit.compile-input/v1 JSON",
+            presentation,
+        )
+    })?;
+    let source = if compile.panel.as_os_str() == "-" {
+        let stdin = io::stdin();
+        read_source(&mut stdin.lock(), "stdin").map_err(|message| {
+            cli_error(
+                simple_diagnostic("CND-IO-001", &message),
+                presentation,
+                vec![],
+            )
+        })?
+    } else {
+        fs::read_to_string(&compile.panel).map_err(|error| {
+            cli_error(
+                simple_diagnostic(
+                    "CND-IO-001",
+                    &format!("cannot read {}: {error}", compile.panel.display()),
+                ),
+                presentation,
+                vec![],
+            )
+        })?
+    };
+    let source_document = DiagnosticSource::new(document_id.clone(), source.as_bytes());
+    let panel = parse(&source).map_err(|error| {
+        cli_error(
+            from_parse_error(&error, &source_document),
+            presentation,
+            vec![source_document.clone()],
+        )
+    })?;
+    let plan = compile_panel(&panel, &input).map_err(|error| {
+        cli_error(
+            simple_diagnostic(error.code(), &error.to_string()),
+            presentation,
+            vec![source_document],
+        )
+    })?;
+    let completion = match arguments.format {
+        OutputFormat::Human => {
+            let mut bytes = serde_json::to_vec_pretty(&plan).map_err(|error| {
+                output_failure(&format!("cannot encode exact plan: {error}"), presentation)
+            })?;
+            bytes.push(b'\n');
+            write_primary(&bytes, presentation)?
+        }
+        OutputFormat::Json => write_json_primary(
+            &FiniteResult {
+                schema: "conduit.result/v1",
+                schema_version: 1,
+                operation: "compile",
+                result: plan,
+            },
+            presentation,
+        )?,
+        OutputFormat::Ndjson => unreachable!("validated above"),
+    };
+    if completion == Completion::BrokenPipe {
+        return Ok(completion);
+    }
+    emit_finished(status_enabled, "compile", started.elapsed(), &document_id);
+    Ok(Completion::Success)
+}
+
+fn run_package(
+    arguments: &Arguments,
+    operation: &PackageOperation,
+    presentation: PresentationOptions,
+    environment: &EnvironmentPolicy,
+    stderr_is_terminal: bool,
+) -> Result<Completion, CliError> {
+    let started = Instant::now();
+    let limits = PackageLimits::default();
+    let status_enabled = !arguments.quiet
+        && arguments.format == OutputFormat::Human
+        && environment.status_enabled(arguments.diagnostic_format, stderr_is_terminal);
+    match operation {
+        PackageOperation::Create(create) => {
+            emit_status(
+                status_enabled,
+                "Packaging",
+                &create.output.display().to_string(),
+            );
+            let manifest_bytes =
+                read_bounded(&create.manifest, u64::from(limits.maximum_manifest_bytes))
+                    .map_err(|error| inspection_error(error, presentation))?;
+            let manifest: PackageManifest =
+                serde_json::from_slice(&manifest_bytes).map_err(|_| {
+                    package_error(
+                        conduit_package::PackageReason::MalformedManifest.code(),
+                        "package manifest is not valid conduit.package/v1 JSON",
+                        presentation,
+                    )
+                })?;
+            manifest
+                .validate(limits)
+                .map_err(|error| package_library_error(error, presentation))?;
+            let mut blobs = std::collections::BTreeMap::new();
+            for binding in &create.blobs {
+                let (digest, path) = binding.split_once('=').ok_or_else(|| {
+                    package_error(
+                        "CND-PKG-003",
+                        "each --blob must be SHA256=PATH",
+                        presentation,
+                    )
+                })?;
+                if blobs.contains_key(digest) {
+                    return Err(package_error(
+                        "CND-PKG-003",
+                        "duplicate --blob digest",
+                        presentation,
+                    ));
+                }
+                let bytes = read_bounded(std::path::Path::new(path), limits.maximum_object_bytes)
+                    .map_err(|error| inspection_error(error, presentation))?;
+                blobs.insert(digest.to_owned(), bytes);
+            }
+            let package = encode_package(&manifest, &blobs, limits)
+                .map_err(|error| package_library_error(error, presentation))?;
+            write_new_file(&create.output, &package)
+                .map_err(|message| package_error("CND-IO-002", &message, presentation))?;
+            let result = PackageCreateResult {
+                identity: manifest.identity.clone(),
+                objects: manifest.objects.len(),
+                embedded_objects: blobs.len(),
+                package_bytes: package.len(),
+                output: create.output.display().to_string(),
+            };
+            let completion = match arguments.format {
+                OutputFormat::Human => write_primary(
+                    format!(
+                        "created {}: {}; {} objects, {} embedded, {} bytes\n",
+                        result.output,
+                        result.identity,
+                        result.objects,
+                        result.embedded_objects,
+                        result.package_bytes
+                    )
+                    .as_bytes(),
+                    presentation,
+                )?,
+                OutputFormat::Json => write_json_primary(
+                    &FiniteResult {
+                        schema: "conduit.result/v1",
+                        schema_version: 1,
+                        operation: "package-create",
+                        result,
+                    },
+                    presentation,
+                )?,
+                OutputFormat::Ndjson => unreachable!("validated above"),
+            };
+            if completion == Completion::BrokenPipe {
+                return Ok(completion);
+            }
+            emit_finished(
+                status_enabled,
+                "package-create",
+                started.elapsed(),
+                &create.output.display().to_string(),
+            );
+        }
+        PackageOperation::Extract(extract) => {
+            emit_status(
+                status_enabled,
+                "Extracting",
+                &extract.package.display().to_string(),
+            );
+            let bytes = read_bounded(&extract.package, limits.maximum_package_bytes)
+                .map_err(|error| inspection_error(error, presentation))?;
+            let package = decode_package(&bytes, limits)
+                .map_err(|error| package_library_error(error, presentation))?;
+            let extracted_bytes = package.embedded_bytes();
+            let paths = package
+                .extract_to(&extract.output_dir, limits)
+                .map_err(|error| package_library_error(error, presentation))?;
+            let result = PackageExtractResult {
+                identity: package.manifest.identity,
+                extracted_objects: paths.len(),
+                extracted_bytes,
+                output_directory: extract.output_dir.display().to_string(),
+            };
+            let completion = match arguments.format {
+                OutputFormat::Human => write_primary(
+                    format!(
+                        "extracted {}: {}; {} objects, {} bytes\n",
+                        result.output_directory,
+                        result.identity,
+                        result.extracted_objects,
+                        result.extracted_bytes
+                    )
+                    .as_bytes(),
+                    presentation,
+                )?,
+                OutputFormat::Json => write_json_primary(
+                    &FiniteResult {
+                        schema: "conduit.result/v1",
+                        schema_version: 1,
+                        operation: "package-extract",
+                        result,
+                    },
+                    presentation,
+                )?,
+                OutputFormat::Ndjson => unreachable!("validated above"),
+            };
+            if completion == Completion::BrokenPipe {
+                return Ok(completion);
+            }
+            emit_finished(
+                status_enabled,
+                "package-extract",
+                started.elapsed(),
+                &extract.output_dir.display().to_string(),
+            );
+        }
+    }
+    Ok(Completion::Success)
+}
+
+fn package_library_error(
+    error: conduit_package::PackageError,
+    presentation: PresentationOptions,
+) -> CliError {
+    package_error(error.code(), &error.to_string(), presentation)
+}
+
+fn package_error(code: &'static str, message: &str, presentation: PresentationOptions) -> CliError {
+    cli_error(simple_diagnostic(code, message), presentation, vec![])
+}
+
+fn write_new_file(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+    if path.exists() {
+        return Err(format!("refusing to overwrite {}", path.display()));
+    }
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| format!("output path {} has no file name", path.display()))?
+        .to_string_lossy();
+    let mut last_error = None;
+    for attempt in 0..16_u8 {
+        let temporary = parent.join(format!(".{file_name}.tmp-{}-{attempt}", std::process::id()));
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+        {
+            Ok(mut file) => {
+                let result = file
+                    .write_all(bytes)
+                    .and_then(|()| file.sync_all())
+                    .and_then(|()| fs::hard_link(&temporary, path));
+                let _ = fs::remove_file(&temporary);
+                return result
+                    .map_err(|error| format!("cannot create {}: {error}", path.display()));
+            }
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                last_error = Some(error);
+            }
+            Err(error) => {
+                return Err(format!("cannot create {}: {error}", path.display()));
+            }
+        }
+    }
+    Err(format!(
+        "cannot create temporary package beside {}: {}",
+        path.display(),
+        last_error
+            .map(|error| error.to_string())
+            .unwrap_or_else(|| "temporary name exhaustion".to_owned())
+    ))
 }
 
 fn inspection_error(

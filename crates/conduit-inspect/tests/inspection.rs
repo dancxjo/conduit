@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -16,6 +17,7 @@ use conduit_inspect::{
     inspect_capability_report, inspect_conformance_manifest_path, inspect_entity_passport,
     inspect_execution_plan, inspect_lowered_source,
 };
+use conduit_package::{PackageLimits, PackageManifest, PackageObject, encode_package};
 use conduit_runtime::LoweredSourceV2;
 use sha2::Digest as _;
 
@@ -57,6 +59,49 @@ fn temporary_directory() -> PathBuf {
     ));
     std::fs::create_dir_all(&path).unwrap();
     path
+}
+
+#[test]
+fn package_inspection_validates_metadata_without_executing_objects() {
+    let bytes = b"#!/bin/sh\nexit 97\n".to_vec();
+    let digest = format!("sha256:{:x}", sha2::Sha256::digest(&bytes));
+    let mut manifest = PackageManifest::new(vec![PackageObject {
+        digest: digest.clone(),
+        media_type: "application/octet-stream".to_owned(),
+        byte_size: bytes.len() as u64,
+        role: "linux-native".to_owned(),
+        embedded: true,
+        identity: None,
+        license_expressions: vec!["MIT".to_owned()],
+        license_objects: Vec::new(),
+        sbom: None,
+        signatures: Vec::new(),
+        attestations: Vec::new(),
+        provenance: None,
+        retrieval_hints: Vec::new(),
+    }]);
+    manifest.seal().unwrap();
+    let package = encode_package(
+        &manifest,
+        &BTreeMap::from([(digest, bytes)]),
+        PackageLimits::default(),
+    )
+    .unwrap();
+    let report = inspect_bytes(
+        &package,
+        RequestedKind::Package,
+        Some("cndpkg"),
+        InspectLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(report.kind, ArtifactKind::Package);
+    assert_eq!(report.counts["embedded_objects"], 1);
+    assert!(
+        report
+            .notes
+            .iter()
+            .any(|note| note.contains("no fetch, load, extraction, or execution"))
+    );
 }
 
 #[test]

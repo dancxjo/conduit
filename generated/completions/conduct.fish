@@ -41,13 +41,16 @@ complete -c conduct -n "__fish_conduct_needs_command" -l verbose-diagnostics -d 
 complete -c conduct -n "__fish_conduct_needs_command" -s h -l help -d 'Print help'
 complete -c conduct -n "__fish_conduct_needs_command" -s V -l version -d 'Print version'
 complete -c conduct -n "__fish_conduct_needs_command" -a "inspect" -d 'Validate and describe one artifact without executing it'
+complete -c conduct -n "__fish_conduct_needs_command" -a "compile" -d 'Compile source against explicit immutable inputs into one exact plan'
+complete -c conduct -n "__fish_conduct_needs_command" -a "package" -d 'Create or extract a bounded content-addressed package'
 complete -c conduct -n "__fish_conduct_using_subcommand inspect" -l type -d 'Select a frozen artifact kind, or use marker-only detection' -r -f -a "auto\t''
 panel\t''
 lowered-source\t''
 execution-plan\t''
 evidence\t''
 diagnostic\t''
-conformance\t''"
+conformance\t''
+package\t''"
 complete -c conduct -n "__fish_conduct_using_subcommand inspect" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
 json\t''
 ndjson\t''"
@@ -60,3 +63,58 @@ complete -c conduct -n "__fish_conduct_using_subcommand inspect" -s q -l quiet -
 complete -c conduct -n "__fish_conduct_using_subcommand inspect" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
 complete -c conduct -n "__fish_conduct_using_subcommand inspect" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
 complete -c conduct -n "__fish_conduct_using_subcommand inspect" -s h -l help -d 'Print help'
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -l input -d 'Read the sealed compile-input document from this JSON file' -r -F
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
+json\t''
+ndjson\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
+json\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
+always\t''
+never\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
+complete -c conduct -n "__fish_conduct_using_subcommand compile" -s h -l help -d 'Print help'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
+json\t''
+ndjson\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
+json\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
+always\t''
+never\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -s h -l help -d 'Print help'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -f -a "create" -d 'Create one deterministic thick or thin package'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and not __fish_seen_subcommand_from create extract" -f -a "extract" -d 'Validate and extract embedded blobs to digest-derived paths'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l manifest -d 'Read the sealed package manifest from this JSON file' -r -F
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l blob -d 'Add one exact embedded blob as SHA256=PATH; repeat as needed' -r
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l output -d 'Write the deterministic package envelope to this new path' -r -F
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
+json\t''
+ndjson\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
+json\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
+always\t''
+never\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from create" -s h -l help -d 'Print help'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -l output-dir -d 'Create digest-derived blob paths beneath this directory' -r -F
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
+json\t''
+ndjson\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
+json\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
+always\t''
+never\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
+complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -s h -l help -d 'Print help'

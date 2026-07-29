@@ -1171,7 +1171,117 @@ pub struct ResolvedCordView {
     pub pressure: String,
 }
 
+/// Exact source-derived topology facts consumed by hosted plan compilation.
+///
+/// This is not another plan type: it contains no implementation, artifact,
+/// host, authority, resource, or resolver selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologyView {
+    pub source_semantic_hash: SemanticHash,
+    pub nodes: Vec<ExactTopologyNode>,
+    pub cords: Vec<ExactTopologyCord>,
+    pub logical_composites: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologyNode {
+    pub instance: String,
+    pub contract_id: String,
+    pub contract_hash: SemanticHash,
+    pub inputs: Vec<ExactTopologyPort>,
+    pub outputs: Vec<ExactTopologyPort>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologyPort {
+    pub id: String,
+    pub direction: Direction,
+    pub contract_hash: SemanticHash,
+    pub value_type: TypeContractRef<'static>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologyCord {
+    pub id: String,
+    pub from_node: String,
+    pub from_port: ExactTopologyPort,
+    pub to_node: String,
+    pub to_port: ExactTopologyPort,
+    pub capacity_items: u16,
+    pub max_value_bytes: u32,
+    pub max_queued_bytes: u64,
+    pub low_watermark_items: u16,
+    pub high_watermark_items: u16,
+    pub pressure: SourcePressure,
+}
+
 impl ResolvedPanel<'_> {
+    /// Returns only semantic/source topology needed before exact host binding.
+    pub fn exact_topology(&self) -> Result<ExactTopologyView, ResolutionError> {
+        let source_semantic_hash = semantic_hash_text(&conduit_panel::semantic_source_hash_v2(
+            self.source,
+        ))
+        .ok_or_else(|| ResolutionError::new("CND-CMP-002", "semantic source hash is malformed"))?;
+        let nodes = self
+            .nodes
+            .iter()
+            .map(|node| {
+                let contract_hash =
+                    OwnedNodeSchema::from_contract(node.definition.contract).semantic_hash();
+                let inputs = node
+                    .definition
+                    .contract
+                    .inputs
+                    .iter()
+                    .map(exact_topology_port)
+                    .collect::<Result<Vec<_>, _>>()?;
+                let outputs = node
+                    .definition
+                    .contract
+                    .outputs
+                    .iter()
+                    .map(exact_topology_port)
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(ExactTopologyNode {
+                    instance: format!("root/{}", node.source.id),
+                    contract_id: node.definition.contract.id.as_str().to_owned(),
+                    contract_hash,
+                    inputs,
+                    outputs,
+                })
+            })
+            .collect::<Result<Vec<_>, ResolutionError>>()?;
+        let cords = self
+            .cords
+            .iter()
+            .map(|cord| {
+                let from = &self.nodes[cord.from_node];
+                let to = &self.nodes[cord.to_node];
+                Ok(ExactTopologyCord {
+                    id: cord.source.id.clone(),
+                    from_node: format!("root/{}", from.source.id),
+                    from_port: exact_topology_port(
+                        &from.definition.contract.outputs[cord.from_port],
+                    )?,
+                    to_node: format!("root/{}", to.source.id),
+                    to_port: exact_topology_port(&to.definition.contract.inputs[cord.to_port])?,
+                    capacity_items: cord.source.capacity_items,
+                    max_value_bytes: cord.source.max_value_bytes,
+                    max_queued_bytes: cord.source.max_queued_bytes,
+                    low_watermark_items: cord.source.low_watermark_items,
+                    high_watermark_items: cord.source.high_watermark_items,
+                    pressure: cord.source.pressure.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>, ResolutionError>>()?;
+        Ok(ExactTopologyView {
+            source_semantic_hash,
+            nodes,
+            cords,
+            logical_composites: self.logical_composites.len(),
+        })
+    }
+
     /// Returns structured resolution facts without choosing a CLI encoding.
     #[must_use]
     pub fn view(&self) -> ResolvedPanelView {
@@ -1488,6 +1598,39 @@ impl ResolvedPanel<'_> {
             nodes_completed: self.nodes.len(),
             cords_conducted: self.cords.len(),
         })
+    }
+}
+
+fn exact_topology_port(port: &PortContract<'static>) -> Result<ExactTopologyPort, ResolutionError> {
+    Ok(ExactTopologyPort {
+        id: port.id.as_str().to_owned(),
+        direction: port.direction,
+        contract_hash: port
+            .semantic_hash()
+            .map_err(|_| ResolutionError::new("CND-CMP-002", "port contract is malformed"))?,
+        value_type: port.value_type,
+    })
+}
+
+fn semantic_hash_text(value: &str) -> Option<SemanticHash> {
+    let value = value.strip_prefix("sha256:")?;
+    if value.len() != 64 {
+        return None;
+    }
+    let mut bytes = [0_u8; 32];
+    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+        let high = hex_nibble(pair[0])?;
+        let low = hex_nibble(pair[1])?;
+        bytes[index] = (high << 4) | low;
+    }
+    Some(SemanticHash::from_bytes(bytes))
+}
+
+const fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        _ => None,
     }
 }
 

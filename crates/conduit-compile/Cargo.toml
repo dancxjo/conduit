@@ -1,6 +1,6 @@
 [package]
-name = "conduit-inspect"
-description = "Bounded, non-executing inspection of Conduit artifacts"
+name = "conduit-compile"
+description = "Explicit exact-plan compilation for Conduit"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,10 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-conduit-conformance = { path = "../conduit-conformance" }
+bumpalo = "3.20.2"
 conduit-core = { path = "../conduit-core" }
-conduit-diagnostics = { path = "../conduit-diagnostics" }
-conduit-package = { path = "../conduit-package" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-runtime = { path = "../conduit-runtime" }
 serde = { version = "1.0.229", features = ["derive"] }

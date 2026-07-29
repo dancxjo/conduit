@@ -50,6 +50,7 @@ pub enum InspectKind {
     Evidence,
     Diagnostic,
     Conformance,
+    Package,
 }
 
 /// Additive operations that do not reinterpret ordinary paths after `--`.
@@ -57,6 +58,10 @@ pub enum InspectKind {
 pub enum SecondaryCommand {
     /// Validate and describe one artifact without executing it.
     Inspect(InspectArguments),
+    /// Compile source against explicit immutable inputs into one exact plan.
+    Compile(CompileArguments),
+    /// Create or extract a bounded content-addressed package.
+    Package(PackageArguments),
 }
 
 /// Inputs for bounded, non-executing artifact inspection.
@@ -69,6 +74,59 @@ pub struct InspectArguments {
     /// Read the artifact from this file, or `-` for stdin.
     #[arg(value_name = "ARTIFACT")]
     pub artifact: PathBuf,
+}
+
+/// Explicit exact-plan compilation inputs.
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct CompileArguments {
+    /// Read the sealed compile-input document from this JSON file.
+    #[arg(long, value_name = "INPUT")]
+    pub input: PathBuf,
+
+    /// Read editable source from this file, or `-` for stdin.
+    #[arg(value_name = "PANEL")]
+    pub panel: PathBuf,
+}
+
+/// Bounded package workflow.
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct PackageArguments {
+    #[command(subcommand)]
+    pub operation: PackageOperation,
+}
+
+#[derive(Debug, Eq, PartialEq, Subcommand)]
+pub enum PackageOperation {
+    /// Create one deterministic thick or thin package.
+    Create(PackageCreateArguments),
+    /// Validate and extract embedded blobs to digest-derived paths.
+    Extract(PackageExtractArguments),
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct PackageCreateArguments {
+    /// Read the sealed package manifest from this JSON file.
+    #[arg(long, value_name = "MANIFEST")]
+    pub manifest: PathBuf,
+
+    /// Add one exact embedded blob as SHA256=PATH; repeat as needed.
+    #[arg(long = "blob", value_name = "SHA256=PATH")]
+    pub blobs: Vec<String>,
+
+    /// Write the deterministic package envelope to this new path.
+    #[arg(long, value_name = "PACKAGE")]
+    pub output: PathBuf,
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct PackageExtractArguments {
+    /// Read and validate this package envelope.
+    #[arg(value_name = "PACKAGE")]
+    pub package: PathBuf,
+
+    /// Create digest-derived blob paths beneath this directory.
+    #[arg(long, value_name = "DIRECTORY")]
+    pub output_dir: PathBuf,
 }
 
 /// Check, explain, and run one typed node arrangement.

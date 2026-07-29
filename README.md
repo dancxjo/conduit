@@ -68,6 +68,21 @@ universal package. Compilation means validation, resolution, and lowering to
 an exact execution plan; packaging and code generation are separate
 operations.
 
+Exact compilation is an additive, explicit-input workflow:
+
+```sh
+conduct compile --input compile-input.json --format=json panel.panel
+```
+
+The input document pins manifests, fresh host reports, policy, time, and
+finite budgets. Compilation performs no discovery, provisioning, artifact
+fetch, grant acquisition, loading, or execution. `conduct package create`
+builds a deterministic thick or thin content-addressed envelope from a sealed
+manifest and explicit `--blob SHA256=PATH` arguments; `conduct package
+extract` validates it and writes only digest-derived paths. `conduct inspect
+--type=package` reads the same envelope without fetching, extracting, loading,
+or executing contained objects.
+
 Primary values stay on stdout. Diagnostics and interactive status use stderr:
 
 ```sh

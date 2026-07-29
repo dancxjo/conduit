@@ -16,8 +16,20 @@ _conduct() {
             ",$1")
                 cmd="conduct"
                 ;;
+            conduct,compile)
+                cmd="conduct__subcmd__compile"
+                ;;
             conduct,inspect)
                 cmd="conduct__subcmd__inspect"
+                ;;
+            conduct,package)
+                cmd="conduct__subcmd__package"
+                ;;
+            conduct__subcmd__package,create)
+                cmd="conduct__subcmd__package__subcmd__create"
+                ;;
+            conduct__subcmd__package,extract)
+                cmd="conduct__subcmd__package__subcmd__extract"
                 ;;
             *)
                 ;;
@@ -26,12 +38,42 @@ _conduct() {
 
     case "${cmd}" in
         conduct)
-            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --help --version inspect"
+            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --help --version inspect compile package"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__compile)
+            opts="-q -v -h --input --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --input)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --format)
                     COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
                     return 0
@@ -59,7 +101,101 @@ _conduct() {
             fi
             case "${prev}" in
                 --type)
-                    COMPREPLY=($(compgen -W "auto panel lowered-source execution-plan evidence diagnostic conformance" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "auto panel lowered-source execution-plan evidence diagnostic conformance package" -- "${cur}"))
+                    return 0
+                    ;;
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__package)
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help create extract"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__package__subcmd__create)
+            opts="-q -v -h --manifest --blob --output --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --manifest)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --blob)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__package__subcmd__extract)
+            opts="-q -v -h --output-dir --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --output-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --format)

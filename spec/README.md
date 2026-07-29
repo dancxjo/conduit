@@ -129,6 +129,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`035-patchbay-protocol-v1.md`](035-patchbay-protocol-v1.md) defines
   transport-neutral source, presentation, plan, run, and bounded projection
   resources without turning layout or client state into semantics.
+- [`036-exact-compile-package-v1.md`](036-exact-compile-package-v1.md) defines
+  explicit exact-plan compilation, distinct input identities, deterministic
+  heterogeneous package manifests, pathless envelopes, bounded extraction,
+  and non-executing inspection.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

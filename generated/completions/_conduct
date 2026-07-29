@@ -41,7 +41,7 @@ _conduct() {
         case $line[2] in
             (inspect)
 _arguments "${_arguments_options[@]}" : \
-'--type=[Select a frozen artifact kind, or use marker-only detection]:TYPE:(auto panel lowered-source execution-plan evidence diagnostic conformance)' \
+'--type=[Select a frozen artifact kind, or use marker-only detection]:TYPE:(auto panel lowered-source execution-plan evidence diagnostic conformance package)' \
 '--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
 '--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
 '--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
@@ -54,6 +54,77 @@ _arguments "${_arguments_options[@]}" : \
 ':artifact -- Read the artifact from this file, or `-` for stdin:_files' \
 && ret=0
 ;;
+(compile)
+_arguments "${_arguments_options[@]}" : \
+'--input=[Read the sealed compile-input document from this JSON file]:INPUT:_files' \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':panel -- Read editable source from this file, or `-` for stdin:_files' \
+&& ret=0
+;;
+(package)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_conduct__subcmd__package_commands" \
+"*::: :->package" \
+&& ret=0
+
+    case $state in
+    (package)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:conduct-package-command-$line[1]:"
+        case $line[1] in
+            (create)
+_arguments "${_arguments_options[@]}" : \
+'--manifest=[Read the sealed package manifest from this JSON file]:MANIFEST:_files' \
+'*--blob=[Add one exact embedded blob as SHA256=PATH; repeat as needed]:SHA256=PATH:_default' \
+'--output=[Write the deterministic package envelope to this new path]:PACKAGE:_files' \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(extract)
+_arguments "${_arguments_options[@]}" : \
+'--output-dir=[Create digest-derived blob paths beneath this directory]:DIRECTORY:_files' \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':package -- Read and validate this package envelope:_files' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
         esac
     ;;
 esac
@@ -63,13 +134,38 @@ esac
 _conduct_commands() {
     local commands; commands=(
 'inspect:Validate and describe one artifact without executing it' \
+'compile:Compile source against explicit immutable inputs into one exact plan' \
+'package:Create or extract a bounded content-addressed package' \
     )
     _describe -t commands 'conduct commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__compile_commands] )) ||
+_conduct__subcmd__compile_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct compile commands' commands "$@"
 }
 (( $+functions[_conduct__subcmd__inspect_commands] )) ||
 _conduct__subcmd__inspect_commands() {
     local commands; commands=()
     _describe -t commands 'conduct inspect commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__package_commands] )) ||
+_conduct__subcmd__package_commands() {
+    local commands; commands=(
+'create:Create one deterministic thick or thin package' \
+'extract:Validate and extract embedded blobs to digest-derived paths' \
+    )
+    _describe -t commands 'conduct package commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__package__subcmd__create_commands] )) ||
+_conduct__subcmd__package__subcmd__create_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct package create commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__package__subcmd__extract_commands] )) ||
+_conduct__subcmd__package__subcmd__extract_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct package extract commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_conduct" ]; then

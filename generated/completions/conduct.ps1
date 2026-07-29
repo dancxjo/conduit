@@ -36,10 +36,67 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             [CompletionResult]::new('-V', '-V ', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('--version', '--version', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('inspect', 'inspect', [CompletionResultType]::ParameterValue, 'Validate and describe one artifact without executing it')
+            [CompletionResult]::new('compile', 'compile', [CompletionResultType]::ParameterValue, 'Compile source against explicit immutable inputs into one exact plan')
+            [CompletionResult]::new('package', 'package', [CompletionResultType]::ParameterValue, 'Create or extract a bounded content-addressed package')
             break
         }
         'conduct;inspect' {
             [CompletionResult]::new('--type', '--type', [CompletionResultType]::ParameterName, 'Select a frozen artifact kind, or use marker-only detection')
+            [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
+            [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Add bounded resolution status detail; repeat for future detail levels')
+            [CompletionResult]::new('--verbose-diagnostics', '--verbose-diagnostics', [CompletionResultType]::ParameterName, 'Include related spans, notes, paths, and causes')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'conduct;compile' {
+            [CompletionResult]::new('--input', '--input', [CompletionResultType]::ParameterName, 'Read the sealed compile-input document from this JSON file')
+            [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
+            [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Add bounded resolution status detail; repeat for future detail levels')
+            [CompletionResult]::new('--verbose-diagnostics', '--verbose-diagnostics', [CompletionResultType]::ParameterName, 'Include related spans, notes, paths, and causes')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'conduct;package' {
+            [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
+            [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Add bounded resolution status detail; repeat for future detail levels')
+            [CompletionResult]::new('--verbose-diagnostics', '--verbose-diagnostics', [CompletionResultType]::ParameterName, 'Include related spans, notes, paths, and causes')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('create', 'create', [CompletionResultType]::ParameterValue, 'Create one deterministic thick or thin package')
+            [CompletionResult]::new('extract', 'extract', [CompletionResultType]::ParameterValue, 'Validate and extract embedded blobs to digest-derived paths')
+            break
+        }
+        'conduct;package;create' {
+            [CompletionResult]::new('--manifest', '--manifest', [CompletionResultType]::ParameterName, 'Read the sealed package manifest from this JSON file')
+            [CompletionResult]::new('--blob', '--blob', [CompletionResultType]::ParameterName, 'Add one exact embedded blob as SHA256=PATH; repeat as needed')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Write the deterministic package envelope to this new path')
+            [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
+            [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Add bounded resolution status detail; repeat for future detail levels')
+            [CompletionResult]::new('--verbose-diagnostics', '--verbose-diagnostics', [CompletionResultType]::ParameterName, 'Include related spans, notes, paths, and causes')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'conduct;package;extract' {
+            [CompletionResult]::new('--output-dir', '--output-dir', [CompletionResultType]::ParameterName, 'Create digest-derived blob paths beneath this directory')
             [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
             [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
             [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')

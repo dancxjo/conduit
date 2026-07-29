@@ -94,12 +94,29 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "conduit-compile",
+ "conduit-core",
  "conduit-diagnostics",
  "conduit-inspect",
+ "conduit-package",
  "conduit-panel",
  "conduit-runtime",
  "serde",
  "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-compile"
+version = "0.1.0"
+dependencies = [
+ "bumpalo",
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -138,8 +155,19 @@ dependencies = [
  "conduit-conformance",
  "conduit-core",
  "conduit-diagnostics",
+ "conduit-package",
  "conduit-panel",
  "conduit-runtime",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-package"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
  "serde",
  "serde_json",
  "sha2",

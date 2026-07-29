@@ -13,6 +13,7 @@ use conduit_core::{
     validate_implementation_manifest, validate_passport,
 };
 use conduit_diagnostics::{OwnedDiagnostic, OwnedDiagnosticArgumentValue};
+use conduit_package::{PACKAGE_MAGIC, PackageLimits, decode_package};
 use conduit_panel::{
     LoadedModule, ModuleLoader, Panel, SourceValue, parse_document, resolve_modules,
 };
@@ -65,6 +66,7 @@ pub enum RequestedKind {
     Evidence,
     Diagnostic,
     Conformance,
+    Package,
 }
 
 /// Exact kind retained in one inspection result.
@@ -82,6 +84,7 @@ pub enum ArtifactKind {
     ArtifactManifest,
     CapabilityReport,
     EntityPassport,
+    Package,
 }
 
 impl ArtifactKind {
@@ -99,6 +102,7 @@ impl ArtifactKind {
             Self::ArtifactManifest => "artifact-manifest",
             Self::CapabilityReport => "capability-report",
             Self::EntityPassport => "entity-passport",
+            Self::Package => "package",
         }
     }
 }
@@ -201,6 +205,7 @@ pub fn inspect_bytes(
         RequestedKind::ExecutionPlan => ArtifactKind::ExecutionPlan,
         RequestedKind::Evidence => ArtifactKind::ExecutionEvidence,
         RequestedKind::Diagnostic => ArtifactKind::StructuredDiagnostic,
+        RequestedKind::Package => ArtifactKind::Package,
         RequestedKind::Conformance => match detected.clone()? {
             kind @ (ArtifactKind::ConformanceManifest | ArtifactKind::ConformanceCases) => kind,
             _ => {
@@ -228,6 +233,7 @@ pub fn inspect_bytes(
         ArtifactKind::StructuredDiagnostic => inspect_diagnostic(bytes, limits),
         ArtifactKind::ConformanceManifest => inspect_conformance_manifest(bytes, limits),
         ArtifactKind::ConformanceCases => inspect_conformance_cases(bytes, limits),
+        ArtifactKind::Package => inspect_package(bytes, limits),
         ArtifactKind::LoweredSource
         | ArtifactKind::ExecutionPlan
         | ArtifactKind::ImplementationManifest
@@ -238,6 +244,90 @@ pub fn inspect_bytes(
             "this semantic kind has no frozen standalone byte encoding; use its typed inspection adapter",
         )),
     }
+}
+
+fn inspect_package(
+    bytes: &[u8],
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    let package_limits = PackageLimits {
+        maximum_package_bytes: limits.max_input_bytes,
+        maximum_manifest_bytes: limits.max_record_bytes.try_into().unwrap_or(u32::MAX),
+        maximum_objects: limits.max_collection_items.try_into().unwrap_or(u32::MAX),
+        maximum_object_bytes: limits.max_input_bytes,
+        maximum_extracted_bytes: limits.max_total_reference_bytes,
+    };
+    let package = decode_package(bytes, package_limits)
+        .map_err(|error| failure(error.code(), error.to_string()))?;
+    let mut counts = BTreeMap::new();
+    counts.insert("objects".to_owned(), package.manifest.objects.len() as u64);
+    counts.insert(
+        "embedded_objects".to_owned(),
+        package
+            .manifest
+            .objects
+            .iter()
+            .filter(|object| object.embedded)
+            .count() as u64,
+    );
+    counts.insert(
+        "thin_objects".to_owned(),
+        package
+            .manifest
+            .objects
+            .iter()
+            .filter(|object| !object.embedded)
+            .count() as u64,
+    );
+    let declared_bytes = package
+        .manifest
+        .objects
+        .iter()
+        .try_fold(0_u64, |total, object| total.checked_add(object.byte_size))
+        .ok_or_else(|| failure("CND-PKG-007", "package declared byte count overflow"))?;
+    let mut budgets = BTreeMap::new();
+    budgets.insert("declared_object_bytes".to_owned(), declared_bytes);
+    budgets.insert("embedded_object_bytes".to_owned(), package.embedded_bytes());
+    let mut references = Vec::new();
+    for object in &package.manifest.objects {
+        references.push(InspectionReference {
+            category: format!("package-object/{}", object.role),
+            value: object.digest.clone(),
+        });
+        if let Some(identity) = &object.identity {
+            references.push(InspectionReference {
+                category: identity.kind.clone(),
+                value: format!(
+                    "v{}@{}",
+                    identity.schema_version, identity.semantic_identity
+                ),
+            });
+        }
+        references.extend(
+            object
+                .license_expressions
+                .iter()
+                .map(|license| InspectionReference {
+                    category: "license".to_owned(),
+                    value: license.clone(),
+                }),
+        );
+    }
+    stable_references(&mut references);
+    Ok(base_report(
+        ArtifactKind::Package,
+        package.manifest.schema_version.into(),
+        content_digest(bytes),
+        Some(package.manifest.identity),
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            "package and contained object identities remain distinct".to_owned(),
+            "inspection performs no fetch, load, extraction, or execution".to_owned(),
+        ],
+    ))
 }
 
 /// Inspect a local panel and its local import closure. Imports are confined to
@@ -1468,6 +1558,9 @@ fn detect_kind(bytes: &[u8], limits: InspectLimits) -> Result<ArtifactKind, Insp
             "empty input has no artifact marker",
         ));
     }
+    if bytes.starts_with(PACKAGE_MAGIC) {
+        return Ok(ArtifactKind::Package);
+    }
     if let Ok(text) = std::str::from_utf8(bytes) {
         let trimmed = text.trim_start_matches('\u{feff}').trim_start();
         if panel_marker(trimmed) {
@@ -1690,6 +1783,7 @@ fn enforce_extension_hint(
     let hinted = match extension {
         Some("panel") => Some(ArtifactKind::PanelSource),
         Some("ndjson") => Some(ArtifactKind::ExecutionEvidence),
+        Some("cndpkg") => Some(ArtifactKind::Package),
         Some("json" | "tsv") | None => None,
         Some(_) => None,
     };
