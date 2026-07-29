@@ -28,6 +28,7 @@ mod inhibit;
 mod job;
 mod lifecycle;
 mod manifest;
+mod node_interface;
 mod policy_budget;
 mod pool;
 mod port;
@@ -206,6 +207,16 @@ pub use manifest::{
     ManifestArtifactRef, ManifestEntrypoint, ManifestIdentityError, ManifestInterface,
     ManifestReason, ReplacementSupport, ReproducibilityClaim, SignatureVerification,
     validate_artifact_manifest, validate_implementation_manifest, verify_artifact_candidate,
+};
+pub use node_interface::{
+    InterfaceMemberRequirement, MAX_NODE_INTERFACE_MEMBERS, MAX_NODE_INTERFACE_REQUIREMENTS,
+    NODE_INTERFACE_CONTRACT_SCHEMA_VERSION, NODE_INTERFACE_PROOF_SCHEMA_VERSION,
+    NodeInterfaceContract, NodeInterfaceContractError, NodeInterfaceContractRef,
+    NodeInterfaceIdentityError, NodeInterfaceMember, NodeInterfaceMemberProof,
+    NodeInterfaceMemberReason, NodeInterfaceRequirement, NodeInterfaceRequirementDecision,
+    NodeInterfaceRequirementProof, NodeInterfaceRequirementReason, NodeInterfaceSatisfactionError,
+    NodeInterfaceSatisfactionProof, NodeInterfaceSatisfactionReason, NodeInterfaceTypeDecision,
+    assess_node_interface,
 };
 pub use policy_budget::{
     MAX_POLICY_BUDGET_BINDINGS, POLICY_BUDGET_SCHEMA_VERSION, PersistentBudgetLedger,

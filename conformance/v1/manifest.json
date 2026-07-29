@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 45,
+  "manifest_revision": 46,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2718,6 +2718,107 @@
         {
           "package": "conduit-runtime",
           "test": "type_contract_vectors"
+        }
+      ]
+    },
+    {
+      "id": "node-interface",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "NIF-001",
+        "NIF-002",
+        "NIF-003",
+        "NIF-004",
+        "NIF-005",
+        "NIF-006",
+        "NIF-007",
+        "NIF-008",
+        "NIF-009",
+        "NIF-010",
+        "NIF-011",
+        "NIF-012",
+        "NIF-013",
+        "NIF-014"
+      ],
+      "artifacts": [
+        {
+          "id": "node-interface-v1",
+          "path": "../c2/node-interface-v1.json",
+          "sha256": "sha256:93aae8888e307ab5dbb34a172ffcc7a06ac6a64c2858678519f4194e118e0aa1",
+          "operation": "node-interface-satisfaction-v1",
+          "requirement_ids": [
+            "NIF-001",
+            "NIF-002",
+            "NIF-003",
+            "NIF-004",
+            "NIF-005",
+            "NIF-006",
+            "NIF-007",
+            "NIF-008",
+            "NIF-009",
+            "NIF-010",
+            "NIF-011",
+            "NIF-012",
+            "NIF-013",
+            "NIF-014"
+          ],
+          "default_rule": "NIF-006",
+          "case_rules": {
+            "exact-primitive-boundary": "NIF-010",
+            "compatible-directional-refinement": "NIF-004",
+            "composite-exported-boundary": "NIF-010",
+            "optional-member-absent": "NIF-003",
+            "optional-member-present-but-incompatible": "NIF-003",
+            "missing-required-member": "NIF-009",
+            "wrong-direction": "NIF-009",
+            "same-type-incompatible-delivery": "NIF-002",
+            "sensitivity-weakening": "NIF-002",
+            "provider-unavailable": "NIF-006",
+            "provider-approved-type-refinement": "NIF-004",
+            "ambiguous-provider-decisions": "NIF-009",
+            "authority-effect-widening-rejected": "NIF-007",
+            "extra-concrete-member": "NIF-005",
+            "duplicate-interface-member": "NIF-009",
+            "revision-or-hash-mismatch": "NIF-001",
+            "member-order-nonsemantic": "NIF-011",
+            "semantic-member-change": "NIF-001",
+            "insufficient-identity-scratch": "NIF-012",
+            "insufficient-proof-scratch": "NIF-012",
+            "claim-does-not-prove-deferred-facets": "NIF-008"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "node-interface-v1#exact-primitive-boundary",
+          "node-interface-v1#compatible-directional-refinement",
+          "node-interface-v1#composite-exported-boundary"
+        ],
+        "negative": [
+          "node-interface-v1#missing-required-member",
+          "node-interface-v1#wrong-direction",
+          "node-interface-v1#same-type-incompatible-delivery",
+          "node-interface-v1#authority-effect-widening-rejected"
+        ],
+        "boundary": [
+          "node-interface-v1#optional-member-absent",
+          "node-interface-v1#provider-unavailable",
+          "node-interface-v1#insufficient-proof-scratch"
+        ],
+        "migration": [
+          "node-interface-v1#revision-or-hash-mismatch",
+          "node-interface-v1#member-order-nonsemantic",
+          "node-interface-v1#semantic-member-change"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "node_interface_vectors"
         }
       ]
     },

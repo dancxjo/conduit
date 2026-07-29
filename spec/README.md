@@ -202,6 +202,10 @@ containment program is tracked by
   independently admitted prepare/barrier/drain/state/replay/rebind/commit/
   rollback, persistent containment and inhibit facts, and opaque Tongues plus
   concrete HTTP generation witnesses.
+- [`052-node-interface-contract-v1.md`](052-node-interface-contract-v1.md)
+  defines allocator-free named multi-port node interfaces, closed optional
+  member semantics, exact non-port requirements, and reasoned directional
+  satisfaction shared by primitive and composite-derived node contracts.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
