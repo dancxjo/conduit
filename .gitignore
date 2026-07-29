@@ -18,6 +18,8 @@ node_modules/
 test-results/
 playwright-report/
 blob-report/
+__pycache__/
+*.pyc
 
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

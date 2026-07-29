@@ -5,7 +5,8 @@ tutorial-only parser, graph, port model, or runtime. A browser delivery layer
 must invoke the production parser/lowering/resolver/runtime artifacts and may
 only persist learner drafts separately from authored source and exact plans.
 
-The current static WASM page is a bounded local execution proof, not a complete
-browser-host implementation. It does not claim worker, service-worker,
-AudioWorklet, WebGPU, permission, fresh-host-report, distributed-cord, or
-cross-browser conformance behavior; those remain the reopened #86 boundary.
+The static page verifies its generated JS/WASM artifact plan, consumes the
+browser host observation/resolution contract, and runs production Conduit WASM
+inside a bounded dedicated-worker placement. Stop terminates that exact worker
+and the page exposes bounded lifecycle evidence. Main-thread parsing and
+Patchbay presentation remain separate from execution placement.

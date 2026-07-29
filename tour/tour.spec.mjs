@@ -1,0 +1,36 @@
+import { expect, test } from "@playwright/test";
+
+test("runs a production lesson in the resolved browser worker", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));
+  page.on("console", (message) => {
+    if (message.type() === "error") failures.push(message.text());
+  });
+
+  await page.goto("/tour/public/index.html?autorun");
+  await expect(page.locator("#result")).toContainText("Hello from the Tour.", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#result")).toContainText(
+    "Evidence: 2 nodes, 1 cords conducted.",
+  );
+  await expect(page.locator("#execution-note")).toContainText(
+    "exact dedicated-worker placement",
+  );
+  await expect(page.locator("#plan")).toContainText(
+    "conduit/tour-production-wasm-worker",
+  );
+  await expect(page.locator("#evidence")).toContainText("run-completed");
+  expect(failures).toEqual([]);
+});
+
+test("preserves a recoverable draft across reset", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/Hello from the Tour\./);
+  await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Recover me."));
+  await page.locator("#reset").click();
+  await expect(source).toHaveValue(/Hello from the Tour\./);
+  await page.locator("#undo-reset").click();
+  await expect(source).toHaveValue(/Recover me\./);
+});

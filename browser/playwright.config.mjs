@@ -1,8 +1,11 @@
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: ".",
-  testMatch: "conduit-browser-host.spec.mjs",
+  testDir: "..",
+  testMatch: [
+    "browser/conduit-browser-host.spec.mjs",
+    "tour/tour.spec.mjs",
+  ],
   fullyParallel: false,
   workers: 1,
   retries: 0,

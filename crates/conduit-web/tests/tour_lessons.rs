@@ -46,8 +46,8 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
             "{id} commands are an optional canonical command list"
         );
         assert_eq!(
-            lesson["profile"], "wasm-local-proof",
-            "{id} does not overclaim the unfinished browser-host profile"
+            lesson["profile"], "browser-dedicated-worker",
+            "{id} uses the exact bounded browser-host placement"
         );
 
         let source = lesson["source"].as_str().expect("lesson has source");

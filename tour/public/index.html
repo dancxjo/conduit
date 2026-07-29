@@ -1,15 +1,69 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tour of Conduit</title>
-<main>
-  <nav aria-label="Lessons"><h1>Tour of Conduit</h1><ol id="lessons"></ol></nav>
-  <section aria-labelledby="title"><h2 id="title">Loading lesson…</h2><p id="goal"></p><p id="prose"></p><p id="execution-note">Local WASM proof; not a browser-host capability report or placement claim.</p><p><code id="command"></code></p>
-    <label for="source">Real .panel source</label><textarea id="source" rows="22" spellcheck="false"></textarea>
-    <h3>Panel projection</h3><p id="panel-help">Select a node to reveal its source; position controls change only its presentation.</p><ul id="panel" aria-label="Parsed nodes" aria-describedby="panel-help"></ul>
-    <p><button id="move-left" disabled>Move selected left</button> <button id="move-right" disabled>Move selected right</button></p>
-    <p><button id="run">Run</button> <button id="stop" disabled>Stop</button> <button id="check">Check</button> <button id="reset">Reset</button> <button id="download">Download</button></p>
-    <output id="result" aria-live="polite">Loading production parser…</output>
-  </section>
-</main>
-<script type="module" src="./tour.js"></script>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tour of Conduit</title>
+  <link rel="stylesheet" href="./tour.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to lesson workspace</a>
+  <main>
+    <nav aria-label="Lessons">
+      <p class="eyebrow">Interactive handbook</p>
+      <h1>Tour of Conduit</h1>
+      <p class="lede">Learn the real <code>.panel</code> language by patching and running it.</p>
+      <ol id="lessons"></ol>
+    </nav>
+    <section id="workspace" aria-labelledby="title">
+      <header>
+        <p class="eyebrow">Current lesson</p>
+        <h2 id="title">Loading lesson…</h2>
+        <p id="goal" class="goal"></p>
+        <p id="prose"></p>
+        <p id="execution-note" class="host-status">Preparing exact browser-host placement…</p>
+        <p><code id="command"></code></p>
+      </header>
+
+      <div class="work-grid">
+        <section aria-labelledby="source-title">
+          <h3 id="source-title">Source</h3>
+          <label for="source">Real <code>.panel</code> source</label>
+          <textarea id="source" rows="22" spellcheck="false"></textarea>
+        </section>
+        <section aria-labelledby="panel-title">
+          <h3 id="panel-title">Panel</h3>
+          <p id="panel-help">Select a node to reveal its source; position controls change only its presentation.</p>
+          <ul id="panel" aria-label="Parsed nodes" aria-describedby="panel-help"></ul>
+          <p class="button-row">
+            <button id="move-left" disabled>Move selected left</button>
+            <button id="move-right" disabled>Move selected right</button>
+          </p>
+        </section>
+      </div>
+
+      <div class="button-row primary-actions" role="group" aria-label="Lesson controls">
+        <button id="run" class="primary">Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
+        <button id="stop" disabled>Stop</button>
+        <button id="check">Check</button>
+        <button id="reset">Reset</button>
+        <button id="undo-reset" disabled>Undo reset</button>
+        <button id="download">Download</button>
+      </div>
+      <output id="result" aria-live="polite">Loading production parser…</output>
+
+      <div class="inspectors">
+        <details>
+          <summary>Exact plan</summary>
+          <pre id="plan"></pre>
+        </details>
+        <details>
+          <summary>Bounded evidence</summary>
+          <pre id="evidence">No run evidence yet.</pre>
+        </details>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="./tour.js"></script>
+</body>
+</html>

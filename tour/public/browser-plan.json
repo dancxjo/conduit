@@ -1,0 +1,40 @@
+{
+  "schema": "conduit.tour-browser-plan/v1",
+  "implementation_id": "conduit/tour-production-wasm-worker",
+  "semantic_contract": "conduit/tour-panel-run",
+  "placement": "dedicated-worker",
+  "artifacts": [
+    {
+      "id": "browser-host-adapter",
+      "path": "../../browser/conduit-browser-host.mjs",
+      "sha256": "b6a1355ab26376d5ddb22c14e6c428869d1020d966442313304662e9c195511b",
+      "bytes": 20320
+    },
+    {
+      "id": "tour-worker",
+      "path": "./tour-worker.mjs",
+      "sha256": "b357709684c9e69cfedcaa84cadc0d33749d2fdbd2750f24e747551e70d68a83",
+      "bytes": 1410
+    },
+    {
+      "id": "wasm-bindgen-loader",
+      "path": "./conduit_web.js",
+      "sha256": "6b46153ab87d7ea5b8e5c6a49326f1911c63d5ee1e783b4fd6dfe74ba17801bb",
+      "bytes": 9075
+    },
+    {
+      "id": "conduit-web-wasm",
+      "path": "./conduit_web_bg.wasm",
+      "sha256": "c15a0fcb4f4140c7c421f808f1e8be4c20328af845d9ad52ff348a4af3cda8c4",
+      "bytes": 336800
+    }
+  ],
+  "plan_identity": "fcc68a11cd5e9b872916be6444bad3d1037a2b571252b7d0fc0c22358443f41b",
+  "observation_id": "conduit/tour-static-browser-observation-v1",
+  "bounds": {
+    "maximum_pending": 1,
+    "maximum_message_bytes": 131072,
+    "response_timeout_ms": 5000,
+    "maximum_evidence_events": 32
+  }
+}
