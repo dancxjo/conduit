@@ -11,6 +11,112 @@ use sha2::{Digest as _, Sha256};
 
 pub const PATCHBAY_PROTOCOL_V1: u16 = 1;
 
+/// Rebuildable presentation of one exact pool generation. Source, plan, run,
+/// evidence, and presentation identities remain separate.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PoolProjection {
+    pub source_semantic_hash: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    pub evidence_stream_id: String,
+    pub evidence_cursor: u64,
+    pub pool: String,
+    pub template_identity: String,
+    pub generation_identity: String,
+    pub generation: u32,
+    pub maximum_live: u16,
+    pub maximum_queued: u16,
+    pub queued: u16,
+    pub live: u16,
+    pub restarting: u16,
+    pub retiring: u16,
+    pub cleanup: u16,
+    pub terminal: u16,
+    pub latest_evidence: Option<PoolEvidenceProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PoolEvidenceProjection {
+    pub sequence: u64,
+    pub tick: u64,
+    pub instance_identity: String,
+    pub work_unit_identity: String,
+    pub attempt: u16,
+    pub correlation_identity: String,
+    pub from: String,
+    pub to: String,
+    pub reason: String,
+    pub cause: Option<String>,
+}
+
+/// Exact origins and observations used to rebuild a pool presentation. This
+/// input is a view only; it neither owns nor mutates execution state.
+pub struct PoolProjectionInput<'a, 'contract> {
+    pub source_semantic_hash: &'a str,
+    pub plan_identity: conduit_core::SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: &'a str,
+    pub evidence_stream_id: &'a str,
+    pub generation: conduit_core::PoolGeneration,
+    pub generation_identity: conduit_core::SemanticHash,
+    pub contract: conduit_core::PoolContract<'contract>,
+    pub population: conduit_core::PoolPopulationSnapshot,
+    pub evidence: &'a [conduit_core::PoolEvidence],
+}
+
+#[must_use]
+pub fn project_pool(input: PoolProjectionInput<'_, '_>) -> PoolProjection {
+    PoolProjection {
+        source_semantic_hash: input.source_semantic_hash.to_owned(),
+        plan_identity: input.plan_identity.to_string(),
+        plan_epoch: input.plan_epoch,
+        run_id: input.run_id.to_owned(),
+        evidence_stream_id: input.evidence_stream_id.to_owned(),
+        evidence_cursor: input.evidence.last().map_or(0, |event| event.sequence),
+        pool: input.contract.pool.as_str().to_owned(),
+        template_identity: input.contract.template_hash.to_string(),
+        generation_identity: input.generation_identity.to_string(),
+        generation: input.generation.generation,
+        maximum_live: input.contract.maximum_live,
+        maximum_queued: input.contract.maximum_queued,
+        queued: input.population.queued,
+        live: input.population.live,
+        restarting: input.population.restarting,
+        retiring: input.population.retiring,
+        cleanup: input.population.cleanup,
+        terminal: input.population.terminal,
+        latest_evidence: input.evidence.last().map(|event| PoolEvidenceProjection {
+            sequence: event.sequence,
+            tick: event.tick,
+            instance_identity: event.identity.instance.to_string(),
+            work_unit_identity: event.identity.work_unit.to_string(),
+            attempt: event.identity.attempt,
+            correlation_identity: event.identity.correlation.to_string(),
+            from: pool_state_name(event.from).to_owned(),
+            to: pool_state_name(event.to).to_owned(),
+            reason: event.reason.as_str().to_owned(),
+            cause: event.cause.map(|cause| cause.to_string()),
+        }),
+    }
+}
+
+const fn pool_state_name(value: conduit_core::PoolSlotState) -> &'static str {
+    match value {
+        conduit_core::PoolSlotState::Empty => "empty",
+        conduit_core::PoolSlotState::Queued => "queued",
+        conduit_core::PoolSlotState::Reserved => "reserved",
+        conduit_core::PoolSlotState::Running => "running",
+        conduit_core::PoolSlotState::Checkpointing => "checkpointing",
+        conduit_core::PoolSlotState::RestartBackoff => "restart-backoff",
+        conduit_core::PoolSlotState::Draining => "draining",
+        conduit_core::PoolSlotState::Cleanup => "cleanup",
+        conduit_core::PoolSlotState::Succeeded => "succeeded",
+        conduit_core::PoolSlotState::Cancelled => "cancelled",
+        conduit_core::PoolSlotState::Failed => "failed",
+    }
+}
+
 /// Presentation projection of the portable supervision contract. Every
 /// identity remains pinned to its source, plan, run, binding, and evidence
 /// origin; this view does not become execution evidence itself.

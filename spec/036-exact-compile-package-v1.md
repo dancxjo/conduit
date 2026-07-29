@@ -102,6 +102,15 @@ relationship. Missing, extra, incompatible, or underallocated bindings fail
 before a partial plan is emitted; older documents remain readable under their
 frozen plan versions.
 
+The additive `conduit.execution-plan/v8` document carries plan-v16 executable
+pool runtime bindings from specification 050. Each frozen lowered pool must
+have one exact host-resolved millisecond-to-tick conversion, cleanup and
+evidence limit, per-instance and queued profiles, and old/candidate/rollback
+generation reserve. The compile binding must reconcile with the older
+per-instance/worst-case fields; missing, extra, incompatible, or
+underallocated bindings fail before partial activation. Compilation consumes
+the source admission/supervision/cleanup values and does not reinterpret them.
+
 ## Package manifest
 
 `conduit.package/v1` contains:

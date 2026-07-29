@@ -80,6 +80,11 @@ The portable core is `#![no_std]`-capable. The embedded goal is a compact
 compiled pipeline image executed by a small runtime, not a miniature Linux
 distribution.
 
+Replicated composite pools are finite schema-16 plan populations rather than
+dynamic graph mutation. See the
+[replicated pool cookbook](docs/cookbook-replicated-pools.md) for exact
+admission, identity, reservation, cleanup, and generation-overlap guidance.
+
 ## Working with panels
 
 The `conduct` command checks, explains, and runs panels:
@@ -104,7 +109,8 @@ conduct compile --input compile-input.json --format=json panel.panel
 
 The input document pins the complete module closure, selected root, finite
 semantic catalog snapshot, manifests, fresh host reports, realm/passport
-policy, authority observations, time, pool bindings, and finite budgets.
+policy, authority observations, time, schema-16 pool runtime and generation
+bindings, and finite budgets.
 Compilation performs no discovery, provisioning, artifact fetch, grant
 acquisition, loading, or execution. `conduct package create` builds a
 deterministic thick or thin content-addressed envelope from a sealed manifest

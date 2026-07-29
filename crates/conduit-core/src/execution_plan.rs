@@ -13,14 +13,15 @@ use crate::{
     HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofNode, HazardousHostBinding,
     HostCapability, Id, InhibitReason, InstancePath, JobContract, MAX_HAZARD_PROOF_NODES, MapField,
     MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
-    PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus, Pressure,
-    ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
-    SatisfactionRole, SemanticHash, StopPolicy, SubscriberCoupling, SupervisionActionKind,
-    SupervisionContract, TypeContractRef, analyze_effect_closure, validate_administrative_proof,
-    validate_authority_at_use, validate_distributed_binding, validate_hazardous_host_binding,
-    validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
-    validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
-    validate_stream_contract,
+    PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus,
+    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
+    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ResolvedAuthorityBinding,
+    RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof, SatisfactionRole, SemanticHash,
+    StopPolicy, SubscriberCoupling, SupervisionActionKind, SupervisionContract, TypeContractRef,
+    analyze_effect_closure, validate_administrative_proof, validate_authority_at_use,
+    validate_distributed_binding, validate_hazardous_host_binding, validate_job_contract,
+    validate_offline_lease, validate_plan_execution_profile, validate_policy_budget_status,
+    validate_runtime_evidence_policy, validate_satisfaction_proof, validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -39,9 +40,10 @@ use crate::{
 /// host profiles and independently observed inhibit boundaries into that
 /// closure and revalidates their freshness at run start. Schema 15 pins typed
 /// supervision bindings, admitted actions, ordinary handler placement, and
-/// complete finite recovery resources.
+/// complete finite recovery resources. Schema 16 adds exact replicated-pool
+/// runtime admission, lifecycle, resource, and generation-overlap contracts.
 /// Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 15;
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 16;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -56,6 +58,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V11: u32 = 11;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V12: u32 = 12;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V13: u32 = 13;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V14: u32 = 14;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V15: u32 = 15;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -365,6 +368,17 @@ pub struct PlanPortGroup<'a> {
 
 /// Exact bounded replicated-composite pool reservation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanPoolRuntime<'a> {
+    pub contract: PoolContract<'a>,
+    /// Per-queued-request identity, correlation, cancellation, and evidence
+    /// reservation. It deliberately excludes child activation resources.
+    pub queued_reservation: PoolReservationProfile,
+    /// Old/candidate/rollback coexistence reserve consumed by #57.
+    pub generation_reservation: PoolGenerationReservation,
+}
+
+/// Exact bounded replicated-composite pool reservation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanInstancePool<'a> {
     pub instance: InstancePath<'a>,
     pub template_hash: SemanticHash,
@@ -381,6 +395,9 @@ pub struct PlanInstancePool<'a> {
     pub worst_case_budget: PlanResourceBudget,
     pub child_nodes: u16,
     pub child_cords: u16,
+    /// Runtime semantics introduced in plan schema 16. Earlier frozen schemas
+    /// keep this absent and cannot be used to instantiate a runtime pool.
+    pub runtime: Option<PlanPoolRuntime<'a>>,
 }
 
 /// Exact mapping from a plan-scoped fallback/degraded/operator choice to an
@@ -839,7 +856,7 @@ impl ExecutionPlan<'_> {
             }
         }
         for pool in self.instance_pools {
-            push!(hash_instance_pool(*pool));
+            push!(hash_instance_pool(self.schema_version, *pool));
             for grant in pool.authority_grants {
                 push!(hash_pool_authority(pool.instance, *grant));
             }
@@ -925,6 +942,74 @@ impl ExecutionPlan<'_> {
         )
         .map_err(PlanIdentityError::Canonical)
     }
+}
+
+fn validate_plan_pool_runtime(pool: PlanInstancePool<'_>, runtime: PlanPoolRuntime<'_>) -> bool {
+    let contract = runtime.contract;
+    if contract.validate().is_err()
+        || contract.pool != pool.instance
+        || contract.template_hash != pool.template_hash
+        || contract.implementation_set_hash != pool.implementation_set_hash
+        || contract.maximum_live != pool.maximum_live
+        || contract.maximum_queued != pool.maximum_queued
+        || contract.reservation.resources != pool.per_instance_budget
+        || contract.reservation.child_nodes != pool.child_nodes
+        || contract.reservation.child_cords != pool.child_cords
+        || contract.total_reservation.resources != pool.worst_case_budget
+        || contract.deadline_ticks > pool.maximum_instance_ticks
+        || runtime.generation_reservation.validate().is_err()
+        || runtime.generation_reservation.old_maximum_live != pool.maximum_live
+        || runtime.generation_reservation.per_instance != contract.reservation
+    {
+        return false;
+    }
+    let admission_matches = matches!(
+        (contract.admission, pool.maximum_queued),
+        (PoolAdmissionPolicy::QueueBounded, 1..=u16::MAX)
+            | (
+                PoolAdmissionPolicy::Reject
+                    | PoolAdmissionPolicy::Block
+                    | PoolAdmissionPolicy::Fail,
+                0
+            )
+    );
+    if !admission_matches {
+        return false;
+    }
+    if let PoolSupervisionPolicy::Fallback { target } = contract.supervision {
+        if !valid_path(target) {
+            return false;
+        }
+    }
+    let queue_is_exact = if pool.maximum_queued == 0 {
+        runtime.queued_reservation == PoolReservationProfile::default()
+    } else {
+        runtime.queued_reservation.child_nodes == 0
+            && runtime.queued_reservation.child_cords == 0
+            && runtime.queued_reservation.host_operations == 0
+            && runtime.queued_reservation.resources.storage_bytes == 0
+            && runtime.queued_reservation.resources.cpu_units == 0
+            && runtime.queued_reservation.resources.timers == 0
+            && runtime.queued_reservation.resources.transports == 0
+            && runtime.queued_reservation.resources.checkpoints == 0
+            && runtime.queued_reservation.state_bytes > 0
+            && runtime.queued_reservation.scheduler_slots > 0
+            && runtime.queued_reservation.cancellation_scopes > 0
+            && runtime.queued_reservation.resources.memory_bytes > 0
+            && runtime.queued_reservation.resources.evidence_bytes > 0
+    };
+    if !queue_is_exact {
+        return false;
+    }
+    let queued_total = match runtime.queued_reservation.checked_mul(pool.maximum_queued) {
+        Some(value) => value,
+        None => return false,
+    };
+    runtime
+        .generation_reservation
+        .reserved_resources
+        .checked_add(queued_total)
+        == Some(contract.total_reservation)
 }
 
 /// Validate exact structure, pinned identity, budgets, authority, and freshness.
@@ -2084,6 +2169,23 @@ pub fn validate_execution_plan(
     for (index, pool) in plan.instance_pools.iter().enumerate() {
         let needed_slots = pool.maximum_live.checked_add(pool.maximum_queued);
         let minimum_budget = pool.per_instance_budget.checked_mul(pool.maximum_live);
+        let runtime_version_valid = if plan.schema_version < 16 {
+            pool.runtime.is_none()
+        } else {
+            pool.runtime.is_some_and(|runtime| {
+                validate_plan_pool_runtime(*pool, runtime)
+                    && match runtime.contract.supervision {
+                        PoolSupervisionPolicy::Fallback { target } => {
+                            plan.nodes.iter().any(|node| node.instance == target)
+                                || plan
+                                    .composites
+                                    .iter()
+                                    .any(|composite| composite.instance == target)
+                        }
+                        _ => true,
+                    }
+            })
+        };
         if !valid_path(pool.instance)
             || !valid_pin(pool.admission_policy)
             || !valid_pin(pool.supervision_policy)
@@ -2093,6 +2195,7 @@ pub fn validate_execution_plan(
             || pool.child_cords == 0
             || needed_slots.is_none_or(|needed| pool.correlation_slots < needed)
             || minimum_budget.is_none_or(|minimum| !minimum.fits_within(pool.worst_case_budget))
+            || !runtime_version_valid
             || pool.authority_grants.iter().any(|grant| {
                 !valid_id(*grant)
                     || !plan
@@ -2134,7 +2237,7 @@ pub fn validate_execution_plan(
     }
 
     if (plan.schema_version < 15 && !plan.supervisions.is_empty())
-        || (plan.schema_version == 15 && plan.supervisions.is_empty())
+        || ((15..16).contains(&plan.schema_version) && plan.supervisions.is_empty())
     {
         return Err(error(
             PlanDiagnosticCode::UnsupportedVersion,
@@ -3523,10 +3626,88 @@ fn hash_port_group_member(
 }
 
 fn hash_instance_pool(
+    plan_schema_version: u32,
     value: PlanInstancePool<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     let per_instance = budget_fields(value.per_instance_budget);
     let worst_case = budget_fields(value.worst_case_budget);
+    let runtime_hash = value.runtime.map(hash_plan_pool_runtime).transpose()?;
+    if plan_schema_version >= EXECUTION_PLAN_SCHEMA_VERSION {
+        return descriptor_hash(
+            Id("conduit/plan-instance-pool-v2"),
+            &[
+                semantic("instance", CanonicalValue::Text(value.instance.as_str())),
+                semantic(
+                    "template_hash",
+                    CanonicalValue::Bytes(value.template_hash.as_bytes()),
+                ),
+                semantic(
+                    "derived_identity_hash",
+                    CanonicalValue::Bytes(value.derived_identity_hash.as_bytes()),
+                ),
+                semantic(
+                    "maximum_live",
+                    CanonicalValue::Integer(i128::from(value.maximum_live)),
+                ),
+                semantic(
+                    "maximum_queued",
+                    CanonicalValue::Integer(i128::from(value.maximum_queued)),
+                ),
+                semantic(
+                    "admission_policy_id",
+                    CanonicalValue::Identifier(value.admission_policy.id),
+                ),
+                semantic(
+                    "admission_policy_version",
+                    CanonicalValue::Integer(i128::from(value.admission_policy.schema_version)),
+                ),
+                semantic(
+                    "admission_policy_hash",
+                    CanonicalValue::Bytes(value.admission_policy.semantic_hash.as_bytes()),
+                ),
+                semantic(
+                    "supervision_policy_id",
+                    CanonicalValue::Identifier(value.supervision_policy.id),
+                ),
+                semantic(
+                    "supervision_policy_version",
+                    CanonicalValue::Integer(i128::from(value.supervision_policy.schema_version)),
+                ),
+                semantic(
+                    "supervision_policy_hash",
+                    CanonicalValue::Bytes(value.supervision_policy.semantic_hash.as_bytes()),
+                ),
+                semantic("per_instance_budget", CanonicalValue::Map(&per_instance)),
+                semantic(
+                    "maximum_instance_ticks",
+                    CanonicalValue::Integer(i128::from(value.maximum_instance_ticks)),
+                ),
+                semantic(
+                    "implementation_set_hash",
+                    CanonicalValue::Bytes(value.implementation_set_hash.as_bytes()),
+                ),
+                semantic(
+                    "correlation_slots",
+                    CanonicalValue::Integer(i128::from(value.correlation_slots)),
+                ),
+                semantic("worst_case_budget", CanonicalValue::Map(&worst_case)),
+                semantic(
+                    "child_nodes",
+                    CanonicalValue::Integer(i128::from(value.child_nodes)),
+                ),
+                semantic(
+                    "child_cords",
+                    CanonicalValue::Integer(i128::from(value.child_cords)),
+                ),
+                semantic(
+                    "runtime_hash",
+                    runtime_hash.as_ref().map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
+                ),
+            ],
+        );
+    }
     descriptor_hash(
         Id("conduit/plan-instance-pool"),
         &[
@@ -3595,6 +3776,169 @@ fn hash_instance_pool(
             ),
         ],
     )
+}
+
+fn hash_plan_pool_runtime(
+    value: PlanPoolRuntime<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let contract = value.contract;
+    let reservation = hash_pool_reservation_profile(contract.reservation)?;
+    let total_reservation = hash_pool_reservation_profile(contract.total_reservation)?;
+    let queued_reservation = hash_pool_reservation_profile(value.queued_reservation)?;
+    let generation_reservation =
+        hash_pool_reservation_profile(value.generation_reservation.reserved_resources)?;
+    let (supervision, maximum_attempts, backoff_ticks, fallback) = match contract.supervision {
+        PoolSupervisionPolicy::FailTogether => ("fail-together", 0, 0, None),
+        PoolSupervisionPolicy::Isolate => ("isolate", 0, 0, None),
+        PoolSupervisionPolicy::RestartBounded {
+            maximum_attempts,
+            backoff_ticks,
+        } => ("restart-bounded", maximum_attempts, backoff_ticks, None),
+        PoolSupervisionPolicy::Fallback { target } => ("fallback", 0, 0, Some(target)),
+        PoolSupervisionPolicy::Escalate => ("escalate", 0, 0, None),
+    };
+    descriptor_hash(
+        Id("conduit/plan-pool-runtime"),
+        &[
+            semantic("pool", CanonicalValue::Text(contract.pool.as_str())),
+            semantic(
+                "template_hash",
+                CanonicalValue::Bytes(contract.template_hash.as_bytes()),
+            ),
+            semantic(
+                "implementation_set_hash",
+                CanonicalValue::Bytes(contract.implementation_set_hash.as_bytes()),
+            ),
+            semantic(
+                "maximum_live",
+                CanonicalValue::Integer(i128::from(contract.maximum_live)),
+            ),
+            semantic(
+                "maximum_queued",
+                CanonicalValue::Integer(i128::from(contract.maximum_queued)),
+            ),
+            semantic(
+                "admission",
+                CanonicalValue::Identifier(Id(pool_admission_name(contract.admission))),
+            ),
+            semantic("supervision", CanonicalValue::Identifier(Id(supervision))),
+            semantic(
+                "maximum_attempts",
+                CanonicalValue::Integer(i128::from(maximum_attempts)),
+            ),
+            semantic(
+                "backoff_ticks",
+                CanonicalValue::Integer(i128::from(backoff_ticks)),
+            ),
+            semantic(
+                "fallback",
+                fallback.map_or(CanonicalValue::Null, |target| {
+                    CanonicalValue::Text(target.as_str())
+                }),
+            ),
+            semantic(
+                "cleanup",
+                CanonicalValue::Identifier(Id(match contract.cleanup {
+                    PoolCleanupPolicy::Drain => "drain",
+                    PoolCleanupPolicy::Abort => "abort",
+                })),
+            ),
+            semantic(
+                "deadline_ticks",
+                CanonicalValue::Integer(i128::from(contract.deadline_ticks)),
+            ),
+            semantic(
+                "idle_timeout_ticks",
+                CanonicalValue::Integer(i128::from(contract.idle_timeout_ticks)),
+            ),
+            semantic(
+                "cleanup_ticks",
+                CanonicalValue::Integer(i128::from(contract.cleanup_ticks)),
+            ),
+            semantic(
+                "maximum_evidence_events",
+                CanonicalValue::Integer(i128::from(contract.maximum_evidence_events)),
+            ),
+            semantic("reservation", CanonicalValue::Bytes(reservation.as_bytes())),
+            semantic(
+                "total_reservation",
+                CanonicalValue::Bytes(total_reservation.as_bytes()),
+            ),
+            semantic(
+                "queued_reservation",
+                CanonicalValue::Bytes(queued_reservation.as_bytes()),
+            ),
+            semantic(
+                "old_maximum_live",
+                CanonicalValue::Integer(i128::from(value.generation_reservation.old_maximum_live)),
+            ),
+            semantic(
+                "candidate_maximum_live",
+                CanonicalValue::Integer(i128::from(
+                    value.generation_reservation.candidate_maximum_live,
+                )),
+            ),
+            semantic(
+                "rollback_maximum_live",
+                CanonicalValue::Integer(i128::from(
+                    value.generation_reservation.rollback_maximum_live,
+                )),
+            ),
+            semantic(
+                "generation_reserved_slots",
+                CanonicalValue::Integer(i128::from(value.generation_reservation.reserved_slots)),
+            ),
+            semantic(
+                "generation_reservation",
+                CanonicalValue::Bytes(generation_reservation.as_bytes()),
+            ),
+        ],
+    )
+}
+
+fn hash_pool_reservation_profile(
+    value: PoolReservationProfile,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let resources = budget_fields(value.resources);
+    descriptor_hash(
+        Id("conduit/plan-pool-reservation"),
+        &[
+            semantic("resources", CanonicalValue::Map(&resources)),
+            semantic(
+                "child_nodes",
+                CanonicalValue::Integer(i128::from(value.child_nodes)),
+            ),
+            semantic(
+                "child_cords",
+                CanonicalValue::Integer(i128::from(value.child_cords)),
+            ),
+            semantic(
+                "state_bytes",
+                CanonicalValue::Integer(i128::from(value.state_bytes)),
+            ),
+            semantic(
+                "scheduler_slots",
+                CanonicalValue::Integer(i128::from(value.scheduler_slots)),
+            ),
+            semantic(
+                "host_operations",
+                CanonicalValue::Integer(i128::from(value.host_operations)),
+            ),
+            semantic(
+                "cancellation_scopes",
+                CanonicalValue::Integer(i128::from(value.cancellation_scopes)),
+            ),
+        ],
+    )
+}
+
+const fn pool_admission_name(value: PoolAdmissionPolicy) -> &'static str {
+    match value {
+        PoolAdmissionPolicy::Reject => "reject",
+        PoolAdmissionPolicy::Block => "block",
+        PoolAdmissionPolicy::QueueBounded => "queue-bounded",
+        PoolAdmissionPolicy::Fail => "fail",
+    }
 }
 
 fn hash_pool_authority(

@@ -193,6 +193,10 @@ containment program is tracked by
   grammar-v2 bindings, lowered-source v3, exact plan-v15 accounting,
   deterministic nesting/races/failure propagation, and hosted, browser, and
   constrained witnesses.
+- [`050-replicated-composite-pools-v1.md`](050-replicated-composite-pools-v1.md)
+  defines schema-16 exact pool admission, deterministic instance and attempt
+  identity, atomic fixed reservations, supervision, cleanup, causal evidence,
+  and old/candidate/rollback generation overlap.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

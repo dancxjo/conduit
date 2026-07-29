@@ -46,6 +46,12 @@ Specification
 adds exact administrative subject and containment proof facts to authority
 bindings in plan schema 11 without changing schema-1 through schema-10
 identity.
+Specifications 042, 043, 045, and 049 extend the frozen plan through schemas
+12–15 with persistent policy budgets, hazardous-effect closure, independent
+inhibit observations, and typed supervision respectively. Specification
+[`050-replicated-composite-pools-v1.md`](050-replicated-composite-pools-v1.md)
+adds exact executable pool runtime and generation-overlap facts in schema 16
+without changing schema-1 through schema-15 identity.
 
 ## Identity boundary
 
@@ -199,6 +205,14 @@ covers at least `maximum_live * per_instance_budget` using checked arithmetic.
 Child, cord, timer, transport, checkpoint, and evidence maxima are therefore
 fixed before execution and never derived from scheduler order.
 
+Schema 16 additionally pins the resolved admission, supervision, fallback,
+restart, deadline, idle, cleanup, per-instance, queued-request, evidence, and
+old/candidate/rollback generation contracts from specification 050. A
+pre-schema-16 pool retains its frozen identity but cannot be instantiated as a
+replicated runtime. Schema-16 aggregate reservation covers generation
+coexistence and every bounded queue slot, rather than only the active
+generation.
+
 ## Canonical identity
 
 The identity is the specification 003 canonical semantic hash of
@@ -210,7 +224,8 @@ hashes. Leaf descriptors cover each host observation, concrete resource
 binding, artifact, node, required resource/effect relation, cord, authority
 binding, composite/member/export relation, port-group/member relation,
 instance pool/grant relation, plan-v15 supervision/action/target relation, and
-unresolved selector.
+plan-v16 pool-runtime/reservation/generation relation, and unresolved
+selector.
 
 Canonical set ordering makes identity independent of registry discovery,
 hash-map, filesystem, and input collection order. Wall clock and run-start
@@ -240,8 +255,10 @@ collection order. Before any node starts it checks:
 9. composite, export, port-group, and instance-pool references and maxima;
 10. plan-v15 supervision subjects, handlers, compatible targets, nesting,
     timers, limits, and complete minimum allocation;
-11. checked aggregate budget; and
-12. canonical plan identity using caller-owned scratch.
+11. plan-v16 pool admission, lifecycle, queue, exact reservation, and
+    old/candidate/rollback overlap;
+12. checked aggregate budget; and
+13. canonical plan identity using caller-owned scratch.
 
 The validation context contains only supported schema and a named deterministic
 run-start time observation. It does not alter identity. A host report or grant

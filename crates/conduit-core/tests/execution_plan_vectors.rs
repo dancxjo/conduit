@@ -277,6 +277,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         },
         child_nodes: 2,
         child_cords: 1,
+        runtime: None,
     }];
     let authorities = [authority];
     let mut plan = ExecutionPlan {

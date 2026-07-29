@@ -1,17 +1,17 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
-    AdmittedSupervisionAction, CanonicalDescriptor, CanonicalValue, EXECUTION_PLAN_SCHEMA_VERSION,
-    EvidenceCursor, EvidenceCursorStatus, FailurePlane, FieldDisposition, Id, InstancePath,
-    MapField, PlanResourceBudget, RecoveryBudget, RetryDeclaration, SUPERVISION_CONTRACT_VERSION,
-    SemanticHash, StandardNodeContract, StandardNodeKind, StandardNodeLimits, StopPolicy,
-    SupervisionActionKind, SupervisionAffectedScope, SupervisionCauseRef, SupervisionContract,
-    SupervisionDecision, SupervisionEvidenceKind, SupervisionFailureMode, SupervisionHostProfile,
-    SupervisionLimits, SupervisionReason, SupervisionScope, TerminalCauseCode, TerminalClass,
-    TerminalContext, TerminalObservation, TerminalPhase, classify_evidence_cursor,
-    minimum_supervision_allocation, nearest_supervision_boundary, outward_handler_observation,
-    select_terminal_observation, validate_standard_supervisor, validate_supervision_allocation,
-    validate_supervision_nesting,
+    AdmittedSupervisionAction, CanonicalDescriptor, CanonicalValue,
+    EXECUTION_PLAN_SCHEMA_VERSION_V15, EvidenceCursor, EvidenceCursorStatus, FailurePlane,
+    FieldDisposition, Id, InstancePath, MapField, PlanResourceBudget, RecoveryBudget,
+    RetryDeclaration, SUPERVISION_CONTRACT_VERSION, SemanticHash, StandardNodeContract,
+    StandardNodeKind, StandardNodeLimits, StopPolicy, SupervisionActionKind,
+    SupervisionAffectedScope, SupervisionCauseRef, SupervisionContract, SupervisionDecision,
+    SupervisionEvidenceKind, SupervisionFailureMode, SupervisionHostProfile, SupervisionLimits,
+    SupervisionReason, SupervisionScope, TerminalCauseCode, TerminalClass, TerminalContext,
+    TerminalObservation, TerminalPhase, classify_evidence_cursor, minimum_supervision_allocation,
+    nearest_supervision_boundary, outward_handler_observation, select_terminal_observation,
+    validate_standard_supervisor, validate_supervision_allocation, validate_supervision_nesting,
 };
 use conduit_panel::{LoadedModule, ModuleLoader, parse, resolve_modules};
 use conduit_runtime::{BoundedSupervisionRuntime, Registry, lower_source_v3};
@@ -735,8 +735,8 @@ fn execute_case(id: &str) -> Value {
             json!({"code":error.code})
         }
         "compile-roundtrip-schema-15" => {
-            assert_eq!(EXECUTION_PLAN_SCHEMA_VERSION, 15);
-            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION})
+            assert_eq!(EXECUTION_PLAN_SCHEMA_VERSION_V15, 15);
+            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION_V15})
         }
         "browser-profile-explicit-action" => {
             let mut runtime =

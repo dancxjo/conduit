@@ -16,30 +16,33 @@ use conduit_core::{
     ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
     DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12,
-    EXECUTION_PLAN_SCHEMA_VERSION_V13, EXECUTION_PLAN_SCHEMA_VERSION_V14, EffectClassBinding,
-    EffectClassTraits, EffectFlowBinding, EffectRequirement, ExecutionLimits, ExecutionPlan,
-    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason,
-    GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
-    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding,
-    HazardousHostProfile, HostCapability, HostDistributionKind, Id, ImplementationConfinement,
-    ImplementationManifest, InhibitLatchState, InhibitObservation, InstancePath,
-    MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting,
-    MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit, OwnershipModel,
-    PassportStatus, PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor,
-    PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure,
-    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPortGroup, PlanPortGroupMember,
+    EXECUTION_PLAN_SCHEMA_VERSION_V13, EXECUTION_PLAN_SCHEMA_VERSION_V14,
+    EXECUTION_PLAN_SCHEMA_VERSION_V15, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
+    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
+    FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason, GrantStatus, HandleDisposition,
+    HazardClosureContext, HazardClosureLimits, HazardClosurePolicy, HazardClosureReason,
+    HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding, HazardousHostProfile,
+    HostCapability, HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest,
+    InhibitLatchState, InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES,
+    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
+    ObservedGrant, OperatingEnvelopeLimit, OwnershipModel, PassportStatus,
+    PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure, PlanHostObservation,
+    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
     PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
     PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
-    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure,
-    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
-    ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
-    ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, ResourceRef, ResourceSelector, RollingLimit, SampleSchedule, SemanticHash,
-    StopPolicy, SupervisionActionKind, SupervisionContract, SupervisionFailureMode,
-    SupervisionLimits, SupervisionScope, ToxicCombinationRule, ToxicEffectPattern,
-    ToxicFlowRequirement, TraitRequirement, TypeContractRef, ValueRepresentation,
-    analyze_effect_closure, assess_provider_requirement, resolve_authority,
-    validate_administrative_proof, validate_reference_distribution,
+    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
+    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
+    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
+    ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
+    ReplacementSupport, ReportCapability, ReportMembership, ReportResource, ReportTopology,
+    ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
+    ResourceSelector, RollingLimit, SampleSchedule, SemanticHash, StopPolicy,
+    SupervisionActionKind, SupervisionContract, SupervisionFailureMode, SupervisionLimits,
+    SupervisionScope, ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement,
+    TraitRequirement, TypeContractRef, ValueRepresentation, analyze_effect_closure,
+    assess_provider_requirement, resolve_authority, validate_administrative_proof,
+    validate_reference_distribution,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -59,6 +62,7 @@ pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4
 pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
 pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
 pub const SUPERVISION_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v7";
+pub const POOL_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v8";
 pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -936,6 +940,105 @@ pub struct PoolBindingDocument {
     pub worst_case_budget: BudgetDocument,
     pub child_nodes: u16,
     pub child_cords: u16,
+    /// Host-resolved runtime reservation facts. Required for pool plans at
+    /// schema 16; absent only while reading frozen pre-runtime inputs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<PoolRuntimeBindingDocument>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct PoolReservationDocument {
+    pub resources: BudgetDocument,
+    pub child_nodes: u16,
+    pub child_cords: u16,
+    pub state_bytes: u64,
+    pub scheduler_slots: u16,
+    pub host_operations: u16,
+    pub cancellation_scopes: u16,
+}
+
+impl From<PoolReservationDocument> for PoolReservationProfile {
+    fn from(value: PoolReservationDocument) -> Self {
+        Self {
+            resources: value.resources.into(),
+            child_nodes: value.child_nodes,
+            child_cords: value.child_cords,
+            state_bytes: value.state_bytes,
+            scheduler_slots: value.scheduler_slots,
+            host_operations: value.host_operations,
+            cancellation_scopes: value.cancellation_scopes,
+        }
+    }
+}
+
+impl From<PoolReservationProfile> for PoolReservationDocument {
+    fn from(value: PoolReservationProfile) -> Self {
+        Self {
+            resources: value.resources.into(),
+            child_nodes: value.child_nodes,
+            child_cords: value.child_cords,
+            state_bytes: value.state_bytes,
+            scheduler_slots: value.scheduler_slots,
+            host_operations: value.host_operations,
+            cancellation_scopes: value.cancellation_scopes,
+        }
+    }
+}
+
+fn pool_runtime_legacy_profile(pool: &PoolBindingDocument) -> PoolReservationDocument {
+    let runtime = pool
+        .runtime
+        .as_ref()
+        .expect("caller checked runtime profile");
+    PoolReservationDocument {
+        resources: pool.per_instance_budget,
+        child_nodes: pool.child_nodes,
+        child_cords: pool.child_cords,
+        state_bytes: runtime.per_instance.state_bytes,
+        scheduler_slots: runtime.per_instance.scheduler_slots,
+        host_operations: runtime.per_instance.host_operations,
+        cancellation_scopes: runtime.per_instance.cancellation_scopes,
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PoolRuntimeBindingDocument {
+    /// Exact conversion from frozen source milliseconds to the selected
+    /// monotonic plan time basis.
+    pub ticks_per_millisecond: u32,
+    pub cleanup_ticks: u64,
+    pub maximum_evidence_events: u16,
+    pub fallback_target: Option<String>,
+    pub per_instance: PoolReservationDocument,
+    pub queued: PoolReservationDocument,
+    pub candidate_maximum_live: u16,
+    pub rollback_maximum_live: u16,
+    pub generation_reserved: PoolReservationDocument,
+    pub total_reserved: PoolReservationDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlanPoolRuntimeDocument {
+    pub admission: String,
+    pub supervision: String,
+    pub maximum_attempts: u16,
+    pub backoff_ticks: u64,
+    pub fallback_target: Option<String>,
+    pub cleanup: String,
+    pub deadline_ticks: u64,
+    pub idle_timeout_ticks: u64,
+    pub cleanup_ticks: u64,
+    pub maximum_evidence_events: u16,
+    pub per_instance: PoolReservationDocument,
+    pub queued: PoolReservationDocument,
+    pub candidate_maximum_live: u16,
+    pub rollback_maximum_live: u16,
+    pub generation_reserved_slots: u16,
+    pub generation_reserved: PoolReservationDocument,
+    pub total_reserved: PoolReservationDocument,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1362,6 +1465,23 @@ impl CompileInput {
                 .iter()
                 .map(|grant| id(grant))
                 .collect::<Result<Vec<_>, _>>()?;
+            let runtime = pool
+                .runtime
+                .as_ref()
+                .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?;
+            runtime
+                .fallback_target
+                .as_deref()
+                .map(instance)
+                .transpose()?;
+            if runtime.ticks_per_millisecond == 0
+                || runtime.cleanup_ticks == 0
+                || runtime.maximum_evidence_events == 0
+                || runtime.per_instance != pool_runtime_legacy_profile(pool)
+                || runtime.total_reserved.resources != pool.worst_case_budget
+            {
+                return Err(CompileError::new(CompileReason::BudgetInvalid));
+            }
         }
         if self
             .modules
@@ -1934,6 +2054,8 @@ pub struct PlanInstancePoolDocument {
     pub worst_case_budget: BudgetDocument,
     pub child_nodes: u16,
     pub child_cords: u16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<PlanPoolRuntimeDocument>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -2014,6 +2136,8 @@ impl ExactPlanDocument {
                 && (self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V13
                     || self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V14))
             || (self.schema == SUPERVISION_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V15)
+            || (self.schema == POOL_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
@@ -2235,9 +2359,26 @@ impl ExactPlanDocument {
                     .iter()
                     .map(|grant| id(grant))
                     .collect::<Result<Vec<_>, _>>()?;
+                let pool_instance = instance(&pool.instance)?;
+                let template_hash = parse_hash(&pool.template_hash)?;
+                let implementation_set_hash = parse_hash(&pool.implementation_set_hash)?;
+                let runtime = pool
+                    .runtime
+                    .as_ref()
+                    .map(|runtime| {
+                        plan_pool_runtime(
+                            runtime,
+                            pool_instance,
+                            template_hash,
+                            implementation_set_hash,
+                            pool.maximum_live,
+                            pool.maximum_queued,
+                        )
+                    })
+                    .transpose()?;
                 Ok(PlanInstancePool {
-                    instance: instance(&pool.instance)?,
-                    template_hash: parse_hash(&pool.template_hash)?,
+                    instance: pool_instance,
+                    template_hash,
                     derived_identity_hash: parse_hash(&pool.derived_identity_hash)?,
                     maximum_live: pool.maximum_live,
                     maximum_queued: pool.maximum_queued,
@@ -2246,11 +2387,12 @@ impl ExactPlanDocument {
                     per_instance_budget: pool.per_instance_budget.into(),
                     authority_grants: arena.alloc_slice_copy(&authority_grants),
                     maximum_instance_ticks: pool.maximum_instance_ticks,
-                    implementation_set_hash: parse_hash(&pool.implementation_set_hash)?,
+                    implementation_set_hash,
                     correlation_slots: pool.correlation_slots,
                     worst_case_budget: pool.worst_case_budget.into(),
                     child_nodes: pool.child_nodes,
                     child_cords: pool.child_cords,
+                    runtime,
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
@@ -2859,17 +3001,121 @@ fn compile_topology(
             .map(|grant| id(grant))
             .collect::<Result<Vec<_>, _>>()?;
         let pool_path = arena.alloc_str(&plan_pool_path(&pool.path));
+        let runtime_binding = binding
+            .runtime
+            .as_ref()
+            .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?;
+        let ticks_per_millisecond = u64::from(runtime_binding.ticks_per_millisecond);
+        if ticks_per_millisecond == 0 {
+            return Err(CompileError::new(CompileReason::BudgetInvalid));
+        }
+        let deadline_ticks = pool
+            .deadline_ms
+            .checked_mul(ticks_per_millisecond)
+            .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?;
+        let idle_timeout_ticks = pool
+            .idle_timeout_ms
+            .checked_mul(ticks_per_millisecond)
+            .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?;
+        let maximum_queued = match pool.admission {
+            conduit_panel::PoolAdmission::QueueBounded(maximum) => maximum,
+            conduit_panel::PoolAdmission::Reject
+            | conduit_panel::PoolAdmission::Block
+            | conduit_panel::PoolAdmission::Fail => 0,
+        };
+        let admission = match pool.admission {
+            conduit_panel::PoolAdmission::Reject => PoolAdmissionPolicy::Reject,
+            conduit_panel::PoolAdmission::Block => PoolAdmissionPolicy::Block,
+            conduit_panel::PoolAdmission::QueueBounded(_) => PoolAdmissionPolicy::QueueBounded,
+            conduit_panel::PoolAdmission::Fail => PoolAdmissionPolicy::Fail,
+        };
+        let supervision = match &pool.supervision {
+            conduit_panel::PoolSupervision::FailTogether
+                if runtime_binding.fallback_target.is_none() =>
+            {
+                PoolSupervisionPolicy::FailTogether
+            }
+            conduit_panel::PoolSupervision::Isolate
+                if runtime_binding.fallback_target.is_none() =>
+            {
+                PoolSupervisionPolicy::Isolate
+            }
+            conduit_panel::PoolSupervision::RestartBounded {
+                attempts,
+                backoff_ms,
+            } if runtime_binding.fallback_target.is_none() => {
+                PoolSupervisionPolicy::RestartBounded {
+                    maximum_attempts: *attempts,
+                    backoff_ticks: backoff_ms
+                        .checked_mul(ticks_per_millisecond)
+                        .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?,
+                }
+            }
+            conduit_panel::PoolSupervision::Fallback(_) => PoolSupervisionPolicy::Fallback {
+                target: instance(
+                    runtime_binding
+                        .fallback_target
+                        .as_deref()
+                        .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?,
+                )?,
+            },
+            conduit_panel::PoolSupervision::Escalate
+                if runtime_binding.fallback_target.is_none() =>
+            {
+                PoolSupervisionPolicy::Escalate
+            }
+            _ => return Err(CompileError::new(CompileReason::BudgetInvalid)),
+        };
+        let per_instance: PoolReservationProfile = runtime_binding.per_instance.into();
+        let total_reserved: PoolReservationProfile = runtime_binding.total_reserved.into();
+        if per_instance.resources != PlanResourceBudget::from(binding.per_instance_budget)
+            || per_instance.child_nodes != binding.child_nodes
+            || per_instance.child_cords != binding.child_cords
+            || total_reserved.resources != PlanResourceBudget::from(binding.worst_case_budget)
+        {
+            return Err(CompileError::new(CompileReason::BudgetInvalid));
+        }
+        let generation_reserved_slots = pool
+            .maximum
+            .checked_add(runtime_binding.candidate_maximum_live)
+            .and_then(|value| value.checked_add(runtime_binding.rollback_maximum_live))
+            .ok_or_else(|| CompileError::new(CompileReason::BudgetInvalid))?;
+        let runtime = PlanPoolRuntime {
+            contract: PoolContract {
+                pool: instance(pool_path)?,
+                template_hash: pool.template_contract_hash,
+                implementation_set_hash: parse_hash(&binding.implementation_set_hash)?,
+                maximum_live: pool.maximum,
+                maximum_queued,
+                admission,
+                supervision,
+                cleanup: match pool.cleanup {
+                    conduit_panel::PoolCleanup::Drain => PoolCleanupPolicy::Drain,
+                    conduit_panel::PoolCleanup::Abort => PoolCleanupPolicy::Abort,
+                },
+                deadline_ticks,
+                idle_timeout_ticks,
+                cleanup_ticks: runtime_binding.cleanup_ticks,
+                reservation: per_instance,
+                total_reservation: total_reserved,
+                maximum_evidence_events: runtime_binding.maximum_evidence_events,
+            },
+            queued_reservation: runtime_binding.queued.into(),
+            generation_reservation: PoolGenerationReservation {
+                old_maximum_live: pool.maximum,
+                candidate_maximum_live: runtime_binding.candidate_maximum_live,
+                rollback_maximum_live: runtime_binding.rollback_maximum_live,
+                reserved_slots: generation_reserved_slots,
+                per_instance,
+                reserved_resources: runtime_binding.generation_reserved.into(),
+            },
+        };
         instance_pools.push(PlanInstancePool {
             instance: instance(pool_path)?,
             template_hash: pool.template_contract_hash,
             derived_identity_hash: pool.semantic_hash,
             maximum_live: pool.maximum,
-            maximum_queued: match pool.admission {
-                conduit_panel::PoolAdmission::QueueBounded(maximum) => maximum,
-                conduit_panel::PoolAdmission::Reject
-                | conduit_panel::PoolAdmission::Block
-                | conduit_panel::PoolAdmission::Fail => 0,
-            },
+            maximum_queued,
             admission_policy: pin(&binding.admission_policy)?,
             supervision_policy: pin(&binding.supervision_policy)?,
             per_instance_budget: binding.per_instance_budget.into(),
@@ -2880,6 +3126,7 @@ fn compile_topology(
             worst_case_budget: binding.worst_case_budget.into(),
             child_nodes: binding.child_nodes,
             child_cords: binding.child_cords,
+            runtime: Some(runtime),
         });
     }
     if topology.supervisions.len() != input.supervision_bindings.len() {
@@ -2979,8 +3226,10 @@ fn compile_topology(
             )
         })
         .transpose()?;
-    let plan_schema_version = if !supervisions.is_empty() {
+    let plan_schema_version = if !instance_pools.is_empty() {
         EXECUTION_PLAN_SCHEMA_VERSION
+    } else if !supervisions.is_empty() {
+        EXECUTION_PLAN_SCHEMA_VERSION_V15
     } else if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
         EXECUTION_PLAN_SCHEMA_VERSION_V14
     } else if hazard_closure.is_some() {
@@ -4882,6 +5131,7 @@ fn plan_document(
             worst_case_budget: pool.worst_case_budget.into(),
             child_nodes: pool.child_nodes,
             child_cords: pool.child_cords,
+            runtime: pool.runtime.map(plan_pool_runtime_document),
         })
         .collect();
     let supervisions = plan
@@ -4963,7 +5213,9 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 15 {
+        schema: if plan.schema_version >= 16 {
+            POOL_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 15 {
             SUPERVISION_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else if plan.schema_version >= 13 {
             HAZARD_PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -5270,6 +5522,51 @@ fn canonicalize_execution_profile(document: &mut ExecutionProfileDocument) {
     document
         .memory_claims
         .sort_by(|left, right| left.category.cmp(&right.category));
+}
+
+fn plan_pool_runtime_document(value: PlanPoolRuntime<'_>) -> PlanPoolRuntimeDocument {
+    let (supervision, maximum_attempts, backoff_ticks, fallback_target) =
+        match value.contract.supervision {
+            PoolSupervisionPolicy::FailTogether => ("fail-together", 0, 0, None),
+            PoolSupervisionPolicy::Isolate => ("isolate", 0, 0, None),
+            PoolSupervisionPolicy::RestartBounded {
+                maximum_attempts,
+                backoff_ticks,
+            } => ("restart-bounded", maximum_attempts, backoff_ticks, None),
+            PoolSupervisionPolicy::Fallback { target } => {
+                ("fallback", 0, 0, Some(target.as_str().to_owned()))
+            }
+            PoolSupervisionPolicy::Escalate => ("escalate", 0, 0, None),
+        };
+    PlanPoolRuntimeDocument {
+        admission: match value.contract.admission {
+            PoolAdmissionPolicy::Reject => "reject",
+            PoolAdmissionPolicy::Block => "block",
+            PoolAdmissionPolicy::QueueBounded => "queue-bounded",
+            PoolAdmissionPolicy::Fail => "fail",
+        }
+        .to_owned(),
+        supervision: supervision.to_owned(),
+        maximum_attempts,
+        backoff_ticks,
+        fallback_target,
+        cleanup: match value.contract.cleanup {
+            PoolCleanupPolicy::Drain => "drain",
+            PoolCleanupPolicy::Abort => "abort",
+        }
+        .to_owned(),
+        deadline_ticks: value.contract.deadline_ticks,
+        idle_timeout_ticks: value.contract.idle_timeout_ticks,
+        cleanup_ticks: value.contract.cleanup_ticks,
+        maximum_evidence_events: value.contract.maximum_evidence_events,
+        per_instance: value.contract.reservation.into(),
+        queued: value.queued_reservation.into(),
+        candidate_maximum_live: value.generation_reservation.candidate_maximum_live,
+        rollback_maximum_live: value.generation_reservation.rollback_maximum_live,
+        generation_reserved_slots: value.generation_reservation.reserved_slots,
+        generation_reserved: value.generation_reservation.reserved_resources.into(),
+        total_reserved: value.contract.total_reservation.into(),
+    }
 }
 
 fn pin_document(value: PinnedDescriptor<'_>) -> PinDocument {
@@ -6064,6 +6361,111 @@ fn id(value: &str) -> Result<Id<'_>, CompileError> {
 
 fn instance(value: &str) -> Result<InstancePath<'_>, CompileError> {
     InstancePath::new(value).map_err(|_| CompileError::new(CompileReason::PlanInvalid))
+}
+
+fn plan_pool_runtime<'a>(
+    document: &'a PlanPoolRuntimeDocument,
+    pool: InstancePath<'a>,
+    template_hash: SemanticHash,
+    implementation_set_hash: SemanticHash,
+    maximum_live: u16,
+    maximum_queued: u16,
+) -> Result<PlanPoolRuntime<'a>, CompileError> {
+    let admission = pool_admission(&document.admission)?;
+    let supervision = match document.supervision.as_str() {
+        "fail-together"
+            if document.maximum_attempts == 0
+                && document.backoff_ticks == 0
+                && document.fallback_target.is_none() =>
+        {
+            PoolSupervisionPolicy::FailTogether
+        }
+        "isolate"
+            if document.maximum_attempts == 0
+                && document.backoff_ticks == 0
+                && document.fallback_target.is_none() =>
+        {
+            PoolSupervisionPolicy::Isolate
+        }
+        "restart-bounded"
+            if document.maximum_attempts > 0
+                && document.backoff_ticks > 0
+                && document.fallback_target.is_none() =>
+        {
+            PoolSupervisionPolicy::RestartBounded {
+                maximum_attempts: document.maximum_attempts,
+                backoff_ticks: document.backoff_ticks,
+            }
+        }
+        "fallback"
+            if document.maximum_attempts == 0
+                && document.backoff_ticks == 0
+                && document.fallback_target.is_some() =>
+        {
+            PoolSupervisionPolicy::Fallback {
+                target: instance(
+                    document
+                        .fallback_target
+                        .as_deref()
+                        .ok_or_else(|| CompileError::new(CompileReason::PlanInvalid))?,
+                )?,
+            }
+        }
+        "escalate"
+            if document.maximum_attempts == 0
+                && document.backoff_ticks == 0
+                && document.fallback_target.is_none() =>
+        {
+            PoolSupervisionPolicy::Escalate
+        }
+        _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+    };
+    let per_instance = document.per_instance.into();
+    Ok(PlanPoolRuntime {
+        contract: PoolContract {
+            pool,
+            template_hash,
+            implementation_set_hash,
+            maximum_live,
+            maximum_queued,
+            admission,
+            supervision,
+            cleanup: pool_cleanup(&document.cleanup)?,
+            deadline_ticks: document.deadline_ticks,
+            idle_timeout_ticks: document.idle_timeout_ticks,
+            cleanup_ticks: document.cleanup_ticks,
+            reservation: per_instance,
+            total_reservation: document.total_reserved.into(),
+            maximum_evidence_events: document.maximum_evidence_events,
+        },
+        queued_reservation: document.queued.into(),
+        generation_reservation: PoolGenerationReservation {
+            old_maximum_live: maximum_live,
+            candidate_maximum_live: document.candidate_maximum_live,
+            rollback_maximum_live: document.rollback_maximum_live,
+            reserved_slots: document.generation_reserved_slots,
+            per_instance,
+            reserved_resources: document.generation_reserved.into(),
+        },
+    })
+}
+
+fn pool_admission(value: &str) -> Result<PoolAdmissionPolicy, CompileError> {
+    match value {
+        "reject" => Ok(PoolAdmissionPolicy::Reject),
+        "block" => Ok(PoolAdmissionPolicy::Block),
+        "queue-bounded" => Ok(PoolAdmissionPolicy::QueueBounded),
+        "fail" => Ok(PoolAdmissionPolicy::Fail),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn pool_cleanup(value: &str) -> Result<PoolCleanupPolicy, CompileError> {
+    match value {
+        "drain" => Ok(PoolCleanupPolicy::Drain),
+        "abort" => Ok(PoolCleanupPolicy::Abort),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
 }
 
 fn direction(value: &str) -> Result<Direction, CompileError> {
@@ -7033,7 +7435,7 @@ mod tests {
 
         let plan = compile_panel(&panel, &input).unwrap();
         assert_eq!(plan.schema, SUPERVISION_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V15);
         assert_eq!(plan.supervisions.len(), 1);
         assert_eq!(plan.supervisions[0].subject, "root/subject");
         assert_eq!(plan.supervisions[0].handler, "root/handler");
@@ -7977,7 +8379,7 @@ mod tests {
                node sink : conduit/stdout\n\
                cord source.out -> sink.in\n\
              }}\n\
-             pool workers : fixture/worker {{ maximum = 2 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }}\n"
+             pool workers : fixture/worker {{ maximum = 2 admission = queue_bounded admission_queue = 2 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }}\n"
         );
         let panel = parse(&source).unwrap();
         let base_panel = parse(base).unwrap();
@@ -8000,23 +8402,94 @@ mod tests {
             authority_grants: Vec::new(),
             maximum_instance_ticks: 1000,
             implementation_set_hash: hash(113),
-            correlation_slots: 2,
+            correlation_slots: 4,
             worst_case_budget: BudgetDocument {
-                memory_bytes: 32,
-                timers: 2,
-                evidence_bytes: 32,
+                memory_bytes: 72,
+                timers: 4,
+                evidence_bytes: 72,
                 ..BudgetDocument::default()
             },
             child_nodes: 2,
             child_cords: 1,
+            runtime: Some(PoolRuntimeBindingDocument {
+                ticks_per_millisecond: 1,
+                cleanup_ticks: 10,
+                maximum_evidence_events: 64,
+                fallback_target: None,
+                per_instance: PoolReservationDocument {
+                    resources: BudgetDocument {
+                        memory_bytes: 16,
+                        timers: 1,
+                        evidence_bytes: 16,
+                        ..BudgetDocument::default()
+                    },
+                    child_nodes: 2,
+                    child_cords: 1,
+                    state_bytes: 8,
+                    scheduler_slots: 4,
+                    host_operations: 1,
+                    cancellation_scopes: 3,
+                },
+                queued: PoolReservationDocument {
+                    resources: BudgetDocument {
+                        memory_bytes: 4,
+                        evidence_bytes: 4,
+                        ..BudgetDocument::default()
+                    },
+                    state_bytes: 2,
+                    scheduler_slots: 1,
+                    cancellation_scopes: 1,
+                    ..PoolReservationDocument::default()
+                },
+                candidate_maximum_live: 1,
+                rollback_maximum_live: 1,
+                generation_reserved: PoolReservationDocument {
+                    resources: BudgetDocument {
+                        memory_bytes: 64,
+                        timers: 4,
+                        evidence_bytes: 64,
+                        ..BudgetDocument::default()
+                    },
+                    child_nodes: 8,
+                    child_cords: 4,
+                    state_bytes: 32,
+                    scheduler_slots: 16,
+                    host_operations: 4,
+                    cancellation_scopes: 12,
+                },
+                total_reserved: PoolReservationDocument {
+                    resources: BudgetDocument {
+                        memory_bytes: 72,
+                        timers: 4,
+                        evidence_bytes: 72,
+                        ..BudgetDocument::default()
+                    },
+                    child_nodes: 8,
+                    child_cords: 4,
+                    state_bytes: 36,
+                    scheduler_slots: 18,
+                    host_operations: 4,
+                    cancellation_scopes: 14,
+                },
+            }),
         });
         input.seal().unwrap();
 
         let plan = compile_panel(&panel, &input).unwrap();
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         assert_eq!(plan.instance_pools.len(), 1);
         assert_eq!(plan.instance_pools[0].maximum_live, 2);
-        assert_eq!(plan.instance_pools[0].maximum_queued, 0);
+        assert_eq!(plan.instance_pools[0].maximum_queued, 2);
+        let runtime = plan.instance_pools[0].runtime.as_ref().unwrap();
+        assert_eq!(runtime.deadline_ticks, 1000);
+        assert_eq!(runtime.idle_timeout_ticks, 5000);
+        assert_eq!(runtime.generation_reserved_slots, 4);
         plan.validate().unwrap();
+        assert_eq!(plan.schema, POOL_PLAN_DOCUMENT_SCHEMA);
+        let encoded = serde_json::to_vec(&plan).unwrap();
+        let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
+        decoded.validate().unwrap();
+        assert!(decoded.instance_pools[0].runtime.is_some());
 
         let mut missing = input;
         missing.pool_bindings.clear();

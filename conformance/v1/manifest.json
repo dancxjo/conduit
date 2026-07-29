@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 42,
+  "manifest_revision": 43,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -4399,6 +4399,109 @@
       "reference_tests": [
         {"package": "conduit-runtime", "test": "supervision_vectors"},
         {"package": "conduit-embedded", "test": "supervision_profile"}
+      ]
+    },
+    {
+      "id": "replicated-pools",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "POL-001", "POL-002", "POL-003", "POL-004", "POL-005",
+        "POL-006", "POL-007", "POL-008", "POL-009", "POL-010",
+        "POL-011", "POL-012", "POL-013", "POL-014", "POL-015"
+      ],
+      "artifacts": [{
+        "id": "replicated-pools-v1",
+        "path": "../c4/replicated-pools-v1.json",
+        "sha256": "sha256:10ba9ad62ef2b255a5796645a825c9f860d6eabcccf30de7d6830c1efe53bcb2",
+        "operation": "replicated-pools-v1",
+        "requirement_ids": [
+          "POL-001", "POL-002", "POL-003", "POL-004", "POL-005",
+          "POL-006", "POL-007", "POL-008", "POL-009", "POL-010",
+          "POL-011", "POL-012", "POL-013", "POL-014", "POL-015"
+        ],
+        "default_rule": "POL-001",
+        "case_rules": {
+          "maximum-one": "POL-001",
+          "maximum-many": "POL-001",
+          "admission-reject": "POL-004",
+          "admission-block": "POL-004",
+          "admission-queue-bounded": "POL-004",
+          "admission-fail": "POL-004",
+          "queue-full": "POL-004",
+          "queued-cancellation": "POL-010",
+          "identity-order-independent": "POL-003",
+          "cross-pool-identity-distinct": "POL-003",
+          "isolate-failure": "POL-006",
+          "fail-together": "POL-006",
+          "restart-success": "POL-006",
+          "restart-exhaustion": "POL-006",
+          "restart-backoff": "POL-005",
+          "explicit-fallback": "POL-006",
+          "escalation": "POL-006",
+          "idle-timeout": "POL-005",
+          "deadline-expiry": "POL-005",
+          "cleanup-drain": "POL-005",
+          "cleanup-abort": "POL-005",
+          "authority-denial": "POL-008",
+          "resource-denial": "POL-002",
+          "implementation-set-denial": "POL-008",
+          "pressure-isolation": "POL-006",
+          "checkpoint-compatible": "POL-009",
+          "checkpoint-incompatible": "POL-009",
+          "pool-cancellation-causality": "POL-010",
+          "generation-overlap": "POL-011",
+          "generation-overlap-denied": "POL-011",
+          "generation-drain": "POL-011",
+          "generation-rollback": "POL-011",
+          "malicious-profile": "POL-012",
+          "long-run-population": "POL-013",
+          "fair-pool-selection": "POL-007",
+          "evidence-exhaustion-before-mutation": "POL-010",
+          "legacy-plan-not-executable": "POL-015",
+          "schema-16-roundtrip": "POL-002"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "replicated-pools-v1#maximum-many",
+          "replicated-pools-v1#cross-pool-identity-distinct",
+          "replicated-pools-v1#admission-queue-bounded",
+          "replicated-pools-v1#restart-success",
+          "replicated-pools-v1#checkpoint-compatible",
+          "replicated-pools-v1#generation-overlap",
+          "replicated-pools-v1#schema-16-roundtrip"
+        ],
+        "negative": [
+          "replicated-pools-v1#queue-full",
+          "replicated-pools-v1#authority-denial",
+          "replicated-pools-v1#resource-denial",
+          "replicated-pools-v1#implementation-set-denial",
+          "replicated-pools-v1#checkpoint-incompatible",
+          "replicated-pools-v1#generation-overlap-denied",
+          "replicated-pools-v1#malicious-profile",
+          "replicated-pools-v1#legacy-plan-not-executable"
+        ],
+        "boundary": [
+          "replicated-pools-v1#maximum-one",
+          "replicated-pools-v1#restart-exhaustion",
+          "replicated-pools-v1#deadline-expiry",
+          "replicated-pools-v1#evidence-exhaustion-before-mutation",
+          "replicated-pools-v1#long-run-population"
+        ],
+        "migration": [
+          "replicated-pools-v1#generation-drain",
+          "replicated-pools-v1#generation-rollback",
+          "replicated-pools-v1#identity-order-independent",
+          "replicated-pools-v1#pool-cancellation-causality"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-runtime", "test": "replicated_pool_vectors"},
+        {"package": "conduit-rp2040-hil", "test": "pool_contract"}
       ]
     },
     {

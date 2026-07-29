@@ -45,6 +45,19 @@ test("executes browser-host vectors without engine-name branches", async ({ page
     handlerTimeoutCode: "CND-SUP-008",
     handlerTimeoutSubject: "root/handler",
   });
+  expect(result.pool).toEqual({
+    live: 2,
+    queued: 0,
+    restarting: 0,
+    retiring: 1,
+    queueFullCode: "CND-POL-005",
+    queueFullReason: "queue-full",
+    restartAttempt: 2,
+    evidenceCount: 15,
+    evidenceBound: 64,
+    generationDrainAffected: 3,
+    evidenceExhaustionCode: "CND-POL-006",
+  });
   expect(result.placementOutcomes.window).toBe("executed");
   expect(result.placementOutcomes["dedicated-worker"]).toBe("executed");
   expect(result.placementOutcomes.wasm).toBe("executed");

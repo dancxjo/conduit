@@ -1,6 +1,7 @@
 use conduit_patchbay::{
-    EditOperation, EditRequest, NodePosition, PATCHBAY_PROTOCOL_V1, PlanSnapshot, ProjectionLog,
-    ProjectionUpdate, RunSnapshot, RunState, SubjectPath, Workspace, project_supervision,
+    EditOperation, EditRequest, NodePosition, PATCHBAY_PROTOCOL_V1, PlanSnapshot,
+    PoolProjectionInput, ProjectionLog, ProjectionUpdate, RunSnapshot, RunState, SubjectPath,
+    Workspace, project_pool, project_supervision,
 };
 
 const SOURCE: &str = "panel 1\nnode greeting : conduit/literal { value = \"hello\\n\" }\nnode output : conduit/stdout\ncord greeting.out -> output.in\n";
@@ -268,4 +269,91 @@ fn supervision_projection_retains_exact_origins_actions_rejection_and_gap() {
             .as_deref(),
         Some("CND-SUP-013")
     );
+}
+
+#[test]
+fn pool_projection_retains_plan_run_generation_and_evidence_origins() {
+    use conduit_core::{
+        InstancePath, PlanResourceBudget, PoolAdmissionDisposition, PoolAdmissionFacts,
+        PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolController, PoolGeneration,
+        PoolReservationProfile, PoolSupervisionPolicy, PoolWorkIdentity, SemanticHash,
+    };
+    let hash = |byte| SemanticHash::from_bytes([byte; 32]);
+    let reservation = PoolReservationProfile {
+        resources: PlanResourceBudget {
+            memory_bytes: 128,
+            timers: 2,
+            evidence_bytes: 64,
+            ..PlanResourceBudget::ZERO
+        },
+        child_nodes: 2,
+        child_cords: 1,
+        state_bytes: 32,
+        scheduler_slots: 3,
+        host_operations: 1,
+        cancellation_scopes: 2,
+    };
+    let contract = PoolContract {
+        pool: InstancePath::new("root/pool.workers").unwrap(),
+        template_hash: hash(1),
+        implementation_set_hash: hash(6),
+        maximum_live: 1,
+        maximum_queued: 0,
+        admission: PoolAdmissionPolicy::Reject,
+        supervision: PoolSupervisionPolicy::Isolate,
+        cleanup: PoolCleanupPolicy::Abort,
+        deadline_ticks: 100,
+        idle_timeout_ticks: 20,
+        cleanup_ticks: 5,
+        reservation,
+        total_reservation: reservation.checked_mul(3).unwrap(),
+        maximum_evidence_events: 16,
+    };
+    let generation = PoolGeneration {
+        plan: hash(2),
+        epoch: 4,
+        generation: 3,
+        template_hash: hash(1),
+    };
+    let mut runtime = PoolController::<1, 16>::new(contract, generation).unwrap();
+    let PoolAdmissionDisposition::Started { slot } = runtime
+        .offer(
+            PoolWorkIdentity {
+                request: hash(3),
+                work_unit: hash(4),
+                correlation: hash(5),
+            },
+            PoolAdmissionFacts {
+                authority_granted: true,
+                sensitivity_allowed: true,
+                template_hash: hash(1),
+                implementation_set_hash: hash(6),
+                available: reservation,
+            },
+            10,
+        )
+        .unwrap()
+    else {
+        panic!("pool starts")
+    };
+    runtime.mark_running(slot, 11).unwrap();
+    let projection = project_pool(PoolProjectionInput {
+        source_semantic_hash: "sha256:source",
+        plan_identity: hash(2),
+        plan_epoch: 4,
+        run_id: "run-1",
+        evidence_stream_id: "evidence/run-1",
+        generation,
+        generation_identity: runtime.generation_identity(),
+        contract,
+        population: runtime.population(),
+        evidence: runtime.evidence(),
+    });
+    assert_eq!(projection.source_semantic_hash, "sha256:source");
+    assert_eq!(projection.run_id, "run-1");
+    assert_eq!(projection.pool, "root/pool.workers");
+    assert_eq!(projection.generation, 3);
+    assert_eq!(projection.live, 1);
+    assert_eq!(projection.evidence_cursor, 2);
+    assert_eq!(projection.latest_evidence.unwrap().to, "running");
 }

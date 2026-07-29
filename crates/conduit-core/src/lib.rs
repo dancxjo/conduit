@@ -29,6 +29,7 @@ mod job;
 mod lifecycle;
 mod manifest;
 mod policy_budget;
+mod pool;
 mod port;
 mod realm;
 mod resonance;
@@ -110,15 +111,15 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
     EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
     EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
-    EXECUTION_PLAN_SCHEMA_VERSION_V14, ExecutionPlan, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
-    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
-    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
-    PlanSatisfactionSubject, PlanSupervision, PlanSupervisionTarget, PlanValidationContext,
-    PlanValidationError, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    UnresolvedPlanConstraint, UnresolvedPlanKind, minimum_supervision_allocation,
-    validate_execution_plan, validate_supervision_allocation,
+    EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHazardClosure,
+    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
+    PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision,
+    PlanSupervisionTarget, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
+    minimum_supervision_allocation, validate_execution_plan, validate_supervision_allocation,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -213,6 +214,13 @@ pub use policy_budget::{
     PolicyReservation, PolicyReservationState, RollingLimit, validate_offline_lease,
     validate_policy_budget_bindings, validate_policy_budget_replacement,
     validate_policy_budget_status,
+};
+pub use pool::{
+    POOL_CONTRACT_SCHEMA_VERSION, PoolAdmissionDisposition, PoolAdmissionFacts,
+    PoolAdmissionPolicy, PoolAttemptIdentity, PoolCleanupPolicy, PoolContract, PoolController,
+    PoolError, PoolEvidence, PoolFailureDisposition, PoolGeneration, PoolGenerationReservation,
+    PoolPopulationSnapshot, PoolReason, PoolReservationProfile, PoolSlot, PoolSlotState,
+    PoolSupervisionPolicy, PoolWorkIdentity, pool_transition_allowed, select_fair_pool,
 };
 pub use port::{
     ConnectionCardinality, Delivery, Direction, LossAcceptance, PortCompatibilityDecision,

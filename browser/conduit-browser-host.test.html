@@ -34,6 +34,10 @@ import {
   BoundedBrowserSupervisor,
   SupervisionReason,
 } from "./conduit-supervision.mjs";
+import {
+  BoundedBrowserPool,
+  PoolReason,
+} from "./conduit-pool.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -461,6 +465,213 @@ assert(
   "handler timeout propagates a complete bounded chain",
 );
 
+const poolProfile = (count) => Object.freeze({
+  memoryBytes: 256 * count,
+  storageBytes: 32 * count,
+  cpuUnits: count,
+  timers: 2 * count,
+  transports: count,
+  checkpoints: count,
+  evidenceBytes: 128 * count,
+  childNodes: 2 * count,
+  childCords: count,
+  stateBytes: 64 * count,
+  schedulerSlots: 3 * count,
+  hostOperations: count,
+  cancellationScopes: 2 * count,
+});
+const queuedProfile = Object.freeze({
+  memoryBytes: 32,
+  storageBytes: 0,
+  cpuUnits: 0,
+  timers: 0,
+  transports: 0,
+  checkpoints: 0,
+  evidenceBytes: 32,
+  childNodes: 0,
+  childCords: 0,
+  stateBytes: 16,
+  schedulerSlots: 1,
+  hostOperations: 0,
+  cancellationScopes: 1,
+});
+const poolContract = Object.freeze({
+  schemaVersion: 1,
+  pool: "root/pool.workers",
+  planIdentity: "fixture/browser-plan",
+  templateIdentity: "fixture/worker-template",
+  implementationSetIdentity: "fixture/browser-implementation-set",
+  maximumLive: 2,
+  maximumQueued: 2,
+  admission: "queue-bounded",
+  supervision: Object.freeze({
+    kind: "restart-bounded",
+    maximumAttempts: 2,
+    backoffTicks: 3,
+  }),
+  cleanup: "abort",
+  deadlineTicks: 100,
+  idleTimeoutTicks: 20,
+  cleanupTicks: 5,
+  maximumEvidenceEvents: 64,
+  perInstance: poolProfile(1),
+  queuedReservation: queuedProfile,
+  generationReservation: Object.freeze({
+    candidateMaximumLive: 1,
+    rollbackMaximumLive: 1,
+    reservedSlots: 4,
+    reservedResources: poolProfile(4),
+  }),
+  totalReservation: Object.freeze({
+    ...poolProfile(4),
+    memoryBytes: poolProfile(4).memoryBytes + queuedProfile.memoryBytes * 2,
+    evidenceBytes: poolProfile(4).evidenceBytes + queuedProfile.evidenceBytes * 2,
+    stateBytes: poolProfile(4).stateBytes + queuedProfile.stateBytes * 2,
+    schedulerSlots: poolProfile(4).schedulerSlots + queuedProfile.schedulerSlots * 2,
+    cancellationScopes:
+      poolProfile(4).cancellationScopes + queuedProfile.cancellationScopes * 2,
+  }),
+});
+const browserPool = new BoundedBrowserPool(poolContract, 1, 1);
+const poolFacts = Object.freeze({
+  authorityGranted: true,
+  sensitivityAllowed: true,
+  templateIdentity: "fixture/worker-template",
+  implementationSetIdentity: "fixture/browser-implementation-set",
+  available: poolProfile(1),
+});
+const poolWork = (id) => Object.freeze({
+  request: `request/${id}`,
+  workUnit: `work/${id}`,
+  correlation: `correlation/${id}`,
+});
+const poolFirst = browserPool.offer(poolWork(1), poolFacts, 0);
+const poolSecond = browserPool.offer(poolWork(2), poolFacts, 0);
+const poolThird = browserPool.offer(poolWork(3), poolFacts, 0);
+const poolFourth = browserPool.offer(poolWork(4), poolFacts, 0);
+const poolOverflow = browserPool.offer(poolWork(5), poolFacts, 0);
+assert(
+  poolFirst.ok && poolSecond.ok && poolThird.state === "queued" &&
+  poolFourth.state === "queued" &&
+  !poolOverflow.ok && poolOverflow.reason === "queue-full",
+  "browser pool admission and queue are exact",
+);
+assert(
+  browserPool.evidence.at(-1).from === "empty" &&
+  browserPool.evidence.at(-1).to === "empty" &&
+  browserPool.evidence.at(-1).reason === "queue-full",
+  "browser pool admission denials consume bounded evidence",
+);
+assert(browserPool.start(poolFirst.slot, 0).ok, "browser pool starts reserved instance");
+const poolFirstIdentity = browserPool.slots[poolFirst.slot].instance;
+assert(browserPool.progress(poolFirst.slot, 1).ok, "browser pool progress evidenced");
+assert(
+  browserPool.observePressure(poolFirst.slot, true, "cause/loss", 1).ok &&
+  browserPool.evidence.at(-1).reason === "loss",
+  "browser pool pressure loss is isolated and evidenced",
+);
+const poolRestart = browserPool.fail(poolFirst.slot, "cause/failure", 2);
+assert(
+  poolRestart.ok && poolRestart.nextAttempt === 2 && poolRestart.wakeTick === 5,
+  "browser pool bounded restart scheduled",
+);
+assert(browserPool.tick(5).ok, "browser pool restart tick");
+const poolRestarted = browserPool.slots[poolFirst.slot];
+assert(
+  poolRestarted.instance === poolFirstIdentity &&
+  poolRestarted.attempt === 2 &&
+  poolRestarted.correlation.includes("\u00002\u0000"),
+  "browser pool identity is semantic and attempt correlation changes",
+);
+const maliciousUsage = Object.freeze({
+  ...poolProfile(1),
+  hostOperations: poolProfile(1).hostOperations + 1,
+});
+assert(
+  !browserPool.observeUsage(poolSecond.slot, maliciousUsage, 6).ok ||
+  browserPool.slots[poolSecond.slot].state === "cleanup",
+  "browser pool cannot expand a foreign profile",
+);
+const browserPoolDrain = browserPool.drain("cause/transition", 7);
+assert(browserPoolDrain.ok, "browser generation drain is bounded");
+
+const terminalPool = new BoundedBrowserPool(Object.freeze({
+  ...poolContract,
+  admission: "reject",
+  maximumQueued: 0,
+  queuedReservation: poolProfile(0),
+  totalReservation: poolProfile(4),
+}), 2, 1);
+const terminalFirst = terminalPool.offer(poolWork(11), poolFacts, 0);
+const terminalSecond = terminalPool.offer(poolWork(12), poolFacts, 0);
+assert(
+  terminalPool.complete(terminalFirst.slot, 0).ok &&
+  terminalPool.complete(terminalSecond.slot, 0).ok &&
+  terminalPool.tick(5).ok,
+  "browser pool reaches retained terminal states",
+);
+const terminalBlocked = terminalPool.offer(poolWork(13), poolFacts, 6);
+assert(
+  !terminalBlocked.ok && terminalBlocked.reason === "reservation-drift",
+  "browser pool cannot silently overwrite terminal evidence slots",
+);
+assert(
+  terminalPool.reclaim(terminalFirst.slot).ok &&
+  terminalPool.offer(poolWork(13), poolFacts, 7).ok,
+  "browser pool reuses a terminal slot only after explicit reclaim",
+);
+assert(
+  !terminalPool.complete(terminalSecond.slot, 7).ok,
+  "browser pool cannot reopen a terminal slot",
+);
+
+const checkpointPool = new BoundedBrowserPool(Object.freeze({
+  ...poolContract,
+  admission: "reject",
+  maximumQueued: 0,
+  queuedReservation: poolProfile(0),
+  totalReservation: poolProfile(4),
+}), 3, 1);
+const checkpointWork = checkpointPool.offer(poolWork(21), poolFacts, 0);
+assert(
+  checkpointPool.start(checkpointWork.slot, 0).ok &&
+  checkpointPool.checkpoint(checkpointWork.slot, "wrong/template", 1).accepted === false &&
+  checkpointPool.slots[checkpointWork.slot].state === "running" &&
+  checkpointPool.checkpoint(
+    checkpointWork.slot,
+    poolContract.templateIdentity,
+    2,
+  ).accepted &&
+  checkpointPool.resume(checkpointWork.slot, 3).ok,
+  "browser pool checkpoint resume requires exact template identity",
+);
+
+const retirementPool = new BoundedBrowserPool(poolContract, 4, 1);
+retirementPool.offer(poolWork(31), poolFacts, 0);
+retirementPool.offer(poolWork(32), poolFacts, 0);
+retirementPool.offer(poolWork(33), poolFacts, 0);
+const retirementDrain = retirementPool.drain("cause/retire", 1);
+const retirementCleanup = retirementPool.retireDrained(2);
+assert(
+  retirementDrain.ok && retirementDrain.affected === 3 &&
+  retirementCleanup.ok && retirementCleanup.affected === 2 &&
+  retirementPool.population.cleanup === 2 &&
+  retirementPool.population.queued === 0,
+  "browser pool generation retirement is finite and causal",
+);
+
+const rollbackPool = new BoundedBrowserPool(poolContract, 5, 1);
+rollbackPool.offer(poolWork(41), poolFacts, 0);
+rollbackPool.offer(poolWork(42), poolFacts, 0);
+rollbackPool.offer(poolWork(43), poolFacts, 0);
+const rollbackResult = rollbackPool.rollback("cause/rollback", 1);
+assert(
+  rollbackResult.ok && rollbackResult.affected === 3 &&
+  rollbackPool.population.cleanup === 2 &&
+  rollbackPool.population.terminal === 1,
+  "browser pool generation rollback contains live and queued work",
+);
+
 globalThis.__conduitBrowserResults = Object.freeze({
   placementOutcomes: Object.freeze(placementOutcomes),
   reportedAvailability: Object.freeze(Object.fromEntries(
@@ -483,6 +694,19 @@ globalThis.__conduitBrowserResults = Object.freeze({
     correlationEvidenceReason: correlationSupervisor.evidence.at(-1).reason,
     handlerTimeoutCode: handlerTimeout.code,
     handlerTimeoutSubject: handlerTimeout.outward.subject,
+  }),
+  pool: Object.freeze({
+    live: browserPool.population.live,
+    queued: browserPool.population.queued,
+    restarting: browserPool.population.restarting,
+    retiring: browserPool.population.retiring,
+    queueFullCode: poolOverflow.code,
+    queueFullReason: poolOverflow.reason,
+    restartAttempt: poolRestart.nextAttempt,
+    evidenceCount: browserPool.evidence.length,
+    evidenceBound: poolContract.maximumEvidenceEvents,
+    generationDrainAffected: browserPoolDrain.affected,
+    evidenceExhaustionCode: PoolReason.EvidenceExhausted,
   }),
 });
 document.querySelector("#result").textContent = "ok";

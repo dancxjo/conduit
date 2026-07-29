@@ -29,6 +29,7 @@ mod distributed;
 mod evidence_ndjson;
 mod host_resolution;
 mod implementation_binding;
+mod pool;
 mod runtime_evidence;
 mod scheduler;
 mod source_lowering;
@@ -66,6 +67,10 @@ pub use implementation_binding::{
     ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,
     NativeStepBinding, NativeStepImplementation, OwnedStepOutcome, OwnedStepReply,
     OwnedWakeInterest,
+};
+pub use pool::{
+    HostedPoolError, HostedPoolRuntime, HostedPoolStepError, HostedPoolStepObservation,
+    instantiate_plan_pool, instantiate_pool, observe_pool_step,
 };
 pub use runtime_evidence::{
     RuntimeEvidenceContext, RuntimeEvidenceError, record_scheduler_evidence,
