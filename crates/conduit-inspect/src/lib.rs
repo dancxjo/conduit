@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 
 use conduit_conformance::Manifest;
 use conduit_core::{
-    ArtifactLocationKind, ArtifactManifest, EvidencePolicy, ExecutionPlan, Id,
+    ArtifactLocationKind, ArtifactManifest, CapabilityReport, EvidencePolicy, ExecutionPlan, Id,
     ImplementationManifest, PlanValidationContext, SemanticHash, validate_artifact_manifest,
-    validate_event_stream, validate_implementation_manifest,
+    validate_capability_report, validate_event_stream, validate_implementation_manifest,
 };
 use conduit_diagnostics::{OwnedDiagnostic, OwnedDiagnosticArgumentValue};
 use conduit_panel::{
@@ -79,6 +79,7 @@ pub enum ArtifactKind {
     ConformanceCases,
     ImplementationManifest,
     ArtifactManifest,
+    CapabilityReport,
 }
 
 impl ArtifactKind {
@@ -94,6 +95,7 @@ impl ArtifactKind {
             Self::ConformanceCases => "conformance-cases",
             Self::ImplementationManifest => "implementation-manifest",
             Self::ArtifactManifest => "artifact-manifest",
+            Self::CapabilityReport => "capability-report",
         }
     }
 }
@@ -226,7 +228,8 @@ pub fn inspect_bytes(
         ArtifactKind::LoweredSource
         | ArtifactKind::ExecutionPlan
         | ArtifactKind::ImplementationManifest
-        | ArtifactKind::ArtifactManifest => Err(failure(
+        | ArtifactKind::ArtifactManifest
+        | ArtifactKind::CapabilityReport => Err(failure(
             "CND-INSP-008",
             "this semantic kind has no frozen standalone byte encoding; use its typed inspection adapter",
         )),
@@ -673,6 +676,109 @@ pub fn inspect_artifact_manifest(
             format!("media_type {}", manifest.media_type),
             "locations are non-identity retrieval hints; bytes remain digest-gated".to_owned(),
             "inspection performs no fetch, load, signature verification, or execution".to_owned(),
+        ],
+    ))
+}
+
+/// Inspect a fresh host report without probing, discovering, configuring, or
+/// otherwise mutating the host.
+pub fn inspect_capability_report(
+    report: &CapabilityReport<'_>,
+    content_digest: &str,
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    require_digest(content_digest, "content digest")?;
+    let items = report.identity_fact_count();
+    enforce_collection_bound(items, limits, "capability report items")?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); items];
+    validate_capability_report(
+        report,
+        report.time_basis,
+        report.observed_at_tick,
+        report.minimum_plan_version,
+        &mut scratch,
+    )
+    .map_err(|reason| failure(reason.code(), "invalid capability report"))?;
+
+    let mut counts = BTreeMap::new();
+    counts.insert("capabilities".to_owned(), report.capabilities.len() as u64);
+    counts.insert("resources".to_owned(), report.resources.len() as u64);
+    counts.insert("topology".to_owned(), report.topology.len() as u64);
+    counts.insert(
+        "supported_executors".to_owned(),
+        report.supported_executors.len() as u64,
+    );
+    counts.insert(
+        "current_constraints".to_owned(),
+        report.current_constraints.len() as u64,
+    );
+    let mut budgets = BTreeMap::new();
+    budgets.insert(
+        "available_memory_bytes".to_owned(),
+        report.available.memory_bytes,
+    );
+    budgets.insert(
+        "available_storage_bytes".to_owned(),
+        report.available.storage_bytes,
+    );
+    budgets.insert(
+        "available_cpu_units".to_owned(),
+        u64::from(report.available.cpu_units),
+    );
+    budgets.insert(
+        "available_transports".to_owned(),
+        u64::from(report.available.transports),
+    );
+    let mut references = vec![
+        InspectionReference {
+            category: "reporter".to_owned(),
+            value: format!("{}@{}", report.reporter.id, report.reporter.semantic_hash),
+        },
+        InspectionReference {
+            category: "report-trust".to_owned(),
+            value: format!("{}@{}", report.trust.id, report.trust.semantic_hash),
+        },
+    ];
+    references.extend(
+        report
+            .capabilities
+            .iter()
+            .map(|capability| InspectionReference {
+                category: "host-capability".to_owned(),
+                value: format!(
+                    "{}@{}:{}:{}",
+                    capability.interface.id,
+                    capability.interface.semantic_hash,
+                    capability.mode,
+                    capability.subject
+                ),
+            }),
+    );
+    references.extend(report.resources.iter().map(|resource| InspectionReference {
+        category: "host-resource".to_owned(),
+        value: format!("{}:{}", resource.resource.kind, resource.resource.id),
+    }));
+    references.extend(report.topology.iter().map(|topology| InspectionReference {
+        category: "host-topology".to_owned(),
+        value: format!("{}:{}->{}", topology.id, topology.from, topology.to),
+    }));
+    stable_references(&mut references);
+    Ok(base_report(
+        ArtifactKind::CapabilityReport,
+        report.schema_version,
+        content_digest.to_owned(),
+        Some(report.identity.to_string()),
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            format!("host {}", report.host),
+            format!(
+                "freshness {}:{}..={}",
+                report.time_basis, report.observed_at_tick, report.valid_until_tick
+            ),
+            "inspection does not refresh, discover, configure, or provision the host".to_owned(),
         ],
     ))
 }

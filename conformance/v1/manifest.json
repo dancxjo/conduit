@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 19,
+  "manifest_revision": 20,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -294,6 +294,10 @@
         ]
       },
       "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "host_report_vectors"
+        },
         {
           "package": "conduit-runtime",
           "test": "type_contract_vectors"
@@ -3015,6 +3019,94 @@
         {
           "package": "conduit-runtime",
           "test": "artifact_verification"
+        },
+        {
+          "package": "conduit-inspect",
+          "test": "inspection"
+        }
+      ]
+    },
+    {
+      "id": "host-resolution",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "HST-001", "HST-002", "HST-003", "HST-004", "HST-005", "HST-006",
+        "HST-007", "HST-008", "HST-009", "HST-010", "HST-011", "HST-012",
+        "RES-001", "RES-002", "RES-003", "RES-004", "RES-005", "RES-006",
+        "RES-007", "RES-008", "RES-009", "RES-010", "RES-011", "RES-012",
+        "RES-013", "RES-014", "RES-015", "RES-016", "RES-017", "RES-018",
+        "RES-019", "RES-020", "RES-021", "RES-022", "RES-023", "RES-024",
+        "RES-025", "RES-026"
+      ],
+      "artifacts": [
+        {
+          "id": "host-resolution-v1",
+          "path": "../c5/host-resolution-v1.json",
+          "sha256": "sha256:c53abfd8ba5dd06465bf49475b8200926c5b7d393e5eb81f8bd88f57593bf352",
+          "operation": "host-resolution-v1",
+          "requirement_ids": [
+            "HST-001", "HST-002", "HST-003", "HST-004", "HST-005", "HST-006",
+            "HST-007", "HST-008", "HST-009", "HST-010", "HST-011", "HST-012",
+            "RES-001", "RES-002", "RES-003", "RES-004", "RES-005", "RES-006",
+            "RES-007", "RES-008", "RES-009", "RES-010", "RES-011", "RES-012",
+            "RES-013", "RES-014", "RES-015", "RES-016", "RES-017", "RES-018",
+            "RES-019", "RES-020", "RES-021", "RES-022", "RES-023", "RES-024",
+            "RES-025", "RES-026"
+          ],
+          "default_rule": "RES-001",
+          "case_rules": {
+            "canonical-versioned-report": "HST-001",
+            "report-order-independent": "HST-002",
+            "capabilities-resources-topology-distinct": "HST-003",
+            "stale-observation": "HST-007",
+            "report-inspection-no-refresh": "HST-010",
+            "same-inputs-shuffled": "RES-006",
+            "ambiguous-tie-rejected": "RES-007",
+            "distributed-placement": "RES-014",
+            "exclusive-resource-bound-once": "RES-008",
+            "full-candidate-rejection-tree": "RES-012",
+            "bounded-search-limit": "RES-009",
+            "exact-plan-sealed": "RES-011",
+            "active-plan-never-mutated": "RES-016",
+            "network-address-family-and-bind-mode": "RES-018",
+            "ap-sta-supported-not-concurrent": "RES-019",
+            "association-without-dhcp": "RES-020",
+            "resolver-performs-no-host-effects": "RES-021"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "host-resolution-v1#single-match",
+          "host-resolution-v1#linux-pico-equivalent-capability",
+          "host-resolution-v1#distributed-placement",
+          "host-resolution-v1#exact-plan-sealed"
+        ],
+        "negative": [
+          "host-resolution-v1#stale-report-rejected",
+          "host-resolution-v1#authority-denial",
+          "host-resolution-v1#topology-conflict",
+          "host-resolution-v1#full-candidate-rejection-tree"
+        ],
+        "boundary": [
+          "host-resolution-v1#ambiguous-tie-rejected",
+          "host-resolution-v1#bounded-search-limit",
+          "host-resolution-v1#ap-sta-supported-not-concurrent",
+          "host-resolution-v1#station-lease-socket-capacity-insufficient"
+        ],
+        "migration": [
+          "host-resolution-v1#active-plan-never-mutated",
+          "host-resolution-v1#resolver-policy-plan-mismatch"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "host_resolution"
         },
         {
           "package": "conduit-inspect",

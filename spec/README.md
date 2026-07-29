@@ -115,6 +115,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   freezes separate semantic, implementation, and immutable-artifact identities,
   capability-oriented executors, provenance/licensing inspection, and the
   mandatory pre-load integrity/trust boundary.
+- [`032-fresh-host-reports-resolution-v1.md`](032-fresh-host-reports-resolution-v1.md)
+  freezes fresh canonical host observations, deterministic bounded placement,
+  complete candidate rejection, and exact existing-plan sealing without host
+  provisioning or mutation.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

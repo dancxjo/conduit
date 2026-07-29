@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 20 — 2026-07-29
+
+- Added the `host-resolution` C5 suite for issue #26.
+- Froze fresh canonical capability/resource/topology reports, reporter trust,
+  deterministic policy/tie behavior, bounded aggregate placement search,
+  complete rejection trees, and exact existing-plan sealing.
+- Added Linux/RP2040 equivalent-capability and distributed placement fixtures,
+  networking/backend facts, and the independent Wi-Fi failure boundaries
+  required by issue #85.
+- Requirement IDs: `HST-001` through `HST-012` and `RES-001` through
+  `RES-026`.
+- Migration: expiry triggers explicit re-resolution; no report or resolver
+  operation provisions, discovers, configures, or mutates a host.
+
 ## Manifest revision 19 — 2026-07-29
 
 - Added the `implementation-artifact-manifests` C5 suite for issue #25.

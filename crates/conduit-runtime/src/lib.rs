@@ -26,6 +26,7 @@ use serde::Serialize;
 mod artifact_verification;
 mod config_resolution;
 mod evidence_ndjson;
+mod host_resolution;
 mod implementation_binding;
 mod runtime_evidence;
 mod scheduler;
@@ -41,6 +42,12 @@ pub use evidence_ndjson::{
     NdjsonError, OwnedEventCorrelation, OwnedEventPayload, OwnedEventRelations,
     OwnedEventTerminality, OwnedEventTime, OwnedExecutionEvent, OwnedPayloadShape, OwnedTypeRef,
     decode_event_ndjson, encode_event_ndjson, encode_owned_event_ndjson,
+};
+pub use host_resolution::{
+    CandidateAuthority, CandidateRejection, CandidateRejectionReason, CapabilityPredicate,
+    HostResolverPolicy, PlacementCandidate, PlacementRequest, PlanSealingReason, ResolutionFailure,
+    ResolvedPlacement, ResolvedPlacementBinding, ResolverTiePolicy, ResourcePredicate,
+    TopologyPredicate, resolve_host_placement, seal_resolved_execution_plan,
 };
 pub use implementation_binding::{
     ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,

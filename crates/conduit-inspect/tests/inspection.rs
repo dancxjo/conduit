@@ -3,14 +3,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use conduit_core::{
     ArtifactDigest, ArtifactLocation, ArtifactLocationKind, ArtifactManifest, ArtifactProvenance,
-    AuthorityTime, BlockingFairness, Direction, ExecutionPlan, FlowCapacity, FlowPolicy,
-    FlowWatermarks, Id, InstancePath, PinnedDescriptor, PlanArtifact, PlanHostObservation,
-    PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, SemanticHash, TypeContractRef,
+    AuthorityTime, BlockingFairness, CapabilityReport, Direction, ExecutionPlan, ExecutorKind,
+    FlowCapacity, FlowPolicy, FlowWatermarks, Id, InstancePath, PinnedDescriptor, PlanArtifact,
+    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, SemanticHash, TypeContractRef,
 };
 use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_artifact_manifest, inspect_bytes,
-    inspect_conformance_manifest_path, inspect_execution_plan, inspect_lowered_source,
+    inspect_capability_report, inspect_conformance_manifest_path, inspect_execution_plan,
+    inspect_lowered_source,
 };
 use conduit_runtime::LoweredSourceV2;
 use sha2::Digest as _;
@@ -100,6 +101,46 @@ fn artifact_manifest_inspection_exposes_license_provenance_and_remote_hint_witho
         reference.category == "remote-location"
             && reference.value == "https://artifacts.invalid/module.wasm"
     }));
+}
+
+#[test]
+fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
+    let mut report = CapabilityReport {
+        schema_version: 1,
+        identity: ZERO_HASH,
+        id: Id("fixture/browser-report"),
+        host: Id("browser/a"),
+        reporter: pin("fixture/reporter", 41),
+        trust: pin("fixture/trust", 42),
+        time_basis: Id("clock/monotonic"),
+        observed_at_tick: 10,
+        valid_until_tick: 20,
+        available: PlanResourceBudget {
+            memory_bytes: 1024,
+            transports: 2,
+            ..PlanResourceBudget::ZERO
+        },
+        capabilities: &[],
+        resources: &[],
+        topology: &[],
+        supported_executors: &[ExecutorKind::WasmComponent],
+        supported_targets: &[Id("wasm32-unknown-unknown")],
+        supported_abis: &[Id("component-v1")],
+        minimum_plan_version: 1,
+        maximum_plan_version: 8,
+        current_constraints: &[],
+    };
+    let mut scratch = [ZERO_HASH; 3];
+    report.identity = report.computed_semantic_hash(&mut scratch).unwrap();
+    let inspected = inspect_capability_report(&report, DIGEST, InspectLimits::default()).unwrap();
+    assert_eq!(inspected.kind, ArtifactKind::CapabilityReport);
+    assert_eq!(inspected.budgets["available_memory_bytes"], 1024);
+    assert!(
+        inspected
+            .notes
+            .iter()
+            .any(|note| note.contains("does not refresh"))
+    );
 }
 
 fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {

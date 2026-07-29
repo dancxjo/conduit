@@ -18,6 +18,7 @@ mod diagnostic;
 mod evidence;
 mod execution_plan;
 mod flow;
+mod host;
 mod implementation;
 mod job;
 mod lifecycle;
@@ -87,6 +88,10 @@ pub use flow::{
     FlowOffer, FlowPolicy, FlowPolicyDecision, FlowPolicyError, FlowPolicyReason, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, OfferDisposition, OfferTransition, PopTransition, Pressure,
     QueueError, SampleSchedule, TraitProof,
+};
+pub use host::{
+    CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, HostReportIdentityError, HostReportReason,
+    ReportCapability, ReportResource, ReportTopology, validate_capability_report,
 };
 pub use implementation::{
     BoundednessProfile, CancellationGuarantee, CheckpointRequest, ExecutionLimits,
