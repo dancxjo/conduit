@@ -32,6 +32,8 @@ This repository contains the first executable Plan C foundation:
   machines, directional compatibility, and plan validation;
 - `conduit-panel`: the versioned `.panel` grammar, lossless CST/source AST,
   explicit module resolver, and bounded group/pool source model;
+- `conduit-diagnostics`: owned structured diagnostics, lossless JSON, guarded
+  source fixes, cross-file spans, and concise/verbose terminal rendering;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer, and
   one-shot executor, including domain type-provider discovery;
 - `conduct`: the Unix command-line interface.
@@ -69,6 +71,10 @@ with visible provenance, retains cross-module source maps, expands finite
 groups, and resolves exact pool templates without probing a host. Parsing,
 module loading, lowering, plan resolution, and execution remain separate;
 comments and formatting round-trip without entering semantic source identity.
+Portable failures now carry stable codes, severity, primary/related byte
+spans, semantic paths, causal codes, safe fixes, and structurally redacted
+arguments. `conduct` can emit human or versioned JSON diagnostics with explicit
+color and verbosity policy.
 
 ## Design boundaries
 

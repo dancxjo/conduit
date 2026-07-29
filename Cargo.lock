@@ -21,8 +21,10 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 name = "conduct"
 version = "0.1.0"
 dependencies = [
+ "conduit-diagnostics",
  "conduit-panel",
  "conduit-runtime",
+ "serde_json",
 ]
 
 [[package]]
@@ -38,6 +40,18 @@ dependencies = [
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
+ "sha2",
+]
+
+[[package]]
+name = "conduit-diagnostics"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 

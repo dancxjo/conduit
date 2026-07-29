@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 3,
+  "manifest_revision": 4,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1131,6 +1131,97 @@
         {
           "package": "conduit-runtime",
           "test": "source_lowering_vectors"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "DIA-001",
+        "DIA-002",
+        "DIA-003",
+        "DIA-004",
+        "DIA-005",
+        "DIA-006",
+        "DIA-007",
+        "DIA-008",
+        "DIA-009",
+        "DIA-010",
+        "DIA-011",
+        "DIA-012"
+      ],
+      "artifacts": [
+        {
+          "id": "diagnostics-v1",
+          "path": "../c3/diagnostics-v1.json",
+          "sha256": "sha256:7b0b9291192afd4bf098010bb27909e287afafab8767e850476bcb88f09db1a4",
+          "operation": "structured-diagnostic-v1",
+          "requirement_ids": [
+            "DIA-001",
+            "DIA-002",
+            "DIA-003",
+            "DIA-004",
+            "DIA-005",
+            "DIA-006",
+            "DIA-007",
+            "DIA-008",
+            "DIA-009",
+            "DIA-010",
+            "DIA-011",
+            "DIA-012"
+          ],
+          "default_rule": "DIA-001",
+          "case_rules": {
+            "single-file-parse": "DIA-011",
+            "multi-file-name": "DIA-003",
+            "two-ended-port-mismatch": "DIA-010",
+            "nested-composite-path": "DIA-003",
+            "related-spans": "DIA-003",
+            "safe-fix": "DIA-008",
+            "stale-fix-precondition": "DIA-009",
+            "provider-indeterminate": "DIA-011",
+            "redaction": "DIA-007",
+            "stable-json": "DIA-005",
+            "non-utf8-byte-offsets": "DIA-012"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "diagnostics-v1#single-file-parse",
+          "diagnostics-v1#two-ended-port-mismatch",
+          "diagnostics-v1#stable-json"
+        ],
+        "negative": [
+          "diagnostics-v1#stale-fix-precondition",
+          "diagnostics-v1#provider-indeterminate"
+        ],
+        "boundary": [
+          "diagnostics-v1#redaction",
+          "diagnostics-v1#non-utf8-byte-offsets"
+        ],
+        "migration": [
+          "diagnostics-v1#safe-fix",
+          "diagnostics-v1#multi-file-name"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-diagnostics",
+          "test": "diagnostic_vectors"
+        },
+        {
+          "package": "conduct",
+          "test": "diagnostics_cli"
         }
       ]
     }

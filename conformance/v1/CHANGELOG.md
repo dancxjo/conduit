@@ -1,5 +1,16 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 4 — 2026-07-28
+
+- Added the independent `diagnostics` suite and
+  `conformance/c3/diagnostics-v1.json` cases for issue #16.
+- Existing version 1 requests and expected outputs are unchanged.
+- Expected version: new `structured-diagnostic-v1` operation; no previous
+  operation result was replaced.
+- Requirement IDs: `DIA-001` through `DIA-012`.
+- Migration: runners supporting `conduit.c3` but not structured diagnostics
+  must report this operation as unsupported rather than silently skipping it.
+
 ## Manifest revision 3 — 2026-07-28
 
 - Added the independent `source-lowering` suite and

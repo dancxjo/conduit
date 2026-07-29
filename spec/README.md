@@ -57,6 +57,9 @@ The current documents are candidates, not a claim of ecosystem stability:
   exact typed literals, schema validation and defaults, provenance-safe
   semantic lowering, cross-module source maps, and finite group/pool
   expansion.
+- [`016-structured-diagnostics-v1.md`](016-structured-diagnostics-v1.md)
+  freezes allocator-free diagnostic data, exact source spans, structural
+  redaction, guarded fixes, lossless JSON, and hosted terminal rendering.
 
 The executable code is a conformance seed. Where it implements only a strict
 subset, these documents say so explicitly.

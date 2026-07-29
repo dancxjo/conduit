@@ -14,6 +14,7 @@ mod canonical;
 mod compatibility;
 mod composite;
 mod config;
+mod diagnostic;
 mod evidence;
 mod execution_plan;
 mod flow;
@@ -48,6 +49,11 @@ pub use composite::{
 pub use config::{
     ConfigContract, ConfigContractError, ConfigContractIdentityError, ConfigFieldContract,
     ConfigIdentity, ConfigMutability, ConfigRequirement,
+};
+pub use diagnostic::{
+    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticArgument, DiagnosticArgumentValue,
+    DiagnosticContractError, DiagnosticEdit, DiagnosticFix, DiagnosticRelated, DiagnosticSeverity,
+    DiagnosticSpan, FixApplicability,
 };
 pub use evidence::{
     EXECUTION_EVENT_SCHEMA_VERSION, EventCorrelation, EventPayload, EventPayloadShape,

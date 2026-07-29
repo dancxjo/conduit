@@ -1273,7 +1273,11 @@ mod tests {
         write_requests(&loaded, &mut first).unwrap();
         write_requests(&loaded, &mut second).unwrap();
         assert_eq!(first, second);
-        assert!(!String::from_utf8(first).unwrap().contains("\"expected\""));
+        for line in String::from_utf8(first).unwrap().lines() {
+            let request: Value = serde_json::from_str(line).unwrap();
+            assert!(request.get("expected").is_none());
+            assert!(request["input"].get("expected").is_none());
+        }
     }
 
     #[test]
