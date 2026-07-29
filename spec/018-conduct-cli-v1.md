@@ -65,10 +65,9 @@ control, or banner. Status is enabled only for human diagnostics on a terminal
 stderr when `TERM` is not `dumb`. It never decorates streaming stdout.
 
 No current operation exposes a truthful, bounded progress total, so version 1
-does not display progress. Specification work owned by issue #18 may add a
-bounded progress mechanism without changing the stream rules here. That issue
-also owns quiet/general verbosity, completions, manuals, and result/evidence
-machine formats.
+does not display progress. Specification 020 adds a renderer-independent
+bounded progress state without changing that fact, and owns quiet/general
+verbosity, generated completions/manuals, and result/run machine formats.
 
 Human diagnostic color follows this precedence:
 

@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 8 — 2026-07-29
+
+- Added the `conduct-output` suite and language-neutral
+  `conformance/c3/conduct-output-v1.json` fixture for issue #18.
+- Added versioned finite check/explain JSON, ordered lossless run NDJSON,
+  independent result/diagnostic format matrices, bounded progress, quiet and
+  verbosity policy, generated CLI assets, and output/pipe boundaries.
+- Preserved diagnostic schema v1, human invocation defaults, and immutable
+  execution-evidence identity; the run summary is not relabeled as evidence.
+- Requirement IDs: `OUT-001` through `OUT-012`.
+- Migration: existing human invocations are unchanged. Consumers opt into
+  `conduit.result/v1` or `conduit.run/v1`; unsupported operation/format pairs
+  are rejected rather than silently falling back.
+
 ## Manifest revision 7 — 2026-07-29
 
 - Added the `source-lowering-v2` suite and language-neutral
