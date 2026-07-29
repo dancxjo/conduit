@@ -10,7 +10,16 @@ The specifications distinguish facts that are easy to conflate:
 6. immutable execution evidence;
 7. Patchbay presentation and mutable product projections.
 
-The current documents are candidates, not a claim of ecosystem stability:
+The current documents are candidates, not a claim of ecosystem stability,
+security support, formal verification, certification, or fitness for
+consequential deployment. Specifications 041–045 define candidate containment
+contracts; they do not by themselves establish that every implementation,
+provider, distribution, or composition enforces those contracts.
+
+Read [Safety, deployment boundaries, and stewardship](../docs/safety-and-stewardship.md)
+and [SECURITY.md](../SECURITY.md) alongside this inventory. The cross-cutting
+containment program is tracked by
+[#92](https://github.com/dancxjo/conduit/issues/92).
 
 - [`000-c0-evidence.md`](000-c0-evidence.md) records the brownfield evidence
   that justifies extracting Conduit.
