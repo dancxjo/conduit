@@ -1,7 +1,7 @@
 {
   "schema": "conduit.performance-baseline/v1",
   "owner": "@dancxjo",
-  "reviewed_commit": "6273e0d5a0b89b8a8e6517cd4622a9cc57b34029",
+  "reviewed_commit": "2cc5f876e4ce6c4f05b3e0d074fed214a75a9886",
   "rustc": "1.95.0",
   "host_target": "x86_64-unknown-linux-gnu",
   "fixture_revision": 18,
@@ -12,19 +12,19 @@
   "artifacts": {
     "conduct-release": {
       "kind": "host-executable",
-      "baseline_bytes": 5108536,
+      "baseline_bytes": 5534480,
       "maximum_growth_percent": 12,
       "maximum_growth_bytes": 262144
     },
     "conduit-core-release": {
       "kind": "host-library-archive",
-      "baseline_bytes": 4679338,
+      "baseline_bytes": 5578002,
       "maximum_growth_percent": 10,
       "maximum_growth_bytes": 131072
     },
     "conduit-core-thumbv6m-release": {
       "kind": "embedded-library-archive-not-flash",
-      "baseline_bytes": 4554314,
+      "baseline_bytes": 5429224,
       "maximum_growth_percent": 10,
       "maximum_growth_bytes": 131072
     }
