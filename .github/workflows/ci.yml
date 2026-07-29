@@ -16,9 +16,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy,rustfmt
+          targets: wasm32-unknown-unknown
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+      - run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+      - run: bash tour/build-wasm.sh && git diff --exit-code -- tour/public
       - run: cargo run -p conduct --bin generate-conduct-assets -- --check
       - run: cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
       - run: python3 conformance/c1/verify_canonical_v1.py
