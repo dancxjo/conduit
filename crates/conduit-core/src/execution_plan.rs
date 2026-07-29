@@ -6,10 +6,12 @@ use core::fmt;
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue, Direction,
-    DuplicationRule, EffectRequirement, ExecutionProfile, FanOutMode, FieldDisposition, FlowPolicy,
-    GrantStatus, HostCapability, Id, InstancePath, MapField, MergeOrdering, MergeTerminalPolicy,
-    ObservedGrant, OwnershipModel, Pressure, ResolvedAuthorityBinding, SemanticHash,
+    DuplicationRule, EffectRequirement, EventProviderCapabilities, EventStreamContract,
+    ExecutionProfile, FanOutMode, FieldDisposition, FlowPolicy, GrantStatus, HostCapability, Id,
+    InstancePath, MapField, MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel,
+    Pressure, ResolvedAuthorityBinding, RetentionPolicy, SemanticHash, SubscriberCoupling,
     TypeContractRef, validate_authority_at_use, validate_plan_execution_profile,
+    validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -17,10 +19,11 @@ use crate::{
 /// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
 /// exact implementation execution profile per primitive node. Earlier schemas
 /// remain readable with their frozen identities and validation behavior.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 4;
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 5;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V4: u32 = 4;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -211,6 +214,16 @@ pub struct PlanMerge<'a> {
     pub terminal: MergeTerminalPolicy,
 }
 
+/// One explicit event stream, its publisher, resolved provider capability,
+/// and complete plan-owned resource allocation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanEventStream<'a> {
+    pub publisher: InstancePath<'a>,
+    pub contract: EventStreamContract<'a>,
+    pub provider_capabilities: EventProviderCapabilities,
+    pub allocation: PlanResourceBudget,
+}
+
 /// Exact authority material used by one selected node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanAuthority<'a> {
@@ -331,6 +344,8 @@ pub struct ExecutionPlan<'a> {
     /// Structural plan facts introduced in schema 4.
     pub fanouts: &'a [PlanFanOut<'a>],
     pub merges: &'a [PlanMerge<'a>],
+    /// Resonance stream facts introduced in schema 5.
+    pub event_streams: &'a [PlanEventStream<'a>],
     pub authorities: &'a [PlanAuthority<'a>],
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
@@ -356,6 +371,7 @@ pub enum PlanCollection {
     Cords,
     FanOuts,
     Merges,
+    EventStreams,
     Authorities,
     Composites,
     PortGroups,
@@ -382,6 +398,7 @@ pub enum PlanDiagnosticCode {
     StructuralInvalid,
     DuplicationUnauthorized,
     StructuralOrderingInvalid,
+    EventStreamInvalid,
     ScratchTooSmall,
 }
 
@@ -405,6 +422,7 @@ impl PlanDiagnosticCode {
             Self::StructuralInvalid => "CND-STR-003",
             Self::DuplicationUnauthorized => "CND-STR-004",
             Self::StructuralOrderingInvalid => "CND-STR-005",
+            Self::EventStreamInvalid => "CND-RSN-003",
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -454,6 +472,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.cords.len()))
             .and_then(|value| value.checked_add(self.fanouts.len()))
             .and_then(|value| value.checked_add(self.merges.len()))
+            .and_then(|value| value.checked_add(self.event_streams.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
             .and_then(|value| value.checked_add(self.unresolved.len()))
             .ok_or(PlanIdentityError::FactCountOverflow)?;
@@ -568,6 +587,9 @@ impl ExecutionPlan<'_> {
             for input in merge.inputs {
                 push!(hash_merge_input(merge.id, *input));
             }
+        }
+        for stream in self.event_streams {
+            push!(hash_event_stream(*stream));
         }
         for value in self.authorities {
             push!(hash_authority(*value));
@@ -1131,6 +1153,40 @@ pub fn validate_execution_plan(
         }
     }
 
+    if plan.schema_version < 5 && !plan.event_streams.is_empty() {
+        return Err(error(
+            PlanDiagnosticCode::EventStreamInvalid,
+            PlanCollection::Header,
+            None,
+        ));
+    }
+    for (index, stream) in plan.event_streams.iter().enumerate() {
+        if !valid_path(stream.publisher)
+            || !plan
+                .nodes
+                .iter()
+                .any(|node| node.instance == stream.publisher)
+            || validate_stream_contract(stream.contract, stream.provider_capabilities).is_err()
+            || !event_stream_allocation_valid(*stream)
+            || plan.event_streams[..index]
+                .iter()
+                .any(|prior| prior.contract.id == stream.contract.id)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::EventStreamInvalid,
+                PlanCollection::EventStreams,
+                index,
+            ));
+        }
+        allocated = allocated.checked_add(stream.allocation).ok_or_else(|| {
+            indexed(
+                PlanDiagnosticCode::BudgetExceeded,
+                PlanCollection::EventStreams,
+                index,
+            )
+        })?;
+    }
+
     for (index, authority) in plan.authorities.iter().enumerate() {
         let Some(node) = plan
             .nodes
@@ -1354,6 +1410,29 @@ fn valid_id(id: Id<'_>) -> bool {
 
 fn valid_path(path: InstancePath<'_>) -> bool {
     InstancePath::new(path.as_str()).is_ok()
+}
+
+fn event_stream_allocation_valid(stream: PlanEventStream<'_>) -> bool {
+    let storage_valid = match stream.contract.retention {
+        RetentionPolicy::Ephemeral => {
+            stream.allocation.memory_bytes
+                >= stream
+                    .contract
+                    .subscriber_coupling
+                    .flow()
+                    .capacity
+                    .max_queued_bytes()
+        }
+        RetentionPolicy::Ring { maximum_bytes, .. }
+        | RetentionPolicy::CheckpointAssociated { maximum_bytes, .. } => {
+            stream.allocation.memory_bytes >= maximum_bytes
+        }
+        RetentionPolicy::DurableAppend { maximum_bytes, .. } => {
+            stream.allocation.storage_bytes >= maximum_bytes && stream.allocation.timers > 0
+        }
+    };
+    storage_valid
+        && (!stream.contract.terminal_evidence_required || stream.allocation.evidence_bytes > 0)
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
@@ -1724,6 +1803,183 @@ fn hash_merge_input(
             semantic(
                 "priority",
                 CanonicalValue::Integer(i128::from(input.priority)),
+            ),
+        ],
+    )
+}
+
+fn hash_event_stream(
+    value: PlanEventStream<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let (retention, events, bytes, checkpoints, flush_ticks) = match value.contract.retention {
+        RetentionPolicy::Ephemeral => ("ephemeral", 0, 0, 0, 0),
+        RetentionPolicy::Ring {
+            maximum_events,
+            maximum_bytes,
+        } => ("ring", u64::from(maximum_events), maximum_bytes, 0, 0),
+        RetentionPolicy::CheckpointAssociated {
+            maximum_events,
+            maximum_bytes,
+            maximum_checkpoints,
+        } => (
+            "checkpoint-associated",
+            u64::from(maximum_events),
+            maximum_bytes,
+            u64::from(maximum_checkpoints),
+            0,
+        ),
+        RetentionPolicy::DurableAppend {
+            maximum_events,
+            maximum_bytes,
+            flush_ticks,
+        } => (
+            "durable-append",
+            maximum_events,
+            maximum_bytes,
+            0,
+            flush_ticks,
+        ),
+    };
+    let (coupling, flow) = match value.contract.subscriber_coupling {
+        SubscriberCoupling::Coupled(flow) => ("coupled", flow),
+        SubscriberCoupling::Isolated(flow) => ("isolated", flow),
+    };
+    let flow_hash = descriptor_hash(Id("conduit/event-subscriber-flow-v1"), &flow_fields(flow))?;
+    let allocation_hash = descriptor_hash(
+        Id("conduit/event-stream-allocation-v1"),
+        &budget_fields(value.allocation),
+    )?;
+    let capabilities = value.provider_capabilities;
+    descriptor_hash(
+        Id("conduit/plan-event-stream-v1"),
+        &[
+            semantic("id", CanonicalValue::Identifier(value.contract.id)),
+            semantic("publisher", CanonicalValue::Text(value.publisher.as_str())),
+            semantic(
+                "event_class",
+                CanonicalValue::Identifier(Id(value.contract.event_class.as_str())),
+            ),
+            semantic(
+                "payload_type_id",
+                CanonicalValue::Identifier(value.contract.payload_type.contract_id),
+            ),
+            semantic(
+                "payload_type_version",
+                CanonicalValue::Integer(i128::from(value.contract.payload_type.schema_version)),
+            ),
+            semantic(
+                "payload_type_hash",
+                CanonicalValue::Bytes(value.contract.payload_type.semantic_hash.as_bytes()),
+            ),
+            semantic("retention", CanonicalValue::Identifier(Id(retention))),
+            semantic(
+                "maximum_events",
+                CanonicalValue::Integer(i128::from(events)),
+            ),
+            semantic("maximum_bytes", CanonicalValue::Integer(i128::from(bytes))),
+            semantic(
+                "maximum_checkpoints",
+                CanonicalValue::Integer(i128::from(checkpoints)),
+            ),
+            semantic(
+                "flush_ticks",
+                CanonicalValue::Integer(i128::from(flush_ticks)),
+            ),
+            semantic("coupling", CanonicalValue::Identifier(Id(coupling))),
+            semantic(
+                "subscriber_flow_hash",
+                CanonicalValue::Bytes(flow_hash.as_bytes()),
+            ),
+            semantic(
+                "delivery",
+                CanonicalValue::Identifier(Id(value.contract.delivery.as_str())),
+            ),
+            semantic(
+                "maximum_publishers",
+                CanonicalValue::Integer(i128::from(value.contract.maximum_publishers)),
+            ),
+            semantic(
+                "maximum_subscribers",
+                CanonicalValue::Integer(i128::from(value.contract.maximum_subscribers)),
+            ),
+            semantic(
+                "maximum_pending_operations",
+                CanonicalValue::Integer(i128::from(value.contract.maximum_pending_operations)),
+            ),
+            semantic(
+                "maximum_projection_bytes",
+                CanonicalValue::Integer(i128::from(value.contract.maximum_projection_bytes)),
+            ),
+            semantic(
+                "provider_id",
+                CanonicalValue::Identifier(value.contract.provider.id),
+            ),
+            semantic(
+                "provider_version",
+                CanonicalValue::Integer(i128::from(value.contract.provider.schema_version)),
+            ),
+            semantic(
+                "provider_hash",
+                CanonicalValue::Bytes(value.contract.provider.semantic_hash.as_bytes()),
+            ),
+            semantic(
+                "recording_authority",
+                value
+                    .contract
+                    .recording_authority
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "sensitivity",
+                CanonicalValue::Identifier(Id(value.contract.sensitivity.as_str())),
+            ),
+            semantic(
+                "terminal_evidence_required",
+                CanonicalValue::Boolean(value.contract.terminal_evidence_required),
+            ),
+            semantic(
+                "provider_ephemeral",
+                CanonicalValue::Boolean(capabilities.ephemeral),
+            ),
+            semantic(
+                "provider_retained",
+                CanonicalValue::Boolean(capabilities.retained),
+            ),
+            semantic(
+                "provider_durable",
+                CanonicalValue::Boolean(capabilities.durable),
+            ),
+            semantic(
+                "provider_checkpoint_cursor",
+                CanonicalValue::Boolean(capabilities.checkpoint_cursor),
+            ),
+            semantic(
+                "provider_integrity",
+                CanonicalValue::Boolean(capabilities.integrity),
+            ),
+            semantic(
+                "provider_redaction",
+                CanonicalValue::Boolean(capabilities.redaction),
+            ),
+            semantic(
+                "provider_maximum_events",
+                CanonicalValue::Integer(i128::from(capabilities.maximum_events)),
+            ),
+            semantic(
+                "provider_maximum_bytes",
+                CanonicalValue::Integer(i128::from(capabilities.maximum_bytes)),
+            ),
+            semantic(
+                "provider_maximum_subscribers",
+                CanonicalValue::Integer(i128::from(capabilities.maximum_subscribers)),
+            ),
+            semantic(
+                "provider_maximum_pending_operations",
+                CanonicalValue::Integer(i128::from(capabilities.maximum_pending_operations)),
+            ),
+            semantic(
+                "allocation_hash",
+                CanonicalValue::Bytes(allocation_hash.as_bytes()),
             ),
         ],
     )

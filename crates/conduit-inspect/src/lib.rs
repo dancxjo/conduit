@@ -474,6 +474,9 @@ pub fn inspect_execution_plan(
         plan.artifacts.len(),
         plan.nodes.len(),
         plan.cords.len(),
+        plan.fanouts.len(),
+        plan.merges.len(),
+        plan.event_streams.len(),
         plan.authorities.len(),
         plan.composites.len(),
         plan.port_groups.len(),
@@ -500,6 +503,16 @@ pub fn inspect_execution_plan(
         structural_items = structural_items
             .checked_add(composite.members.len())
             .and_then(|value| value.checked_add(composite.exports.len()))
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
+    for fanout in plan.fanouts {
+        structural_items = structural_items
+            .checked_add(fanout.branches.len())
+            .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
+    }
+    for merge in plan.merges {
+        structural_items = structural_items
+            .checked_add(merge.inputs.len())
             .ok_or_else(|| failure("CND-INSP-007", "plan structural item count overflow"))?;
     }
     for group in plan.port_groups {
@@ -531,6 +544,9 @@ pub fn inspect_execution_plan(
             .count() as u64,
     );
     counts.insert("cords".to_owned(), plan.cords.len() as u64);
+    counts.insert("fanouts".to_owned(), plan.fanouts.len() as u64);
+    counts.insert("merges".to_owned(), plan.merges.len() as u64);
+    counts.insert("event_streams".to_owned(), plan.event_streams.len() as u64);
     counts.insert("authorities".to_owned(), plan.authorities.len() as u64);
     counts.insert("composites".to_owned(), plan.composites.len() as u64);
     counts.insert("port_groups".to_owned(), plan.port_groups.len() as u64);

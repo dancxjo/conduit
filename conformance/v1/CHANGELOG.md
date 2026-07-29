@@ -1,5 +1,17 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 13 — 2026-07-29
+
+- Added the `resonance` suite for issue #79.
+- Extended frozen ExecutionEvent v1 compatibly into typed evidence, domain,
+  and control streams while keeping live cord values and projections distinct.
+- Added plan-v5 provider/retention/allocation identity, bounded coupled and
+  isolated subscribers, explicit gaps/replay, append crash recovery,
+  redaction, correction, embedded-retained, and projection fixtures.
+- Requirement IDs: `RSN-001` through `RSN-016`.
+- Migration: event-v1 and plan-v1 through plan-v4 identities remain unchanged;
+  explicit event streams are re-lowered into plan v5.
+
 ## Manifest revision 12 — 2026-07-29
 
 - Added the `structural-flow` suite for issue #21.

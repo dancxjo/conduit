@@ -90,6 +90,9 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`024-structural-flow-v1.md`](024-structural-flow-v1.md) freezes explicit
   coupled/isolated fan-out, deterministic merge policies, bounded structural
   nodes and adapters, plan-v4 identity, and the in-plan fallback boundary.
+- [`025-resonance-event-streams-v1.md`](025-resonance-event-streams-v1.md)
+  freezes compatible typed event envelopes, plan-v5 retention/provider
+  identity, bounded subscription/replay, gaps, crash recovery, and projections.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

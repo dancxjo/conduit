@@ -129,6 +129,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         cords: &cords,
         fanouts: &[],
         merges: &[],
+        event_streams: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],

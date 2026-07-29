@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 12,
+  "manifest_revision": 13,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2015,6 +2015,101 @@
         {
           "package": "conduit-runtime",
           "test": "implementation_bindings"
+        }
+      ]
+    },
+    {
+      "id": "resonance",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "RSN-001", "RSN-002", "RSN-003", "RSN-004",
+        "RSN-005", "RSN-006", "RSN-007", "RSN-008",
+        "RSN-009", "RSN-010", "RSN-011", "RSN-012",
+        "RSN-013", "RSN-014", "RSN-015", "RSN-016"
+      ],
+      "artifacts": [
+        {
+          "id": "resonance-v1",
+          "path": "../c4/resonance-v1.json",
+          "sha256": "sha256:3765ed47b47ffdb08b672bda54c47f8a72deb2d03301dab7caa129125841ce54",
+          "operation": "resonance-v1",
+          "requirement_ids": [
+            "RSN-001", "RSN-002", "RSN-003", "RSN-004",
+            "RSN-005", "RSN-006", "RSN-007", "RSN-008",
+            "RSN-009", "RSN-010", "RSN-011", "RSN-012",
+            "RSN-013", "RSN-014", "RSN-015", "RSN-016"
+          ],
+          "default_rule": "RSN-001",
+          "case_rules": {
+            "execution-event-v1-compatible": "RSN-002",
+            "cord-value-without-publication": "RSN-001",
+            "explicit-domain-publication": "RSN-004",
+            "evidence-and-domain-share-correlation": "RSN-001",
+            "append-only-correction": "RSN-005",
+            "append-only-supersession": "RSN-005",
+            "append-only-retraction": "RSN-005",
+            "coupled-subscriber-pressure": "RSN-009",
+            "isolated-subscriber-pressure": "RSN-009",
+            "retained-ring-overflow-gap": "RSN-010",
+            "append-crash-before-commit": "RSN-008",
+            "append-crash-after-commit": "RSN-008",
+            "replay-exact-cursor": "RSN-010",
+            "replay-checkpoint-cursor": "RSN-011",
+            "duplicate-idempotent-consumer": "RSN-010",
+            "duplicate-non-idempotent-consumer": "RSN-010",
+            "redacted-stable-envelope": "RSN-002",
+            "distributed-causal-out-of-order": "RSN-006",
+            "projection-deterministic-rebuild": "RSN-013",
+            "projection-version-change": "RSN-013",
+            "durability-provider-rejected": "RSN-007",
+            "retention-provider-rejected": "RSN-007",
+            "security-provider-rejected": "RSN-007",
+            "embedded-retained-not-durable": "RSN-016",
+            "terminal-evidence-survives-sampling": "RSN-012",
+            "plan-v5-stream-identity": "RSN-014",
+            "plan-v1-v4-identities-preserved": "RSN-014",
+            "sealed-stream-rejects-append": "RSN-010"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "resonance-v1#execution-event-v1-compatible",
+          "resonance-v1#explicit-domain-publication",
+          "resonance-v1#projection-deterministic-rebuild"
+        ],
+        "negative": [
+          "resonance-v1#durability-provider-rejected",
+          "resonance-v1#security-provider-rejected",
+          "resonance-v1#sealed-stream-rejects-append"
+        ],
+        "boundary": [
+          "resonance-v1#retained-ring-overflow-gap",
+          "resonance-v1#append-crash-before-commit",
+          "resonance-v1#terminal-evidence-survives-sampling"
+        ],
+        "migration": [
+          "resonance-v1#plan-v1-v4-identities-preserved",
+          "resonance-v1#execution-event-v1-compatible",
+          "resonance-v1#projection-version-change"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "resonance_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "evidence_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
         }
       ]
     },

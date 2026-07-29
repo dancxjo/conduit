@@ -1,15 +1,17 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
-    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity,
-    FlowPolicy, FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, MergeOrdering,
-    MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding, PlanFanOut,
+    EffectRequirement, EventClass, EventProviderCapabilities, EventStreamContract, ExecutionLimits,
+    ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowWatermarks,
+    GrantStatus, HostCapability, Id, InstancePath, MergeOrdering, MergeTerminalPolicy,
+    ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection,
+    PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut,
     PlanHostObservation, PlanInstancePool, PlanMerge, PlanMergeInput, PlanPortGroup,
     PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
-    SemanticHash, StopPolicy, TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    resolve_authority, validate_execution_plan,
+    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
+    ResourceSelector, RetentionPolicy, SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling,
+    TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind, resolve_authority,
+    validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -282,6 +284,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
         cords: &cords,
         fanouts: &[],
         merges: &[],
+        event_streams: &[],
         authorities: &authorities,
         composites: &composites,
         port_groups: &groups,
@@ -620,6 +623,16 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         ] {
             assert!(fixture.contains(&format!("\"id\":\"{case}\"")));
         }
+        let resonance = include_str!("../../../conformance/c4/resonance-v1.json");
+        for case in [
+            "plan-v5-stream-identity",
+            "plan-v1-v4-identities-preserved",
+            "durability-provider-rejected",
+            "retention-provider-rejected",
+            "security-provider-rejected",
+        ] {
+            assert!(resonance.contains(&format!("\"id\":\"{case}\"")));
+        }
         let mut profile = ExecutionProfile {
             id: Id("fixture/structural-profile"),
             schema_version: 1,
@@ -780,6 +793,100 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         isolated.identity = isolated.semantic_hash(scratch).unwrap();
         assert_eq!(validate_execution_plan(&isolated, context, scratch), Ok(()));
         assert_ne!(isolated.identity, v4.identity);
+
+        let stream = PlanEventStream {
+            publisher: nodes[0].instance,
+            contract: EventStreamContract {
+                id: Id("stream/events"),
+                event_class: EventClass::Domain,
+                payload_type: TYPE,
+                retention: RetentionPolicy::Ring {
+                    maximum_events: 2,
+                    maximum_bytes: 64,
+                },
+                subscriber_coupling: SubscriberCoupling::Isolated(cords[0].flow),
+                delivery: ReplayDelivery::AtLeastOnce,
+                maximum_publishers: 1,
+                maximum_subscribers: 2,
+                maximum_pending_operations: 1,
+                maximum_projection_bytes: 64,
+                provider: pin("provider/retained", 81),
+                recording_authority: None,
+                sensitivity: Sensitivity::Public,
+                terminal_evidence_required: true,
+            },
+            provider_capabilities: EventProviderCapabilities {
+                ephemeral: true,
+                retained: true,
+                durable: false,
+                checkpoint_cursor: false,
+                integrity: true,
+                redaction: false,
+                maximum_events: 2,
+                maximum_bytes: 64,
+                maximum_subscribers: 2,
+                maximum_pending_operations: 1,
+            },
+            allocation: PlanResourceBudget {
+                memory_bytes: 64,
+                evidence_bytes: 16,
+                ..PlanResourceBudget::ZERO
+            },
+        };
+        let mut v5 = ExecutionPlan {
+            schema_version: 5,
+            identity: ZERO_HASH,
+            event_streams: &[stream],
+            ..v4
+        };
+        v5.identity = v5.semantic_hash(scratch).unwrap();
+        let context5 = PlanValidationContext {
+            supported_schema_version: 5,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v5, context5, scratch), Ok(()));
+        assert_ne!(v5.identity, v4.identity);
+        assert!(v4.event_streams.is_empty());
+        assert_eq!(v5.event_streams[0].contract.id, Id("stream/events"));
+
+        let mut incapable = ExecutionPlan {
+            identity: ZERO_HASH,
+            event_streams: &[PlanEventStream {
+                provider_capabilities: EventProviderCapabilities {
+                    retained: false,
+                    ..stream.provider_capabilities
+                },
+                ..stream
+            }],
+            ..v5
+        };
+        incapable.identity = incapable.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&incapable, context5, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::EventStreamInvalid
+        );
+
+        let mut illegal_v4_stream = ExecutionPlan {
+            schema_version: 4,
+            identity: ZERO_HASH,
+            ..v5
+        };
+        illegal_v4_stream.identity = illegal_v4_stream.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(
+                &illegal_v4_stream,
+                PlanValidationContext {
+                    supported_schema_version: 4,
+                    now: time(20)
+                },
+                scratch
+            )
+            .unwrap_err()
+            .code,
+            PlanDiagnosticCode::EventStreamInvalid
+        );
 
         let mut changed = ExecutionPlan {
             identity: ZERO_HASH,

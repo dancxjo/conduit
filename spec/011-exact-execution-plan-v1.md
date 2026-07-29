@@ -16,6 +16,10 @@ Specification
 [`024-structural-flow-v1.md`](024-structural-flow-v1.md) adds explicit fan-out
 and merge facts in plan schema 4 without changing schema-1 through schema-3
 identity.
+Specification
+[`025-resonance-event-streams-v1.md`](025-resonance-event-streams-v1.md) adds
+explicit event-stream/provider/allocation facts in plan schema 5 without
+changing schema-1 through schema-4 identity.
 
 ## Identity boundary
 
@@ -233,6 +237,7 @@ validating.
 | `CND-STR-003` | structural topology is implicit, dangling, or inconsistent |
 | `CND-STR-004` | duplication lacks an authorized copy/share rule |
 | `CND-STR-005` | merge ordering is invalid or unbounded |
+| `CND-RSN-003` | event-stream provider or bound is invalid |
 | `CND-PLN-007` | caller identity scratch is too small |
 
 `conformance/c2/execution-plan-v1.tsv` freezes valid minimal and nested plans,

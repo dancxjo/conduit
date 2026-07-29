@@ -218,6 +218,7 @@ fn with_plan(
         cords: &cords,
         fanouts: &[],
         merges: &[],
+        event_streams: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],

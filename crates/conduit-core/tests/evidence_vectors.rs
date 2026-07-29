@@ -1,8 +1,9 @@
 use conduit_core::{
-    ArtifactDigest, EventCorrelation, EventPayload, EventPayloadShape, EventRelations,
-    EventTerminality, EventTime, EventTimeKind, EvidencePolicy, EvidenceReason, ExecutionEvent,
-    ExecutionEventKind, Id, InstancePath, SemanticHash, Sensitivity, TerminalClass,
-    TypeContractRef, validate_event_stream, validate_execution_event,
+    ArtifactDigest, EventClass, EventCorrelation, EventPayload, EventPayloadShape, EventRelations,
+    EventTerminality, EventTime, EventTimeKind, EvidencePolicy, EvidenceReason,
+    EvidenceStreamExtension, ExecutionEvent, ExecutionEventKind, Id, InstancePath, SemanticHash,
+    Sensitivity, TerminalClass, TypeContractRef, extend_execution_event, validate_event_stream,
+    validate_execution_event,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -87,6 +88,50 @@ fn no_relations() -> EventRelations<'static> {
         supersedes: None,
         retracts: None,
     }
+}
+
+#[test]
+fn resonance_extension_preserves_frozen_execution_event_identity() {
+    let original = event(
+        "event/resonant",
+        0,
+        "host/a",
+        0,
+        "root/source",
+        ExecutionEventKind::Progress,
+        "fixture/progress",
+        10,
+        no_relations(),
+        EventTerminality::NonTerminal,
+        EventPayload::None,
+    );
+    let resonant = extend_execution_event(
+        original,
+        POLICY,
+        EvidenceStreamExtension {
+            stream: Id("stream/evidence"),
+            producer: InstancePath::new("root/source").unwrap(),
+            payload_type_when_none: VALUE_TYPE,
+            provenance: Id("provider/executor"),
+            recording_authority: None,
+            integrity: SemanticHash::from_bytes([91; 32]),
+        },
+    )
+    .unwrap();
+    assert_eq!(resonant.event, original.event_id);
+    assert_eq!(resonant.run, original.run_id);
+    assert_eq!(resonant.plan_epoch, original.plan_identity);
+    assert_eq!(resonant.subject, original.subject);
+    assert_eq!(resonant.correlation, original.correlation.correlation);
+    assert_eq!(resonant.class, EventClass::NormativeEvidence);
+    let domain = conduit_core::ResonanceEnvelope {
+        event: Id("event/domain"),
+        class: EventClass::Domain,
+        ..resonant
+    };
+    assert_eq!(domain.correlation, resonant.correlation);
+    assert_ne!(domain.class, resonant.class);
+    assert_eq!(original.identity, original.semantic_hash().unwrap());
 }
 
 #[test]
