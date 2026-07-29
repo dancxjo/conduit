@@ -1,0 +1,32 @@
+{
+  "schema": "conduit.tour-lessons/v1",
+  "lessons": [
+    {
+      "id": "welcome.hello-panel",
+      "title": "Hello, panel",
+      "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Hello from the Tour.\\n\"\n}\nnode output : conduit/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "expected_stdout": "Hello from the Tour.\n",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16}
+    },
+    {
+      "id": "welcome.pull-the-cord",
+      "title": "Pull the cord",
+      "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Connect me.\\n\"\n}\nnode output : conduit/stdout\n",
+      "command": "conduct --check lesson.panel",
+      "expected_diagnostic": "CND-PRT-002",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 0, "queue_bytes": 0, "evidence_events": 0}
+    },
+    {
+      "id": "welcome.change-message",
+      "title": "Change the message",
+      "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Change me.\\n\"\n}\nnode output : conduit/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "expected_stdout": "Change me.\n",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16}
+    }
+  ]
+}
