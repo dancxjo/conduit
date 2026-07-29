@@ -10,12 +10,14 @@ use crate::{
     ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectRequirement,
     EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
     FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
-    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PlanDistributedCord,
-    Pressure, ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
+    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
+    PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus, Pressure,
+    ResolvedAuthorityBinding, RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof,
     SatisfactionRole, SemanticHash, SubscriberCoupling, TypeContractRef,
     validate_administrative_proof, validate_authority_at_use, validate_distributed_binding,
-    validate_job_contract, validate_plan_execution_profile, validate_runtime_evidence_policy,
-    validate_satisfaction_proof, validate_stream_contract,
+    validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
+    validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
+    validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -27,9 +29,10 @@ use crate::{
 /// exact runtime-evidence recording policy, schema 9 adds distributed-cord
 /// bindings, and schema 10 pins the selected transport artifact, bounded
 /// backend profile, carrier protection, and carrier endpoint. Schema 11 pins
-/// administrative containment proofs on exact authority bindings. Earlier
-/// schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 11;
+/// administrative containment proofs on exact authority bindings. Schema 12
+/// pins persistent policy-budget status and optional finite offline leases.
+/// Earlier schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 12;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -40,6 +43,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V7: u32 = 7;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V8: u32 = 8;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V9: u32 = 9;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V10: u32 = 10;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V11: u32 = 11;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -284,6 +288,17 @@ pub struct PlanAuthority<'a> {
     pub binding: ResolvedAuthorityBinding<'a>,
     pub administrative_subject: Option<AdministrativeSubject<'a>>,
     pub containment: Option<AdministrativeProof<'a>>,
+    pub policy_budgets: &'a [PlanPolicyBudget<'a>],
+}
+
+/// One exact persistent governance budget selected for an effect.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanPolicyBudget<'a> {
+    pub policy: PersistentBudgetPolicy<'a>,
+    pub status: PolicyBudgetStatus<'a>,
+    pub lease: Option<PolicyBudgetLease<'a>>,
+    pub required_units: u64,
+    pub check_at_use: bool,
 }
 
 /// One logical boundary export retained alongside primitive expansion.
@@ -466,6 +481,7 @@ pub enum PlanDiagnosticCode {
     JobInvalid,
     SatisfactionInvalid,
     Containment(ContainmentReason),
+    PolicyBudget(PolicyBudgetReason),
     Distributed(crate::DistributedReason),
     ScratchTooSmall,
 }
@@ -495,6 +511,7 @@ impl PlanDiagnosticCode {
             Self::JobInvalid => "CND-JOB-016",
             Self::SatisfactionInvalid => "CND-IMP-017",
             Self::Containment(reason) => reason.code(),
+            Self::PolicyBudget(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
@@ -1589,6 +1606,16 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
+        if plan.schema_version < 12
+            && (authority.effect.policy_budget_class.is_some()
+                || !authority.policy_budgets.is_empty())
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::UnsupportedVersion,
+                PlanCollection::Authorities,
+                index,
+            ));
+        }
         let Some(node) = plan
             .nodes
             .iter()
@@ -1678,6 +1705,52 @@ pub fn validate_execution_plan(
             _ => {
                 return Err(indexed(
                     PlanDiagnosticCode::Containment(ContainmentReason::EffectClassMismatch),
+                    PlanCollection::Authorities,
+                    index,
+                ));
+            }
+        }
+        match authority.effect.policy_budget_class {
+            None if authority.policy_budgets.is_empty() => {}
+            Some(class)
+                if !authority.policy_budgets.is_empty()
+                    && authority.policy_budgets.len() <= crate::MAX_POLICY_BUDGET_BINDINGS =>
+            {
+                for (budget_index, budget) in authority.policy_budgets.iter().enumerate() {
+                    if budget.policy.resource_class != class
+                        || budget.policy.action != authority.effect.action
+                        || budget.required_units == 0
+                        || authority.policy_budgets[..budget_index]
+                            .iter()
+                            .any(|prior| prior.policy.identity == budget.policy.identity)
+                    {
+                        return Err(indexed(
+                            PlanDiagnosticCode::PolicyBudget(PolicyBudgetReason::BindingSetInvalid),
+                            PlanCollection::Authorities,
+                            index,
+                        ));
+                    }
+                    validate_plan_policy_budget(*budget, plan.created_at).map_err(|reason| {
+                        indexed(
+                            PlanDiagnosticCode::PolicyBudget(reason),
+                            PlanCollection::Authorities,
+                            index,
+                        )
+                    })?;
+                    if budget.check_at_use {
+                        validate_plan_policy_budget(*budget, context.now).map_err(|reason| {
+                            indexed(
+                                PlanDiagnosticCode::PolicyBudget(reason),
+                                PlanCollection::Authorities,
+                                index,
+                            )
+                        })?;
+                    }
+                }
+            }
+            _ => {
+                return Err(indexed(
+                    PlanDiagnosticCode::PolicyBudget(PolicyBudgetReason::BindingSetInvalid),
                     PlanCollection::Authorities,
                     index,
                 ));
@@ -2614,6 +2687,7 @@ fn hash_authority(
         .map(hash_administrative_subject)
         .transpose()?;
     let containment = value.containment.map(|proof| proof.execution.identity);
+    let policy_budgets = hash_policy_budget_set(value.policy_budgets)?;
     descriptor_hash(
         Id("conduit/plan-authority"),
         &[
@@ -2634,6 +2708,14 @@ fn hash_authority(
                         .map_or(CanonicalValue::Null, |hash| {
                             CanonicalValue::Bytes(hash.as_bytes())
                         })
+                } else {
+                    CanonicalValue::Null
+                },
+            ),
+            defaulted_null(
+                "policy_budgets",
+                if schema_version >= 12 {
+                    CanonicalValue::Bytes(policy_budgets.as_bytes())
                 } else {
                     CanonicalValue::Null
                 },
@@ -2702,6 +2784,71 @@ fn hash_authority(
             ),
         ],
     )
+}
+
+fn hash_policy_budget_set(
+    bindings: &[PlanPolicyBudget<'_>],
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    if bindings.len() > crate::MAX_POLICY_BUDGET_BINDINGS {
+        return Err(CanonicalError::LengthOverflow);
+    }
+    let mut hashes = [SemanticHash::from_bytes([0; 32]); crate::MAX_POLICY_BUDGET_BINDINGS];
+    for (index, binding) in bindings.iter().enumerate() {
+        let lease = binding.lease.map(|lease| lease.identity);
+        hashes[index] = descriptor_hash(
+            Id("conduit/plan-policy-budget"),
+            &[
+                semantic(
+                    "policy",
+                    CanonicalValue::Bytes(binding.policy.identity.as_bytes()),
+                ),
+                semantic(
+                    "status",
+                    CanonicalValue::Bytes(binding.status.identity.as_bytes()),
+                ),
+                semantic(
+                    "lease",
+                    lease.as_ref().map_or(CanonicalValue::Null, |identity| {
+                        CanonicalValue::Bytes(identity.as_bytes())
+                    }),
+                ),
+                semantic(
+                    "required_units",
+                    CanonicalValue::Integer(i128::from(binding.required_units)),
+                ),
+                semantic(
+                    "check_at_use",
+                    CanonicalValue::Boolean(binding.check_at_use),
+                ),
+            ],
+        )?;
+    }
+    semantic_hash_with_hash_set(
+        Id("conduit/plan-policy-budget-set"),
+        1,
+        &[],
+        Id("bindings"),
+        &hashes[..bindings.len()],
+    )
+}
+
+fn validate_plan_policy_budget(
+    binding: PlanPolicyBudget<'_>,
+    now: AuthorityTime<'_>,
+) -> Result<(), PolicyBudgetReason> {
+    match binding.status.availability {
+        crate::PolicyBudgetAvailability::Available => validate_policy_budget_status(
+            binding.policy,
+            binding.status,
+            now,
+            binding.required_units,
+        ),
+        crate::PolicyBudgetAvailability::RetentionGap => Err(PolicyBudgetReason::RecoveryGap),
+        crate::PolicyBudgetAvailability::Unavailable => {
+            let lease = binding.lease.ok_or(PolicyBudgetReason::LedgerUnavailable)?;
+            validate_offline_lease(binding.policy, lease, now)
+        }
+    }
 }
 
 fn hash_administrative_subject(

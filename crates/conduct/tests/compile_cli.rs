@@ -12,7 +12,8 @@ use conduit_compile::{
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
+    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
+    IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
 };
 use conduit_panel::parse;
 use conduit_runtime::Registry;
@@ -234,6 +235,124 @@ fn input(source: &str) -> CompileInput {
     input
 }
 
+fn exhausted_policy_budget_input(source: &str) -> CompileInput {
+    let mut value = serde_json::to_value(input(source)).unwrap();
+    let candidate = value["candidates"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|candidate| {
+            candidate["implementation"]["semantic_contract"]["id"] == "conduit/literal"
+        })
+        .unwrap();
+    candidate["implementation"]["maximum_plan_version"] =
+        serde_json::json!(EXECUTION_PLAN_SCHEMA_VERSION);
+    candidate["host_report"]["maximum_plan_version"] =
+        serde_json::json!(EXECUTION_PLAN_SCHEMA_VERSION);
+    let host = candidate["host_report"]["host"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let budget_class = serde_json::to_value(pin("class.executable-installation", 119)).unwrap();
+    candidate["authorities"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "requirement": hash(126),
+            "effect_hash": "",
+            "grant_hash": "",
+            "effect": {
+                "id": "fixture/governed",
+                "policy_budget_class": budget_class,
+                "action": "fixture/read",
+                "resource_kind": "fixture/device",
+                "resource_id": "fixture/device-a",
+                "requester": "root/greeting",
+                "audience": "fixture/run",
+                "constraints": [],
+                "check_at_use": true
+            },
+            "capability": {
+                "id": "fixture/governed-capability",
+                "action": "fixture/read",
+                "resource_kind": "fixture/device",
+                "resource_id": "fixture/device-a",
+                "host": host.clone(),
+                "time_basis": "clock/compile",
+                "observed_at_tick": 10,
+                "valid_until_tick": 20
+            },
+            "grant": {
+                "id": "fixture/governed-grant",
+                "action": "fixture/read",
+                "resource_kind": "fixture/device",
+                "resource_id": "fixture/device-a",
+                "scope_root": "root/greeting",
+                "scope_descendants": false,
+                "audience": "fixture/run",
+                "constraints": [],
+                "time_basis": "clock/compile",
+                "not_before_tick": 10,
+                "expires_at_tick": 20,
+                "issued_for_host": host,
+                "delegation": "none",
+                "audit_id": "fixture/governed-audit",
+                "terminal_policy": "abort"
+            },
+            "status": "active",
+            "policy_budgets": [{
+                "policy": {
+                    "schema_version": 1,
+                    "identity": "",
+                    "descriptor": pin("budget.installation", 120),
+                    "owner": pin("owner.site-operations", 121),
+                    "subject": pin("subject.executable", 122),
+                    "anchor_kind": "host",
+                    "anchor_id": "fixture/host-local",
+                    "action": "fixture/read",
+                    "resource_class": pin("class.executable-installation", 119),
+                    "time_basis": "clock/compile",
+                    "limits": {
+                        "current_stock": 1,
+                        "rolling_units": 1,
+                        "rolling_window_ticks": 100,
+                        "lifetime": 1
+                    },
+                    "reservation_ttl_ticks": 5,
+                    "lease": null,
+                    "audit_id": "audit.installation",
+                    "persistence_profile": pin("persistence.atomic", 123),
+                    "maximum_reservations": 4,
+                    "maximum_evidence_events": 16
+                },
+                "status": {
+                    "schema_version": 1,
+                    "identity": "",
+                    "policy_identity": "",
+                    "ledger": pin("ledger.host-installation", 124),
+                    "checkpoint": hash(125),
+                    "sequence": 4,
+                    "current_stock": 0,
+                    "rolling_window_start": 10,
+                    "rolling_committed": 0,
+                    "lifetime_committed": 1,
+                    "reserved": 0,
+                    "evidence_remaining": 12,
+                    "availability": "available",
+                    "time_basis": "clock/compile",
+                    "observed_at_tick": 10,
+                    "valid_until_tick": 20
+                },
+                "lease": null,
+                "required_units": 1,
+                "check_at_use": true
+            }]
+        }));
+    let mut input: CompileInput = serde_json::from_value(value).unwrap();
+    input.seal().unwrap();
+    input
+}
+
 fn assert_fixture_case(id: &str) {
     let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
     assert!(
@@ -328,6 +447,42 @@ fn check_and_explain_validate_the_explicit_compile_snapshot() {
             String::from_utf8_lossy(&output.stderr)
         );
     }
+}
+
+#[test]
+fn check_and_explain_name_persistent_denial_not_plan_resource_exhaustion() {
+    let root = temporary_directory();
+    let source = include_str!("../../../examples/hello.panel");
+    let panel = root.join("hello.panel");
+    let input_path = root.join("compile-input.json");
+    std::fs::write(&panel, source).unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&exhausted_policy_budget_input(source)).unwrap(),
+    )
+    .unwrap();
+
+    for mode in ["--check", "--explain"] {
+        let output = command()
+            .arg(mode)
+            .arg("--compile-input")
+            .arg(&input_path)
+            .arg(&panel)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{mode}");
+        let diagnostic = String::from_utf8(output.stderr).unwrap();
+        assert!(diagnostic.contains("CND-PBG-008"), "{mode}: {diagnostic}");
+        assert!(
+            diagnostic.contains("persistent policy budget denied the protected effect"),
+            "{mode}: {diagnostic}"
+        );
+        assert!(
+            !diagnostic.contains("resource budget"),
+            "{mode}: {diagnostic}"
+        );
+    }
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

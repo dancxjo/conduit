@@ -152,6 +152,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   defines plan-v11 domain-owned administrative effect classes, distinct
   proposal/approval/commit/execution identities, independent threshold
   approval, monotonic delegation/recovery, and protected ceremonies.
+- [`042-persistent-policy-budgets-v1.md`](042-persistent-policy-budgets-v1.md)
+  defines plan-v12 host/site/realm anchored current, rolling, lifetime, and
+  finite-lease governance budgets with atomic idempotent reservations,
+  durable recovery, fresh status, and independent approval for increases.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

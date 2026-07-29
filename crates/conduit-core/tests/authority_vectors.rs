@@ -42,6 +42,7 @@ fn effect(resource: ResourceSelector<'static>) -> EffectRequirement<'static> {
     EffectRequirement {
         id: Id("capture"),
         administrative_class: None,
+        policy_budget_class: None,
         action: Id("audio/capture"),
         resource,
         requester: InstancePath::new("root/capture").unwrap(),

@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 34,
+  "manifest_revision": 35,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3777,6 +3777,78 @@
         {"package": "conduit-core", "test": "distributed_vectors"},
         {"package": "conduit-runtime", "test": "distributed_backend"},
         {"package": "conduit-zenoh", "test": "transport_vectors"}
+      ]
+    },
+    {
+      "id": "persistent-policy-budgets",
+      "profile": "conduit.c2-c5",
+      "requirement_ids": [
+        "PBG-001", "PBG-002", "PBG-003", "PBG-004", "PBG-005",
+        "PBG-006", "PBG-007", "PBG-008", "PBG-009", "PBG-010",
+        "PBG-011", "PBG-012", "PBG-013", "PBG-014", "PBG-015",
+        "PBG-016", "PBG-017", "PBG-018", "PBG-019"
+      ],
+      "artifacts": [{
+        "id": "persistent-budget-v1",
+        "path": "../c2/persistent-budget-v1.json",
+        "sha256": "sha256:36270df25843e56735b8ba9c3f74967d1222aec71a9101cf9a4ad307d8cff772",
+        "operation": "persistent-policy-budget-v1",
+        "requirement_ids": [
+          "PBG-001", "PBG-002", "PBG-003", "PBG-004", "PBG-005",
+          "PBG-006", "PBG-007", "PBG-008", "PBG-009", "PBG-010",
+          "PBG-011", "PBG-012", "PBG-013", "PBG-014", "PBG-015",
+          "PBG-016", "PBG-017", "PBG-018", "PBG-019"
+        ],
+        "default_rule": "PBG-001",
+        "case_rules": {
+          "lifetime-eleventh-denied-new-epoch": "PBG-008",
+          "replacement-rollback-retry-reboot-preserve": "PBG-008",
+          "duplicate-reservation-and-commit-idempotent": "PBG-012",
+          "two-consumers-race-last-unit": "PBG-008",
+          "expired-uncommitted-reservation-releases": "PBG-010",
+          "old-and-new-generations-share-limit": "PBG-008",
+          "new-realm-cannot-evade-host-anchor": "PBG-004",
+          "partition-denies-protected-effect": "PBG-007",
+          "stale-status-denies-protected-effect": "PBG-006",
+          "narrow-offline-lease-expires": "PBG-016",
+          "budget-increase-needs-approval": "PBG-018",
+          "evidence-exhaustion-precedes-effect": "PBG-015",
+          "released-stock-does-not-refund-lifetime": "PBG-008",
+          "bounded-compaction-retention-gap": "PBG-013",
+          "realm-and-host-budgets-coexist": "PBG-019"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "persistent-budget-v1#duplicate-reservation-and-commit-idempotent",
+          "persistent-budget-v1#expired-uncommitted-reservation-releases",
+          "persistent-budget-v1#realm-and-host-budgets-coexist"
+        ],
+        "negative": [
+          "persistent-budget-v1#lifetime-eleventh-denied-new-epoch",
+          "persistent-budget-v1#two-consumers-race-last-unit",
+          "persistent-budget-v1#partition-denies-protected-effect",
+          "persistent-budget-v1#budget-increase-needs-approval",
+          "persistent-budget-v1#evidence-exhaustion-precedes-effect"
+        ],
+        "boundary": [
+          "persistent-budget-v1#stale-status-denies-protected-effect",
+          "persistent-budget-v1#narrow-offline-lease-expires",
+          "persistent-budget-v1#released-stock-does-not-refund-lifetime"
+        ],
+        "migration": [
+          "persistent-budget-v1#replacement-rollback-retry-reboot-preserve",
+          "persistent-budget-v1#old-and-new-generations-share-limit",
+          "persistent-budget-v1#new-realm-cannot-evade-host-anchor",
+          "persistent-budget-v1#bounded-compaction-retention-gap"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "policy_budget_vectors"}
       ]
     }
   ]

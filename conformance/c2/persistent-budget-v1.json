@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.persistent-budget-fixtures/v1",
+  "cases": [
+    {"id":"lifetime-eleventh-denied-new-epoch","scenario":"lifetime-cross-epoch","expected":"CND-PBG-008"},
+    {"id":"replacement-rollback-retry-reboot-preserve","scenario":"recovery-preserves","expected":"CND-PBG-008"},
+    {"id":"duplicate-reservation-and-commit-idempotent","scenario":"idempotent","expected":"accepted"},
+    {"id":"two-consumers-race-last-unit","scenario":"last-unit-race","expected":"one-commit"},
+    {"id":"expired-uncommitted-reservation-releases","scenario":"expiry-release","expected":"accepted"},
+    {"id":"old-and-new-generations-share-limit","scenario":"generation-share","expected":"CND-PBG-008"},
+    {"id":"new-realm-cannot-evade-host-anchor","scenario":"realm-evasion","expected":"CND-PBG-008"},
+    {"id":"partition-denies-protected-effect","scenario":"partition","expected":"CND-PBG-007"},
+    {"id":"stale-status-denies-protected-effect","scenario":"stale","expected":"CND-PBG-006"},
+    {"id":"narrow-offline-lease-expires","scenario":"offline-expiry","expected":"CND-PBG-016"},
+    {"id":"budget-increase-needs-approval","scenario":"increase-approval","expected":"CND-PBG-018"},
+    {"id":"evidence-exhaustion-precedes-effect","scenario":"evidence-first","expected":"CND-PBG-015"},
+    {"id":"released-stock-does-not-refund-lifetime","scenario":"stock-lifetime","expected":"CND-PBG-008"},
+    {"id":"bounded-compaction-retention-gap","scenario":"retention-gap","expected":"CND-PBG-013"},
+    {"id":"realm-and-host-budgets-coexist","scenario":"coexisting-anchors","expected":"accepted"}
+  ]
+}

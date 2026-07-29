@@ -25,6 +25,7 @@ mod implementation;
 mod job;
 mod lifecycle;
 mod manifest;
+mod policy_budget;
 mod port;
 mod realm;
 mod resonance;
@@ -102,13 +103,14 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
     EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
     EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
-    EXECUTION_PLAN_SCHEMA_VERSION_V10, ExecutionPlan, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
-    PlanExportBinding, PlanFanOut, PlanHostObservation, PlanIdentityError, PlanInstancePool,
-    PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext,
-    PlanValidationError, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
+    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget,
+    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -155,6 +157,15 @@ pub use manifest::{
     ManifestArtifactRef, ManifestEntrypoint, ManifestIdentityError, ManifestInterface,
     ManifestReason, ReplacementSupport, ReproducibilityClaim, SignatureVerification,
     validate_artifact_manifest, validate_implementation_manifest, verify_artifact_candidate,
+};
+pub use policy_budget::{
+    MAX_POLICY_BUDGET_BINDINGS, POLICY_BUDGET_SCHEMA_VERSION, PersistentBudgetLedger,
+    PersistentBudgetPolicy, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetCheckpoint,
+    PolicyBudgetConsumer, PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason,
+    PolicyBudgetRequest, PolicyBudgetStatus, PolicyBudgetTransition, PolicyLeaseRule,
+    PolicyReservation, PolicyReservationState, RollingLimit, validate_offline_lease,
+    validate_policy_budget_bindings, validate_policy_budget_replacement,
+    validate_policy_budget_status,
 };
 pub use port::{
     ConnectionCardinality, Delivery, Direction, LossAcceptance, PortCompatibilityDecision,

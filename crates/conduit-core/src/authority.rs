@@ -41,6 +41,9 @@ pub struct EffectRequirement<'a> {
     /// Domain-owned class requiring administrative containment. `None` is an
     /// ordinary effect and preserves the v1 requirement identity.
     pub administrative_class: Option<PinnedDescriptor<'a>>,
+    /// Domain-owned class selecting one or more persistent governance budgets.
+    /// `None` preserves the earlier requirement identity.
+    pub policy_budget_class: Option<PinnedDescriptor<'a>>,
     pub action: Id<'a>,
     pub resource: ResourceSelector<'a>,
     pub requester: InstancePath<'a>,
@@ -891,11 +894,24 @@ impl EffectRequirement<'_> {
             .administrative_class
             .map(hash_pinned_descriptor)
             .transpose()?;
+        let policy_budget_class = self
+            .policy_budget_class
+            .map(hash_pinned_descriptor)
+            .transpose()?;
         let fields = [
             semantic("id", CanonicalValue::Identifier(self.id)),
             MapField {
                 name: Id("administrative_class"),
                 value: administrative_class
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
+                disposition: FieldDisposition::Defaulted(&NULL_CANONICAL_VALUE),
+            },
+            MapField {
+                name: Id("policy_budget_class"),
+                value: policy_budget_class
                     .as_ref()
                     .map_or(CanonicalValue::Null, |hash| {
                         CanonicalValue::Bytes(hash.as_bytes())

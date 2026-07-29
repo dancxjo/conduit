@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     ContainmentReason, DiagnosticCode, ImplementationError, PlanCollection, PlanDiagnosticCode,
-    PlanValidationError, SemanticHash, ValidationError,
+    PlanValidationError, PolicyBudgetReason, SemanticHash, ValidationError,
 };
 use conduit_diagnostics::{
     CompatibilityDiagnosticContext, DiagnosticSource, FixStatus, KnownAdapterFix,
@@ -87,6 +87,22 @@ fn resolver_and_plan_failures_have_structured_adapters() {
     assert_eq!(
         containment.message,
         "administrative containment failed: independent-approval-proof-missing"
+    );
+    let persistent_budget = from_plan_error(
+        PlanValidationError {
+            code: PlanDiagnosticCode::PolicyBudget(PolicyBudgetReason::CapacityExceeded),
+            collection: PlanCollection::Authorities,
+            subject_index: Some(0),
+        },
+        PlanDiagnosticContext {
+            primary: None,
+            semantic_path: Some("root/admin".to_owned()),
+        },
+    );
+    assert_eq!(persistent_budget.code, "CND-PBG-008");
+    assert_eq!(
+        persistent_budget.message,
+        "persistent policy budget failed: persistent-policy-budget-denied"
     );
 
     let implementation = from_implementation_error(ImplementationError::FalseProgress);

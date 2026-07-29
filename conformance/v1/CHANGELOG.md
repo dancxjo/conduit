@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 35 — 2026-07-29
+
+- Registered 15 independently dispatched persistent-policy-budget cases for
+  lifetime/current/rolling limits, exact idempotency, last-unit races,
+  reservation expiry, recovery and reboot, generation and realm evasion,
+  stale/partitioned status, finite offline leases, administrative increases,
+  evidence exhaustion, bounded compaction, and simultaneous realm/host scope.
+- Added plan schema 12 and `conduit.execution-plan/v5` bindings for exact
+  policy, fresh status, required units, use-time recheck, and optional finite
+  offline lease without changing ordinary or plan-v11 identities.
+- Kept the authoritative bounded ledger distinct from its plan-pinned status
+  projection and assigned stable `CND-PBG-*` denials distinct from ordinary
+  plan-resource exhaustion.
+
 ## Manifest revision 34 — 2026-07-29
 
 - Registered 33 independently dispatched administrative-containment cases for

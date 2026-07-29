@@ -14,18 +14,21 @@ use conduit_core::{
     ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope, AuthorityTime,
     BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
     ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
-    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3, EffectRequirement,
-    ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy,
-    FlowWatermarks, GrantStatus, HandleDisposition, HostCapability, Id, ImplementationManifest,
-    InstancePath, ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory,
-    MemoryClaim, ObservedGrant, OwnershipModel, PassportStatus, PassportStatusObservation,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanExportBinding,
-    PlanHostObservation, PlanInstancePool, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanValidationContext, Pressure, ReplacementSupport, ReportCapability,
-    ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, SampleSchedule,
-    SemanticHash, StopPolicy, TypeContractRef, ValueRepresentation, resolve_authority,
-    validate_administrative_proof,
+    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
+    EXECUTION_PLAN_SCHEMA_VERSION_V11, EffectRequirement, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GrantStatus,
+    HandleDisposition, HostCapability, Id, ImplementationManifest, InstancePath,
+    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
+    ObservedGrant, OwnershipModel, PassportStatus, PassportStatusObservation,
+    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCompositeMapping,
+    PlanExportBinding, PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext,
+    PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits,
+    PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, Pressure, ReplacementSupport,
+    ReportCapability, ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
+    RollingLimit, SampleSchedule, SemanticHash, StopPolicy, TypeContractRef, ValueRepresentation,
+    resolve_authority, validate_administrative_proof,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -42,6 +45,7 @@ pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input/v2";
 pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 2;
 pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
 pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4";
+pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -382,6 +386,8 @@ pub struct EffectRequirementDocument {
     pub id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub administrative_class: Option<PinDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy_budget_class: Option<PinDocument>,
     pub action: String,
     pub resource_kind: String,
     pub resource_id: Option<String>,
@@ -438,6 +444,8 @@ pub struct AuthorityDecisionDocument {
     pub administrative_subject: Option<AdministrativeSubjectDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub containment: Option<AdministrativeProofDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub policy_budgets: Vec<PolicyBudgetBindingDocument>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -575,6 +583,90 @@ pub struct AdministrativeProofDocument {
     pub approvals: Vec<AdministrativeApprovalDocument>,
     pub commit: AdministrativeCommitDocument,
     pub execution: AdministrativeExecutionDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PolicyBudgetLimitsDocument {
+    pub current_stock: Option<u64>,
+    pub rolling_units: Option<u64>,
+    pub rolling_window_ticks: Option<u64>,
+    pub lifetime: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PolicyLeaseRuleDocument {
+    pub maximum_ticks: u64,
+    pub renewal_authority: PinDocument,
+    pub offline_allowed: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PersistentBudgetPolicyDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub descriptor: PinDocument,
+    pub owner: PinDocument,
+    pub subject: PinDocument,
+    pub anchor_kind: String,
+    pub anchor_id: String,
+    pub action: String,
+    pub resource_class: PinDocument,
+    pub time_basis: String,
+    pub limits: PolicyBudgetLimitsDocument,
+    pub reservation_ttl_ticks: u64,
+    pub lease: Option<PolicyLeaseRuleDocument>,
+    pub audit_id: String,
+    pub persistence_profile: PinDocument,
+    pub maximum_reservations: u16,
+    pub maximum_evidence_events: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PolicyBudgetStatusDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub policy_identity: String,
+    pub ledger: PinDocument,
+    pub checkpoint: String,
+    pub sequence: u64,
+    pub current_stock: u64,
+    pub rolling_window_start: u64,
+    pub rolling_committed: u64,
+    pub lifetime_committed: u64,
+    pub reserved: u64,
+    pub evidence_remaining: u32,
+    pub availability: String,
+    pub time_basis: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PolicyBudgetLeaseDocument {
+    pub schema_version: u32,
+    pub identity: String,
+    pub policy_identity: String,
+    pub holder: PinDocument,
+    pub renewal_authority: PinDocument,
+    pub time_basis: String,
+    pub issued_at_tick: u64,
+    pub expires_at_tick: u64,
+    pub offline: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PolicyBudgetBindingDocument {
+    pub policy: PersistentBudgetPolicyDocument,
+    pub status: PolicyBudgetStatusDocument,
+    pub lease: Option<PolicyBudgetLeaseDocument>,
+    pub required_units: u64,
+    pub check_at_use: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1278,6 +1370,8 @@ pub struct PlanAuthorityDocument {
     pub administrative_subject: Option<AdministrativeSubjectDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub containment: Option<AdministrativeProofDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub policy_budgets: Vec<PolicyBudgetBindingDocument>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1363,6 +1457,8 @@ impl ExactPlanDocument {
         let supported_document = (self.schema == PLAN_DOCUMENT_SCHEMA
             && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V3)
             || (self.schema == ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V11)
+            || (self.schema == POLICY_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
@@ -1482,6 +1578,11 @@ impl ExactPlanDocument {
             .authorities
             .iter()
             .map(|authority| {
+                let policy_budgets = authority
+                    .policy_budgets
+                    .iter()
+                    .map(policy_budget_binding)
+                    .collect::<Result<Vec<_>, CompileError>>()?;
                 Ok(PlanAuthority {
                     node: instance(&authority.node)?,
                     effect_hash: parse_hash(&authority.effect_hash)?,
@@ -1527,6 +1628,7 @@ impl ExactPlanDocument {
                         (None, None) => None,
                         _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
                     },
+                    policy_budgets: arena.alloc_slice_copy(&policy_budgets),
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
@@ -1966,6 +2068,7 @@ fn compile_topology(
                 binding,
                 administrative_subject: authority.administrative_subject,
                 containment: authority.containment,
+                policy_budgets: authority.policy_budgets,
             });
         }
         nodes.push(ResolvedPlanNode {
@@ -2137,9 +2240,14 @@ fn compile_topology(
     }
     let plan_schema_version = if plan_authorities
         .iter()
-        .any(|authority| authority.containment.is_some())
+        .any(|authority| !authority.policy_budgets.is_empty())
     {
         EXECUTION_PLAN_SCHEMA_VERSION
+    } else if plan_authorities
+        .iter()
+        .any(|authority| authority.containment.is_some())
+    {
+        EXECUTION_PLAN_SCHEMA_VERSION_V11
     } else {
         EXECUTION_PLAN_SCHEMA_VERSION_V3
     };
@@ -2185,13 +2293,13 @@ fn compile_topology(
         now: plan.created_at,
     };
     if let Err(error) = validate_hosted_execution_plan(&plan, validation_context) {
-        return Err(CompileError::new(
-            if error.code == conduit_core::PlanDiagnosticCode::BudgetExceeded {
-                CompileReason::BudgetInvalid
-            } else {
-                CompileReason::PlanInvalid
-            },
-        ));
+        return Err(CompileError::new(match error.code {
+            conduit_core::PlanDiagnosticCode::BudgetExceeded => CompileReason::BudgetInvalid,
+            conduit_core::PlanDiagnosticCode::PolicyBudget(reason) => {
+                CompileReason::PolicyBudget(reason)
+            }
+            _ => CompileReason::PlanInvalid,
+        }));
     }
     seal_resolved_execution_plan(&resolution, &plan, validation_context)
         .map_err(|_| CompileError::new(CompileReason::PlanInvalid))?;
@@ -2220,6 +2328,7 @@ struct PreparedAuthority<'a> {
     binding: Option<ResolvedAuthorityBinding<'a>>,
     administrative_subject: Option<AdministrativeSubject<'a>>,
     containment: Option<AdministrativeProof<'a>>,
+    policy_budgets: &'a [PlanPolicyBudget<'a>],
 }
 
 fn prepare_candidate<'a>(
@@ -2349,6 +2458,11 @@ fn prepare_candidate<'a>(
                     )));
                 }
             };
+            let policy_budgets = authority
+                .policy_budgets
+                .iter()
+                .map(policy_budget_binding)
+                .collect::<Result<Vec<_>, CompileError>>()?;
             Ok(PreparedAuthority {
                 requirement: parse_hash(&authority.requirement)?,
                 effect_hash,
@@ -2359,6 +2473,7 @@ fn prepare_candidate<'a>(
                 binding,
                 administrative_subject,
                 containment,
+                policy_budgets: arena.alloc_slice_copy(&policy_budgets),
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
@@ -2713,10 +2828,58 @@ fn seal_authority_decision(document: &mut AuthorityDecisionDocument) -> Result<(
             )));
         }
     }
+    match (
+        document.effect.policy_budget_class.as_ref(),
+        document.policy_budgets.is_empty(),
+    ) {
+        (None, true) => {}
+        (Some(class), false) => {
+            for binding in &mut document.policy_budgets {
+                if &binding.policy.resource_class != class
+                    || binding.policy.action != document.effect.action
+                {
+                    return Err(CompileError::new(CompileReason::InvalidInput));
+                }
+                seal_policy_budget_binding(binding)?;
+            }
+        }
+        _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+    }
     match document.status.as_str() {
         "active" | "revoked" => Ok(()),
         _ => Err(CompileError::new(CompileReason::InvalidInput)),
     }
+}
+
+fn seal_policy_budget_binding(
+    document: &mut PolicyBudgetBindingDocument,
+) -> Result<(), CompileError> {
+    document.policy.identity = SemanticHash::from_bytes([0; 32]).to_string();
+    let policy = persistent_budget_policy(&document.policy)?;
+    document.policy.identity = policy
+        .computed_semantic_hash()
+        .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+        .to_string();
+    document
+        .status
+        .policy_identity
+        .clone_from(&document.policy.identity);
+    document.status.identity = SemanticHash::from_bytes([0; 32]).to_string();
+    let status = policy_budget_status(&document.status)?;
+    document.status.identity = status
+        .computed_semantic_hash()
+        .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+        .to_string();
+    if let Some(lease) = &mut document.lease {
+        lease.policy_identity.clone_from(&document.policy.identity);
+        lease.identity = SemanticHash::from_bytes([0; 32]).to_string();
+        let lease_value = policy_budget_lease(lease)?;
+        lease.identity = lease_value
+            .computed_semantic_hash()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?
+            .to_string();
+    }
+    Ok(())
 }
 
 fn seal_administrative_proof(
@@ -2836,6 +2999,7 @@ fn effect_requirement<'a>(
             .as_ref()
             .map(pin)
             .transpose()?,
+        policy_budget_class: document.policy_budget_class.as_ref().map(pin).transpose()?,
         action: id(&document.action)?,
         resource,
         requester: instance(&document.requester)?,
@@ -3066,6 +3230,119 @@ fn administrative_proof<'a>(
     )
     .map_err(|reason| CompileError::new(CompileReason::Containment(reason)))?;
     Ok(proof)
+}
+
+fn persistent_budget_policy(
+    document: &PersistentBudgetPolicyDocument,
+) -> Result<PersistentBudgetPolicy<'_>, CompileError> {
+    let rolling = match (
+        document.limits.rolling_units,
+        document.limits.rolling_window_ticks,
+    ) {
+        (Some(units), Some(window_ticks)) => Some(RollingLimit {
+            units,
+            window_ticks,
+        }),
+        (None, None) => None,
+        _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+    };
+    Ok(PersistentBudgetPolicy {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        descriptor: pin(&document.descriptor)?,
+        owner: pin(&document.owner)?,
+        subject: pin(&document.subject)?,
+        anchor: match document.anchor_kind.as_str() {
+            "realm" => PolicyBudgetAnchor::Realm(id(&document.anchor_id)?),
+            "host" => PolicyBudgetAnchor::Host(id(&document.anchor_id)?),
+            "site" => PolicyBudgetAnchor::Site(id(&document.anchor_id)?),
+            _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+        },
+        action: id(&document.action)?,
+        resource_class: pin(&document.resource_class)?,
+        time_basis: id(&document.time_basis)?,
+        limits: PolicyBudgetLimits {
+            current_stock: document.limits.current_stock,
+            rolling,
+            lifetime: document.limits.lifetime,
+        },
+        reservation_ttl_ticks: document.reservation_ttl_ticks,
+        lease: document
+            .lease
+            .as_ref()
+            .map(|lease| {
+                Ok(PolicyLeaseRule {
+                    maximum_ticks: lease.maximum_ticks,
+                    renewal_authority: pin(&lease.renewal_authority)?,
+                    offline_allowed: lease.offline_allowed,
+                })
+            })
+            .transpose()?,
+        audit_id: id(&document.audit_id)?,
+        persistence_profile: pin(&document.persistence_profile)?,
+        maximum_reservations: document.maximum_reservations,
+        maximum_evidence_events: document.maximum_evidence_events,
+    })
+}
+
+fn policy_budget_status(
+    document: &PolicyBudgetStatusDocument,
+) -> Result<PolicyBudgetStatus<'_>, CompileError> {
+    Ok(PolicyBudgetStatus {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        policy_identity: parse_hash(&document.policy_identity)?,
+        ledger: pin(&document.ledger)?,
+        checkpoint: parse_hash(&document.checkpoint)?,
+        sequence: document.sequence,
+        current_stock: document.current_stock,
+        rolling_window_start: document.rolling_window_start,
+        rolling_committed: document.rolling_committed,
+        lifetime_committed: document.lifetime_committed,
+        reserved: document.reserved,
+        evidence_remaining: document.evidence_remaining,
+        availability: match document.availability.as_str() {
+            "available" => PolicyBudgetAvailability::Available,
+            "unavailable" => PolicyBudgetAvailability::Unavailable,
+            "retention-gap" => PolicyBudgetAvailability::RetentionGap,
+            _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+        },
+        time_basis: id(&document.time_basis)?,
+        observed_at_tick: document.observed_at_tick,
+        valid_until_tick: document.valid_until_tick,
+    })
+}
+
+fn policy_budget_lease(
+    document: &PolicyBudgetLeaseDocument,
+) -> Result<PolicyBudgetLease<'_>, CompileError> {
+    Ok(PolicyBudgetLease {
+        schema_version: document.schema_version,
+        identity: parse_hash(&document.identity)?,
+        policy_identity: parse_hash(&document.policy_identity)?,
+        holder: pin(&document.holder)?,
+        renewal_authority: pin(&document.renewal_authority)?,
+        time_basis: id(&document.time_basis)?,
+        issued_at_tick: document.issued_at_tick,
+        expires_at_tick: document.expires_at_tick,
+        offline: document.offline,
+    })
+}
+
+fn policy_budget_binding(
+    document: &PolicyBudgetBindingDocument,
+) -> Result<PlanPolicyBudget<'_>, CompileError> {
+    Ok(PlanPolicyBudget {
+        policy: persistent_budget_policy(&document.policy)?,
+        status: policy_budget_status(&document.status)?,
+        lease: document
+            .lease
+            .as_ref()
+            .map(policy_budget_lease)
+            .transpose()?,
+        required_units: document.required_units,
+        check_at_use: document.check_at_use,
+    })
 }
 
 fn host_capability(document: &HostCapabilityDocument) -> Result<HostCapability<'_>, CompileError> {
@@ -3321,6 +3598,12 @@ fn plan_document(
                 .administrative_subject
                 .map(administrative_subject_document),
             containment: authority.containment.map(administrative_proof_document),
+            policy_budgets: authority
+                .policy_budgets
+                .iter()
+                .copied()
+                .map(policy_budget_binding_document)
+                .collect(),
         })
         .collect();
     let port_groups = plan
@@ -3368,7 +3651,9 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 11 {
+        schema: if plan.schema_version >= 12 {
+            POLICY_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 11 {
             ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else {
             PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -3699,6 +3984,7 @@ fn effect_to_document(effect: EffectRequirement<'_>) -> EffectRequirementDocumen
     EffectRequirementDocument {
         id: effect.id.to_string(),
         administrative_class: effect.administrative_class.map(pin_document),
+        policy_budget_class: effect.policy_budget_class.map(pin_document),
         action: effect.action.to_string(),
         resource_kind,
         resource_id,
@@ -3868,6 +4154,80 @@ fn administrative_proof_document(value: AdministrativeProof<'_>) -> Administrati
     }
 }
 
+fn policy_budget_binding_document(value: PlanPolicyBudget<'_>) -> PolicyBudgetBindingDocument {
+    let (anchor_kind, anchor_id) = match value.policy.anchor {
+        PolicyBudgetAnchor::Realm(id) => ("realm", id),
+        PolicyBudgetAnchor::Host(id) => ("host", id),
+        PolicyBudgetAnchor::Site(id) => ("site", id),
+    };
+    PolicyBudgetBindingDocument {
+        policy: PersistentBudgetPolicyDocument {
+            schema_version: value.policy.schema_version,
+            identity: value.policy.identity.to_string(),
+            descriptor: pin_document(value.policy.descriptor),
+            owner: pin_document(value.policy.owner),
+            subject: pin_document(value.policy.subject),
+            anchor_kind: anchor_kind.to_owned(),
+            anchor_id: anchor_id.to_string(),
+            action: value.policy.action.to_string(),
+            resource_class: pin_document(value.policy.resource_class),
+            time_basis: value.policy.time_basis.to_string(),
+            limits: PolicyBudgetLimitsDocument {
+                current_stock: value.policy.limits.current_stock,
+                rolling_units: value.policy.limits.rolling.map(|limit| limit.units),
+                rolling_window_ticks: value.policy.limits.rolling.map(|limit| limit.window_ticks),
+                lifetime: value.policy.limits.lifetime,
+            },
+            reservation_ttl_ticks: value.policy.reservation_ttl_ticks,
+            lease: value.policy.lease.map(|lease| PolicyLeaseRuleDocument {
+                maximum_ticks: lease.maximum_ticks,
+                renewal_authority: pin_document(lease.renewal_authority),
+                offline_allowed: lease.offline_allowed,
+            }),
+            audit_id: value.policy.audit_id.to_string(),
+            persistence_profile: pin_document(value.policy.persistence_profile),
+            maximum_reservations: value.policy.maximum_reservations,
+            maximum_evidence_events: value.policy.maximum_evidence_events,
+        },
+        status: PolicyBudgetStatusDocument {
+            schema_version: value.status.schema_version,
+            identity: value.status.identity.to_string(),
+            policy_identity: value.status.policy_identity.to_string(),
+            ledger: pin_document(value.status.ledger),
+            checkpoint: value.status.checkpoint.to_string(),
+            sequence: value.status.sequence,
+            current_stock: value.status.current_stock,
+            rolling_window_start: value.status.rolling_window_start,
+            rolling_committed: value.status.rolling_committed,
+            lifetime_committed: value.status.lifetime_committed,
+            reserved: value.status.reserved,
+            evidence_remaining: value.status.evidence_remaining,
+            availability: match value.status.availability {
+                PolicyBudgetAvailability::Available => "available",
+                PolicyBudgetAvailability::Unavailable => "unavailable",
+                PolicyBudgetAvailability::RetentionGap => "retention-gap",
+            }
+            .to_owned(),
+            time_basis: value.status.time_basis.to_string(),
+            observed_at_tick: value.status.observed_at_tick,
+            valid_until_tick: value.status.valid_until_tick,
+        },
+        lease: value.lease.map(|lease| PolicyBudgetLeaseDocument {
+            schema_version: lease.schema_version,
+            identity: lease.identity.to_string(),
+            policy_identity: lease.policy_identity.to_string(),
+            holder: pin_document(lease.holder),
+            renewal_authority: pin_document(lease.renewal_authority),
+            time_basis: lease.time_basis.to_string(),
+            issued_at_tick: lease.issued_at_tick,
+            expires_at_tick: lease.expires_at_tick,
+            offline: lease.offline,
+        }),
+        required_units: value.required_units,
+        check_at_use: value.check_at_use,
+    }
+}
+
 fn capability_to_document(capability: HostCapability<'_>) -> HostCapabilityDocument {
     HostCapabilityDocument {
         id: capability.id.to_string(),
@@ -4025,6 +4385,20 @@ fn canonicalize_compile_input(input: &mut CompileInput) {
                     .sort_by(|left, right| left.id.cmp(&right.id));
                 proof.commit.approvals.sort();
             }
+            authority.policy_budgets.sort_by(|left, right| {
+                (
+                    &left.policy.resource_class.id,
+                    &left.policy.descriptor.id,
+                    &left.policy.anchor_kind,
+                    &left.policy.anchor_id,
+                )
+                    .cmp(&(
+                        &right.policy.resource_class.id,
+                        &right.policy.descriptor.id,
+                        &right.policy.anchor_kind,
+                        &right.policy.anchor_id,
+                    ))
+            });
         }
         candidate.authorities.sort_by(|left, right| {
             (&left.requirement, &left.effect.requester, &left.effect.id).cmp(&(
@@ -4279,6 +4653,7 @@ pub enum CompileReason {
     PlanInvalid,
     SourceLimitExceeded,
     Containment(ContainmentReason),
+    PolicyBudget(PolicyBudgetReason),
 }
 
 impl CompileReason {
@@ -4295,6 +4670,7 @@ impl CompileReason {
             Self::PlanInvalid => "CND-CMP-008",
             Self::SourceLimitExceeded => "CND-CMP-009",
             Self::Containment(reason) => reason.code(),
+            Self::PolicyBudget(reason) => reason.code(),
         }
     }
 }
@@ -4351,6 +4727,21 @@ impl fmt::Display for CompileError {
                 }
                 _ => "administrative containment proof is invalid or unavailable",
             },
+            CompileReason::PolicyBudget(PolicyBudgetReason::CapacityExceeded) => {
+                "persistent policy budget denied the protected effect"
+            }
+            CompileReason::PolicyBudget(PolicyBudgetReason::StaleStatus) => {
+                "persistent policy budget status is stale"
+            }
+            CompileReason::PolicyBudget(PolicyBudgetReason::LedgerUnavailable) => {
+                "persistent policy budget ledger is unavailable"
+            }
+            CompileReason::PolicyBudget(PolicyBudgetReason::EvidenceExhausted) => {
+                "persistent policy budget evidence capacity is exhausted before the effect"
+            }
+            CompileReason::PolicyBudget(_) => {
+                "persistent policy budget proof is invalid or unavailable"
+            }
         };
         formatter.write_str(message)
     }
@@ -4500,6 +4891,56 @@ mod tests {
             },
         };
         (subject, proof)
+    }
+
+    fn policy_budget_binding_doc(resource_class: PinDocument) -> PolicyBudgetBindingDocument {
+        PolicyBudgetBindingDocument {
+            policy: PersistentBudgetPolicyDocument {
+                schema_version: 1,
+                identity: String::new(),
+                descriptor: pin_doc("budget.installation", 120),
+                owner: pin_doc("owner.site-operations", 121),
+                subject: pin_doc("subject.executable", 122),
+                anchor_kind: "host".to_owned(),
+                anchor_id: "fixture/host-a".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_class,
+                time_basis: "clock/compile".to_owned(),
+                limits: PolicyBudgetLimitsDocument {
+                    current_stock: Some(1),
+                    rolling_units: Some(1),
+                    rolling_window_ticks: Some(100),
+                    lifetime: Some(1),
+                },
+                reservation_ttl_ticks: 5,
+                lease: None,
+                audit_id: "audit.installation".to_owned(),
+                persistence_profile: pin_doc("persistence.atomic", 123),
+                maximum_reservations: 4,
+                maximum_evidence_events: 16,
+            },
+            status: PolicyBudgetStatusDocument {
+                schema_version: 1,
+                identity: String::new(),
+                policy_identity: String::new(),
+                ledger: pin_doc("ledger.host-installation", 124),
+                checkpoint: hash(125),
+                sequence: 4,
+                current_stock: 0,
+                rolling_window_start: 10,
+                rolling_committed: 0,
+                lifetime_committed: 0,
+                reserved: 0,
+                evidence_remaining: 12,
+                availability: "available".to_owned(),
+                time_basis: "clock/compile".to_owned(),
+                observed_at_tick: 10,
+                valid_until_tick: 20,
+            },
+            lease: None,
+            required_units: 1,
+            check_at_use: true,
+        }
     }
 
     fn profile_doc(ordinal: u8) -> ExecutionProfileDocument {
@@ -5001,6 +5442,7 @@ mod tests {
             effect: EffectRequirementDocument {
                 id: "fixture/read".to_owned(),
                 administrative_class: None,
+                policy_budget_class: None,
                 action: "fixture/read".to_owned(),
                 resource_kind: "fixture/device".to_owned(),
                 resource_id: Some("fixture/device-a".to_owned()),
@@ -5039,6 +5481,7 @@ mod tests {
             status: "active".to_owned(),
             administrative_subject: None,
             containment: None,
+            policy_budgets: Vec::new(),
         });
         input.seal().unwrap();
 
@@ -5118,6 +5561,7 @@ mod tests {
             effect: EffectRequirementDocument {
                 id: "fixture/admin".to_owned(),
                 administrative_class: Some(effect_class),
+                policy_budget_class: None,
                 action: "fixture/read".to_owned(),
                 resource_kind: "fixture/device".to_owned(),
                 resource_id: Some("fixture/device-a".to_owned()),
@@ -5156,11 +5600,12 @@ mod tests {
             status: "active".to_owned(),
             administrative_subject: Some(subject),
             containment: Some(proof),
+            policy_budgets: Vec::new(),
         });
         input.seal().unwrap();
         let plan = compile_panel(&panel, &input).unwrap();
         assert_eq!(plan.schema, ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V11);
         assert!(plan.authorities[0].containment.is_some());
         plan.validate().unwrap();
 
@@ -5179,6 +5624,93 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "administrative effect is missing its exact independent approval proof"
+        );
+    }
+
+    #[test]
+    fn persistent_budget_status_is_pinned_and_denial_is_distinct_from_plan_resources() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let mut input = compile_input(source, &panel);
+        let candidate = input
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .unwrap();
+        candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        let host = candidate.host_report.host.clone();
+        let budget_class = pin_doc("class.executable-installation", 119);
+        candidate.authorities.push(AuthorityDecisionDocument {
+            requirement: hash(126),
+            effect_hash: String::new(),
+            grant_hash: String::new(),
+            effect: EffectRequirementDocument {
+                id: "fixture/governed".to_owned(),
+                administrative_class: None,
+                policy_budget_class: Some(budget_class.clone()),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: Some("fixture/device-a".to_owned()),
+                requester: "root/greeting".to_owned(),
+                audience: "fixture/run".to_owned(),
+                constraints: Vec::new(),
+                check_at_use: true,
+            },
+            capability: HostCapabilityDocument {
+                id: "fixture/governed-capability".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: "fixture/device-a".to_owned(),
+                host: host.clone(),
+                time_basis: "clock/compile".to_owned(),
+                observed_at_tick: 10,
+                valid_until_tick: 20,
+            },
+            grant: AuthorityGrantDocument {
+                id: "fixture/governed-grant".to_owned(),
+                action: "fixture/read".to_owned(),
+                resource_kind: "fixture/device".to_owned(),
+                resource_id: "fixture/device-a".to_owned(),
+                scope_root: "root/greeting".to_owned(),
+                scope_descendants: false,
+                audience: "fixture/run".to_owned(),
+                constraints: Vec::new(),
+                time_basis: "clock/compile".to_owned(),
+                not_before_tick: 10,
+                expires_at_tick: 20,
+                issued_for_host: host,
+                delegation: "none".to_owned(),
+                audit_id: "fixture/governed-audit".to_owned(),
+                terminal_policy: "abort".to_owned(),
+            },
+            status: "active".to_owned(),
+            administrative_subject: None,
+            containment: None,
+            policy_budgets: vec![policy_budget_binding_doc(budget_class)],
+        });
+        input.seal().unwrap();
+        let plan = compile_panel(&panel, &input).unwrap();
+        assert_eq!(plan.schema, POLICY_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.authorities[0].policy_budgets.len(), 1);
+        plan.validate().unwrap();
+
+        let mut exhausted = input;
+        let binding = &mut exhausted
+            .candidates
+            .iter_mut()
+            .find(|candidate| !candidate.authorities.is_empty())
+            .unwrap()
+            .authorities[0]
+            .policy_budgets[0];
+        binding.status.lifetime_committed = 1;
+        exhausted.seal().unwrap();
+        let error = compile_panel(&panel, &exhausted).unwrap_err();
+        assert_eq!(error.code(), "CND-PBG-008");
+        assert_eq!(
+            error.to_string(),
+            "persistent policy budget denied the protected effect"
         );
     }
 

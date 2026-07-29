@@ -648,6 +648,9 @@ pub fn from_plan_error(
         conduit_core::PlanDiagnosticCode::Containment(reason) => {
             format!("administrative containment failed: {}", reason.as_str())
         }
+        conduit_core::PlanDiagnosticCode::PolicyBudget(reason) => {
+            format!("persistent policy budget failed: {}", reason.as_str())
+        }
         _ => "exact execution plan validation failed".to_owned(),
     };
     let mut diagnostic = base(error.code.as_str(), &message, context.primary, Vec::new());
