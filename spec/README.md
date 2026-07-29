@@ -177,6 +177,9 @@ containment program is tracked by
   defines plan-v14 hazardous-host bindings, fresh independent inhibit
   observations, finite command leases and domain-owned envelopes, local
   fail-safe transitions, retained latches, and separately approved clear.
+- [`046-standard-node-library-v1.md`](046-standard-node-library-v1.md) defines
+  bounded standard node families, non-escalating retry, and narrow exact-bound
+  host-service shapes while leaving safety-program policy seams unresolved.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

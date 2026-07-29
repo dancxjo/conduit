@@ -35,6 +35,7 @@ mod resonance;
 mod runtime_evidence;
 mod satisfaction;
 mod scheduler;
+mod standard;
 mod structural;
 mod type_contract;
 
@@ -255,6 +256,11 @@ pub use scheduler::{
     PoolPopulation, ReadyQueueDiscipline, RestartAssessment, RestartDecision,
     SCHEDULER_CONTRACT_VERSION, SchedulerContractError, SchedulerDecisionReason, SchedulerPolicy,
     assess_restart,
+};
+pub use standard::{
+    BackoffSchedule, HostServiceContract, HostServiceRisk, RetryContract, StandardContractError,
+    StandardNodeContract, StandardNodeKind, StandardNodeLimits, validate_host_service_contract,
+    validate_retry_contract, validate_standard_node_contract,
 };
 pub use structural::{
     AdapterContract, DuplicationRule, FanOutMode, LateValuePolicy, MergeCandidate, MergeOrdering,

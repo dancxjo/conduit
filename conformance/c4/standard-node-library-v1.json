@@ -1,0 +1,9 @@
+{
+  "schema": "conduit.standard-node-library-fixture/v1",
+  "cases": [
+    {"id":"finite-window","contract":"node","expected":"accepted","requirement":"STD-002"},
+    {"id":"debounce-without-timer","contract":"node","expected":"incompatible-limits","requirement":"STD-002"},
+    {"id":"retry-evidence-below-attempts","contract":"retry","expected":"unbounded","requirement":"STD-004"},
+    {"id":"dangerous-reference-default","contract":"host-service","expected":"unsafe-reference-default","requirement":"STD-009"}
+  ]
+}
