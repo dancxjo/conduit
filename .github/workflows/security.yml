@@ -27,7 +27,7 @@ jobs:
         run: |
           for target in panel_source exact_plan package_envelope evidence_ndjson hil_transport; do
             mkdir -p "fuzz/artifacts/${target}"
-            cargo fuzz run "${target}" "fuzz/corpus/${target}" -- \
+            cargo +nightly fuzz run "${target}" "fuzz/corpus/${target}" -- \
               -runs=25000 \
               -max_len=8388608 \
               -seed=1380991557 \
