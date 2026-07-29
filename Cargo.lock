@@ -171,6 +171,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-panel",
  "conduit-runtime",
+ "serde_json",
  "wasm-bindgen",
 ]
 
