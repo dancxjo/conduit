@@ -38,8 +38,9 @@ pub fn run_panel(source: String) -> String {
     };
     match resolved.run(&mut io) {
         Ok(summary) => format!(
-            "{{\"ok\":true,\"completed_nodes\":{},\"stdout\":{:?},\"stderr\":{:?}}}",
+            "{{\"ok\":true,\"completed_nodes\":{},\"cords_conducted\":{},\"stdout\":{:?},\"stderr\":{:?}}}",
             summary.nodes_completed,
+            summary.cords_conducted,
             String::from_utf8_lossy(&output),
             String::from_utf8_lossy(&error)
         ),

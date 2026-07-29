@@ -14,7 +14,7 @@ function check() { const value = JSON.parse(parse_panel(source.value)); result.t
 for (const lesson of lessons.lessons) { const button = document.createElement("button"); button.textContent = lesson.title; button.onclick = () => show(lesson); const item = document.createElement("li"); item.append(button); document.querySelector("#lessons").append(item); }
 source.addEventListener("input", () => { localStorage.setItem(key(current.id), source.value); check(); });
 document.querySelector("#check").onclick = check;
-function run() { const value = JSON.parse(run_panel(source.value)); result.textContent = value.ok ? value.stdout || "Run completed." : value.diagnostic; }
+function run() { const value = JSON.parse(run_panel(source.value)); result.textContent = value.ok ? `${value.stdout || "Run completed."}\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.` : value.diagnostic; }
 document.querySelector("#run").onclick = run;
 document.querySelector("#reset").onclick = () => { source.value = current.source; localStorage.removeItem(key(current.id)); check(); };
 document.querySelector("#download").onclick = () => { const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([source.value], {type:"text/plain"})); link.download = "lesson.panel"; link.click(); URL.revokeObjectURL(link.href); };
