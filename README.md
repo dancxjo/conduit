@@ -83,7 +83,10 @@ Automatic color honors `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, terminal
 attachment, and `TERM=dumb`. Redirected stderr receives no status animation or
 cursor control, and a downstream closed stdout pipe is treated as normal
 completion. Primary `--format` is separate: check/explain use finite
-`conduit.result/v1` JSON, while run uses ordered `conduit.run/v1` NDJSON.
+`conduit.result/v1` JSON, while run uses ordered, bounded
+`conduit.run/v2` NDJSON. Its `channel_chunk` records preserve compatibility
+stdout/stderr bytes without claiming that implementation write boundaries are
+semantic values.
 `--quiet` suppresses status but never primary values or diagnostics; `-v` adds
 general terminal status detail and remains distinct from
 `--verbose-diagnostics`.

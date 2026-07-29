@@ -100,6 +100,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`027-implicit-satisfaction-v1.md`](027-implicit-satisfaction-v1.md) freezes
   language-neutral implicit-satisfaction proofs, complete port/implementation/
   host obligations, deterministic ambiguity policy, and plan-v7 proof identity.
+- [`028-bounded-run-stream-v2.md`](028-bounded-run-stream-v2.md) withdraws the
+  unreleased v1 run writer and freezes bounded, nonsemantic channel chunks,
+  direct structured executor records, version rejection, and exact stream
+  failure behavior.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

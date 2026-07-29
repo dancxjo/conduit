@@ -64,7 +64,7 @@ Primary human values, finite JSON results, and streaming NDJSON run records are 
 Diagnostics and terminal status are written to stderr.
 .SH MACHINE OUTPUT
 \fB\-\-format=json\fR selects a finite conduit.result/v1 record for check or explain.
-\fB\-\-format=ndjson\fR selects ordered conduit.run/v1 records for run.
+\fB\-\-format=ndjson\fR selects ordered, bounded conduit.run/v2 channel chunks and structured records for run.
 \fB\-\-diagnostic\-format=json\fR independently selects one structured diagnostic on stderr.
 .SH EXIT STATUS
 Zero indicates success, help, version, or normal downstream pipe closure.

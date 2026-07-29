@@ -1,5 +1,20 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 16 — 2026-07-29
+
+- Added the `conduct-run-stream` suite for issue #72.
+- Preserved the pre-release `conduit.run/v1` fixture while explicitly
+  withdrawing its writer and selecting bounded `conduit.run/v2`.
+- Froze 4,096-byte nonsemantic channel chunks, finite encoded/serialized
+  ceilings, exact per-channel reconstruction, global adapter sequence, and
+  checked arithmetic.
+- Added first/later broken-pipe and non-broken partial-failure cases, strict
+  version rejection, clean machine output, and a direct bounded
+  `ExecutionEvent` path that never infers evidence from channel bytes.
+- Requirement IDs: `RUN-001` through `RUN-014`.
+- Migration: v1 remains historical evidence only; consumers must select v2
+  and must not reinterpret `channel_chunk` as a typed value or event.
+
 ## Manifest revision 15 — 2026-07-29
 
 - Added the `implicit-satisfaction` suite for issue #84.

@@ -2,6 +2,8 @@
 
 use std::path::PathBuf;
 
+pub mod run_stream;
+
 use clap::{
     ArgAction, ArgGroup, Args as ClapArgs, Command, CommandFactory, Parser, Subcommand, ValueEnum,
 };

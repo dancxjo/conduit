@@ -85,13 +85,14 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .collect();
     assert_eq!(records.len(), 2);
     for (sequence, record) in records.iter().enumerate() {
-        assert_eq!(record["schema"], "conduit.run/v1");
-        assert_eq!(record["schema_version"], 1);
+        assert_eq!(record["schema"], "conduit.run/v2");
+        assert_eq!(record["schema_version"], 2);
         assert_eq!(record["sequence"], sequence);
     }
-    assert_eq!(records[0]["record"], "value");
+    assert_eq!(records[0]["record"], "channel_chunk");
     assert_eq!(records[0]["channel"], "stdout");
     assert_eq!(records[0]["encoding"], "hex");
+    assert_eq!(records[0]["payload_bytes"], 20);
     assert_eq!(
         records[0]["payload_hex"],
         "48454c4c4f2046524f4d20434f4e445549542e0a"
@@ -125,8 +126,9 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .filter(|line| !line.is_empty())
         .map(|line| serde_json::from_slice(line).unwrap())
         .collect();
-    assert_eq!(records[0]["record"], "value");
+    assert_eq!(records[0]["record"], "channel_chunk");
     assert_eq!(records[0]["channel"], "stderr");
+    assert_eq!(records[0]["payload_bytes"], 15);
     assert_eq!(records[0]["payload_hex"], "73656d616e746963206572726f720a");
     assert_eq!(records[1]["record"], "summary");
 }
@@ -307,7 +309,7 @@ fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
     reader.read_line(&mut first_record).unwrap();
     assert_eq!(
         serde_json::from_str::<serde_json::Value>(&first_record).unwrap()["record"],
-        "value"
+        "channel_chunk"
     );
     drop(reader);
     let output = child.wait_with_output().unwrap();

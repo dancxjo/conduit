@@ -2,6 +2,12 @@
 
 Status: C3 normative hosted CLI presentation and transport contract
 
+Compatibility note: `conduit.run/v1` below remains frozen as the exact
+pre-release contract introduced for issue #18. Specification 028 deliberately
+withdraws its writer and replaces current run output with bounded
+`conduit.run/v2` channel chunks. This historical text and fixture are retained
+instead of silently redefining the v1 `value` record.
+
 This document extends the command contract in specification 018 with
 generated completions and manual pages, quiet and general verbosity policy,
 truthfully bounded progress state, finite result JSON, and streaming run
@@ -145,6 +151,10 @@ unsupported format.
 Specification 021 adds finite `inspect` results and a generated
 `conduct-inspect(1)` page without changing the result/diagnostic selectors or
 the canonical run/check/explain defaults here.
+
+Specification 028 supersedes only the active run NDJSON writer and reader
+selection policy. `conduit.run/v1` remains recognizable as withdrawn; current
+writers emit v2 and current readers reject v1 rather than falling back.
 
 ## Normative requirements
 

@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 use clap::error::ErrorKind;
+use conduct::run_stream::{RUN_CHANNEL_CHUNK_MAX_BYTES, RunNdjsonState};
 use conduct::{
     Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, SecondaryCommand,
 };
@@ -20,7 +21,7 @@ use conduit_inspect::{
     inspect_panel_path, read_bounded, read_stream_bounded,
 };
 use conduit_panel::parse;
-use conduit_runtime::{ExecutionSummary, Registry, ResolvedPanelView, RunIo};
+use conduit_runtime::{Registry, ResolvedPanelView, RunIo};
 use serde::Serialize;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -52,27 +53,6 @@ struct CheckResult {
     definitions: usize,
     root_nodes: usize,
     root_cords: usize,
-}
-
-#[derive(Serialize)]
-struct RunValueRecord {
-    schema: &'static str,
-    schema_version: u16,
-    sequence: u64,
-    record: &'static str,
-    channel: &'static str,
-    encoding: &'static str,
-    payload_hex: String,
-}
-
-#[derive(Serialize)]
-struct RunSummaryRecord {
-    schema: &'static str,
-    schema_version: u16,
-    sequence: u64,
-    record: &'static str,
-    nodes_completed: usize,
-    cords_conducted: usize,
 }
 
 impl PresentationOptions {
@@ -777,54 +757,9 @@ struct ObservedWriter<W> {
     failure: Option<String>,
 }
 
-struct RunNdjsonState<W> {
-    inner: W,
-    sequence: u64,
-}
-
 struct RunNdjsonChannelWriter<'a, W> {
     stream: &'a RefCell<RunNdjsonState<W>>,
     channel: &'static str,
-}
-
-impl<W: Write> RunNdjsonState<W> {
-    const fn new(inner: W) -> Self {
-        Self { inner, sequence: 0 }
-    }
-
-    fn write_record(&mut self, record: &impl Serialize) -> io::Result<()> {
-        serde_json::to_writer(&mut self.inner, record).map_err(io::Error::other)?;
-        self.inner.write_all(b"\n")
-    }
-
-    fn write_summary(&mut self, summary: ExecutionSummary) -> io::Result<()> {
-        let record = RunSummaryRecord {
-            schema: "conduit.run/v1",
-            schema_version: 1,
-            sequence: self.sequence,
-            record: "summary",
-            nodes_completed: summary.nodes_completed,
-            cords_conducted: summary.cords_conducted,
-        };
-        self.write_record(&record)?;
-        self.sequence += 1;
-        Ok(())
-    }
-
-    fn write_value(&mut self, channel: &'static str, bytes: &[u8]) -> io::Result<()> {
-        let record = RunValueRecord {
-            schema: "conduit.run/v1",
-            schema_version: 1,
-            sequence: self.sequence,
-            record: "value",
-            channel,
-            encoding: "hex",
-            payload_hex: encode_hex(bytes),
-        };
-        self.write_record(&record)?;
-        self.sequence += 1;
-        Ok(())
-    }
 }
 
 impl<'a, W> RunNdjsonChannelWriter<'a, W> {
@@ -835,23 +770,33 @@ impl<'a, W> RunNdjsonChannelWriter<'a, W> {
 
 impl<W: Write> Write for RunNdjsonChannelWriter<'_, W> {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.stream.borrow_mut().write_value(self.channel, bytes)?;
-        Ok(bytes.len())
+        if bytes.is_empty() {
+            return Ok(0);
+        }
+
+        let mut emitted = 0;
+        for chunk in bytes.chunks(RUN_CHANNEL_CHUNK_MAX_BYTES) {
+            if let Err(error) = self
+                .stream
+                .borrow_mut()
+                .write_channel_chunk(self.channel, chunk)
+            {
+                return if emitted == 0 {
+                    Err(error)
+                } else {
+                    Ok(emitted)
+                };
+            }
+            emitted = emitted
+                .checked_add(chunk.len())
+                .ok_or_else(|| io::Error::other("run-stream-write-count-overflow"))?;
+        }
+        Ok(emitted)
     }
 
     fn flush(&mut self) -> io::Result<()> {
         self.stream.borrow_mut().inner.flush()
     }
-}
-
-fn encode_hex(bytes: &[u8]) -> String {
-    use std::fmt::Write as _;
-
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        write!(output, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    output
 }
 
 impl<W> ObservedWriter<W> {
@@ -897,6 +842,7 @@ impl<W: Write> Write for ObservedWriter<W> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduct::run_stream::RUN_CHANNEL_RECORD_MAX_BYTES;
     use std::path::PathBuf;
 
     fn parse(values: &[&str]) -> Result<ParsedCommand, CliError> {
@@ -1046,6 +992,179 @@ mod tests {
                     "{case_id}: version 1 has no spinner"
                 );
             }
+        }
+    }
+
+    fn records(bytes: &[u8]) -> Vec<serde_json::Value> {
+        bytes
+            .split(|byte| *byte == b'\n')
+            .filter(|line| !line.is_empty())
+            .map(|line| serde_json::from_slice(line).unwrap())
+            .collect()
+    }
+
+    fn decode_hex(value: &str) -> Vec<u8> {
+        value
+            .as_bytes()
+            .chunks_exact(2)
+            .map(|pair| {
+                let pair = std::str::from_utf8(pair).unwrap();
+                u8::from_str_radix(pair, 16).unwrap()
+            })
+            .collect()
+    }
+
+    fn reconstructed_channel(records: &[serde_json::Value], channel: &str) -> Vec<u8> {
+        records
+            .iter()
+            .filter(|record| record["channel"] == channel)
+            .flat_map(|record| decode_hex(record["payload_hex"].as_str().unwrap()))
+            .collect()
+    }
+
+    #[test]
+    fn channel_writes_are_bounded_nonsemantic_chunks() {
+        let stream = RefCell::new(RunNdjsonState::new(Vec::new()));
+        let mut stdout = RunNdjsonChannelWriter::new(&stream, "stdout");
+
+        assert_eq!(stdout.write(&[]).unwrap(), 0);
+        stdout
+            .write_all(&vec![0x5a; RUN_CHANNEL_CHUNK_MAX_BYTES])
+            .unwrap();
+        stdout
+            .write_all(&vec![0xa5; RUN_CHANNEL_CHUNK_MAX_BYTES + 1])
+            .unwrap();
+        let very_large: Vec<u8> = (0..(RUN_CHANNEL_CHUNK_MAX_BYTES * 17 + 3))
+            .map(|index| (index % 251) as u8)
+            .collect();
+        stdout.write_all(&very_large).unwrap();
+
+        let encoded = stream.into_inner().inner;
+        let records = records(&encoded);
+        assert_eq!(records.len(), 21);
+        assert!(
+            encoded
+                .split(|byte| *byte == b'\n')
+                .filter(|line| !line.is_empty())
+                .all(|line| line.len() < RUN_CHANNEL_RECORD_MAX_BYTES)
+        );
+        for (sequence, record) in records.iter().enumerate() {
+            assert_eq!(record["schema"], "conduit.run/v2");
+            assert_eq!(record["schema_version"], 2);
+            assert_eq!(record["sequence"], sequence);
+            assert_eq!(record["record"], "channel_chunk");
+            assert!(record.get("value").is_none());
+            assert!(record.get("event").is_none());
+            assert!(record.get("node").is_none());
+            assert!(record.get("port").is_none());
+            assert!(
+                record["payload_bytes"].as_u64().unwrap() <= RUN_CHANNEL_CHUNK_MAX_BYTES as u64
+            );
+        }
+
+        let mut expected = vec![0x5a; RUN_CHANNEL_CHUNK_MAX_BYTES];
+        expected.extend_from_slice(&vec![0xa5; RUN_CHANNEL_CHUNK_MAX_BYTES + 1]);
+        expected.extend_from_slice(&very_large);
+        assert_eq!(reconstructed_channel(&records, "stdout"), expected);
+    }
+
+    #[test]
+    fn split_coalesced_and_interleaved_writes_preserve_only_channel_bytes() {
+        fn encode(writes: &[&[u8]]) -> Vec<serde_json::Value> {
+            let stream = RefCell::new(RunNdjsonState::new(Vec::new()));
+            {
+                let mut stdout = RunNdjsonChannelWriter::new(&stream, "stdout");
+                for write in writes {
+                    stdout.write_all(write).unwrap();
+                }
+            }
+            records(&stream.into_inner().inner)
+        }
+
+        let bytes = b"two logical values with no framing";
+        let one = encode(&[bytes]);
+        let two = encode(&[&bytes[..9], &bytes[9..]]);
+        let many: Vec<&[u8]> = bytes.chunks(3).collect();
+        let many = encode(&many);
+        for variant in [&one, &two, &many] {
+            assert_eq!(reconstructed_channel(variant, "stdout"), bytes);
+            assert!(
+                variant
+                    .iter()
+                    .all(|record| record["record"] == "channel_chunk")
+            );
+        }
+
+        let stream = RefCell::new(RunNdjsonState::new(Vec::new()));
+        {
+            let mut stdout = RunNdjsonChannelWriter::new(&stream, "stdout");
+            let mut stderr = RunNdjsonChannelWriter::new(&stream, "stderr");
+            stdout.write_all(b"out-1").unwrap();
+            stderr.write_all(b"err-1").unwrap();
+            stdout.write_all(b"out-2").unwrap();
+            stderr.write_all(b"err-2").unwrap();
+        }
+        let interleaved = records(&stream.into_inner().inner);
+        assert_eq!(
+            interleaved
+                .iter()
+                .map(|record| record["sequence"].as_u64().unwrap())
+                .collect::<Vec<_>>(),
+            vec![0, 1, 2, 3]
+        );
+        assert_eq!(reconstructed_channel(&interleaved, "stdout"), b"out-1out-2");
+        assert_eq!(reconstructed_channel(&interleaved, "stderr"), b"err-1err-2");
+    }
+
+    struct FailOnWrite {
+        successful_writes: usize,
+        writes: usize,
+        kind: io::ErrorKind,
+        bytes: Vec<u8>,
+    }
+
+    impl Write for FailOnWrite {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            if self.writes >= self.successful_writes {
+                return Err(io::Error::new(self.kind, "fixture-output-failure"));
+            }
+            self.writes += 1;
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn first_and_later_chunk_failures_follow_write_partiality() {
+        for kind in [io::ErrorKind::BrokenPipe, io::ErrorKind::Other] {
+            let first = RefCell::new(RunNdjsonState::new(FailOnWrite {
+                successful_writes: 0,
+                writes: 0,
+                kind,
+                bytes: Vec::new(),
+            }));
+            let error = RunNdjsonChannelWriter::new(&first, "stdout")
+                .write(&vec![0; RUN_CHANNEL_CHUNK_MAX_BYTES + 1])
+                .unwrap_err();
+            assert_eq!(error.kind(), kind);
+            assert!(first.into_inner().inner.bytes.is_empty());
+
+            let later = RefCell::new(RunNdjsonState::new(FailOnWrite {
+                successful_writes: 1,
+                writes: 0,
+                kind,
+                bytes: Vec::new(),
+            }));
+            let written = RunNdjsonChannelWriter::new(&later, "stdout")
+                .write(&vec![0; RUN_CHANNEL_CHUNK_MAX_BYTES + 1])
+                .unwrap();
+            assert_eq!(written, RUN_CHANNEL_CHUNK_MAX_BYTES);
+            let state = later.into_inner();
+            assert_eq!(records(&state.inner.bytes).len(), 1);
         }
     }
 }

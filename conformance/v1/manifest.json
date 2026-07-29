@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 15,
+  "manifest_revision": 16,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1790,6 +1790,140 @@
         {
           "package": "conduct",
           "test": "generated_assets"
+        }
+      ]
+    },
+    {
+      "id": "conduct-run-stream",
+      "profile": "conduit.c3-c4",
+      "requirement_ids": [
+        "RUN-001",
+        "RUN-002",
+        "RUN-003",
+        "RUN-004",
+        "RUN-005",
+        "RUN-006",
+        "RUN-007",
+        "RUN-008",
+        "RUN-009",
+        "RUN-010",
+        "RUN-011",
+        "RUN-012",
+        "RUN-013",
+        "RUN-014"
+      ],
+      "artifacts": [
+        {
+          "id": "conduct-run-stream-version-v2",
+          "path": "../c3/conduct-run-stream-v2.json",
+          "sha256": "sha256:c5496485dbeeb816c179a9e303286e440e8bcfd3c7f8de9d7afb2f344977c19e",
+          "operation": "conduct-run-stream-version-v2",
+          "requirement_ids": ["RUN-001", "RUN-002"],
+          "default_rule": "RUN-001",
+          "case_rules": {
+            "v1-explicitly-withdrawn": "RUN-002",
+            "v3-unsupported": "RUN-001",
+            "mismatched-version-unsupported": "RUN-001"
+          },
+          "format": "json-vectors",
+          "collection": "version_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-run-stream-framing-v2",
+          "path": "../c3/conduct-run-stream-v2.json",
+          "sha256": "sha256:c5496485dbeeb816c179a9e303286e440e8bcfd3c7f8de9d7afb2f344977c19e",
+          "operation": "conduct-run-stream-framing-v2",
+          "requirement_ids": ["RUN-003", "RUN-004", "RUN-006", "RUN-007", "RUN-008", "RUN-009"],
+          "default_rule": "RUN-007",
+          "case_rules": {
+            "multiple-logical-values-one-write": "RUN-009",
+            "exact-decoded-maximum": "RUN-004",
+            "one-over-decoded-maximum": "RUN-006",
+            "very-large-deterministic-split": "RUN-006",
+            "empty-write": "RUN-007",
+            "stdout-stderr-interleaving": "RUN-008"
+          },
+          "format": "json-vectors",
+          "collection": "framing_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-run-stream-arithmetic-v2",
+          "path": "../c3/conduct-run-stream-v2.json",
+          "sha256": "sha256:c5496485dbeeb816c179a9e303286e440e8bcfd3c7f8de9d7afb2f344977c19e",
+          "operation": "conduct-run-stream-arithmetic-v2",
+          "requirement_ids": ["RUN-004", "RUN-005"],
+          "default_rule": "RUN-005",
+          "case_rules": {},
+          "format": "json-vectors",
+          "collection": "arithmetic_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-run-stream-failure-v2",
+          "path": "../c3/conduct-run-stream-v2.json",
+          "sha256": "sha256:c5496485dbeeb816c179a9e303286e440e8bcfd3c7f8de9d7afb2f344977c19e",
+          "operation": "conduct-run-stream-failure-v2",
+          "requirement_ids": ["RUN-012", "RUN-013", "RUN-014"],
+          "default_rule": "RUN-012",
+          "case_rules": {},
+          "format": "json-vectors",
+          "collection": "failure_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-run-stream-identity-v2",
+          "path": "../c3/conduct-run-stream-v2.json",
+          "sha256": "sha256:c5496485dbeeb816c179a9e303286e440e8bcfd3c7f8de9d7afb2f344977c19e",
+          "operation": "conduct-run-stream-identity-v2",
+          "requirement_ids": ["RUN-009", "RUN-010", "RUN-011", "RUN-013"],
+          "default_rule": "RUN-009",
+          "case_rules": {
+            "execution-event-direct-path": "RUN-010",
+            "future-publication-direct-path": "RUN-011",
+            "machine-stdout-clean": "RUN-013"
+          },
+          "format": "json-vectors",
+          "collection": "identity_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "conduct-run-stream-version-v2#v2-current",
+          "conduct-run-stream-framing-v2#exact-decoded-maximum",
+          "conduct-run-stream-identity-v2#execution-event-direct-path"
+        ],
+        "negative": [
+          "conduct-run-stream-version-v2#v1-explicitly-withdrawn",
+          "conduct-run-stream-arithmetic-v2#sequence-overflow",
+          "conduct-run-stream-identity-v2#channel-chunk-not-typed-value"
+        ],
+        "boundary": [
+          "conduct-run-stream-framing-v2#one-over-decoded-maximum",
+          "conduct-run-stream-framing-v2#empty-write",
+          "conduct-run-stream-failure-v2#broken-pipe-later-chunk"
+        ],
+        "migration": [
+          "conduct-run-stream-framing-v2#split-and-coalesced-equivalent",
+          "conduct-run-stream-version-v2#v3-unsupported",
+          "conduct-run-stream-identity-v2#future-publication-direct-path"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduct",
+          "test": "run_stream"
+        },
+        {
+          "package": "conduct",
+          "test": "machine_output_cli"
         }
       ]
     },

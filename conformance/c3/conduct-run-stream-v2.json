@@ -1,0 +1,159 @@
+{
+  "suite": "conduit.conduct-run-stream/v2",
+  "limits": {
+    "decoded_chunk_bytes": 4096,
+    "encoded_payload_bytes": 8192,
+    "serialized_channel_record_bytes": 8448,
+    "serialized_summary_record_bytes": 512,
+    "serialized_structured_record_bytes": 65536
+  },
+  "version_cases": [
+    {
+      "id": "v2-current",
+      "schema": "conduit.run/v2",
+      "schema_version": 2,
+      "expected": {"accepted": true}
+    },
+    {
+      "id": "v1-explicitly-withdrawn",
+      "schema": "conduit.run/v1",
+      "schema_version": 1,
+      "expected": {"accepted": false, "reason": "withdrawn-v1"}
+    },
+    {
+      "id": "v3-unsupported",
+      "schema": "conduit.run/v3",
+      "schema_version": 3,
+      "expected": {"accepted": false, "reason": "unsupported-version"}
+    },
+    {
+      "id": "mismatched-version-unsupported",
+      "schema": "conduit.run/v2",
+      "schema_version": 1,
+      "expected": {"accepted": false, "reason": "unsupported-version"}
+    }
+  ],
+  "framing_cases": [
+    {
+      "id": "one-implementation-write",
+      "write_lengths": [33],
+      "expected": {"records": 1, "exact_reconstruction": true, "semantic_boundary": false}
+    },
+    {
+      "id": "two-implementation-writes",
+      "write_lengths": [9, 24],
+      "expected": {"records": 2, "exact_reconstruction": true, "semantic_boundary": false}
+    },
+    {
+      "id": "many-implementation-writes",
+      "write_lengths": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "expected": {"records": 11, "exact_reconstruction": true, "semantic_boundary": false}
+    },
+    {
+      "id": "multiple-logical-values-one-write",
+      "write_lengths": [33],
+      "logical_values": 2,
+      "expected": {"record": "channel_chunk", "typed_value": false}
+    },
+    {
+      "id": "exact-decoded-maximum",
+      "write_lengths": [4096],
+      "expected": {"chunk_lengths": [4096], "records": 1}
+    },
+    {
+      "id": "one-over-decoded-maximum",
+      "write_lengths": [4097],
+      "expected": {"chunk_lengths": [4096, 1], "records": 2}
+    },
+    {
+      "id": "very-large-deterministic-split",
+      "write_lengths": [69635],
+      "expected": {"full_chunks": 17, "remainder_bytes": 3, "whole_input_temporary": false}
+    },
+    {
+      "id": "empty-write",
+      "write_lengths": [0],
+      "expected": {"records": 0, "write_result": 0}
+    },
+    {
+      "id": "split-and-coalesced-equivalent",
+      "variants": [[33], [9, 24], [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+      "expected": {"per_channel_bytes_equal": true, "record_boundaries_equal": false}
+    },
+    {
+      "id": "stdout-stderr-interleaving",
+      "channels": ["stdout", "stderr", "stdout", "stderr"],
+      "expected": {"sequences": [0, 1, 2, 3], "per_channel_reconstruction": true}
+    }
+  ],
+  "arithmetic_cases": [
+    {
+      "id": "sequence-overflow",
+      "sequence": 18446744073709551615,
+      "expected": {"accepted": false, "reason": "run-stream-sequence-overflow", "bytes_emitted": 0}
+    },
+    {
+      "id": "payload-multiplication-overflow",
+      "decoded_length": "usize::MAX",
+      "expected": {"accepted": false, "reason": "run-stream-payload-size-overflow", "bytes_emitted": 0}
+    },
+    {
+      "id": "serialized-size-overflow",
+      "encoded_limit": 4,
+      "expected": {"accepted": false, "reason": "run-stream-record-too-large", "bytes_emitted": 0}
+    }
+  ],
+  "failure_cases": [
+    {
+      "id": "broken-pipe-first-chunk",
+      "failure_kind": "broken-pipe",
+      "successful_records": 0,
+      "expected": {"process_exit": 0, "diagnostic": false}
+    },
+    {
+      "id": "broken-pipe-later-chunk",
+      "failure_kind": "broken-pipe",
+      "successful_records": 1,
+      "expected": {"partial_decoded_bytes": 4096, "process_exit": 0, "diagnostic": false}
+    },
+    {
+      "id": "non-broken-failure-after-partial",
+      "failure_kind": "other",
+      "successful_records": 1,
+      "expected": {"partial_decoded_bytes": 4096, "diagnostic_code": "CND-IO-002"}
+    }
+  ],
+  "identity_cases": [
+    {
+      "id": "channel-chunk-not-typed-value",
+      "record": "channel_chunk",
+      "expected": {"typed_value": false, "execution_event": false}
+    },
+    {
+      "id": "channel-json-not-parsed-as-evidence",
+      "payload_hex": "7b22736368656d615f76657273696f6e223a317d",
+      "expected": {"execution_event": false}
+    },
+    {
+      "id": "execution-event-direct-path",
+      "record": "execution_event",
+      "source": "executor-observation",
+      "expected": {"channel_adapter": false, "nested_identity_preserved": true, "bounded": true}
+    },
+    {
+      "id": "future-publication-direct-path",
+      "record": "typed_publication",
+      "source": "executor-transaction",
+      "expected": {"channel_adapter": false, "requires_semantic_identity": true, "implemented": false}
+    },
+    {
+      "id": "machine-stdout-clean",
+      "expected": {"ansi": false, "prose": false, "progress": false, "diagnostic": false}
+    },
+    {
+      "id": "summary-is-not-evidence",
+      "record": "summary",
+      "expected": {"execution_event": false}
+    }
+  ]
+}
