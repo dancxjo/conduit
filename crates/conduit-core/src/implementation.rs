@@ -720,6 +720,12 @@ impl<'a> ImplementationMachine<'a> {
         self.phase
     }
 
+    /// Exact plan-pinned profile enforced by this machine.
+    #[must_use]
+    pub const fn profile(self) -> &'a ExecutionProfile<'a> {
+        self.profile
+    }
+
     pub fn drain(&mut self) -> Result<(), ImplementationError> {
         self.transition(InstancePhase::Started, InstancePhase::Draining)
     }
@@ -780,7 +786,11 @@ impl<'a> ImplementationMachine<'a> {
                 StepOutcomeKind::Yielded
             }
             StepOutcome::Completed => {
-                self.phase = InstancePhase::Terminal(TerminalClass::Succeeded);
+                self.phase = InstancePhase::Terminal(if self.phase == InstancePhase::Cancelling {
+                    TerminalClass::Cancelled
+                } else {
+                    TerminalClass::Succeeded
+                });
                 StepOutcomeKind::Completed
             }
             StepOutcome::Failed { code } => {

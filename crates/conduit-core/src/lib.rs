@@ -21,6 +21,7 @@ mod flow;
 mod implementation;
 mod lifecycle;
 mod port;
+mod scheduler;
 mod type_contract;
 
 pub use authority::{
@@ -100,6 +101,11 @@ pub use port::{
     PortCompatibilityReason, PortContract, PortFlowConstraints, Presence, Sensitivity,
     TemporalContract, TerminalContract, ValueCardinality, assess_port_connection,
     assess_port_substitution,
+};
+pub use scheduler::{
+    PoolPopulation, ReadyQueueDiscipline, RestartAssessment, RestartDecision,
+    SCHEDULER_CONTRACT_VERSION, SchedulerContractError, SchedulerDecisionReason, SchedulerPolicy,
+    assess_restart,
 };
 pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
 

@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 10,
+  "manifest_revision": 11,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2015,6 +2015,121 @@
         {
           "package": "conduit-runtime",
           "test": "implementation_bindings"
+        }
+      ]
+    },
+    {
+      "id": "bounded-scheduler",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "SCH-001",
+        "SCH-002",
+        "SCH-003",
+        "SCH-004",
+        "SCH-005",
+        "SCH-006",
+        "SCH-007",
+        "SCH-008",
+        "SCH-009",
+        "SCH-010",
+        "SCH-011",
+        "SCH-012",
+        "SCH-013",
+        "SCH-014",
+        "SCH-015",
+        "SCH-016"
+      ],
+      "artifacts": [
+        {
+          "id": "bounded-scheduler-v1",
+          "path": "../c4/bounded-scheduler-v1.json",
+          "sha256": "sha256:b44028551f459cd419f9d51690f7ce3538a4fb757854d8734534320811156b6b",
+          "operation": "bounded-scheduler-v1",
+          "requirement_ids": [
+            "SCH-001",
+            "SCH-002",
+            "SCH-003",
+            "SCH-004",
+            "SCH-005",
+            "SCH-006",
+            "SCH-007",
+            "SCH-008",
+            "SCH-009",
+            "SCH-010",
+            "SCH-011",
+            "SCH-012",
+            "SCH-013",
+            "SCH-014",
+            "SCH-015",
+            "SCH-016"
+          ],
+          "default_rule": "SCH-004",
+          "case_rules": {
+            "finite-round-robin-policy": "SCH-005",
+            "zero-decision-policy-rejected": "SCH-012",
+            "pool-populations-reconcile": "SCH-013",
+            "pool-population-drift-rejected": "SCH-013",
+            "resource-wait-does-not-manufacture-demand": "SCH-013",
+            "restart-attempt-budget-terminates": "SCH-014",
+            "restart-cooldown-and-starvation-explained": "SCH-014",
+            "exact-preallocation": "SCH-002",
+            "allocation-failure-starts-none": "SCH-003",
+            "prepare-all-failure-starts-none": "SCH-002",
+            "fair-ready-producers": "SCH-005",
+            "zero-progress-node-cannot-monopolize": "SCH-007",
+            "pending-transaction-rolls-back": "SCH-008",
+            "two-input-join-atomic": "SCH-009",
+            "bounded-fragments": "SCH-009",
+            "zero-copy-handle-identity": "SCH-009",
+            "host-operation-exact-wake": "SCH-006",
+            "timer-exact-wake": "SCH-006",
+            "abort-cancellation-wakes-blocked-producer": "SCH-010",
+            "drain-cancellation-preserves-accepted-values": "SCH-010",
+            "node-failure-propagates": "SCH-010",
+            "pressure-and-occupancy-observed": "SCH-011",
+            "decision-log-explains-every-turn": "SCH-011",
+            "decision-limit-is-terminal": "SCH-012",
+            "evidence-capacity-is-terminal": "SCH-012",
+            "long-run-capacity-invariant": "SCH-015",
+            "no-async-runtime-plan-field": "SCH-001",
+            "pool-resource-wait-long-simulation": "SCH-015"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "bounded-scheduler-v1#exact-preallocation",
+          "bounded-scheduler-v1#two-input-join-atomic",
+          "bounded-scheduler-v1#host-operation-exact-wake"
+        ],
+        "negative": [
+          "bounded-scheduler-v1#allocation-failure-starts-none",
+          "bounded-scheduler-v1#zero-progress-node-cannot-monopolize",
+          "bounded-scheduler-v1#pool-population-drift-rejected"
+        ],
+        "boundary": [
+          "bounded-scheduler-v1#full-blocking-queue",
+          "bounded-scheduler-v1#decision-limit-is-terminal",
+          "bounded-scheduler-v1#evidence-capacity-is-terminal"
+        ],
+        "migration": [
+          "bounded-scheduler-v1#no-async-runtime-plan-field",
+          "bounded-scheduler-v1#resource-wait-does-not-manufacture-demand",
+          "bounded-scheduler-v1#pool-resource-wait-long-simulation"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "scheduler_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "scheduler"
         }
       ]
     }

@@ -83,6 +83,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   freezes plan-visible implementation execution profiles, prepare atomicity,
   bounded nonblocking steps, port transactions, host operations, and
   equivalent native/message bindings.
+- [`023-bounded-deterministic-scheduler-v1.md`](023-bounded-deterministic-scheduler-v1.md)
+  freezes atomic runtime preallocation, deterministic round-robin stepping,
+  exact queue wakes, staged transactions, cancellation/terminal propagation,
+  bounded scheduler evidence, and pool-population reconciliation.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

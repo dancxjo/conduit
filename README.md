@@ -110,6 +110,9 @@ an incidental library detail:
 - live flow is bounded, with explicit pressure, delivery, and loss policy;
 - cancellation and terminal behavior are deterministic;
 - queues use caller-provided fixed storage at the allocator-free boundary;
+- live execution preallocates exact cord storage and declared scheduler
+  overhead, then uses reasoned round-robin wake decisions without hidden
+  channels;
 - execution plans pin implementation, artifact, host, resources, authority,
   bounded execution profile, and provenance before start;
 - nonblocking node steps use executor-mediated input leases, output
@@ -161,7 +164,8 @@ This repository contains the first executable Plan C foundation:
 - `conduit-inspect`: hosted bounded, marker-only, non-executing artifact
   validation and value-safe reports;
 - `conduit-runtime`: a hosted registry, typed-config resolver, explainer,
-  one-shot executor, and native/message step-binding examples;
+  one-shot executor, deterministic bounded streaming executor, and
+  native/message step-binding examples;
 - `conduct`: the Unix command-line interface.
 
 The initial runtime includes intentionally small proof handlers for literal
