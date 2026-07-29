@@ -72,6 +72,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   identities while moving root selection out of authored source identity and
   retaining complete cords, composite relationships, constraints, and exact
   provenance in corrected lowering v2.
+- [`020-conduct-output-v1.md`](020-conduct-output-v1.md) freezes reproducible
+  completions and manuals, independent result and diagnostic selectors,
+  finite result JSON, ordered run NDJSON, quiet/verbosity, bounded progress,
+  and machine-safe stream behavior.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

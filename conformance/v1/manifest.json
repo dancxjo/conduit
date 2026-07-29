@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 7,
+  "manifest_revision": 8,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -1643,6 +1643,153 @@
         {
           "package": "conduit-runtime",
           "test": "source_lowering_vectors"
+        }
+      ]
+    },
+    {
+      "id": "conduct-output",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003",
+        "OUT-004",
+        "OUT-005",
+        "OUT-006",
+        "OUT-007",
+        "OUT-008",
+        "OUT-009",
+        "OUT-010",
+        "OUT-011",
+        "OUT-012"
+      ],
+      "artifacts": [
+        {
+          "id": "conduct-finite-result-v1",
+          "path": "../c3/conduct-output-v1.json",
+          "sha256": "sha256:db300735c4d954059244fad5c55f1196552d1fc2b906bfc43cf6175469317f28",
+          "operation": "conduct-finite-result-v1",
+          "requirement_ids": ["OUT-003", "OUT-004", "OUT-006", "OUT-012"],
+          "default_rule": "OUT-004",
+          "case_rules": {
+            "check-result": "OUT-004",
+            "explain-result": "OUT-004"
+          },
+          "format": "json-vectors",
+          "collection": "finite_result_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-run-record-v1",
+          "path": "../c3/conduct-output-v1.json",
+          "sha256": "sha256:db300735c4d954059244fad5c55f1196552d1fc2b906bfc43cf6175469317f28",
+          "operation": "conduct-run-record-v1",
+          "requirement_ids": ["OUT-003", "OUT-005", "OUT-006", "OUT-011", "OUT-012"],
+          "default_rule": "OUT-005",
+          "case_rules": {
+            "ordered-records": "OUT-005"
+          },
+          "format": "json-vectors",
+          "collection": "run_record_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-format-v1",
+          "path": "../c3/conduct-output-v1.json",
+          "sha256": "sha256:db300735c4d954059244fad5c55f1196552d1fc2b906bfc43cf6175469317f28",
+          "operation": "conduct-format-v1",
+          "requirement_ids": ["OUT-003", "OUT-004", "OUT-005", "OUT-007"],
+          "default_rule": "OUT-003",
+          "case_rules": {
+            "check-ndjson-rejected": "OUT-007",
+            "explain-ndjson-rejected": "OUT-007",
+            "run-json-rejected": "OUT-007"
+          },
+          "format": "json-vectors",
+          "collection": "format_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-stream-policy-v1",
+          "path": "../c3/conduct-output-v1.json",
+          "sha256": "sha256:db300735c4d954059244fad5c55f1196552d1fc2b906bfc43cf6175469317f28",
+          "operation": "conduct-stream-policy-v1",
+          "requirement_ids": ["OUT-003", "OUT-006", "OUT-008", "OUT-010", "OUT-011", "OUT-012"],
+          "default_rule": "OUT-006",
+          "case_rules": {
+            "quiet-preserves-primary": "OUT-008",
+            "verbose-distinct-from-diagnostic-verbosity": "OUT-008",
+            "non-tty-status-suppressed": "OUT-010",
+            "broken-pipe-success": "OUT-011",
+            "non-broken-output-failure": "OUT-011"
+          },
+          "format": "json-vectors",
+          "collection": "stream_policy_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-progress-v1",
+          "path": "../c3/conduct-output-v1.json",
+          "sha256": "sha256:db300735c4d954059244fad5c55f1196552d1fc2b906bfc43cf6175469317f28",
+          "operation": "conduct-progress-v1",
+          "requirement_ids": ["OUT-008", "OUT-009", "OUT-010"],
+          "default_rule": "OUT-009",
+          "case_rules": {},
+          "format": "json-vectors",
+          "collection": "progress_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        },
+        {
+          "id": "conduct-generated-assets-v1",
+          "path": "../c3/conduct-output-v1.json",
+          "sha256": "sha256:db300735c4d954059244fad5c55f1196552d1fc2b906bfc43cf6175469317f28",
+          "operation": "conduct-generated-assets-v1",
+          "requirement_ids": ["OUT-001", "OUT-002"],
+          "default_rule": "OUT-002",
+          "case_rules": {
+            "man": "OUT-001"
+          },
+          "format": "json-vectors",
+          "collection": "generated_asset_cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "conduct-finite-result-v1#check-result",
+          "conduct-run-record-v1#ordered-records",
+          "conduct-generated-assets-v1#man"
+        ],
+        "negative": [
+          "conduct-format-v1#run-json-rejected",
+          "conduct-progress-v1#zero-total-rejected",
+          "conduct-stream-policy-v1#non-broken-output-failure"
+        ],
+        "boundary": [
+          "conduct-run-record-v1#value-record",
+          "conduct-progress-v1#overflow-rejected",
+          "conduct-stream-policy-v1#broken-pipe-success"
+        ],
+        "migration": [
+          "conduct-format-v1#check-human",
+          "conduct-format-v1#run-human",
+          "conduct-stream-policy-v1#diagnostic-json-independent"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduct",
+          "test": "machine_output_cli"
+        },
+        {
+          "package": "conduct",
+          "test": "generated_assets"
         }
       ]
     }

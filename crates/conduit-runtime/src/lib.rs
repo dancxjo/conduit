@@ -21,6 +21,7 @@ use conduit_core::{
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
 };
+use serde::Serialize;
 
 mod config_resolution;
 mod evidence_ndjson;
@@ -1057,7 +1058,195 @@ pub struct ResolvedPanel<'a> {
     logical_composites: Vec<LogicalComposite>,
 }
 
+/// Presentation-neutral structured view of one validated hosted resolution.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedPanelView {
+    pub panel_version: u16,
+    pub root_nodes: usize,
+    pub root_cords: usize,
+    pub composites: Vec<ResolvedCompositeView>,
+    pub nodes: Vec<ResolvedNodeView>,
+    pub cords: Vec<ResolvedCordView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedCompositeView {
+    pub path: String,
+    pub definition: String,
+    pub children: Vec<ResolvedChildView>,
+    pub cords: Vec<ResolvedLogicalCordView>,
+    pub exports: Vec<ResolvedExportView>,
+    pub bindings: Vec<ResolvedBindingView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedChildView {
+    pub path: String,
+    pub contract_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedLogicalCordView {
+    pub from: String,
+    pub to: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedExportView {
+    pub direction: &'static str,
+    pub id: String,
+    pub target_node: String,
+    pub target_port: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedBindingView {
+    pub parameter: String,
+    pub target: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedNodeView {
+    pub index: usize,
+    pub id: String,
+    pub contract_id: String,
+    pub inputs: Vec<ResolvedPortView>,
+    pub outputs: Vec<ResolvedPortView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedPortView {
+    pub id: String,
+    pub type_id: String,
+    pub delivery: &'static str,
+    pub connections: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ResolvedCordView {
+    pub index: usize,
+    pub id: String,
+    pub from_node: String,
+    pub from_port: String,
+    pub to_node: String,
+    pub to_port: String,
+    pub capacity_items: u16,
+    pub max_value_bytes: u32,
+    pub max_queued_bytes: u64,
+    pub low_watermark_items: u16,
+    pub high_watermark_items: u16,
+    pub pressure: String,
+}
+
 impl ResolvedPanel<'_> {
+    /// Returns structured resolution facts without choosing a CLI encoding.
+    #[must_use]
+    pub fn view(&self) -> ResolvedPanelView {
+        let mut composites = self
+            .logical_composites
+            .iter()
+            .map(|composite| ResolvedCompositeView {
+                path: composite.path.clone(),
+                definition: composite.definition.clone(),
+                children: composite
+                    .children
+                    .iter()
+                    .map(|(path, contract_id)| ResolvedChildView {
+                        path: path.clone(),
+                        contract_id: contract_id.clone(),
+                    })
+                    .collect(),
+                cords: composite
+                    .cords
+                    .iter()
+                    .map(|(from, to)| ResolvedLogicalCordView {
+                        from: from.clone(),
+                        to: to.clone(),
+                    })
+                    .collect(),
+                exports: composite
+                    .exports
+                    .iter()
+                    .map(|(direction, id, target)| ResolvedExportView {
+                        direction: match direction {
+                            ExportDirection::Input => "input",
+                            ExportDirection::Output => "output",
+                        },
+                        id: id.clone(),
+                        target_node: target.node.clone(),
+                        target_port: target.port.clone(),
+                    })
+                    .collect(),
+                bindings: composite
+                    .bindings
+                    .iter()
+                    .map(|(parameter, target)| ResolvedBindingView {
+                        parameter: parameter.clone(),
+                        target: target.clone(),
+                    })
+                    .collect(),
+            })
+            .collect::<Vec<_>>();
+        composites.sort_by(|left, right| left.path.cmp(&right.path));
+        let nodes = self
+            .nodes
+            .iter()
+            .enumerate()
+            .map(|(index, node)| ResolvedNodeView {
+                index,
+                id: node.source.id.clone(),
+                contract_id: node.definition.contract.id.as_str().to_owned(),
+                inputs: node
+                    .definition
+                    .contract
+                    .inputs
+                    .iter()
+                    .map(resolved_port_view)
+                    .collect(),
+                outputs: node
+                    .definition
+                    .contract
+                    .outputs
+                    .iter()
+                    .map(resolved_port_view)
+                    .collect(),
+            })
+            .collect();
+        let cords = self
+            .cords
+            .iter()
+            .enumerate()
+            .map(|(index, cord)| ResolvedCordView {
+                index,
+                id: cord.source.id.clone(),
+                from_node: self.nodes[cord.from_node].source.id.clone(),
+                from_port: self.nodes[cord.from_node].definition.contract.outputs[cord.from_port]
+                    .id
+                    .as_str()
+                    .to_owned(),
+                to_node: self.nodes[cord.to_node].source.id.clone(),
+                to_port: self.nodes[cord.to_node].definition.contract.inputs[cord.to_port]
+                    .id
+                    .as_str()
+                    .to_owned(),
+                capacity_items: cord.source.capacity_items,
+                max_value_bytes: cord.source.max_value_bytes,
+                max_queued_bytes: cord.source.max_queued_bytes,
+                low_watermark_items: cord.source.low_watermark_items,
+                high_watermark_items: cord.source.high_watermark_items,
+                pressure: cord.source.pressure.to_string(),
+            })
+            .collect();
+        ResolvedPanelView {
+            panel_version: self.source.version,
+            root_nodes: self.source.nodes.len(),
+            root_cords: self.source.cords.len(),
+            composites,
+            nodes,
+            cords,
+        }
+    }
+
     /// Produces deterministic logical and expanded resolution output.
     #[must_use]
     pub fn explain(&self) -> String {
@@ -1266,6 +1455,15 @@ impl ResolvedPanel<'_> {
             nodes_completed: self.nodes.len(),
             cords_conducted: self.cords.len(),
         })
+    }
+}
+
+fn resolved_port_view(port: &PortContract<'_>) -> ResolvedPortView {
+    ResolvedPortView {
+        id: port.id.as_str().to_owned(),
+        type_id: port.value_type.contract_id.as_str().to_owned(),
+        delivery: port.delivery.as_str(),
+        connections: port.connections.as_str(),
     }
 }
 

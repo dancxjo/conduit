@@ -73,13 +73,20 @@ Primary values stay on stdout. Diagnostics and interactive status use stderr:
 ```sh
 conduct --check --diagnostic-format=json panel.panel
 conduct --check --color=never --verbose-diagnostics panel.panel
+conduct --check --format=json panel.panel
+conduct --explain --format=json panel.panel
+conduct --run --format=ndjson panel.panel
 ```
 
 Diagnostic format is `human` or `json`; color is `auto`, `always`, or `never`.
 Automatic color honors `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, terminal
 attachment, and `TERM=dumb`. Redirected stderr receives no status animation or
 cursor control, and a downstream closed stdout pipe is treated as normal
-completion.
+completion. Primary `--format` is separate: check/explain use finite
+`conduit.result/v1` JSON, while run uses ordered `conduit.run/v1` NDJSON.
+`--quiet` suppresses status but never primary values or diagnostics; `-v` adds
+general terminal status detail and remains distinct from
+`--verbose-diagnostics`.
 
 ## Why the runtime is opinionated
 
@@ -153,10 +160,15 @@ not contain speech- or robot-specific types.
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+just cli-assets-check
 python3 conformance/c1/verify_canonical_v1.py
 cargo check -p conduit-core --no-default-features \
   --target thumbv6m-none-eabi
 ```
+
+Run `just cli-assets` after changing the shared `conduct` command model. It
+reproducibly updates Bash, Zsh, Fish, PowerShell, and Elvish completions plus
+the generated manual page; CI rejects checked-in drift.
 
 The complete normative inventory also has a language-neutral NDJSON protocol
 and a hosted Rust reference runner:

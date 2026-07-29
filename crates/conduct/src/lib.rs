@@ -1,0 +1,229 @@
+//! Shared command model and presentation-neutral CLI policy.
+
+use std::path::PathBuf;
+
+use clap::{ArgAction, ArgGroup, Command, CommandFactory, Parser, ValueEnum};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Mode {
+    Check,
+    Explain,
+    Run,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub enum DiagnosticFormat {
+    #[default]
+    Human,
+    Json,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub enum ColorChoice {
+    #[default]
+    Auto,
+    Always,
+    Never,
+}
+
+/// Primary stdout encoding, deliberately independent of diagnostic encoding.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub enum OutputFormat {
+    #[default]
+    Human,
+    Json,
+    Ndjson,
+}
+
+/// Check, explain, and run one typed node arrangement.
+#[derive(Debug, Eq, Parser, PartialEq)]
+#[command(
+    name = "conduct",
+    version,
+    about = "Conduct a typed node arrangement.",
+    override_usage = "conduct [--check | --explain | --run] [PANEL | -]",
+    disable_help_subcommand = true,
+    group(ArgGroup::new("mode").args(["check", "explain", "run"]).multiple(false))
+)]
+pub struct Arguments {
+    /// Parse, resolve, and validate without starting nodes.
+    #[arg(long, group = "mode")]
+    pub check: bool,
+
+    /// Show exact node, port, cord, type, and flow resolution.
+    #[arg(long, group = "mode")]
+    pub explain: bool,
+
+    /// Run the panel (the default mode).
+    #[arg(long, group = "mode")]
+    pub run: bool,
+
+    /// Select human, finite JSON, or streaming NDJSON primary output.
+    #[arg(long, value_enum, default_value_t)]
+    pub format: OutputFormat,
+
+    /// Select human or lossless JSON diagnostics on stderr.
+    #[arg(long, value_enum, default_value_t)]
+    pub diagnostic_format: DiagnosticFormat,
+
+    /// Select diagnostic terminal styling.
+    #[arg(long, value_enum, default_value_t)]
+    pub color: ColorChoice,
+
+    /// Suppress nonessential status and progress, never values or diagnostics.
+    #[arg(short, long, conflicts_with = "verbose")]
+    pub quiet: bool,
+
+    /// Add bounded resolution status detail; repeat for future detail levels.
+    #[arg(short = 'v', action = ArgAction::Count, conflicts_with = "quiet")]
+    pub verbose: u8,
+
+    /// Include related spans, notes, paths, and causes.
+    #[arg(long)]
+    pub verbose_diagnostics: bool,
+
+    /// Read editable source from this file, or `-`/no path for stdin.
+    #[arg(value_name = "PANEL")]
+    pub panel: Option<PathBuf>,
+}
+
+impl Arguments {
+    #[must_use]
+    pub const fn mode(&self) -> Mode {
+        if self.check {
+            Mode::Check
+        } else if self.explain {
+            Mode::Explain
+        } else {
+            Mode::Run
+        }
+    }
+}
+
+/// Builds the sole command model used by parsing, help, completions, and the
+/// manual page.
+#[must_use]
+pub fn command() -> Command {
+    Arguments::command()
+}
+
+/// Exact bounded-progress state. It has no renderer and cannot exceed its
+/// declared total.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BoundedProgress {
+    current: u64,
+    total: u64,
+    cancelled: bool,
+}
+
+impl BoundedProgress {
+    pub fn new(total: u64) -> Result<Self, ProgressError> {
+        if total == 0 {
+            return Err(ProgressError::ZeroTotal);
+        }
+        Ok(Self {
+            current: 0,
+            total,
+            cancelled: false,
+        })
+    }
+
+    pub fn advance_to(&mut self, current: u64) -> Result<(), ProgressError> {
+        if current < self.current || current > self.total {
+            return Err(ProgressError::OutOfBounds);
+        }
+        self.current = current;
+        Ok(())
+    }
+
+    pub fn cancel(&mut self) {
+        self.cancelled = true;
+    }
+
+    #[must_use]
+    pub const fn current(self) -> u64 {
+        self.current
+    }
+
+    #[must_use]
+    pub const fn total(self) -> u64 {
+        self.total
+    }
+
+    #[must_use]
+    pub const fn is_cancelled(self) -> bool {
+        self.cancelled
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProgressError {
+    ZeroTotal,
+    OutOfBounds,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn command_model_defaults_to_run_and_keeps_formats_distinct() {
+        let arguments = Arguments::try_parse_from([
+            "conduct",
+            "--format=json",
+            "--diagnostic-format=human",
+            "panel.panel",
+        ])
+        .unwrap();
+        assert_eq!(arguments.mode(), Mode::Run);
+        assert_eq!(arguments.format, OutputFormat::Json);
+        assert_eq!(arguments.diagnostic_format, DiagnosticFormat::Human);
+    }
+
+    #[test]
+    fn bounded_progress_rejects_unknown_and_reversing_work() {
+        assert_eq!(BoundedProgress::new(0), Err(ProgressError::ZeroTotal));
+        let mut progress = BoundedProgress::new(3).unwrap();
+        progress.advance_to(2).unwrap();
+        assert_eq!(progress.advance_to(1), Err(ProgressError::OutOfBounds));
+        assert_eq!(progress.advance_to(4), Err(ProgressError::OutOfBounds));
+        progress.cancel();
+        assert!(progress.is_cancelled());
+    }
+
+    #[test]
+    fn general_and_diagnostic_verbosity_are_independent() {
+        let arguments =
+            Arguments::try_parse_from(["conduct", "-vv", "--verbose-diagnostics", "--check"])
+                .unwrap();
+        assert_eq!(arguments.verbose, 2);
+        assert!(arguments.verbose_diagnostics);
+
+        let error = Arguments::try_parse_from(["conduct", "--quiet", "-v"]).unwrap_err();
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn every_progress_conformance_vector_is_enforced() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/c3/conduct-output-v1.json"
+        ))
+        .unwrap();
+        for case in fixture["progress_cases"].as_array().unwrap() {
+            let total = case["total"].as_u64().unwrap();
+            let expected = case["expected"]["accepted"].as_bool().unwrap();
+            let result = BoundedProgress::new(total).and_then(|mut progress| {
+                for update in case
+                    .get("updates")
+                    .and_then(serde_json::Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    progress.advance_to(update.as_u64().unwrap())?;
+                }
+                Ok(progress)
+            });
+            assert_eq!(result.is_ok(), expected, "{}", case["id"]);
+        }
+    }
+}

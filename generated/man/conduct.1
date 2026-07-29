@@ -1,0 +1,92 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH conduct 1  "conduct 0.1.0"
+.SH NAME
+conduct \- Conduct a typed node arrangement.
+.SH SYNOPSIS
+\fBconduct\fR [\fB\-\-check\fR] [\fB\-\-explain\fR] [\fB\-\-run\fR] [\fB\-\-format\fR] [\fB\-\-diagnostic\-format\fR] [\fB\-\-color\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-v \fR]... [\fB\-\-verbose\-diagnostics\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIPANEL\fR]
+.SH DESCRIPTION
+Conduct a typed node arrangement.
+.SH OPTIONS
+.TP
+\fB\-\-check\fR
+Parse, resolve, and validate without starting nodes
+.TP
+\fB\-\-explain\fR
+Show exact node, port, cord, type, and flow resolution
+.TP
+\fB\-\-run\fR
+Run the panel (the default mode)
+.TP
+\fB\-\-format\fR \fI<FORMAT>\fR [default: human]
+Select human, finite JSON, or streaming NDJSON primary output
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+human
+.IP \(bu 2
+json
+.IP \(bu 2
+ndjson
+.RE
+.TP
+\fB\-\-diagnostic\-format\fR \fI<DIAGNOSTIC_FORMAT>\fR [default: human]
+Select human or lossless JSON diagnostics on stderr
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+human
+.IP \(bu 2
+json
+.RE
+.TP
+\fB\-\-color\fR \fI<COLOR>\fR [default: auto]
+Select diagnostic terminal styling
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+auto
+.IP \(bu 2
+always
+.IP \(bu 2
+never
+.RE
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Suppress nonessential status and progress, never values or diagnostics
+.TP
+\fB\-v\fR
+Add bounded resolution status detail; repeat for future detail levels
+.TP
+\fB\-\-verbose\-diagnostics\fR
+Include related spans, notes, paths, and causes
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
+[\fIPANEL\fR]
+Read editable source from this file, or `\-`/no path for stdin
+.SH VERSION
+v0.1.0
+.SH STREAMS
+Primary human values, finite JSON results, and streaming NDJSON run records are written to stdout.
+Diagnostics and terminal status are written to stderr.
+.SH MACHINE OUTPUT
+\fB\-\-format=json\fR selects a finite conduit.result/v1 record for check or explain.
+\fB\-\-format=ndjson\fR selects ordered conduit.run/v1 records for run.
+\fB\-\-diagnostic\-format=json\fR independently selects one structured diagnostic on stderr.
+.SH EXIT STATUS
+Zero indicates success, help, version, or normal downstream pipe closure.
+Two indicates a command, source, resolution, runtime, or non-broken output failure.

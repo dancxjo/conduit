@@ -1,107 +1,72 @@
+use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, IsTerminal, Read, Write};
-use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
+use clap::Parser;
 use clap::error::ErrorKind;
-use clap::{ArgGroup, Parser, ValueEnum};
+use conduct::{Arguments, ColorChoice, DiagnosticFormat, Mode, OutputFormat};
 use conduit_diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, DiagnosticSource, OwnedDiagnostic, TerminalColor, TerminalVerbosity,
     from_parse_error, from_resolution_error, from_runtime_error, render_terminal,
 };
 use conduit_panel::parse;
-use conduit_runtime::{Registry, RunIo};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum Mode {
-    Check,
-    Explain,
-    Run,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-enum DiagnosticFormat {
-    #[default]
-    Human,
-    Json,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-enum ColorChoice {
-    #[default]
-    Auto,
-    Always,
-    Never,
-}
-
-/// Check, explain, and run one typed node arrangement.
-#[derive(Debug, Eq, Parser, PartialEq)]
-#[command(
-    name = "conduct",
-    version,
-    about = "Conduct a typed node arrangement.",
-    override_usage = "conduct [--check | --explain | --run] [PANEL | -]",
-    disable_help_subcommand = true,
-    group(ArgGroup::new("mode").args(["check", "explain", "run"]).multiple(false))
-)]
-struct Arguments {
-    /// Parse, resolve, and validate without starting nodes.
-    #[arg(long, group = "mode")]
-    check: bool,
-
-    /// Show exact node, port, cord, type, and flow resolution.
-    #[arg(long, group = "mode")]
-    explain: bool,
-
-    /// Run the panel (the default mode).
-    #[arg(long, group = "mode")]
-    run: bool,
-
-    /// Select human or lossless JSON diagnostics on stderr.
-    #[arg(long, value_enum, default_value_t)]
-    diagnostic_format: DiagnosticFormat,
-
-    /// Select diagnostic terminal styling.
-    #[arg(long, value_enum, default_value_t)]
-    color: ColorChoice,
-
-    /// Include related spans, notes, paths, and causes.
-    #[arg(long)]
-    verbose_diagnostics: bool,
-
-    /// Read editable source from this file, or `-`/no path for stdin.
-    #[arg(value_name = "PANEL")]
-    panel: Option<PathBuf>,
-}
-
-impl Arguments {
-    const fn mode(&self) -> Mode {
-        if self.check {
-            Mode::Check
-        } else if self.explain {
-            Mode::Explain
-        } else {
-            Mode::Run
-        }
-    }
-
-    const fn presentation(&self) -> PresentationOptions {
-        PresentationOptions {
-            diagnostic_format: self.diagnostic_format,
-            color: self.color,
-            verbose_diagnostics: self.verbose_diagnostics,
-        }
-    }
-}
+use conduit_runtime::{ExecutionSummary, Registry, ResolvedPanelView, RunIo};
+use serde::Serialize;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 struct PresentationOptions {
     diagnostic_format: DiagnosticFormat,
     color: ColorChoice,
     verbose_diagnostics: bool,
+}
+
+fn presentation(arguments: &Arguments) -> PresentationOptions {
+    PresentationOptions {
+        diagnostic_format: arguments.diagnostic_format,
+        color: arguments.color,
+        verbose_diagnostics: arguments.verbose_diagnostics,
+    }
+}
+
+#[derive(Serialize)]
+struct FiniteResult<T> {
+    schema: &'static str,
+    schema_version: u16,
+    operation: &'static str,
+    result: T,
+}
+
+#[derive(Serialize)]
+struct CheckResult {
+    panel_version: u16,
+    definitions: usize,
+    root_nodes: usize,
+    root_cords: usize,
+}
+
+#[derive(Serialize)]
+struct RunValueRecord {
+    schema: &'static str,
+    schema_version: u16,
+    sequence: u64,
+    record: &'static str,
+    channel: &'static str,
+    encoding: &'static str,
+    payload_hex: String,
+}
+
+#[derive(Serialize)]
+struct RunSummaryRecord {
+    schema: &'static str,
+    schema_version: u16,
+    sequence: u64,
+    record: &'static str,
+    nodes_completed: usize,
+    cords_conducted: usize,
 }
 
 impl PresentationOptions {
@@ -244,7 +209,8 @@ fn run(
             return write_primary(output.as_bytes(), scanned_presentation);
         }
     };
-    let presentation = arguments.presentation();
+    let presentation = presentation(&arguments);
+    validate_output_format(&arguments, presentation)?;
     let started = Instant::now();
 
     let stdin = io::stdin();
@@ -254,8 +220,9 @@ fn run(
         .as_deref()
         .filter(|path| path.as_os_str() != "-")
         .map_or_else(|| "stdin".to_owned(), |path| path.display().to_string());
-    let status_enabled =
-        environment.status_enabled(arguments.diagnostic_format, stderr_is_terminal);
+    let status_enabled = !arguments.quiet
+        && arguments.format == OutputFormat::Human
+        && environment.status_enabled(arguments.diagnostic_format, stderr_is_terminal);
     emit_status(status_enabled, "Checking", &document_id);
 
     let source = match arguments.panel.as_deref() {
@@ -304,17 +271,56 @@ fn run(
             vec![source_document.clone()],
         )
     })?;
+    if arguments.verbose > 0 {
+        let view = resolved.view();
+        emit_status(
+            status_enabled,
+            "Resolved",
+            &format!("{} nodes, {} cords", view.nodes.len(), view.cords.len()),
+        );
+        if arguments.verbose > 1 {
+            emit_status(
+                status_enabled,
+                "Selected",
+                &format!(
+                    "{} output for {}",
+                    output_format_name(arguments.format),
+                    mode_name(arguments.mode())
+                ),
+            );
+        }
+    }
 
     match arguments.mode() {
         Mode::Check => {
-            let output = format!(
-                "ok: panel v{}; {} definitions; {} root nodes; {} root cords\n",
-                panel.version,
-                panel.definitions.len(),
-                panel.nodes.len(),
-                panel.cords.len()
-            );
-            let completion = write_primary(output.as_bytes(), presentation)?;
+            let completion = match arguments.format {
+                OutputFormat::Human => write_primary(
+                    format!(
+                        "ok: panel v{}; {} definitions; {} root nodes; {} root cords\n",
+                        panel.version,
+                        panel.definitions.len(),
+                        panel.nodes.len(),
+                        panel.cords.len()
+                    )
+                    .as_bytes(),
+                    presentation,
+                )?,
+                OutputFormat::Json => write_json_primary(
+                    &FiniteResult {
+                        schema: "conduit.result/v1",
+                        schema_version: 1,
+                        operation: "check",
+                        result: CheckResult {
+                            panel_version: panel.version,
+                            definitions: panel.definitions.len(),
+                            root_nodes: panel.nodes.len(),
+                            root_cords: panel.cords.len(),
+                        },
+                    },
+                    presentation,
+                )?,
+                OutputFormat::Ndjson => unreachable!("validated above"),
+            };
             if completion == Completion::BrokenPipe {
                 return Ok(completion);
             }
@@ -330,7 +336,19 @@ fn run(
             );
         }
         Mode::Explain => {
-            let completion = write_primary(resolved.explain().as_bytes(), presentation)?;
+            let completion = match arguments.format {
+                OutputFormat::Human => write_primary(resolved.explain().as_bytes(), presentation)?,
+                OutputFormat::Json => write_json_primary(
+                    &FiniteResult::<ResolvedPanelView> {
+                        schema: "conduit.result/v1",
+                        schema_version: 1,
+                        operation: "explain",
+                        result: resolved.view(),
+                    },
+                    presentation,
+                )?,
+                OutputFormat::Ndjson => unreachable!("validated above"),
+            };
             if completion == Completion::BrokenPipe {
                 return Ok(completion);
             }
@@ -349,18 +367,56 @@ fn run(
             emit_status(status_enabled, "Running", &document_id);
             let stdout = io::stdout();
             let stderr = io::stderr();
-            let mut output = ObservedWriter::new(stdout.lock());
-            let summary = {
-                let mut error = stderr.lock();
-                resolved.run(&mut RunIo {
-                    input: &mut stdin,
-                    output: &mut output,
-                    error: &mut error,
-                })
+            let summary = match arguments.format {
+                OutputFormat::Human => {
+                    let mut output = ObservedWriter::new(stdout.lock());
+                    let summary = {
+                        let mut error = stderr.lock();
+                        resolved.run(&mut RunIo {
+                            input: &mut stdin,
+                            output: &mut output,
+                            error: &mut error,
+                        })
+                    };
+                    if output.broken_pipe {
+                        return Ok(Completion::BrokenPipe);
+                    }
+                    if let Some(failure) = output.failure.take() {
+                        return Err(output_failure(&failure, presentation));
+                    }
+                    summary
+                }
+                OutputFormat::Ndjson => {
+                    let stream =
+                        RefCell::new(RunNdjsonState::new(ObservedWriter::new(stdout.lock())));
+                    let summary = {
+                        let mut output = RunNdjsonChannelWriter::new(&stream, "stdout");
+                        let mut error = RunNdjsonChannelWriter::new(&stream, "stderr");
+                        resolved.run(&mut RunIo {
+                            input: &mut stdin,
+                            output: &mut output,
+                            error: &mut error,
+                        })
+                    };
+                    let mut stream = stream.into_inner();
+                    if stream.inner.broken_pipe {
+                        return Ok(Completion::BrokenPipe);
+                    }
+                    if let Some(failure) = stream.inner.failure.take() {
+                        return Err(output_failure(&failure, presentation));
+                    }
+                    if let Ok(summary) = &summary {
+                        if let Err(error) = stream.write_summary(*summary) {
+                            if stream.inner.broken_pipe {
+                                return Ok(Completion::BrokenPipe);
+                            }
+                            return Err(output_error(error, presentation));
+                        }
+                    }
+                    summary
+                }
+                OutputFormat::Json => unreachable!("validated above"),
             };
-            if output.broken_pipe {
-                return Ok(Completion::BrokenPipe);
-            }
             let summary = summary.map_err(|error| {
                 cli_error(
                     from_runtime_error(&error),
@@ -419,6 +475,46 @@ fn argument_error(error: clap::Error, presentation: PresentationOptions) -> CliE
     cli_error(diagnostic, presentation, vec![])
 }
 
+fn validate_output_format(
+    arguments: &Arguments,
+    presentation: PresentationOptions,
+) -> Result<(), CliError> {
+    let message = match (arguments.mode(), arguments.format) {
+        (Mode::Check | Mode::Explain, OutputFormat::Ndjson) => {
+            Some("finite check and explain operations use `--format=human` or `--format=json`")
+        }
+        (Mode::Run, OutputFormat::Json) => {
+            Some("streaming run output uses `--format=human` or `--format=ndjson`")
+        }
+        _ => None,
+    };
+    if let Some(message) = message {
+        let mut diagnostic = simple_diagnostic("CND-CLI-003", message);
+        diagnostic.help = Some(
+            "diagnostic encoding remains independently selected by `--diagnostic-format`"
+                .to_owned(),
+        );
+        return Err(cli_error(diagnostic, presentation, vec![]));
+    }
+    Ok(())
+}
+
+const fn mode_name(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Check => "check",
+        Mode::Explain => "explain",
+        Mode::Run => "run",
+    }
+}
+
+const fn output_format_name(format: OutputFormat) -> &'static str {
+    match format {
+        OutputFormat::Human => "human",
+        OutputFormat::Json => "json",
+        OutputFormat::Ndjson => "ndjson",
+    }
+}
+
 fn cli_error(
     diagnostic: OwnedDiagnostic,
     presentation: PresentationOptions,
@@ -429,6 +525,18 @@ fn cli_error(
         sources,
         presentation,
     }
+}
+
+fn output_error(error: io::Error, presentation: PresentationOptions) -> CliError {
+    output_failure(&error.to_string(), presentation)
+}
+
+fn output_failure(message: &str, presentation: PresentationOptions) -> CliError {
+    cli_error(
+        simple_diagnostic("CND-IO-002", &format!("cannot write stdout: {message}")),
+        presentation,
+        vec![],
+    )
 }
 
 fn simple_diagnostic(code: &str, message: &str) -> OwnedDiagnostic {
@@ -510,17 +618,109 @@ fn write_primary(bytes: &[u8], presentation: PresentationOptions) -> Result<Comp
     match io::stdout().lock().write_all(bytes) {
         Ok(()) => Ok(Completion::Success),
         Err(error) if error.kind() == io::ErrorKind::BrokenPipe => Ok(Completion::BrokenPipe),
-        Err(error) => Err(cli_error(
-            simple_diagnostic("CND-IO-002", &format!("cannot write stdout: {error}")),
+        Err(error) => Err(output_error(error, presentation)),
+    }
+}
+
+fn write_json_primary(
+    value: &impl Serialize,
+    presentation: PresentationOptions,
+) -> Result<Completion, CliError> {
+    let mut bytes = serde_json::to_vec(value).map_err(|error| {
+        cli_error(
+            simple_diagnostic(
+                "CND-CLI-002",
+                &format!("result serialization failed: {error}"),
+            ),
             presentation,
             vec![],
-        )),
-    }
+        )
+    })?;
+    bytes.push(b'\n');
+    write_primary(&bytes, presentation)
 }
 
 struct ObservedWriter<W> {
     inner: W,
     broken_pipe: bool,
+    failure: Option<String>,
+}
+
+struct RunNdjsonState<W> {
+    inner: W,
+    sequence: u64,
+}
+
+struct RunNdjsonChannelWriter<'a, W> {
+    stream: &'a RefCell<RunNdjsonState<W>>,
+    channel: &'static str,
+}
+
+impl<W: Write> RunNdjsonState<W> {
+    const fn new(inner: W) -> Self {
+        Self { inner, sequence: 0 }
+    }
+
+    fn write_record(&mut self, record: &impl Serialize) -> io::Result<()> {
+        serde_json::to_writer(&mut self.inner, record).map_err(io::Error::other)?;
+        self.inner.write_all(b"\n")
+    }
+
+    fn write_summary(&mut self, summary: ExecutionSummary) -> io::Result<()> {
+        let record = RunSummaryRecord {
+            schema: "conduit.run/v1",
+            schema_version: 1,
+            sequence: self.sequence,
+            record: "summary",
+            nodes_completed: summary.nodes_completed,
+            cords_conducted: summary.cords_conducted,
+        };
+        self.write_record(&record)?;
+        self.sequence += 1;
+        Ok(())
+    }
+
+    fn write_value(&mut self, channel: &'static str, bytes: &[u8]) -> io::Result<()> {
+        let record = RunValueRecord {
+            schema: "conduit.run/v1",
+            schema_version: 1,
+            sequence: self.sequence,
+            record: "value",
+            channel,
+            encoding: "hex",
+            payload_hex: encode_hex(bytes),
+        };
+        self.write_record(&record)?;
+        self.sequence += 1;
+        Ok(())
+    }
+}
+
+impl<'a, W> RunNdjsonChannelWriter<'a, W> {
+    const fn new(stream: &'a RefCell<RunNdjsonState<W>>, channel: &'static str) -> Self {
+        Self { stream, channel }
+    }
+}
+
+impl<W: Write> Write for RunNdjsonChannelWriter<'_, W> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.stream.borrow_mut().write_value(self.channel, bytes)?;
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.stream.borrow_mut().inner.flush()
+    }
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
 }
 
 impl<W> ObservedWriter<W> {
@@ -528,6 +728,7 @@ impl<W> ObservedWriter<W> {
         Self {
             inner,
             broken_pipe: false,
+            failure: None,
         }
     }
 }
@@ -539,18 +740,33 @@ impl<W: Write> Write for ObservedWriter<W> {
                 self.broken_pipe = true;
                 Err(error)
             }
+            Err(error) => {
+                self.failure = Some(error.to_string());
+                Err(error)
+            }
             result => result,
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.inner.flush()
+        match self.inner.flush() {
+            Err(error) if error.kind() == io::ErrorKind::BrokenPipe => {
+                self.broken_pipe = true;
+                Err(error)
+            }
+            Err(error) => {
+                self.failure = Some(error.to_string());
+                Err(error)
+            }
+            result => result,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     fn parse(values: &[&str]) -> Result<ParsedCommand, CliError> {
         parse_arguments(

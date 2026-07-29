@@ -19,6 +19,12 @@ msrv:
     cargo +1.85.0 check --workspace --all-targets
     cargo +1.85.0 check -p conduit-core --no-default-features --target thumbv6m-none-eabi
 
+cli-assets:
+    cargo run -p conduct --bin generate-conduct-assets
+
+cli-assets-check:
+    cargo run -p conduct --bin generate-conduct-assets -- --check
+
 sup: fmt lint test embedded
 
 run panel="examples/hello.panel":

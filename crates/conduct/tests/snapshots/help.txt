@@ -12,10 +12,16 @@ Options:
           Show exact node, port, cord, type, and flow resolution
       --run
           Run the panel (the default mode)
+      --format <FORMAT>
+          Select human, finite JSON, or streaming NDJSON primary output [default: human] [possible values: human, json, ndjson]
       --diagnostic-format <DIAGNOSTIC_FORMAT>
           Select human or lossless JSON diagnostics on stderr [default: human] [possible values: human, json]
       --color <COLOR>
           Select diagnostic terminal styling [default: auto] [possible values: auto, always, never]
+  -q, --quiet
+          Suppress nonessential status and progress, never values or diagnostics
+  -v...
+          Add bounded resolution status detail; repeat for future detail levels
       --verbose-diagnostics
           Include related spans, notes, paths, and causes
   -h, --help
