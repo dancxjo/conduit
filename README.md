@@ -14,6 +14,34 @@ firmware, and distributed hosts. A speech pipeline, a robot behavior, a web
 server, or a sensor network can all be described using the same underlying
 model.
 
+## Experimental safety status
+
+Conduit is experimental. It has no stable security-supported release and is
+not ready for safety-critical, autonomous, multi-tenant, production
+infrastructure, fleet enrollment/provisioning, network-boot orchestration, or
+hazardous physical deployment.
+
+Its general composition model can combine discovery, membership, authority,
+artifacts, persistence, distributed placement, plan transitions, and physical
+effects. Finite local operations are not sufficient containment when a
+sequence of operations can expand a system across hosts or epochs. The project
+therefore treats non-escalation, persistent cumulative budgets,
+administrative-plane separation, safe distribution defaults, whole-plan hazard
+analysis, independent inhibits, and adversarial conformance as architectural
+work—not deployment options to add later.
+
+The public safety program is tracked by
+[#92](https://github.com/dancxjo/conduit/issues/92). See
+[Safety, deployment boundaries, and stewardship](docs/safety-and-stewardship.md)
+before attempting consequential use. Report unpublished vulnerabilities
+privately according to [SECURITY.md](SECURITY.md).
+
+Specifications, conformance fixtures, exact plans, signatures, provenance, and
+evidence improve inspectability; none alone is a security certification,
+sandbox guarantee, or authorization to deploy. Dangerous administrative
+providers and convenience tooling should remain absent from reference
+distributions until their containment contracts and negative tests exist.
+
 ## The model
 
 The runtime ontology is deliberately small:
@@ -177,7 +205,12 @@ constraints, evidence, and substitutions visible.
 
 ## Status
 
-This repository contains the first executable Plan C foundation:
+This repository contains the first executable Plan C foundation. It remains a
+research and development system: current code and candidate specifications
+must not be represented as a supported security profile, autonomous deployment
+platform, or certified safety boundary.
+
+The implemented foundation includes:
 
 - `conduit-core`: allocator-free contracts, canonical semantic hashes,
   opaque type references, port/config schemas, bounded flow-policy state
