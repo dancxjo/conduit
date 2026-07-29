@@ -90,6 +90,92 @@ fn no_relations() -> EventRelations<'static> {
 }
 
 #[test]
+fn correlation_categories_cannot_collapse_or_reuse_attempt_identity() {
+    let fixture = include_str!("../../../conformance/c2/port-group-correlation-v1.json");
+    for family in [
+        "request",
+        "exchange",
+        "session",
+        "session-epoch",
+        "work-unit",
+        "attempt",
+        "causation",
+        "correlation",
+        "idempotency",
+        "checkpoint",
+        "transport",
+        "logical-template",
+        "concrete-instance",
+        "generation",
+        "plan-epoch",
+    ] {
+        assert!(fixture.contains(&format!("\"id\": \"{family}\"")));
+    }
+    for case in [
+        "local-request-reply",
+        "remote-request-reply",
+        "retry",
+        "restart",
+        "checkpoint-resume",
+        "replicated-generation",
+        "plan-epoch-transition",
+        "wall-clock-request",
+        "scheduler-order-attempt",
+        "registry-order-member",
+        "map-order-generation",
+        "transport-order-request",
+        "work-as-attempt",
+        "timestamp-as-causation",
+    ] {
+        assert!(fixture.contains(&format!("\"id\": \"{case}\"")));
+    }
+    let valid = event(
+        "event/correlation-valid",
+        0,
+        "host/a",
+        0,
+        "root/source",
+        ExecutionEventKind::Progress,
+        "fixture/progress",
+        1,
+        no_relations(),
+        EventTerminality::NonTerminal,
+        EventPayload::None,
+    );
+    assert_eq!(validate_execution_event(&valid, POLICY), Ok(()));
+
+    let mut collapsed = valid;
+    collapsed.correlation.attempt = collapsed.correlation.work_unit;
+    collapsed.identity = collapsed.semantic_hash().unwrap();
+    assert_eq!(
+        validate_execution_event(&collapsed, POLICY)
+            .unwrap_err()
+            .reason,
+        EvidenceReason::InvalidDescriptor
+    );
+
+    let mut orphan_attempt = valid;
+    orphan_attempt.correlation.work_unit = None;
+    orphan_attempt.identity = orphan_attempt.semantic_hash().unwrap();
+    assert_eq!(
+        validate_execution_event(&orphan_attempt, POLICY)
+            .unwrap_err()
+            .reason,
+        EvidenceReason::InvalidDescriptor
+    );
+
+    let mut orphan_epoch = valid;
+    orphan_epoch.correlation.session = None;
+    orphan_epoch.identity = orphan_epoch.semantic_hash().unwrap();
+    assert_eq!(
+        validate_execution_event(&orphan_epoch, POLICY)
+            .unwrap_err()
+            .reason,
+        EvidenceReason::InvalidDescriptor
+    );
+}
+
+#[test]
 fn causal_replay_preserves_distributed_order_corrections_and_terminal_state() {
     let source_id = Id("event/source");
     let pressure_id = Id("event/pressure");

@@ -131,6 +131,12 @@ Pool templates resolve through the same local/imported node-contract namespace
 as ordinary instances. Missing group or template contracts fail closed.
 Expansion creates neither handlers nor tasks and observes no host.
 
+Specification
+[`017-port-groups-correlation-v1.md`](017-port-groups-correlation-v1.md)
+reconciles this frozen lowering form with exact keyed-member spans, complete
+contract direction validation, explicit plan-v2 maxima, and correlation
+identity. It does not reinterpret lowering-v1.
+
 ## Diagnostics
 
 Every lowering diagnostic carries a stable code, semantic path, safe message,
@@ -147,6 +153,7 @@ carries source value material.
 | `CND-LWR-007` | schema default invalid for its declared contract |
 | `CND-LWR-008` | required domain type provider unavailable |
 | `CND-LWR-009` | secret reference violates sensitivity or identity boundary |
+| `CND-LWR-010` | port-group direction conflicts with the referenced complete port contract |
 
 Duplicate configuration or record fields are rejected earlier by strict source
 parsing as `CND-SRC-002`. This preserves the stage that owns the error.

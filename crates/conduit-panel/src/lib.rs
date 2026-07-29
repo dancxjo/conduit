@@ -133,9 +133,19 @@ pub struct Node {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PortGroupShape {
     /// Explicit stable keys in source order.
-    Keyed(Vec<String>),
+    Keyed(Vec<PortGroupMember>),
     /// Stable indices `0..maximum`.
     Indexed,
+}
+
+/// One explicitly authored keyed port-group member.
+///
+/// The span is annotation/provenance. It does not participate in source
+/// semantic identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortGroupMember {
+    pub key: String,
+    pub source_span: SourceSpan,
 }
 
 /// One finite compile-time port group.
@@ -1048,6 +1058,8 @@ impl Parser {
                         return Err(self.error("unterminated keyed port-group"));
                     }
                     self.expect_word("member")?;
+                    let member_start_line = self.current().line;
+                    let member_start_column = self.current().column;
                     let member = self.expect_any_word()?;
                     if !unique.insert(member.clone()) {
                         return Err(self.error_code(
@@ -1055,7 +1067,16 @@ impl Parser {
                             format!("duplicate port-group member `{member}`"),
                         ));
                     }
-                    members.push(member);
+                    let (member_end_line, member_end_column) = self.previous_end();
+                    members.push(PortGroupMember {
+                        key: member,
+                        source_span: SourceSpan {
+                            line: member_start_line,
+                            column: member_start_column,
+                            end_line: member_end_line,
+                            end_column: member_end_column,
+                        },
+                    });
                 }
                 self.advance();
                 if members.is_empty() || members.len() > usize::from(maximum) {
@@ -1700,6 +1721,35 @@ fn validate_source_symbols(
                 });
             }
         }
+        for export in &definition.exports {
+            let Some(child) = definition
+                .nodes
+                .iter()
+                .find(|node| node.id == export.target.node)
+            else {
+                continue;
+            };
+            let Some(child_definition) = panel
+                .definitions
+                .iter()
+                .find(|candidate| candidate.id == child.kind)
+            else {
+                // Catalog and imported contracts are validated during typed
+                // lowering; source parsing has no semantic registry.
+                continue;
+            };
+            if !definition_exposes_port(child_definition, &export.target.port, export.direction) {
+                return Err(ParseError {
+                    code: "CND-SRC-009",
+                    line: diagnostic_line,
+                    column: diagnostic_column,
+                    message: format!(
+                        "definition `{}` exports unknown or inaccessible member `{}.{}`",
+                        definition.id, export.target.node, export.target.port
+                    ),
+                });
+            }
+        }
     }
     let mut top = BTreeSet::new();
     for node in &panel.nodes {
@@ -1745,6 +1795,38 @@ fn validate_source_symbols(
         }
     }
     Ok(panel)
+}
+
+fn definition_exposes_port(
+    definition: &CompositeDefinition,
+    port: &str,
+    direction: ExportDirection,
+) -> bool {
+    if definition
+        .exports
+        .iter()
+        .any(|export| export.id == port && export.direction == direction)
+    {
+        return true;
+    }
+    definition.port_groups.iter().any(|group| {
+        if group.direction != direction {
+            return false;
+        }
+        let Some(member) = port
+            .strip_prefix(&group.id)
+            .and_then(|suffix| suffix.strip_prefix('['))
+            .and_then(|suffix| suffix.strip_suffix(']'))
+        else {
+            return false;
+        };
+        match &group.shape {
+            PortGroupShape::Keyed(members) => members.iter().any(|item| item.key == member),
+            PortGroupShape::Indexed => member
+                .parse::<u16>()
+                .is_ok_and(|index| index < group.maximum),
+        }
+    })
 }
 
 #[cfg(test)]

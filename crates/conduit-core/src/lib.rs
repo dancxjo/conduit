@@ -62,12 +62,12 @@ pub use evidence::{
     validate_event_stream, validate_execution_event,
 };
 pub use execution_plan::{
-    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding,
-    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanValidationContext, PlanValidationError,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
-    UnresolvedPlanKind, validate_execution_plan,
+    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanExportBinding, PlanHostObservation, PlanIdentityError,
+    PlanInstancePool, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanValidationContext, PlanValidationError, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,

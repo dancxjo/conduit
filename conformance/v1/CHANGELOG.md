@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 5 — 2026-07-29
+
+- Added the `port-groups-correlation` suite and the language-neutral
+  `conformance/c2/port-group-correlation-v1.json` fixture for issue #44.
+- Added explicit plan-schema-1 preservation and plan-schema-2 migration cases;
+  no schema-1 expected identity or meaning was replaced.
+- Added keyed/indexed member identity, exact span, complete-contract,
+  maximum, export, order-independence, correlation-family, propagation,
+  retry/resume, generation/epoch, and forbidden allocator cases.
+- Requirement IDs: `PGC-001` through `PGC-010` and `COR-001` through
+  `COR-007`.
+- Migration: runners supporting `conduit.c3` but not these operations must
+  report them as unsupported rather than silently skipping them.
+
 ## Manifest revision 4 — 2026-07-28
 
 - Added the independent `diagnostics` suite and

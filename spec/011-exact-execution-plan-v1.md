@@ -4,6 +4,11 @@ Status: stable
 
 ExecutionPlan schema version: 1
 
+This document remains the frozen schema-1 contract. Specification
+[`017-port-groups-correlation-v1.md`](017-port-groups-correlation-v1.md)
+defines the compatible reader behavior and the explicit port-group correction
+in ExecutionPlan schema 2; it does not change any schema-1 identity.
+
 ## Identity boundary
 
 An `ExecutionPlan` is one exact runnable arrangement. It is distinct from:

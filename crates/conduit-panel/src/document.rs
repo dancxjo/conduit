@@ -363,7 +363,7 @@ fn write_group(group: &crate::PortGroup, output: &mut String) {
         PortGroupShape::Keyed(members) => {
             output.push_str("keyed{");
             for member in members {
-                text(output, member);
+                text(output, &member.key);
             }
             output.push('}');
         }

@@ -207,6 +207,12 @@ runtime fails with `CND-PLN-005` if imports, roots, constraints, groups, pools,
 or parameterized definitions reach it without the explicit compiler/lowering
 stage.
 
+Specification
+[`017-port-groups-correlation-v1.md`](017-port-groups-correlation-v1.md)
+maps every frozen group source field to its complete semantic, lowering,
+plan-v2, export, and evidence obligation. The grammar-v1 meaning here is
+unchanged.
+
 ## Modules, aliases, and content identity
 
 Import resolution is an explicit operation over a caller-supplied
