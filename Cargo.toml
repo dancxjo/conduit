@@ -6,6 +6,7 @@ members = [
     "crates/conduit-inspect",
     "crates/conduit-panel",
     "crates/conduit-runtime",
+    "crates/conduit-web",
     "crates/conduct",
 ]
 resolver = "2"

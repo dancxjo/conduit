@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tour of Conduit</title>
+<main>
+  <nav aria-label="Lessons"><h1>Tour of Conduit</h1><ol id="lessons"></ol></nav>
+  <section aria-labelledby="title"><h2 id="title">Loading lesson…</h2><p id="goal"></p>
+    <label for="source">Real .panel source</label><textarea id="source" rows="22" spellcheck="false"></textarea>
+    <p><button id="run">Run</button> <button id="check">Check</button> <button id="reset">Reset</button> <button id="download">Download</button></p>
+    <output id="result" aria-live="polite">Loading production parser…</output>
+  </section>
+</main>
+<script type="module" src="./tour.js"></script>
