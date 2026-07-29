@@ -80,6 +80,12 @@ The portable core is `#![no_std]`-capable. The embedded goal is a compact
 compiled pipeline image executed by a small runtime, not a miniature Linux
 distribution.
 
+The allocator-free `conduit-std` crate publishes concrete, typed standard-node
+contracts and their finite plan requirements without adding hosted or domain
+concepts to `conduit-core`. Its catalog-level conformance runner distinguishes
+required provider profiles from installed implementations and treats
+constrained-host unsupported results explicitly.
+
 Replicated composite pools are finite schema-16 plan populations rather than
 dynamic graph mutation. See the
 [replicated pool cookbook](docs/cookbook-replicated-pools.md) for exact

@@ -467,6 +467,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-std"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde_json",
+]
+
+[[package]]
 name = "conduit-web"
 version = "0.1.0"
 dependencies = [

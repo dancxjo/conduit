@@ -86,4 +86,26 @@ availability never converts denial or a different grant into authority.
 - STD-011: host-service resolution rejects stale, unsupported, or insufficient capabilities.
 - STD-012: capability availability remains distinct from exact grant authorization.
 
-The normative fixture is `conformance/c4/standard-node-library-v1.json`.
+## Concrete catalog publication
+
+`conduit-std` publishes the concrete version-one catalog above
+`conduit-core`. Each entry contains an ordinary typed `NodeContract`, typed
+configuration, explicit ordering/terminal/cancellation/pressure policy
+identities, finite resource ceilings, an exact reference-provider identity,
+and any narrow host-service requirement. It contains no registry, executor,
+host framework, ambient lookup, or domain concept.
+
+The catalog currently publishes source/sink, structural, transformation,
+time, state, supervision, testing, boundary, and independently composable
+network contracts. `conformance/c4/standard-catalog-v1.json` maps every
+published contract to stable requirement IDs and the five required fixture
+classes. The allocator-free conformance runner exercises those classes across
+deterministic, hosted, and honest constrained/unsupported profiles and
+compares provider-independent normalized evidence. Boundary-specific effect
+fixtures and value-semantic reference implementations remain separate from
+this catalog-level proof.
+
+The normative fixtures are:
+
+- `conformance/c4/standard-node-library-v1.json`
+- `conformance/c4/standard-catalog-v1.json`
