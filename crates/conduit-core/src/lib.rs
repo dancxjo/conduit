@@ -18,6 +18,7 @@ mod diagnostic;
 mod evidence;
 mod execution_plan;
 mod flow;
+mod implementation;
 mod lifecycle;
 mod port;
 mod type_contract;
@@ -62,18 +63,29 @@ pub use evidence::{
     validate_event_stream, validate_execution_event,
 };
 pub use execution_plan::{
-    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanExportBinding, PlanHostObservation, PlanIdentityError,
-    PlanInstancePool, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanValidationContext, PlanValidationError, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
+    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1,
+    EXECUTION_PLAN_SCHEMA_VERSION_V2, ExecutionPlan, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanExportBinding,
+    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanPortGroup, PlanPortGroupMember,
+    PlanResourceBinding, PlanResourceBudget, PlanValidationContext, PlanValidationError,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
     FlowOffer, FlowPolicy, FlowPolicyDecision, FlowPolicyError, FlowPolicyReason, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, OfferDisposition, OfferTransition, PopTransition, Pressure,
     QueueError, SampleSchedule, TraitProof,
+};
+pub use implementation::{
+    BoundednessProfile, CancellationGuarantee, CheckpointRequest, ExecutionLimits,
+    ExecutionProfile, HandleDisposition, HostOperationContext, HostOperationRequest,
+    ImplementationError, ImplementationMachine, InstancePhase, InstantiationContext,
+    LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim, OwnershipModel, PortTransaction,
+    PrepareOutcome, ProfileIdentityError, PublicationMode, StepObservation, StepOutcome,
+    StepOutcomeKind, StepUsage, TransactionResolution, TransactionState, ValueRepresentation,
+    WakeInterest, WakeInterestKind, prepare_all, start_all, validate_host_operation,
+    validate_instantiation, validate_plan_execution_profile,
 };
 pub use lifecycle::{
     CancellationDelivery, CancellationOutcome, CancellationRegistration, CancellationScope,

@@ -79,6 +79,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`021-safe-inspection-v1.md`](021-safe-inspection-v1.md) freezes bounded,
   marker-only, non-executing inspection across source, lowering, plan,
   evidence, diagnostic, and conformance identities with structural redaction.
+- [`022-host-neutral-implementation-step-v1.md`](022-host-neutral-implementation-step-v1.md)
+  freezes plan-visible implementation execution profiles, prepare atomicity,
+  bounded nonblocking steps, port transactions, host operations, and
+  equivalent native/message bindings.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

@@ -1,5 +1,20 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 10 — 2026-07-29
+
+- Added the `implementation-step` suite and language-neutral
+  `conformance/c4/implementation-step-v1.json` fixture for issue #56.
+- Added canonical execution-profile schema 1 and ExecutionPlan schema 3
+  pinning without changing frozen plan-v1/v2 identity.
+- Froze prepare-all atomicity, bounded nonblocking step outcomes, exact wake
+  interests, executor-mediated port transactions, host-operation bindings,
+  optional checkpointing, and executor-owned observations.
+- Added equivalent direct-native and versioned process/WASM-style message
+  bindings while keeping the normative contract ABI/framework neutral.
+- Requirement IDs: `IMP-001` through `IMP-016`.
+- Migration: plan v1/v2 remain readable and unchanged; a runnable v3 plan
+  requires one exact execution profile per primitive.
+
 ## Manifest revision 9 — 2026-07-29
 
 - Added the `inspection` suite and language-neutral
