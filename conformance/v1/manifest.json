@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 31,
+  "manifest_revision": 32,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3504,6 +3504,68 @@
         {"package": "conduit-embedded", "test": "embedded_vectors"},
         {"package": "conduit-runtime", "test": "embedded_equivalence"},
         {"package": "conduit-rp2040-hil", "test": "firmware_contract"}
+      ]
+    },
+    {
+      "id": "security-boundaries",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "SEC-001", "SEC-002", "SEC-003", "SEC-004", "SEC-005", "SEC-006",
+        "SEC-007", "SEC-008", "SEC-009", "SEC-010", "SEC-011", "SEC-012"
+      ],
+      "artifacts": [{
+        "id": "security-boundaries-v1",
+        "path": "../c5/security-boundaries-v1.json",
+        "sha256": "sha256:4a1bc0e8dc47471c7c69314706db086d429e752a04750981b62a1b7af6ebaa16",
+        "operation": "security-boundaries-v1",
+        "requirement_ids": [
+          "SEC-001", "SEC-002", "SEC-003", "SEC-004", "SEC-005", "SEC-006",
+          "SEC-007", "SEC-008", "SEC-009", "SEC-010", "SEC-011", "SEC-012"
+        ],
+        "default_rule": "SEC-002",
+        "case_rules": {
+          "hostile-diagnostic-text-is-escaped": "SEC-004",
+          "artifact-digest-mismatch-is-terminal": "SEC-007",
+          "artifact-rejection-reflects-no-payload": "SEC-004",
+          "verified-owned-artifact-handoff": "SEC-005",
+          "package-declared-length-overflow": "SEC-003",
+          "archive-or-decompression-input-is-not-a-package": "SEC-011"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "security-boundaries-v1#verified-owned-artifact-handoff"
+        ],
+        "negative": [
+          "security-boundaries-v1#oversized-panel-source",
+          "security-boundaries-v1#recursive-source-value",
+          "security-boundaries-v1#malformed-evidence-json",
+          "security-boundaries-v1#artifact-digest-mismatch-is-terminal",
+          "security-boundaries-v1#archive-or-decompression-input-is-not-a-package"
+        ],
+        "boundary": [
+          "security-boundaries-v1#panel-token-flood",
+          "security-boundaries-v1#oversized-evidence-stream",
+          "security-boundaries-v1#oversized-evidence-record",
+          "security-boundaries-v1#evidence-record-flood",
+          "security-boundaries-v1#oversized-inline-evidence-payload",
+          "security-boundaries-v1#evidence-derivation-flood",
+          "security-boundaries-v1#oversized-evidence-string",
+          "security-boundaries-v1#package-declared-length-overflow",
+          "security-boundaries-v1#package-trailing-bytes"
+        ],
+        "migration": [
+          "security-boundaries-v1#hostile-diagnostic-text-is-escaped",
+          "security-boundaries-v1#artifact-rejection-reflects-no-payload"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-runtime", "test": "security_vectors"},
+        {"package": "conduit-runtime", "test": "distributed_backend"}
       ]
     },
     {

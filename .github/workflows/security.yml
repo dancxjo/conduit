@@ -1,0 +1,42 @@
+name: Security
+
+on:
+  schedule:
+    - cron: "23 9 * * 2,5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-fuzz --locked
+      - name: Run retained security corpora and deterministic fuzz campaigns
+        run: |
+          for target in panel_source exact_plan package_envelope evidence_ndjson hil_transport; do
+            mkdir -p "fuzz/artifacts/${target}"
+            cargo fuzz run "${target}" "fuzz/corpus/${target}" -- \
+              -runs=25000 \
+              -max_len=8388608 \
+              -seed=1380991557 \
+              -artifact_prefix="fuzz/artifacts/${target}/"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-fuzz-artifacts-${{ github.run_id }}
+          path: fuzz/artifacts
+          if-no-files-found: ignore
+          retention-days: 30

@@ -1,0 +1,31 @@
+[advisories]
+version = 2
+yanked = "deny"
+# Both are inherited from the current rp-pico/rp2040-hal stack and have no
+# safe compatible upgrade. Keep the exact IDs visible; any new advisory fails.
+ignore = [
+    "RUSTSEC-2024-0436", # paste, build-time macro dependency
+    "RUSTSEC-2026-0110", # bare-metal 0.2 through cortex-m 0.7
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "MIT",
+    "Unicode-3.0",
+    "Unlicense",
+]
+
+[bans]
+multiple-versions = "warn"
+# Local workspace path dependencies intentionally share the workspace version.
+wildcards = "allow"
+highlight = "all"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

@@ -5,9 +5,44 @@ use std::fmt;
 use conduit_core::{
     ArtifactDigest, EventCorrelation, EventPayload, EventPayloadShape, EventRelations,
     EventTerminality, EventTime, EventTimeKind, ExecutionEvent, ExecutionEventKind, Id,
-    InstancePath, SemanticHash, Sensitivity, TerminalClass, TypeContractRef,
+    InstancePath, MAX_EVENT_DERIVATIONS, SemanticHash, Sensitivity, TerminalClass, TypeContractRef,
 };
 use serde::{Deserialize, Serialize};
+
+/// Hosted allocation ceilings for one untrusted evidence stream.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EvidenceDecodeLimits {
+    pub maximum_input_bytes: usize,
+    pub maximum_record_bytes: usize,
+    pub maximum_records: usize,
+    pub maximum_inline_payload_bytes: usize,
+    pub maximum_derivations: usize,
+    pub maximum_string_bytes: usize,
+}
+
+impl Default for EvidenceDecodeLimits {
+    fn default() -> Self {
+        Self {
+            maximum_input_bytes: 8 * 1024 * 1024,
+            maximum_record_bytes: 1024 * 1024,
+            maximum_records: 4096,
+            maximum_inline_payload_bytes: 64 * 1024,
+            maximum_derivations: MAX_EVENT_DERIVATIONS,
+            maximum_string_bytes: 4096,
+        }
+    }
+}
+
+/// Stable evidence decoder limit category.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NdjsonLimit {
+    InputBytes,
+    RecordBytes,
+    Records,
+    InlinePayloadBytes,
+    Derivations,
+    StringBytes,
+}
 
 /// Owned, encoding-oriented form. JSON bytes are not event identity.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -164,6 +199,7 @@ pub enum NdjsonError {
     EmptyLine { line: usize },
     InvalidField(&'static str),
     DerivationScratchTooSmall,
+    LimitExceeded(NdjsonLimit),
 }
 
 impl fmt::Display for NdjsonError {
@@ -175,6 +211,18 @@ impl fmt::Display for NdjsonError {
             Self::DerivationScratchTooSmall => {
                 formatter.write_str("derived-from scratch storage is too small")
             }
+            Self::LimitExceeded(limit) => write!(
+                formatter,
+                "evidence decode limit exceeded: {}",
+                match limit {
+                    NdjsonLimit::InputBytes => "input-bytes",
+                    NdjsonLimit::RecordBytes => "record-bytes",
+                    NdjsonLimit::Records => "records",
+                    NdjsonLimit::InlinePayloadBytes => "inline-payload-bytes",
+                    NdjsonLimit::Derivations => "derivations",
+                    NdjsonLimit::StringBytes => "string-bytes",
+                }
+            ),
         }
     }
 }
@@ -481,14 +529,142 @@ pub fn encode_owned_event_ndjson(events: &[OwnedExecutionEvent]) -> Result<Strin
 
 /// Decode a complete NDJSON stream without accepting blank records.
 pub fn decode_event_ndjson(input: &str) -> Result<Vec<OwnedExecutionEvent>, NdjsonError> {
-    let mut events = Vec::new();
+    decode_event_ndjson_with_limits(input, EvidenceDecodeLimits::default())
+}
+
+/// Decode untrusted evidence only within explicit allocation and shape limits.
+pub fn decode_event_ndjson_with_limits(
+    input: &str,
+    limits: EvidenceDecodeLimits,
+) -> Result<Vec<OwnedExecutionEvent>, NdjsonError> {
+    if input.len() > limits.maximum_input_bytes {
+        return Err(NdjsonError::LimitExceeded(NdjsonLimit::InputBytes));
+    }
+    let initial_capacity = input
+        .lines()
+        .take(limits.maximum_records.saturating_add(1))
+        .count()
+        .min(limits.maximum_records);
+    let mut events = Vec::with_capacity(initial_capacity);
     for (index, line) in input.lines().enumerate() {
+        if index >= limits.maximum_records {
+            return Err(NdjsonError::LimitExceeded(NdjsonLimit::Records));
+        }
         if line.is_empty() {
             return Err(NdjsonError::EmptyLine { line: index + 1 });
         }
-        events.push(serde_json::from_str(line)?);
+        if line.len() > limits.maximum_record_bytes {
+            return Err(NdjsonError::LimitExceeded(NdjsonLimit::RecordBytes));
+        }
+        let event: OwnedExecutionEvent = serde_json::from_str(line)?;
+        validate_owned_event_limits(&event, limits)?;
+        events.push(event);
     }
     Ok(events)
+}
+
+fn validate_owned_event_limits(
+    event: &OwnedExecutionEvent,
+    limits: EvidenceDecodeLimits,
+) -> Result<(), NdjsonError> {
+    if event.relations.derived_from.len() > limits.maximum_derivations {
+        return Err(NdjsonError::LimitExceeded(NdjsonLimit::Derivations));
+    }
+    if matches!(
+        &event.payload,
+        OwnedEventPayload::InlinePublic { bytes, .. }
+            if bytes.len() > limits.maximum_inline_payload_bytes
+    ) {
+        return Err(NdjsonError::LimitExceeded(NdjsonLimit::InlinePayloadBytes));
+    }
+    let mut strings = [
+        event.identity.as_str(),
+        event.event_id.as_str(),
+        event.run_id.as_str(),
+        event.plan_identity.as_str(),
+        event.recorder.as_str(),
+        event.observer.as_str(),
+        event.subject.as_str(),
+        event.kind.as_str(),
+        event.detail.as_str(),
+        event.observed_time.kind.as_str(),
+        event.observed_time.basis.as_str(),
+    ]
+    .into_iter()
+    .chain(event.logical_template.as_deref())
+    .chain(
+        event
+            .domain_time
+            .iter()
+            .flat_map(|time| [time.kind.as_str(), time.basis.as_str()]),
+    )
+    .chain(
+        [
+            event.correlation.request.as_deref(),
+            event.correlation.exchange.as_deref(),
+            event.correlation.session.as_deref(),
+            event.correlation.work_unit.as_deref(),
+            event.correlation.attempt.as_deref(),
+            event.correlation.correlation.as_deref(),
+            event.correlation.idempotency.as_deref(),
+            event.correlation.checkpoint.as_deref(),
+            event.correlation.transport.as_deref(),
+            event.relations.caused_by.as_deref(),
+            event.relations.supersedes.as_deref(),
+            event.relations.retracts.as_deref(),
+        ]
+        .into_iter()
+        .flatten(),
+    )
+    .chain(event.relations.derived_from.iter().map(String::as_str));
+    if strings.any(|value| value.len() > limits.maximum_string_bytes) {
+        return Err(NdjsonError::LimitExceeded(NdjsonLimit::StringBytes));
+    }
+    let terminal_string_too_long = match &event.terminality {
+        OwnedEventTerminality::NonTerminal => false,
+        OwnedEventTerminality::Terminal { class, cause } => {
+            class.len() > limits.maximum_string_bytes || cause.len() > limits.maximum_string_bytes
+        }
+    };
+    let payload_string_too_long = match &event.payload {
+        OwnedEventPayload::None => false,
+        OwnedEventPayload::InlinePublic { value_type, .. } => {
+            owned_type_string_too_long(value_type, limits)
+        }
+        OwnedEventPayload::Reference {
+            value_type,
+            digest,
+            sensitivity,
+            recording_authority,
+            ..
+        } => {
+            owned_type_string_too_long(value_type, limits)
+                || digest.len() > limits.maximum_string_bytes
+                || sensitivity.len() > limits.maximum_string_bytes
+                || recording_authority
+                    .as_ref()
+                    .is_some_and(|value| value.len() > limits.maximum_string_bytes)
+        }
+        OwnedEventPayload::Redacted {
+            value_type,
+            sensitivity,
+            reason,
+            ..
+        } => {
+            owned_type_string_too_long(value_type, limits)
+                || sensitivity.len() > limits.maximum_string_bytes
+                || reason.len() > limits.maximum_string_bytes
+        }
+    };
+    if terminal_string_too_long || payload_string_too_long {
+        return Err(NdjsonError::LimitExceeded(NdjsonLimit::StringBytes));
+    }
+    Ok(())
+}
+
+fn owned_type_string_too_long(value: &OwnedTypeRef, limits: EvidenceDecodeLimits) -> bool {
+    value.id.len() > limits.maximum_string_bytes
+        || value.semantic_hash.len() > limits.maximum_string_bytes
 }
 
 fn checked_id<'a>(value: &'a str, field: &'static str) -> Result<Id<'a>, NdjsonError> {

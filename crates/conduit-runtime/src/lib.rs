@@ -34,7 +34,11 @@ mod scheduler;
 mod source_lowering;
 mod type_registry;
 
-pub use artifact_verification::{HostedArtifactVerificationError, verify_artifact_bytes};
+pub use artifact_verification::{
+    ArtifactRejectionEvidence, EvidencedArtifactVerificationError, HostedArtifactVerificationError,
+    VerifiedArtifactBytes, verify_artifact_bytes, verify_artifact_owned,
+    verify_artifact_owned_evidenced,
+};
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,
@@ -45,9 +49,10 @@ pub use distributed::{
     OutboundDistributedFrame, ReceivedDistributedFrame,
 };
 pub use evidence_ndjson::{
-    NdjsonError, OwnedEventCorrelation, OwnedEventPayload, OwnedEventRelations,
-    OwnedEventTerminality, OwnedEventTime, OwnedExecutionEvent, OwnedPayloadShape, OwnedTypeRef,
-    decode_event_ndjson, encode_event_ndjson, encode_owned_event_ndjson,
+    EvidenceDecodeLimits, NdjsonError, NdjsonLimit, OwnedEventCorrelation, OwnedEventPayload,
+    OwnedEventRelations, OwnedEventTerminality, OwnedEventTime, OwnedExecutionEvent,
+    OwnedPayloadShape, OwnedTypeRef, decode_event_ndjson, decode_event_ndjson_with_limits,
+    encode_event_ndjson, encode_owned_event_ndjson,
 };
 pub use host_resolution::{
     CandidateAuthority, CandidateRejection, CandidateRejectionReason, CapabilityPredicate,

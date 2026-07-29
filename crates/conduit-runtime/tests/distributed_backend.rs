@@ -420,7 +420,9 @@ fn revoked_authority_fails_closed_at_the_send_boundary() {
         Err(DistributedReason::AuthorityDenied)
     );
     assert_eq!(backend.queued_items(), 0);
-    assert!(backend.take_evidence().is_none());
+    let evidence = backend.take_evidence().unwrap();
+    assert_eq!(evidence.kind, DistributedEvidenceKind::FrameRejected);
+    assert_eq!(evidence.reason, Some(DistributedReason::AuthorityDenied));
 }
 
 #[test]
@@ -436,7 +438,9 @@ fn mutated_grant_cannot_reuse_the_plan_pinned_grant_hash() {
         Err(DistributedReason::AuthorityDenied)
     );
     assert_eq!(backend.queued_items(), 0);
-    assert!(backend.take_evidence().is_none());
+    let evidence = backend.take_evidence().unwrap();
+    assert_eq!(evidence.kind, DistributedEvidenceKind::FrameRejected);
+    assert_eq!(evidence.reason, Some(DistributedReason::AuthorityDenied));
 }
 
 #[test]
@@ -584,6 +588,9 @@ fn oversized_control_and_terminal_frames_follow_the_same_boundary() {
         Err(DistributedReason::OversizedFrame)
     );
     assert_eq!(backend.queued_items(), 0);
+    let evidence = backend.take_evidence().unwrap();
+    assert_eq!(evidence.kind, DistributedEvidenceKind::FrameRejected);
+    assert_eq!(evidence.reason, Some(DistributedReason::OversizedFrame));
 
     backend
         .cancel(&binding, 1, 0, Some(hash(101)), authorities(binding))

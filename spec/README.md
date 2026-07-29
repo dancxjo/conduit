@@ -140,6 +140,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`038-embedded-rp2040-v1.md`](038-embedded-rp2040-v1.md) defines the
   allocator-free fixed-storage executor, compact exact-plan binding, linked
   RP2040 firmware budgets, and physical HIL proof boundary.
+- [`039-security-boundaries-v1.md`](039-security-boundaries-v1.md) defines
+  untrusted-input ceilings, artifact verification/load ownership, bounded
+  rejection evidence, honest implementation isolation, and retained
+  fuzz/dependency policy automation.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

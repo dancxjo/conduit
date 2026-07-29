@@ -1,0 +1,56 @@
+[package]
+name = "conduit-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+rust-version = "1.85"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+conduit-compile = { path = "../crates/conduit-compile" }
+conduit-embedded = { path = "../crates/conduit-embedded" }
+conduit-package = { path = "../crates/conduit-package" }
+conduit-panel = { path = "../crates/conduit-panel" }
+conduit-runtime = { path = "../crates/conduit-runtime" }
+libfuzzer-sys = "0.4.10"
+serde_json = "1.0.149"
+
+[[bin]]
+name = "panel_source"
+path = "fuzz_targets/panel_source.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "exact_plan"
+path = "fuzz_targets/exact_plan.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "package_envelope"
+path = "fuzz_targets/package_envelope.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "evidence_ndjson"
+path = "fuzz_targets/evidence_ndjson.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hil_transport"
+path = "fuzz_targets/hil_transport.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]

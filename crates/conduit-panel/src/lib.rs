@@ -19,6 +19,14 @@ pub use modules::{
     ResolvedRootSelection, RootSelectionMode, resolve_modules,
 };
 
+/// Portable ceiling applied before the parser retains attacker-controlled
+/// source structures.
+pub const MAXIMUM_PANEL_SOURCE_BYTES: usize = 4 * 1024 * 1024;
+/// Maximum lexical items retained for one source document, including EOF.
+pub const MAXIMUM_PANEL_TOKENS: usize = 262_144;
+/// Maximum nesting of source value constructors such as `list(record(...))`.
+pub const MAXIMUM_SOURCE_VALUE_DEPTH: u8 = 64;
+
 /// Parsed editable panel source.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Panel {
@@ -460,6 +468,14 @@ fn parse_module(source: &str) -> Result<Panel, ParseError> {
 }
 
 fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
+    if source.len() > MAXIMUM_PANEL_SOURCE_BYTES {
+        return Err(ParseError {
+            code: "CND-SEC-001",
+            line: 1,
+            column: 1,
+            message: "panel source byte limit exceeded".to_owned(),
+        });
+    }
     let bytes = source.as_bytes();
     let mut tokens = Vec::new();
     let mut index = 0;
@@ -467,6 +483,14 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
     let mut column = 1;
 
     while index < bytes.len() {
+        if tokens.len() >= MAXIMUM_PANEL_TOKENS.saturating_sub(1) {
+            return Err(ParseError {
+                code: "CND-SEC-001",
+                line,
+                column,
+                message: "panel source token limit exceeded".to_owned(),
+            });
+        }
         let byte = bytes[index];
         match byte {
             b' ' | b'\t' | b'\r' => {
@@ -748,11 +772,16 @@ const fn is_word_start_byte(byte: u8) -> bool {
 struct Parser {
     tokens: Vec<Token>,
     index: usize,
+    source_value_depth: u8,
 }
 
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, index: 0 }
+        Self {
+            tokens,
+            index: 0,
+            source_value_depth: 0,
+        }
     }
 
     fn parse(
@@ -1497,6 +1526,16 @@ impl Parser {
     }
 
     fn expect_source_value(&mut self) -> Result<SourceValue, ParseError> {
+        if self.source_value_depth >= MAXIMUM_SOURCE_VALUE_DEPTH {
+            return Err(self.error_code("CND-SEC-002", "source value nesting limit exceeded"));
+        }
+        self.source_value_depth += 1;
+        let result = self.expect_source_value_inner();
+        self.source_value_depth -= 1;
+        result
+    }
+
+    fn expect_source_value_inner(&mut self) -> Result<SourceValue, ParseError> {
         match self.current().kind.clone() {
             TokenKind::String(value) => {
                 self.advance();

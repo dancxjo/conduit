@@ -27,7 +27,7 @@ use conduit_package::{
     PackageLimits, PackageManifest, PackageSignatureObservation, PackageTrustPolicy,
     decode_package, encode_package, validate_package_trust,
 };
-use conduit_panel::{parse, parse_with_root};
+use conduit_panel::{MAXIMUM_PANEL_SOURCE_BYTES, parse, parse_with_root};
 use conduit_runtime::{Registry, ResolvedPanelView, RunIo};
 use serde::Serialize;
 
@@ -284,16 +284,29 @@ fn run(
                 )
             })?
         }
-        Some(path) => fs::read_to_string(path).map_err(|error| {
-            cli_error(
-                simple_diagnostic(
-                    "CND-IO-001",
-                    &format!("cannot read {}: {error}", path.display()),
-                ),
-                presentation,
-                vec![],
-            )
-        })?,
+        Some(path) => {
+            let bytes = read_bounded(path, MAXIMUM_PANEL_SOURCE_BYTES as u64).map_err(|error| {
+                let (code, message) = if error.code == "CND-INSP-005" {
+                    (
+                        "CND-SEC-001",
+                        format!("panel source byte limit exceeded: {}", path.display()),
+                    )
+                } else {
+                    (
+                        "CND-IO-001",
+                        format!("cannot read {}: {error}", path.display()),
+                    )
+                };
+                cli_error(simple_diagnostic(code, &message), presentation, vec![])
+            })?;
+            String::from_utf8(bytes).map_err(|_| {
+                cli_error(
+                    simple_diagnostic("CND-SRC-001", "panel source is not valid UTF-8"),
+                    presentation,
+                    vec![],
+                )
+            })?
+        }
     };
     let source_document = DiagnosticSource::new(document_id.clone(), source.as_bytes());
     let panel = parse(&source).map_err(|error| {
@@ -1188,11 +1201,17 @@ fn status_line(verb: &str, detail: &str) -> String {
 }
 
 fn read_source(reader: &mut dyn Read, label: &str) -> Result<String, String> {
-    let mut source = String::new();
+    let mut bytes = Vec::new();
     reader
-        .read_to_string(&mut source)
+        .take((MAXIMUM_PANEL_SOURCE_BYTES as u64).saturating_add(1))
+        .read_to_end(&mut bytes)
         .map_err(|error| format!("cannot read {label}: {error}"))?;
-    Ok(source)
+    if bytes.len() > MAXIMUM_PANEL_SOURCE_BYTES {
+        return Err(format!(
+            "cannot read {label}: panel source byte limit exceeded"
+        ));
+    }
+    String::from_utf8(bytes).map_err(|_| format!("cannot read {label}: source is not valid UTF-8"))
 }
 
 fn write_primary(bytes: &[u8], presentation: PresentationOptions) -> Result<Completion, CliError> {
@@ -1636,5 +1655,18 @@ mod tests {
             let state = later.into_inner();
             assert_eq!(records(&state.inner.bytes).len(), 1);
         }
+    }
+
+    #[test]
+    fn ordinary_source_reader_stops_at_the_shared_panel_ceiling() {
+        let mut exact = io::Cursor::new(vec![b'#'; MAXIMUM_PANEL_SOURCE_BYTES]);
+        assert_eq!(
+            read_source(&mut exact, "fixture").unwrap().len(),
+            MAXIMUM_PANEL_SOURCE_BYTES
+        );
+
+        let mut oversized = io::Cursor::new(vec![b'#'; MAXIMUM_PANEL_SOURCE_BYTES + 1]);
+        let error = read_source(&mut oversized, "fixture").unwrap_err();
+        assert!(error.contains("panel source byte limit exceeded"));
     }
 }

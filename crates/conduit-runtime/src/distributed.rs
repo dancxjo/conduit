@@ -301,6 +301,19 @@ impl InMemoryDistributedCordBackend {
         Ok(())
     }
 
+    fn reject_frame<T>(
+        &mut self,
+        frame: OutboundDistributedFrame<'_>,
+        reason: DistributedReason,
+    ) -> Result<T, DistributedReason> {
+        self.push_evidence(self.evidence_for(
+            Some(frame),
+            DistributedEvidenceKind::FrameRejected,
+            Some(reason),
+        ))?;
+        Err(reason)
+    }
+
     fn ensure_evidence_capacity(&self) -> Result<(), DistributedReason> {
         if self.evidence.len() >= usize::from(self.maximum_evidence_events) {
             Err(DistributedReason::EvidenceFull)
@@ -435,11 +448,13 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
         authority: DistributedAuthorityContext<'_>,
     ) -> Result<(), Self::Error> {
         if binding.identity != self.binding_identity {
-            return Err(DistributedReason::IdentityMismatch);
+            return self.reject_frame(frame, DistributedReason::IdentityMismatch);
         }
-        validate_distributed_authority_at_use(binding, authority)?;
+        if let Err(reason) = validate_distributed_authority_at_use(binding, authority) {
+            return self.reject_frame(frame, reason);
+        }
         if !self.open || frame.session_epoch != self.session_epoch {
-            return Err(DistributedReason::EpochMismatch);
+            return self.reject_frame(frame, DistributedReason::EpochMismatch);
         }
         self.ensure_evidence_capacity()?;
         if self.partitioned {
@@ -451,9 +466,13 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
             return Err(DistributedReason::Partitioned);
         }
         let payload_bytes =
-            u32::try_from(frame.payload.len()).map_err(|_| DistributedReason::OversizedFrame)?;
+            u32::try_from(frame.payload.len()).map_err(|_| DistributedReason::OversizedFrame);
+        let payload_bytes = match payload_bytes {
+            Ok(payload_bytes) => payload_bytes,
+            Err(reason) => return self.reject_frame(frame, reason),
+        };
         if payload_bytes > self.maximum_payload_bytes || payload_bytes > self.maximum_frame_bytes {
-            return Err(DistributedReason::OversizedFrame);
+            return self.reject_frame(frame, DistributedReason::OversizedFrame);
         }
         let owned = OwnedFrame {
             kind: frame.kind,
@@ -478,14 +497,18 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
         if fault == Some(InMemoryTransportFault::DuplicateNextValue)
             && frame.kind == DistributedFrameKind::Value
         {
-            self.ensure_capacity(&owned, 2)?;
+            if let Err(reason) = self.ensure_capacity(&owned, 2) {
+                return self.reject_frame(frame, reason);
+            }
             self.faults.pop_front();
             self.push_frame(owned.clone());
             self.push_frame(owned);
         } else if fault == Some(InMemoryTransportFault::ReorderNextValuePair)
             && frame.kind == DistributedFrameKind::Value
         {
-            self.ensure_capacity(&owned, 1)?;
+            if let Err(reason) = self.ensure_capacity(&owned, 1) {
+                return self.reject_frame(frame, reason);
+            }
             if let Some(held) = self.held_reorder.take() {
                 self.faults.pop_front();
                 self.push_frame(owned);
@@ -495,7 +518,9 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
                 self.held_reorder = Some(owned);
             }
         } else {
-            self.ensure_capacity(&owned, 1)?;
+            if let Err(reason) = self.ensure_capacity(&owned, 1) {
+                return self.reject_frame(frame, reason);
+            }
             self.push_frame(owned);
         }
         let kind = match frame.kind {
@@ -535,12 +560,33 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
         if binding.identity != self.binding_identity {
             return Err(DistributedReason::IdentityMismatch);
         }
-        validate_distributed_authority_at_use(binding, authority)?;
+        if let Err(reason) = validate_distributed_authority_at_use(binding, authority) {
+            if let Some(frame) = self.frames.front() {
+                let frame = OutboundDistributedFrame {
+                    kind: frame.kind,
+                    session_epoch: frame.session_epoch,
+                    sequence: frame.sequence,
+                    attempt: frame.attempt,
+                    correlation: frame.correlation,
+                    payload: &[],
+                };
+                return self.reject_frame(frame, reason);
+            }
+            return Err(reason);
+        }
         let Some(frame) = self.frames.front() else {
             return Ok(None);
         };
         if destination.len() < frame.payload.len() {
-            return Err(DistributedReason::BufferFull);
+            let frame = OutboundDistributedFrame {
+                kind: frame.kind,
+                session_epoch: frame.session_epoch,
+                sequence: frame.sequence,
+                attempt: frame.attempt,
+                correlation: frame.correlation,
+                payload: &[],
+            };
+            return self.reject_frame(frame, DistributedReason::BufferFull);
         }
         self.ensure_evidence_capacity()?;
         let frame = self.frames.pop_front().expect("front was present");

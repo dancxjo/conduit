@@ -944,6 +944,7 @@ pub enum DistributedEvidenceKind {
     Reordered,
     Pressure,
     Heartbeat,
+    FrameRejected,
     FrameDropped,
     Disconnected,
     Reconnected,

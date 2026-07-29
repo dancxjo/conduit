@@ -16,6 +16,7 @@ sha2 = "0.10.9"
 
 [dev-dependencies]
 conduit-embedded = { path = "../conduit-embedded" }
+conduit-package = { path = "../conduit-package" }
 conduit-rp2040-hil = { path = "../../firmware/conduit-rp2040-hil" }
 
 [lints]
