@@ -1,8 +1,9 @@
 # Exact compilation and heterogeneous packages version 1
 
 Status: normative C5 contract. Requirement identifiers `CMP-001`
-through `CMP-012` and `PKG-001` through `PKG-018` are exercised by
-`conformance/c5/compile-package-v1.json`.
+through `CMP-013` and `PKG-001` through `PKG-018` are exercised by
+`conformance/c5/compile-package-v1.json` and
+`conformance/c5/compile-source-limits-v1.json`.
 
 ## Identity boundaries
 
@@ -26,9 +27,11 @@ can run on every host (`CMP-002`, `PKG-002`).
 ## Explicit compile input
 
 `conduct compile` accepts one `.panel` entry and one versioned compile-input
-document. The document pins:
+document. Compile-input schema 2 pins:
 
 - the entry URI, selected root, and complete content-addressed module closure;
+- exact maximum entry bytes, per-module bytes, aggregate closure bytes, and
+  module count;
 - one identity-bound finite semantic node, port, and type catalog snapshot
   used during lowering (a missing or mismatched pin fails closed);
 - implementation and artifact manifests;
@@ -49,6 +52,17 @@ grant acquisition, implementation loading, or node execution (`CMP-004`).
 Every provider call is an explicit in-memory lookup over the supplied
 document.
 
+The compile-input JSON document itself is read with the exported 16 MiB
+implementation ceiling. After decoding only that bounded document, the
+selected source limits are checked against the exported implementation
+ceilings before any entry source is read or module source is parsed. Both file
+and stdin entries retain at most the selected maximum plus one detection byte.
+Oversized input is rejected as `CND-CMP-009`; it is never truncated into a
+different accepted source. UTF-8 conversion occurs only after this bounded
+read. The explicit module closure is then checked for count, each source
+length, entry length, and checked aggregate length before module parsing
+(`CMP-013`).
+
 `using ready` remains a constraint. It is accepted only when a supplied fresh
 report and exact manifest satisfy it under the supplied policy. No ready
 implementation is inferred from ambient registry state (`CMP-005`).
@@ -66,13 +80,20 @@ unsupported versions, arithmetic overflow, and any budget violation
 primitive, round-trips through the schema-3 exact-plan decoder, and passes
 portable validation without provider access or execution (`CMP-009`).
 
-The v1 compile-input and `conduit.execution-plan/v3` document predate the live
-distributed-session requirements in specification 037. This workflow
+Compile-input schema 2 retains the schema-1 planning model, and its
+`conduit.execution-plan/v3` document predates the live distributed-session
+requirements in specification 037. This workflow
 therefore rejects a placement whose cord endpoints select different hosts
 instead of emitting an older plan with hidden transport semantics. A schema-9
 planner must supply one exact `PlanDistributedCord` per cross-host cord; a
 future compile-input migration may expose those fields without reinterpreting
 v1 input.
+
+Compile-input schema 1 is not reinterpreted with ambient source limits.
+Producers migrate by selecting all four explicit source limits, changing the
+schema marker/version to `conduit.compile-input/v2` / 2, and resealing the
+compile-input identity. This does not change the canonical primary `conduct`
+invocation or execution-plan document schema.
 
 ## Package manifest
 
@@ -171,6 +192,7 @@ JSON output, keep diagnostics independently encoded, and reject NDJSON
 - `CND-CMP-006` implementation, artifact, or host resolution failed
 - `CND-CMP-007` resource, queue, authority, or transition budget failed
 - `CND-CMP-008` exact plan construction or portable validation failed
+- `CND-CMP-009` entry source or explicit module closure limit exceeded
 - `CND-PKG-001` unsupported package schema or media version
 - `CND-PKG-002` package-manifest identity mismatch
 - `CND-PKG-003` malformed or duplicate object metadata

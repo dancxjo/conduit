@@ -14,7 +14,7 @@ use conduct::{
     Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, PackageOperation,
     SecondaryCommand,
 };
-use conduit_compile::{CompileInput, compile_source};
+use conduit_compile::{CompileInput, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES, compile_source};
 use conduit_diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, DiagnosticSource, OwnedDiagnostic, TerminalColor, TerminalVerbosity,
     from_parse_error, from_resolution_error, from_runtime_error, render_terminal,
@@ -664,36 +664,43 @@ fn run_compile(
         compile.panel.display().to_string()
     };
     emit_status(status_enabled, "Compiling", &document_id);
-    let input_bytes = read_bounded(&compile.input, 8 * 1024 * 1024)
+    let input_bytes = read_bounded(&compile.input, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES)
         .map_err(|error| inspection_error(error, presentation))?;
     let input: CompileInput = serde_json::from_slice(&input_bytes).map_err(|_| {
         package_error(
             "CND-CMP-002",
-            "compile input is not valid conduit.compile-input/v1 JSON",
+            "compile input is not valid conduit.compile-input/v2 JSON",
             presentation,
         )
     })?;
-    let source = if compile.panel.as_os_str() == "-" {
+    input.validate_source_limits().map_err(|error| {
+        cli_error(
+            simple_diagnostic(error.code(), &error.to_string()),
+            presentation,
+            vec![],
+        )
+    })?;
+    let source_bytes = if compile.panel.as_os_str() == "-" {
         let stdin = io::stdin();
-        read_source(&mut stdin.lock(), "stdin").map_err(|message| {
-            cli_error(
-                simple_diagnostic("CND-IO-001", &message),
-                presentation,
-                vec![],
-            )
-        })?
+        read_stream_bounded(
+            &mut stdin.lock(),
+            input.source_limits.maximum_entry_source_bytes,
+        )
+        .map_err(|error| compile_source_read_error(error, presentation))?
     } else {
-        fs::read_to_string(&compile.panel).map_err(|error| {
-            cli_error(
-                simple_diagnostic(
-                    "CND-IO-001",
-                    &format!("cannot read {}: {error}", compile.panel.display()),
-                ),
-                presentation,
-                vec![],
-            )
-        })?
+        read_bounded(
+            &compile.panel,
+            input.source_limits.maximum_entry_source_bytes,
+        )
+        .map_err(|error| compile_source_read_error(error, presentation))?
     };
+    let source = String::from_utf8(source_bytes).map_err(|_| {
+        cli_error(
+            simple_diagnostic("CND-CMP-003", "entry source is not valid UTF-8"),
+            presentation,
+            vec![],
+        )
+    })?;
     let source_document = DiagnosticSource::new(document_id.clone(), source.as_bytes());
     parse_with_root(&source, input.selected_root.as_deref()).map_err(|error| {
         cli_error(
@@ -1054,6 +1061,23 @@ fn inspection_error(
         presentation,
         vec![],
     )
+}
+
+fn compile_source_read_error(
+    error: conduit_inspect::InspectionError,
+    presentation: PresentationOptions,
+) -> CliError {
+    let code = if error.code == "CND-INSP-005" {
+        "CND-CMP-009"
+    } else {
+        error.code
+    };
+    let message = if code == "CND-CMP-009" {
+        "entry source byte limit exceeded"
+    } else {
+        &error.message
+    };
+    cli_error(simple_diagnostic(code, message), presentation, vec![])
 }
 
 const fn mode_name(mode: Mode) -> &'static str {

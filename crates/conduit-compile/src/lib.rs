@@ -33,9 +33,14 @@ use conduit_runtime::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
-pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input/v1";
-pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 1;
+pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input/v2";
+pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 2;
 pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
+pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
+pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
+pub const MAXIMUM_COMPILE_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
+pub const MAXIMUM_COMPILE_MODULE_CLOSURE_BYTES: u64 = 8 * 1024 * 1024;
+pub const MAXIMUM_COMPILE_MODULES: u16 = 256;
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -431,6 +436,27 @@ pub struct CompileModuleDocument {
     pub source: String,
 }
 
+/// Identity-bound source and explicit-module-closure limits.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompileSourceLimits {
+    pub maximum_entry_source_bytes: u64,
+    pub maximum_module_source_bytes: u64,
+    pub maximum_module_closure_bytes: u64,
+    pub maximum_modules: u16,
+}
+
+impl Default for CompileSourceLimits {
+    fn default() -> Self {
+        Self {
+            maximum_entry_source_bytes: MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES,
+            maximum_module_source_bytes: MAXIMUM_COMPILE_MODULE_SOURCE_BYTES,
+            maximum_module_closure_bytes: MAXIMUM_COMPILE_MODULE_CLOSURE_BYTES,
+            maximum_modules: MAXIMUM_COMPILE_MODULES,
+        }
+    }
+}
+
 /// Exact finite semantic catalog snapshot used during lowering.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -486,6 +512,7 @@ pub struct CompileInput {
     pub identity: String,
     pub entry_uri: String,
     pub selected_root: Option<String>,
+    pub source_limits: CompileSourceLimits,
     pub modules: Vec<CompileModuleDocument>,
     pub catalog: CompileCatalogDocument,
     #[serde(default)]
@@ -517,6 +544,7 @@ struct CompileIdentityProjection<'a> {
     schema_version: u16,
     entry_uri: &'a str,
     selected_root: &'a Option<String>,
+    source_limits: CompileSourceLimits,
     modules: &'a [CompileModuleDocument],
     catalog: &'a CompileCatalogDocument,
     pool_bindings: &'a [PoolBindingDocument],
@@ -540,6 +568,8 @@ struct CompileIdentityProjection<'a> {
 
 impl CompileInput {
     pub fn seal(&mut self) -> Result<(), CompileError> {
+        self.validate_source_limits()?;
+        self.validate_module_source_limits()?;
         canonicalize_compile_input(self);
         self.catalog.identity = catalog_identity(&self.catalog)?;
         for module in &mut self.modules {
@@ -594,6 +624,7 @@ impl CompileInput {
             schema_version: canonical.schema_version,
             entry_uri: &canonical.entry_uri,
             selected_root: &canonical.selected_root,
+            source_limits: canonical.source_limits,
             modules: &canonical.modules,
             catalog: &canonical.catalog,
             pool_bindings: &canonical.pool_bindings,
@@ -624,12 +655,11 @@ impl CompileInput {
         {
             return Err(CompileError::new(CompileReason::UnsupportedInput));
         }
+        self.validate_source_limits()?;
         if self.candidates.is_empty() || self.candidates.len() > 4096 {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
-        if self.modules.is_empty() || self.modules.len() > 256 {
-            return Err(CompileError::new(CompileReason::InvalidInput));
-        }
+        self.validate_module_source_limits()?;
         if self.pool_bindings.len() > 4096 {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
@@ -643,18 +673,10 @@ impl CompileInput {
                 .map(|grant| id(grant))
                 .collect::<Result<Vec<_>, _>>()?;
         }
-        let aggregate_module_bytes = self
+        if self
             .modules
             .iter()
-            .try_fold(0_u64, |total, module| {
-                total.checked_add(module.source.len() as u64)
-            })
-            .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
-        if aggregate_module_bytes > 32 * 1024 * 1024
-            || self.modules.iter().any(|module| {
-                module.source.len() > 8 * 1024 * 1024
-                    || module.content_hash != content_hash(&module.source)
-            })
+            .any(|module| module.content_hash != content_hash(&module.source))
         {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
@@ -684,6 +706,57 @@ impl CompileInput {
         }
         if policy_hash(self)? != self.resolver_policy_hash {
             return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        Ok(())
+    }
+
+    /// Validate only the caller-selected source limits before reading the
+    /// separate entry source or parsing any module source.
+    pub fn validate_source_limits(&self) -> Result<(), CompileError> {
+        if self.schema != COMPILE_INPUT_SCHEMA
+            || self.schema_version != COMPILE_INPUT_SCHEMA_VERSION
+        {
+            return Err(CompileError::new(CompileReason::UnsupportedInput));
+        }
+        let limits = self.source_limits;
+        if limits.maximum_entry_source_bytes == 0
+            || limits.maximum_entry_source_bytes > MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES
+            || limits.maximum_module_source_bytes == 0
+            || limits.maximum_module_source_bytes > MAXIMUM_COMPILE_MODULE_SOURCE_BYTES
+            || limits.maximum_module_closure_bytes == 0
+            || limits.maximum_module_closure_bytes > MAXIMUM_COMPILE_MODULE_CLOSURE_BYTES
+            || limits.maximum_modules == 0
+            || limits.maximum_modules > MAXIMUM_COMPILE_MODULES
+            || limits.maximum_entry_source_bytes > limits.maximum_module_source_bytes
+            || limits.maximum_module_source_bytes > limits.maximum_module_closure_bytes
+        {
+            return Err(CompileError::new(CompileReason::SourceLimitExceeded));
+        }
+        Ok(())
+    }
+
+    fn validate_module_source_limits(&self) -> Result<(), CompileError> {
+        if self.modules.is_empty()
+            || self.modules.len() > usize::from(self.source_limits.maximum_modules)
+        {
+            return Err(CompileError::new(CompileReason::SourceLimitExceeded));
+        }
+        let aggregate_module_bytes = self.modules.iter().try_fold(0_u64, |total, module| {
+            u64::try_from(module.source.len())
+                .ok()
+                .and_then(|bytes| total.checked_add(bytes))
+                .ok_or_else(|| CompileError::new(CompileReason::SourceLimitExceeded))
+        })?;
+        if aggregate_module_bytes > self.source_limits.maximum_module_closure_bytes
+            || self.modules.iter().any(|module| {
+                u64::try_from(module.source.len()).map_or(true, |bytes| {
+                    bytes > self.source_limits.maximum_module_source_bytes
+                        || (module.canonical_uri == self.entry_uri
+                            && bytes > self.source_limits.maximum_entry_source_bytes)
+                })
+            })
+        {
+            return Err(CompileError::new(CompileReason::SourceLimitExceeded));
         }
         Ok(())
     }
@@ -3465,6 +3538,7 @@ pub enum CompileReason {
     ResolutionFailed,
     BudgetInvalid,
     PlanInvalid,
+    SourceLimitExceeded,
 }
 
 impl CompileReason {
@@ -3479,6 +3553,7 @@ impl CompileReason {
             Self::ResolutionFailed => "CND-CMP-006",
             Self::BudgetInvalid => "CND-CMP-007",
             Self::PlanInvalid => "CND-CMP-008",
+            Self::SourceLimitExceeded => "CND-CMP-009",
         }
     }
 }
@@ -3514,6 +3589,9 @@ impl fmt::Display for CompileError {
                 "resource, queue, authority, or transition budget is invalid"
             }
             CompileReason::PlanInvalid => "exact plan construction or portable validation failed",
+            CompileReason::SourceLimitExceeded => {
+                "entry source or explicit module closure limit exceeded"
+            }
         };
         formatter.write_str(message)
     }
@@ -3678,6 +3756,7 @@ mod tests {
             identity: String::new(),
             entry_uri: "mem://compile/entry.panel".to_owned(),
             selected_root: panel.selected_root.clone(),
+            source_limits: CompileSourceLimits::default(),
             modules: vec![CompileModuleDocument {
                 canonical_uri: "mem://compile/entry.panel".to_owned(),
                 content_hash: String::new(),
@@ -3810,6 +3889,7 @@ mod tests {
             identity: String::new(),
             entry_uri: "mem://compile/root.panel".to_owned(),
             selected_root: Some("fixture/app".to_owned()),
+            source_limits: CompileSourceLimits::default(),
             modules: vec![
                 CompileModuleDocument {
                     canonical_uri: "mem://compile/root.panel".to_owned(),

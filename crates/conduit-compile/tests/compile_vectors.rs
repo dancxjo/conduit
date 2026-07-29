@@ -3,8 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument,
-    ImplementationDocument, PinDocument, builtin_catalog_document, compile_source,
+    CompileSourceLimits, ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
+    HostReportDocument, ImplementationDocument, PinDocument, builtin_catalog_document,
+    compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -14,6 +15,8 @@ use conduit_panel::parse;
 use conduit_runtime::Registry;
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
+const SOURCE_LIMIT_FIXTURE: &str =
+    include_str!("../../../conformance/c5/compile-source-limits-v1.json");
 const SOURCE: &str = "panel 1\n\
 node source : conduit/literal { value = \"hello\" }\n\
 node upper : conduit/uppercase using ready\n\
@@ -178,6 +181,7 @@ fn input(source: &str) -> CompileInput {
         identity: String::new(),
         entry_uri: "mem://compile/entry.panel".to_owned(),
         selected_root: panel.selected_root,
+        source_limits: CompileSourceLimits::default(),
         modules: vec![CompileModuleDocument {
             canonical_uri: "mem://compile/entry.panel".to_owned(),
             content_hash: String::new(),
@@ -325,4 +329,70 @@ fn cross_host_compile_fails_closed_without_distributed_session_input() {
         compile_source(SOURCE, &sealed).unwrap_err().code(),
         "CND-CMP-008"
     );
+}
+
+fn compile_source_limit_case(id: &str) -> serde_json::Value {
+    let source_len = u64::try_from(SOURCE.len()).unwrap();
+    let mut sealed = input(SOURCE);
+    match id {
+        "oversized-explicit-module-is-rejected" => {
+            sealed.source_limits = CompileSourceLimits {
+                maximum_entry_source_bytes: source_len,
+                maximum_module_source_bytes: source_len,
+                maximum_module_closure_bytes: source_len * 3,
+                maximum_modules: 2,
+            };
+            sealed.modules.push(CompileModuleDocument {
+                canonical_uri: "mem://compile/oversized.panel".to_owned(),
+                content_hash: String::new(),
+                source: "x".repeat(usize::try_from(source_len + 1).unwrap()),
+            });
+        }
+        "aggregate-module-closure-limit-is-enforced" => {
+            sealed.source_limits = CompileSourceLimits {
+                maximum_entry_source_bytes: source_len,
+                maximum_module_source_bytes: source_len,
+                maximum_module_closure_bytes: source_len * 2 - 1,
+                maximum_modules: 2,
+            };
+            sealed.modules.push(CompileModuleDocument {
+                canonical_uri: "mem://compile/aggregate.panel".to_owned(),
+                content_hash: String::new(),
+                source: SOURCE.to_owned(),
+            });
+        }
+        "schema-one-requires-explicit-limit-migration" => {
+            sealed.schema = "conduit.compile-input/v1".to_owned();
+            sealed.schema_version = 1;
+        }
+        other => panic!("compile source-limit case `{other}` is not implemented"),
+    }
+    let error = sealed.seal().unwrap_err();
+    serde_json::json!({"accepted": false, "code": error.code()})
+}
+
+#[test]
+fn every_compile_module_limit_vector_executes() {
+    let fixture: serde_json::Value = serde_json::from_str(SOURCE_LIMIT_FIXTURE).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    let mut executed = 0;
+    for case in cases.iter().filter(|case| case["runner"] == "compile") {
+        let id = case["id"].as_str().unwrap();
+        assert_eq!(
+            compile_source_limit_case(id),
+            case["expected"],
+            "case `{id}`"
+        );
+        executed += 1;
+    }
+    assert_eq!(executed, 3);
+}
+
+#[test]
+fn source_limits_are_part_of_compile_input_identity() {
+    let original = input(SOURCE);
+    let mut changed = original.clone();
+    changed.source_limits.maximum_entry_source_bytes -= 1;
+    changed.seal().unwrap();
+    assert_ne!(original.identity, changed.identity);
 }

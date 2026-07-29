@@ -1,5 +1,16 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 29 — 2026-07-29
+
+- Registered eight independently executed compile-source limit cases for
+  issue #89: exact-bound success, oversized file and stdin rejection without
+  truncation, truncated and invalid-UTF-8 entry rejection, per-module
+  rejection, aggregate closure rejection, and explicit schema-1 migration.
+- Migrated the explicit compile input to schema 2 so selected entry, module,
+  closure-byte, and module-count limits participate in its identity.
+- Replaced the unbounded file and stdin compile paths with bounded readers
+  before UTF-8 conversion or panel parsing.
+
 ## Manifest revision 28 — 2026-07-29
 
 - Registered the `distributed-cord` C5 suite for issue #27 with 16

@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 28,
+  "manifest_revision": 29,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3198,6 +3198,7 @@
       "requirement_ids": [
         "CMP-001", "CMP-002", "CMP-003", "CMP-004", "CMP-005", "CMP-006",
         "CMP-007", "CMP-008", "CMP-009", "CMP-010", "CMP-011", "CMP-012",
+        "CMP-013",
         "PKG-001", "PKG-002", "PKG-003", "PKG-004", "PKG-005", "PKG-006",
         "PKG-007", "PKG-008", "PKG-009", "PKG-010", "PKG-011", "PKG-012",
         "PKG-013", "PKG-014", "PKG-015", "PKG-016", "PKG-017", "PKG-018"
@@ -3239,6 +3240,27 @@
         "collection": "cases",
         "case_fields": ["id"],
         "expected_fields": ["expected"]
+      }, {
+        "id": "compile-source-limits-v1",
+        "path": "../c5/compile-source-limits-v1.json",
+        "sha256": "sha256:2e02c8173e8f8b9bd351b5c3bd45bb14fd8cbec5fb2a584780a6dce6d1ab3f98",
+        "operation": "compile-source-limits-v1",
+        "requirement_ids": ["CMP-003", "CMP-006", "CMP-013"],
+        "default_rule": "CMP-013",
+        "case_rules": {
+          "exact-entry-source-limit-succeeds": "CMP-013",
+          "oversized-entry-source-is-not-truncated": "CMP-013",
+          "oversized-stdin-source-is-not-truncated": "CMP-013",
+          "truncated-entry-source-is-rejected": "CMP-003",
+          "invalid-utf8-entry-source-is-rejected": "CMP-003",
+          "oversized-explicit-module-is-rejected": "CMP-013",
+          "aggregate-module-closure-limit-is-enforced": "CMP-013",
+          "schema-one-requires-explicit-limit-migration": "CMP-013"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
       }],
       "coverage": {
         "positive": [
@@ -3247,7 +3269,8 @@
           "compile-package-v1#minimal-plan-round-trip",
           "compile-package-v1#thick-package-round-trip",
           "compile-package-v1#thin-package-round-trip",
-          "compile-package-v1#heterogeneous-linux-wasm-pico-package"
+          "compile-package-v1#heterogeneous-linux-wasm-pico-package",
+          "compile-source-limits-v1#exact-entry-source-limit-succeeds"
         ],
         "negative": [
           "compile-package-v1#unresolved-selector-rejected",
@@ -3256,17 +3279,24 @@
           "compile-package-v1#memory-resource-authority-transition-over-budget",
           "compile-package-v1#missing-tampered-or-oversized-blob",
           "compile-package-v1#license-sbom-signature-provenance-mismatch",
-          "compile-package-v1#unsupported-media-plan-package-version"
+          "compile-package-v1#unsupported-media-plan-package-version",
+          "compile-source-limits-v1#invalid-utf8-entry-source-is-rejected",
+          "compile-source-limits-v1#oversized-explicit-module-is-rejected"
         ],
         "boundary": [
           "compile-package-v1#no-provisioning-or-implicit-fetch",
           "compile-package-v1#compile-machine-stream-separation",
           "compile-package-v1#extraction-limit-and-traversal-attacks",
-          "compile-package-v1#package-inspection-never-executes"
+          "compile-package-v1#package-inspection-never-executes",
+          "compile-source-limits-v1#oversized-entry-source-is-not-truncated",
+          "compile-source-limits-v1#oversized-stdin-source-is-not-truncated",
+          "compile-source-limits-v1#truncated-entry-source-is-rejected",
+          "compile-source-limits-v1#aggregate-module-closure-limit-is-enforced"
         ],
         "migration": [
           "compile-package-v1#reserved-word-path-after-double-dash",
-          "compile-package-v1#identity-preserved-across-package-round-trip"
+          "compile-package-v1#identity-preserved-across-package-round-trip",
+          "compile-source-limits-v1#schema-one-requires-explicit-limit-migration"
         ]
       },
       "reference_tests": [

@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -6,8 +7,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument, ImplementationDocument,
-    PinDocument, builtin_catalog_document,
+    CompileSourceLimits, ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument,
+    ImplementationDocument, PinDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -18,6 +19,8 @@ use conduit_runtime::Registry;
 
 static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
+const SOURCE_LIMIT_FIXTURE: &str =
+    include_str!("../../../conformance/c5/compile-source-limits-v1.json");
 
 fn command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduct"));
@@ -194,6 +197,7 @@ fn input(source: &str) -> CompileInput {
         identity: String::new(),
         entry_uri: "mem://compile/entry.panel".to_owned(),
         selected_root: panel.selected_root.clone(),
+        source_limits: CompileSourceLimits::default(),
         modules: vec![CompileModuleDocument {
             canonical_uri: "mem://compile/entry.panel".to_owned(),
             content_hash: String::new(),
@@ -313,4 +317,89 @@ fn compile_diagnostics_stay_on_stderr_and_reserved_path_is_disambiguated() {
     assert_eq!(disambiguated.stdout, b"HELLO FROM CONDUIT.\n");
     assert!(disambiguated.stderr.is_empty());
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn run_source_limit_case(id: &str) -> serde_json::Value {
+    let root = temporary_directory();
+    let source = include_str!("../../../examples/hello.panel");
+    let source_bytes = source.as_bytes();
+    let source_len = u64::try_from(source_bytes.len()).unwrap();
+    let panel = root.join("entry.panel");
+    let input_path = root.join("compile-input.json");
+    let mut compile_input = input(source);
+    compile_input.source_limits = CompileSourceLimits {
+        maximum_entry_source_bytes: source_len,
+        maximum_module_source_bytes: source_len,
+        maximum_module_closure_bytes: source_len,
+        maximum_modules: 1,
+    };
+    compile_input.seal().unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&compile_input).unwrap(),
+    )
+    .unwrap();
+    let (entry_bytes, use_stdin) = match id {
+        "exact-entry-source-limit-succeeds" => (source_bytes.to_vec(), false),
+        "oversized-entry-source-is-not-truncated" | "oversized-stdin-source-is-not-truncated" => {
+            let mut oversized = source_bytes.to_vec();
+            oversized.push(b'#');
+            (oversized, id == "oversized-stdin-source-is-not-truncated")
+        }
+        "truncated-entry-source-is-rejected" => {
+            (source_bytes[..source_bytes.len() - 1].to_vec(), false)
+        }
+        "invalid-utf8-entry-source-is-rejected" => (vec![0xff, b'\n'], false),
+        other => panic!("compile CLI source-limit case `{other}` is not implemented"),
+    };
+    if !use_stdin {
+        std::fs::write(&panel, &entry_bytes).unwrap();
+    }
+    let mut process = command();
+    process
+        .args([
+            "compile",
+            "--format=json",
+            "--diagnostic-format=json",
+            "--input",
+        ])
+        .arg(&input_path);
+    let output = if use_stdin {
+        let mut child = process
+            .arg("-")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child.stdin.take().unwrap().write_all(&entry_bytes).unwrap();
+        child.wait_with_output().unwrap()
+    } else {
+        process.arg(&panel).output().unwrap()
+    };
+    let actual = if output.status.success() {
+        assert!(!output.stdout.is_empty());
+        assert!(output.stderr.is_empty());
+        serde_json::json!({"accepted": true})
+    } else {
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        let diagnostic: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+        serde_json::json!({"accepted": false, "code": diagnostic["code"]})
+    };
+    std::fs::remove_dir_all(root).unwrap();
+    actual
+}
+
+#[test]
+fn every_compile_cli_source_limit_vector_executes() {
+    let fixture: serde_json::Value = serde_json::from_str(SOURCE_LIMIT_FIXTURE).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    let mut executed = 0;
+    for case in cases.iter().filter(|case| case["runner"] == "compile-cli") {
+        let id = case["id"].as_str().unwrap();
+        assert_eq!(run_source_limit_case(id), case["expected"], "case `{id}`");
+        executed += 1;
+    }
+    assert_eq!(executed, 5);
 }
