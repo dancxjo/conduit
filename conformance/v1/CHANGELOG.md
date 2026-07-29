@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 45 — 2026-07-29
+
+- Added 33 independently dispatched live-plan-transition cases covering
+  immutable epochs, exact replacement levels and guarantee floors, complete
+  in-flight dispositions, state/replay, rollback/recovery, and real #94–#98
+  admission validators.
+- Added opaque Tongues TTS utterance and streaming-ASR segment witnesses plus
+  a concrete in-memory HTTP request-generation handoff in which candidate
+  admissions proceed while the old request drains.
+- Routed the pool-generation and exclusive-resource cases through their real
+  existing controllers/resolver rather than satisfying the suite with
+  inventory assertions.
+
 ## Manifest revision 44 — 2026-07-29
 
 - Corrected the generic RP2040 firmware report so it advertises only linked

@@ -39,6 +39,7 @@ mod scheduler;
 mod standard;
 mod structural;
 mod supervision;
+mod transition;
 mod type_contract;
 
 pub use authority::{
@@ -288,6 +289,15 @@ pub use supervision::{
     TerminalObservation, TerminalPhase, classify_evidence_cursor, handler_deadline_tick,
     nearest_supervision_boundary, outward_handler_observation, select_terminal_observation,
     terminal_observations_correlate, validate_supervision_nesting,
+};
+pub use transition::{
+    MAX_TRANSITION_OPTIONAL_CHANGES, OptionalCharacteristicChange, PLAN_TRANSITION_SCHEMA_VERSION,
+    PlanEpoch, ReplayGapPolicy, TransitionAdmissionProofs, TransitionBudget, TransitionContract,
+    TransitionController, TransitionDrainObservation, TransitionEvidence, TransitionEvidenceKind,
+    TransitionGuaranteeFloor, TransitionIdentityError, TransitionKind, TransitionLevel,
+    TransitionModeDecision, TransitionPhase, TransitionReason, TransitionRecoveryPolicy,
+    TransitionReplayContract, TransitionReplayObservation, TransitionStateContract,
+    TransitionUsage, validate_replacement_support, validate_transition_contract,
 };
 pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
 

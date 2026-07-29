@@ -731,3 +731,31 @@ fn errors_keep_stable_pool_families() {
     assert_eq!(PoolError::ReservationExceeded.code(), "CND-POL-005");
     assert_eq!(HostedPoolError::LegacyPlan.code(), "CND-POOL-HOST-002");
 }
+
+#[test]
+fn plan_transition_pool_cases_execute_the_real_generation_controller() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c5/plan-transitions-v1.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        if case["runner"] != "replicated-pool" {
+            continue;
+        }
+        match case["id"].as_str().unwrap() {
+            "replicated-pool-generation-overlap" => {
+                assert_eq!(
+                    execute("generation-overlap"),
+                    json!({"valid":true,"reserved_slots":4})
+                );
+            }
+            "replicated-pool-generation-rollback" => {
+                assert_eq!(
+                    execute("generation-rollback"),
+                    json!({"cleanup":2,"cancelled":1})
+                );
+            }
+            other => panic!("unhandled transition pool fixture {other}"),
+        }
+    }
+}

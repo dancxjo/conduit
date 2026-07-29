@@ -1372,3 +1372,20 @@ fn exclusive_resource_candidates_are_bound_once() {
     assert_eq!(resolved.bindings[0].resource_ids, ["radio-a"]);
     assert_eq!(resolved.bindings[1].resource_ids, ["radio-b"]);
 }
+
+#[test]
+fn plan_transition_exclusive_resource_case_executes_the_real_resolver() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/c5/plan-transitions-v1.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        if case["runner"] != "host-resolution" {
+            continue;
+        }
+        match case["id"].as_str().unwrap() {
+            "exclusive-resource-handoff" => exclusive_resource_candidates_are_bound_once(),
+            other => panic!("unhandled transition resolver fixture {other}"),
+        }
+    }
+}

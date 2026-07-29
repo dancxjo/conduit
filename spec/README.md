@@ -197,6 +197,11 @@ containment program is tracked by
   defines schema-16 exact pool admission, deterministic instance and attempt
   identity, atomic fixed reservations, supervision, cleanup, causal evidence,
   and old/candidate/rollback generation overlap.
+- [`051-live-plan-transitions-v1.md`](051-live-plan-transitions-v1.md) defines
+  immutable plan epochs, exact cold/quiescent/stateful replacement,
+  independently admitted prepare/barrier/drain/state/replay/rebind/commit/
+  rollback, persistent containment and inhibit facts, and opaque Tongues plus
+  concrete HTTP generation witnesses.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

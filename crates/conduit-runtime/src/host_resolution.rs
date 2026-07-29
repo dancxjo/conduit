@@ -3,12 +3,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     ArtifactManifest, CanonicalDescriptor, CanonicalError, CanonicalValue, CapabilityReport,
     CompatibilityOutcome, FieldDisposition, HostReportReason, Id, ImplementationManifest,
-    InstancePath, ManifestReason, MapField, PinnedDescriptor, PlanResourceBudget, ReportCapability,
-    ReportResource, ReportTopology, SatisfactionProof, SatisfactionReason, SatisfactionRole,
-    SemanticHash, validate_artifact_manifest, validate_capability_report,
-    validate_implementation_manifest, validate_satisfaction_proof,
+    InstancePath, ManifestReason, MapField, PinnedDescriptor, PlanResourceBudget,
+    ReplacementSupport, ReportCapability, ReportResource, ReportTopology, SatisfactionProof,
+    SatisfactionReason, SatisfactionRole, SemanticHash, validate_artifact_manifest,
+    validate_capability_report, validate_implementation_manifest, validate_satisfaction_proof,
 };
 use core::convert::Infallible;
+use sha2::{Digest, Sha256};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CapabilityPredicate<'a> {
@@ -299,6 +300,7 @@ pub struct ResolvedPlacementBinding {
     pub semantic_contract: SemanticHash,
     pub implementation_id: String,
     pub implementation_identity: SemanticHash,
+    pub replacement: ResolvedReplacementSupport,
     pub host: String,
     pub report_id: String,
     pub report_identity: SemanticHash,
@@ -314,6 +316,25 @@ pub struct ResolvedPlacementBinding {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedReplacementSupport {
+    Cold,
+    Quiescent {
+        boundary_id: String,
+        boundary_schema_version: u32,
+        boundary_identity: SemanticHash,
+        maximum_ticks: u64,
+    },
+    Stateful {
+        state_contract_id: String,
+        state_contract_schema_version: u32,
+        state_contract_identity: SemanticHash,
+        maximum_export_bytes: u64,
+        maximum_import_bytes: u64,
+        maximum_ticks: u64,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedPlacement {
     pub resolver_id: String,
     pub resolver_schema_version: u32,
@@ -321,6 +342,231 @@ pub struct ResolvedPlacement {
     pub policy_hash: SemanticHash,
     pub bindings: Vec<ResolvedPlacementBinding>,
     pub search_states: usize,
+}
+
+impl ResolvedPlacement {
+    /// Exact identity of the resolver decision consumed by plan-transition
+    /// admission. The decision remains distinct from the candidate plan and
+    /// from every host report it references.
+    #[must_use]
+    pub fn computed_identity(&self) -> SemanticHash {
+        let mut digest = Sha256::new();
+        hash_field(&mut digest, b"kind", b"conduit/resolved-placement-v1");
+        hash_field(&mut digest, b"resolver-id", self.resolver_id.as_bytes());
+        hash_field(
+            &mut digest,
+            b"resolver-version",
+            &self.resolver_schema_version.to_be_bytes(),
+        );
+        hash_field(
+            &mut digest,
+            b"resolver-identity",
+            self.resolver_identity.as_bytes(),
+        );
+        hash_field(&mut digest, b"policy", self.policy_hash.as_bytes());
+        hash_field(
+            &mut digest,
+            b"binding-count",
+            &u64::try_from(self.bindings.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        hash_field(
+            &mut digest,
+            b"search-states",
+            &u64::try_from(self.search_states)
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for binding in &self.bindings {
+            hash_field(&mut digest, b"instance", binding.instance.as_bytes());
+            hash_field(
+                &mut digest,
+                b"semantic-contract",
+                binding.semantic_contract.as_bytes(),
+            );
+            hash_field(
+                &mut digest,
+                b"implementation-id",
+                binding.implementation_id.as_bytes(),
+            );
+            hash_field(
+                &mut digest,
+                b"implementation-identity",
+                binding.implementation_identity.as_bytes(),
+            );
+            hash_replacement_support(&mut digest, &binding.replacement);
+            hash_field(&mut digest, b"host", binding.host.as_bytes());
+            hash_field(&mut digest, b"report-id", binding.report_id.as_bytes());
+            hash_field(
+                &mut digest,
+                b"report-identity",
+                binding.report_identity.as_bytes(),
+            );
+            hash_field(
+                &mut digest,
+                b"report-time-basis",
+                binding.report_time_basis.as_bytes(),
+            );
+            hash_field(
+                &mut digest,
+                b"report-observed",
+                &binding.report_observed_at_tick.to_be_bytes(),
+            );
+            hash_field(
+                &mut digest,
+                b"report-valid-until",
+                &binding.report_valid_until_tick.to_be_bytes(),
+            );
+            hash_resource_budget(&mut digest, binding.allocation);
+            hash_collection_len(&mut digest, b"artifacts", binding.artifacts.len());
+            for (id, artifact) in &binding.artifacts {
+                hash_field(&mut digest, b"artifact-id", id.as_bytes());
+                hash_field(&mut digest, b"artifact-digest", artifact.as_bytes());
+            }
+            hash_collection_len(
+                &mut digest,
+                b"capability-subjects",
+                binding.capability_subjects.len(),
+            );
+            for subject in &binding.capability_subjects {
+                hash_field(&mut digest, b"capability-subject", subject.as_bytes());
+            }
+            hash_collection_len(
+                &mut digest,
+                b"capability-proofs",
+                binding.capability_proofs.len(),
+            );
+            for proof in &binding.capability_proofs {
+                hash_field(&mut digest, b"capability-proof", proof.as_bytes());
+            }
+            hash_collection_len(&mut digest, b"resources", binding.resource_ids.len());
+            for resource in &binding.resource_ids {
+                hash_field(&mut digest, b"resource", resource.as_bytes());
+            }
+            hash_collection_len(
+                &mut digest,
+                b"authority-grants",
+                binding.authority_grants.len(),
+            );
+            for grant in &binding.authority_grants {
+                hash_field(&mut digest, b"authority-grant", grant.as_bytes());
+            }
+        }
+        SemanticHash::from_bytes(digest.finalize().into())
+    }
+}
+
+fn hash_field(digest: &mut Sha256, name: &[u8], value: &[u8]) {
+    hash_part(digest, name);
+    hash_part(digest, value);
+}
+
+fn hash_collection_len(digest: &mut Sha256, name: &[u8], len: usize) {
+    hash_field(
+        digest,
+        name,
+        &u64::try_from(len).unwrap_or(u64::MAX).to_be_bytes(),
+    );
+}
+
+fn hash_replacement_support(digest: &mut Sha256, support: &ResolvedReplacementSupport) {
+    match support {
+        ResolvedReplacementSupport::Cold => {
+            hash_field(digest, b"replacement-mode", b"cold");
+        }
+        ResolvedReplacementSupport::Quiescent {
+            boundary_id,
+            boundary_schema_version,
+            boundary_identity,
+            maximum_ticks,
+        } => {
+            hash_field(digest, b"replacement-mode", b"quiescent");
+            hash_field(digest, b"boundary-id", boundary_id.as_bytes());
+            hash_field(
+                digest,
+                b"boundary-version",
+                &boundary_schema_version.to_be_bytes(),
+            );
+            hash_field(digest, b"boundary-identity", boundary_identity.as_bytes());
+            hash_field(digest, b"replacement-ticks", &maximum_ticks.to_be_bytes());
+        }
+        ResolvedReplacementSupport::Stateful {
+            state_contract_id,
+            state_contract_schema_version,
+            state_contract_identity,
+            maximum_export_bytes,
+            maximum_import_bytes,
+            maximum_ticks,
+        } => {
+            hash_field(digest, b"replacement-mode", b"stateful");
+            hash_field(digest, b"state-contract-id", state_contract_id.as_bytes());
+            hash_field(
+                digest,
+                b"state-contract-version",
+                &state_contract_schema_version.to_be_bytes(),
+            );
+            hash_field(
+                digest,
+                b"state-contract-identity",
+                state_contract_identity.as_bytes(),
+            );
+            hash_field(
+                digest,
+                b"maximum-export-bytes",
+                &maximum_export_bytes.to_be_bytes(),
+            );
+            hash_field(
+                digest,
+                b"maximum-import-bytes",
+                &maximum_import_bytes.to_be_bytes(),
+            );
+            hash_field(digest, b"replacement-ticks", &maximum_ticks.to_be_bytes());
+        }
+    }
+}
+
+fn owned_replacement_support(support: ReplacementSupport<'_>) -> ResolvedReplacementSupport {
+    match support {
+        ReplacementSupport::Cold => ResolvedReplacementSupport::Cold,
+        ReplacementSupport::Quiescent {
+            boundary,
+            maximum_ticks,
+        } => ResolvedReplacementSupport::Quiescent {
+            boundary_id: boundary.id.to_string(),
+            boundary_schema_version: boundary.schema_version,
+            boundary_identity: boundary.semantic_hash,
+            maximum_ticks,
+        },
+        ReplacementSupport::Stateful {
+            state_contract,
+            maximum_export_bytes,
+            maximum_import_bytes,
+            maximum_ticks,
+        } => ResolvedReplacementSupport::Stateful {
+            state_contract_id: state_contract.id.to_string(),
+            state_contract_schema_version: state_contract.schema_version,
+            state_contract_identity: state_contract.semantic_hash,
+            maximum_export_bytes,
+            maximum_import_bytes,
+            maximum_ticks,
+        },
+    }
+}
+
+fn hash_part(digest: &mut Sha256, bytes: &[u8]) {
+    digest.update(u64::try_from(bytes.len()).unwrap_or(u64::MAX).to_be_bytes());
+    digest.update(bytes);
+}
+
+fn hash_resource_budget(digest: &mut Sha256, budget: PlanResourceBudget) {
+    hash_part(digest, &budget.memory_bytes.to_be_bytes());
+    hash_part(digest, &budget.storage_bytes.to_be_bytes());
+    hash_part(digest, &budget.cpu_units.to_be_bytes());
+    hash_part(digest, &budget.timers.to_be_bytes());
+    hash_part(digest, &budget.transports.to_be_bytes());
+    hash_part(digest, &budget.checkpoints.to_be_bytes());
+    hash_part(digest, &budget.evidence_bytes.to_be_bytes());
 }
 
 #[derive(Clone, Debug)]
@@ -494,6 +740,7 @@ pub fn resolve_host_placement(
                 semantic_contract: request.semantic_contract.semantic_hash,
                 implementation_id: candidate.manifest.id.to_string(),
                 implementation_identity: candidate.manifest.identity,
+                replacement: owned_replacement_support(candidate.manifest.replacement),
                 host: candidate.report.host.to_string(),
                 report_id: candidate.report.id.to_string(),
                 report_identity: candidate.report.identity,

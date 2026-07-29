@@ -11,7 +11,7 @@ use conduit_core::{
 };
 use conduit_runtime::{
     CarrierSecurityCapabilities, CarrierSecurityMode, ResolvedPlacementBinding,
-    ResolvedTransportSelection, TransportCapabilities,
+    ResolvedReplacementSupport, ResolvedTransportSelection, TransportCapabilities,
 };
 
 pub const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -219,6 +219,7 @@ pub fn placement(binding: &PlanDistributedCord<'_>) -> ResolvedPlacementBinding 
         semantic_contract: hash(39),
         implementation_id: binding.backend.id.as_str().to_owned(),
         implementation_identity: binding.backend.semantic_hash,
+        replacement: ResolvedReplacementSupport::Cold,
         host: "fixture/linux-host".to_owned(),
         report_id: "fixture/linux-report".to_owned(),
         report_identity: hash(46),

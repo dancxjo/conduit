@@ -5,17 +5,24 @@
 //! A resolved service pins every binding and finite limit before a listener
 //! performs I/O.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::task::Poll;
 
-use conduit_core::{Id, PinnedDescriptor, PlanArtifact, SemanticHash};
-use conduit_runtime::ResolvedPlacementBinding;
+use conduit_core::{
+    Id, PinnedDescriptor, PlanArtifact, ReplacementSupport, SemanticHash, TransitionStateContract,
+};
+use conduit_runtime::{
+    HostedDrainObservation, HostedGenerationBinding, HostedTransitionGeneration,
+    ResolvedPlacementBinding,
+};
 use rustls::pki_types::CertificateDer;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use sha2::{Digest, Sha256};
@@ -889,6 +896,7 @@ pub struct InMemoryHttpServingBackend {
     sessions: BTreeMap<HttpExchangeId, InMemorySession>,
     evidence: VecDeque<HostedHttpEvidence>,
     pressure: bool,
+    accepting: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -911,6 +919,7 @@ impl InMemoryHttpServingBackend {
             sessions: BTreeMap::new(),
             evidence: VecDeque::new(),
             pressure: false,
+            accepting: false,
         }
     }
 
@@ -920,6 +929,9 @@ impl InMemoryHttpServingBackend {
         raw_request: &[u8],
     ) -> Result<HttpExchangeId, HttpReason> {
         let facts = self.service.ok_or(HttpReason::Closed)?;
+        if !self.accepting {
+            return Err(HttpReason::Closed);
+        }
         if self.connections.len() >= usize::from(facts.limits.maximum_connections)
             || self.queued.len() >= usize::from(facts.limits.maximum_queued_admissions)
         {
@@ -1053,6 +1065,7 @@ impl InMemoryHttpServingBackend {
     /// Stop new admission and cancel every still-live exchange. The returned
     /// count is bounded by `maximum_connections`.
     pub fn shutdown(&mut self) -> Result<usize, HttpReason> {
+        self.accepting = false;
         let connections = self.connections.keys().copied().collect::<Vec<_>>();
         self.ensure_evidence(connections.len())?;
         for connection in &connections {
@@ -1073,6 +1086,27 @@ impl InMemoryHttpServingBackend {
         self.service = None;
         self.pressure = false;
         Ok(connections.len())
+    }
+
+    /// Stop new admissions without destroying already accepted requests or
+    /// sessions. Existing work remains available to the ordinary poll/close
+    /// API until the transition's bounded drain deadline.
+    pub fn begin_shutdown(&mut self) -> Result<usize, HttpReason> {
+        self.service.ok_or(HttpReason::Closed)?;
+        self.accepting = false;
+        Ok(self.connections.len())
+    }
+
+    /// Cancel the exact bounded remainder after a failed/expired drain.
+    pub fn finish_shutdown(&mut self) -> Result<usize, HttpReason> {
+        self.shutdown()
+    }
+
+    /// Restore admissions after a pre-commit transition rollback.
+    pub fn restore_admission(&mut self) -> Result<(), HttpReason> {
+        self.service.ok_or(HttpReason::Closed)?;
+        self.accepting = true;
+        Ok(())
     }
 
     #[must_use]
@@ -1137,6 +1171,261 @@ impl InMemoryHttpServingBackend {
     }
 }
 
+struct InMemoryHttpGenerationState<'a> {
+    backend: InMemoryHttpServingBackend,
+    service: ResolvedHttpService<'a>,
+    authority: HttpServingAuthority<'a>,
+    prepared: bool,
+    barrier_connections: Option<u32>,
+}
+
+/// Concrete HTTP request-generation participant for the generic transition
+/// transaction. The cloneable handle lets the ordinary HTTP scheduler keep
+/// serving old exchanges and send new admissions to the prepared generation;
+/// lifecycle mutations remain owned by `HostedTransitionTransaction`.
+pub struct InMemoryHttpTransitionGeneration<'a> {
+    binding: HostedGenerationBinding<'a>,
+    boundary: PinnedDescriptor<'a>,
+    state: Rc<RefCell<InMemoryHttpGenerationState<'a>>>,
+}
+
+#[derive(Clone)]
+pub struct InMemoryHttpTransitionHandle<'a> {
+    state: Rc<RefCell<InMemoryHttpGenerationState<'a>>>,
+}
+
+impl<'a> InMemoryHttpTransitionGeneration<'a> {
+    pub fn active(
+        binding: HostedGenerationBinding<'a>,
+        boundary: PinnedDescriptor<'a>,
+        capabilities: HttpServingCapabilities,
+        service: ResolvedHttpService<'a>,
+        authority: HttpServingAuthority<'a>,
+    ) -> Result<(Self, InMemoryHttpTransitionHandle<'a>), HttpReason> {
+        validate_http_generation_binding(binding, boundary, service)?;
+        let mut backend = InMemoryHttpServingBackend::new(capabilities);
+        backend.bind(&service, authority)?;
+        Ok(Self::from_parts(
+            binding, boundary, backend, service, authority, true,
+        ))
+    }
+
+    pub fn candidate(
+        binding: HostedGenerationBinding<'a>,
+        boundary: PinnedDescriptor<'a>,
+        capabilities: HttpServingCapabilities,
+        service: ResolvedHttpService<'a>,
+        authority: HttpServingAuthority<'a>,
+    ) -> Result<(Self, InMemoryHttpTransitionHandle<'a>), HttpReason> {
+        validate_http_generation_binding(binding, boundary, service)?;
+        Ok(Self::from_parts(
+            binding,
+            boundary,
+            InMemoryHttpServingBackend::new(capabilities),
+            service,
+            authority,
+            false,
+        ))
+    }
+
+    fn from_parts(
+        binding: HostedGenerationBinding<'a>,
+        boundary: PinnedDescriptor<'a>,
+        backend: InMemoryHttpServingBackend,
+        service: ResolvedHttpService<'a>,
+        authority: HttpServingAuthority<'a>,
+        prepared: bool,
+    ) -> (Self, InMemoryHttpTransitionHandle<'a>) {
+        let state = Rc::new(RefCell::new(InMemoryHttpGenerationState {
+            backend,
+            service,
+            authority,
+            prepared,
+            barrier_connections: None,
+        }));
+        (
+            Self {
+                binding,
+                boundary,
+                state: Rc::clone(&state),
+            },
+            InMemoryHttpTransitionHandle { state },
+        )
+    }
+}
+
+fn validate_http_generation_binding(
+    binding: HostedGenerationBinding<'_>,
+    boundary: PinnedDescriptor<'_>,
+    service: ResolvedHttpService<'_>,
+) -> Result<(), HttpReason> {
+    service.validate()?;
+    if binding.implementation != service.backend
+        || binding.artifact != service.artifact.digest
+        || !matches!(
+            binding.replacement,
+            ReplacementSupport::Quiescent {
+                boundary: offered,
+                maximum_ticks,
+            } if offered == boundary
+                && maximum_ticks >= service.limits.drain_deadline_ticks
+        )
+    {
+        return Err(HttpReason::BindingMismatch);
+    }
+    Ok(())
+}
+
+impl InMemoryHttpTransitionHandle<'_> {
+    pub fn admit(&self, peer: IpAddr, raw_request: &[u8]) -> Result<HttpExchangeId, HttpReason> {
+        self.state.borrow_mut().backend.admit(peer, raw_request)
+    }
+
+    pub fn poll_accept(&self) -> Poll<Result<u64, HttpReason>> {
+        self.state.borrow_mut().backend.poll_accept()
+    }
+
+    pub fn poll_exchange(&self, connection: u64) -> Poll<Result<HttpExchangeEvent, HttpReason>> {
+        self.state.borrow_mut().backend.poll_exchange(connection)
+    }
+
+    pub fn poll_send(
+        &self,
+        connection: u64,
+        response: &HttpResponsePart,
+    ) -> Poll<Result<(), HttpReason>> {
+        self.state
+            .borrow_mut()
+            .backend
+            .poll_send(connection, response)
+    }
+
+    pub fn close(&self, connection: u64) -> Result<(), HttpReason> {
+        self.state.borrow_mut().backend.close(connection)
+    }
+
+    #[must_use]
+    pub fn connection_count(&self) -> usize {
+        self.state.borrow().backend.connection_count()
+    }
+}
+
+impl HostedTransitionGeneration for InMemoryHttpTransitionGeneration<'_> {
+    fn binding(&self) -> HostedGenerationBinding<'_> {
+        self.binding
+    }
+
+    fn prepare(&mut self) -> Result<(), Id<'static>> {
+        let mut state = self.state.borrow_mut();
+        if state.prepared {
+            return Ok(());
+        }
+        let service = state.service;
+        let authority = state.authority;
+        state
+            .backend
+            .bind(&service, authority)
+            .map_err(|_| Id("http/prepare-failed"))?;
+        state.prepared = true;
+        Ok(())
+    }
+
+    fn stop_admission(&mut self, boundary: PinnedDescriptor<'_>) -> Result<(), Id<'static>> {
+        if boundary != self.boundary {
+            return Err(Id("http/boundary-mismatch"));
+        }
+        let mut state = self.state.borrow_mut();
+        let connections = state
+            .backend
+            .begin_shutdown()
+            .map_err(|_| Id("http/barrier-failed"))?;
+        state.barrier_connections =
+            Some(u32::try_from(connections).map_err(|_| Id("http/drain-overflow"))?);
+        Ok(())
+    }
+
+    fn drain(
+        &mut self,
+        boundary: PinnedDescriptor<'_>,
+    ) -> Result<HostedDrainObservation, Id<'static>> {
+        if boundary != self.boundary {
+            return Err(Id("http/boundary-mismatch"));
+        }
+        let state = self.state.borrow();
+        let initial = state
+            .barrier_connections
+            .ok_or(Id("http/barrier-missing"))?;
+        let remaining = u32::try_from(state.backend.connection_count())
+            .map_err(|_| Id("http/drain-overflow"))?;
+        let completed = initial
+            .checked_sub(remaining)
+            .ok_or(Id("http/drain-invalid"))?;
+        Ok(HostedDrainObservation {
+            remaining_values: remaining,
+            remaining_operations: remaining,
+            drained_values: completed,
+            rejected_values: 0,
+            lost_values: 0,
+            completed_operations: completed,
+            cancelled_operations: 0,
+        })
+    }
+
+    fn export_state(
+        &mut self,
+        _: TransitionStateContract<'_>,
+        _: &mut [u8],
+    ) -> Result<usize, Id<'static>> {
+        Err(Id("http/state-unsupported"))
+    }
+
+    fn import_state(
+        &mut self,
+        _: TransitionStateContract<'_>,
+        _: &[u8],
+    ) -> Result<usize, Id<'static>> {
+        Err(Id("http/state-unsupported"))
+    }
+
+    fn accept_replayed_value(&mut self, _: u64, _: &[u8], _: bool) -> Result<(), Id<'static>> {
+        Err(Id("http/replay-unsupported"))
+    }
+
+    fn retire(&mut self) -> Result<(), Id<'static>> {
+        let remaining = self
+            .state
+            .borrow_mut()
+            .backend
+            .finish_shutdown()
+            .map_err(|_| Id("http/retire-failed"))?;
+        if remaining == 0 {
+            Ok(())
+        } else {
+            Err(Id("http/retire-undrained"))
+        }
+    }
+
+    fn abort_candidate(&mut self) -> Result<(), Id<'static>> {
+        let mut state = self.state.borrow_mut();
+        if state.prepared {
+            state
+                .backend
+                .shutdown()
+                .map_err(|_| Id("http/abort-failed"))?;
+            state.prepared = false;
+        }
+        Ok(())
+    }
+
+    fn restore_old(&mut self) -> Result<(), Id<'static>> {
+        self.state
+            .borrow_mut()
+            .backend
+            .restore_admission()
+            .map_err(|_| Id("http/restore-failed"))
+    }
+}
+
 impl HttpServingBackend for InMemoryHttpServingBackend {
     type Connection = u64;
     type Error = HttpReason;
@@ -1170,6 +1459,7 @@ impl HttpServingBackend for InMemoryHttpServingBackend {
             trusted_proxy: service.trusted_proxy,
             limits: service.limits,
         });
+        self.accepting = true;
         self.record(None, HttpEvidenceKind::Bound, None);
         Ok(())
     }

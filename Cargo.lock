@@ -457,6 +457,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-embedded",
+ "conduit-http",
  "conduit-package",
  "conduit-panel",
  "conduit-rp2040-hil",

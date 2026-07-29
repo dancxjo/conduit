@@ -34,6 +34,7 @@ mod runtime_evidence;
 mod scheduler;
 mod source_lowering;
 mod supervision;
+mod transition;
 mod transport;
 mod type_registry;
 
@@ -60,8 +61,8 @@ pub use evidence_ndjson::{
 pub use host_resolution::{
     CandidateAuthority, CandidateRejection, CandidateRejectionReason, CapabilityPredicate,
     HostResolverPolicy, PlacementCandidate, PlacementRequest, PlanSealingReason, ResolutionFailure,
-    ResolvedPlacement, ResolvedPlacementBinding, ResolverTiePolicy, ResourcePredicate,
-    TopologyPredicate, resolve_host_placement, seal_resolved_execution_plan,
+    ResolvedPlacement, ResolvedPlacementBinding, ResolvedReplacementSupport, ResolverTiePolicy,
+    ResourcePredicate, TopologyPredicate, resolve_host_placement, seal_resolved_execution_plan,
 };
 pub use implementation_binding::{
     ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,
@@ -92,6 +93,12 @@ pub use source_lowering::{
     lower_source_v2, lower_source_v3, lower_source_version, migrate_lowered_source_v1,
 };
 pub use supervision::BoundedSupervisionRuntime;
+pub use transition::{
+    HostedDrainObservation, HostedGenerationBinding, HostedTransitionAdmission,
+    HostedTransitionAdmissionError, HostedTransitionError, HostedTransitionGeneration,
+    HostedTransitionReservation, HostedTransitionTransaction, RetainedReplayItem,
+    RetainedReplayProvider, StableBoundaryRouter, admit_hosted_transition,
+};
 pub use transport::{
     CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_FIXED_BYTES,
     DISTRIBUTED_ENVELOPE_VERSION, DecodedDistributedEnvelope, ResolvedTransportSelection,

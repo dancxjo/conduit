@@ -18,7 +18,7 @@ use conduit_http::{
     ViewProjectionBinding, match_route, resolve_asset, validate_certificate_window,
     validate_http_selection, validate_http_transition, validate_view_projection,
 };
-use conduit_runtime::ResolvedPlacementBinding;
+use conduit_runtime::{ResolvedPlacementBinding, ResolvedReplacementSupport};
 use rcgen::generate_simple_self_signed;
 use rustls::pki_types::ServerName;
 use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
@@ -164,6 +164,7 @@ fn placement(service: &ResolvedHttpService<'_>) -> ResolvedPlacementBinding {
         semantic_contract: service.service.semantic_hash,
         implementation_id: service.backend.id.as_str().to_owned(),
         implementation_identity: service.backend.semantic_hash,
+        replacement: ResolvedReplacementSupport::Cold,
         host: "host/linux".to_owned(),
         report_id: "report/linux".to_owned(),
         report_identity: hash(9),

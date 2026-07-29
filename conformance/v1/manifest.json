@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 44,
+  "manifest_revision": 45,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -4598,6 +4598,88 @@
       "reference_tests": [
         {"package": "conduit-runtime", "test": "adversarial_containment"},
         {"package": "conduit-embedded", "test": "adversarial_containment"}
+      ]
+    },
+    {
+      "id": "live-plan-transitions",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "TRN-001", "TRN-002", "TRN-003", "TRN-004", "TRN-005",
+        "TRN-006", "TRN-007", "TRN-008", "TRN-009", "TRN-010",
+        "TRN-011", "TRN-012", "TRN-013", "TRN-014", "TRN-015",
+        "TRN-016", "TRN-017", "TRN-018", "TRN-019", "TRN-020"
+      ],
+      "artifacts": [{
+        "id": "plan-transitions-v1",
+        "path": "../c5/plan-transitions-v1.json",
+        "sha256": "sha256:8b053c7ba35028478414d6dd628a7690292a0b6c6f532b252c427630de221302",
+        "operation": "live-plan-transitions-v1",
+        "requirement_ids": [
+          "TRN-001", "TRN-002", "TRN-003", "TRN-004", "TRN-005",
+          "TRN-006", "TRN-007", "TRN-008", "TRN-009", "TRN-010",
+          "TRN-011", "TRN-012", "TRN-013", "TRN-014", "TRN-015",
+          "TRN-016", "TRN-017", "TRN-018", "TRN-019", "TRN-020"
+        ],
+        "default_rule": "TRN-012",
+        "case_rules": {
+          "immutable-plan-epochs": "TRN-001",
+          "cold-replacement-no-private-state": "TRN-003",
+          "stateful-incompatible-transfer": "TRN-003",
+          "output-full-input-in-flight": "TRN-014",
+          "https-to-http-rejected": "TRN-004",
+          "transition-evidence-replay-equivalence": "TRN-018",
+          "tongues-tts-utterance-boundary": "TRN-019",
+          "tongues-asr-segment-state-replay": "TRN-019",
+          "http-request-generation-drain": "TRN-019",
+          "self-authorized-successor-rejected": "TRN-007",
+          "persistent-budget-status-stale": "TRN-009",
+          "toxic-generation-overlap-rejected": "TRN-010",
+          "inhibit-missing-or-stale-rejected": "TRN-011",
+          "replicated-pool-generation-overlap": "TRN-020",
+          "exclusive-resource-handoff": "TRN-008"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["requirements"]
+      }],
+      "coverage": {
+        "positive": [
+          "plan-transitions-v1#stateful-compatible-transfer",
+          "plan-transitions-v1#permitted-quality-degradation",
+          "plan-transitions-v1#tongues-tts-utterance-boundary",
+          "plan-transitions-v1#tongues-asr-segment-state-replay",
+          "plan-transitions-v1#http-request-generation-drain",
+          "plan-transitions-v1#replicated-pool-generation-overlap"
+        ],
+        "negative": [
+          "plan-transitions-v1#stateful-incompatible-transfer",
+          "plan-transitions-v1#overlap-budget-exceeded",
+          "plan-transitions-v1#https-to-http-rejected",
+          "plan-transitions-v1#self-authorized-successor-rejected",
+          "plan-transitions-v1#persistent-budget-status-stale",
+          "plan-transitions-v1#toxic-generation-overlap-rejected",
+          "plan-transitions-v1#inhibit-missing-or-stale-rejected"
+        ],
+        "boundary": [
+          "plan-transitions-v1#output-full-input-in-flight",
+          "plan-transitions-v1#cooldown-hysteresis-attempt-limit",
+          "plan-transitions-v1#evidence-exhaustion-before-mutation",
+          "plan-transitions-v1#exclusive-resource-handoff"
+        ],
+        "migration": [
+          "plan-transitions-v1#candidate-prepare-failure-rollback",
+          "plan-transitions-v1#old-generation-failure-rollback",
+          "plan-transitions-v1#host-report-freshness-loss",
+          "plan-transitions-v1#transition-evidence-replay-equivalence",
+          "plan-transitions-v1#replicated-pool-generation-rollback"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "transition_vectors"},
+        {"package": "conduit-runtime", "test": "transition_runtime"},
+        {"package": "conduit-runtime", "test": "replicated_pool_vectors"},
+        {"package": "conduit-runtime", "test": "host_resolution"}
       ]
     }
   ]
