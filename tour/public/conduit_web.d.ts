@@ -2,6 +2,11 @@
 /* eslint-disable */
 
 /**
+ * Returns the production resolver's logical and expanded projections.
+ */
+export function explain_panel(source: string): string;
+
+/**
  * Returns a small JSON summary produced from `conduit_panel::parse` itself.
  */
 export function parse_panel(source: string): string;
@@ -27,6 +32,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly explain_panel: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];

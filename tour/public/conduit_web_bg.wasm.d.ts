@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const explain_panel: (a: number, b: number) => [number, number];
 export const parse_panel: (a: number, b: number) => [number, number];
 export const patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];

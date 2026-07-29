@@ -34,3 +34,18 @@ test("preserves a recoverable draft across reset", async ({ page }) => {
   await page.locator("#undo-reset").click();
   await expect(source).toHaveValue(/Recover me\./);
 });
+
+test("covers Chapters 0-2 and exposes production topology projections", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  await expect(page.locator("#lessons > li")).toHaveCount(14);
+  await page.getByRole("button", { name: "Inside / outside" }).click();
+  await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
+  await page.locator("#expanded-view").click();
+  await expect(page.locator("#topology")).toContainText(
+    "box.worker : conduit/uppercase",
+  );
+  await page.locator("#logical-view").click();
+  await expect(page.locator("#topology")).toContainText(
+    "composite box : example/upper-box",
+  );
+});

@@ -1,4 +1,5 @@
 import init, {
+  explain_panel,
   parse_panel,
   patchbay_move_node,
   patchbay_replace_source,
@@ -132,6 +133,7 @@ let selectedNode = null;
 let positions = {};
 let activeAdapter = null;
 let runEpoch = 0;
+let topologyView = "logical";
 const evidence = [];
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
@@ -187,7 +189,10 @@ function show(lesson) {
   acceptedSource = parsedDraft.ok ? source.value : lesson.source;
   selectedNode = null;
   positions = {};
+  topologyView = "logical";
   undoResetButton.disabled = localStorage.getItem(recoveryKey(lesson.id)) === null;
+  document.querySelector("#topology-inspector").open =
+    lesson.presentation.layout === "logical-expanded";
   evidence.length = 0;
   recordEvidence({ kind: "lesson-selected", lesson: lesson.id });
   renderPlan();
@@ -227,6 +232,22 @@ function check() {
     ? `Valid panel: ${value.nodes} nodes, ${value.cords} cords.`
     : value.diagnostic;
   renderPanel(value);
+  renderTopology();
+}
+
+function renderTopology() {
+  const explanation = JSON.parse(explain_panel(source.value));
+  document.querySelector("#logical-view").setAttribute(
+    "aria-pressed",
+    String(topologyView === "logical"),
+  );
+  document.querySelector("#expanded-view").setAttribute(
+    "aria-pressed",
+    String(topologyView === "expanded"),
+  );
+  document.querySelector("#topology").textContent = explanation.ok
+    ? explanation[topologyView]
+    : explanation.diagnostic;
 }
 
 for (const lesson of lessons.lessons) {
@@ -253,6 +274,14 @@ source.addEventListener("select", () => {
   }
 });
 document.querySelector("#check").onclick = check;
+document.querySelector("#logical-view").onclick = () => {
+  topologyView = "logical";
+  renderTopology();
+};
+document.querySelector("#expanded-view").onclick = () => {
+  topologyView = "expanded";
+  renderTopology();
+};
 
 function moveSelected(delta) {
   if (!selectedNode) return;

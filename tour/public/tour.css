@@ -78,7 +78,7 @@ textarea { width: 100%; resize: vertical; border: 1px solid #9dac9f; border-radi
 .button-row { display: flex; flex-wrap: wrap; gap: .5rem; }
 .primary-actions { margin: 1rem 0; }
 output { display: block; min-height: 4.5rem; padding: 1rem; white-space: pre-wrap; }
-.inspectors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+.inspectors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
 details { min-width: 0; padding: .75rem; }
 summary { cursor: pointer; font-weight: 700; }
 pre { max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: #263c31; }

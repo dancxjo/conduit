@@ -1,5 +1,24 @@
+use std::collections::BTreeSet;
+
 use conduit_runtime::{Registry, RunIo};
 use serde_json::Value;
+
+const REQUIRED_FOUNDATION_LESSONS: [&str; 14] = [
+    "welcome.hello-panel",
+    "welcome.pull-the-cord",
+    "welcome.change-message",
+    "welcome.nothing-up-our-sleeves",
+    "nodes.more-than-one-port",
+    "nodes.direction-matters",
+    "nodes.types-mean-promises",
+    "nodes.fan-out-is-a-choice",
+    "nodes.empty-is-not-never",
+    "panels.put-a-panel-in-a-panel",
+    "panels.jacks-on-the-front",
+    "panels.inside-outside",
+    "panels.reuse-without-copying",
+    "panels.tiny-instrument",
+];
 
 #[test]
 fn tour_lessons_use_the_production_parser_and_runtime() {
@@ -10,7 +29,30 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
     let lessons = manifest["lessons"]
         .as_array()
         .expect("Tour lesson manifest contains lessons");
-    assert!(!lessons.is_empty(), "Tour has at least one lesson");
+    let actual_ids = lessons
+        .iter()
+        .map(|lesson| lesson["id"].as_str().expect("lesson has an id"))
+        .collect::<BTreeSet<_>>();
+    let required_ids = REQUIRED_FOUNDATION_LESSONS
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        actual_ids, required_ids,
+        "Tour foundation contains every Chapter 0-2 lesson exactly once"
+    );
+    let browser_plan: Value =
+        serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
+            .expect("Tour browser plan is valid JSON");
+    assert_eq!(
+        browser_plan["schema"], "conduit.tour-browser-plan/v1",
+        "lessons consume the exact browser-host plan"
+    );
+    let maximum_message_bytes = browser_plan["bounds"]["maximum_message_bytes"]
+        .as_u64()
+        .expect("browser plan bounds message bytes");
+    let maximum_evidence_events = browser_plan["bounds"]["maximum_evidence_events"]
+        .as_u64()
+        .expect("browser plan bounds evidence");
 
     for lesson in lessons {
         let id = lesson["id"].as_str().expect("lesson has an id");
@@ -51,6 +93,31 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
         );
 
         let source = lesson["source"].as_str().expect("lesson has source");
+        assert!(
+            source.len() as u64 <= maximum_message_bytes,
+            "{id} fits the exact worker message bound"
+        );
+        assert!(
+            lesson["budgets"]["queue_bytes"]
+                .as_u64()
+                .is_some_and(|value| value <= maximum_message_bytes),
+            "{id} has a plan-visible queue budget"
+        );
+        assert!(
+            lesson["budgets"]["evidence_events"]
+                .as_u64()
+                .is_some_and(|value| value <= maximum_evidence_events),
+            "{id} has bounded evidence"
+        );
+        for prerequisite in lesson["prerequisites"]
+            .as_array()
+            .expect("prerequisites are an array")
+        {
+            assert!(
+                actual_ids.contains(prerequisite.as_str().expect("prerequisite is an id")),
+                "{id} names an existing prerequisite"
+            );
+        }
         let panel = conduit_panel::parse(source)
             .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
         let registry = Registry::default();

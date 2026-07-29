@@ -87,6 +87,34 @@ pub fn parse_panel(source: String) -> String {
     }
 }
 
+/// Returns the production resolver's logical and expanded projections.
+#[wasm_bindgen]
+pub fn explain_panel(source: String) -> String {
+    let panel = match conduit_panel::parse(&source) {
+        Ok(panel) => panel,
+        Err(error) => {
+            return serde_json::json!({
+                "ok": false,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+    };
+    match conduit_runtime::Registry::default().resolve(&panel) {
+        Ok(resolved) => serde_json::json!({
+            "ok": true,
+            "logical": resolved.explain_logical(),
+            "expanded": resolved.explain_expanded(),
+        })
+        .to_string(),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "diagnostic": error.to_string(),
+        })
+        .to_string(),
+    }
+}
+
 /// Executes the existing finite hosted proof runtime with bounded in-memory
 /// streams, returning only public stdout/stderr and the exact runtime result.
 #[wasm_bindgen]
@@ -124,7 +152,7 @@ pub fn run_panel(source: String) -> String {
 mod tests {
     use serde_json::Value;
 
-    use super::{patchbay_move_node, patchbay_replace_source};
+    use super::{explain_panel, patchbay_move_node, patchbay_replace_source};
 
     const SOURCE: &str = "panel 1\nnode greeting : conduit/literal { value = \"hello\\n\" }\nnode output : conduit/stdout\ncord greeting.out -> output.in\n";
 
@@ -151,5 +179,32 @@ mod tests {
         assert_eq!(changed["source_revision"], 1);
         assert_eq!(changed["presentation_revision"], 0);
         assert_ne!(changed["semantic_hash"], moved["semantic_hash"]);
+
+        let explained: Value = serde_json::from_str(&explain_panel(
+            "panel 1\n\
+             composite example/upper {\n\
+               node worker : conduit/uppercase\n\
+               export input in = worker.in\n\
+               export output out = worker.out\n\
+             }\n\
+             node source : conduit/literal { value = \"hello\" }\n\
+             node transform : example/upper\n\
+             node sink : conduit/stdout\n\
+             cord source.out -> transform.in\n\
+             cord transform.out -> sink.in\n"
+                .to_owned(),
+        ))
+        .expect("explanation JSON");
+        assert_eq!(explained["ok"], true);
+        assert!(
+            explained["logical"]
+                .as_str()
+                .is_some_and(|value| value.contains("composite transform : example/upper"))
+        );
+        assert!(
+            explained["expanded"]
+                .as_str()
+                .is_some_and(|value| value.contains("transform.worker : conduit/uppercase"))
+        );
     }
 }
