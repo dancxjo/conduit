@@ -348,11 +348,19 @@ async function run() {
     if (epoch !== runEpoch) return;
     if (!executed.ok) throw new Error(executed.code);
     const value = executed.value;
-    result.textContent = value.ok
+    const visibleResult = value.ok
       ? `${value.stdout || "Run completed."}\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
       : value.diagnostic;
+    const lessonComplete = current.validation.kind === "stdout"
+      ? value.ok && value.stdout === current.validation.value
+      : !value.ok && value.diagnostic.includes(current.validation.value);
+    result.textContent = lessonComplete
+      ? `✓ Lesson complete.\n${visibleResult}`
+      : visibleResult;
     recordEvidence({
-      kind: value.ok ? "run-completed" : "run-rejected",
+      kind: lessonComplete
+        ? "lesson-completed"
+        : (value.ok ? "run-completed" : "run-rejected"),
       lesson: current.id,
       completedNodes: value.completed_nodes,
       cordsConducted: value.cords_conducted,

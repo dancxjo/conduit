@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 
@@ -52,4 +53,11 @@ plan = {
         "maximum_evidence_events": 32,
     },
 }
-OUTPUT.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+rendered = json.dumps(plan, indent=2) + "\n"
+if sys.argv[1:] == ["--check"]:
+    if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != rendered:
+        raise SystemExit("tour/public/browser-plan.json is stale; run tour/build-wasm.sh")
+elif sys.argv[1:]:
+    raise SystemExit("usage: generate-browser-plan.py [--check]")
+else:
+    OUTPUT.write_text(rendered, encoding="utf-8")
