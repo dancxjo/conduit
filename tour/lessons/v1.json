@@ -116,6 +116,25 @@
       "hints": ["The output node contract accepts more than one connection.", "Each cord declares its own finite capacity and pressure rule."],
       "solution": "Keep two explicit cords from greeting.out, one to each sink input.",
       "accessibility": {"non_audio": "Both delivered values appear as text output.", "reduced_motion": true}
+    },
+    {
+      "id": "panels.put-a-panel-in-a-panel",
+      "chapter": 2,
+      "title": "Put a panel in a panel",
+      "prerequisites": ["nodes.direction-matters"],
+      "objective": "Use a composite boundary as an ordinary typed transform node.",
+      "prose": "The composite exports only the ports it chooses. Its internal uppercase worker remains an implementation detail while the boundary remains substitutable for a primitive node.",
+      "vocabulary": ["composite", "export", "boundary", "substitution"],
+      "source": "panel 1\n\ncomposite example/uppercase {\n    node worker : conduit/uppercase\n    export input in = worker.in\n    export output out = worker.out\n}\n\nnode source : conduit/literal {\n    value = \"boundary\"\n}\nnode transform : example/uppercase\nnode sink : conduit/stdout\n\ncord source.out -> transform.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord transform.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "expected_stdout": "BOUNDARY",
+      "profile": "browser-local-deterministic",
+      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "stdout", "value": "BOUNDARY"},
+      "hints": ["The composite has an input export and an output export.", "The top-level cords connect to the composite boundary, not directly to worker."],
+      "solution": "Keep the worker behind exported in/out ports, then connect the literal to transform and transform to the sink.",
+      "accessibility": {"non_audio": "The uppercase transformation is visible as text output and source structure.", "reduced_motion": true}
     }
   ]
 }
