@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 38,
+  "manifest_revision": 39,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -4140,6 +4140,79 @@
         {"package": "conduit-core", "test": "hazard_closure_vectors"},
         {"package": "conduit-compile", "test": "compile_vectors"},
         {"package": "conduct", "test": "compile_cli"}
+      ]
+    },
+    {
+      "id": "adversarial-containment",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "ADC-001", "ADC-002", "ADC-003", "ADC-004", "ADC-005", "ADC-006",
+        "ADC-007", "ADC-008", "ADC-009", "ADC-010", "ADC-011", "ADC-012"
+      ],
+      "artifacts": [{
+        "id": "adversarial-containment-v1",
+        "path": "../c5/adversarial-containment-v1.json",
+        "sha256": "sha256:f547c98ab17396a2e0a250eea1c4bca9ca660fa172803a3736c0ee12fe8e4b6d",
+        "operation": "adversarial-containment-v1",
+        "requirement_ids": [
+          "ADC-001", "ADC-002", "ADC-003", "ADC-004", "ADC-005", "ADC-006",
+          "ADC-007", "ADC-008", "ADC-009", "ADC-010", "ADC-011", "ADC-012"
+        ],
+        "default_rule": "ADC-002",
+        "case_rules": {
+          "self-grant-and-successor": "ADC-004",
+          "cyclic-cross-plan-member-approval": "ADC-004",
+          "recursive-enrollment-sybil-churn": "ADC-005",
+          "discover-enroll-install-execute-redelegate": "ADC-006",
+          "budget-reset-across-lifecycle": "ADC-005",
+          "concurrent-replay-double-spend": "ADC-005",
+          "authenticated-but-wrong-authority": "ADC-006",
+          "compromised-member-and-online-signer": "ADC-006",
+          "federation-laundering": "ADC-007",
+          "public-browser-administration-escalation": "ADC-007",
+          "evidence-exhaustion-before-effect": "ADC-008",
+          "recovery-flapping": "ADC-003",
+          "stale-partition-clock-confusion": "ADC-008",
+          "implementation-and-graph-downgrade": "ADC-009",
+          "old-hazardous-command-after-transition": "ADC-009",
+          "self-clear-by-inhibiting-plan": "ADC-009",
+          "malicious-implementation-exceeds-profile": "ADC-009"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "adversarial-containment-v1#discover-enroll-install-execute-redelegate",
+          "adversarial-containment-v1#compromised-member-and-online-signer"
+        ],
+        "negative": [
+          "adversarial-containment-v1#self-grant-and-successor",
+          "adversarial-containment-v1#cyclic-cross-plan-member-approval",
+          "adversarial-containment-v1#recursive-enrollment-sybil-churn",
+          "adversarial-containment-v1#concurrent-replay-double-spend",
+          "adversarial-containment-v1#authenticated-but-wrong-authority",
+          "adversarial-containment-v1#federation-laundering",
+          "adversarial-containment-v1#public-browser-administration-escalation",
+          "adversarial-containment-v1#self-clear-by-inhibiting-plan",
+          "adversarial-containment-v1#malicious-implementation-exceeds-profile"
+        ],
+        "boundary": [
+          "adversarial-containment-v1#evidence-exhaustion-before-effect",
+          "adversarial-containment-v1#stale-partition-clock-confusion"
+        ],
+        "migration": [
+          "adversarial-containment-v1#budget-reset-across-lifecycle",
+          "adversarial-containment-v1#recovery-flapping",
+          "adversarial-containment-v1#implementation-and-graph-downgrade",
+          "adversarial-containment-v1#old-hazardous-command-after-transition"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-runtime", "test": "adversarial_containment"},
+        {"package": "conduit-embedded", "test": "adversarial_containment"}
       ]
     }
   ]

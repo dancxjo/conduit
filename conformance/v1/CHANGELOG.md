@@ -1,5 +1,13 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 39 — 2026-07-29
+
+- Added the `adversarial-containment` C5 suite for issue #98.
+- Added 17 independently dispatched, multi-step valid-composition attacks and
+  a reproducible fixed-seed campaign.
+- Added an allocator-free constrained subset and explicit unsupported
+  physical-HIL reporting; unsupported is not high-assurance evidence.
+
 ## Manifest revision 38 — 2026-07-29
 
 - Registered 29 independently dispatched inhibit-plane cases for fresh exact

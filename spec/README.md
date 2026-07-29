@@ -180,6 +180,10 @@ containment program is tracked by
 - [`046-standard-node-library-v1.md`](046-standard-node-library-v1.md) defines
   bounded standard node families, non-escalating retry, and narrow exact-bound
   host-service shapes while leaving safety-program policy seams unresolved.
+- [`047-adversarial-containment-conformance-v1.md`](047-adversarial-containment-conformance-v1.md)
+  defines deterministic valid-composition attacks, per-step global
+  containment checks, reproducible campaigns, and honest hosted,
+  constrained, and physical-HIL claim boundaries.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

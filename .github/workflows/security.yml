@@ -9,6 +9,19 @@ permissions:
   contents: read
 
 jobs:
+  adversarial-containment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run reproducible multi-step containment campaign
+        env:
+          CONDUIT_ADVERSARIAL_SEED: "1380991557"
+          CONDUIT_ADVERSARIAL_TRACES: "4096"
+        run: >-
+          cargo test -p conduit-runtime --test adversarial_containment
+          scheduled_seeded_campaign -- --ignored --exact --nocapture
+
   dependency-policy:
     runs-on: ubuntu-latest
     steps:

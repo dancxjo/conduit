@@ -1,0 +1,166 @@
+{
+  "suite": "conduit.adversarial-containment/v1",
+  "seed": 1380991557,
+  "maximum_steps_per_trace": 32,
+  "claim_boundary": "Deterministic model and production-validator composition only; not proof of arbitrary software, deployed isolation, or physical safety.",
+  "profiles": {
+    "hosted": "executed",
+    "constrained": "normalized-subset",
+    "physical_hil": "unsupported-no-profile-implementation"
+  },
+  "cases": [
+    {
+      "id": "self-grant-and-successor",
+      "initial": "one bounded member, no administrative expansion",
+      "attacker_capabilities": ["ordinary-plan", "proposal"],
+      "operations": ["self-approve grant", "activate self-approved successor"],
+      "expected_rejection_step": "successor-activation",
+      "expected": {"accepted": false, "reason": "CND-CTN-015", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "cyclic-cross-plan-member-approval",
+      "initial": "two non-administrative plans",
+      "attacker_capabilities": ["proposal-a", "proposal-b"],
+      "operations": ["a approves b", "b approves a"],
+      "expected_rejection_step": "support-closure",
+      "expected": {"accepted": false, "reason": "CND-CTN-016", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "recursive-enrollment-sybil-churn",
+      "initial": "one member, one remaining lifetime enrollment unit",
+      "attacker_capabilities": ["enroll-request", "new-epoch"],
+      "operations": ["commit one enrollment", "retry as cloned identity"],
+      "expected_rejection_step": "second-budget-reservation",
+      "expected": {"accepted": false, "reason": "CND-PBG-008", "mutation": false},
+      "final_state": {"authority":1,"population":2,"installed":0,"federations":0,"budget_lifetime":1,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "discover-enroll-install-execute-redelegate",
+      "initial": "reachable host, one enrollment unit, no install authority",
+      "attacker_capabilities": ["discovery", "signed-artifact", "membership"],
+      "operations": ["discover", "enroll", "verify artifact", "install", "execute", "redelegate"],
+      "expected_rejection_step": "install-authority",
+      "expected": {"accepted": false, "reason": "CND-RLM-009", "mutation": false},
+      "final_state": {"authority":1,"population":2,"installed":0,"federations":0,"budget_lifetime":1,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "budget-reset-across-lifecycle",
+      "initial": "one lifetime unit",
+      "attacker_capabilities": ["reboot", "rollback", "new-run", "new-epoch", "new-realm"],
+      "operations": ["consume unit", "recover exact checkpoint", "request another unit"],
+      "expected_rejection_step": "post-recovery-reservation",
+      "expected": {"accepted": false, "reason": "CND-PBG-008", "mutation": false},
+      "final_state": {"authority":1,"population":2,"installed":0,"federations":0,"budget_lifetime":1,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "concurrent-replay-double-spend",
+      "initial": "one available unit",
+      "attacker_capabilities": ["two-hosts", "retry", "reconnect"],
+      "operations": ["reserve host a", "reserve host b before commit"],
+      "expected_rejection_step": "competing-reservation",
+      "expected": {"accepted": false, "reason": "CND-PBG-008", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":1,"inhibit":"inhibited"}
+    },
+    {
+      "id": "authenticated-but-wrong-authority",
+      "initial": "valid membership and carrier authentication",
+      "attacker_capabilities": ["passport", "mtls", "signature"],
+      "operations": ["request administrative effect without exact binding"],
+      "expected_rejection_step": "authority-at-use",
+      "expected": {"accepted": false, "reason": "CND-RLM-009", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "compromised-member-and-online-signer",
+      "initial": "valid signed artifact and compromised member",
+      "attacker_capabilities": ["member-key", "trusted-signer"],
+      "operations": ["verify signed artifact", "attempt install without independent approval"],
+      "expected_rejection_step": "install-authority",
+      "expected": {"accepted": false, "reason": "CND-RLM-009", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "federation-laundering",
+      "initial": "one directional event-only federation",
+      "attacker_capabilities": ["remote-membership", "allowed-event-stream"],
+      "operations": ["reverse direction", "request transitive admission"],
+      "expected_rejection_step": "federation-direction",
+      "expected": {"accepted": false, "reason": "CND-RLM-007", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "public-browser-administration-escalation",
+      "initial": "quarantined public browser member",
+      "attacker_capabilities": ["public-observation", "proposal"],
+      "operations": ["attach administrative grant", "validate quarantine"],
+      "expected_rejection_step": "quarantine-validation",
+      "expected": {"accepted": false, "reason": "CND-GEN-008", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "evidence-exhaustion-before-effect",
+      "initial": "one evidence slot and one budget unit",
+      "attacker_capabilities": ["reserve"],
+      "operations": ["record reservation", "commit consequential effect"],
+      "expected_rejection_step": "effect-commit",
+      "expected": {"accepted": false, "reason": "CND-PBG-015", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":1,"inhibit":"inhibited"}
+    },
+    {
+      "id": "recovery-flapping",
+      "initial": "narrow recovery scope",
+      "attacker_capabilities": ["retry-recovery"],
+      "operations": ["alternate failure and recovery", "request widened fallback"],
+      "expected_rejection_step": "recovery-scope",
+      "expected": {"accepted": false, "reason": "CND-CTN-023", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "stale-partition-clock-confusion",
+      "initial": "fresh persistent-budget status",
+      "attacker_capabilities": ["partition", "stale-status", "alternate-clock"],
+      "operations": ["advance to validity boundary", "request effect"],
+      "expected_rejection_step": "freshness-validation",
+      "expected": {"accepted": false, "reason": "CND-PBG-006", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "implementation-and-graph-downgrade",
+      "initial": "high-assurance hazardous profile",
+      "attacker_capabilities": ["replacement-manifest", "graph-edit"],
+      "operations": ["replace confined implementation with unconfined native"],
+      "expected_rejection_step": "host-binding-validation",
+      "expected": {"accepted": false, "reason": "CND-INH-006", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "old-hazardous-command-after-transition",
+      "initial": "inhibited host after plan transition",
+      "attacker_capabilities": ["old-command", "reconnect"],
+      "operations": ["replay old epoch command"],
+      "expected_rejection_step": "effect-boundary",
+      "expected": {"accepted": false, "reason": "CND-INH-012", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "self-clear-by-inhibiting-plan",
+      "initial": "latched inhibited host",
+      "attacker_capabilities": ["causing-plan", "remote-member"],
+      "operations": ["submit self-authored clear without physical receipt"],
+      "expected_rejection_step": "clear-ceremony",
+      "expected": {"accepted": false, "reason": "CND-INH-013", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    },
+    {
+      "id": "malicious-implementation-exceeds-profile",
+      "initial": "high-assurance profile requiring effect-boundary confinement",
+      "attacker_capabilities": ["native-process", "false-manifest-claim"],
+      "operations": ["claim confinement", "observe unconfined implementation", "attempt arm"],
+      "expected_rejection_step": "confinement-observation",
+      "expected": {"accepted": false, "reason": "CND-INH-006", "mutation": false},
+      "final_state": {"authority":1,"population":1,"installed":0,"federations":0,"budget_lifetime":0,"budget_reserved":0,"inhibit":"inhibited"}
+    }
+  ]
+}
