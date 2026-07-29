@@ -93,6 +93,10 @@ The current documents are candidates, not a claim of ecosystem stability:
 - [`025-resonance-event-streams-v1.md`](025-resonance-event-streams-v1.md)
   freezes compatible typed event envelopes, plan-v5 retention/provider
   identity, bounded subscription/replay, gaps, crash recovery, and projections.
+- [`026-durable-jobs-checkpoints-v1.md`](026-durable-jobs-checkpoints-v1.md)
+  freezes plan-v6 finite attempts/leases, Resonance-backed durable progress,
+  explicit effect commit and domain acceptance, integrity-protected
+  checkpoints, exact resume, and explicit migration.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

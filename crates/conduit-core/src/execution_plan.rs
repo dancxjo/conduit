@@ -5,25 +5,28 @@ use core::fmt;
 
 use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
-    AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue, Direction,
-    DuplicationRule, EffectRequirement, EventProviderCapabilities, EventStreamContract,
-    ExecutionProfile, FanOutMode, FieldDisposition, FlowPolicy, GrantStatus, HostCapability, Id,
-    InstancePath, MapField, MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel,
-    Pressure, ResolvedAuthorityBinding, RetentionPolicy, SemanticHash, SubscriberCoupling,
-    TypeContractRef, validate_authority_at_use, validate_plan_execution_profile,
+    AuthorityGrant, AuthorityTime, CanonicalDescriptor, CanonicalError, CanonicalValue,
+    CheckpointProviderCapabilities, Direction, DuplicationRule, EffectRequirement,
+    EventProviderCapabilities, EventStreamContract, ExecutionProfile, FanOutMode, FieldDisposition,
+    FlowPolicy, GrantStatus, HostCapability, Id, InstancePath, JobContract, MapField,
+    MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, Pressure,
+    ResolvedAuthorityBinding, RetentionPolicy, SemanticHash, SubscriberCoupling, TypeContractRef,
+    validate_authority_at_use, validate_job_contract, validate_plan_execution_profile,
     validate_stream_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
 ///
 /// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
-/// exact implementation execution profile per primitive node. Earlier schemas
-/// remain readable with their frozen identities and validation behavior.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 5;
+/// exact implementation execution profile per primitive node. Schema 4 adds
+/// structural flow, schema 5 adds Resonance streams, and schema 6 adds durable
+/// jobs. Earlier schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 6;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V4: u32 = 4;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V5: u32 = 5;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -224,6 +227,17 @@ pub struct PlanEventStream<'a> {
     pub allocation: PlanResourceBudget,
 }
 
+/// One finite durable job with its owner, checkpoint provider, and exact
+/// non-stream allocation. Its immutable progress stream is a separate
+/// `PlanEventStream` referenced by the contract.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanJob<'a> {
+    pub owner: InstancePath<'a>,
+    pub contract: JobContract<'a>,
+    pub checkpoint_provider_capabilities: Option<CheckpointProviderCapabilities>,
+    pub allocation: PlanResourceBudget,
+}
+
 /// Exact authority material used by one selected node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanAuthority<'a> {
@@ -346,6 +360,8 @@ pub struct ExecutionPlan<'a> {
     pub merges: &'a [PlanMerge<'a>],
     /// Resonance stream facts introduced in schema 5.
     pub event_streams: &'a [PlanEventStream<'a>],
+    /// Durable finite-job facts introduced in schema 6.
+    pub jobs: &'a [PlanJob<'a>],
     pub authorities: &'a [PlanAuthority<'a>],
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
@@ -372,6 +388,7 @@ pub enum PlanCollection {
     FanOuts,
     Merges,
     EventStreams,
+    Jobs,
     Authorities,
     Composites,
     PortGroups,
@@ -399,6 +416,7 @@ pub enum PlanDiagnosticCode {
     DuplicationUnauthorized,
     StructuralOrderingInvalid,
     EventStreamInvalid,
+    JobInvalid,
     ScratchTooSmall,
 }
 
@@ -423,6 +441,7 @@ impl PlanDiagnosticCode {
             Self::DuplicationUnauthorized => "CND-STR-004",
             Self::StructuralOrderingInvalid => "CND-STR-005",
             Self::EventStreamInvalid => "CND-RSN-003",
+            Self::JobInvalid => "CND-JOB-016",
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -473,6 +492,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.fanouts.len()))
             .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.event_streams.len()))
+            .and_then(|value| value.checked_add(self.jobs.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
             .and_then(|value| value.checked_add(self.unresolved.len()))
             .ok_or(PlanIdentityError::FactCountOverflow)?;
@@ -590,6 +610,9 @@ impl ExecutionPlan<'_> {
         }
         for stream in self.event_streams {
             push!(hash_event_stream(*stream));
+        }
+        for job in self.jobs {
+            push!(hash_job(*job));
         }
         for value in self.authorities {
             push!(hash_authority(*value));
@@ -1187,6 +1210,54 @@ pub fn validate_execution_plan(
         })?;
     }
 
+    if plan.schema_version < 6 && !plan.jobs.is_empty() {
+        return Err(error(
+            PlanDiagnosticCode::JobInvalid,
+            PlanCollection::Header,
+            None,
+        ));
+    }
+    for (index, job) in plan.jobs.iter().enumerate() {
+        let Some(stream) = plan
+            .event_streams
+            .iter()
+            .find(|stream| stream.contract.id == job.contract.evidence_stream)
+        else {
+            return Err(indexed(
+                PlanDiagnosticCode::JobInvalid,
+                PlanCollection::Jobs,
+                index,
+            ));
+        };
+        if !valid_path(job.owner)
+            || !plan.nodes.iter().any(|node| node.instance == job.owner)
+            || plan.jobs[..index]
+                .iter()
+                .any(|prior| prior.contract.id == job.contract.id)
+            || validate_job_contract(
+                job.contract,
+                job.checkpoint_provider_capabilities,
+                stream.contract,
+                stream.provider_capabilities,
+            )
+            .is_err()
+            || !job_allocation_valid(*job)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::JobInvalid,
+                PlanCollection::Jobs,
+                index,
+            ));
+        }
+        allocated = allocated.checked_add(job.allocation).ok_or_else(|| {
+            indexed(
+                PlanDiagnosticCode::BudgetExceeded,
+                PlanCollection::Jobs,
+                index,
+            )
+        })?;
+    }
+
     for (index, authority) in plan.authorities.iter().enumerate() {
         let Some(node) = plan
             .nodes
@@ -1433,6 +1504,25 @@ fn event_stream_allocation_valid(stream: PlanEventStream<'_>) -> bool {
     };
     storage_valid
         && (!stream.contract.terminal_evidence_required || stream.allocation.evidence_bytes > 0)
+}
+
+fn job_allocation_valid(job: PlanJob<'_>) -> bool {
+    let timers_valid = job.allocation.timers >= 2;
+    match job.contract.checkpoint_provider {
+        None => {
+            timers_valid && job.allocation.checkpoints == 0 && job.allocation.storage_bytes == 0
+        }
+        Some(_) => {
+            let retained = job
+                .contract
+                .maximum_checkpoint_bytes
+                .checked_mul(u64::from(job.contract.maximum_checkpoints));
+            timers_valid
+                && retained.is_some_and(|bytes| job.allocation.storage_bytes >= bytes)
+                && job.allocation.memory_bytes >= job.contract.maximum_checkpoint_bytes
+                && job.allocation.checkpoints >= job.contract.maximum_checkpoints
+        }
+    }
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
@@ -1976,6 +2066,71 @@ fn hash_event_stream(
             semantic(
                 "provider_maximum_pending_operations",
                 CanonicalValue::Integer(i128::from(capabilities.maximum_pending_operations)),
+            ),
+            semantic(
+                "allocation_hash",
+                CanonicalValue::Bytes(allocation_hash.as_bytes()),
+            ),
+        ],
+    )
+}
+
+fn hash_job(value: PlanJob<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let contract_hash = value.contract.semantic_hash()?;
+    let allocation_hash = descriptor_hash(
+        Id("conduit/job-allocation-v1"),
+        &budget_fields(value.allocation),
+    )?;
+    let capabilities = value.checkpoint_provider_capabilities;
+    descriptor_hash(
+        Id("conduit/plan-job-v1"),
+        &[
+            semantic("owner", CanonicalValue::Text(value.owner.as_str())),
+            semantic(
+                "contract_hash",
+                CanonicalValue::Bytes(contract_hash.as_bytes()),
+            ),
+            semantic(
+                "checkpoint_provider_durable",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Boolean(capability.durable)
+                }),
+            ),
+            semantic(
+                "checkpoint_provider_integrity",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Boolean(capability.integrity)
+                }),
+            ),
+            semantic(
+                "checkpoint_provider_migration",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Boolean(capability.migration)
+                }),
+            ),
+            semantic(
+                "checkpoint_provider_maximum_checkpoints",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Integer(i128::from(capability.maximum_checkpoints))
+                }),
+            ),
+            semantic(
+                "checkpoint_provider_maximum_checkpoint_bytes",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Integer(i128::from(capability.maximum_checkpoint_bytes))
+                }),
+            ),
+            semantic(
+                "checkpoint_provider_maximum_state_references",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Integer(i128::from(capability.maximum_state_references))
+                }),
+            ),
+            semantic(
+                "checkpoint_provider_maximum_pending_operations",
+                capabilities.map_or(CanonicalValue::Null, |capability| {
+                    CanonicalValue::Integer(i128::from(capability.maximum_pending_operations))
+                }),
             ),
             semantic(
                 "allocation_hash",

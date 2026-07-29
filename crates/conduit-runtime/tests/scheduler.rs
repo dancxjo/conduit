@@ -219,6 +219,7 @@ fn with_plan(
         fanouts: &[],
         merges: &[],
         event_streams: &[],
+        jobs: &[],
         authorities: &[],
         composites: &[],
         port_groups: &[],

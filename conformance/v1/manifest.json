@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 13,
+  "manifest_revision": 14,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -2106,6 +2106,144 @@
         {
           "package": "conduit-core",
           "test": "evidence_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "execution_plan_vectors"
+        }
+      ]
+    },
+    {
+      "id": "durable-job",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "JOB-001",
+        "JOB-002",
+        "JOB-003",
+        "JOB-004",
+        "JOB-005",
+        "JOB-006",
+        "JOB-007",
+        "JOB-008",
+        "JOB-009",
+        "JOB-010",
+        "JOB-011",
+        "JOB-012"
+      ],
+      "artifacts": [
+        {
+          "id": "durable-job-v1",
+          "path": "../c4/durable-job-v1.json",
+          "sha256": "sha256:67c223039c924493e0dde2def225962ed186007ddec60dc6a9e51944d62a9034",
+          "operation": "durable-job-v1",
+          "requirement_ids": [
+            "JOB-001",
+            "JOB-002",
+            "JOB-003",
+            "JOB-004",
+            "JOB-005",
+            "JOB-006",
+            "JOB-007",
+            "JOB-008",
+            "JOB-009",
+            "JOB-010",
+            "JOB-011",
+            "JOB-012"
+          ],
+          "default_rule": "JOB-001",
+          "case_rules": {
+            "distinct-durable-identities": "JOB-001",
+            "distinct-work-lease": "JOB-001",
+            "at-most-once-boundary": "JOB-006",
+            "at-least-once-boundary": "JOB-006",
+            "exactly-once-without-transaction-rejected": "JOB-006",
+            "transactional-claim-requires-acknowledgement": "JOB-006",
+            "crash-before-commit": "JOB-004",
+            "crash-after-commit": "JOB-005",
+            "crash-before-event-append": "JOB-002",
+            "crash-after-event-append": "JOB-002",
+            "crash-before-checkpoint-commit": "JOB-010",
+            "crash-after-checkpoint-commit": "JOB-010",
+            "lost-acknowledgement-after-commit": "JOB-005",
+            "duplicate-retry": "JOB-005",
+            "finite-retry-backoff-deadline": "JOB-003",
+            "checkpoint-integrity-failure": "JOB-007",
+            "duplicate-checkpoint-state-rejected": "JOB-007",
+            "partial-checkpoint-rejected": "JOB-010",
+            "incompatible-plan": "JOB-008",
+            "incompatible-artifact": "JOB-008",
+            "incompatible-config": "JOB-008",
+            "incompatible-type-contract": "JOB-008",
+            "incompatible-stream-epoch": "JOB-008",
+            "incompatible-event-cursor": "JOB-008",
+            "explicit-migration": "JOB-008",
+            "source-offset-restoration": "JOB-009",
+            "queued-value-restoration": "JOB-009",
+            "cancellation-during-checkpoint": "JOB-003",
+            "cancellation-checkpoint-deadline": "JOB-003",
+            "expired-work-lease": "JOB-003",
+            "terminal-evidence-replay": "JOB-012",
+            "progress-resonance-binding": "JOB-002",
+            "progress-never-reaches-total-before-commit": "JOB-004",
+            "checkpoint-state-replacement-boundary": "JOB-011",
+            "executor-success-not-domain-acceptance": "JOB-002",
+            "domain-validation-quorum": "JOB-005",
+            "late-validation-remains-evidence": "JOB-002",
+            "non-checkpointable-restart-declared": "JOB-003",
+            "incapable-checkpoint-provider-rejected": "JOB-010",
+            "plan-v6-job-identity": "JOB-003",
+            "plan-v1-v5-identities-preserved": "JOB-011"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "durable-job-v1#crash-after-commit",
+          "durable-job-v1#explicit-migration",
+          "durable-job-v1#source-offset-restoration",
+          "durable-job-v1#domain-validation-quorum",
+          "durable-job-v1#plan-v6-job-identity"
+        ],
+        "negative": [
+          "durable-job-v1#checkpoint-integrity-failure",
+          "durable-job-v1#duplicate-checkpoint-state-rejected",
+          "durable-job-v1#incompatible-plan",
+          "durable-job-v1#exactly-once-without-transaction-rejected",
+          "durable-job-v1#partial-checkpoint-rejected",
+          "durable-job-v1#incapable-checkpoint-provider-rejected"
+        ],
+        "boundary": [
+          "durable-job-v1#crash-before-commit",
+          "durable-job-v1#crash-before-event-append",
+          "durable-job-v1#crash-before-checkpoint-commit",
+          "durable-job-v1#cancellation-during-checkpoint",
+          "durable-job-v1#expired-work-lease",
+          "durable-job-v1#lost-acknowledgement-after-commit",
+          "durable-job-v1#late-validation-remains-evidence"
+        ],
+        "migration": [
+          "durable-job-v1#explicit-migration",
+          "durable-job-v1#terminal-evidence-replay",
+          "durable-job-v1#checkpoint-state-replacement-boundary",
+          "durable-job-v1#plan-v1-v5-identities-preserved"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "job_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "evidence_vectors"
+        },
+        {
+          "package": "conduit-core",
+          "test": "resonance_vectors"
         },
         {
           "package": "conduit-core",

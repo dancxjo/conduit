@@ -1,17 +1,18 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
-    BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
-    EffectRequirement, EventClass, EventProviderCapabilities, EventStreamContract, ExecutionLimits,
-    ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowWatermarks,
-    GrantStatus, HostCapability, Id, InstancePath, MergeOrdering, MergeTerminalPolicy,
-    ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection,
-    PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut,
-    PlanHostObservation, PlanInstancePool, PlanMerge, PlanMergeInput, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
-    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
-    ResourceSelector, RetentionPolicy, SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling,
-    TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind, resolve_authority,
-    validate_execution_plan,
+    BoundednessProfile, CancellationCheckpointPolicy, CancellationGuarantee,
+    CheckpointProviderCapabilities, DelegationPolicy, DeliveryClaim, Direction, DuplicatePolicy,
+    DuplicationRule, EffectRequirement, EventClass, EventProviderCapabilities, EventStreamContract,
+    ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy,
+    FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, JobContract, MergeOrdering,
+    MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding,
+    PlanFanOut, PlanHostObservation, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
+    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanValidationContext, Pressure, ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, ResourceRef, ResourceSelector, RestartPolicy, RetentionPolicy, SemanticHash,
+    Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, resolve_authority, validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -62,7 +63,7 @@ fn time(tick: u64) -> AuthorityTime<'static> {
     }
 }
 
-fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
+fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
     let effect = EffectRequirement {
         id: Id("read"),
         action: Id("fixture/read"),
@@ -285,13 +286,14 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 32])) {
         fanouts: &[],
         merges: &[],
         event_streams: &[],
+        jobs: &[],
         authorities: &authorities,
         composites: &composites,
         port_groups: &groups,
         instance_pools: &pools,
         unresolved: &[],
     };
-    let mut scratch = [ZERO_HASH; 32];
+    let mut scratch = [ZERO_HASH; 64];
     plan.identity = plan.semantic_hash(&mut scratch).unwrap();
     test(plan, &mut scratch);
 }
@@ -886,6 +888,147 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             .unwrap_err()
             .code,
             PlanDiagnosticCode::EventStreamInvalid
+        );
+
+        let job_stream = PlanEventStream {
+            contract: EventStreamContract {
+                id: Id("stream/job-evidence"),
+                event_class: EventClass::NormativeEvidence,
+                retention: RetentionPolicy::DurableAppend {
+                    maximum_events: 32,
+                    maximum_bytes: 128,
+                    flush_ticks: 2,
+                },
+                subscriber_coupling: SubscriberCoupling::Isolated(cords[0].flow),
+                delivery: ReplayDelivery::AtLeastOnce,
+                maximum_publishers: 1,
+                maximum_subscribers: 1,
+                maximum_pending_operations: 2,
+                maximum_projection_bytes: 64,
+                provider: pin("provider/job-evidence", 82),
+                terminal_evidence_required: true,
+                ..stream.contract
+            },
+            provider_capabilities: EventProviderCapabilities {
+                ephemeral: false,
+                retained: true,
+                durable: true,
+                checkpoint_cursor: true,
+                integrity: true,
+                redaction: true,
+                maximum_events: 32,
+                maximum_bytes: 128,
+                maximum_subscribers: 1,
+                maximum_pending_operations: 2,
+            },
+            allocation: PlanResourceBudget {
+                storage_bytes: 128,
+                timers: 1,
+                evidence_bytes: 16,
+                ..PlanResourceBudget::ZERO
+            },
+            ..stream
+        };
+        let job = PlanJob {
+            owner: nodes[0].instance,
+            contract: JobContract {
+                id: Id("job-contract/reference"),
+                total_work_units: 10,
+                maximum_attempts: 3,
+                retry_backoff_ticks: 2,
+                attempt_deadline_ticks: 50,
+                maximum_checkpoints: 2,
+                maximum_checkpoint_bytes: 32,
+                maximum_checkpoint_state_refs: 4,
+                maximum_checkpoint_operations: 2,
+                lease_basis: Id("clock/monotonic"),
+                maximum_lease_renewals: 1,
+                delivery: DeliveryClaim::AtLeastOnce,
+                duplicate_policy: DuplicatePolicy::ReturnCommitted,
+                commit_boundary: pin("boundary/result-store", 83),
+                transactional_boundary: None,
+                checkpoint_provider: Some(pin("provider/checkpoints", 84)),
+                evidence_stream: job_stream.contract.id,
+                restart: RestartPolicy::ResumeRequired,
+                cancellation_checkpoint: CancellationCheckpointPolicy::FinalCheckpoint {
+                    maximum_ticks: 4,
+                },
+                result_validation: None,
+            },
+            checkpoint_provider_capabilities: Some(CheckpointProviderCapabilities {
+                durable: true,
+                integrity: true,
+                migration: true,
+                maximum_checkpoints: 2,
+                maximum_checkpoint_bytes: 32,
+                maximum_state_references: 4,
+                maximum_pending_operations: 2,
+            }),
+            allocation: PlanResourceBudget {
+                memory_bytes: 32,
+                storage_bytes: 64,
+                timers: 2,
+                checkpoints: 2,
+                ..PlanResourceBudget::ZERO
+            },
+        };
+        let job_streams = [job_stream];
+        let jobs = [job];
+        let mut v6 = ExecutionPlan {
+            schema_version: 6,
+            identity: ZERO_HASH,
+            budget: PlanResourceBudget {
+                memory_bytes: 512,
+                storage_bytes: 256,
+                cpu_units: 4,
+                timers: 8,
+                transports: 2,
+                checkpoints: 4,
+                evidence_bytes: 64,
+            },
+            event_streams: &job_streams,
+            jobs: &jobs,
+            ..v5
+        };
+        v6.identity = v6.semantic_hash(scratch).unwrap();
+        let context6 = PlanValidationContext {
+            supported_schema_version: 6,
+            now: time(20),
+        };
+        assert_eq!(validate_execution_plan(&v6, context6, scratch), Ok(()));
+        assert_ne!(v6.identity, v5.identity);
+
+        let incapable_jobs = [PlanJob {
+            checkpoint_provider_capabilities: Some(CheckpointProviderCapabilities {
+                durable: false,
+                ..job.checkpoint_provider_capabilities.unwrap()
+            }),
+            ..job
+        }];
+        let mut incapable_job = ExecutionPlan {
+            identity: ZERO_HASH,
+            jobs: &incapable_jobs,
+            ..v6
+        };
+        incapable_job.identity = incapable_job.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&incapable_job, context6, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::JobInvalid
+        );
+
+        let mut illegal_v5_job = ExecutionPlan {
+            schema_version: 5,
+            identity: ZERO_HASH,
+            ..v6
+        };
+        illegal_v5_job.identity = illegal_v5_job.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&illegal_v5_job, context5, scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::JobInvalid
         );
 
         let mut changed = ExecutionPlan {

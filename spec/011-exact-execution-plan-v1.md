@@ -20,6 +20,10 @@ Specification
 [`025-resonance-event-streams-v1.md`](025-resonance-event-streams-v1.md) adds
 explicit event-stream/provider/allocation facts in plan schema 5 without
 changing schema-1 through schema-4 identity.
+Specification
+[`026-durable-jobs-checkpoints-v1.md`](026-durable-jobs-checkpoints-v1.md)
+adds explicit durable-job/checkpoint-provider/allocation facts in plan schema
+6 without changing schema-1 through schema-5 identity.
 
 ## Identity boundary
 
@@ -37,7 +41,8 @@ Equivalent source formatting or presentation produces the same plan identity
 when every semantic input, observation, resolution choice, and bound remains
 the same. A change to source meaning, resolver policy, implementation,
 artifact, host report, resource allocation, queue policy, authority, expansion,
-or pool maximum changes the identity.
+pool maximum, event stream, or durable-job contract/provider changes the
+identity.
 
 `PlanGraph` is the earlier semantic topology used for node/cord compatibility
 before implementation resolution. It is not an `ExecutionPlan` and cannot be
@@ -202,9 +207,10 @@ collection order. Before any node starts it checks:
 4. node implementation, contract, and resource pins;
 5. endpoint existence, direction, type identity, and finite queue accounting;
 6. complete required authority and run-start validity;
-7. composite, export, port-group, and instance-pool references and maxima;
-8. checked aggregate budget; and
-9. canonical plan identity using caller-owned scratch.
+7. bounded event-stream and durable-job providers, references, and allocations;
+8. composite, export, port-group, and instance-pool references and maxima;
+9. checked aggregate budget; and
+10. canonical plan identity using caller-owned scratch.
 
 The validation context contains only supported schema and a named deterministic
 run-start time observation. It does not alter identity. A host report or grant
@@ -238,6 +244,7 @@ validating.
 | `CND-STR-004` | duplication lacks an authorized copy/share rule |
 | `CND-STR-005` | merge ordering is invalid or unbounded |
 | `CND-RSN-003` | event-stream provider or bound is invalid |
+| `CND-JOB-016` | durable-job evidence/checkpoint provider or bound is invalid |
 | `CND-PLN-007` | caller identity scratch is too small |
 
 `conformance/c2/execution-plan-v1.tsv` freezes valid minimal and nested plans,

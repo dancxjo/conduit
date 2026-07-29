@@ -1,5 +1,18 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 14 — 2026-07-29
+
+- Added the `durable-job` suite for issue #22.
+- Froze plan-v6 durable job/provider/allocation identity, distinct attempts,
+  leases and acceptance, finite retry/cancel/checkpoint budgets, truthful
+  delivery and effect commits, exact resume, and explicit migration.
+- Added independent append/checkpoint crash boundaries, corrupt/incompatible
+  checkpoint, source offset, queued value, lease expiry, terminal replay,
+  domain validation, and non-checkpointable restart coverage.
+- Requirement IDs: `JOB-001` through `JOB-012`.
+- Migration: durable jobs and checkpoints require plan v6; plan-v1 through
+  plan-v5 identities remain unchanged and contain no durable-job facts.
+
 ## Manifest revision 13 — 2026-07-29
 
 - Added the `resonance` suite for issue #79.

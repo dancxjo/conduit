@@ -19,6 +19,7 @@ mod evidence;
 mod execution_plan;
 mod flow;
 mod implementation;
+mod job;
 mod lifecycle;
 mod port;
 mod resonance;
@@ -68,12 +69,13 @@ pub use evidence::{
 pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1,
     EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    EXECUTION_PLAN_SCHEMA_VERSION_V4, ExecutionPlan, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding,
-    PlanFanOut, PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanMerge,
-    PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanValidationContext, PlanValidationError, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
+    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanValidationContext,
+    PlanValidationError, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    UnresolvedPlanConstraint, UnresolvedPlanKind, validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -90,6 +92,16 @@ pub use implementation::{
     StepOutcomeKind, StepUsage, TransactionResolution, TransactionState, ValueRepresentation,
     WakeInterest, WakeInterestKind, prepare_all, start_all, validate_host_operation,
     validate_instantiation, validate_plan_execution_profile,
+};
+pub use job::{
+    CHECKPOINT_SCHEMA_VERSION, CancellationCheckpointPolicy, CheckpointCommit, CheckpointEnvelope,
+    CheckpointError, CheckpointMigration, CheckpointProviderCapabilities, CheckpointRecovery,
+    CheckpointStateKind, CheckpointStateRef, CheckpointStatus, DeliveryClaim, DuplicatePolicy,
+    DurableCommit, JOB_CONTRACT_VERSION, JobAttemptMachine, JobContract, JobError, JobEvidenceKind,
+    JobEvidenceRecord, JobIdentity, JobPhase, RecoveryDecision, RestartPolicy,
+    ResultValidationDecision, ResultValidationPolicy, ResumeTarget, ValidationOutcome, WorkLease,
+    validate_checkpoint_resume, validate_job_contract, validate_job_evidence_envelope,
+    validate_result_decision,
 };
 pub use lifecycle::{
     CancellationDelivery, CancellationOutcome, CancellationRegistration, CancellationScope,

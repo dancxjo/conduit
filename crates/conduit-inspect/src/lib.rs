@@ -477,6 +477,7 @@ pub fn inspect_execution_plan(
         plan.fanouts.len(),
         plan.merges.len(),
         plan.event_streams.len(),
+        plan.jobs.len(),
         plan.authorities.len(),
         plan.composites.len(),
         plan.port_groups.len(),
@@ -547,6 +548,7 @@ pub fn inspect_execution_plan(
     counts.insert("fanouts".to_owned(), plan.fanouts.len() as u64);
     counts.insert("merges".to_owned(), plan.merges.len() as u64);
     counts.insert("event_streams".to_owned(), plan.event_streams.len() as u64);
+    counts.insert("jobs".to_owned(), plan.jobs.len() as u64);
     counts.insert("authorities".to_owned(), plan.authorities.len() as u64);
     counts.insert("composites".to_owned(), plan.composites.len() as u64);
     counts.insert("port_groups".to_owned(), plan.port_groups.len() as u64);
@@ -624,6 +626,24 @@ pub fn inspect_execution_plan(
             references.push(InspectionReference {
                 category: "execution-profile".to_owned(),
                 value: format!("{}@{}", profile.id, profile.semantic_hash),
+            });
+        }
+    }
+    for job in plan.jobs {
+        references.push(InspectionReference {
+            category: "job-contract".to_owned(),
+            value: format!(
+                "{}@{}",
+                job.contract.id,
+                job.contract
+                    .semantic_hash()
+                    .map_err(|_| failure("CND-JOB-006", "invalid job contract identity"))?
+            ),
+        });
+        if let Some(provider) = job.contract.checkpoint_provider {
+            references.push(InspectionReference {
+                category: "checkpoint-provider".to_owned(),
+                value: format!("{}@{}", provider.id, provider.semantic_hash),
             });
         }
     }
