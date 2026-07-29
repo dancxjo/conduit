@@ -204,7 +204,13 @@ fn write_panel(panel: &Panel, output: &mut String) {
             output.push_str("parameter{");
             text(output, &parameter.id);
             text(output, &parameter.value_type);
-            optional_text(output, parameter.default.as_deref());
+            match &parameter.default {
+                Some(value) => {
+                    output.push_str("some");
+                    write_source_value(value, output);
+                }
+                None => output.push_str("none;"),
+            }
             output.push('}');
         }
         for node in &definition.nodes {
@@ -262,10 +268,61 @@ fn write_node(node: &crate::Node, output: &mut String) {
     for config in &node.config {
         output.push_str("config{");
         text(output, &config.key);
-        text(output, &config.value);
+        write_source_value(&config.value, output);
         output.push('}');
     }
     output.push('}');
+}
+
+fn write_source_value(value: &crate::SourceValue, output: &mut String) {
+    match value {
+        crate::SourceValue::Boolean(value) => field(output, "boolean", value),
+        crate::SourceValue::Integer(value) => field(output, "integer", value),
+        crate::SourceValue::Text(value) => {
+            output.push_str("text");
+            text(output, value);
+        }
+        crate::SourceValue::Bytes(value) => {
+            output.push_str("bytes:");
+            for byte in value {
+                write!(output, "{byte:02x}").expect("write to String");
+            }
+            output.push(';');
+        }
+        crate::SourceValue::Reference(value) => {
+            output.push_str("reference");
+            text(output, value);
+        }
+        crate::SourceValue::ContractReference(value) => {
+            output.push_str("contract");
+            text(output, value);
+        }
+        crate::SourceValue::SecretReference(value) => {
+            output.push_str("secret");
+            text(output, value);
+        }
+        crate::SourceValue::ExactDecimal(value) => {
+            output.push_str("decimal");
+            text(output, value);
+        }
+        crate::SourceValue::List(values) => {
+            output.push_str("list{");
+            for value in values {
+                write_source_value(value, output);
+            }
+            output.push('}');
+        }
+        crate::SourceValue::Record(fields) => {
+            output.push_str("record{");
+            let mut fields: Vec<_> = fields.iter().collect();
+            fields.sort_by(|left, right| left.0.cmp(&right.0));
+            for (key, value) in fields {
+                text(output, key);
+                write_source_value(value, output);
+            }
+            output.push('}');
+        }
+    }
 }
 
 fn write_cord(cord: &crate::Cord, output: &mut String) {

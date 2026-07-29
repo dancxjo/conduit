@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 2,
+  "manifest_revision": 3,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -962,7 +962,7 @@
         {
           "id": "panel-grammar-v1",
           "path": "../c3/panel-grammar-v1.json",
-          "sha256": "sha256:fb8346d3910f86665fde108cfef53839d9d84c073c41ddf71c99be27a7ed3d4c",
+          "sha256": "sha256:a3e0f6feec56da7556d15de7354eb4b013e5ac099a099e46a9c7abf53f626d00",
           "operation": "panel-source-v1",
           "requirement_ids": [
             "SRC-001",
@@ -984,6 +984,8 @@
             "port-groups": "SRC-008",
             "bounded-pools": "SRC-008",
             "format-equivalence": "SRC-010",
+            "typed-literal-forms": "SRC-001",
+            "invalid-exact-decimal": "SRC-001",
             "unsupported-version": "SRC-007",
             "duplicate-symbol": "SRC-002",
             "boundary-bypass": "SRC-009",
@@ -1018,7 +1020,8 @@
         ],
         "boundary": [
           "panel-grammar-v1#port-groups",
-          "panel-grammar-v1#bounded-pools"
+          "panel-grammar-v1#bounded-pools",
+          "panel-grammar-v1#typed-literal-forms"
         ],
         "migration": [
           "panel-grammar-v1#format-equivalence",
@@ -1029,6 +1032,105 @@
         {
           "package": "conduit-panel",
           "test": "panel_grammar_vectors"
+        }
+      ]
+    },
+    {
+      "id": "source-lowering",
+      "profile": "conduit.c3",
+      "requirement_ids": [
+        "LWR-001",
+        "LWR-002",
+        "LWR-003",
+        "LWR-004",
+        "LWR-005",
+        "LWR-006",
+        "LWR-007",
+        "LWR-008",
+        "LWR-009",
+        "LWR-010",
+        "LWR-011",
+        "LWR-012"
+      ],
+      "artifacts": [
+        {
+          "id": "source-lowering-v1",
+          "path": "../c3/source-lowering-v1.json",
+          "sha256": "sha256:36310c75e9103bc11407eb4d94ca498561c01cc2c0a2af2319895b56290d783f",
+          "operation": "source-lowering-v1",
+          "requirement_ids": [
+            "LWR-001",
+            "LWR-002",
+            "LWR-003",
+            "LWR-004",
+            "LWR-005",
+            "LWR-006",
+            "LWR-007",
+            "LWR-008",
+            "LWR-009",
+            "LWR-010",
+            "LWR-011",
+            "LWR-012"
+          ],
+          "default_rule": "LWR-003",
+          "case_rules": {
+            "literal-forms": "LWR-002",
+            "explicit-default-equivalence": "LWR-005",
+            "integer-overflow": "LWR-008",
+            "canonical-map-order": "LWR-010",
+            "precision-sensitive": "LWR-010",
+            "secret-reference": "LWR-009",
+            "nested-secret-reference": "LWR-009",
+            "protected-literal": "LWR-009",
+            "imported-schema": "LWR-007",
+            "imported-default-origin": "LWR-007",
+            "definition-format-equivalence": "LWR-005",
+            "unknown-field": "LWR-008",
+            "duplicate-field": "LWR-008",
+            "wrong-type": "LWR-008",
+            "missing-required": "LWR-003",
+            "provider-unavailable": "LWR-008",
+            "invalid-default": "LWR-004",
+            "groups-and-pools": "LWR-011",
+            "unknown-group-contract": "LWR-011",
+            "unknown-pool-template": "LWR-012"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "result"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "source-lowering-v1#literal-forms",
+          "source-lowering-v1#explicit-default-equivalence",
+          "source-lowering-v1#imported-schema"
+        ],
+        "negative": [
+          "source-lowering-v1#wrong-type",
+          "source-lowering-v1#provider-unavailable",
+          "source-lowering-v1#nested-secret-reference",
+          "source-lowering-v1#protected-literal"
+        ],
+        "boundary": [
+          "source-lowering-v1#integer-minimum",
+          "source-lowering-v1#integer-maximum",
+          "source-lowering-v1#groups-and-pools"
+        ],
+        "migration": [
+          "source-lowering-v1#definition-format-equivalence",
+          "source-lowering-v1#canonical-map-order"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "source_lowering_vectors"
         }
       ]
     }

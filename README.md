@@ -62,7 +62,12 @@ structurally redacted evidence through a hosted NDJSON stream.
 `.panel` version 1 now supports reusable parameterized definitions, unresolved
 `using` constraints, deterministic aliased imports with optional content pins,
 explicit roots, compile-time keyed/indexed port groups, and finite instance
-pools. Parsing and module loading remain separate from runtime lowering;
+pools. Hosted source lowering validates exact booleans, signed integers, text,
+bytes, references, lists, records, contract references, exact decimals, and
+secret references against node-provided schemas. It applies canonical defaults
+with visible provenance, retains cross-module source maps, expands finite
+groups, and resolves exact pool templates without probing a host. Parsing,
+module loading, lowering, plan resolution, and execution remain separate;
 comments and formatting round-trip without entering semantic source identity.
 
 ## Design boundaries
