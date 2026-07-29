@@ -202,3 +202,9 @@ cross-host cord under schema-9 rules. A planner migrating a genuinely
 cross-host plan must create schema 9, supply all exact peer/authority/backend
 facts and budgets, and recompute plan identity. No older local cord is
 reinterpreted as distributed from ambient host state.
+
+Schema 9 and distributed-binding schema 1 remain frozen. Specification 040
+defines plan schema 10 and distributed-binding schema 2 for the additional
+implementation artifact, execution profile, explicit carrier protection, and
+carrier endpoint pins. A schema-9 binding is never upgraded in place or
+interpreted as schema 2.

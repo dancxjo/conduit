@@ -846,6 +846,31 @@ pub fn validate_federation(
     Ok(())
 }
 
+/// Validates one exact, directional federation policy for transport
+/// admission. Event verification alone is insufficient.
+pub fn validate_transport_federation(
+    policy: FederationPolicy<'_>,
+    local_realm: Id<'_>,
+    remote_realm: Id<'_>,
+    transport: PinnedDescriptor<'_>,
+    time_basis: Id<'_>,
+    tick: u64,
+    require_grant_delegation: bool,
+) -> Result<(), RealmReason> {
+    if !policy.allow_transport_admission {
+        return Err(RealmReason::FederationDenied);
+    }
+    validate_federation(
+        policy,
+        local_realm,
+        remote_realm,
+        transport,
+        time_basis,
+        tick,
+        require_grant_delegation,
+    )
+}
+
 fn field<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> {
     MapField {
         name: Id(name),

@@ -144,6 +144,10 @@ The current documents are candidates, not a claim of ecosystem stability:
   untrusted-input ceilings, artifact verification/load ownership, bounded
   rejection evidence, honest implementation isolation, and retained
   fuzz/dependency policy automation.
+- [`040-zenoh-reference-transport-v1.md`](040-zenoh-reference-transport-v1.md)
+  defines plan-v10 exact transport selection, the carrier-neutral backend,
+  real hosted Zenoh plaintext/TLS/mTLS proof, deterministic carrier faults,
+  and the general firmware-boundary Zenoh-Pico path.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

@@ -1,6 +1,6 @@
 use conduit_core::{
     AcknowledgementMode, ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime,
-    BoundednessProfile, CancellationGuarantee, CredentialVerification,
+    BoundednessProfile, CancellationGuarantee, CarrierSecurityMode, CredentialVerification,
     CredentialVerificationOutcome, DelegationPolicy, Direction, DisconnectPolicy,
     DistributedCordBudget, DistributedCordHandshake, DistributedDelivery,
     DistributedHandshakeContext, DistributedOrdering, DistributedPeerProof,
@@ -93,7 +93,11 @@ fn binding() -> PlanDistributedCord<'static> {
         session: Id("fixture/session"),
         initial_session_epoch: 1,
         backend: pin("fixture/distributed-backend", 40),
+        backend_artifact: None,
+        backend_profile: None,
         carrier_security: pin("fixture/mtls-profile", 41),
+        carrier_security_mode: None,
+        carrier_endpoint: None,
         carrier_binding: Id("fixture/resolved-carrier-binding"),
         delivery: DistributedDelivery::AtLeastOnce,
         acknowledgement: AcknowledgementMode::Cumulative,
@@ -146,6 +150,20 @@ fn binding() -> PlanDistributedCord<'static> {
             evidence_bytes: 32,
         },
     };
+    value.identity = value.semantic_hash().unwrap();
+    value
+}
+
+fn binding_v2() -> PlanDistributedCord<'static> {
+    let mut value = binding();
+    value.schema_version = 2;
+    value.backend_artifact = Some(PlanArtifact {
+        id: Id("artifact/zenoh-rust-1-9-0"),
+        digest: ArtifactDigest::from_bytes([43; 32]),
+    });
+    value.backend_profile = Some(pin("conduit/zenoh-hosted-accounted", 44));
+    value.carrier_security_mode = Some(CarrierSecurityMode::MutualTls);
+    value.carrier_endpoint = Some("tls/zenoh.example:7447");
     value.identity = value.semantic_hash().unwrap();
     value
 }
@@ -416,6 +434,41 @@ fn binding_identity_covers_delivery_and_allocation() {
     assert_ne!(original.identity, changed.semantic_hash().unwrap());
 }
 
+#[test]
+fn binding_v2_pins_transport_artifact_profile_and_endpoint_without_reinterpreting_v1() {
+    let legacy = binding();
+    validate_distributed_binding(&legacy).expect("frozen schema-1 binding");
+    let exact = binding_v2();
+    validate_distributed_binding(&exact).expect("schema-2 exact transport binding");
+
+    let mut changed = exact;
+    changed.backend_artifact = Some(PlanArtifact {
+        digest: ArtifactDigest::from_bytes([99; 32]),
+        ..changed.backend_artifact.unwrap()
+    });
+    assert_ne!(exact.identity, changed.semantic_hash().unwrap());
+    changed = exact;
+    changed.backend_profile = Some(PinnedDescriptor {
+        semantic_hash: hash(99),
+        ..changed.backend_profile.unwrap()
+    });
+    assert_ne!(exact.identity, changed.semantic_hash().unwrap());
+    changed = exact;
+    changed.carrier_endpoint = Some("tls/other.example:7447");
+    assert_ne!(exact.identity, changed.semantic_hash().unwrap());
+    changed = exact;
+    changed.carrier_security_mode = Some(CarrierSecurityMode::Tls);
+    assert_ne!(exact.identity, changed.semantic_hash().unwrap());
+
+    let mut incomplete = exact;
+    incomplete.backend_profile = None;
+    incomplete.identity = incomplete.semantic_hash().unwrap();
+    assert_eq!(
+        validate_distributed_binding(&incomplete),
+        Err(DistributedReason::InvalidBinding)
+    );
+}
+
 fn profile() -> ExecutionProfile<'static> {
     let mut profile = ExecutionProfile {
         id: Id("fixture/distributed-profile"),
@@ -628,6 +681,10 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
             id: Id("fixture/sink-artifact"),
             digest: ArtifactDigest::from_bytes([83; 32]),
         },
+        PlanArtifact {
+            id: Id("artifact/zenoh-rust-1-9-0"),
+            digest: ArtifactDigest::from_bytes([43; 32]),
+        },
     ];
     let node_allocation = PlanResourceBudget {
         memory_bytes: 100,
@@ -740,6 +797,43 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     assert_eq!(
         validate_execution_plan(&plan, context, &mut scratch),
         Ok(())
+    );
+
+    let mut exact_transport = distributed;
+    exact_transport.schema_version = 2;
+    exact_transport.backend_artifact = Some(artifacts[2]);
+    exact_transport.backend_profile = Some(pin("conduit/zenoh-hosted-accounted", 44));
+    exact_transport.carrier_security_mode = Some(CarrierSecurityMode::MutualTls);
+    exact_transport.carrier_endpoint = Some("tls/zenoh.example:7447");
+    exact_transport.identity = exact_transport.semantic_hash().unwrap();
+    let exact_transports = [exact_transport];
+    let mut current = ExecutionPlan {
+        schema_version: 10,
+        identity: ZERO,
+        distributed_cords: &exact_transports,
+        ..plan
+    };
+    current.identity = current.semantic_hash(&mut scratch).unwrap();
+    let current_context = PlanValidationContext {
+        supported_schema_version: 10,
+        ..context
+    };
+    assert_eq!(
+        validate_execution_plan(&current, current_context, &mut scratch),
+        Ok(())
+    );
+
+    let mut wrong_binding_revision = ExecutionPlan {
+        identity: ZERO,
+        distributed_cords: &distributed_cords,
+        ..current
+    };
+    wrong_binding_revision.identity = wrong_binding_revision.semantic_hash(&mut scratch).unwrap();
+    assert_eq!(
+        validate_execution_plan(&wrong_binding_revision, current_context, &mut scratch)
+            .unwrap_err()
+            .code,
+        PlanDiagnosticCode::Distributed(DistributedReason::UnsupportedVersion)
     );
 
     let mut missing = ExecutionPlan {

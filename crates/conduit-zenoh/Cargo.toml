@@ -1,0 +1,21 @@
+[package]
+name = "conduit-zenoh"
+description = "Hosted Zenoh carrier for Conduit distributed cords"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-runtime = { path = "../conduit-runtime" }
+serde_json = "1.0.149"
+zenoh = { version = "=1.9.0", default-features = false, features = ["transport_tcp", "transport_tls"] }
+
+[dev-dependencies]
+rcgen = "=0.14.7"
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

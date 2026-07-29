@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 33 — 2026-07-29
+
+- Registered 37 independently dispatched Zenoh transport cases, including
+  real loopback plaintext, TLS, and mTLS sessions; exact selection and
+  envelope failures; deterministic carrier faults; reconnect/cancellation;
+  transition security/epoch checks; realm/passport/federation rejection; and
+  explicit live-cord/Resonance-provider separation.
+- Added plan-v10 distributed-binding schema 2 while retaining plan-v9/schema-1
+  identity, plus resolver-backed hosted and general firmware-boundary
+  implementation proofs.
+- Classified the hosted Zenoh dependency stack honestly: adapter and
+  configurable carrier/socket storage is finite and accounted, while the
+  complete library heap profile remains observed rather than hard-bounded.
+
 ## Manifest revision 31 — 2026-07-29
 
 - Added two independently executed desktop/embedded equivalence cases for the

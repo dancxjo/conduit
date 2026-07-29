@@ -10,6 +10,7 @@ members = [
     "crates/conduit-panel",
     "crates/conduit-patchbay",
     "crates/conduit-runtime",
+    "crates/conduit-zenoh",
     "crates/conduit-web",
     "crates/conduct",
     "firmware/conduit-rp2040-hil",

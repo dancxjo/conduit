@@ -86,7 +86,11 @@ fn binding() -> PlanDistributedCord<'static> {
         session: Id("fixture/session"),
         initial_session_epoch: 1,
         backend: pin("fixture/distributed-backend", 40),
+        backend_artifact: None,
+        backend_profile: None,
         carrier_security: pin("fixture/mtls-profile", 41),
+        carrier_security_mode: None,
+        carrier_endpoint: None,
         carrier_binding: Id("fixture/resolved-carrier-binding"),
         delivery: DistributedDelivery::AtLeastOnce,
         acknowledgement: AcknowledgementMode::Cumulative,
@@ -560,6 +564,34 @@ fn fault_backend_reproduces_duplicate_reorder_lost_ack_and_partition() {
     assert_eq!(
         lost_ack.receive_readiness(),
         DistributedBackendReadiness::Pending
+    );
+
+    let (lost_terminal_ack_binding, mut lost_terminal_ack) = open_backend();
+    lost_terminal_ack.take_evidence();
+    lost_terminal_ack
+        .inject_fault(InMemoryTransportFault::DropNextTerminalAcknowledgement)
+        .unwrap();
+    lost_terminal_ack
+        .send(
+            &lost_terminal_ack_binding,
+            OutboundDistributedFrame {
+                kind: DistributedFrameKind::TerminalAcknowledgement,
+                session_epoch: 1,
+                sequence: Some(1),
+                attempt: None,
+                correlation: None,
+                payload: &[],
+            },
+            authorities(lost_terminal_ack_binding),
+        )
+        .unwrap();
+    assert_eq!(
+        lost_terminal_ack.receive_readiness(),
+        DistributedBackendReadiness::Pending
+    );
+    assert_eq!(
+        lost_terminal_ack.take_evidence().unwrap().kind,
+        DistributedEvidenceKind::FrameDropped
     );
 
     let (partitioned_binding, mut partitioned) = open_backend();

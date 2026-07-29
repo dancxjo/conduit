@@ -13,6 +13,11 @@ use conduit_core::{
     validate_distributed_handshake,
 };
 
+use crate::transport::{
+    CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_VERSION,
+    TransportCapabilities,
+};
+
 const MAX_IN_MEMORY_FAULTS: usize = 16;
 
 /// Readiness observed without blocking an executor thread.
@@ -57,6 +62,21 @@ pub struct ReceivedDistributedFrame {
     pub payload_bytes: usize,
 }
 
+#[must_use]
+pub const fn received_evidence_kind(kind: DistributedFrameKind) -> DistributedEvidenceKind {
+    match kind {
+        DistributedFrameKind::Value => DistributedEvidenceKind::ValueReceived,
+        DistributedFrameKind::Acknowledgement => DistributedEvidenceKind::Acknowledged,
+        DistributedFrameKind::Heartbeat => DistributedEvidenceKind::Heartbeat,
+        DistributedFrameKind::Cancellation | DistributedFrameKind::CancellationAcknowledgement => {
+            DistributedEvidenceKind::Cancelled
+        }
+        DistributedFrameKind::Terminal(_) | DistributedFrameKind::TerminalAcknowledgement => {
+            DistributedEvidenceKind::Terminal
+        }
+    }
+}
+
 /// Owned structured evidence used by hosted backends.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedDistributedEvidence {
@@ -70,6 +90,13 @@ pub struct HostedDistributedEvidence {
     pub correlation: Option<SemanticHash>,
     pub kind: DistributedEvidenceKind,
     pub reason: Option<DistributedReason>,
+    pub carrier_security: CarrierSecurityMode,
+    pub carrier_authenticated: bool,
+    pub carrier_mutually_authenticated: bool,
+    pub carrier_encrypted: bool,
+    /// A fresh Conduit authority check was performed for this operation. This
+    /// is not implied by carrier authentication.
+    pub conduit_authority_checked: bool,
 }
 
 /// Host-implemented distributed-cord boundary.
@@ -80,6 +107,8 @@ pub struct HostedDistributedEvidence {
 pub trait DistributedCordBackend {
     type Error;
     type Evidence;
+
+    fn capabilities(&self) -> TransportCapabilities;
 
     fn open(
         &mut self,
@@ -193,6 +222,7 @@ impl OwnedFrame {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InMemoryTransportFault {
     DropNextAcknowledgement,
+    DropNextTerminalAcknowledgement,
     DuplicateNextValue,
     ReorderNextValuePair,
 }
@@ -289,6 +319,11 @@ impl InMemoryDistributedCordBackend {
             correlation: frame.and_then(|frame| frame.correlation),
             kind,
             reason,
+            carrier_security: CarrierSecurityMode::Plaintext,
+            carrier_authenticated: false,
+            carrier_mutually_authenticated: false,
+            carrier_encrypted: false,
+            conduit_authority_checked: true,
         }
     }
 
@@ -354,6 +389,42 @@ impl InMemoryDistributedCordBackend {
 impl DistributedCordBackend for InMemoryDistributedCordBackend {
     type Error = DistributedReason;
     type Evidence = HostedDistributedEvidence;
+
+    fn capabilities(&self) -> TransportCapabilities {
+        TransportCapabilities {
+            protocol_version: DISTRIBUTED_ENVELOPE_VERSION,
+            publish_subscribe: true,
+            query_reply: false,
+            reconnect: true,
+            deterministic_faults: true,
+            security: CarrierSecurityCapabilities {
+                plaintext: true,
+                tls: false,
+                mutual_tls: false,
+            },
+            maximum_frame_bytes: self.maximum_frame_bytes,
+            adapter_send_items: 0,
+            adapter_receive_items: self.maximum_receive_items,
+            adapter_evidence_items: self.maximum_evidence_events,
+            carrier_queue_items: 1,
+            carrier_queue_bytes: 0,
+            receive_buffer_bytes: self.maximum_receive_bytes,
+            defragmentation_bytes: 0,
+            socket_send_bytes: 0,
+            socket_receive_bytes: 0,
+            session_state_bytes: 0,
+            discovery_state_bytes: 0,
+            pending_operation_bytes: 0,
+            retained_payload_bytes: 0,
+            timer_state_bytes: 0,
+            worker_stack_bytes: 0,
+            pending_links: 1,
+            maximum_links: 1,
+            maximum_sessions: 1,
+            retry_timers: 0,
+            complete_stack_hard_bounded: true,
+        }
+    }
 
     fn open(
         &mut self,
@@ -483,8 +554,29 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
             payload: frame.payload.to_vec(),
         };
         let fault = self.faults.front().copied();
+        let emits_fault_evidence = (fault == Some(InMemoryTransportFault::DuplicateNextValue)
+            && frame.kind == DistributedFrameKind::Value)
+            || (fault == Some(InMemoryTransportFault::ReorderNextValuePair)
+                && frame.kind == DistributedFrameKind::Value
+                && self.held_reorder.is_some());
+        if emits_fault_evidence
+            && self.evidence.len().saturating_add(2) > usize::from(self.maximum_evidence_events)
+        {
+            return self.reject_frame(frame, DistributedReason::EvidenceFull);
+        }
         if fault == Some(InMemoryTransportFault::DropNextAcknowledgement)
             && frame.kind == DistributedFrameKind::Acknowledgement
+        {
+            self.faults.pop_front();
+            self.push_evidence(self.evidence_for(
+                Some(frame),
+                DistributedEvidenceKind::FrameDropped,
+                None,
+            ))?;
+            return Ok(());
+        }
+        if fault == Some(InMemoryTransportFault::DropNextTerminalAcknowledgement)
+            && frame.kind == DistributedFrameKind::TerminalAcknowledgement
         {
             self.faults.pop_front();
             self.push_evidence(self.evidence_for(
@@ -503,6 +595,11 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
             self.faults.pop_front();
             self.push_frame(owned.clone());
             self.push_frame(owned);
+            self.push_evidence(self.evidence_for(
+                Some(frame),
+                DistributedEvidenceKind::DuplicateRedelivered,
+                None,
+            ))?;
         } else if fault == Some(InMemoryTransportFault::ReorderNextValuePair)
             && frame.kind == DistributedFrameKind::Value
         {
@@ -513,6 +610,11 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
                 self.faults.pop_front();
                 self.push_frame(owned);
                 self.frames.push_back(held);
+                self.push_evidence(self.evidence_for(
+                    Some(frame),
+                    DistributedEvidenceKind::Reordered,
+                    None,
+                ))?;
             } else {
                 self.queued_bytes += u64::try_from(owned.payload.len()).unwrap_or(u64::MAX);
                 self.held_reorder = Some(owned);
@@ -524,7 +626,7 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
             self.push_frame(owned);
         }
         let kind = match frame.kind {
-            DistributedFrameKind::Value if frame.attempt.is_some() => {
+            DistributedFrameKind::Value if frame.attempt.is_some_and(|attempt| attempt > 0) => {
                 DistributedEvidenceKind::Retried
             }
             DistributedFrameKind::Value => DistributedEvidenceKind::ValueSent,
@@ -595,7 +697,7 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
         let borrowed = frame.borrowed();
         self.push_evidence(self.evidence_for(
             Some(borrowed),
-            DistributedEvidenceKind::ValueReceived,
+            received_evidence_kind(frame.kind),
             None,
         ))?;
         Ok(Some(ReceivedDistributedFrame {

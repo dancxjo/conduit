@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 32,
+  "manifest_revision": 33,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3597,6 +3597,107 @@
         "migration": ["patchbay-protocol-v1#run-remains-pinned-while-source-changes"]
       },
       "reference_tests": [{"package": "conduit-patchbay", "test": "protocol"}]
+    },
+    {
+      "id": "zenoh-transport",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "ZEN-001", "ZEN-002", "ZEN-003", "ZEN-004", "ZEN-005",
+        "ZEN-006", "ZEN-007", "ZEN-008", "ZEN-009", "ZEN-010",
+        "ZEN-011", "ZEN-012", "ZEN-013", "ZEN-014", "ZEN-015"
+      ],
+      "artifacts": [{
+        "id": "zenoh-transport-v1",
+        "path": "../c5/zenoh-transport-v1.json",
+        "sha256": "sha256:f3f8712b0799fbac670a5497bc976456d6dd93ea456dd21599f128dabb669904",
+        "operation": "zenoh-transport-v1",
+        "requirement_ids": [
+          "ZEN-001", "ZEN-002", "ZEN-003", "ZEN-004", "ZEN-005",
+          "ZEN-006", "ZEN-007", "ZEN-008", "ZEN-009", "ZEN-010",
+          "ZEN-011", "ZEN-012", "ZEN-013", "ZEN-014", "ZEN-015"
+        ],
+        "default_rule": "ZEN-008",
+        "case_rules": {
+          "real-plaintext-exchange": "ZEN-007",
+          "real-tls-exchange": "ZEN-009",
+          "real-mtls-exchange": "ZEN-009",
+          "exact-selection": "ZEN-011",
+          "query-reply-overclaim": "ZEN-011",
+          "artifact-drift": "ZEN-011",
+          "profile-drift": "ZEN-011",
+          "endpoint-drift": "ZEN-011",
+          "resource-underaccounted": "ZEN-004",
+          "envelope-round-trip": "ZEN-006",
+          "envelope-wrong-identity": "ZEN-006",
+          "replacement-new-epoch": "ZEN-015",
+          "security-downgrade-rejected": "ZEN-015",
+          "valid-mtls-wrong-realm": "ZEN-013",
+          "valid-realm-missing-grant": "ZEN-013",
+          "key-rotation-during-reconnect": "ZEN-013",
+          "revocation-while-partitioned": "ZEN-013",
+          "realm-root-rollover-needs-new-binding": "ZEN-013",
+          "cloned-identity-conflict": "ZEN-013",
+          "explicit-cross-realm-scope": "ZEN-013",
+          "federation-is-non-transitive": "ZEN-013",
+          "zenoh-live-cord-only": "ZEN-014",
+          "zenoh-event-stream-only-rejected": "ZEN-014",
+          "zenoh-combined-contracts-stay-distinct": "ZEN-014"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "zenoh-transport-v1#real-plaintext-exchange",
+          "zenoh-transport-v1#real-tls-exchange",
+          "zenoh-transport-v1#real-mtls-exchange",
+          "zenoh-transport-v1#exact-selection",
+          "zenoh-transport-v1#envelope-round-trip",
+          "zenoh-transport-v1#reconnect-with-proof",
+          "zenoh-transport-v1#cancellation-frame",
+          "zenoh-transport-v1#replacement-new-epoch",
+          "zenoh-transport-v1#explicit-cross-realm-scope",
+          "zenoh-transport-v1#zenoh-live-cord-only",
+          "zenoh-transport-v1#zenoh-combined-contracts-stay-distinct"
+        ],
+        "negative": [
+          "zenoh-transport-v1#artifact-drift",
+          "zenoh-transport-v1#query-reply-overclaim",
+          "zenoh-transport-v1#profile-drift",
+          "zenoh-transport-v1#endpoint-drift",
+          "zenoh-transport-v1#unsupported-security",
+          "zenoh-transport-v1#partition-is-explicit",
+          "zenoh-transport-v1#security-downgrade-rejected",
+          "zenoh-transport-v1#valid-mtls-wrong-realm",
+          "zenoh-transport-v1#valid-realm-missing-grant",
+          "zenoh-transport-v1#revocation-while-partitioned",
+          "zenoh-transport-v1#cloned-identity-conflict",
+          "zenoh-transport-v1#federation-is-non-transitive",
+          "zenoh-transport-v1#zenoh-event-stream-only-rejected"
+        ],
+        "boundary": [
+          "zenoh-transport-v1#resource-underaccounted",
+          "zenoh-transport-v1#envelope-oversized",
+          "zenoh-transport-v1#duplicate-next-value",
+          "zenoh-transport-v1#reorder-next-pair",
+          "zenoh-transport-v1#lost-acknowledgement",
+          "zenoh-transport-v1#lost-terminal-acknowledgement",
+          "zenoh-transport-v1#oracle-oversized-frame",
+          "zenoh-transport-v1#key-rotation-during-reconnect",
+          "zenoh-transport-v1#realm-root-rollover-needs-new-binding"
+        ],
+        "migration": [
+          "zenoh-transport-v1#tls-secret-handle-required",
+          "zenoh-transport-v1#mtls-secret-handle-required"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "distributed_vectors"},
+        {"package": "conduit-runtime", "test": "distributed_backend"},
+        {"package": "conduit-zenoh", "test": "transport_vectors"}
+      ]
     }
   ]
 }

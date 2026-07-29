@@ -1,11 +1,13 @@
 [advisories]
 version = 2
 yanked = "deny"
-# Both are inherited from the current rp-pico/rp2040-hal stack and have no
-# safe compatible upgrade. Keep the exact IDs visible; any new advisory fails.
+# Keep every exception exact and reviewable; any new advisory still fails.
 ignore = [
-    "RUSTSEC-2024-0436", # paste, build-time macro dependency
-    "RUSTSEC-2026-0110", # bare-metal 0.2 through cortex-m 0.7
+    { id = "RUSTSEC-2024-0436", reason = "paste is a build-time macro dependency inherited from the current rp-pico stack with no safe compatible upgrade" },
+    { id = "RUSTSEC-2026-0110", reason = "bare-metal 0.2 is inherited through cortex-m 0.7 and has no safe compatible upgrade" },
+    { id = "RUSTSEC-2026-0041", reason = "Zenoh 1.9 carries lz4_flex 0.10 unconditionally, but this workspace does not enable Zenoh transport_compression, so the affected block decompression code is not compiled" },
+    { id = "RUSTSEC-2025-0134", reason = "Zenoh 1.9 TLS inherits rustls-pemfile 2.2 and no safe upgrade exists; Conduit accepts only host-resolved bounded certificate file handles" },
+    { id = "RUSTSEC-2026-0009", reason = "time 0.3.47 requires Rust 1.88 while this workspace supports 1.85; the Zenoh TLS path parses ASN.1 certificate time rather than attacker-supplied RFC 2822 input" },
 ]
 
 [licenses]
@@ -13,10 +15,19 @@ version = 2
 confidence-threshold = 0.8
 allow = [
     "Apache-2.0",
+    "BSD-2-Clause",
     "BSD-3-Clause",
+    "ISC",
     "MIT",
     "Unicode-3.0",
     "Unlicense",
+    "Zlib",
+]
+# Keep weak-copyleft software and data-license material scoped to the exact
+# Zenoh transitive crates instead of approving those licenses globally.
+exceptions = [
+    { allow = ["MPL-2.0"], crate = "option-ext@0.2.0" },
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots@1.0.9" },
 ]
 
 [bans]

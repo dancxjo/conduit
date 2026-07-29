@@ -36,6 +36,11 @@ Specification
 [`037-distributed-cord-v1.md`](037-distributed-cord-v1.md) adds exact
 cross-host cord bindings in plan schema 9 without changing schema-1 through
 schema-8 identity.
+Specification
+[`040-zenoh-reference-transport-v1.md`](040-zenoh-reference-transport-v1.md)
+adds the exact transport artifact, execution profile, and carrier endpoint in
+addition to explicit carrier protection in plan schema 10 without changing
+schema-1 through schema-9 identity.
 
 ## Identity boundary
 

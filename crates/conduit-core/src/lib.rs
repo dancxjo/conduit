@@ -67,8 +67,9 @@ pub use diagnostic::{
     DiagnosticSpan, FixApplicability,
 };
 pub use distributed::{
-    AcknowledgementMode, DISTRIBUTED_CORD_PROTOCOL_VERSION, DisconnectPolicy,
-    DistributedAuthorityContext, DistributedCordBudget, DistributedCordHandshake,
+    AcknowledgementMode, CarrierSecurityMode, DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION,
+    DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1, DISTRIBUTED_CORD_PROTOCOL_VERSION,
+    DisconnectPolicy, DistributedAuthorityContext, DistributedCordBudget, DistributedCordHandshake,
     DistributedDelivery, DistributedEvidence, DistributedEvidenceKind, DistributedHandshakeContext,
     DistributedIdentityError, DistributedOrdering, DistributedPeerProof,
     DistributedPeerRequirement, DistributedReason, DistributedSessionMachine,
@@ -87,13 +88,14 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
     EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
-    EXECUTION_PLAN_SCHEMA_VERSION_V8, ExecutionPlan, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding,
-    PlanFanOut, PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge,
-    PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext, PlanValidationError,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
-    UnresolvedPlanKind, validate_execution_plan,
+    EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
+    PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
+    PlanSatisfactionSubject, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
+    validate_execution_plan,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -159,6 +161,7 @@ pub use realm::{
     validate_credential_verification, validate_delegation, validate_entity_key_transition,
     validate_event_authorship, validate_federation, validate_passport, validate_passport_at,
     validate_passport_status, validate_realm, validate_realm_control_event,
+    validate_transport_federation,
 };
 pub use resonance::{
     AppendCommit, AppendOutcome, AppendRecovery, BoundedEventRing, EventClass, EventPayloadRef,

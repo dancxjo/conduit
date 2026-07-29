@@ -22,9 +22,11 @@ use crate::{
 /// exact implementation execution profile per primitive node. Schema 4 adds
 /// structural flow, schema 5 adds Resonance streams, and schema 6 adds durable
 /// jobs, schema 7 adds implicit-satisfaction proof bindings, schema 8 adds one
-/// exact runtime-evidence recording policy, and schema 9 adds distributed-cord
-/// bindings. Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 9;
+/// exact runtime-evidence recording policy, schema 9 adds distributed-cord
+/// bindings, and schema 10 pins the selected transport artifact, bounded
+/// backend profile, carrier protection, and carrier endpoint. Earlier schemas
+/// remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 10;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -33,6 +35,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V5: u32 = 5;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V6: u32 = 6;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V7: u32 = 7;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V8: u32 = 8;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V9: u32 = 9;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -382,7 +385,8 @@ pub struct ExecutionPlan<'a> {
     pub artifacts: &'a [PlanArtifact<'a>],
     pub nodes: &'a [ResolvedPlanNode<'a>],
     pub cords: &'a [ResolvedPlanCord<'a>],
-    /// Exact transport-neutral cross-host bindings introduced in schema 9.
+    /// Cross-host bindings introduced in schema 9 and exact-carrier revised
+    /// in schema 10.
     pub distributed_cords: &'a [PlanDistributedCord<'a>],
     /// Structural plan facts introduced in schema 4.
     pub fanouts: &'a [PlanFanOut<'a>],
@@ -1081,6 +1085,27 @@ pub fn validate_execution_plan(
                 index,
             )
         })?;
+        let binding_schema_matches_plan = if plan.schema_version == 9 {
+            binding.schema_version == crate::DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1
+        } else {
+            binding.schema_version == crate::DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION
+        };
+        if !binding_schema_matches_plan {
+            return Err(indexed(
+                PlanDiagnosticCode::Distributed(crate::DistributedReason::UnsupportedVersion),
+                PlanCollection::DistributedCords,
+                index,
+            ));
+        }
+        if let Some(artifact) = binding.backend_artifact {
+            if !plan.artifacts.contains(&artifact) {
+                return Err(indexed(
+                    PlanDiagnosticCode::MissingArtifact,
+                    PlanCollection::DistributedCords,
+                    index,
+                ));
+            }
+        }
         if plan.distributed_cords[..index]
             .iter()
             .any(|prior| prior.cord == binding.cord || prior.identity == binding.identity)

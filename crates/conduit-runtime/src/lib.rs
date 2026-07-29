@@ -32,6 +32,7 @@ mod implementation_binding;
 mod runtime_evidence;
 mod scheduler;
 mod source_lowering;
+mod transport;
 mod type_registry;
 
 pub use artifact_verification::{
@@ -46,7 +47,7 @@ pub use config_resolution::{
 pub use distributed::{
     DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,
     HostedDistributedEvidence, InMemoryDistributedCordBackend, InMemoryTransportFault,
-    OutboundDistributedFrame, ReceivedDistributedFrame,
+    OutboundDistributedFrame, ReceivedDistributedFrame, received_evidence_kind,
 };
 pub use evidence_ndjson::{
     EvidenceDecodeLimits, NdjsonError, NdjsonLimit, OwnedEventCorrelation, OwnedEventPayload,
@@ -82,6 +83,12 @@ pub use source_lowering::{
     OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_V2,
     SourceContractCatalog, SourceMapEntry, SourceOrigin, VersionedLoweredSource, lower_source,
     lower_source_v2, lower_source_version, migrate_lowered_source_v1,
+};
+pub use transport::{
+    CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_FIXED_BYTES,
+    DISTRIBUTED_ENVELOPE_VERSION, DecodedDistributedEnvelope, ResolvedTransportSelection,
+    TransportCapabilities, TransportReason, TransportTransition, decode_distributed_envelope,
+    encode_distributed_envelope, validate_transport_selection, validate_transport_transition,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
