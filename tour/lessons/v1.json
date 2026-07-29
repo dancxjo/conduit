@@ -3,30 +3,60 @@
   "lessons": [
     {
       "id": "welcome.hello-panel",
+      "chapter": 0,
       "title": "Hello, panel",
+      "prerequisites": [],
+      "objective": "Send one explicit text value to one explicit display sink.",
+      "prose": "A panel is a bounded assembly of named nodes and cords. Run this one before changing it.",
+      "vocabulary": ["node", "cord", "capacity"],
       "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Hello from the Tour.\\n\"\n}\nnode output : conduit/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "Hello from the Tour.\n",
       "profile": "browser-local-deterministic",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16}
+      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "stdout", "value": "Hello from the Tour.\n"},
+      "hints": ["The literal node produces text on its out port.", "The stdout node consumes text on its in port."],
+      "solution": "Connect greeting.out to output.in with the declared bounded cord.",
+      "accessibility": {"non_audio": "The visible text output is the complete result.", "reduced_motion": true}
     },
     {
       "id": "welcome.pull-the-cord",
+      "chapter": 0,
       "title": "Pull the cord",
+      "prerequisites": ["welcome.hello-panel"],
+      "objective": "Observe that a required input is not satisfied by a nearby node.",
+      "prose": "Remove a cord on purpose. A useful diagnostic names the missing boundary instead of guessing a connection.",
+      "vocabulary": ["required input", "diagnostic"],
       "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Connect me.\\n\"\n}\nnode output : conduit/stdout\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-PRT-002",
       "profile": "browser-local-deterministic",
-      "budgets": {"runtime_ticks": 0, "queue_bytes": 0, "evidence_events": 0}
+      "budgets": {"runtime_ticks": 0, "queue_bytes": 0, "evidence_events": 0},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "diagnostic", "value": "CND-PRT-002"},
+      "hints": ["The output node has one required input.", "A node declaration does not create a connection."],
+      "solution": "Restore the bounded cord from greeting.out to output.in.",
+      "accessibility": {"non_audio": "The structured diagnostic is available as text.", "reduced_motion": true}
     },
     {
       "id": "welcome.change-message",
+      "chapter": 0,
       "title": "Change the message",
+      "prerequisites": ["welcome.hello-panel"],
+      "objective": "Edit semantic configuration while preserving the same panel structure.",
+      "prose": "Change the literal value, then select and move its faceplate. Source semantics and presentation are separate identities.",
+      "vocabulary": ["configuration", "semantic identity", "presentation"],
       "source": "panel 1\n\nnode greeting : conduit/literal {\n    value = \"Change me.\\n\"\n}\nnode output : conduit/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "Change me.\n",
       "profile": "browser-local-deterministic",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16}
+      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
+      "presentation": {"layout": "minimal", "show_plan": false},
+      "validation": {"kind": "stdout", "value": "Change me.\n"},
+      "hints": ["Only the value configuration needs to change.", "Moving a selected node does not rewrite source."],
+      "solution": "Set greeting.value to the desired text and retain its explicit cord.",
+      "accessibility": {"non_audio": "The output and source selection do not depend on color or sound.", "reduced_motion": true}
     }
   ]
 }

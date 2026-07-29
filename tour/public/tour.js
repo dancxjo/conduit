@@ -8,7 +8,8 @@ let acceptedSource = "", selectedNode = null, positions = {};
 const key = id => `conduit-tour-draft/${id}`;
 function show(lesson) {
   current = lesson; document.querySelector("#title").textContent = lesson.title;
-  document.querySelector("#goal").textContent = `Production parser check; ${lesson.profile}.`;
+  document.querySelector("#goal").textContent = lesson.objective;
+  document.querySelector("#prose").textContent = lesson.prose;
   source.value = localStorage.getItem(key(lesson.id)) ?? lesson.source;
   acceptedSource = source.value; selectedNode = null; positions = {}; check();
 }
