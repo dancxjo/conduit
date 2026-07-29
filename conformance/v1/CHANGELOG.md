@@ -1,5 +1,21 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 26 — 2026-07-29
+
+- Replaced the browser lifecycle shell with concrete window, dedicated/shared
+  worker, already-registered service-worker, AudioWorklet, WASM, and WebGPU
+  adapters using bounded requests and terminal evidence.
+- Added generic host-report/resolver execution for every distinct browser
+  placement, the same portable semantic contract resolved to browser WASM and
+  a deterministic native fake, and an ordinary bounded panel resolved across
+  browser and Linux.
+- Registered the browser host resolver reference test and a pinned Playwright
+  1.62.0 Chromium/Firefox/WebKit CI gate; unsupported features remain explicit
+  outcomes with no user-agent-name branches.
+- Existing browser report schema and semantic panel identities are unchanged.
+  Service-worker registration remains an explicit test/setup effect and is not
+  hidden in observation, resolution, or adapter start.
+
 ## Manifest revision 25 — 2026-07-29
 
 - Replaced realm/passport fixture inventory checks with direct executable

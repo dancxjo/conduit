@@ -25,6 +25,7 @@ jobs:
       # checked-in static Tour can be rebuilt instead of byte-comparing it.
       - run: bash tour/build-wasm.sh
       - run: bash tour/browser-smoke.sh
+      - run: bash browser/run-chromium-vectors.sh
       - run: cargo run -p conduct --bin generate-conduct-assets -- --check
       - run: cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
       - run: python3 conformance/c1/verify_canonical_v1.py
@@ -33,6 +34,16 @@ jobs:
       - run: cargo run -p conduct -- --explain examples/hello.panel
       - run: test "$(cargo run -q -p conduct -- --run examples/hello.panel)" = "HELLO FROM CONDUIT."
       - run: test "$(cargo run -q -p conduct -- examples/hello.panel)" = "HELLO FROM CONDUIT."
+
+  browser-engines:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci --ignore-scripts
+      - run: npm run test:browser
 
   embedded-core:
     runs-on: ubuntu-latest

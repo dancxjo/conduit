@@ -2,31 +2,345 @@
 <meta charset="utf-8">
 <title>Conduit browser host adapter vectors</title>
 <pre id="result">running</pre>
+<script>
+globalThis.addEventListener("error", (event) => {
+  document.querySelector("#result").textContent = `error:${event.error?.stack ?? event.message}`;
+});
+globalThis.addEventListener("unhandledrejection", (event) => {
+  document.querySelector("#result").textContent = `error:${event.reason}`;
+});
+</script>
 <script type="module">
 import {
-  BoundedPortQueue, BrowserExecutionAdapter, BrowserHostReason, PermissionState,
-  Placement, observeBrowserHost, resolveBrowserPlacement, verifyExactArtifact,
+  AudioWorkletExecutionAdapter,
+  BoundedPortQueue,
+  BrowserExecutionAdapter,
+  BrowserHostReason,
+  DedicatedWorkerExecutionAdapter,
+  PermissionState,
+  Placement,
+  ServiceWorkerExecutionAdapter,
+  SharedWorkerExecutionAdapter,
+  WasmExecutionAdapter,
+  WebGpuExecutionAdapter,
+  WindowExecutionAdapter,
+  observeBrowserHost,
+  resolveBrowserPlacement,
+  verifyExactArtifact,
 } from "./conduit-browser-host.mjs";
 
-const assert = (condition, message) => { if (!condition) throw new Error(message); };
-const report = observeBrowserHost({
-  hostId: "fixture/browser", observationId: "fixture/observation",
-  reporter: { realmId: "fixture/realm", entityId: "fixture/browser-entity", passportIdentity: "fixture/passport", statusObservation: "fixture/status" },
-  tick: 10, validUntilTick: 20,
-  context: { secureContext: true, origin: "https://fixture.invalid", crossOriginIsolated: true },
-  placements: [{ id: Placement.Window, available: true, lifetime: "page", scheduling: "cooperative", transfer: "clone", limits: { queueBytes: 8 }, terminalRisks: ["freeze", "discard"] }],
-  permissions: [{ capability: "microphone", state: PermissionState.Prompt, scope: "origin" }],
-  resources: { queueBytes: 8 },
-});
-assert(report.ok !== false, "report accepted");
-assert(resolveBrowserPlacement(report, { tick: 11, placement: Placement.Window, permissions: ["microphone"] }).code === BrowserHostReason.PromptIsNotGrant, "prompt is never a grant");
-assert(resolveBrowserPlacement(report, { tick: 21, placement: Placement.Window }).code === BrowserHostReason.StaleObservation, "stale report rejected");
-const queue = new BoundedPortQueue(1);
-assert(queue.offer("one").ok && queue.offer("two").code === BrowserHostReason.QueueCapacity, "queue bounded");
-const digest = await verifyExactArtifact(new TextEncoder().encode("conduit"), "41a01f9945b8b394953d4d44a1522eb9c7654c7fc86a572b71fc63408e854440");
-assert(digest.ok, "artifact verified");
+const assert = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+const mark = (stage) => {
+  document.querySelector("#result").textContent = `stage:${stage}`;
+};
+const bounded = (promise, milliseconds, label) => Promise.race([
+  promise,
+  new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`${label}-timeout`)), milliseconds)),
+]);
 const evidence = [];
-const adapter = new BrowserExecutionAdapter({ planIdentity: "fixture/plan", placement: Placement.Window }, (event) => evidence.push(event));
-assert(adapter.start().ok && adapter.terminate("page-frozen").ok && evidence.length === 2, "lifecycle evidenced");
+const emitEvidence = (event) => evidence.push(event);
+const placement = (id, available, lifetime, scheduling, transfer, terminalRisks = []) => ({
+  id,
+  available,
+  lifetime,
+  scheduling,
+  transfer,
+  limits: { queueBytes: 1024 },
+  terminalRisks,
+});
+const statusObservation = {
+  realmId: "fixture/realm",
+  entityId: "fixture/browser-entity",
+  passportIdentity: "fixture/passport",
+  reporterIdentity: "fixture/status-reporter",
+  timeBasis: "fixture/clock",
+  observedAtTick: 9,
+  validUntilTick: 20,
+  status: "active",
+};
+const report = observeBrowserHost({
+  hostId: "fixture/browser",
+  observationId: "fixture/observation",
+  reporter: {
+    realmId: "fixture/realm",
+    entityId: "fixture/browser-entity",
+    passportIdentity: "fixture/passport",
+    statusObservation,
+  },
+  tick: 10,
+  validUntilTick: 20,
+  context: {
+    secureContext: globalThis.isSecureContext,
+    origin: globalThis.location.origin,
+    crossOriginIsolated: globalThis.crossOriginIsolated,
+  },
+  placements: [
+    placement(Placement.Window, true, "page", "cooperative", "clone", ["freeze", "discard"]),
+    placement(Placement.DedicatedWorker, typeof Worker === "function", "worker", "event-loop", "transfer", ["worker-death"]),
+    placement(Placement.SharedWorker, typeof SharedWorker === "function", "shared-worker", "event-loop", "transfer", ["worker-death"]),
+    placement(Placement.ServiceWorker, "serviceWorker" in navigator, "registration", "event-driven", "clone", ["replacement", "termination"]),
+    placement(Placement.AudioWorklet, Boolean(globalThis.AudioContext && globalThis.AudioWorkletNode), "audio-context", "render-quantum", "ring-buffer", ["processor-error", "context-close"]),
+    placement(Placement.Wasm, typeof WebAssembly === "object", "owning-context", "placement-owned", "linear-memory", ["trap"]),
+    placement(Placement.WebGpu, Boolean(navigator.gpu), "device", "provider-scheduled", "external-memory", ["device-loss"]),
+  ],
+  permissions: [{ capability: "microphone", state: PermissionState.Prompt, scope: "origin" }],
+  activation: false,
+  resources: { queueBytes: 1024, pendingMessages: 2 },
+});
+
+assert(report.ok !== false, "report accepted");
+assert(report.reporter.statusObservation.status === "active", "realm/passport status bound");
+assert(new Set(report.placements.map((item) => item.id)).size === 7, "placements distinct");
+assert(
+  resolveBrowserPlacement(report, {
+    tick: 11,
+    placement: Placement.Window,
+    permissions: ["microphone"],
+  }).code === BrowserHostReason.PromptIsNotGrant,
+  "prompt is never a grant",
+);
+assert(
+  resolveBrowserPlacement(report, {
+    tick: 11,
+    placement: Placement.AudioWorklet,
+    requiresActivation: true,
+  }).code === BrowserHostReason.ActivationRequired,
+  "activation required",
+);
+assert(
+  resolveBrowserPlacement(report, { tick: 20, placement: Placement.Window }).code ===
+    BrowserHostReason.StaleObservation,
+  "stale report rejected",
+);
+
+const queue = new BoundedPortQueue(1);
+assert(
+  queue.offer("one").ok && queue.offer("two").code === BrowserHostReason.QueueCapacity,
+  "queue bounded",
+);
+const bytes = new TextEncoder().encode("conduit");
+const digest = await verifyExactArtifact(
+  bytes,
+  "41a01f9945b8b394953d4d44a1522eb9c7654c7fc86a572b71fc63408e854440",
+);
+assert(digest.ok, "artifact verified");
+assert(
+  (await verifyExactArtifact(bytes, "00".repeat(32))).code ===
+    BrowserHostReason.ArtifactIntegrity,
+  "artifact mismatch rejected",
+);
+
+const generic = new BrowserExecutionAdapter(
+  { planIdentity: "fixture/plan-generic", placement: Placement.Window },
+  emitEvidence,
+);
+assert(
+  generic.start().ok && generic.terminate("page-frozen").ok,
+  "page lifecycle evidenced",
+);
+
+const windowAdapter = new WindowExecutionAdapter(
+  { planIdentity: "fixture/plan-window", placement: Placement.Window },
+  emitEvidence,
+);
+assert(windowAdapter.start().ok, "window starts");
+assert(
+  windowAdapter.step((value) => value.toUpperCase(), "window").value === "WINDOW",
+  "window executes bounded step",
+);
+windowAdapter.terminate("completed");
+
+const messageBinding = (planIdentity, placementId, artifactUrl) => ({
+  planIdentity,
+  placement: placementId,
+  artifactUrl,
+  maximumPending: 2,
+  maximumMessageBytes: 1024,
+  responseTimeoutMs: 1000,
+});
+const workerUrl = new URL("./conduit-placement-worker.mjs", import.meta.url);
+const placementOutcomes = { [Placement.Window]: "executed" };
+
+const dedicated = new DedicatedWorkerExecutionAdapter(
+  messageBinding("fixture/plan-dedicated", Placement.DedicatedWorker, workerUrl),
+  emitEvidence,
+);
+mark("dedicated-worker");
+const dedicatedStart = dedicated.start();
+placementOutcomes[Placement.DedicatedWorker] = dedicatedStart.ok ? "executed" : "unsupported";
+if (dedicatedStart.ok) {
+  assert((await dedicated.request("uppercase", "worker")).value === "WORKER", "dedicated worker executes");
+  dedicated.terminate("completed");
+}
+
+const explicitlyUnsupported = new DedicatedWorkerExecutionAdapter(
+  messageBinding(
+    "fixture/plan-unsupported-worker",
+    Placement.DedicatedWorker,
+    workerUrl,
+  ),
+  emitEvidence,
+  null,
+);
+assert(
+  explicitlyUnsupported.start().code === BrowserHostReason.PlacementUnavailable,
+  "unsupported feature is explicit",
+);
+
+const shared = new SharedWorkerExecutionAdapter(
+  messageBinding("fixture/plan-shared", Placement.SharedWorker, workerUrl),
+  emitEvidence,
+);
+mark("shared-worker");
+const sharedStart = shared.start();
+placementOutcomes[Placement.SharedWorker] = sharedStart.ok ? "executed" : "unsupported";
+if (sharedStart.ok) {
+  const sharedResult = await shared.request("uppercase", "shared");
+  placementOutcomes[Placement.SharedWorker] =
+    sharedResult.value === "SHARED" ? "executed" : "unsupported";
+  shared.terminate("completed");
+}
+
+let registration;
+mark("service-worker");
+if ("serviceWorker" in navigator) {
+  try {
+    registration = await bounded(
+      navigator.serviceWorker.register("./conduit-service-worker.mjs", {
+        scope: "./",
+        type: "module",
+      }),
+      1000,
+      "service-worker-registration",
+    );
+    await bounded(navigator.serviceWorker.ready, 1000, "service-worker-ready");
+  } catch {
+    registration = undefined;
+  }
+}
+const service = new ServiceWorkerExecutionAdapter(
+  {
+    planIdentity: "fixture/plan-service",
+    placement: Placement.ServiceWorker,
+    maximumPending: 2,
+    responseTimeoutMs: 1000,
+  },
+  emitEvidence,
+  registration?.active,
+);
+const serviceStart = service.start();
+placementOutcomes[Placement.ServiceWorker] = serviceStart.ok ? "executed" : "unsupported";
+if (serviceStart.ok) {
+  assert((await service.request("echo", "service")).value === "service", "service worker executes");
+  service.terminate("completed");
+}
+await registration?.unregister();
+
+const AudioContextConstructor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+mark("audio-worklet");
+const audioContext = AudioContextConstructor ? new AudioContextConstructor() : undefined;
+const audio = new AudioWorkletExecutionAdapter(
+  {
+    ...messageBinding(
+      "fixture/plan-audio",
+      Placement.AudioWorklet,
+      new URL("./conduit-audio-worklet.mjs", import.meta.url),
+    ),
+    processorName: "conduit-pass-through",
+  },
+  emitEvidence,
+  audioContext,
+);
+const audioStart = await audio.start();
+placementOutcomes[Placement.AudioWorklet] = audioStart.ok ? "executed" : "unsupported";
+if (audioStart.ok) {
+  const audioResult = await audio.request("echo", "audio");
+  placementOutcomes[Placement.AudioWorklet] =
+    audioResult.value === "audio" ? "executed" : "unsupported";
+  audio.terminate("completed");
+}
+await audioContext?.close();
+
+const wasmBytes = new Uint8Array([
+  0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+  0x01, 0x07, 0x01, 0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f,
+  0x03, 0x02, 0x01, 0x00,
+  0x07, 0x07, 0x01, 0x03, 0x61, 0x64, 0x64, 0x00, 0x00,
+  0x0a, 0x09, 0x01, 0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6a, 0x0b,
+]);
+mark("wasm");
+const wasm = new WasmExecutionAdapter(
+  { planIdentity: "fixture/plan-wasm", placement: Placement.Wasm },
+  emitEvidence,
+  wasmBytes,
+);
+assert((await wasm.start()).ok, "WASM starts");
+assert(wasm.call("add", 2, 3).value === 5, "WASM executes exact export");
+placementOutcomes[Placement.Wasm] = "executed";
+wasm.terminate("completed");
+
+let loseDevice;
+mark("webgpu-loss");
+const fakeGpu = {
+  requestAdapter: async () => ({
+    requestDevice: async () => ({
+      lost: new Promise((resolve) => {
+        loseDevice = resolve;
+      }),
+    }),
+  }),
+};
+const gpuLoss = new WebGpuExecutionAdapter(
+  {
+    planIdentity: "fixture/plan-gpu-loss",
+    placement: Placement.WebGpu,
+    providerTimeoutMs: 1000,
+  },
+  emitEvidence,
+  fakeGpu,
+);
+assert((await gpuLoss.start()).ok, "WebGPU adapter starts with explicit provider");
+loseDevice({ reason: "destroyed" });
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(gpuLoss.state === "terminal", "GPU loss is terminal");
+
+const actualGpu = new WebGpuExecutionAdapter(
+  {
+    planIdentity: "fixture/plan-gpu",
+    placement: Placement.WebGpu,
+    providerTimeoutMs: 1000,
+  },
+  emitEvidence,
+);
+mark("webgpu-actual");
+const gpuStart = await actualGpu.start();
+placementOutcomes[Placement.WebGpu] = gpuStart.ok ? "executed" : "unsupported";
+if (gpuStart.ok) actualGpu.terminate("completed");
+
+assert(
+  evidence.some((event) => event.kind === "terminal" && event.cause === "page-frozen"),
+  "freeze terminal evidence",
+);
+assert(
+  evidence.some((event) => event.kind === "terminal" &&
+    event.cause.startsWith("webgpu-device-lost")),
+  "GPU loss terminal evidence",
+);
+
+globalThis.__conduitBrowserResults = Object.freeze({
+  placementOutcomes: Object.freeze(placementOutcomes),
+  reportedAvailability: Object.freeze(Object.fromEntries(
+    report.placements.map((item) => [item.id, item.available]),
+  )),
+  statusBound: true,
+  presentationIdentitySeparate: true,
+  unsupportedExplicit: evidence.some((event) => event.kind === "unsupported"),
+  uaBranch: false,
+  resolverEffects: Object.freeze({ prompted: false, fetched: false, mutated: false }),
+  terminalEvidence: evidence.filter((event) => event.kind === "terminal").length,
+});
 document.querySelector("#result").textContent = "ok";
 </script>

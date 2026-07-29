@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 25,
+  "manifest_revision": 26,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3182,15 +3182,15 @@
       "artifacts": [{
         "id": "browser-host-v1",
         "path": "../c5/browser-host-v1.json",
-        "sha256": "sha256:656c8e55dbf30b664fa9711d96d3ad796f6c04cdb75312951b30a677dce70e58",
+        "sha256": "sha256:2aa41c7652d24fee4083ee39e3a8017184785faa143c9a97393fe459bfa67604",
         "operation": "browser-host-v1",
         "requirement_ids": ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005", "BRW-006"],
         "default_rule": "BRW-001",
-        "case_rules": {"prompt-is-not-granted":"BRW-002","activation-required":"BRW-003","stale-report-rejected":"BRW-003","adapter-queue-is-bounded":"BRW-004","presentation-and-host-identities-separate":"BRW-005","unsupported-feature-is-explicit":"BRW-006"},
+        "case_rules": {"prompt-is-not-granted":"BRW-002","activation-required":"BRW-003","stale-report-rejected":"BRW-003","adapter-queue-is-bounded":"BRW-004","concrete-window-worker-service-worklet-wasm-gpu-adapters":"BRW-004","browser-wasm-native-fake-same-contract":"BRW-004","browser-linux-partition-uses-generic-resolver":"BRW-004","presentation-and-host-identities-separate":"BRW-005","unsupported-feature-is-explicit":"BRW-006","chromium-firefox-webkit-run-identical-vectors":"BRW-006"},
         "format": "json-vectors", "collection": "cases", "case_fields": ["id"], "expected_fields": ["expected"]
       }],
-      "coverage": {"positive":["browser-host-v1#report-requires-realm-passport-status"],"negative":["browser-host-v1#prompt-is-not-granted","browser-host-v1#stale-report-rejected"],"boundary":["browser-host-v1#adapter-queue-is-bounded","browser-host-v1#unsupported-feature-is-explicit"],"migration":["browser-host-v1#presentation-and-host-identities-separate"]},
-      "reference_tests": []
+      "coverage": {"positive":["browser-host-v1#report-requires-realm-passport-status","browser-host-v1#concrete-window-worker-service-worklet-wasm-gpu-adapters","browser-host-v1#browser-wasm-native-fake-same-contract","browser-host-v1#browser-linux-partition-uses-generic-resolver"],"negative":["browser-host-v1#prompt-is-not-granted","browser-host-v1#stale-report-rejected"],"boundary":["browser-host-v1#adapter-queue-is-bounded","browser-host-v1#unsupported-feature-is-explicit","browser-host-v1#chromium-firefox-webkit-run-identical-vectors"],"migration":["browser-host-v1#presentation-and-host-identities-separate"]},
+      "reference_tests": [{"package":"conduit-runtime","test":"host_resolution"}]
     },
     {
       "id": "patchbay-protocol",

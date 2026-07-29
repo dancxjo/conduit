@@ -1,0 +1,10 @@
+{
+  "name": "conduit-browser-conformance",
+  "private": true,
+  "scripts": {
+    "test:browser": "playwright test --config browser/playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

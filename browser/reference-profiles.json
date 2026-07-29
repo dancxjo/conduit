@@ -2,7 +2,7 @@
   "schema": "conduit.browser-reference-profiles/v1",
   "profiles": [
     {"id":"browser-wasm-transform","source":"../examples/browser-wasm-transform.panel","placements":["browser/wasm","deterministic-native-fake"],"same_semantic_contract":true},
-    {"id":"browser-linux-media-partition","placements":["browser/audio-worklet","linux/remote-endpoint"],"carrier":"declared-session","bounded":true},
+    {"id":"browser-linux-media-partition","source":"../examples/browser-linux-partition.panel","placements":["browser/audio-worklet","linux/remote-endpoint"],"carrier":"declared-session","bounded":true},
     {"id":"browser-offline-storage","placements":["browser/window"],"storage":"bounded-indexeddb-fake","network":false},
     {"id":"browser-audio-activation","placements":["browser/audio-worklet"],"requires_activation":true},
     {"id":"browser-gpu-fallback","placements":["browser/webgpu","browser/wasm","linux/remote-endpoint"],"fallback":"explicit-resolver-explanation"}

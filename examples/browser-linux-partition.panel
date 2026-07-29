@@ -1,0 +1,26 @@
+# The source remains host-neutral. Resolution places preprocess in an exact
+# browser AudioWorklet profile and speech on an exact Linux remote endpoint.
+panel 1
+
+node media : conduit/literal {
+    value = "browser media frame\n"
+}
+node preprocess : conduit/uppercase
+node speech : conduit/stdout
+
+cord media.out -> preprocess.in {
+    capacity = 2
+    max_value_bytes = 4096
+    max_queued_bytes = 8192
+    low_watermark = 0
+    high_watermark = 2
+    pressure = block
+}
+cord preprocess.out -> speech.in {
+    capacity = 4
+    max_value_bytes = 4096
+    max_queued_bytes = 16384
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}

@@ -4,6 +4,10 @@
   "cases": [
     {"id":"report-requires-realm-passport-status","runner":"browser-host","expected":{"accepted":true,"identity_bound":true}},
     {"id":"window-worker-service-worklet-wasm-gpu-distinct","runner":"browser-host","expected":{"placements_distinct":true}},
+    {"id":"concrete-window-worker-service-worklet-wasm-gpu-adapters","runner":"browser-adapter","expected":{"executed_or_explicit_unsupported":true}},
+    {"id":"browser-wasm-native-fake-same-contract","runner":"host-resolver","expected":{"accepted":true,"same_semantic_contract":true,"distinct_implementations":true}},
+    {"id":"browser-linux-partition-uses-generic-resolver","runner":"host-resolver","expected":{"accepted":true,"hosts":["browser","linux"]}},
+    {"id":"chromium-firefox-webkit-run-identical-vectors","runner":"browser-engines","expected":{"engines":3,"ua_branch":false}},
     {"id":"prompt-is-not-granted","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-002"}},
     {"id":"activation-required","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-003"}},
     {"id":"stale-report-rejected","runner":"browser-host","expected":{"accepted":false,"code":"CND-BRW-004"}},

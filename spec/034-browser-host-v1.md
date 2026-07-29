@@ -27,9 +27,13 @@ the affected report and requires a new exact plan epoch.
 
 ## Adapter boundary
 
-The JavaScript adapter implements the ordinary exact-plan protocol. It admits
-only a resolved placement, supplied artifact bytes whose SHA-256 matches the
-manifest pin, and finite adapter queues. It has no DOM/Patchbay dependency.
+The JavaScript adapter implements the ordinary exact-plan protocol through
+concrete window, dedicated/shared-worker, already-registered service-worker,
+AudioWorklet, WASM, and WebGPU adapters. It admits only a resolved placement,
+supplied artifact bytes whose SHA-256 matches the manifest pin, finite message
+counts/bytes, and finite provider-response deadlines. Service-worker
+registration is a separate explicit effect and is never performed by
+resolution or adapter start. The adapters have no DOM/Patchbay dependency.
 Worker/worklet death, freeze/discard, page close, storage eviction, network
 loss, and GPU loss terminate through structured evidence; external browser or
 provider memory is not misreported as Conduit queue capacity. Main-thread and
@@ -47,9 +51,15 @@ presentation metadata rather than plan/panel identity.
 
 ## Required proof profiles
 
-The browser adapter vectors cover stale reports, prompt-not-granted,
-activation, bounded queue pressure, exact artifact integrity, and lifecycle
-evidence. Chromium, Firefox, and WebKit runs must record feature-specific
-unsupported outcomes instead of branching on browser names. Reference panels
-cover local WASM/fake equivalence, browser-to-Linux distributed media, offline
-bounded storage, activation-gated audio, and controlled GPU fallback.
+The browser adapter vectors cover realm/passport status binding, stale reports,
+prompt-not-granted, activation, bounded queue pressure, exact artifact
+integrity, concrete placement execution, and lifecycle/GPU-loss evidence. The
+pinned Playwright gate runs the identical vector page in Chromium, Firefox,
+and WebKit and records feature-specific unsupported outcomes instead of
+branching on browser names. The generic Rust host resolver independently proves
+all seven placement modes and a bounded ordinary panel partitioned across a
+browser AudioWorklet and Linux remote endpoint. It also resolves one portable
+semantic contract independently to browser WASM and a deterministic native
+fake while retaining distinct implementation identities. Other reference
+profiles cover offline bounded storage, activation-gated audio, and controlled
+GPU fallback.

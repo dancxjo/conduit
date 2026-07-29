@@ -25,6 +25,7 @@ const REPORTER: PinnedDescriptor<'static> = pin("fixture/reporter", 4);
 const TRUST: PinnedDescriptor<'static> = pin("fixture/trust", 5);
 const RESOLVER: PinnedDescriptor<'static> = pin("fixture/resolver", 6);
 const STATUS_REPORTER: PinnedDescriptor<'static> = pin("fixture/status-reporter", 7);
+const BROWSER_PLACEMENT: PinnedDescriptor<'static> = pin("conduit/browser-placement", 8);
 const REALM: Id<'static> = Id("fixture/realm");
 const ENTITY: Id<'static> = Id("fixture/entity");
 const PASSPORT: SemanticHash = SemanticHash::from_bytes([8; 32]);
@@ -50,6 +51,24 @@ const PICO_CAPABILITY: ReportCapability<'static> = ReportCapability {
     details: SemanticHash::from_bytes([21; 32]),
     capacity: budget(8, 1, 1),
 };
+static BROWSER_PLACEMENTS: [ReportCapability<'static>; 7] = [
+    browser_capability("window", 31),
+    browser_capability("dedicated-worker", 32),
+    browser_capability("shared-worker", 33),
+    browser_capability("service-worker", 34),
+    browser_capability("audio-worklet", 35),
+    browser_capability("wasm", 36),
+    browser_capability("webgpu", 37),
+];
+static BROWSER_IMPLEMENTATIONS: [&str; 7] = [
+    "fixture/browser-window",
+    "fixture/browser-dedicated-worker",
+    "fixture/browser-shared-worker",
+    "fixture/browser-service-worker",
+    "fixture/browser-audio-worklet",
+    "fixture/browser-wasm",
+    "fixture/browser-webgpu",
+];
 
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
@@ -65,6 +84,16 @@ const fn artifact_ref(id: &'static str, digest: ArtifactDigest) -> ManifestArtif
         digest,
         role: Id("executable"),
         required: true,
+    }
+}
+
+const fn browser_capability(mode: &'static str, details: u8) -> ReportCapability<'static> {
+    ReportCapability {
+        interface: BROWSER_PLACEMENT,
+        mode: Id(mode),
+        subject: Id(mode),
+        details: SemanticHash::from_bytes([details; 32]),
+        capacity: budget(8, 1, 1),
     }
 }
 
@@ -443,6 +472,264 @@ fn resolver_never_enrolls_prompts_or_mutates_membership_inputs() {
             "mutated": false
         }),
         expected
+    );
+}
+
+#[test]
+fn browser_placements_use_generic_resolution_and_partition_with_linux() {
+    let browser_artifact = artifact("fixture/linux-blob", LINUX_DIGEST);
+    let mut browser_report = report(
+        "fixture/browser-report",
+        "browser",
+        30,
+        budget(64, 8, 8),
+        &BROWSER_PLACEMENTS,
+        &[ExecutorKind::WasmComponent],
+    );
+    browser_report.membership = Some(membership(PassportStatus::Active));
+    identify_report(&mut browser_report);
+    let artifacts = [&browser_artifact];
+    let mut authenticated_policy = policy(&[], ResolverTiePolicy::LowestCanonicalIdentity);
+    authenticated_policy.required_realm = Some(REALM);
+    authenticated_policy.trusted_entities = &TRUSTED_ENTITIES;
+    authenticated_policy.trusted_status_reporters = &TRUSTED_STATUS_REPORTERS;
+    authenticated_policy.require_active_passport = true;
+    authenticated_policy.policy_hash = authenticated_policy.computed_semantic_hash().unwrap();
+
+    for (index, capability) in BROWSER_PLACEMENTS.iter().enumerate() {
+        let manifest = implementation(
+            BROWSER_IMPLEMENTATIONS[index],
+            ExecutorKind::WasmComponent,
+            &LINUX_REF,
+            &[],
+        );
+        let required = [CapabilityPredicate {
+            interface: BROWSER_PLACEMENT,
+            mode: capability.mode,
+            subject: Some(capability.subject),
+            details: Some(capability.details),
+            minimum_capacity: budget(8, 1, 1),
+            satisfaction_proof: None,
+        }];
+        let candidate = PlacementCandidate {
+            manifest: &manifest,
+            artifacts: &artifacts,
+            report: &browser_report,
+            allocation: budget(8, 1, 1),
+            capabilities: &required,
+            resources: &[],
+            topology: &[],
+            authorities: &[],
+        };
+        let candidates = [candidate];
+        let requests = [PlacementRequest {
+            instance: InstancePath::new("root/browser-placement").unwrap(),
+            semantic_contract: CONTRACT,
+            candidates: &candidates,
+        }];
+        let resolved = resolve_host_placement(&requests, authenticated_policy).unwrap();
+        assert_eq!(
+            resolved.bindings[0].implementation_id,
+            BROWSER_IMPLEMENTATIONS[index]
+        );
+        assert_eq!(resolved.bindings[0].host, "browser");
+        assert_eq!(
+            resolved.bindings[0].capability_subjects,
+            [capability.mode.as_str()]
+        );
+    }
+
+    let browser_wasm = implementation(
+        "fixture/browser-wasm-portable-transform",
+        ExecutorKind::WasmComponent,
+        &LINUX_REF,
+        &[],
+    );
+    let native_fake = implementation(
+        "fixture/native-fake-portable-transform",
+        ExecutorKind::NativeInProcess,
+        &LINUX_REF,
+        &[],
+    );
+    let native_fake_report = report(
+        "fixture/native-fake-report",
+        "native-test-host",
+        30,
+        budget(64, 8, 8),
+        &[],
+        &[ExecutorKind::NativeInProcess],
+    );
+    let browser_wasm_candidate = PlacementCandidate {
+        manifest: &browser_wasm,
+        artifacts: &artifacts,
+        report: &browser_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &[],
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    };
+    let native_fake_candidate = PlacementCandidate {
+        manifest: &native_fake,
+        artifacts: &artifacts,
+        report: &native_fake_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &[],
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    };
+    let browser_wasm_candidates = [browser_wasm_candidate];
+    let native_fake_candidates = [native_fake_candidate];
+    let browser_wasm_requests = [PlacementRequest {
+        instance: InstancePath::new("root/portable-transform").unwrap(),
+        semantic_contract: CONTRACT,
+        candidates: &browser_wasm_candidates,
+    }];
+    let native_fake_requests = [PlacementRequest {
+        instance: InstancePath::new("root/portable-transform").unwrap(),
+        semantic_contract: CONTRACT,
+        candidates: &native_fake_candidates,
+    }];
+    let browser_wasm_plan = resolve_host_placement(
+        &browser_wasm_requests,
+        policy(&[], ResolverTiePolicy::LowestCanonicalIdentity),
+    )
+    .unwrap();
+    let native_fake_plan = resolve_host_placement(
+        &native_fake_requests,
+        policy(&[], ResolverTiePolicy::LowestCanonicalIdentity),
+    )
+    .unwrap();
+    assert_eq!(
+        browser_wasm.semantic_contract,
+        native_fake.semantic_contract
+    );
+    assert_eq!(
+        browser_wasm_plan.bindings[0].implementation_id,
+        "fixture/browser-wasm-portable-transform"
+    );
+    assert_eq!(
+        native_fake_plan.bindings[0].implementation_id,
+        "fixture/native-fake-portable-transform"
+    );
+    assert_ne!(
+        browser_wasm_plan.bindings[0].implementation_id,
+        native_fake_plan.bindings[0].implementation_id
+    );
+
+    let linux_artifact = artifact("fixture/pico-blob", PICO_DIGEST);
+    let browser_manifest = implementation(
+        "fixture/browser-audio-worklet",
+        ExecutorKind::WasmComponent,
+        &LINUX_REF,
+        &[],
+    );
+    let linux_manifest = implementation(
+        "fixture/linux-speech",
+        ExecutorKind::RemoteEndpoint,
+        &PICO_REF,
+        &[],
+    );
+    let remote_capability = browser_capability("remote-session", 38);
+    let linux_report = report(
+        "fixture/linux-speech-report",
+        "linux",
+        30,
+        budget(64, 8, 8),
+        core::slice::from_ref(&remote_capability),
+        &[ExecutorKind::RemoteEndpoint],
+    );
+    let browser_artifacts = [&browser_artifact];
+    let linux_artifacts = [&linux_artifact];
+    let audio_required = [CapabilityPredicate {
+        interface: BROWSER_PLACEMENT,
+        mode: Id("audio-worklet"),
+        subject: Some(Id("audio-worklet")),
+        details: Some(SemanticHash::from_bytes([35; 32])),
+        minimum_capacity: budget(8, 1, 1),
+        satisfaction_proof: None,
+    }];
+    let remote_required = [CapabilityPredicate {
+        interface: BROWSER_PLACEMENT,
+        mode: Id("remote-session"),
+        subject: Some(Id("remote-session")),
+        details: Some(SemanticHash::from_bytes([38; 32])),
+        minimum_capacity: budget(8, 1, 1),
+        satisfaction_proof: None,
+    }];
+    let browser_candidate = PlacementCandidate {
+        manifest: &browser_manifest,
+        artifacts: &browser_artifacts,
+        report: &browser_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &audio_required,
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    };
+    let linux_candidate = PlacementCandidate {
+        manifest: &linux_manifest,
+        artifacts: &linux_artifacts,
+        report: &linux_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &remote_required,
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    };
+    let browser_candidates = [browser_candidate];
+    let linux_candidates = [linux_candidate];
+    let requests = [
+        PlacementRequest {
+            instance: InstancePath::new("root/preprocess").unwrap(),
+            semantic_contract: CONTRACT,
+            candidates: &browser_candidates,
+        },
+        PlacementRequest {
+            instance: InstancePath::new("root/speech").unwrap(),
+            semantic_contract: CONTRACT,
+            candidates: &linux_candidates,
+        },
+    ];
+    let distributed = resolve_host_placement(
+        &requests,
+        policy(&[], ResolverTiePolicy::LowestCanonicalIdentity),
+    )
+    .unwrap();
+    assert_eq!(distributed.bindings[0].host, "browser");
+    assert_eq!(distributed.bindings[1].host, "linux");
+
+    let source = include_str!("../../../examples/browser-linux-partition.panel");
+    conduit_panel::parse(source)
+        .expect("browser/Linux reference panel uses ordinary bounded source");
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../../conformance/c5/browser-host-v1.json")).unwrap();
+    let expected = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "browser-linux-partition-uses-generic-resolver")
+        .unwrap()["expected"]
+        .clone();
+    assert_eq!(
+        serde_json::json!({"accepted": true, "hosts": ["browser", "linux"]}),
+        expected
+    );
+    let portable_expected = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "browser-wasm-native-fake-same-contract")
+        .unwrap()["expected"]
+        .clone();
+    assert_eq!(
+        serde_json::json!({
+            "accepted": true,
+            "same_semantic_contract": true,
+            "distinct_implementations": true
+        }),
+        portable_expected
     );
 }
 
