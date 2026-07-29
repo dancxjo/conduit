@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 25 — 2026-07-29
+
+- Replaced realm/passport fixture inventory checks with direct executable
+  realm, passport, provider-verification, status, delegation, authorship,
+  federation, inspection, and resolver cases.
+- Added identified credential-verification outcomes for success, rejection,
+  replay, conflicting live sessions, and unavailable verification; added
+  explicit entity-key transitions and authority-bound lifecycle events.
+- Registered hosted passport redaction and resolver immutability reference
+  tests, and aligned the constrained-host attestation spelling with the
+  canonical `unsupported-attestation` contract value.
+- Existing realm/passport identities are unchanged. The new verification
+  observations and lifecycle checks are additive consuming boundaries.
+
 ## Manifest revision 24 — 2026-07-29
 
 - Migrated capability reports to schema 2 with an optional, identity-bound

@@ -77,6 +77,14 @@ and exposes only a verification result/reference (`RLM-011`). A signature is
 not proof of truth, safety, authorization, confidentiality, freshness, or
 confinement (`RLM-012`).
 
+`CredentialVerification` is that identified, bounded provider result. It pins
+the exact credential and passport identities, selected verifier, challenge,
+time basis and validity interval, outcome, and receipt. Rejected and replayed
+challenges fail as credential verification; conflicting live sessions and an
+unavailable provider fail as current status. `validate_passport_at` combines
+static passport validation, credential lifetime, and this provider result
+without exposing key bytes or performing the challenge itself.
+
 Key rotation preserves an entity ID only through an authorized immutable key
 transition. Root rotation likewise preserves realm ID only through a valid
 succession record. Replacement hardware receives a new entity ID even when it
@@ -84,6 +92,10 @@ is assigned an old role. Role reassignment never rewrites old authorship
 (`RLM-013`). A software-held/exportable key may be enrolled only with an
 honest key-protection/attestation descriptor; it does not claim hardware
 protection or clone resistance (`RLM-014`).
+
+`EntityKeyTransition` names the stable entity, prior/successor key IDs and
+epochs, authorizing credential, and receipt. Validation requires consecutive
+epochs and keys present in the exact prior/successor passport views.
 
 ## Event authorship and delegation
 
@@ -141,6 +153,11 @@ federation establish/narrow/suspend/revoke; and passport projection rebuild,
 stale, or gap are domain/control Resonance events. They append; they never
 mutate history (`RLM-023`). Presentation may show a redacted passport view or
 callsign but neither contributes to a semantic identity (`RLM-024`).
+`RealmControlEvent` requires a control-class Resonance envelope, exact
+recording authority, non-public sensitivity, and non-inline protected payload.
+Hosted passport inspection returns stable realm/entity/profile/credential
+references while structurally omitting key digests, receipts, roles, and
+extensions.
 
 ## Stable reasons
 

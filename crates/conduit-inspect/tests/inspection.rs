@@ -4,20 +4,23 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use conduit_core::{
     ArtifactDigest, ArtifactLocation, ArtifactLocationKind, ArtifactManifest, ArtifactProvenance,
     AuthorityTime, BlockingFairness, CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, Direction,
-    ExecutionPlan, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, Id, InstancePath,
-    PassportStatus, PassportStatusObservation, PinnedDescriptor, PlanArtifact, PlanHostObservation,
-    PlanResourceBudget, PlanValidationContext, Pressure, ReportMembership, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, SemanticHash, TypeContractRef,
+    EntityPassport, ExecutionPlan, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, Id,
+    InstancePath, KeyProtection, MembershipCredential, PassportStatus, PassportStatusObservation,
+    PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext,
+    Pressure, PublicKeyRef, REALM_SCHEMA_VERSION, RealmDescriptor, ReportMembership,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, RoleBinding, SemanticHash, Sensitivity,
+    TypeContractRef,
 };
 use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_artifact_manifest, inspect_bytes,
-    inspect_capability_report, inspect_conformance_manifest_path, inspect_execution_plan,
-    inspect_lowered_source,
+    inspect_capability_report, inspect_conformance_manifest_path, inspect_entity_passport,
+    inspect_execution_plan, inspect_lowered_source,
 };
 use conduit_runtime::LoweredSourceV2;
 use sha2::Digest as _;
 
 const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection-v1.json");
+const REALM_FIXTURE: &str = include_str!("../../../conformance/c2/realms-passports-v1.json");
 static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const DIGEST: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -160,6 +163,94 @@ fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
             .notes
             .iter()
             .any(|note| note.contains("does not refresh"))
+    );
+}
+
+#[test]
+fn passport_presentation_is_redacted() {
+    let root = PublicKeyRef {
+        id: Id("fixture/root-key"),
+        algorithm: Id("fixture/ed25519"),
+        public_key_digest: hash(45),
+    };
+    let roots = [root];
+    let mut realm = RealmDescriptor {
+        schema_version: REALM_SCHEMA_VERSION,
+        identity: ZERO_HASH,
+        id: Id("fixture/realm"),
+        genesis_root: root,
+        accepted_roots: &roots,
+        root_epoch: 1,
+        policy: pin("fixture/realm-policy", 46),
+        membership_profile: pin("fixture/membership", 47),
+        revocation_profile: pin("fixture/revocation", 48),
+        event_integrity_profile: pin("fixture/integrity", 49),
+        federation_profile: pin("fixture/federation", 50),
+        successions: &[],
+    };
+    let mut realm_scratch = [ZERO_HASH; 1];
+    realm.identity = realm.computed_semantic_hash(&mut realm_scratch).unwrap();
+    let member_key = PublicKeyRef {
+        id: Id("fixture/member-key"),
+        algorithm: Id("fixture/ed25519"),
+        public_key_digest: hash(51),
+    };
+    let keys = [member_key];
+    let roles = [RoleBinding {
+        role: pin("fixture/private-role", 52),
+        binding: Id("fixture/private-role-binding"),
+        expires_at_tick: 30,
+    }];
+    let mut passport = EntityPassport {
+        schema_version: REALM_SCHEMA_VERSION,
+        identity: ZERO_HASH,
+        entity: Id("fixture/member"),
+        profile: pin("fixture/member-profile", 53),
+        realm: realm.id,
+        credential: MembershipCredential {
+            id: Id("fixture/credential"),
+            realm: realm.id,
+            entity: Id("fixture/member"),
+            key: member_key.id,
+            issuer_key: root.id,
+            issued_at_tick: 1,
+            expires_at_tick: 30,
+            time_basis: Id("clock/monotonic"),
+            receipt: hash(54),
+        },
+        keys: &keys,
+        roles: &roles,
+        key_protection: KeyProtection::ExportableSoftware,
+        sensitivity: Sensitivity::Restricted,
+        extensions: &[],
+    };
+    let mut passport_scratch = [ZERO_HASH; 3];
+    passport.identity = passport
+        .computed_semantic_hash(&mut passport_scratch)
+        .unwrap();
+
+    let report =
+        inspect_entity_passport(&passport, &realm, DIGEST, InspectLimits::default()).unwrap();
+    assert_eq!(report.kind, ArtifactKind::EntityPassport);
+    assert_eq!(report.redacted_fields, 3);
+    assert_eq!(report.references.len(), 4);
+    let serialized = serde_json::to_string(&report).unwrap();
+    assert!(!serialized.contains("fixture/private-role"));
+    assert!(!serialized.contains("fixture/private-role-binding"));
+    assert!(!serialized.contains(&member_key.public_key_digest.to_string()));
+    assert!(!serialized.contains(&passport.credential.receipt.to_string()));
+
+    let fixture: serde_json::Value = serde_json::from_str(REALM_FIXTURE).unwrap();
+    let expected = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "passport-presentation-is-redacted")
+        .unwrap()["expected"]
+        .clone();
+    assert_eq!(
+        serde_json::json!({"accepted": true, "private_material": false}),
+        expected
     );
 }
 

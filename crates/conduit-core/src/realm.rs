@@ -122,7 +122,8 @@ pub enum KeyProtection {
     UnsupportedAttestation,
 }
 impl KeyProtection {
-    const fn as_str(self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::HardwareProtected => "hardware-protected",
             Self::ExportableSoftware => "exportable-software-key",
@@ -247,6 +248,86 @@ pub struct PassportStatusObservation<'a> {
     pub valid_until_tick: u64,
     pub status: PassportStatus,
 }
+
+/// Identified output from a selected credential/signature verification
+/// provider. The provider retains key bytes and challenge machinery; portable
+/// Conduit contracts receive only this bounded result and receipt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CredentialVerification<'a> {
+    pub identity: SemanticHash,
+    pub credential: Id<'a>,
+    pub passport: SemanticHash,
+    pub verifier: PinnedDescriptor<'a>,
+    pub challenge: Id<'a>,
+    pub time_basis: Id<'a>,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub outcome: CredentialVerificationOutcome,
+    pub receipt: SemanticHash,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CredentialVerificationOutcome {
+    Verified,
+    Rejected,
+    Replayed,
+    ConflictingLiveSession,
+    Unavailable,
+}
+impl CredentialVerificationOutcome {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Verified => "verified",
+            Self::Rejected => "rejected",
+            Self::Replayed => "replayed",
+            Self::ConflictingLiveSession => "conflicting-live-session",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+impl CredentialVerification<'_> {
+    pub fn computed_semantic_hash(&self) -> Result<SemanticHash, RealmIdentityError> {
+        let verifier = hash_pin(self.verifier)?;
+        hash(
+            "conduit/credential-verification",
+            &[
+                field("credential", CanonicalValue::Identifier(self.credential)),
+                field("passport", CanonicalValue::Bytes(self.passport.as_bytes())),
+                field("verifier", CanonicalValue::Bytes(verifier.as_bytes())),
+                field("challenge", CanonicalValue::Identifier(self.challenge)),
+                field("time_basis", CanonicalValue::Identifier(self.time_basis)),
+                field(
+                    "observed_at_tick",
+                    CanonicalValue::Integer(i128::from(self.observed_at_tick)),
+                ),
+                field(
+                    "valid_until_tick",
+                    CanonicalValue::Integer(i128::from(self.valid_until_tick)),
+                ),
+                field(
+                    "outcome",
+                    CanonicalValue::Identifier(Id(self.outcome.as_str())),
+                ),
+                field("receipt", CanonicalValue::Bytes(self.receipt.as_bytes())),
+            ],
+        )
+    }
+}
+
+/// Authorized immutable transition between two entity keys. A transition may
+/// preserve an entity identity; it never turns a replacement entity into the
+/// prior entity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EntityKeyTransition<'a> {
+    pub entity: Id<'a>,
+    pub prior: Id<'a>,
+    pub successor: Id<'a>,
+    pub prior_epoch: u32,
+    pub successor_epoch: u32,
+    pub authorized_by: Id<'a>,
+    pub receipt: SemanticHash,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorkloadDelegation<'a> {
     pub id: Id<'a>,
@@ -271,6 +352,9 @@ pub enum AttributionStrength {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RealmControlKind {
     EnrollmentRequested,
+    EnrollmentChallenged,
+    EnrollmentApproved,
+    EnrollmentDenied,
     MembershipIssued,
     MembershipRenewed,
     MembershipExpired,
@@ -302,6 +386,9 @@ impl RealmControlKind {
     pub const fn detail(self) -> &'static str {
         match self {
             Self::EnrollmentRequested => "realm.enrollment-requested",
+            Self::EnrollmentChallenged => "realm.enrollment-challenged",
+            Self::EnrollmentApproved => "realm.enrollment-approved",
+            Self::EnrollmentDenied => "realm.enrollment-denied",
             Self::MembershipIssued => "realm.membership-issued",
             Self::MembershipRenewed => "realm.membership-renewed",
             Self::MembershipExpired => "realm.membership-expired",
@@ -330,6 +417,18 @@ impl RealmControlKind {
         }
     }
 }
+
+/// One append-only, authority-bound realm lifecycle event. The envelope owns
+/// ordering, causation, retention, redaction, and integrity; `kind` supplies a
+/// stable control detail without changing the generic Resonance model.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RealmControlEvent<'a> {
+    pub kind: RealmControlKind,
+    pub envelope: ResonanceEnvelope<'a>,
+    pub authority: Id<'a>,
+    pub receipt: SemanticHash,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EventAuthorship<'a> {
     pub realm: Id<'a>,
@@ -495,11 +594,102 @@ pub fn validate_passport(
         .keys
         .iter()
         .any(|key| key.id == passport.credential.key)
+        || !realm
+            .accepted_roots
+            .iter()
+            .any(|root| root.id == passport.credential.issuer_key)
     {
         return Err(RealmReason::CredentialRejected);
     }
     Ok(())
 }
+
+pub fn validate_credential_verification(
+    verification: CredentialVerification<'_>,
+    credential: Id<'_>,
+    passport: SemanticHash,
+    time_basis: Id<'_>,
+    tick: u64,
+) -> Result<(), RealmReason> {
+    if !valid_id(verification.credential)
+        || !valid_pin(verification.verifier)
+        || !valid_id(verification.challenge)
+        || !valid_id(verification.time_basis)
+        || verification.credential != credential
+        || verification.passport != passport
+        || verification.time_basis != time_basis
+        || verification.observed_at_tick >= verification.valid_until_tick
+        || tick < verification.observed_at_tick
+        || tick >= verification.valid_until_tick
+        || verification.receipt == SemanticHash::from_bytes([0; 32])
+        || verification.computed_semantic_hash().ok() != Some(verification.identity)
+    {
+        return Err(RealmReason::CredentialRejected);
+    }
+    match verification.outcome {
+        CredentialVerificationOutcome::Verified => Ok(()),
+        CredentialVerificationOutcome::Rejected | CredentialVerificationOutcome::Replayed => {
+            Err(RealmReason::CredentialRejected)
+        }
+        CredentialVerificationOutcome::ConflictingLiveSession
+        | CredentialVerificationOutcome::Unavailable => Err(RealmReason::StatusUnavailable),
+    }
+}
+
+/// Validates an exact current passport at one caller-supplied time observation.
+/// Static identity validation, credential lifetime, and provider verification
+/// remain separate inputs and all must succeed.
+pub fn validate_passport_at(
+    passport: &EntityPassport<'_>,
+    realm: &RealmDescriptor<'_>,
+    verification: CredentialVerification<'_>,
+    time_basis: Id<'_>,
+    tick: u64,
+    scratch: &mut [SemanticHash],
+) -> Result<(), RealmReason> {
+    validate_passport(passport, realm, scratch)?;
+    if passport.credential.time_basis != time_basis
+        || tick < passport.credential.issued_at_tick
+        || tick >= passport.credential.expires_at_tick
+    {
+        return Err(RealmReason::CredentialRejected);
+    }
+    validate_credential_verification(
+        verification,
+        passport.credential.id,
+        passport.identity,
+        time_basis,
+        tick,
+    )
+}
+
+pub fn validate_entity_key_transition(
+    transition: EntityKeyTransition<'_>,
+    prior: &EntityPassport<'_>,
+    successor: &EntityPassport<'_>,
+) -> Result<(), RealmReason> {
+    if !valid_id(transition.entity)
+        || !valid_id(transition.prior)
+        || !valid_id(transition.successor)
+        || !valid_id(transition.authorized_by)
+        || transition.entity != prior.entity
+        || transition.entity != successor.entity
+        || transition.prior == transition.successor
+        || transition.prior_epoch == 0
+        || transition.prior_epoch.checked_add(1) != Some(transition.successor_epoch)
+        || transition.authorized_by != prior.credential.id
+        || transition.receipt == SemanticHash::from_bytes([0; 32])
+        || !prior.keys.iter().any(|key| key.id == transition.prior)
+        || !successor
+            .keys
+            .iter()
+            .any(|key| key.id == transition.successor)
+    {
+        return Err(RealmReason::CredentialRejected);
+    }
+    Ok(())
+}
+
 pub fn validate_passport_status(
     status: PassportStatusObservation<'_>,
     passport: SemanticHash,
@@ -589,6 +779,40 @@ pub fn validate_authenticated_resonance_envelope(
     validate_envelope(&value.envelope)
         .map_err(|_error: ResonanceError| RealmReason::InvalidDescriptor)?;
     validate_event_authorship(value.authorship, passport, realm, time_basis, tick)
+}
+
+pub fn validate_realm_control_event(value: RealmControlEvent<'_>) -> Result<(), RealmReason> {
+    if !valid_id(value.authority) || value.envelope.recording_authority != Some(value.authority) {
+        return Err(RealmReason::AuthorityRequired);
+    }
+    if value.receipt == SemanticHash::from_bytes([0; 32])
+        || value.envelope.class != crate::EventClass::Control
+    {
+        return Err(RealmReason::InvalidDescriptor);
+    }
+    if value.envelope.sensitivity == Sensitivity::Public
+        || matches!(
+            value.envelope.payload,
+            crate::EventPayloadRef::InlinePublic { .. }
+        )
+    {
+        return Err(RealmReason::SensitiveDisclosure);
+    }
+    validate_envelope(&value.envelope)
+        .map_err(|_error: ResonanceError| RealmReason::InvalidDescriptor)
+}
+
+/// Membership, roles, transport authentication, and artifact signatures are
+/// never accepted as a substitute for a previously validated exact authority
+/// binding.
+pub fn require_realm_operation_authority(
+    authority_binding: Option<Id<'_>>,
+) -> Result<(), RealmReason> {
+    if authority_binding.is_some_and(valid_id) {
+        Ok(())
+    } else {
+        Err(RealmReason::AuthorityRequired)
+    }
 }
 
 /// Validates one exact federation direction and stream. A caller must supply

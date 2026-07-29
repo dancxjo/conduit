@@ -7,9 +7,10 @@ use std::path::{Path, PathBuf};
 
 use conduit_conformance::Manifest;
 use conduit_core::{
-    ArtifactLocationKind, ArtifactManifest, CapabilityReport, EvidencePolicy, ExecutionPlan, Id,
-    ImplementationManifest, PlanValidationContext, SemanticHash, validate_artifact_manifest,
-    validate_capability_report, validate_event_stream, validate_implementation_manifest,
+    ArtifactLocationKind, ArtifactManifest, CapabilityReport, EntityPassport, EvidencePolicy,
+    ExecutionPlan, Id, ImplementationManifest, PlanValidationContext, RealmDescriptor,
+    SemanticHash, validate_artifact_manifest, validate_capability_report, validate_event_stream,
+    validate_implementation_manifest, validate_passport,
 };
 use conduit_diagnostics::{OwnedDiagnostic, OwnedDiagnosticArgumentValue};
 use conduit_panel::{
@@ -80,6 +81,7 @@ pub enum ArtifactKind {
     ImplementationManifest,
     ArtifactManifest,
     CapabilityReport,
+    EntityPassport,
 }
 
 impl ArtifactKind {
@@ -96,6 +98,7 @@ impl ArtifactKind {
             Self::ImplementationManifest => "implementation-manifest",
             Self::ArtifactManifest => "artifact-manifest",
             Self::CapabilityReport => "capability-report",
+            Self::EntityPassport => "entity-passport",
         }
     }
 }
@@ -229,7 +232,8 @@ pub fn inspect_bytes(
         | ArtifactKind::ExecutionPlan
         | ArtifactKind::ImplementationManifest
         | ArtifactKind::ArtifactManifest
-        | ArtifactKind::CapabilityReport => Err(failure(
+        | ArtifactKind::CapabilityReport
+        | ArtifactKind::EntityPassport => Err(failure(
             "CND-INSP-008",
             "this semantic kind has no frozen standalone byte encoding; use its typed inspection adapter",
         )),
@@ -806,6 +810,64 @@ pub fn inspect_capability_report(
                 report.time_basis, report.observed_at_tick, report.valid_until_tick
             ),
             "inspection does not refresh, discover, configure, or provision the host".to_owned(),
+        ],
+    ))
+}
+
+/// Inspect a passport as a redacted public projection. Private key material
+/// cannot be represented by `EntityPassport`; role bindings, extensions,
+/// public-key digests, and credential receipts remain absent from the report.
+pub fn inspect_entity_passport(
+    passport: &EntityPassport<'_>,
+    realm: &RealmDescriptor<'_>,
+    content_digest: &str,
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    require_digest(content_digest, "content digest")?;
+    let items = passport.identity_fact_count();
+    enforce_collection_bound(items, limits, "passport items")?;
+    let mut scratch = vec![SemanticHash::from_bytes([0; 32]); items];
+    validate_passport(passport, realm, &mut scratch)
+        .map_err(|reason| failure(reason.code(), "invalid entity passport"))?;
+
+    let mut counts = BTreeMap::new();
+    counts.insert("public_keys".to_owned(), passport.keys.len() as u64);
+    counts.insert("role_bindings".to_owned(), passport.roles.len() as u64);
+    counts.insert("extensions".to_owned(), passport.extensions.len() as u64);
+    let references = vec![
+        InspectionReference {
+            category: "realm".to_owned(),
+            value: passport.realm.to_string(),
+        },
+        InspectionReference {
+            category: "entity".to_owned(),
+            value: passport.entity.to_string(),
+        },
+        InspectionReference {
+            category: "passport-profile".to_owned(),
+            value: format!("{}@{}", passport.profile.id, passport.profile.semantic_hash),
+        },
+        InspectionReference {
+            category: "credential".to_owned(),
+            value: passport.credential.id.to_string(),
+        },
+    ];
+    Ok(base_report(
+        ArtifactKind::EntityPassport,
+        passport.schema_version,
+        content_digest.to_owned(),
+        Some(passport.identity.to_string()),
+        counts,
+        BTreeMap::new(),
+        references,
+        (passport.keys.len() + passport.roles.len() + passport.extensions.len() + 1) as u64,
+        vec![
+            format!("sensitivity {}", passport.sensitivity.as_str()),
+            format!("key_protection {}", passport.key_protection.as_str()),
+            "private keys are structurally absent; key digests, receipts, roles, and extensions are redacted"
+                .to_owned(),
+            "inspection performs no enrollment, signature verification, status refresh, or mutation"
+                .to_owned(),
         ],
     ))
 }

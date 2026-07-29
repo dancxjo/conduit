@@ -375,6 +375,78 @@ fn resolver_enforces_realm_entity_and_fresh_passport_status() {
 }
 
 #[test]
+fn resolver_never_enrolls_prompts_or_mutates_membership_inputs() {
+    let linux_artifact = artifact("fixture/linux-blob", LINUX_DIGEST);
+    let manifest = implementation(
+        "fixture/linux",
+        ExecutorKind::NativeInProcess,
+        &LINUX_REF,
+        &[],
+    );
+    let mut authenticated_report = report(
+        "fixture/pure-resolution-report",
+        "linux",
+        30,
+        budget(16, 2, 2),
+        &[LINUX_CAPABILITY],
+        &[ExecutorKind::NativeInProcess],
+    );
+    authenticated_report.membership = Some(membership(PassportStatus::Active));
+    identify_report(&mut authenticated_report);
+    let original_report = authenticated_report;
+    let artifacts = [&linux_artifact];
+    let required = [capability_requirement()];
+    let candidate = PlacementCandidate {
+        manifest: &manifest,
+        artifacts: &artifacts,
+        report: &authenticated_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &required,
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    };
+    let candidates = [candidate];
+    let requests = [PlacementRequest {
+        instance: InstancePath::new("root/wifi").unwrap(),
+        semantic_contract: CONTRACT,
+        candidates: &candidates,
+    }];
+    let mut authenticated_policy = policy(&[], ResolverTiePolicy::LowestCanonicalIdentity);
+    authenticated_policy.required_realm = Some(REALM);
+    authenticated_policy.trusted_entities = &TRUSTED_ENTITIES;
+    authenticated_policy.trusted_status_reporters = &TRUSTED_STATUS_REPORTERS;
+    authenticated_policy.require_active_passport = true;
+    authenticated_policy.policy_hash = authenticated_policy.computed_semantic_hash().unwrap();
+    let original_policy_hash = authenticated_policy.policy_hash;
+
+    let resolved = resolve_host_placement(&requests, authenticated_policy).unwrap();
+    assert_eq!(resolved.bindings.len(), 1);
+    assert_eq!(authenticated_report, original_report);
+    assert_eq!(authenticated_policy.policy_hash, original_policy_hash);
+
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c2/realms-passports-v1.json"
+    ))
+    .unwrap();
+    let expected = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "resolver-never-enrolls-or-prompts")
+        .unwrap()["expected"]
+        .clone();
+    assert_eq!(
+        serde_json::json!({
+            "enrolled": false,
+            "prompted": false,
+            "mutated": false
+        }),
+        expected
+    );
+}
+
+#[test]
 fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
     let linux_artifact = artifact("fixture/linux-blob", LINUX_DIGEST);
     let pico_artifact = artifact("fixture/pico-blob", PICO_DIGEST);

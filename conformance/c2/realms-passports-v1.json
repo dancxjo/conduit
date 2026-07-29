@@ -26,7 +26,7 @@
     {"id":"bridge-preserves-remote-authorship","runner":"event-authorship","expected":{"accepted":true,"remote_authorship_preserved":true}},
     {"id":"offline-credential-expiry-is-bounded","runner":"status","expected":{"accepted":false,"code":"CND-RLM-005"}},
     {"id":"passport-presentation-is-redacted","runner":"presentation","expected":{"accepted":true,"private_material":false}},
-    {"id":"constrained-host-honestly-lacks-attestation","runner":"passport","expected":{"accepted":true,"attestation":"unsupported"}},
+    {"id":"constrained-host-honestly-lacks-attestation","runner":"passport","expected":{"accepted":true,"attestation":"unsupported-attestation"}},
     {"id":"resolver-never-enrolls-or-prompts","runner":"resolver","expected":{"enrolled":false,"prompted":false,"mutated":false}}
   ]
 }

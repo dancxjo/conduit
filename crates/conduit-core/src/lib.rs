@@ -137,14 +137,17 @@ pub use port::{
     assess_port_substitution,
 };
 pub use realm::{
-    AttributionStrength, AuthenticatedResonanceEnvelope, EntityPassport, EventAuthorship,
+    AttributionStrength, AuthenticatedResonanceEnvelope, CredentialVerification,
+    CredentialVerificationOutcome, EntityKeyTransition, EntityPassport, EventAuthorship,
     FederationPolicy, KeyProtection, MAX_DELEGATION_DEPTH, MAX_FEDERATION_STREAMS,
     MAX_PASSPORT_EXTENSIONS, MAX_PASSPORT_KEYS, MAX_PASSPORT_ROLES, MAX_REALM_ROOT_KEYS,
     MembershipCredential, PassportStatus, PassportStatusObservation, PublicKeyRef,
-    REALM_SCHEMA_VERSION, RealmControlKind, RealmDescriptor, RealmIdentityError, RealmReason,
-    RoleBinding, RootSuccession, WorkloadDelegation, validate_authenticated_resonance_envelope,
-    validate_delegation, validate_event_authorship, validate_federation, validate_passport,
-    validate_passport_status, validate_realm,
+    REALM_SCHEMA_VERSION, RealmControlEvent, RealmControlKind, RealmDescriptor, RealmIdentityError,
+    RealmReason, RoleBinding, RootSuccession, WorkloadDelegation,
+    require_realm_operation_authority, validate_authenticated_resonance_envelope,
+    validate_credential_verification, validate_delegation, validate_entity_key_transition,
+    validate_event_authorship, validate_federation, validate_passport, validate_passport_at,
+    validate_passport_status, validate_realm, validate_realm_control_event,
 };
 pub use resonance::{
     AppendCommit, AppendOutcome, AppendRecovery, BoundedEventRing, EventClass, EventPayloadRef,

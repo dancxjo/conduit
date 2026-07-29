@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 24,
+  "manifest_revision": 25,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3138,7 +3138,7 @@
         {
           "id": "realms-passports-v1",
           "path": "../c2/realms-passports-v1.json",
-          "sha256": "sha256:4f22bf06c0b4e10497aa58feb6838291008981525aad28f117647859436a291c",
+          "sha256": "sha256:7d5dce07390f2fa03849c3b2b4ebc1d7c82bf1f96c0872468df33c99a6b8dbb2",
           "operation": "realms-passports-v1",
           "requirement_ids": [
             "RLM-001", "RLM-002", "RLM-003", "RLM-004", "RLM-005", "RLM-006",
@@ -3169,7 +3169,11 @@
         "boundary": ["realms-passports-v1#cloned-software-key-conflicting-sessions", "realms-passports-v1#offline-credential-expiry-is-bounded", "realms-passports-v1#conflicting-root-rotation-rejected"],
         "migration": ["realms-passports-v1#entity-identity-survives-key-rotation", "realms-passports-v1#realm-identity-survives-root-succession"]
       },
-      "reference_tests": [{"package": "conduit-core", "test": "realm_vectors"}]
+      "reference_tests": [
+        {"package": "conduit-core", "test": "realm_vectors"},
+        {"package": "conduit-runtime", "test": "host_resolution"},
+        {"package": "conduit-inspect", "test": "inspection"}
+      ]
     },
     {
       "id": "browser-host",
