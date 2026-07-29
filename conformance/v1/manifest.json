@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 26,
+  "manifest_revision": 27,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3191,6 +3191,90 @@
       }],
       "coverage": {"positive":["browser-host-v1#report-requires-realm-passport-status","browser-host-v1#concrete-window-worker-service-worklet-wasm-gpu-adapters","browser-host-v1#browser-wasm-native-fake-same-contract","browser-host-v1#browser-linux-partition-uses-generic-resolver"],"negative":["browser-host-v1#prompt-is-not-granted","browser-host-v1#stale-report-rejected"],"boundary":["browser-host-v1#adapter-queue-is-bounded","browser-host-v1#unsupported-feature-is-explicit","browser-host-v1#chromium-firefox-webkit-run-identical-vectors"],"migration":["browser-host-v1#presentation-and-host-identities-separate"]},
       "reference_tests": [{"package":"conduit-runtime","test":"host_resolution"}]
+    },
+    {
+      "id": "exact-compile-package",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "CMP-001", "CMP-002", "CMP-003", "CMP-004", "CMP-005", "CMP-006",
+        "CMP-007", "CMP-008", "CMP-009", "CMP-010", "CMP-011", "CMP-012",
+        "PKG-001", "PKG-002", "PKG-003", "PKG-004", "PKG-005", "PKG-006",
+        "PKG-007", "PKG-008", "PKG-009", "PKG-010", "PKG-011", "PKG-012",
+        "PKG-013", "PKG-014", "PKG-015", "PKG-016", "PKG-017", "PKG-018"
+      ],
+      "artifacts": [{
+        "id": "compile-package-v1",
+        "path": "../c5/compile-package-v1.json",
+        "sha256": "sha256:39d8c164e0994d61c4b6dc5420410595d560b6bbbc2734373de575d1c9871bdd",
+        "operation": "compile-package-v1",
+        "requirement_ids": [
+          "CMP-001", "CMP-002", "CMP-003", "CMP-004", "CMP-005", "CMP-006",
+          "CMP-007", "CMP-008", "CMP-009", "CMP-010", "CMP-011", "CMP-012",
+          "PKG-001", "PKG-002", "PKG-003", "PKG-004", "PKG-005", "PKG-006",
+          "PKG-007", "PKG-008", "PKG-009", "PKG-010", "PKG-011", "PKG-012",
+          "PKG-013", "PKG-014", "PKG-015", "PKG-016", "PKG-017", "PKG-018"
+        ],
+        "default_rule": "CMP-001",
+        "case_rules": {
+          "using-ready-is-resolved": "CMP-005",
+          "unresolved-selector-rejected": "CMP-008",
+          "absent-or-stale-host-report": "CMP-008",
+          "missing-or-incompatible-implementation-artifact": "CMP-008",
+          "memory-resource-authority-transition-over-budget": "CMP-008",
+          "no-provisioning-or-implicit-fetch": "CMP-004",
+          "minimal-plan-round-trip": "CMP-009",
+          "compile-machine-stream-separation": "CMP-006",
+          "reserved-word-path-after-double-dash": "CMP-010",
+          "thick-package-round-trip": "PKG-015",
+          "thin-package-round-trip": "PKG-015",
+          "heterogeneous-linux-wasm-pico-package": "PKG-003",
+          "missing-tampered-or-oversized-blob": "PKG-017",
+          "license-sbom-signature-provenance-mismatch": "PKG-012",
+          "unsupported-media-plan-package-version": "PKG-013",
+          "extraction-limit-and-traversal-attacks": "PKG-017",
+          "identity-preserved-across-package-round-trip": "PKG-016",
+          "package-inspection-never-executes": "PKG-018"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "compile-package-v1#deterministic-explicit-compile",
+          "compile-package-v1#using-ready-is-resolved",
+          "compile-package-v1#minimal-plan-round-trip",
+          "compile-package-v1#thick-package-round-trip",
+          "compile-package-v1#thin-package-round-trip",
+          "compile-package-v1#heterogeneous-linux-wasm-pico-package"
+        ],
+        "negative": [
+          "compile-package-v1#unresolved-selector-rejected",
+          "compile-package-v1#absent-or-stale-host-report",
+          "compile-package-v1#missing-or-incompatible-implementation-artifact",
+          "compile-package-v1#memory-resource-authority-transition-over-budget",
+          "compile-package-v1#missing-tampered-or-oversized-blob",
+          "compile-package-v1#license-sbom-signature-provenance-mismatch",
+          "compile-package-v1#unsupported-media-plan-package-version"
+        ],
+        "boundary": [
+          "compile-package-v1#no-provisioning-or-implicit-fetch",
+          "compile-package-v1#compile-machine-stream-separation",
+          "compile-package-v1#extraction-limit-and-traversal-attacks",
+          "compile-package-v1#package-inspection-never-executes"
+        ],
+        "migration": [
+          "compile-package-v1#reserved-word-path-after-double-dash",
+          "compile-package-v1#identity-preserved-across-package-round-trip"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-compile", "test": "compile_vectors"},
+        {"package": "conduit-package", "test": "package_vectors"},
+        {"package": "conduct", "test": "compile_cli"},
+        {"package": "conduct", "test": "package_cli"}
+      ]
     },
     {
       "id": "patchbay-protocol",

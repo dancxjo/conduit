@@ -93,6 +93,37 @@ pub struct PackageManifest {
     pub objects: Vec<PackageObject>,
 }
 
+/// Explicit caller policy over selected package object roles.
+///
+/// This is not part of package identity and does not perform cryptography.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackageTrustPolicy {
+    pub roles: Vec<String>,
+    pub require_known_license: bool,
+    pub require_sbom: bool,
+    pub require_signature: bool,
+    pub require_attestation: bool,
+    pub require_provenance: bool,
+    pub trusted_signers: Vec<String>,
+}
+
+/// One external cryptographic verification observation.
+///
+/// The verifier retains key material and verification machinery. Package
+/// validation receives only this bounded result and content-addressed receipt.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackageSignatureObservation {
+    pub object_digest: String,
+    pub signature_digest: String,
+    pub signer: String,
+    pub scheme: String,
+    pub verifier: String,
+    pub verified: bool,
+    pub evidence_digest: String,
+}
+
 #[derive(Serialize)]
 struct IdentityProjection<'a> {
     schema: &'a str,
@@ -168,6 +199,95 @@ impl PackageManifest {
         }
         Ok(())
     }
+}
+
+pub fn validate_package_trust(
+    manifest: &PackageManifest,
+    policy: &PackageTrustPolicy,
+    observations: &[PackageSignatureObservation],
+    limits: PackageLimits,
+) -> Result<(), PackageError> {
+    manifest.validate(limits)?;
+    if policy.roles.len() > limits.maximum_objects as usize
+        || policy.trusted_signers.len() > limits.maximum_objects as usize
+        || observations.len() > limits.maximum_objects as usize
+    {
+        return Err(PackageError::new(PackageReason::LimitExceeded));
+    }
+    let mut roles = BTreeSet::new();
+    for role in &policy.roles {
+        validate_id(role)?;
+        if !roles.insert(role.as_str()) {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+    }
+    let mut trusted_signers = BTreeSet::new();
+    for signer in &policy.trusted_signers {
+        validate_id(signer)?;
+        if !trusted_signers.insert(signer.as_str()) {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+    }
+    let mut observation_keys = BTreeSet::new();
+    for observation in observations {
+        parse_digest(&observation.object_digest)?;
+        parse_digest(&observation.signature_digest)?;
+        parse_digest(&observation.evidence_digest)?;
+        validate_id(&observation.signer)?;
+        validate_id(&observation.scheme)?;
+        validate_id(&observation.verifier)?;
+        if !observation_keys.insert((
+            observation.object_digest.as_str(),
+            observation.signature_digest.as_str(),
+            observation.signer.as_str(),
+            observation.scheme.as_str(),
+        )) {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+        let object = manifest
+            .objects
+            .iter()
+            .find(|object| object.digest == observation.object_digest)
+            .ok_or_else(|| PackageError::new(PackageReason::MetadataMismatch))?;
+        if !object.signatures.contains(&observation.signature_digest)
+            || !object.attestations.contains(&observation.evidence_digest)
+        {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+    }
+    for object in manifest
+        .objects
+        .iter()
+        .filter(|object| roles.is_empty() || roles.contains(object.role.as_str()))
+    {
+        if policy.require_known_license
+            && object.license_expressions.is_empty()
+            && object.license_objects.is_empty()
+        {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+        if policy.require_sbom && object.sbom.is_none() {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+        if policy.require_attestation && object.attestations.is_empty() {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+        if policy.require_provenance && object.provenance.is_none() {
+            return Err(PackageError::new(PackageReason::MetadataMismatch));
+        }
+        if policy.require_signature {
+            let trusted = observations.iter().any(|observation| {
+                observation.object_digest == object.digest
+                    && object.signatures.contains(&observation.signature_digest)
+                    && observation.verified
+                    && trusted_signers.contains(observation.signer.as_str())
+            });
+            if object.signatures.is_empty() || !trusted {
+                return Err(PackageError::new(PackageReason::MetadataMismatch));
+            }
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -784,5 +904,74 @@ mod tests {
             "CND-PKG-009"
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn trust_requires_explicit_verified_observations_for_selected_roles() {
+        let mut payload = object("linux-native", b"payload", false);
+        let license = object("license", b"MIT", false);
+        let sbom = object("sbom", b"sbom", false);
+        let signature = object("signature", b"signature", false);
+        let attestation = object("attestation", b"verification-receipt", false);
+        let source = object("source", b"source", false);
+        let recipe = object("build-recipe", b"recipe", false);
+        payload.license_expressions = vec!["MIT".to_owned()];
+        payload.license_objects = vec![license.digest.clone()];
+        payload.sbom = Some(sbom.digest.clone());
+        payload.signatures = vec![signature.digest.clone()];
+        payload.attestations = vec![attestation.digest.clone()];
+        payload.provenance = Some(PackageProvenance {
+            builder: "fixture/builder".to_owned(),
+            source_digest: source.digest.clone(),
+            build_recipe_digest: recipe.digest.clone(),
+            reproducible: true,
+        });
+        let payload_digest = payload.digest.clone();
+        let signature_digest = signature.digest.clone();
+        let evidence_digest = attestation.digest.clone();
+        let mut manifest = PackageManifest::new(vec![
+            payload,
+            license,
+            sbom,
+            signature,
+            attestation,
+            source,
+            recipe,
+        ]);
+        manifest.seal().unwrap();
+        let policy = PackageTrustPolicy {
+            roles: vec!["linux-native".to_owned()],
+            require_known_license: true,
+            require_sbom: true,
+            require_signature: true,
+            require_attestation: true,
+            require_provenance: true,
+            trusted_signers: vec!["fixture/signer".to_owned()],
+        };
+        let observation = PackageSignatureObservation {
+            object_digest: payload_digest,
+            signature_digest,
+            signer: "fixture/signer".to_owned(),
+            scheme: "fixture/signature-v1".to_owned(),
+            verifier: "fixture/verifier".to_owned(),
+            verified: true,
+            evidence_digest,
+        };
+        validate_package_trust(
+            &manifest,
+            &policy,
+            std::slice::from_ref(&observation),
+            PackageLimits::default(),
+        )
+        .unwrap();
+
+        let mut rejected = observation;
+        rejected.verified = false;
+        assert_eq!(
+            validate_package_trust(&manifest, &policy, &[rejected], PackageLimits::default())
+                .unwrap_err()
+                .code(),
+            "CND-PKG-006"
+        );
     }
 }

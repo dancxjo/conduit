@@ -60,7 +60,7 @@ pub enum SecondaryCommand {
     Inspect(InspectArguments),
     /// Compile source against explicit immutable inputs into one exact plan.
     Compile(CompileArguments),
-    /// Create or extract a bounded content-addressed package.
+    /// Create, verify, or extract a bounded content-addressed package.
     Package(PackageArguments),
 }
 
@@ -99,6 +99,8 @@ pub struct PackageArguments {
 pub enum PackageOperation {
     /// Create one deterministic thick or thin package.
     Create(PackageCreateArguments),
+    /// Validate package metadata against explicit trust observations.
+    Verify(PackageVerifyArguments),
     /// Validate and extract embedded blobs to digest-derived paths.
     Extract(PackageExtractArguments),
 }
@@ -127,6 +129,21 @@ pub struct PackageExtractArguments {
     /// Create digest-derived blob paths beneath this directory.
     #[arg(long, value_name = "DIRECTORY")]
     pub output_dir: PathBuf,
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct PackageVerifyArguments {
+    /// Read and validate this package envelope.
+    #[arg(value_name = "PACKAGE")]
+    pub package: PathBuf,
+
+    /// Read the explicit package trust policy from this JSON file.
+    #[arg(long, value_name = "POLICY")]
+    pub policy: PathBuf,
+
+    /// Read external signature verification observations from this JSON file.
+    #[arg(long, value_name = "OBSERVATIONS")]
+    pub observations: PathBuf,
 }
 
 /// Check, explain, and run one typed node arrangement.

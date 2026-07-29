@@ -14,7 +14,7 @@ use conduct::{
     Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, PackageOperation,
     SecondaryCommand,
 };
-use conduit_compile::{CompileInput, compile_panel};
+use conduit_compile::{CompileInput, compile_source};
 use conduit_diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, DiagnosticSource, OwnedDiagnostic, TerminalColor, TerminalVerbosity,
     from_parse_error, from_resolution_error, from_runtime_error, render_terminal,
@@ -23,8 +23,11 @@ use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_bytes, inspect_conformance_manifest_path,
     inspect_panel_path, read_bounded, read_stream_bounded,
 };
-use conduit_package::{PackageLimits, PackageManifest, decode_package, encode_package};
-use conduit_panel::parse;
+use conduit_package::{
+    PackageLimits, PackageManifest, PackageSignatureObservation, PackageTrustPolicy,
+    decode_package, encode_package, validate_package_trust,
+};
+use conduit_panel::{parse, parse_with_root};
 use conduit_runtime::{Registry, ResolvedPanelView, RunIo};
 use serde::Serialize;
 
@@ -74,6 +77,13 @@ struct PackageExtractResult {
     extracted_objects: usize,
     extracted_bytes: u64,
     output_directory: String,
+}
+
+#[derive(Serialize)]
+struct PackageVerifyResult {
+    identity: String,
+    selected_objects: usize,
+    verified_observations: usize,
 }
 
 impl PresentationOptions {
@@ -685,14 +695,14 @@ fn run_compile(
         })?
     };
     let source_document = DiagnosticSource::new(document_id.clone(), source.as_bytes());
-    let panel = parse(&source).map_err(|error| {
+    parse_with_root(&source, input.selected_root.as_deref()).map_err(|error| {
         cli_error(
             from_parse_error(&error, &source_document),
             presentation,
             vec![source_document.clone()],
         )
     })?;
-    let plan = compile_panel(&panel, &input).map_err(|error| {
+    let plan = compile_source(&source, &input).map_err(|error| {
         cli_error(
             simple_diagnostic(error.code(), &error.to_string()),
             presentation,
@@ -746,7 +756,7 @@ fn run_package(
             );
             let manifest_bytes =
                 read_bounded(&create.manifest, u64::from(limits.maximum_manifest_bytes))
-                    .map_err(|error| inspection_error(error, presentation))?;
+                    .map_err(|error| package_input_error(error, presentation))?;
             let manifest: PackageManifest =
                 serde_json::from_slice(&manifest_bytes).map_err(|_| {
                     package_error(
@@ -775,7 +785,7 @@ fn run_package(
                     ));
                 }
                 let bytes = read_bounded(std::path::Path::new(path), limits.maximum_object_bytes)
-                    .map_err(|error| inspection_error(error, presentation))?;
+                    .map_err(|error| package_input_error(error, presentation))?;
                 blobs.insert(digest.to_owned(), bytes);
             }
             let package = encode_package(&manifest, &blobs, limits)
@@ -823,6 +833,89 @@ fn run_package(
                 &create.output.display().to_string(),
             );
         }
+        PackageOperation::Verify(verify) => {
+            emit_status(
+                status_enabled,
+                "Verifying",
+                &verify.package.display().to_string(),
+            );
+            let bytes = read_bounded(&verify.package, limits.maximum_package_bytes)
+                .map_err(|error| package_input_error(error, presentation))?;
+            let package = decode_package(&bytes, limits)
+                .map_err(|error| package_library_error(error, presentation))?;
+            let policy_bytes =
+                read_bounded(&verify.policy, u64::from(limits.maximum_manifest_bytes))
+                    .map_err(|error| package_input_error(error, presentation))?;
+            let policy: PackageTrustPolicy =
+                serde_json::from_slice(&policy_bytes).map_err(|_| {
+                    package_error(
+                        "CND-PKG-003",
+                        "package trust policy is not valid JSON",
+                        presentation,
+                    )
+                })?;
+            let observations_bytes = read_bounded(
+                &verify.observations,
+                u64::from(limits.maximum_manifest_bytes),
+            )
+            .map_err(|error| package_input_error(error, presentation))?;
+            let observations: Vec<PackageSignatureObservation> =
+                serde_json::from_slice(&observations_bytes).map_err(|_| {
+                    package_error(
+                        "CND-PKG-003",
+                        "package trust observations are not a valid JSON array",
+                        presentation,
+                    )
+                })?;
+            validate_package_trust(&package.manifest, &policy, &observations, limits)
+                .map_err(|error| package_library_error(error, presentation))?;
+            let selected_objects = package
+                .manifest
+                .objects
+                .iter()
+                .filter(|object| policy.roles.is_empty() || policy.roles.contains(&object.role))
+                .count();
+            let result = PackageVerifyResult {
+                identity: package.manifest.identity,
+                selected_objects,
+                verified_observations: observations
+                    .iter()
+                    .filter(|observation| observation.verified)
+                    .count(),
+            };
+            let completion = match arguments.format {
+                OutputFormat::Human => write_primary(
+                    format!(
+                        "verified {}: {}; {} selected objects, {} verified observations\n",
+                        verify.package.display(),
+                        result.identity,
+                        result.selected_objects,
+                        result.verified_observations
+                    )
+                    .as_bytes(),
+                    presentation,
+                )?,
+                OutputFormat::Json => write_json_primary(
+                    &FiniteResult {
+                        schema: "conduit.result/v1",
+                        schema_version: 1,
+                        operation: "package-verify",
+                        result,
+                    },
+                    presentation,
+                )?,
+                OutputFormat::Ndjson => unreachable!("validated above"),
+            };
+            if completion == Completion::BrokenPipe {
+                return Ok(completion);
+            }
+            emit_finished(
+                status_enabled,
+                "package-verify",
+                started.elapsed(),
+                &verify.package.display().to_string(),
+            );
+        }
         PackageOperation::Extract(extract) => {
             emit_status(
                 status_enabled,
@@ -830,7 +923,7 @@ fn run_package(
                 &extract.package.display().to_string(),
             );
             let bytes = read_bounded(&extract.package, limits.maximum_package_bytes)
-                .map_err(|error| inspection_error(error, presentation))?;
+                .map_err(|error| package_input_error(error, presentation))?;
             let package = decode_package(&bytes, limits)
                 .map_err(|error| package_library_error(error, presentation))?;
             let extracted_bytes = package.embedded_bytes();
@@ -885,6 +978,21 @@ fn package_library_error(
     presentation: PresentationOptions,
 ) -> CliError {
     package_error(error.code(), &error.to_string(), presentation)
+}
+
+fn package_input_error(
+    error: conduit_inspect::InspectionError,
+    presentation: PresentationOptions,
+) -> CliError {
+    if error.code == "CND-INSP-005" {
+        package_error(
+            conduit_package::PackageReason::LimitExceeded.code(),
+            "package or package metadata input limit exceeded",
+            presentation,
+        )
+    } else {
+        inspection_error(error, presentation)
+    }
 }
 
 fn package_error(code: &'static str, message: &str, presentation: PresentationOptions) -> CliError {

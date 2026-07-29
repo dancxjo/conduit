@@ -34,7 +34,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --version 'Print version'
             cand inspect 'Validate and describe one artifact without executing it'
             cand compile 'Compile source against explicit immutable inputs into one exact plan'
-            cand package 'Create or extract a bounded content-addressed package'
+            cand package 'Create, verify, or extract a bounded content-addressed package'
         }
         &'conduct;inspect'= {
             cand --type 'Select a frozen artifact kind, or use marker-only detection'
@@ -71,12 +71,26 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand -h 'Print help'
             cand --help 'Print help'
             cand create 'Create one deterministic thick or thin package'
+            cand verify 'Validate package metadata against explicit trust observations'
             cand extract 'Validate and extract embedded blobs to digest-derived paths'
         }
         &'conduct;package;create'= {
             cand --manifest 'Read the sealed package manifest from this JSON file'
             cand --blob 'Add one exact embedded blob as SHA256=PATH; repeat as needed'
             cand --output 'Write the deterministic package envelope to this new path'
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;package;verify'= {
+            cand --policy 'Read the explicit package trust policy from this JSON file'
+            cand --observations 'Read external signature verification observations from this JSON file'
             cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
             cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
             cand --color 'Select diagnostic terminal styling'

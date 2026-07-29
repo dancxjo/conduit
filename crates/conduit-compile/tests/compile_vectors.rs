@@ -1,13 +1,10 @@
-use std::collections::BTreeMap;
-use std::path::PathBuf;
-use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument, ImplementationDocument,
-    PinDocument, builtin_catalog_document,
+    ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument,
+    ImplementationDocument, PinDocument, builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -16,33 +13,13 @@ use conduit_core::{
 use conduit_panel::parse;
 use conduit_runtime::Registry;
 
-static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
-
-fn command() -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_conduct"));
-    for variable in [
-        "NO_COLOR",
-        "CLICOLOR",
-        "CLICOLOR_FORCE",
-        "TERM",
-        "CI",
-        "COLUMNS",
-    ] {
-        command.env_remove(variable);
-    }
-    command
-}
-
-fn temporary_directory() -> PathBuf {
-    let sequence = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
-    let path = std::env::temp_dir().join(format!(
-        "conduct-compile-cli-{}-{sequence}",
-        std::process::id()
-    ));
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
+const SOURCE: &str = "panel 1\n\
+node source : conduit/literal { value = \"hello\" }\n\
+node upper : conduit/uppercase using ready\n\
+node sink : conduit/stdout\n\
+cord source.out -> upper.in\n\
+cord upper.out -> sink.in\n";
 
 fn hash(byte: u8) -> String {
     SemanticHash::from_bytes([byte; 32]).to_string()
@@ -138,7 +115,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             observed_at_tick: 10,
             valid_until_tick: 20,
             available: BudgetDocument {
-                memory_bytes: 4096,
+                memory_bytes: 2 * 1024 * 1024,
                 storage_bytes: 4096,
                 cpu_units: 16,
                 timers: 4,
@@ -172,8 +149,15 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
 
 fn input(source: &str) -> CompileInput {
     let panel = parse(source).unwrap();
+    let mut executable = panel.clone();
+    for node in &mut executable.nodes {
+        if node.constraint.as_deref() == Some("ready") {
+            node.constraint = None;
+            node.constraint_span = None;
+        }
+    }
     let topology = Registry::default()
-        .resolve(&panel)
+        .resolve(&executable)
         .unwrap()
         .exact_topology()
         .unwrap();
@@ -193,7 +177,7 @@ fn input(source: &str) -> CompileInput {
         schema_version: COMPILE_INPUT_SCHEMA_VERSION,
         identity: String::new(),
         entry_uri: "mem://compile/entry.panel".to_owned(),
-        selected_root: panel.selected_root.clone(),
+        selected_root: panel.selected_root,
         modules: vec![CompileModuleDocument {
             canonical_uri: "mem://compile/entry.panel".to_owned(),
             content_hash: String::new(),
@@ -230,87 +214,102 @@ fn input(source: &str) -> CompileInput {
     input
 }
 
-fn assert_fixture_case(id: &str) {
-    let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
-    assert!(
-        fixture["cases"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|case| case["id"] == id && case["runner"] == "compile-cli"),
-        "missing compile-cli vector {id}"
-    );
-}
-
-#[test]
-fn compile_emits_only_a_finite_validated_plan_result() {
-    assert_fixture_case("compile-machine-stream-separation");
-    let root = temporary_directory();
-    let source = include_str!("../../../examples/hello.panel");
-    let panel = root.join("hello.panel");
-    let input_path = root.join("compile-input.json");
-    std::fs::write(&panel, source).unwrap();
-    std::fs::write(
-        &input_path,
-        serde_json::to_vec_pretty(&input(source)).unwrap(),
-    )
-    .unwrap();
-    let output = command()
-        .args(["compile", "--format=json", "--input"])
-        .arg(&input_path)
-        .arg(&panel)
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    assert!(output.stderr.is_empty());
-    let result: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(result["schema"], "conduit.result/v1");
-    assert_eq!(result["operation"], "compile");
-    assert_eq!(result["result"]["schema"], "conduit.execution-plan/v3");
-    assert_eq!(
-        result["result"]["unresolved_selectors"],
-        serde_json::json!([])
-    );
-    assert_eq!(result["result"]["nodes"].as_array().unwrap().len(), 3);
-
-    let mut stale = input(source);
-    for candidate in &mut stale.candidates {
-        candidate.host_report.valid_until_tick = 11;
+fn compile_case(id: &str) {
+    match id {
+        "deterministic-explicit-compile" => {
+            let sealed = input(SOURCE);
+            let first = compile_source(SOURCE, &sealed).unwrap();
+            let second = compile_source(SOURCE, &sealed).unwrap();
+            assert_eq!(
+                serde_json::to_vec(&first).unwrap(),
+                serde_json::to_vec(&second).unwrap()
+            );
+        }
+        "using-ready-is-resolved" => {
+            let plan = compile_source(SOURCE, &input(SOURCE)).unwrap();
+            assert!(plan.unresolved_selectors.is_empty());
+            assert_eq!(plan.nodes.len(), 3);
+            assert_eq!(plan.schema, "conduit.execution-plan/v3");
+            assert!(
+                plan.nodes
+                    .iter()
+                    .all(|node| node.execution_profile.semantic_hash.starts_with("sha256:"))
+            );
+        }
+        "unresolved-selector-rejected" => {
+            let source = SOURCE.replace("using ready", "using unavailable");
+            let mut sealed = input(SOURCE);
+            sealed.modules[0].source.clone_from(&source);
+            sealed.seal().unwrap();
+            assert_eq!(
+                compile_source(&source, &sealed).unwrap_err().code(),
+                "CND-CMP-005"
+            );
+        }
+        "absent-or-stale-host-report" => {
+            let mut sealed = input(SOURCE);
+            for candidate in &mut sealed.candidates {
+                candidate.host_report.valid_until_tick = 11;
+            }
+            sealed.seal().unwrap();
+            assert_eq!(
+                compile_source(SOURCE, &sealed).unwrap_err().code(),
+                "CND-CMP-006"
+            );
+        }
+        "missing-or-incompatible-implementation-artifact" => {
+            let mut sealed = input(SOURCE);
+            sealed.candidates[0].artifacts[0].target = Some("linux/x86_64".to_owned());
+            sealed.seal().unwrap();
+            assert_eq!(
+                compile_source(SOURCE, &sealed).unwrap_err().code(),
+                "CND-CMP-006"
+            );
+        }
+        "memory-resource-authority-transition-over-budget" => {
+            let mut sealed = input(SOURCE);
+            sealed.plan_budget.memory_bytes = 1;
+            sealed.seal().unwrap();
+            assert_eq!(
+                compile_source(SOURCE, &sealed).unwrap_err().code(),
+                "CND-CMP-007"
+            );
+        }
+        "no-provisioning-or-implicit-fetch" => {
+            let sealed = input(SOURCE);
+            assert!(sealed.modules.iter().all(|module| {
+                module.canonical_uri.starts_with("mem://")
+                    && !module.source.contains("http://")
+                    && !module.source.contains("https://")
+            }));
+            compile_source(SOURCE, &sealed).unwrap();
+        }
+        "minimal-plan-round-trip" => {
+            let plan = compile_source(SOURCE, &input(SOURCE)).unwrap();
+            let bytes = serde_json::to_vec(&plan).unwrap();
+            let decoded: ExactPlanDocument = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(decoded, plan);
+            decoded.validate().unwrap();
+        }
+        other => panic!("unhandled compile vector {other}"),
     }
-    stale.seal().unwrap();
-    std::fs::write(&input_path, serde_json::to_vec_pretty(&stale).unwrap()).unwrap();
-    let rejected = command()
-        .args([
-            "compile",
-            "--format=json",
-            "--diagnostic-format=json",
-            "--input",
-        ])
-        .arg(&input_path)
-        .arg(&panel)
-        .output()
-        .unwrap();
-    assert_eq!(rejected.status.code(), Some(2));
-    assert!(rejected.stdout.is_empty());
-    let diagnostic: serde_json::Value = serde_json::from_slice(&rejected.stderr).unwrap();
-    assert_eq!(diagnostic["code"], "CND-CMP-006");
-    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn compile_diagnostics_stay_on_stderr_and_reserved_path_is_disambiguated() {
-    assert_fixture_case("reserved-word-path-after-double-dash");
-    let root = temporary_directory();
-    let source = include_str!("../../../examples/hello.panel");
-    std::fs::write(root.join("compile"), source).unwrap();
-    let disambiguated = command()
-        .current_dir(&root)
-        .args(["--run", "--", "compile"])
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
-    assert!(disambiguated.status.success());
-    assert_eq!(disambiguated.stdout, b"HELLO FROM CONDUIT.\n");
-    assert!(disambiguated.stderr.is_empty());
-    std::fs::remove_dir_all(root).unwrap();
+fn every_compile_vector_executes_independently() {
+    let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    let compile_ids = cases
+        .iter()
+        .filter(|case| case["runner"] == "compile")
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(compile_ids.len(), 8);
+    assert_eq!(
+        compile_ids.iter().copied().collect::<BTreeSet<_>>().len(),
+        compile_ids.len()
+    );
+    for id in compile_ids {
+        compile_case(id);
+    }
 }

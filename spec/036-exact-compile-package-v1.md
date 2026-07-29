@@ -1,6 +1,6 @@
 # Exact compilation and heterogeneous packages version 1
 
-Status: candidate normative C5 contract. Requirement identifiers `CMP-001`
+Status: normative C5 contract. Requirement identifiers `CMP-001`
 through `CMP-012` and `PKG-001` through `PKG-018` are exercised by
 `conformance/c5/compile-package-v1.json`.
 
@@ -29,8 +29,11 @@ can run on every host (`CMP-002`, `PKG-002`).
 document. The document pins:
 
 - the entry URI, selected root, and complete content-addressed module closure;
-- semantic node, port, and type catalog entries used during lowering;
+- one identity-bound finite semantic node, port, and type catalog snapshot
+  used during lowering (a missing or mismatched pin fails closed);
 - implementation and artifact manifests;
+- the full identity-checked bounded execution profile pinned by each selected
+  implementation manifest;
 - immutable host capability reports and their freshness observations;
 - grants and explicit authority decisions;
 - resolver descriptor, policy, named time basis, and exact resolution tick;
@@ -59,8 +62,9 @@ filesystem order, or wall clock (`CMP-007`).
 The compiler rejects unresolved selectors, missing or incompatible
 implementations/artifacts, absent or stale reports, denied authority,
 unsupported versions, arithmetic overflow, and any budget violation
-(`CMP-008`). A successful result round-trips through the exact-plan decoder
-and portable validator without provider access or execution (`CMP-009`).
+(`CMP-008`). A successful result carries a full execution profile for every
+primitive, round-trips through the schema-3 exact-plan decoder, and passes
+portable validation without provider access or execution (`CMP-009`).
 
 ## Package manifest
 
@@ -122,9 +126,12 @@ Content digest and size are mandatory integrity checks. License, SBOM,
 signature, attestation, and provenance references are distinct metadata
 relationships and cannot be inferred from a digest (`PKG-011`). A trust
 policy may require known licenses, an SBOM, signatures, attestations, or
-provenance for selected roles. Cryptographic signature verification is a
-separate explicit host observation; the package never treats a signature blob
-or signed code as trusted merely because it is present (`PKG-012`).
+provenance for selected roles. `conduct package verify` accepts that bounded
+policy plus a bounded JSON array of external cryptographic verification
+observations. Each observation identifies the target object, declared
+signature, trusted signer, scheme, verifier, and a declared content-addressed
+evidence receipt. The package never treats a signature blob or signed code as
+trusted merely because it is present (`PKG-012`).
 
 Unsupported package, plan, or Conduit media versions fail closed. Unknown
 general media types remain describable data, but cannot be treated as a known

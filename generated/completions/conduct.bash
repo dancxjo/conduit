@@ -31,6 +31,9 @@ _conduct() {
             conduct__subcmd__package,extract)
                 cmd="conduct__subcmd__package__subcmd__extract"
                 ;;
+            conduct__subcmd__package,verify)
+                cmd="conduct__subcmd__package__subcmd__verify"
+                ;;
             *)
                 ;;
         esac
@@ -124,7 +127,7 @@ _conduct() {
             return 0
             ;;
         conduct__subcmd__package)
-            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help create extract"
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help create verify extract"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -195,6 +198,40 @@ _conduct() {
             fi
             case "${prev}" in
                 --output-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__package__subcmd__verify)
+            opts="-q -v -h --policy --observations --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --policy)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --observations)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

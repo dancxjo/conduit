@@ -13,10 +13,10 @@ use conduit_core::{
     BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome, ConfigContract,
     ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, DescriptorRef, Direction, Endpoint as CoreEndpoint,
-    FlowCapacity, FlowPolicy, FlowTypeFacts, FlowWatermarks, Id, LossAcceptance, NodeContract,
-    PlanCord, PlanGraph, PlanNode, PortContract, PortFlowConstraints, Presence, Pressure,
-    SampleSchedule, SemanticHash, Sensitivity, TemporalContract, TerminalContract, TraitProof,
-    TypeContractRef, ValueCardinality, validate_plan_graph,
+    FieldDisposition, FlowCapacity, FlowPolicy, FlowTypeFacts, FlowWatermarks, Id, LossAcceptance,
+    MapField, NodeContract, PlanCord, PlanGraph, PlanNode, PortContract, PortFlowConstraints,
+    Presence, Pressure, SampleSchedule, SemanticHash, Sensitivity, TemporalContract,
+    TerminalContract, TraitProof, TypeContractRef, ValueCardinality, validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
@@ -416,6 +416,65 @@ impl Registry {
     #[must_use]
     pub const fn type_registry(&self) -> &TypeRegistry {
         &self.types
+    }
+}
+
+impl SourceContractCatalog for Registry {
+    fn node_schema(&self, id: &str) -> Option<OwnedNodeSchema> {
+        self.nodes
+            .get(id)
+            .map(|registered| OwnedNodeSchema::from_contract(registered.contract))
+    }
+
+    fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
+        (id == TEXT_TYPE.contract_id.as_str()).then(|| TEXT_TYPE.into())
+    }
+
+    fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
+        let contract = match id {
+            "conduit/input-text" => Some(&INPUT_TEXT),
+            "conduit/output-text" => Some(&OUTPUT_TEXT),
+            _ => self
+                .nodes
+                .values()
+                .flat_map(|registered| {
+                    registered
+                        .contract
+                        .inputs
+                        .iter()
+                        .chain(registered.contract.outputs.iter())
+                })
+                .find(|port| port.id.as_str() == id),
+        }?;
+        OwnedPortReference::from_contract(contract).ok()
+    }
+
+    fn validate_literal(
+        &self,
+        expected: &OwnedTypeReference,
+        source: &conduit_panel::SourceValue,
+    ) -> Result<OwnedSemanticValue, LiteralValidationError> {
+        if expected != &OwnedTypeReference::from(TEXT_TYPE) {
+            return Err(LiteralValidationError::ProviderUnavailable);
+        }
+        match source {
+            conduit_panel::SourceValue::Text(value) => Ok(OwnedSemanticValue::Text(value.clone())),
+            _ => Err(LiteralValidationError::WrongKind),
+        }
+    }
+
+    fn validate_default(
+        &self,
+        expected: &OwnedTypeReference,
+        value: &OwnedSemanticValue,
+    ) -> Result<(), LiteralValidationError> {
+        if expected == &OwnedTypeReference::from(TEXT_TYPE)
+            && matches!(value, OwnedSemanticValue::Text(_))
+        {
+            Ok(())
+        } else {
+            Err(LiteralValidationError::WrongKind)
+        }
     }
 }
 
@@ -1180,7 +1239,7 @@ pub struct ExactTopologyView {
     pub source_semantic_hash: SemanticHash,
     pub nodes: Vec<ExactTopologyNode>,
     pub cords: Vec<ExactTopologyCord>,
-    pub logical_composites: usize,
+    pub composites: Vec<ExactTopologyComposite>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1213,6 +1272,22 @@ pub struct ExactTopologyCord {
     pub low_watermark_items: u16,
     pub high_watermark_items: u16,
     pub pressure: SourcePressure,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologyComposite {
+    pub instance: String,
+    pub definition_hash: SemanticHash,
+    pub members: Vec<String>,
+    pub exports: Vec<ExactTopologyExport>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactTopologyExport {
+    pub boundary_port: String,
+    pub member: String,
+    pub member_port: String,
+    pub direction: Direction,
 }
 
 impl ResolvedPanel<'_> {
@@ -1274,11 +1349,52 @@ impl ResolvedPanel<'_> {
                 })
             })
             .collect::<Result<Vec<_>, ResolutionError>>()?;
+        let composites = self
+            .logical_composites
+            .iter()
+            .map(|composite| {
+                let expanded_prefix = expanded_id(&composite.path);
+                let member_prefix = format!("{expanded_prefix}.");
+                let mut members = self
+                    .nodes
+                    .iter()
+                    .filter(|node| {
+                        node.source.id == expanded_prefix
+                            || node.source.id.starts_with(&member_prefix)
+                    })
+                    .map(|node| format!("root/{}", node.source.id))
+                    .collect::<Vec<_>>();
+                members.sort();
+                members.dedup();
+                let exports = composite
+                    .exports
+                    .iter()
+                    .map(|(direction, boundary_port, target)| ExactTopologyExport {
+                        boundary_port: boundary_port.clone(),
+                        member: format!("root/{}", target.node),
+                        member_port: target.port.clone(),
+                        direction: match direction {
+                            ExportDirection::Input => Direction::Input,
+                            ExportDirection::Output => Direction::Output,
+                        },
+                    })
+                    .collect();
+                Ok(ExactTopologyComposite {
+                    instance: format!("root/{}", composite.path),
+                    definition_hash: composite_definition_hash(
+                        source_semantic_hash,
+                        &composite.definition,
+                    )?,
+                    members,
+                    exports,
+                })
+            })
+            .collect::<Result<Vec<_>, ResolutionError>>()?;
         Ok(ExactTopologyView {
             source_semantic_hash,
             nodes,
             cords,
-            logical_composites: self.logical_composites.len(),
+            composites,
         })
     }
 
@@ -1624,6 +1740,33 @@ fn semantic_hash_text(value: &str) -> Option<SemanticHash> {
         bytes[index] = (high << 4) | low;
     }
     Some(SemanticHash::from_bytes(bytes))
+}
+
+fn composite_definition_hash(
+    source_semantic_hash: SemanticHash,
+    definition: &str,
+) -> Result<SemanticHash, ResolutionError> {
+    let definition = Id::new(definition)
+        .map_err(|_| ResolutionError::new("CND-CMP-002", "composite id is malformed"))?;
+    let fields = [
+        MapField {
+            name: Id("source_semantic_hash"),
+            value: CanonicalValue::Bytes(source_semantic_hash.as_bytes()),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("definition"),
+            value: CanonicalValue::Identifier(definition),
+            disposition: FieldDisposition::Semantic,
+        },
+    ];
+    CanonicalDescriptor {
+        kind: Id("conduit/composite-definition-ref"),
+        schema_version: 1,
+        body: CanonicalValue::Map(&fields),
+    }
+    .semantic_hash()
+    .map_err(|_| ResolutionError::new("CND-CMP-002", "composite identity is malformed"))
 }
 
 const fn hex_nibble(byte: u8) -> Option<u8> {

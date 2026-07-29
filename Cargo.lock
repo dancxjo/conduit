@@ -168,6 +168,7 @@ name = "conduit-package"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-inspect",
  "serde",
  "serde_json",
  "sha2",

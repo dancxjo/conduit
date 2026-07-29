@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 27 — 2026-07-29
+
+- Registered the `exact-compile-package` C5 suite for issue #61 after replacing
+  the case inventory with independently executed compiler, CLI, package,
+  malicious-envelope, extraction, trust-observation, and non-execution tests.
+- Pinned the complete module closure, selected root, finite semantic catalog,
+  full implementation execution profiles, implementation/artifact and host
+  observations, realm/passport constraints, authority decisions, pool
+  bindings, and finite compile budgets.
+- Added explicit `package verify` policy and external signature-verification
+  observations; signature presence alone remains untrusted.
+- Corrected aggregate compile-budget failures to the frozen `CND-CMP-007`
+  reason and retained the canonical primary CLI through `--` disambiguation.
+
 ## Manifest revision 26 — 2026-07-29
 
 - Replaced the browser lifecycle shell with concrete window, dedicated/shared
