@@ -92,6 +92,7 @@ pub enum HostServiceRisk {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HostServiceContract<'a> {
     pub interface: Id<'a>,
+    pub interface_version: u32,
     pub operation: Id<'a>,
     pub provider_binding: Id<'a>,
     pub resource_binding: Id<'a>,
@@ -106,6 +107,42 @@ pub struct HostServiceContract<'a> {
     pub enabled_in_reference_registry: bool,
 }
 
+/// Availability reported by one narrow host-service provider.
+///
+/// Unsupported is an explicit negative capability, not an authority denial.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostServiceAvailability {
+    Supported,
+    Unsupported,
+}
+
+/// Finite, time-bounded limits reported by one selected provider.
+///
+/// This report authorizes nothing. In particular, matching `provider_binding`
+/// does not prove that `grant` is usable for the requested resource.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HostServiceCapability<'a> {
+    pub interface: Id<'a>,
+    pub interface_version: u32,
+    pub operation: Id<'a>,
+    pub provider_binding: Id<'a>,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub maximum_request_bytes: u64,
+    pub maximum_response_bytes: u64,
+    pub maximum_pending: u16,
+    pub evidence_events: u32,
+    pub availability: HostServiceAvailability,
+}
+
+/// Result of validating the exact plan-supplied grant outside capability
+/// discovery.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostServiceAuthorization<'a> {
+    Authorized { grant: Id<'a> },
+    Denied,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StandardContractError {
     InvalidIdentifier,
@@ -113,6 +150,11 @@ pub enum StandardContractError {
     IncompatibleLimits,
     UnsafeReferenceDefault,
     IncompatibleSupervisionContract,
+    InvalidCapability,
+    StaleCapability,
+    UnsupportedHostService,
+    InsufficientCapability,
+    AuthorityDenied,
 }
 
 /// Validate that an ordinary standard supervisor node has enough exact
@@ -208,7 +250,8 @@ pub fn validate_host_service_contract(
     validate_id(contract.resource_binding)?;
     validate_id(contract.grant)?;
     validate_id(contract.cancellation_scope)?;
-    if contract.maximum_request_bytes == 0
+    if contract.interface_version == 0
+        || contract.maximum_request_bytes == 0
         || contract.maximum_response_bytes == 0
         || contract.maximum_pending == 0
         || contract.evidence_events == 0
@@ -219,6 +262,58 @@ pub fn validate_host_service_contract(
         return Err(StandardContractError::UnsafeReferenceDefault);
     }
     Ok(())
+}
+
+/// Resolve one host-service request against one fresh provider report and the
+/// independently validated exact grant.
+///
+/// This decision performs no discovery, permission prompt, provisioning, or
+/// host mutation. The provider, operation, and grant must already be exact
+/// plan inputs.
+pub fn resolve_host_service_contract(
+    contract: HostServiceContract<'_>,
+    capability: HostServiceCapability<'_>,
+    current_tick: u64,
+    authorization: HostServiceAuthorization<'_>,
+) -> Result<(), StandardContractError> {
+    validate_host_service_contract(contract)?;
+    validate_id(capability.interface).map_err(|_| StandardContractError::InvalidCapability)?;
+    validate_id(capability.operation).map_err(|_| StandardContractError::InvalidCapability)?;
+    validate_id(capability.provider_binding)
+        .map_err(|_| StandardContractError::InvalidCapability)?;
+    if capability.interface_version == 0
+        || capability.observed_at_tick >= capability.valid_until_tick
+        || capability.maximum_request_bytes == 0
+        || capability.maximum_response_bytes == 0
+        || capability.maximum_pending == 0
+        || capability.evidence_events == 0
+    {
+        return Err(StandardContractError::InvalidCapability);
+    }
+    if current_tick < capability.observed_at_tick || current_tick >= capability.valid_until_tick {
+        return Err(StandardContractError::StaleCapability);
+    }
+    if capability.interface != contract.interface
+        || capability.interface_version != contract.interface_version
+        || capability.operation != contract.operation
+        || capability.provider_binding != contract.provider_binding
+        || capability.availability == HostServiceAvailability::Unsupported
+    {
+        return Err(StandardContractError::UnsupportedHostService);
+    }
+    if capability.maximum_request_bytes < contract.maximum_request_bytes
+        || capability.maximum_response_bytes < contract.maximum_response_bytes
+        || capability.maximum_pending < contract.maximum_pending
+        || capability.evidence_events < contract.evidence_events
+    {
+        return Err(StandardContractError::InsufficientCapability);
+    }
+    match authorization {
+        HostServiceAuthorization::Authorized { grant } if grant == contract.grant => Ok(()),
+        HostServiceAuthorization::Authorized { .. } | HostServiceAuthorization::Denied => {
+            Err(StandardContractError::AuthorityDenied)
+        }
+    }
 }
 
 fn validate_id(id: Id<'_>) -> Result<(), StandardContractError> {

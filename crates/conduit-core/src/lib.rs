@@ -270,9 +270,11 @@ pub use scheduler::{
     assess_restart,
 };
 pub use standard::{
-    BackoffSchedule, HostServiceContract, HostServiceRisk, RetryContract, StandardContractError,
-    StandardNodeContract, StandardNodeKind, StandardNodeLimits, validate_host_service_contract,
-    validate_retry_contract, validate_standard_node_contract, validate_standard_supervisor,
+    BackoffSchedule, HostServiceAuthorization, HostServiceAvailability, HostServiceCapability,
+    HostServiceContract, HostServiceRisk, RetryContract, StandardContractError,
+    StandardNodeContract, StandardNodeKind, StandardNodeLimits, resolve_host_service_contract,
+    validate_host_service_contract, validate_retry_contract, validate_standard_node_contract,
+    validate_standard_supervisor,
 };
 pub use structural::{
     AdapterContract, DuplicationRule, FanOutMode, LateValuePolicy, MergeCandidate, MergeOrdering,

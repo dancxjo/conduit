@@ -1,8 +1,45 @@
 use conduit_core::{
-    BackoffSchedule, HostServiceContract, HostServiceRisk, Id, RetryContract,
-    StandardContractError, StandardNodeContract, StandardNodeKind, StandardNodeLimits,
+    BackoffSchedule, HostServiceAuthorization, HostServiceAvailability, HostServiceCapability,
+    HostServiceContract, HostServiceRisk, Id, RetryContract, StandardContractError,
+    StandardNodeContract, StandardNodeKind, StandardNodeLimits, resolve_host_service_contract,
     validate_host_service_contract, validate_retry_contract, validate_standard_node_contract,
 };
+
+const FIXTURE: &str = include_str!("../../../conformance/c4/standard-node-library-v1.json");
+
+fn host_service() -> HostServiceContract<'static> {
+    HostServiceContract {
+        interface: Id("host/blob-store"),
+        interface_version: 1,
+        operation: Id("blob/read"),
+        provider_binding: Id("provider/blob-store"),
+        resource_binding: Id("blob/exact"),
+        grant: Id("grant/read-blob"),
+        cancellation_scope: Id("scope/read"),
+        maximum_request_bytes: 128,
+        maximum_response_bytes: 4096,
+        maximum_pending: 2,
+        evidence_events: 8,
+        risk: HostServiceRisk::ReferenceSafe,
+        enabled_in_reference_registry: true,
+    }
+}
+
+fn host_capability() -> HostServiceCapability<'static> {
+    HostServiceCapability {
+        interface: Id("host/blob-store"),
+        interface_version: 1,
+        operation: Id("blob/read"),
+        provider_binding: Id("provider/blob-store"),
+        observed_at_tick: 10,
+        valid_until_tick: 20,
+        maximum_request_bytes: 128,
+        maximum_response_bytes: 4096,
+        maximum_pending: 2,
+        evidence_events: 8,
+        availability: HostServiceAvailability::Supported,
+    }
+}
 
 #[test]
 fn given_a_stateful_timer_when_all_limits_are_finite_then_it_is_portable() {
@@ -67,6 +104,7 @@ fn given_retry_when_attempt_evidence_is_insufficient_then_it_is_rejected() {
 fn given_a_dangerous_service_when_enabled_by_default_then_it_is_rejected() {
     let service = HostServiceContract {
         interface: Id("host/process-spawn"),
+        interface_version: 1,
         operation: Id("process/spawn"),
         provider_binding: Id("provider/process"),
         resource_binding: Id("executable/tool"),
@@ -83,4 +121,54 @@ fn given_a_dangerous_service_when_enabled_by_default_then_it_is_rejected() {
         validate_host_service_contract(service),
         Err(StandardContractError::UnsafeReferenceDefault)
     );
+}
+
+fn host_service_resolution_outcome(id: &str) -> &'static str {
+    let mut capability = host_capability();
+    let mut current_tick = 15;
+    let mut authorization = HostServiceAuthorization::Authorized {
+        grant: Id("grant/read-blob"),
+    };
+    match id {
+        "capable-host-service" => {}
+        "insufficient-host-service" => capability.maximum_response_bytes = 4095,
+        "denied-host-service" => authorization = HostServiceAuthorization::Denied,
+        "stale-host-service" => current_tick = 20,
+        "unsupported-host-service" => {
+            capability.availability = HostServiceAvailability::Unsupported;
+        }
+        _ => panic!("unknown host-service resolution fixture {id}"),
+    }
+    match resolve_host_service_contract(host_service(), capability, current_tick, authorization) {
+        Ok(()) => "accepted",
+        Err(StandardContractError::InsufficientCapability) => "insufficient-capability",
+        Err(StandardContractError::AuthorityDenied) => "authority-denied",
+        Err(StandardContractError::StaleCapability) => "stale-capability",
+        Err(StandardContractError::UnsupportedHostService) => "unsupported-host-service",
+        Err(error) => panic!("unexpected host-service resolution error: {error:?}"),
+    }
+}
+
+#[test]
+fn every_host_service_resolution_fixture_executes_independently() {
+    let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+    assert_eq!(
+        fixture["schema"],
+        "conduit.standard-node-library-fixture/v1"
+    );
+    let cases = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|case| case["contract"] == "host-service-resolution")
+        .collect::<Vec<_>>();
+    assert_eq!(cases.len(), 5);
+    for case in cases {
+        let id = case["id"].as_str().unwrap();
+        assert_eq!(
+            host_service_resolution_outcome(id),
+            case["expected"],
+            "{id}"
+        );
+    }
 }

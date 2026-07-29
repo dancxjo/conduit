@@ -53,17 +53,23 @@ restart or checkpoint restore as an authority epoch.
 
 ## Narrow host-service interfaces
 
-A host-service contract names one narrow interface and operation. Each request
-consumes an externally supplied provider binding, resource binding, grant,
-cancellation scope, byte limits, pending limit, and evidence limit. There is
-no mega-host interface and no ambient lookup path. Filesystem, blob/KV,
-process, secret, cryptographic, raw-network, transport, and HTTP operations do
-not double as enrollment, installation, activation, or administration.
+A host-service contract names one narrow versioned interface and operation.
+Each request consumes an externally supplied provider binding, resource
+binding, grant, cancellation scope, byte limits, pending limit, and evidence
+limit. There is no mega-host interface and no ambient lookup path. Filesystem,
+blob/KV, process, secret, cryptographic, raw-network, transport, and HTTP
+operations do not double as enrollment, installation, activation, or
+administration.
 
 Dangerous services are absent from default and reference registries. A host
 capability report states availability and finite limits, not permission to use
-the service. Administrative and hazardous-use policy remains an external
-admission step.
+the service. Resolution accepts only the exact requested interface version,
+operation, and provider with sufficient request, response, pending-operation,
+and evidence capacity in a currently valid report. Unsupported, insufficient,
+not-yet-valid, and stale capability reports fail before execution.
+Administrative and hazardous-use policy remains an external admission step.
+An independently validated grant must name the exact request grant; capability
+availability never converts denial or a different grant into authority.
 
 ## Stable requirements
 
@@ -77,5 +83,7 @@ admission step.
 - STD-008: discovery and capability reporting never imply usability.
 - STD-009: dangerous providers are absent from default/reference registries.
 - STD-010: host services never double as installation or administration.
+- STD-011: host-service resolution rejects stale, unsupported, or insufficient capabilities.
+- STD-012: capability availability remains distinct from exact grant authorization.
 
 The normative fixture is `conformance/c4/standard-node-library-v1.json`.

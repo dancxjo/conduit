@@ -4,6 +4,11 @@
     {"id":"finite-window","contract":"node","expected":"accepted","requirement":"STD-002"},
     {"id":"debounce-without-timer","contract":"node","expected":"incompatible-limits","requirement":"STD-002"},
     {"id":"retry-evidence-below-attempts","contract":"retry","expected":"unbounded","requirement":"STD-004"},
-    {"id":"dangerous-reference-default","contract":"host-service","expected":"unsafe-reference-default","requirement":"STD-009"}
+    {"id":"dangerous-reference-default","contract":"host-service","expected":"unsafe-reference-default","requirement":"STD-009"},
+    {"id":"capable-host-service","contract":"host-service-resolution","expected":"accepted","requirement":"STD-011"},
+    {"id":"insufficient-host-service","contract":"host-service-resolution","expected":"insufficient-capability","requirement":"STD-011"},
+    {"id":"denied-host-service","contract":"host-service-resolution","expected":"authority-denied","requirement":"STD-012"},
+    {"id":"stale-host-service","contract":"host-service-resolution","expected":"stale-capability","requirement":"STD-011"},
+    {"id":"unsupported-host-service","contract":"host-service-resolution","expected":"unsupported-host-service","requirement":"STD-011"}
   ]
 }
