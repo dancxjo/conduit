@@ -19,6 +19,9 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.149"
 sha2 = "0.10.9"
 hex = "0.4.3"
+conduit-compile = { path = "../crates/conduit-compile" }
+conduit-runtime = { path = "../crates/conduit-runtime" }
+conduit-std = { path = "../crates/conduit-std" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -29,15 +29,18 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
       - run: cargo xtask release-gate --check --output target/release-evidence.json
+      - run: cargo xtask catalog-index --check
       - uses: actions/upload-artifact@v4
         with:
           name: release-evidence
           path: target/release-evidence.json
-      - uses: actions/cache@v4
+      - id: wasm-bindgen-cache
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/bin/wasm-bindgen*
           key: wasm-bindgen-cli-${{ runner.os }}-${{ runner.arch }}-0.2.126
-      - run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+      - if: steps.wasm-bindgen-cache.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
       # WASM binary layout is toolchain-dependent, so CI verifies that the
       # checked-in static Tour can be rebuilt instead of byte-comparing it.
       - run: bash tour/build-wasm.sh
