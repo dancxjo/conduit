@@ -1,0 +1,37 @@
+# Directory watcher and file processing pipeline.
+panel 1
+
+node watcher : conduit/file-read {
+    path = "watch_directory"
+}
+
+node filter : conduit/passthrough
+node processor : conduit/uppercase
+node logger : conduit/log
+
+cord watcher.out -> filter.in {
+    capacity = 16
+    max_value_bytes = 4096
+    max_queued_bytes = 65536
+    low_watermark = 2
+    high_watermark = 16
+    pressure = block
+}
+
+cord filter.out -> processor.in {
+    capacity = 16
+    max_value_bytes = 4096
+    max_queued_bytes = 65536
+    low_watermark = 2
+    high_watermark = 16
+    pressure = block
+}
+
+cord processor.out -> logger.in {
+    capacity = 16
+    max_value_bytes = 4096
+    max_queued_bytes = 65536
+    low_watermark = 2
+    high_watermark = 16
+    pressure = block
+}

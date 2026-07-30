@@ -1,0 +1,17 @@
+# Isolated Wi-Fi access point configuration panel.
+panel 1
+
+node wifi_ap : conduit/wifi-ap {
+    ssid = "Conduit-AP"
+}
+
+node status_logger : conduit/log
+
+cord wifi_ap.out -> status_logger.in {
+    capacity = 4
+    max_value_bytes = 1024
+    max_queued_bytes = 4096
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}

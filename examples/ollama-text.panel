@@ -1,0 +1,30 @@
+# Local Ollama LLM text generation request via HTTP client.
+panel 1
+
+node prompt : conduit/literal {
+    value = "{\"model\": \"llama3\", \"prompt\": \"Summarize Conduit architecture.\", \"stream\": false}"
+}
+
+node ollama_api : conduit/http-client {
+    endpoint = "http://127.0.0.1:11434/api/generate"
+}
+
+node output : conduit/stdout
+
+cord prompt.out -> ollama_api.in {
+    capacity = 4
+    max_value_bytes = 8192
+    max_queued_bytes = 32768
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord ollama_api.out -> output.in {
+    capacity = 4
+    max_value_bytes = 65536
+    max_queued_bytes = 262144
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}

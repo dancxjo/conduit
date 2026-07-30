@@ -1,0 +1,24 @@
+# Single-port CLI pipe bridge panel.
+panel 1
+
+node input_pipe : conduit/stdin
+node processor : conduit/uppercase
+node output_pipe : conduit/stdout
+
+cord input_pipe.out -> processor.in {
+    capacity = 16
+    max_value_bytes = 65536
+    max_queued_bytes = 1048576
+    low_watermark = 4
+    high_watermark = 16
+    pressure = block
+}
+
+cord processor.out -> output_pipe.in {
+    capacity = 16
+    max_value_bytes = 65536
+    max_queued_bytes = 1048576
+    low_watermark = 4
+    high_watermark = 16
+    pressure = block
+}

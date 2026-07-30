@@ -1,0 +1,29 @@
+# CSV to JSON transformation pipeline panel.
+panel 1
+
+node input_data : conduit/literal {
+    value = "id,name\n1,alice\n2,bob\n"
+}
+
+node transformer : conduit/uppercase
+node storage : conduit/kv-store {
+    table = "users"
+}
+
+cord input_data.out -> transformer.in {
+    capacity = 8
+    max_value_bytes = 16384
+    max_queued_bytes = 131072
+    low_watermark = 2
+    high_watermark = 8
+    pressure = block
+}
+
+cord transformer.out -> storage.in {
+    capacity = 8
+    max_value_bytes = 16384
+    max_queued_bytes = 131072
+    low_watermark = 2
+    high_watermark = 8
+    pressure = block
+}

@@ -1,0 +1,28 @@
+# Scheduled bounded backup pipeline panel.
+panel 1
+
+node trigger : conduit/counter
+node reader : conduit/file-read {
+    path = "data/db.sqlite"
+}
+node backup_store : conduit/blob-store {
+    bucket = "backups"
+}
+
+cord trigger.out -> reader.in {
+    capacity = 4
+    max_value_bytes = 1024
+    max_queued_bytes = 4096
+    low_watermark = 1
+    high_watermark = 4
+    pressure = drop_disposable
+}
+
+cord reader.out -> backup_store.in {
+    capacity = 4
+    max_value_bytes = 1048576
+    max_queued_bytes = 4194304
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}

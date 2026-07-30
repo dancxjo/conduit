@@ -1,0 +1,19 @@
+# File copier panel with bounded buffer and cancellation/pressure controls.
+panel 1
+
+node reader : conduit/file-read {
+    path = "source.txt"
+}
+
+node writer : conduit/file-write {
+    path = "destination.txt"
+}
+
+cord reader.out -> writer.in {
+    capacity = 8
+    max_value_bytes = 65536
+    max_queued_bytes = 524288
+    low_watermark = 2
+    high_watermark = 8
+    pressure = block
+}

@@ -1,0 +1,29 @@
+# Traffic light state machine sequencer panel.
+panel 1
+
+node clock_ticks : conduit/counter
+node state_selector : conduit/cell {
+    initial = "RED"
+}
+node light_controller : conduit/gpio-pin {
+    pin = 16
+    mode = "write"
+}
+
+cord clock_ticks.out -> state_selector.in {
+    capacity = 4
+    max_value_bytes = 256
+    max_queued_bytes = 1024
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord state_selector.out -> light_controller.in {
+    capacity = 4
+    max_value_bytes = 256
+    max_queued_bytes = 1024
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}

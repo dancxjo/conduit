@@ -1,0 +1,29 @@
+# HTTP webhook relay panel.
+panel 1
+
+node receiver : conduit/http-server {
+    port = 8080
+}
+
+node filter : conduit/passthrough
+node forwarding_client : conduit/http-client {
+    endpoint = "https://hooks.example.com/relay"
+}
+
+cord receiver.out -> filter.in {
+    capacity = 16
+    max_value_bytes = 32768
+    max_queued_bytes = 524288
+    low_watermark = 4
+    high_watermark = 16
+    pressure = block
+}
+
+cord filter.out -> forwarding_client.in {
+    capacity = 16
+    max_value_bytes = 32768
+    max_queued_bytes = 524288
+    low_watermark = 4
+    high_watermark = 16
+    pressure = block
+}

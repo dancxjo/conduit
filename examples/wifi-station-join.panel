@@ -1,0 +1,17 @@
+# Wi-Fi station join configuration reference panel.
+panel 1
+
+node wifi_sta : conduit/wifi-station {
+    ssid = "ConduitNet"
+}
+
+node status_logger : conduit/log
+
+cord wifi_sta.out -> status_logger.in {
+    capacity = 4
+    max_value_bytes = 1024
+    max_queued_bytes = 4096
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}

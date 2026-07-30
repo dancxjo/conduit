@@ -1,0 +1,28 @@
+# Chat transcript recording and replay pipeline.
+panel 1
+
+node input_stream : conduit/stdin
+node recorder : conduit/record {
+    session = "transcript-001"
+}
+node store : conduit/blob-store {
+    bucket = "transcripts"
+}
+
+cord input_stream.out -> recorder.in {
+    capacity = 16
+    max_value_bytes = 4096
+    max_queued_bytes = 65536
+    low_watermark = 2
+    high_watermark = 16
+    pressure = block
+}
+
+cord recorder.out -> store.in {
+    capacity = 16
+    max_value_bytes = 4096
+    max_queued_bytes = 65536
+    low_watermark = 2
+    high_watermark = 16
+    pressure = block
+}

@@ -1,0 +1,41 @@
+# Sensor threshold alarm and LED control panel.
+panel 1
+
+node sensor_pin : conduit/gpio-pin {
+    pin = 14
+    mode = "read"
+}
+
+node filter : conduit/deduplicate
+node alarm_counter : conduit/counter
+node led_pin : conduit/gpio-pin {
+    pin = 15
+    mode = "write"
+}
+
+cord sensor_pin.out -> filter.in {
+    capacity = 8
+    max_value_bytes = 1024
+    max_queued_bytes = 8192
+    low_watermark = 2
+    high_watermark = 8
+    pressure = drop_disposable
+}
+
+cord filter.out -> alarm_counter.in {
+    capacity = 8
+    max_value_bytes = 1024
+    max_queued_bytes = 8192
+    low_watermark = 2
+    high_watermark = 8
+    pressure = block
+}
+
+cord alarm_counter.out -> led_pin.in {
+    capacity = 8
+    max_value_bytes = 1024
+    max_queued_bytes = 8192
+    low_watermark = 2
+    high_watermark = 8
+    pressure = block
+}
