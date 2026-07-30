@@ -1697,7 +1697,19 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?,
-        interfaces: Vec::new(),
+        interfaces: ["conduit/stream-sink", "conduit/text-processor"]
+            .into_iter()
+            .map(|id| {
+                let contract = registry
+                    .interface_contract(id)
+                    .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
+                Ok(PinDocument {
+                    id: id.to_owned(),
+                    schema_version: 1,
+                    semantic_hash: contract.semantic_hash.to_string(),
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?,
     };
     canonicalize_catalog(&mut catalog);
     catalog.identity = catalog_identity(&catalog)?;

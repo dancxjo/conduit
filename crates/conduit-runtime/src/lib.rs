@@ -385,9 +385,75 @@ impl Default for Registry {
         types
             .register(BuiltinTypeProvider)
             .expect("built-in type namespace is unique and valid");
+
+        let mut interfaces = BTreeMap::new();
+        let stream_sink_member = OwnedInterfaceMember {
+            requirement: conduit_core::InterfaceMemberRequirement::Required,
+            id: "in".to_owned(),
+            direction: Direction::Input,
+            value_type: TEXT_TYPE.into(),
+            presence: Presence::Required,
+            connections: ConnectionCardinality::ExactlyOne,
+            values: ValueCardinality::ExactlyOne,
+            delivery: Delivery::FiniteBatch,
+            temporal: TemporalContract::Atemporal,
+            terminal: TerminalContract::Finite,
+            sensitivity: Sensitivity::Public,
+            loss: LossAcceptance::LosslessOnly,
+        };
+        let mut stream_sink = OwnedInterfaceContract {
+            id: "conduit/stream-sink".to_owned(),
+            schema_version: 1,
+            members: vec![stream_sink_member],
+            semantic_hash: SemanticHash::from_bytes([0; 32]),
+        };
+        stream_sink.semantic_hash = stream_sink
+            .compute_semantic_hash()
+            .expect("valid stream-sink interface");
+        interfaces.insert(stream_sink.id.clone(), stream_sink);
+
+        let text_processor_in = OwnedInterfaceMember {
+            requirement: conduit_core::InterfaceMemberRequirement::Required,
+            id: "in".to_owned(),
+            direction: Direction::Input,
+            value_type: TEXT_TYPE.into(),
+            presence: Presence::Required,
+            connections: ConnectionCardinality::ExactlyOne,
+            values: ValueCardinality::ExactlyOne,
+            delivery: Delivery::FiniteBatch,
+            temporal: TemporalContract::Atemporal,
+            terminal: TerminalContract::Finite,
+            sensitivity: Sensitivity::Public,
+            loss: LossAcceptance::LosslessOnly,
+        };
+        let text_processor_out = OwnedInterfaceMember {
+            requirement: conduit_core::InterfaceMemberRequirement::Required,
+            id: "out".to_owned(),
+            direction: Direction::Output,
+            value_type: TEXT_TYPE.into(),
+            presence: Presence::Required,
+            connections: ConnectionCardinality::OneOrMore,
+            values: ValueCardinality::ExactlyOne,
+            delivery: Delivery::FiniteBatch,
+            temporal: TemporalContract::Atemporal,
+            terminal: TerminalContract::Finite,
+            sensitivity: Sensitivity::Public,
+            loss: LossAcceptance::LosslessOnly,
+        };
+        let mut text_processor = OwnedInterfaceContract {
+            id: "conduit/text-processor".to_owned(),
+            schema_version: 1,
+            members: vec![text_processor_in, text_processor_out],
+            semantic_hash: SemanticHash::from_bytes([0; 32]),
+        };
+        text_processor.semantic_hash = text_processor
+            .compute_semantic_hash()
+            .expect("valid text-processor interface");
+        interfaces.insert(text_processor.id.clone(), text_processor);
+
         Self {
             nodes,
-            interfaces: BTreeMap::new(),
+            interfaces,
             types,
         }
     }
