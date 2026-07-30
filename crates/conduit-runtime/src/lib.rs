@@ -6,7 +6,7 @@
 //! port, cord, or flow-policy identity.
 
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::io::{Read, Write};
 use std::rc::Rc;
@@ -17,7 +17,7 @@ use conduit_core::{
     ConnectionCardinality, Delivery, DescriptorRef, Direction, Endpoint as CoreEndpoint,
     ExecutionPlan, ExecutionProfile, FieldDisposition, FlowCapacity, FlowPolicy, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, Id, ImplementationMachine, InstancePath, LossAcceptance,
-    MapField, NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph,
+    MapField, MemoryAccounting, NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph,
     PlanHostObservation, PlanNode, PlanResourceBudget, PortContract, PortFlowConstraints, Presence,
     Pressure, ReadyQueueDiscipline, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
     SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity,
@@ -623,6 +623,118 @@ pub struct RunIo<'a> {
     pub output: &'a mut dyn Write,
     /// Process standard error.
     pub error: &'a mut dyn Write,
+}
+
+/// Behavior-specific hosted implementation selected by an exact binding.
+///
+/// This is deliberately not inferred from a semantic contract. A caller must
+/// explicitly associate one of these implementations with the exact
+/// implementation and artifact identities named by the plan.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostedPrimitiveImplementation {
+    Literal,
+    Stdin,
+    Uppercase,
+    Stdout,
+    Stderr,
+    PassThrough,
+    Tee,
+    Merge,
+    Fallback,
+}
+
+/// One installed hosted implementation binding available to an exact run.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactHostedBinding {
+    pub implementation_id: String,
+    pub implementation_identity: SemanticHash,
+    pub artifact_id: String,
+    pub artifact_digest: conduit_core::ArtifactDigest,
+    pub implementation: HostedPrimitiveImplementation,
+}
+
+/// Finite caller-supplied implementation set for one exact hosted run.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ExactHostedBindings {
+    bindings: Vec<ExactHostedBinding>,
+}
+
+impl ExactHostedBindings {
+    pub fn new(bindings: Vec<ExactHostedBinding>) -> Result<Self, RuntimeError> {
+        let mut identities = BTreeSet::new();
+        for binding in &bindings {
+            Id::new(&binding.implementation_id).map_err(|_| {
+                RuntimeError::new(
+                    "CND-RUN-007",
+                    "hosted binding has an invalid implementation identity",
+                )
+            })?;
+            Id::new(&binding.artifact_id).map_err(|_| {
+                RuntimeError::new(
+                    "CND-RUN-007",
+                    "hosted binding has an invalid artifact identity",
+                )
+            })?;
+            let key = format!(
+                "{}@{}",
+                binding.implementation_id, binding.implementation_identity
+            );
+            if !identities.insert(key) {
+                return Err(RuntimeError::new(
+                    "CND-RUN-007",
+                    "hosted binding set contains a duplicate implementation",
+                ));
+            }
+        }
+        Ok(Self { bindings })
+    }
+
+    fn resolve(
+        &self,
+        node: &ResolvedPlanNode<'_>,
+        artifacts: &[PlanArtifact<'_>],
+    ) -> Result<HostedPrimitiveImplementation, RuntimeError> {
+        let binding = self
+            .bindings
+            .iter()
+            .find(|binding| {
+                binding.implementation_id == node.implementation.id.as_str()
+                    && binding.implementation_identity == node.implementation.semantic_hash
+            })
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    "CND-RUN-007",
+                    format!(
+                        "no installed implementation matches exact binding `{}`",
+                        node.implementation.id
+                    ),
+                )
+            })?;
+        if binding.artifact_id != node.artifact.as_str()
+            || !artifacts.iter().any(|artifact| {
+                artifact.id.as_str() == binding.artifact_id
+                    && artifact.digest == binding.artifact_digest
+            })
+        {
+            return Err(RuntimeError::new(
+                "CND-RUN-008",
+                format!(
+                    "installed implementation `{}` lacks the plan's exact artifact",
+                    node.implementation.id
+                ),
+            ));
+        }
+        Ok(binding.implementation)
+    }
+}
+
+/// Exact non-provider inputs that bound one hosted executor run.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExactRunContext<'a> {
+    pub semantic_source_hash: SemanticHash,
+    pub validation: conduit_core::PlanValidationContext<'a>,
+    pub scheduler_policy: SchedulerPolicy,
+    pub reservation: SchedulerReservation,
 }
 
 pub trait Handler {
@@ -2737,6 +2849,298 @@ impl ResolvedPanel<'_> {
     }
 
     /// Executes using the production DeterministicExecutor.
+    pub fn run_exact<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExecutionSummary, RuntimeError> {
+        validate_hosted_execution_plan(plan, context.validation)
+            .map_err(|error| RuntimeError::new(error.code.as_str(), error.to_string()))?;
+        let topology = self
+            .exact_topology()
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        if context.semantic_source_hash != plan.source_semantic_hash
+            || topology.nodes.len() != plan.nodes.len()
+            || topology.cords.len() != plan.cords.len()
+        {
+            return Err(RuntimeError::new(
+                "CND-RUN-009",
+                "source semantic topology does not match the exact plan",
+            ));
+        }
+        for planned in plan.nodes {
+            let source = topology
+                .nodes
+                .iter()
+                .find(|source| source.instance == planned.instance.as_str())
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-RUN-009",
+                        format!(
+                            "planned node `{}` is absent from source topology",
+                            planned.instance.as_str()
+                        ),
+                    )
+                })?;
+            if source.instance != planned.instance.as_str()
+                || source.contract_id != planned.contract.id.as_str()
+                || source.contract_hash != planned.contract.semantic_hash
+            {
+                return Err(RuntimeError::new(
+                    "CND-RUN-009",
+                    format!(
+                        "source node `{}` ({}, {}) does not match exact plan node `{}` ({}, {})",
+                        source.instance,
+                        source.contract_id,
+                        source.contract_hash,
+                        planned.instance.as_str(),
+                        planned.contract.id,
+                        planned.contract.semantic_hash
+                    ),
+                ));
+            }
+        }
+        for planned in plan.cords {
+            let source = topology
+                .cords
+                .iter()
+                .find(|source| source.id == planned.id.as_str())
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-RUN-009",
+                        format!(
+                            "planned cord `{}` is absent from source topology",
+                            planned.id
+                        ),
+                    )
+                })?;
+            let expected_flow = self
+                .cords
+                .iter()
+                .find(|cord| cord.source.id == source.id)
+                .ok_or_else(|| {
+                    RuntimeError::new("CND-RUN-009", "planned cord is absent from source topology")
+                })
+                .and_then(|cord| {
+                    resolve_flow(&cord.source)
+                        .map_err(|error| RuntimeError::new(error.code, error.message))
+                })?;
+            if source.id != planned.id.as_str()
+                || source.from_node != planned.from.node.as_str()
+                || source.from_port.id != planned.from.port.as_str()
+                || source.to_node != planned.to.node.as_str()
+                || source.to_port.id != planned.to.port.as_str()
+                || source.from_port.contract_hash != planned.from.port_contract_hash
+                || source.to_port.contract_hash != planned.to.port_contract_hash
+                || source.from_port.value_type != planned.from.value_type
+                || source.to_port.value_type != planned.to.value_type
+                || expected_flow != planned.flow
+                || source.max_queued_bytes != planned.queue_memory_bytes
+            {
+                return Err(RuntimeError::new(
+                    "CND-RUN-009",
+                    format!("source cord `{}` does not match the exact plan", source.id),
+                ));
+            }
+        }
+
+        let maximum_value_store_bytes = plan.cords.iter().try_fold(0_u64, |total, cord| {
+            total.checked_add(cord.queue_memory_bytes)
+        });
+        let maximum_value_store_bytes = maximum_value_store_bytes.ok_or_else(|| {
+            RuntimeError::new("CND-RUN-009", "planned value-store bound overflowed")
+        })?;
+        let store = Rc::new(RefCell::new(HostValueStore::with_limit(
+            maximum_value_store_bytes,
+        )));
+        let io_cell = Rc::new(RefCell::new(io));
+        let mut scheduled_nodes = Vec::with_capacity(plan.nodes.len());
+        for (node_index, planned) in plan.nodes.iter().enumerate() {
+            let implementation = bindings.resolve(planned, plan.artifacts)?;
+            let expected_contract = match implementation {
+                HostedPrimitiveImplementation::Literal => "conduit.std/literal",
+                HostedPrimitiveImplementation::Stdin => "conduit.std/stdin",
+                HostedPrimitiveImplementation::Uppercase => "conduit.std/uppercase",
+                HostedPrimitiveImplementation::Stdout => "conduit.std/stdout",
+                HostedPrimitiveImplementation::Stderr => "conduit.std/stderr",
+                HostedPrimitiveImplementation::PassThrough => "conduit.std/pass-through",
+                HostedPrimitiveImplementation::Tee => "conduit.std/tee",
+                HostedPrimitiveImplementation::Merge => "conduit.std/merge",
+                HostedPrimitiveImplementation::Fallback => "conduit.std/fallback",
+            };
+            if planned.contract.id.as_str() != expected_contract {
+                return Err(RuntimeError::new(
+                    "CND-RUN-007",
+                    format!(
+                        "implementation `{}` cannot satisfy semantic contract `{}`",
+                        planned.implementation.id, planned.contract.id
+                    ),
+                ));
+            }
+            let resolved = self
+                .nodes
+                .iter()
+                .find(|node| {
+                    planned
+                        .instance
+                        .as_str()
+                        .strip_prefix("root/")
+                        .is_some_and(|instance| node.source.id == instance)
+                })
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-RUN-009",
+                        format!(
+                            "planned node `{}` is absent from source",
+                            planned.instance.as_str()
+                        ),
+                    )
+                })?;
+            let kind = match implementation {
+                HostedPrimitiveImplementation::Literal => {
+                    let value = resolved
+                        .source
+                        .config("value")
+                        .map_or_else(Vec::new, |value| value.as_bytes().to_vec());
+                    HostedNodeKind::Literal {
+                        value,
+                        emitted: false,
+                    }
+                }
+                HostedPrimitiveImplementation::Stdin => HostedNodeKind::Stdin { emitted: false },
+                HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
+                HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
+                HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
+                HostedPrimitiveImplementation::PassThrough => HostedNodeKind::PassThrough,
+                HostedPrimitiveImplementation::Tee => HostedNodeKind::Tee,
+                HostedPrimitiveImplementation::Merge => HostedNodeKind::Merge,
+                HostedPrimitiveImplementation::Fallback => {
+                    HostedNodeKind::Fallback { emitted: false }
+                }
+            };
+            let in_cords = plan
+                .cords
+                .iter()
+                .enumerate()
+                .filter(|(_, cord)| cord.to.node == planned.instance)
+                .map(|(index, _)| index)
+                .collect();
+            let out_cords = plan
+                .cords
+                .iter()
+                .enumerate()
+                .filter(|(_, cord)| cord.from.node == planned.instance)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            let maximum_input_bytes = out_cords
+                .iter()
+                .map(|index| plan.cords[*index].flow.capacity.max_value_bytes())
+                .min()
+                .unwrap_or(0);
+            let profile = planned.execution_profile.ok_or_else(|| {
+                RuntimeError::new(
+                    "CND-RUN-009",
+                    format!(
+                        "planned node `{}` has no execution profile",
+                        planned.instance.as_str()
+                    ),
+                )
+            })?;
+            let grants = plan
+                .authorities
+                .iter()
+                .filter(|authority| authority.node == planned.instance)
+                .map(|authority| authority.grant.id)
+                .collect::<Vec<_>>();
+            let caller_memory_bytes = profile
+                .memory_claims
+                .iter()
+                .filter(|claim| claim.accounting == MemoryAccounting::ExecutorAllocated)
+                .try_fold(0_u64, |total, claim| total.checked_add(claim.bytes))
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-RUN-009",
+                        "implementation caller-memory claim overflowed",
+                    )
+                })?;
+            let machine = ImplementationMachine::instantiate(
+                profile,
+                conduit_core::InstantiationContext {
+                    instance: planned.instance,
+                    implementation: planned.implementation,
+                    artifact: planned.artifact,
+                    execution_profile_hash: profile.semantic_hash,
+                    configuration_validated: true,
+                    caller_memory_bytes,
+                    required_resource_bindings: planned.required_resources,
+                    provided_resource_bindings: planned.required_resources,
+                    required_grants: &grants,
+                    provided_grants: &grants,
+                    cancellation_scope: Id("run"),
+                },
+            )
+            .map_err(|error| {
+                RuntimeError::new(
+                    error.code(),
+                    format!(
+                        "failed to instantiate `{}`: {error}",
+                        planned.instance.as_str()
+                    ),
+                )
+            })?;
+            scheduled_nodes.push(ScheduledNode {
+                driver: HostedSchedulerDriver {
+                    kind,
+                    node: resolved.source.clone(),
+                    definition_factory: resolved.definition.factory(),
+                    store: Rc::clone(&store),
+                    io: Rc::clone(&io_cell),
+                    in_cords,
+                    out_cords,
+                    maximum_input_bytes,
+                },
+                machine,
+            });
+            debug_assert_eq!(scheduled_nodes.len(), node_index + 1);
+        }
+        let mut executor = DeterministicExecutor::start(
+            plan,
+            context.validation,
+            context.scheduler_policy,
+            context.reservation,
+            scheduled_nodes,
+        )
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        match executor
+            .run_until_stalled()
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?
+        {
+            SchedulerStatus::Succeeded => Ok(ExecutionSummary {
+                nodes_completed: plan.nodes.len(),
+                cords_conducted: plan.cords.len(),
+            }),
+            SchedulerStatus::Failed(_) => Err(RuntimeError::new(
+                "CND-RUN-005",
+                "exact executor run failed",
+            )),
+            SchedulerStatus::Cancelled => Err(RuntimeError::new(
+                "CND-RUN-006",
+                "exact executor run cancelled",
+            )),
+            SchedulerStatus::Running | SchedulerStatus::Stalled | SchedulerStatus::Disconnected => {
+                Err(RuntimeError::new(
+                    "CND-RUN-010",
+                    "exact executor stopped without a terminal success record",
+                ))
+            }
+        }
+    }
+
+    /// Executes using the experimental synthetic-plan compatibility path.
+    ///
+    /// This is retained only until callers have migrated to [`Self::run_exact`].
     pub fn run_deterministic<'r, 'i>(
         &self,
         io: &'r mut RunIo<'i>,
@@ -3002,6 +3406,7 @@ impl ResolvedPanel<'_> {
                 io: io_cell.clone(),
                 in_cords,
                 out_cords,
+                maximum_input_bytes: 64 * 1024,
             };
 
             let machine = ImplementationMachine::instantiate(
@@ -3170,20 +3575,41 @@ impl ResolvedPanel<'_> {
     }
 }
 
-#[derive(Default)]
 struct HostValueStore {
     values: Vec<Vec<u8>>,
+    retained_bytes: u64,
+    maximum_bytes: u64,
 }
 
 impl HostValueStore {
-    fn store(&mut self, bytes: Vec<u8>) -> u64 {
+    fn with_limit(maximum_bytes: u64) -> Self {
+        Self {
+            values: Vec::new(),
+            retained_bytes: 0,
+            maximum_bytes,
+        }
+    }
+
+    fn store(&mut self, bytes: Vec<u8>) -> Option<u64> {
+        let byte_count = u64::try_from(bytes.len()).ok()?;
+        let retained_bytes = self.retained_bytes.checked_add(byte_count)?;
+        if retained_bytes > self.maximum_bytes {
+            return None;
+        }
         let handle = self.values.len() as u64;
         self.values.push(bytes);
-        handle
+        self.retained_bytes = retained_bytes;
+        Some(handle)
     }
 
     fn get(&self, handle: u64) -> Option<&[u8]> {
         self.values.get(handle as usize).map(|v| v.as_slice())
+    }
+}
+
+impl Default for HostValueStore {
+    fn default() -> Self {
+        Self::with_limit(u64::MAX)
     }
 }
 
@@ -3208,6 +3634,7 @@ struct HostedSchedulerDriver<'r, 'i> {
     io: Rc<RefCell<&'r mut RunIo<'i>>>,
     in_cords: Vec<usize>,
     out_cords: Vec<usize>,
+    maximum_input_bytes: u32,
 }
 
 impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
@@ -3228,7 +3655,11 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 if self.out_cords.is_empty() {
                     return SchedulerStep::Completed;
                 }
-                let handle = self.store.borrow_mut().store(value.clone());
+                let Some(handle) = self.store.borrow_mut().store(value.clone()) else {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/value-store-bound-exceeded"),
+                    };
+                };
                 let mut sent_any = false;
                 for &out_cord in &self.out_cords {
                     let res = io.send(
@@ -3258,12 +3689,43 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     return SchedulerStep::Completed;
                 }
                 let mut bytes = Vec::new();
-                if self.io.borrow_mut().input.read_to_end(&mut bytes).is_err() {
-                    return SchedulerStep::Failed {
-                        code: Id("conduit.std/stdin-read-error"),
-                    };
+                let mut chunk = [0_u8; 4096];
+                loop {
+                    let remaining = usize::try_from(self.maximum_input_bytes)
+                        .unwrap_or(usize::MAX)
+                        .saturating_sub(bytes.len());
+                    if remaining == 0 {
+                        let mut extra = [0_u8; 1];
+                        match self.io.borrow_mut().input.read(&mut extra) {
+                            Ok(0) => break,
+                            Ok(_) => {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit.std/stdin-bound-exceeded"),
+                                };
+                            }
+                            Err(_) => {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit.std/stdin-read-error"),
+                                };
+                            }
+                        }
+                    }
+                    let read_limit = remaining.min(chunk.len());
+                    match self.io.borrow_mut().input.read(&mut chunk[..read_limit]) {
+                        Ok(0) => break,
+                        Ok(read) => bytes.extend_from_slice(&chunk[..read]),
+                        Err(_) => {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit.std/stdin-read-error"),
+                            };
+                        }
+                    }
                 }
-                let handle = self.store.borrow_mut().store(bytes.clone());
+                let Some(handle) = self.store.borrow_mut().store(bytes.clone()) else {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/value-store-bound-exceeded"),
+                    };
+                };
                 let mut sent_any = false;
                 for &out_cord in &self.out_cords {
                     let res = io.send(
@@ -3299,7 +3761,11 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let text = std::str::from_utf8(bytes).unwrap_or("");
                     let upper_bytes = text.to_uppercase().into_bytes();
                     drop(store);
-                    let handle = self.store.borrow_mut().store(upper_bytes.clone());
+                    let Some(handle) = self.store.borrow_mut().store(upper_bytes.clone()) else {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/value-store-bound-exceeded"),
+                        };
+                    };
                     let mut sent_any = false;
                     for &out_cord in &self.out_cords {
                         let res = io.send(
@@ -3500,7 +3966,11 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         for (idx, val) in outputs.into_iter().enumerate() {
                             if let Some(&out_cord) = self.out_cords.get(idx) {
                                 let len = val.bytes.len() as u32;
-                                let handle = self.store.borrow_mut().store(val.bytes);
+                                let Some(handle) = self.store.borrow_mut().store(val.bytes) else {
+                                    return SchedulerStep::Failed {
+                                        code: Id("conduit/value-store-bound-exceeded"),
+                                    };
+                                };
                                 let _ = io.send(
                                     out_cord,
                                     RuntimeValue {

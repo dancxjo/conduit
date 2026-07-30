@@ -5,15 +5,19 @@ use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
     CompileSourceLimits, ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
-    HostReportDocument, ImplementationDocument, PinDocument, builtin_catalog_document,
-    compile_source,
+    HostReportDocument, ImplementationDocument, MemoryClaimDocument, PinDocument,
+    builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
+    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, ReadyQueueDiscipline,
+    SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash,
 };
 use conduit_panel::parse;
-use conduit_runtime::Registry;
+use conduit_runtime::{
+    ExactHostedBinding, ExactHostedBindings, ExactRunContext, HostedPrimitiveImplementation,
+    Registry, RunIo, SchedulerReservation,
+};
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
 const SOURCE_LIMIT_FIXTURE: &str =
@@ -47,12 +51,22 @@ fn profile(ordinal: u8) -> ExecutionProfileDocument {
         step_bound_enforced: true,
         limits: ExecutionLimitsDocument {
             max_step_work: 4,
+            max_input_leases: 1,
+            max_input_bytes: 1024,
+            max_output_reservations: 1,
+            max_output_bytes: 1024,
             max_transactions: 1,
+            max_fragments_per_step: 1,
+            implementation_memory_bytes: 2048,
             cancellation_ticks: 1,
             ..ExecutionLimitsDocument::default()
         },
         representations: Vec::new(),
-        memory_claims: Vec::new(),
+        memory_claims: vec![MemoryClaimDocument {
+            category: "port-transactions".to_owned(),
+            accounting: "executor-allocated".to_owned(),
+            bytes: 2048,
+        }],
         checkpoint: None,
     }
 }
@@ -138,7 +152,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
-            memory_bytes: 32,
+            memory_bytes: 2048,
             cpu_units: 1,
             ..BudgetDocument::default()
         },
@@ -424,4 +438,113 @@ fn sealed_document_exposes_the_exact_core_plan_without_replanning() {
         assert_eq!(planned.host.as_str(), encoded.host);
         assert_eq!(planned.host_observation.as_str(), encoded.host_observation);
     }
+}
+
+#[test]
+fn sealed_document_drives_the_exact_hosted_executor() {
+    let source = SOURCE.replace(" using ready", "");
+    let panel = parse(&source).unwrap();
+    let registry = Registry::compatibility_demo();
+    let resolved = registry.resolve(&panel).unwrap();
+    let document = compile_source(&source, &input(&source)).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+    let binding_documents = plan
+        .nodes
+        .iter()
+        .map(|node| {
+            let artifact = plan
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.id == node.artifact)
+                .unwrap();
+            let implementation = match node.contract.id.as_str() {
+                "conduit.std/literal" => HostedPrimitiveImplementation::Literal,
+                "conduit.std/uppercase" => HostedPrimitiveImplementation::Uppercase,
+                "conduit.std/stdout" => HostedPrimitiveImplementation::Stdout,
+                other => panic!("unexpected exact test contract `{other}`"),
+            };
+            ExactHostedBinding {
+                implementation_id: node.implementation.id.to_string(),
+                implementation_identity: node.implementation.semantic_hash,
+                artifact_id: node.artifact.to_string(),
+                artifact_digest: artifact.digest,
+                implementation,
+            }
+        })
+        .collect::<Vec<_>>();
+    let bindings = ExactHostedBindings::new(binding_documents).unwrap();
+    let mut rejected_input = &b""[..];
+    let mut rejected_output = Vec::new();
+    let mut rejected_error = Vec::new();
+    let missing_binding = resolved
+        .run_exact(
+            &plan,
+            &ExactHostedBindings::default(),
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                validation: conduit_core::PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 128,
+                    max_tick: 256,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            &mut RunIo {
+                input: &mut rejected_input,
+                output: &mut rejected_output,
+                error: &mut rejected_error,
+            },
+        )
+        .unwrap_err();
+    assert_eq!(missing_binding.code, "CND-RUN-007");
+
+    let mut input = &b""[..];
+    let mut output = Vec::new();
+    let mut error = Vec::new();
+    let summary = resolved
+        .run_exact(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                validation: conduit_core::PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 128,
+                    max_tick: 256,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            &mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(summary.nodes_completed, 3);
+    assert_eq!(summary.cords_conducted, 2);
+    assert_eq!(output, b"HELLO");
+    assert!(error.is_empty());
 }
