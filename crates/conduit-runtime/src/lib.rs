@@ -740,6 +740,15 @@ pub struct ExactRunContext<'a> {
     pub reservation: SchedulerReservation,
 }
 
+/// Bounded observations returned by one terminal exact-plan execution.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactExecutionReport {
+    pub summary: ExecutionSummary,
+    pub allocation: SchedulerAllocation,
+    pub high_water: SchedulerHighWater,
+    pub scheduler_events: Vec<SchedulerEvent>,
+}
+
 pub trait Handler {
     fn run(
         &mut self,
@@ -1164,8 +1173,10 @@ impl Registry {
     /// source-attested artifact before it can participate in resolution.
     #[must_use]
     pub fn hosted_primitives() -> Self {
-        let mut registry = Self::default();
-        registry.allow_installed_resolution = true;
+        let mut registry = Self {
+            allow_installed_resolution: true,
+            ..Self::default()
+        };
         for definition in hosted_provider_definitions() {
             registry
                 .register_executable_provider(
@@ -3106,6 +3117,19 @@ impl ResolvedPanel<'_> {
         context: ExactRunContext<'p>,
         io: &'r mut RunIo<'i>,
     ) -> Result<ExecutionSummary, RuntimeError> {
+        self.run_exact_report(plan, bindings, context, io)
+            .map(|report| report.summary)
+    }
+
+    /// Executes exactly and returns the executor's bounded allocation,
+    /// high-water, and event observations.
+    pub fn run_exact_report<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExactExecutionReport, RuntimeError> {
         validate_hosted_execution_plan(plan, context.validation)
             .map_err(|error| RuntimeError::new(error.code.as_str(), error.to_string()))?;
         let topology = self
@@ -3363,13 +3387,21 @@ impl ResolvedPanel<'_> {
             scheduled_nodes,
         )
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-        match executor
+        let status = executor
             .run_until_stalled()
-            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?
-        {
-            SchedulerStatus::Succeeded => Ok(ExecutionSummary {
-                nodes_completed: plan.nodes.len(),
-                cords_conducted: plan.cords.len(),
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        let allocation = executor.allocation();
+        let high_water = executor.high_water();
+        let scheduler_events = executor.events().copied().collect();
+        match status {
+            SchedulerStatus::Succeeded => Ok(ExactExecutionReport {
+                summary: ExecutionSummary {
+                    nodes_completed: plan.nodes.len(),
+                    cords_conducted: plan.cords.len(),
+                },
+                allocation,
+                high_water,
+                scheduler_events,
             }),
             SchedulerStatus::Failed(_) => Err(RuntimeError::new(
                 "CND-RUN-005",

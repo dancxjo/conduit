@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use conduit_compile::{CompileInput, InstalledProfile, compile_source};
 use conduit_core::{ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy};
-use conduit_runtime::{ExactRunContext, RuntimeError, SchedulerReservation};
+use conduit_runtime::{ExactExecutionReport, ExactRunContext, RuntimeError, SchedulerReservation};
 
 fn patchbay_error(error: conduit_patchbay::ProtocolError) -> String {
     format!(
@@ -166,13 +166,21 @@ pub fn run_panel(source: String) -> String {
 
 fn run_panel_result(source: &str, compile_input_json: Option<&str>) -> String {
     match run_panel_exact_inner(source, compile_input_json) {
-        Ok((summary, output, error)) => serde_json::json!({
+        Ok((report, output, error)) => serde_json::json!({
             "ok": true,
-            "completed_nodes": summary.nodes_completed,
-            "cords_conducted": summary.cords_conducted,
+            "completed_nodes": report.summary.nodes_completed,
+            "cords_conducted": report.summary.cords_conducted,
             "stdout": String::from_utf8_lossy(&output),
             "stderr": String::from_utf8_lossy(&error),
             "profile": "exact-plan-deterministic-executor",
+            "high_water": {
+                "queue_items": report.high_water.queue_items,
+                "queue_payload_bytes": report.high_water.queue_payload_bytes,
+                "ready_slots": report.high_water.ready_slots,
+                "event_slots": report.high_water.event_slots,
+                "decisions": report.high_water.decisions,
+            },
+            "scheduler_event_count": report.scheduler_events.len(),
         })
         .to_string(),
         Err(error) => serde_json::json!({
@@ -187,7 +195,7 @@ fn run_panel_result(source: &str, compile_input_json: Option<&str>) -> String {
 fn run_panel_exact_inner(
     source: &str,
     compile_input_json: Option<&str>,
-) -> Result<(conduit_runtime::ExecutionSummary, Vec<u8>, Vec<u8>), RuntimeError> {
+) -> Result<(ExactExecutionReport, Vec<u8>, Vec<u8>), RuntimeError> {
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
     let installed = InstalledProfile::observe(source)?;
@@ -212,13 +220,13 @@ fn run_panel_exact_inner(
     let mut input_stream = std::io::empty();
     let mut output = Vec::new();
     let mut error = Vec::new();
-    let summary = {
+    let report = {
         let mut io = conduit_runtime::RunIo {
             input: &mut input_stream,
             output: &mut output,
             error: &mut error,
         };
-        resolved.run_exact(
+        resolved.run_exact_report(
             &plan,
             &bindings,
             ExactRunContext {
@@ -243,7 +251,7 @@ fn run_panel_exact_inner(
             &mut io,
         )?
     };
-    Ok((summary, output, error))
+    Ok((report, output, error))
 }
 
 #[cfg(test)]

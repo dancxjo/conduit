@@ -32,6 +32,14 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
     assert_eq!(result["completed_nodes"], 3);
     assert_eq!(result["cords_conducted"], 2);
     assert_eq!(result["stdout"], "HELLO FROM CONDUIT.\n");
+    assert!(result["scheduler_event_count"].as_u64().unwrap() > 0);
+    assert!(result["high_water"]["queue_items"].as_u64().unwrap() <= 4);
+    assert!(
+        result["high_water"]["queue_payload_bytes"]
+            .as_u64()
+            .unwrap()
+            <= 256
+    );
 }
 
 #[test]
