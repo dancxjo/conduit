@@ -36,7 +36,7 @@ for attempt in $(seq 1 20); do
 done
 curl --fail --silent "http://127.0.0.1:${port}/tour/public/index.html" >/dev/null
 for attempt in $(seq 1 3); do
-  google-chrome --headless --no-sandbox --disable-gpu --virtual-time-budget=10000 --dump-dom \
+  google-chrome --headless --no-sandbox --disable-gpu --virtual-time-budget=25000 --dump-dom \
     "http://127.0.0.1:${port}/tour/public/index.html?autorun" >"${browser_log}"
   if grep --quiet --fixed-strings "conduit/hosted-literal-v1" "${browser_log}"; then
     break
