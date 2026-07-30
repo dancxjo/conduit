@@ -487,6 +487,7 @@ dependencies = [
  "conduit-patchbay",
  "conduit-runtime",
  "serde_json",
+ "sha2",
  "wasm-bindgen",
 ]
 

@@ -3,8 +3,26 @@
 use wasm_bindgen::prelude::*;
 
 use conduit_compile::{CompileInput, InstalledProfile, compile_source};
-use conduit_core::{ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy};
+use conduit_core::{
+    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, TerminalClass,
+};
 use conduit_runtime::{ExactExecutionReport, ExactRunContext, RuntimeError, SchedulerReservation};
+
+struct ExactBrowserResult {
+    report: ExactExecutionReport,
+    output: Vec<u8>,
+    error: Vec<u8>,
+    patchbay: serde_json::Value,
+}
+
+const fn terminal_name(terminal: TerminalClass) -> &'static str {
+    match terminal {
+        TerminalClass::Succeeded => "succeeded",
+        TerminalClass::Disconnected => "disconnected",
+        TerminalClass::Cancelled => "cancelled",
+        TerminalClass::Failed => "failed",
+    }
+}
 
 fn patchbay_error(error: conduit_patchbay::ProtocolError) -> String {
     format!(
@@ -165,24 +183,51 @@ pub fn run_panel(source: String) -> String {
 }
 
 fn run_panel_result(source: &str, compile_input_json: Option<&str>) -> String {
-    match run_panel_exact_inner(source, compile_input_json) {
-        Ok((report, output, error)) => serde_json::json!({
+    match run_panel_exact_inner(source, compile_input_json, None) {
+        Ok(result) => serde_json::json!({
             "ok": true,
-            "completed_nodes": report.summary.nodes_completed,
-            "cords_conducted": report.summary.cords_conducted,
-            "stdout": String::from_utf8_lossy(&output),
-            "stderr": String::from_utf8_lossy(&error),
+            "terminal": terminal_name(result.report.terminal),
+            "completed_nodes": result.report.summary.nodes_completed,
+            "cords_conducted": result.report.summary.cords_conducted,
+            "stdout": String::from_utf8_lossy(&result.output),
+            "stderr": String::from_utf8_lossy(&result.error),
             "profile": "exact-plan-deterministic-executor",
             "high_water": {
-                "queue_items": report.high_water.queue_items,
-                "queue_payload_bytes": report.high_water.queue_payload_bytes,
-                "ready_slots": report.high_water.ready_slots,
-                "event_slots": report.high_water.event_slots,
-                "decisions": report.high_water.decisions,
+                "queue_items": result.report.high_water.queue_items,
+                "queue_payload_bytes": result.report.high_water.queue_payload_bytes,
+                "ready_slots": result.report.high_water.ready_slots,
+                "event_slots": result.report.high_water.event_slots,
+                "decisions": result.report.high_water.decisions,
             },
-            "scheduler_event_count": report.scheduler_events.len(),
-            "evidence_bytes": report.evidence_bytes,
-            "evidence": report.evidence,
+            "scheduler_event_count": result.report.scheduler_events.len(),
+            "evidence_bytes": result.report.evidence_bytes,
+            "evidence": result.report.evidence,
+            "patchbay": result.patchbay,
+        })
+        .to_string(),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "code": error.code,
+            "diagnostic": error.to_string(),
+        })
+        .to_string(),
+    }
+}
+
+/// Starts the production executor and applies deterministic abort
+/// cancellation before its first node step.
+#[wasm_bindgen]
+pub fn cancel_panel(source: String) -> String {
+    match run_panel_exact_inner(&source, None, Some(conduit_core::StopPolicy::Abort)) {
+        Ok(result) => serde_json::json!({
+            "ok": true,
+            "terminal": terminal_name(result.report.terminal),
+            "stdout": String::from_utf8_lossy(&result.output),
+            "stderr": String::from_utf8_lossy(&result.error),
+            "profile": "exact-plan-deterministic-executor",
+            "evidence_bytes": result.report.evidence_bytes,
+            "evidence": result.report.evidence,
+            "patchbay": result.patchbay,
         })
         .to_string(),
         Err(error) => serde_json::json!({
@@ -197,7 +242,8 @@ fn run_panel_result(source: &str, compile_input_json: Option<&str>) -> String {
 fn run_panel_exact_inner(
     source: &str,
     compile_input_json: Option<&str>,
-) -> Result<(ExactExecutionReport, Vec<u8>, Vec<u8>), RuntimeError> {
+    initial_stop: Option<conduit_core::StopPolicy>,
+) -> Result<ExactBrowserResult, RuntimeError> {
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
     let installed = InstalledProfile::observe(source)?;
@@ -215,6 +261,33 @@ fn run_panel_exact_inner(
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let bindings = installed.bindings(&plan)?;
+    let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    let workspace = conduit_patchbay::Workspace::new("conduit/browser-source", source)
+        .map_err(|error| RuntimeError::new(error.code, error.to_string()))?;
+    let semantic = workspace.semantic_with_lookup(|contract_id| {
+        plan_snapshot
+            .bindings
+            .iter()
+            .find(|binding| binding.contract_id == contract_id)
+            .map_or_else(
+                || conduit_patchbay::NodeAvailabilityProjection {
+                    contract_id: contract_id.to_owned(),
+                    availability_state: "unavailable".to_owned(),
+                    reason_code: "CND-AVL-006".to_owned(),
+                    implementation_id: None,
+                    host_id: None,
+                    rejection_reasons: vec!["not bound in the exact plan".to_owned()],
+                },
+                |binding| conduit_patchbay::NodeAvailabilityProjection {
+                    contract_id: contract_id.to_owned(),
+                    availability_state: binding.availability_state.clone(),
+                    reason_code: binding.reason_code.clone(),
+                    implementation_id: Some(binding.implementation_id.clone()),
+                    host_id: Some(binding.host_id.clone()),
+                    rejection_reasons: Vec::new(),
+                },
+            )
+    });
     let registry = conduit_runtime::Registry::hosted_primitives();
     let resolved = registry
         .resolve(&panel)
@@ -228,34 +301,52 @@ fn run_panel_exact_inner(
             output: &mut output,
             error: &mut error,
         };
-        resolved.run_exact_report(
-            &plan,
-            &bindings,
-            ExactRunContext {
-                semantic_source_hash: plan.source_semantic_hash,
-                plan_epoch: 1,
-                run_id: conduit_core::Id("conduit/browser-run"),
-                validation: conduit_core::PlanValidationContext {
-                    supported_schema_version: plan.schema_version,
-                    now: plan.created_at,
-                },
-                scheduler_policy: SchedulerPolicy {
-                    schema_version: SCHEDULER_CONTRACT_VERSION,
-                    ready_queue: ReadyQueueDiscipline::RoundRobin,
-                    max_decisions: 256,
-                    max_tick: 512,
-                    max_consecutive_yields: 8,
-                    max_events: 64,
-                },
-                reservation: SchedulerReservation {
-                    available_runtime_memory_bytes: plan.budget.memory_bytes,
-                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
-                },
+        let context = ExactRunContext {
+            semantic_source_hash: plan.source_semantic_hash,
+            plan_epoch: 1,
+            run_id: conduit_core::Id("conduit/browser-run"),
+            validation: conduit_core::PlanValidationContext {
+                supported_schema_version: plan.schema_version,
+                now: plan.created_at,
             },
-            &mut io,
-        )?
+            scheduler_policy: SchedulerPolicy {
+                schema_version: SCHEDULER_CONTRACT_VERSION,
+                ready_queue: ReadyQueueDiscipline::RoundRobin,
+                max_decisions: 256,
+                max_tick: 512,
+                max_consecutive_yields: 8,
+                max_events: 64,
+            },
+            reservation: SchedulerReservation {
+                available_runtime_memory_bytes: plan.budget.memory_bytes,
+                executor_overhead_limit_bytes: plan.budget.memory_bytes,
+            },
+        };
+        match initial_stop {
+            Some(stop) => resolved.cancel_exact_report(&plan, &bindings, context, stop, &mut io)?,
+            None => resolved.run_exact_report(&plan, &bindings, context, &mut io)?,
+        }
     };
-    Ok((report, output, error))
+    let run = conduit_patchbay::RunSnapshot {
+        run_id: "conduit/browser-run".to_owned(),
+        plan_identity: plan_snapshot.identity.clone(),
+        source_semantic_hash: plan_snapshot.source_semantic_hash.clone(),
+        state: conduit_patchbay::RunState::Terminal,
+    };
+    let patchbay = serde_json::json!({
+        "source": workspace.source(),
+        "semantic": semantic,
+        "presentation": workspace.presentation(),
+        "plan": plan_snapshot,
+        "run": run,
+        "evidence": &report.evidence,
+    });
+    Ok(ExactBrowserResult {
+        report,
+        output,
+        error,
+        patchbay,
+    })
 }
 
 #[cfg(test)]

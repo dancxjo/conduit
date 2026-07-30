@@ -227,17 +227,20 @@ function recordEvidence(event) {
     evidence.length === 0 ? "No run evidence yet." : JSON.stringify(evidence, null, 2);
 }
 
-function renderPlan(binding = null) {
-  document.querySelector("#plan").textContent = JSON.stringify({
-    source_profile: current.profile || "conduit/std",
-    semantic_contract: browserPlan.semantic_contract,
-    implementation_id: browserPlan.implementation_id,
-    plan_identity: browserPlan.plan_identity,
-    host_observation: hostReport.observationId,
-    placement: binding?.placement ?? browserPlan.placement,
-    bounds: browserPlan.bounds,
-    artifacts: browserPlan.artifacts.map(({ id, sha256, bytes }) => ({ id, sha256, bytes })),
-  }, null, 2);
+function renderPlan(projection = null) {
+  document.querySelector("#plan").textContent = projection
+    ? JSON.stringify(projection, null, 2)
+    : "No Rust-resolved plan for this source yet.";
+}
+
+function renderRustProjection(projection) {
+  if (!projection?.source || !projection.semantic || !projection.plan ||
+      !projection.presentation || !projection.run || !Array.isArray(projection.evidence)) {
+    throw new Error("CND-PBY-009: incomplete Rust Patchbay projection");
+  }
+  renderPlan(projection);
+  evidence.splice(0, evidence.length, ...projection.evidence);
+  document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
 }
 
 function stopActive(cause, message) {
@@ -406,7 +409,6 @@ async function run() {
     recordEvidence({ kind: "placement-rejected", code: binding.code });
     return;
   }
-  renderPlan(binding);
   const workerArtifact = loadedArtifacts.get("tour-worker");
   const wasmArtifact = loadedArtifacts.get("conduit-web-wasm");
   const adapter = new DedicatedWorkerExecutionAdapter({
@@ -440,6 +442,7 @@ async function run() {
     if (epoch !== runEpoch) return;
     if (!executed.ok) throw new Error(executed.code);
     const value = executed.value;
+    if (value.ok) renderRustProjection(value.patchbay);
     const visibleResult = value.ok
       ? `${value.stdout || "Run completed successfully."}\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
       : value.diagnostic;

@@ -2,6 +2,12 @@
 /* eslint-disable */
 
 /**
+ * Starts the production executor and applies deterministic abort
+ * cancellation before its first node step.
+ */
+export function cancel_panel(source: string): string;
+
+/**
  * Returns the production resolver's logical and expanded projections.
  */
 export function explain_panel(source: string): string;
@@ -42,6 +48,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly cancel_panel: (a: number, b: number) => [number, number];
     readonly explain_panel: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];

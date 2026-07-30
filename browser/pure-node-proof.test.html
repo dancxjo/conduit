@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit pure-node WASM proof</title>
+<pre id="result">running</pre>
+<script type="module">
+import init, { run_panel } from "../tour/public/conduit_web.js";
+
+const result = document.querySelector("#result");
+const assert = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+const fail = (error) => {
+  result.textContent = `error:${error.stack ?? error}`;
+};
+globalThis.addEventListener("error", (event) => fail(event.error ?? event.message));
+globalThis.addEventListener("unhandledrejection", (event) => fail(event.reason));
+
+try {
+  await init();
+  const [source, profile] = await Promise.all([
+    fetch("../conformance/c5/pure-node-v1.panel").then((response) => response.text()),
+    fetch("../conformance/c5/pure-node-v1-profile.json").then((response) => response.json()),
+  ]);
+  const run = JSON.parse(run_panel(source));
+  assert(run.ok, `WASM exact run failed: ${run.code ?? run.diagnostic}`);
+  assert(run.terminal === "succeeded", "run is not terminal-success");
+  assert(run.stdout === profile.expected_stdout_utf8, "typed stdout value drifted");
+  assert(run.high_water.queue_items <= profile.bounds.queue_items, "queue item bound exceeded");
+  assert(
+    run.high_water.queue_payload_bytes <= profile.bounds.queue_payload_bytes,
+    "queue byte bound exceeded",
+  );
+  assert(run.scheduler_event_count <= profile.bounds.scheduler_events, "event bound exceeded");
+  assert(run.evidence_bytes <= profile.bounds.evidence_bytes, "evidence bound exceeded");
+  assert(run.patchbay.plan.identity === run.patchbay.run.plan_identity, "plan/run identity drifted");
+  assert(
+    run.patchbay.source.semantic_hash === run.patchbay.semantic.source_semantic_hash,
+    "source/semantic identity drifted",
+  );
+  assert(
+    JSON.stringify(run.patchbay.evidence) === JSON.stringify(run.evidence),
+    "Patchbay invented or omitted evidence",
+  );
+  const binding = run.patchbay.plan.bindings[0];
+  for (const invented of ["port_type", "placement", "activity"]) {
+    assert(!Object.hasOwn(binding, invented), `Rust projection contains invented ${invented}`);
+  }
+  const hostileProjection = structuredClone(run.patchbay);
+  hostileProjection.plan.bindings[0].placement = "window";
+  assert(
+    JSON.stringify(hostileProjection) !== JSON.stringify(run.patchbay),
+    "JavaScript-invented placement was accepted as a Rust fact",
+  );
+
+  const normalized = structuredClone(run.evidence);
+  for (const event of normalized) {
+    event.run_id = "<normalized-run>";
+    if (event.subject_kind === "run") event.subject_id = "<normalized-run>";
+  }
+  const digest = Array.from(
+    new Uint8Array(await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(JSON.stringify(normalized)),
+    )),
+    (byte) => byte.toString(16).padStart(2, "0"),
+  ).join("");
+  assert(`sha256:${digest}` === profile.normalized_evidence_sha256, "evidence identity drifted");
+  result.textContent = "ok";
+} catch (error) {
+  fail(error);
+}
+</script>

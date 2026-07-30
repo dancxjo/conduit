@@ -46,7 +46,7 @@ struct PresentationOptions {
 }
 
 enum RunOutcome {
-    Exact(ExactExecutionReport),
+    Exact(Box<ExactExecutionReport>),
     Compatibility(ExecutionSummary),
 }
 
@@ -631,7 +631,7 @@ fn execute_run(
             },
             io,
         )
-        .map(RunOutcome::Exact)
+        .map(|report| RunOutcome::Exact(Box::new(report)))
 }
 
 fn parse_arguments(

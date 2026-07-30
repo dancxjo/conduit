@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
-    COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    CompileSourceLimits, ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument,
+    ArtifactDocument, ArtifactReferenceDocument, AuthorityDecisionDocument, AuthorityGrantDocument,
+    BudgetDocument, COMPILE_INPUT_SCHEMA, COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument,
+    CompileInput, CompileModuleDocument, CompileSourceLimits, EffectRequirementDocument,
+    ExecutionLimitsDocument, ExecutionProfileDocument, HostCapabilityDocument, HostReportDocument,
     ImplementationDocument, MemoryClaimDocument, PinDocument, builtin_catalog_document,
 };
 use conduit_core::{
@@ -22,6 +23,15 @@ pub struct InstalledProfile {
 
 impl InstalledProfile {
     pub fn observe(source: &str) -> Result<Self, RuntimeError> {
+        Self::observe_with_stdout_grant(source, true)
+    }
+
+    /// Observe the compiled-in profile with an explicit caller-owned stdout
+    /// authority fact. The false branch exists for fail-closed conformance.
+    pub fn observe_with_stdout_grant(
+        source: &str,
+        stdout_granted: bool,
+    ) -> Result<Self, RuntimeError> {
         let panel =
             parse(source).map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
         let registry = Registry::hosted_primitives();
@@ -31,11 +41,15 @@ impl InstalledProfile {
             .map_err(|error| RuntimeError::new(error.code, error.message))?;
         let mut required = BTreeMap::new();
         for node in &topology.nodes {
-            required.insert(node.contract_id.clone(), node.contract_hash);
+            required
+                .entry(node.contract_id.clone())
+                .or_insert_with(|| (node.contract_hash, Vec::new()))
+                .1
+                .push(node.instance.clone());
         }
         let mut implementations = BTreeMap::new();
         let mut candidates = Vec::with_capacity(required.len());
-        for (contract_id, contract_hash) in required {
+        for (contract_id, (contract_hash, instances)) in required {
             let installed = Registry::installed_hosted_providers()
                 .iter()
                 .find(|provider| {
@@ -48,7 +62,14 @@ impl InstalledProfile {
                         format!("no installed provider implements `{contract_id}`"),
                     )
                 })?;
-            candidates.push(candidate(installed));
+            let stdout_instance = (contract_id == "conduit.std/stdout")
+                .then(|| instances.first().cloned())
+                .flatten();
+            candidates.push(candidate(
+                installed,
+                stdout_instance.as_deref(),
+                stdout_granted,
+            ));
         }
         let mut input = CompileInput {
             schema: COMPILE_INPUT_SCHEMA.to_owned(),
@@ -183,9 +204,16 @@ impl InstalledProfile {
     }
 }
 
-fn candidate(installed: &conduit_runtime::InstalledHostedProvider) -> CandidateDocument {
+fn candidate(
+    installed: &conduit_runtime::InstalledHostedProvider,
+    stdout_instance: Option<&str>,
+    stdout_granted: bool,
+) -> CandidateDocument {
     let manifest = installed.manifest;
     let artifact = installed.artifact;
+    let authorities = stdout_instance
+        .map(|instance| vec![stdout_authority(instance, stdout_granted)])
+        .unwrap_or_default();
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -278,7 +306,60 @@ fn candidate(installed: &conduit_runtime::InstalledHostedProvider) -> CandidateD
         resources: Vec::new(),
         topology: Vec::new(),
         granted_authorities: Vec::new(),
-        authorities: Vec::new(),
+        authorities,
+    }
+}
+
+fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument {
+    let host = "conduit/conduct-host";
+    AuthorityDecisionDocument {
+        requirement: "sha256:8d4cf343da90c32b69b7f9037f5a687f5dd3e2afcd08cfdc3f73c7232f7e0801"
+            .to_owned(),
+        effect_hash: String::new(),
+        grant_hash: String::new(),
+        effect: EffectRequirementDocument {
+            id: "conduit.effect/stdout-write".to_owned(),
+            administrative_class: None,
+            policy_budget_class: None,
+            action: "conduit.action/write".to_owned(),
+            resource_kind: "conduit.resource/output-stream".to_owned(),
+            resource_id: Some("conduit.resource/stdout".to_owned()),
+            requester: instance.to_owned(),
+            audience: "conduit/conduct-run".to_owned(),
+            constraints: Vec::new(),
+            check_at_use: true,
+        },
+        capability: HostCapabilityDocument {
+            id: "conduit.capability/stdout-write".to_owned(),
+            action: "conduit.action/write".to_owned(),
+            resource_kind: "conduit.resource/output-stream".to_owned(),
+            resource_id: "conduit.resource/stdout".to_owned(),
+            host: host.to_owned(),
+            time_basis: "clock/conduct-host".to_owned(),
+            observed_at_tick: 10,
+            valid_until_tick: 20,
+        },
+        grant: AuthorityGrantDocument {
+            id: "conduit.grant/stdout-write".to_owned(),
+            action: "conduit.action/write".to_owned(),
+            resource_kind: "conduit.resource/output-stream".to_owned(),
+            resource_id: "conduit.resource/stdout".to_owned(),
+            scope_root: instance.to_owned(),
+            scope_descendants: false,
+            audience: "conduit/conduct-run".to_owned(),
+            constraints: Vec::new(),
+            time_basis: "clock/conduct-host".to_owned(),
+            not_before_tick: 10,
+            expires_at_tick: 20,
+            issued_for_host: host.to_owned(),
+            delegation: "none".to_owned(),
+            audit_id: "conduit.audit/stdout-write".to_owned(),
+            terminal_policy: "abort".to_owned(),
+        },
+        status: if granted { "active" } else { "revoked" }.to_owned(),
+        administrative_subject: None,
+        containment: None,
+        policy_budgets: Vec::new(),
     }
 }
 

@@ -21,8 +21,8 @@ use conduit_core::{
     LossAcceptance, ManifestArtifactRef, ManifestEntrypoint, MapField, MemoryAccounting,
     NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph, PlanNode, PortContract,
     PortFlowConstraints, Presence, Pressure, ReplacementSupport, ResolvedPlanNode, SampleSchedule,
-    SchedulerPolicy, SemanticHash, Sensitivity, TemporalContract, TerminalContract, TraitProof,
-    TypeContractRef, ValueCardinality, validate_artifact_manifest,
+    SchedulerPolicy, SemanticHash, Sensitivity, TemporalContract, TerminalClass, TerminalContract,
+    TraitProof, TypeContractRef, ValueCardinality, validate_artifact_manifest,
     validate_implementation_manifest, validate_plan_graph,
 };
 use conduit_panel::{
@@ -779,6 +779,7 @@ pub struct ExactRunContext<'a> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactExecutionReport {
     pub summary: ExecutionSummary,
+    pub terminal: TerminalClass,
     pub allocation: SchedulerAllocation,
     pub high_water: SchedulerHighWater,
     pub scheduler_events: Vec<SchedulerEvent>,
@@ -3210,6 +3211,30 @@ impl ResolvedPanel<'_> {
         context: ExactRunContext<'p>,
         io: &'r mut RunIo<'i>,
     ) -> Result<ExactExecutionReport, RuntimeError> {
+        self.run_exact_report_controlled(plan, bindings, context, None, io)
+    }
+
+    /// Starts the exact executor and immediately applies one plan-visible
+    /// cancellation policy, returning its deterministic terminal evidence.
+    pub fn cancel_exact_report<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        stop: conduit_core::StopPolicy,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExactExecutionReport, RuntimeError> {
+        self.run_exact_report_controlled(plan, bindings, context, Some(stop), io)
+    }
+
+    fn run_exact_report_controlled<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        initial_stop: Option<conduit_core::StopPolicy>,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExactExecutionReport, RuntimeError> {
         validate_hosted_execution_plan(plan, context.validation)
             .map_err(|error| RuntimeError::new(error.code.as_str(), error.to_string()))?;
         let topology = self
@@ -3473,6 +3498,11 @@ impl ResolvedPanel<'_> {
             scheduled_nodes,
         )
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        if let Some(stop) = initial_stop {
+            executor
+                .cancel(stop)
+                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        }
         let status = executor
             .run_until_stalled()
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
@@ -3499,6 +3529,7 @@ impl ResolvedPanel<'_> {
                     nodes_completed: plan.nodes.len(),
                     cords_conducted: plan.cords.len(),
                 },
+                terminal: TerminalClass::Succeeded,
                 allocation,
                 high_water,
                 scheduler_events,
@@ -3509,6 +3540,18 @@ impl ResolvedPanel<'_> {
                 "CND-RUN-005",
                 "exact executor run failed",
             )),
+            SchedulerStatus::Cancelled if initial_stop.is_some() => Ok(ExactExecutionReport {
+                summary: ExecutionSummary {
+                    nodes_completed: 0,
+                    cords_conducted: 0,
+                },
+                terminal: TerminalClass::Cancelled,
+                allocation,
+                high_water,
+                scheduler_events,
+                evidence,
+                evidence_bytes,
+            }),
             SchedulerStatus::Cancelled => Err(RuntimeError::new(
                 "CND-RUN-006",
                 "exact executor run cancelled",

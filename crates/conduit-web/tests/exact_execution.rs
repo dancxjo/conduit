@@ -42,7 +42,11 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
     );
     let evidence = result["evidence"].as_array().expect("typed evidence array");
     assert!(!evidence.is_empty());
-    assert!(result["evidence_bytes"].as_u64().unwrap() <= 16 * 1024);
+    assert!(
+        result["evidence_bytes"].as_u64().unwrap() <= 16 * 1024,
+        "evidence bytes: {}",
+        result["evidence_bytes"]
+    );
     assert!(evidence.iter().all(|event| {
         event["schema"] == "conduit.exact-execution-evidence/v1"
             && event["plan_epoch"] == 1

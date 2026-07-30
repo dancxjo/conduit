@@ -83,7 +83,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .filter(|line| !line.is_empty())
         .map(|line| serde_json::from_slice(line).unwrap())
         .collect();
-    assert_eq!(records.len(), 2);
+    assert!(records.len() > 2);
     for (sequence, record) in records.iter().enumerate() {
         assert_eq!(record["schema"], "conduit.run/v2");
         assert_eq!(record["schema_version"], 2);
@@ -97,9 +97,17 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         records[0]["payload_hex"],
         "48454c4c4f2046524f4d20434f4e445549542e0a"
     );
-    assert_eq!(records[1]["record"], "summary");
-    assert_eq!(records[1]["nodes_completed"], 3);
-    assert_eq!(records[1]["cords_conducted"], 2);
+    for record in &records[1..records.len() - 1] {
+        assert_eq!(record["record"], "exact_execution_evidence");
+        assert_eq!(
+            record["evidence"]["schema"],
+            "conduit.exact-execution-evidence/v1"
+        );
+    }
+    let summary = records.last().unwrap();
+    assert_eq!(summary["record"], "summary");
+    assert_eq!(summary["nodes_completed"], 3);
+    assert_eq!(summary["cords_conducted"], 2);
 
     let mut child = command()
         .args(["--run", "--compatibility-demo", "--format=ndjson", "-"])

@@ -47,6 +47,7 @@ pub(crate) fn project_exact_evidence(
 ) -> Vec<ExactEvidenceRecord> {
     observations
         .iter()
+        .filter(|observation| retained(observation.kind))
         .map(|observation| {
             let mut record = ExactEvidenceRecord {
                 schema: "conduit.exact-execution-evidence/v1",
@@ -111,6 +112,21 @@ pub(crate) fn project_exact_evidence(
             record
         })
         .collect()
+}
+
+const fn retained(kind: SchedulerEventKind) -> bool {
+    matches!(
+        kind,
+        SchedulerEventKind::AllocationPrepared
+            | SchedulerEventKind::NodePrepared
+            | SchedulerEventKind::RunStarted
+            | SchedulerEventKind::Cord(_)
+            | SchedulerEventKind::ValueAccepted
+            | SchedulerEventKind::ValueConsumed
+            | SchedulerEventKind::DerivationCommitted
+            | SchedulerEventKind::CancellationRequested { .. }
+            | SchedulerEventKind::Terminal(_)
+    )
 }
 
 const fn event_kind(value: SchedulerEventKind) -> &'static str {

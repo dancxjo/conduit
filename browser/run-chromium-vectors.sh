@@ -60,3 +60,14 @@ if [[ "${passed}" != true ]]; then
   tail -80 "${browser_log}" >&2
   exit 1
 fi
+if ! google-chrome \
+  --headless=new \
+  --no-sandbox \
+  --virtual-time-budget=25000 \
+  --dump-dom \
+  "http://127.0.0.1:${port}/browser/pure-node-proof.test.html" \
+  >"${browser_log}" 2>&1 ||
+  ! grep -q '<pre id="result">ok</pre>' "${browser_log}"; then
+  tail -80 "${browser_log}" >&2
+  exit 1
+fi
