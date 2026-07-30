@@ -3549,7 +3549,7 @@
       }, {
         "id": "rp2040-firmware-hil-v1",
         "path": "../c5/rp2040-firmware-hil-v1.json",
-        "sha256": "sha256:ea85b41b0b69028b8d39a0207ed75de4f9c0db08266daeb26b11d47426d4740f",
+        "sha256": "sha256:8a9ec6d717f6ecfae8343a3f4289330efe4b669e8e5b5f84c4e10f3ab1fe122e",
         "operation": "rp2040-firmware-hil-v1",
         "requirement_ids": [
           "EMB-003", "EMB-006", "EMB-008", "EMB-009", "EMB-010", "EMB-011",

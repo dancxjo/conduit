@@ -1,7 +1,7 @@
 use conduit_core::{HostReportReason, Id, SemanticHash, validate_capability_report};
 use conduit_rp2040_hil::{
-    FIRMWARE_IDENTITY, FIXED_EXECUTOR_BUDGET, GENERIC_RP2040_BOARD_PROFILE, profile,
-    with_capability_report,
+    FIRMWARE_IDENTITY, FIXED_EXECUTOR_BUDGET, GENERIC_RP2040_BOARD_PROFILE, PICO_W_BOARD_PROFILE,
+    profile, with_capability_report, with_pico_w_capability_report,
 };
 use serde_json::Value;
 
@@ -38,6 +38,43 @@ fn generic_report_excludes_unlinked_radio_services() {
             actual,
             expected("generic-report-excludes-unlinked-radio-services")
         );
+    });
+}
+
+#[test]
+fn pico_w_report_includes_radio_services() {
+    with_pico_w_capability_report(10, |report| {
+        let actual = serde_json::json!({
+            "wifi": report.capabilities.iter().any(|capability| {
+                capability.interface.id == Id("conduit/host.wifi-network")
+            }),
+            "ap": report.capabilities.iter().any(|capability| capability.mode == Id("ap")),
+            "cyw43": report.capabilities.iter().any(|capability| {
+                capability.subject == Id("cyw43")
+            }),
+            "zenoh_pico": report.capabilities.iter().any(|capability| {
+                capability.interface.id == Id("conduit/transport.zenoh-pico")
+                    || capability.subject == Id("zenoh-pico")
+            }),
+            "capability_count": report.capabilities.len(),
+        });
+        assert_eq!(actual, expected("pico-w-report-includes-radio-services"));
+    });
+}
+
+#[test]
+fn pico_w_report_binds_pico_w_board_profile() {
+    let selected = profile();
+    with_pico_w_capability_report(10, |report| {
+        let actual = serde_json::json!({
+            "pico_w_board_profile": report.current_constraints[0]
+                == PICO_W_BOARD_PROFILE.semantic_hash,
+            "executor_profile": report.current_constraints[1] == selected.identity,
+            "firmware": report.current_constraints[2] == FIRMWARE_IDENTITY
+                && report.reporter.semantic_hash == FIRMWARE_IDENTITY,
+            "constraint_count": report.current_constraints.len(),
+        });
+        assert_eq!(actual, expected("pico-w-report-binds-pico-w-board-profile"));
     });
 }
 

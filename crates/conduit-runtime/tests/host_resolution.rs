@@ -363,6 +363,75 @@ fn generic_rp2040_wifi_requirement_fails_resolution() {
 }
 
 #[test]
+fn pico_w_wifi_requirement_succeeds_resolution() {
+    let firmware_artifact = artifact("fixture/pico-blob", PICO_DIGEST);
+    let manifest = implementation(
+        "fixture/pico-w-wifi",
+        ExecutorKind::Firmware,
+        &PICO_REF,
+        &[],
+    );
+    conduit_rp2040_hil::with_pico_w_capability_report(10, |report| {
+        let expected_reporter = report.reporter;
+        let artifacts = [&firmware_artifact];
+        let wifi = [CapabilityPredicate {
+            interface: PinnedDescriptor {
+                id: Id("conduit/host.wifi-network"),
+                schema_version: 1,
+                semantic_hash: SemanticHash::from_bytes([201; 32]),
+            },
+            mode: Id("ap"),
+            subject: None,
+            details: None,
+            minimum_capacity: budget(8, 1, 1),
+            satisfaction_proof: None,
+        }];
+        let candidates = [PlacementCandidate {
+            manifest: &manifest,
+            artifacts: &artifacts,
+            report: &report,
+            allocation: budget(8, 1, 1),
+            capabilities: &wifi,
+            resources: &[],
+            topology: &[],
+            authorities: &[],
+        }];
+        let requests = [PlacementRequest {
+            instance: InstancePath::new("root/pico-w-wifi").unwrap(),
+            semantic_contract: CONTRACT,
+            candidates: &candidates,
+        }];
+        let trusted_reporters = [expected_reporter];
+        let trusted_report_trust = [report.trust.semantic_hash];
+        let mut resolver_policy = HostResolverPolicy {
+            resolver: RESOLVER,
+            policy_hash: ZERO,
+            time_basis: Id("clock/boot-ticks"),
+            current_tick: 20,
+            plan_version: 8,
+            trusted_reporters: &trusted_reporters,
+            trusted_report_trust: &trusted_report_trust,
+            required_realm: None,
+            trusted_entities: &[],
+            trusted_status_reporters: &[],
+            require_active_passport: false,
+            allowed_implementations: &[],
+            implementation_preference: &[],
+            tie_policy: ResolverTiePolicy::LowestCanonicalIdentity,
+            maximum_search_states: 8,
+        };
+        resolver_policy.policy_hash = resolver_policy.computed_semantic_hash().unwrap();
+        let resolved = resolve_host_placement(&requests, resolver_policy).unwrap();
+        assert_eq!(resolved.bindings.len(), 1);
+        assert_eq!(
+            resolved.bindings[0].implementation_id,
+            "fixture/pico-w-wifi"
+        );
+        assert_eq!(resolved.bindings[0].host, "conduit/pico-w");
+    });
+}
+
+#[test]
 fn mismatched_rp2040_board_reporter_is_rejected() {
     let reasons = generic_rp2040_rejections(
         |report| report.reporter.id = Id("conduit/pico-w-firmware"),

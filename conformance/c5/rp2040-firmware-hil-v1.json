@@ -26,6 +26,27 @@
       }
     },
     {
+      "id": "pico-w-report-includes-radio-services",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "wifi": true,
+        "ap": true,
+        "cyw43": true,
+        "zenoh_pico": true,
+        "capability_count": 5
+      }
+    },
+    {
+      "id": "pico-w-report-binds-pico-w-board-profile",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "pico_w_board_profile": true,
+        "executor_profile": true,
+        "firmware": true,
+        "constraint_count": 3
+      }
+    },
+    {
       "id": "generic-report-binds-board-firmware-and-executor-profile",
       "runner": "conduit-rp2040-hil/capability_truth",
       "expected": {
