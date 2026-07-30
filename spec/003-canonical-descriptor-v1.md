@@ -175,7 +175,7 @@ fields, field types, value ranges, and other semantic constraints.
 - semantic SHA-256 hashes.
 
 `conduit-core` tests those bytes and hashes. The standard-library-only Python
-program `conformance/c1/verify_canonical_v1.py` independently writes, reads,
+`cargo xtask verify-canonical` independently writes, reads,
 round-trips, and verifies the same vectors.
 
 ## Evolution and migration

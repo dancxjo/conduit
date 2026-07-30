@@ -14,7 +14,9 @@ const mediaTypes = new Map([
   [".wasm", "application/wasm"],
 ]);
 
-createServer(async (request, response) => {
+const requestedPort = parseInt(process.argv[2] ?? process.env.PORT ?? "4173", 10);
+
+const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
     const file = resolve(root, `.${pathname}`);
@@ -36,4 +38,10 @@ createServer(async (request, response) => {
   } catch {
     response.writeHead(404).end();
   }
-}).listen(4173, "127.0.0.1");
+});
+
+server.listen(requestedPort, "127.0.0.1", () => {
+  const address = server.address();
+  const actualPort = typeof address === "object" && address ? address.port : requestedPort;
+  console.log(`READY:${actualPort}`);
+});

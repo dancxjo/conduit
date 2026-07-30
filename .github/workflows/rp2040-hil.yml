@@ -24,11 +24,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: thumbv6m-none-eabi
-      - run: python3 tools/embedded_gate.py
+      - run: cargo xtask embedded-gate
       - run: >-
-          python3 tools/rp2040_hil.py
+          cargo xtask rp2040-hil
           --require-hardware
           --port "${{ inputs.serial_port }}"
           --expected-plan-hash "${{ inputs.expected_plan_hash }}"
       - run: cargo test -p conduit-embedded --test adversarial_containment
-      - run: python3 tools/adversarial_profile.py --profile physical-hil
+      - run: cargo xtask adversarial-profile --profile physical-hil

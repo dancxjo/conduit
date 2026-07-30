@@ -129,7 +129,7 @@ header/event codecs and requires the physical runner's values, pressure
 transitions, attribution, and terminal event, preventing a capacity change in
 the firmware from silently invalidating the HIL expectation.
 
-`tools/embedded_gate.py` cross-links this ELF, reads its load-image and
+`cargo xtask embedded-gate` cross-links this ELF, reads its load-image and
 data/BSS sizes, rejects allocator symbols, and reports:
 
 - flash as linked ELF text plus data;
@@ -153,7 +153,7 @@ lifecycle/value/pressure/terminal evidence, or values differing from the
 desktop oracle.
 
 An HIL fixture is not recorded as passed merely because the firmware links or
-the simulator passes. `tools/rp2040_hil.py --require-hardware` succeeds only
+the simulator passes. `cargo xtask rp2040-hil --require-hardware` succeeds only
 after a unique USB-CDC device completes the physical exchange. Flashing and
 device enrollment remain explicit operator actions outside the resolver.
 

@@ -1,0 +1,30 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+clap = { version = "4.6.4", default-features = false, features = [
+    "derive",
+    "error-context",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.10.9"
+hex = "0.4.3"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[lints.rust]
+unsafe_code = "allow"
+
+[lints.clippy]
+all = "warn"

@@ -15,7 +15,7 @@ reports only its finite initialized services.
 Build and inspect the exact artifact:
 
 ```sh
-python3 tools/embedded_gate.py
+cargo xtask embedded-gate
 ```
 
 The current fixture full-plan hash is:
@@ -31,7 +31,7 @@ BOOTSEL, flash it, enroll it, or configure its host.
 After the USB CDC device appears:
 
 ```sh
-python3 tools/rp2040_hil.py \
+cargo xtask rp2040-hil \
   --require-hardware \
   --expected-plan-hash sha256:9a413d9dbe0986ff14e47bda7ced704241db96261429d3c39998cef91fa9694f
 ```

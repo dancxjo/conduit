@@ -1,16 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-port=$(python3 -c 'import socket; listener = socket.socket(); listener.bind(("127.0.0.1", 0)); print(listener.getsockname()[1]); listener.close()')
 server_log=$(mktemp)
 browser_log=$(mktemp)
-python3 -m http.server "${port}" --bind 127.0.0.1 --directory "${root_dir}" >"${server_log}" 2>&1 &
+cargo xtask serve --directory "${root_dir}" --port 0 >"${server_log}" 2>&1 &
 server_pid=$!
 cleanup() {
   kill "${server_pid}" 2>/dev/null || true
   rm -f "${server_log}" "${browser_log}"
 }
 trap cleanup EXIT
+
+port=""
+for _attempt in $(seq 1 30); do
+  if ready_line=$(grep -m1 '^READY:' "${server_log}" 2>/dev/null); then
+    port="${ready_line#READY:}"
+    break
+  fi
+  sleep 0.1
+done
+
+if [[ -z "${port}" ]]; then
+  echo "Failed to start static server" >&2
+  cat "${server_log}" >&2
+  exit 1
+fi
+
 server_ready=false
 for _attempt in {1..20}; do
   if curl --fail --silent \

@@ -8,7 +8,7 @@ portable guarantee. Workload/deadline claims belong to issue #83.
 
 ## Reproducible matrix
 
-`python3 tools/performance_gate.py` builds release artifacts, records the exact
+`cargo xtask performance-gate` builds release artifacts, records the exact
 commit, Rust release and host target, OS, architecture, CPU, and conformance
 fixture revision, then runs the reviewed workload commands in
 `benchmarks/baseline-v1.json`. The matrix covers canonicalization,

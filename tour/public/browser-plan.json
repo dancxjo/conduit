@@ -1,40 +1,40 @@
 {
-  "schema": "conduit.tour-browser-plan/v1",
-  "implementation_id": "conduit/tour-production-wasm-worker",
-  "semantic_contract": "conduit/tour-panel-run",
-  "placement": "dedicated-worker",
   "artifacts": [
     {
+      "bytes": 21038,
       "id": "browser-host-adapter",
       "path": "../../browser/conduit-browser-host.mjs",
-      "sha256": "5bfeb5226a1d1dee1f673c3ab94acbad73803094feca97c475b606c0c2336096",
-      "bytes": 21038
+      "sha256": "5bfeb5226a1d1dee1f673c3ab94acbad73803094feca97c475b606c0c2336096"
     },
     {
+      "bytes": 1410,
       "id": "tour-worker",
       "path": "./tour-worker.mjs",
-      "sha256": "b357709684c9e69cfedcaa84cadc0d33749d2fdbd2750f24e747551e70d68a83",
-      "bytes": 1410
+      "sha256": "b357709684c9e69cfedcaa84cadc0d33749d2fdbd2750f24e747551e70d68a83"
     },
     {
+      "bytes": 9675,
       "id": "wasm-bindgen-loader",
       "path": "./conduit_web.js",
-      "sha256": "78d2b17ad189762e2bc96c24994c76a1119238cf2f8d8b0bd050f828060f9e31",
-      "bytes": 9675
+      "sha256": "78d2b17ad189762e2bc96c24994c76a1119238cf2f8d8b0bd050f828060f9e31"
     },
     {
+      "bytes": 391420,
       "id": "conduit-web-wasm",
       "path": "./conduit_web_bg.wasm",
-      "sha256": "39800ac4085db63da99f1fbc793bbf7070acabe4e09e2707cd11e51f8f0874f3",
-      "bytes": 391420
+      "sha256": "39800ac4085db63da99f1fbc793bbf7070acabe4e09e2707cd11e51f8f0874f3"
     }
   ],
-  "plan_identity": "193f2f89dc2ad136e59362ff0b96aa86636c238895aeb3f257262b122db13206",
-  "observation_id": "conduit/tour-static-browser-observation-v1",
   "bounds": {
-    "maximum_pending": 1,
+    "maximum_evidence_events": 32,
     "maximum_message_bytes": 131072,
-    "response_timeout_ms": 5000,
-    "maximum_evidence_events": 32
-  }
+    "maximum_pending": 1,
+    "response_timeout_ms": 5000
+  },
+  "implementation_id": "conduit/tour-production-wasm-worker",
+  "observation_id": "conduit/tour-static-browser-observation-v1",
+  "placement": "dedicated-worker",
+  "plan_identity": "193f2f89dc2ad136e59362ff0b96aa86636c238895aeb3f257262b122db13206",
+  "schema": "conduit.tour-browser-plan/v1",
+  "semantic_contract": "conduit/tour-panel-run"
 }

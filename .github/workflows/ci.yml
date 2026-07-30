@@ -29,8 +29,9 @@ jobs:
       - run: bash browser/run-chromium-vectors.sh
       - run: cargo run -p conduct --bin generate-conduct-assets -- --check
       - run: cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
-      - run: python3 conformance/c1/verify_canonical_v1.py
-      - run: python3 tools/performance_gate.py
+      - run: cargo xtask verify-canonical
+      - run: cargo xtask performance-gate
+      - run: cargo xtask check-python-boundary
       - run: cargo run -p conduct -- --check examples/hello.panel
       - run: cargo run -p conduct -- --explain examples/hello.panel
       - run: test "$(cargo run -q -p conduct -- --run examples/hello.panel)" = "HELLO FROM CONDUIT."
@@ -57,7 +58,7 @@ jobs:
           targets: thumbv6m-none-eabi
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
       - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
-      - run: python3 tools/embedded_gate.py
+      - run: cargo xtask embedded-gate
 
   msrv:
     runs-on: ubuntu-latest
@@ -69,4 +70,4 @@ jobs:
       - run: cargo check --workspace --all-targets
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
       - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
-      - run: python3 tools/embedded_gate.py
+      - run: cargo xtask embedded-gate

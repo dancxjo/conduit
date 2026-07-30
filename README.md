@@ -262,7 +262,7 @@ cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 just cli-assets-check
-python3 conformance/c1/verify_canonical_v1.py
+cargo xtask verify-canonical
 cargo check -p conduit-core --no-default-features \
   --target thumbv6m-none-eabi
 ```
