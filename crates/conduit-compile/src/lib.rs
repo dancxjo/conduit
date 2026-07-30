@@ -1661,6 +1661,8 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "std/literal",
             "std/format-values/literal",
             "std/text/format",
+            "std/text/lines",
+            "std/text/join",
             "io/stdout",
             "text/uppercase",
             "supervision/supervisor",
@@ -1682,6 +1684,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "std/text",
             "std/format-values",
             "std/list/text",
+            "std/u64",
             "std/terminal",
             "supervision/decision",
         ]

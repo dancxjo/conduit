@@ -83,6 +83,8 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `std/literal` | portable-standard | `conduit.std` | 1 | tour/lessons/v1.json#welcome.hello-panel (published) | tour/lessons/v1.json#platform.cross-host-provider-conformance (published) |
 | `std/never` | portable-standard | `conduit.std` | 0 | tour/lessons/v1.json#library.std.never.standalone (required) | tour/lessons/v1.json#library.std.never.composition (required) |
 | `std/text/format` | portable-standard | `conduit.std` | 1 | tour/lessons/v1.json#library.typed-text-format (published) | tour/lessons/v1.json#library.typed-text-format (published) |
+| `std/text/join` | portable-standard | `conduit.std` | 1 | tour/lessons/v1.json#library.typed-text-format (published) | tour/lessons/v1.json#library.typed-text-format (published) |
+| `std/text/lines` | portable-standard | `conduit.std` | 1 | tour/lessons/v1.json#library.typed-text-format (published) | tour/lessons/v1.json#library.typed-text-format (published) |
 | `storage/blob/read` | optional-host-boundary | `conduit.host.storage` | 0 | tour/lessons/v1.json#library.storage.blob.read.standalone (required) | tour/lessons/v1.json#library.storage.blob.read.composition (required) |
 | `storage/blob/store` | optional-host-boundary | `conduit.host.storage` | 0 | tour/lessons/v1.json#library.storage.blob.store.standalone (required) | tour/lessons/v1.json#library.storage.blob.store.composition (required) |
 | `storage/blob/write` | optional-host-boundary | `conduit.host.storage` | 0 | tour/lessons/v1.json#library.storage.blob.write.standalone (required) | tour/lessons/v1.json#library.storage.blob.write.composition (required) |

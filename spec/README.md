@@ -234,6 +234,9 @@ containment program is tracked by
   checks every published node's classification, package owner, exact
   descriptor, provider separation, fixture, migration, and Tour ownership,
   and generates the shared documentation/Patchbay index.
+- [`060-text-lines-join-v1.md`](060-text-lines-join-v1.md) freezes bounded,
+  chunk-independent logical line splitting and finite ordered text joining,
+  including exact state, overflow, cancellation, and provider boundaries.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

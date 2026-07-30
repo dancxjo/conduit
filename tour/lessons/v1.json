@@ -720,12 +720,13 @@
         "welcome.change-message",
         "nodes.types-mean-promises"
       ],
-      "objective": "Combine a typed template and bounded values into text, then inspect the exact run as a graph and ordered evidence story.",
-      "prose": "The formatter waits for one std/text template and one std/format-values value. Its checked scenarios show standalone use, composition, an exact format error, and deterministic cancellation.",
+      "objective": "Format bounded text, split logical lines, and join a finite item stream while inspecting the exact graph and ordered evidence story.",
+      "prose": "The formatter emits one typed text value. Lines removes LF or CRLF delimiters without depending on implementation chunks; join retains a finite bounded item stream and emits one ordered result.",
       "vocabulary": [
         "template",
         "format values",
-        "placeholder",
+        "logical line",
+        "finite join",
         "ordered evidence",
         "terminal cause"
       ],
@@ -745,7 +746,14 @@
       "presentation": {
         "layout": "library-execution-story",
         "show_plan": true,
-        "timeline": "exact-evidence"
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contracts",
+          "configuration",
+          "bindings",
+          "cord_pressure",
+          "evidence"
+        ]
       },
       "validation": {
         "kind": "stdout",
@@ -770,10 +778,10 @@
       },
       "library": {
         "schema": "conduit.tour-library-lesson/v1",
-        "summary": "std/text/format is a finite two-input filter; std/format-values/literal authors its bounded typed value collection.",
-        "what": "It substitutes automatic, indexed, or named placeholders and emits one std/text value. Double braces emit literal braces.",
-        "when": "Use it when panel data must become bounded display, prompt, log, or request text without provider-specific interpolation.",
-        "wrong": "Malformed placeholders, missing or unused values, duplicate names, unsupported scalar kinds, invalid encodings, and size overflow terminate with exact format/* codes.",
+        "summary": "Bounded format, lines, and join nodes turn typed text into exact finite graph operations.",
+        "what": "Format substitutes typed values; lines emits delimiter-free LF/CRLF logical lines; join inserts one separator between a finite ordered item set.",
+        "when": "Use them when panel data must become bounded text, line-oriented values, or one finite combined value without provider-specific conventions.",
+        "wrong": "Malformed placeholders, invalid UTF-8, oversized lines or items, an open-ended join input, and retained or output overflow terminate with exact codes.",
         "contracts": [
           {
             "id": "std/text/format",
@@ -799,6 +807,31 @@
               "out:std/format-values"
             ],
             "descriptor_hash": "sha256:ba23a9d90589f88599912932d3ed10d8c1a5eebbe2c401e9e163454884ea5cc0"
+          },
+          {
+            "id": "std/text/lines",
+            "kind": "node",
+            "instance": "lines",
+            "inputs": ["in:std/text finite-batch"],
+            "outputs": ["line:std/text finite-stream"],
+            "configuration": [
+              "maximum_line_bytes:std/u64",
+              "maximum_retained_prefix_bytes:std/u64"
+            ]
+          },
+          {
+            "id": "std/text/join",
+            "kind": "node",
+            "instance": "joined",
+            "inputs": ["item:std/text finite-stream"],
+            "outputs": ["out:std/text finite-batch"],
+            "configuration": [
+              "separator:std/text",
+              "maximum_items:std/u64",
+              "maximum_item_bytes:std/u64",
+              "maximum_separator_bytes:std/u64",
+              "maximum_output_bytes:std/u64"
+            ]
           }
         ],
         "editable": [
@@ -815,9 +848,15 @@
         ],
         "docs": [
           "../../spec/054-text-format-v1.md",
+          "../../spec/060-text-lines-join-v1.md",
           "../../docs/cookbook-standard-library.md#1-text-formatting",
           "../../examples/formatted-greeting.panel",
-          "../../conformance/c4/text-format-v1.json"
+          "../../examples/text-lines.panel",
+          "../../examples/text-join.panel",
+          "../../examples/text-lines-join.panel",
+          "../../examples/format-lines.panel",
+          "../../conformance/c4/text-format-v1.json",
+          "../../conformance/c4/text-lines-join-v1.json"
         ],
         "scenarios": [
           {
@@ -862,6 +901,28 @@
             "validation": {
               "kind": "terminal",
               "value": "cancelled"
+            }
+          },
+          {
+            "id": "lines-join",
+            "title": "Logical lines joined in order",
+            "explanation": "Split LF and CRLF text into the same ordered logical values, including an empty line, then join the finite stream.",
+            "source": "panel 1\n\nnode chunks : std/literal {\n    value = \"alpha\\r\\nbeta\\n\\ngamma\"\n}\nnode lines : std/text/lines {\n    maximum_line_bytes = 1024\n    maximum_retained_prefix_bytes = 1024\n}\nnode joined : std/text/join {\n    separator = \" | \"\n    maximum_items = 8\n    maximum_item_bytes = 1024\n    maximum_separator_bytes = 64\n    maximum_output_bytes = 4096\n}\nnode output : io/stdout\n\ncord chunks.out -> lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\ncord joined.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {
+              "kind": "stdout",
+              "value": "alpha | beta |  | gamma"
+            }
+          },
+          {
+            "id": "format-lines",
+            "title": "Formatted text becomes logical lines",
+            "explanation": "Format typed values into CRLF/LF text, split it into lines, and visibly preserve the same ordering through a finite join.",
+            "source": "panel 1\n\nnode template : std/literal { value = \"{first}\\r\\n{second}\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"first\", value=\"alpha\"), record(name=\"second\", value=\"beta\")) }\nnode formatted : std/text/format\nnode lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode joined : std/text/join { separator = \" / \" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode output : io/stdout\n\ncord template.out -> formatted.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> formatted.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord formatted.out -> lines.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\ncord joined.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {
+              "kind": "stdout",
+              "value": "alpha / beta"
             }
           }
         ]

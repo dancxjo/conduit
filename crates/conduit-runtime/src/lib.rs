@@ -27,6 +27,7 @@ use conduit_core::{
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
+    SourceValue,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -807,6 +808,8 @@ pub enum HostedPrimitiveImplementation {
     Literal,
     FormatValuesLiteral,
     Format,
+    Lines,
+    Join,
     Stdin,
     Uppercase,
     Stdout,
@@ -1584,6 +1587,10 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
         let profile_hash =
             SemanticHash::from_bytes(Sha256::digest(b"conduit/hosted-primitive-profile/v1").into());
 
+        let lines_contract = conduit_std::standard_node_contract("std/text/lines")
+            .expect("lines is in the standard catalog");
+        let join_contract = conduit_std::standard_node_contract("std/text/join")
+            .expect("join is in the standard catalog");
         let specifications: &[(
             &'static NodeContract<'static>,
             &'static str,
@@ -1611,6 +1618,20 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::Format,
                 || Box::new(Format),
                 validate_format,
+            ),
+            (
+                lines_contract,
+                "text-lines",
+                HostedPrimitiveImplementation::Lines,
+                || Box::new(Lines),
+                validate_lines,
+            ),
+            (
+                join_contract,
+                "text-join",
+                HostedPrimitiveImplementation::Join,
+                || Box::new(Join),
+                validate_join,
             ),
             (
                 &STDIN_CONTRACT,
@@ -3767,6 +3788,8 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Literal => "std/literal",
                 HostedPrimitiveImplementation::FormatValuesLiteral => "std/format-values/literal",
                 HostedPrimitiveImplementation::Format => "std/text/format",
+                HostedPrimitiveImplementation::Lines => "std/text/lines",
+                HostedPrimitiveImplementation::Join => "std/text/join",
                 HostedPrimitiveImplementation::Stdin => "io/stdin",
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
@@ -3862,6 +3885,34 @@ impl ResolvedPanel<'_> {
                         emitted: false,
                     }
                 }
+                HostedPrimitiveImplementation::Lines => HostedNodeKind::Lines {
+                    state: conduit_std::LinesState::new(),
+                    input: None,
+                    cursor: 0,
+                    retained_bytes: 0,
+                    pending_output: None,
+                    terminal_seen: false,
+                    maximum_line_bytes: source_usize(&resolved.source, "maximum_line_bytes")?,
+                    maximum_retained_prefix_bytes: source_usize(
+                        &resolved.source,
+                        "maximum_retained_prefix_bytes",
+                    )?,
+                },
+                HostedPrimitiveImplementation::Join => HostedNodeKind::Join {
+                    inputs: Vec::with_capacity(source_usize(&resolved.source, "maximum_items")?),
+                    separator: resolved
+                        .source
+                        .config("separator")
+                        .unwrap_or_default()
+                        .as_bytes()
+                        .to_vec(),
+                    pending_output: None,
+                    terminal_seen: false,
+                    emitted: false,
+                    maximum_items: source_usize(&resolved.source, "maximum_items")?,
+                    maximum_item_bytes: source_usize(&resolved.source, "maximum_item_bytes")?,
+                    maximum_output_bytes: source_usize(&resolved.source, "maximum_output_bytes")?,
+                },
                 HostedPrimitiveImplementation::Stdin => HostedNodeKind::Stdin { emitted: false },
                 HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
@@ -4184,6 +4235,26 @@ enum HostedNodeKind {
         output: Option<RuntimeValue>,
         emitted: bool,
     },
+    Lines {
+        state: conduit_std::LinesState,
+        input: Option<RuntimeValue>,
+        cursor: usize,
+        retained_bytes: usize,
+        pending_output: Option<RuntimeValue>,
+        terminal_seen: bool,
+        maximum_line_bytes: usize,
+        maximum_retained_prefix_bytes: usize,
+    },
+    Join {
+        inputs: Vec<RuntimeValue>,
+        separator: Vec<u8>,
+        pending_output: Option<RuntimeValue>,
+        terminal_seen: bool,
+        emitted: bool,
+        maximum_items: usize,
+        maximum_item_bytes: usize,
+        maximum_output_bytes: usize,
+    },
     Stdin {
         emitted: bool,
     },
@@ -4356,6 +4427,318 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         SchedulerStep::Progress
                     }
                     Ok(_) | Err(_) => SchedulerStep::Pending,
+                }
+            }
+            HostedNodeKind::Lines {
+                state,
+                input,
+                cursor,
+                retained_bytes,
+                pending_output,
+                terminal_seen,
+                maximum_line_bytes,
+                maximum_retained_prefix_bytes,
+            } => {
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(output) = *pending_output {
+                    return match io.send(out_cord, output, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                let in_cord = match self.in_cords.first() {
+                    Some(&cord) => cord,
+                    None => return SchedulerStep::Completed,
+                };
+                if input.is_none() && !*terminal_seen {
+                    match io.receive(in_cord) {
+                        Ok(Some(value)) => {
+                            *input = Some(value);
+                            *cursor = 0;
+                            return SchedulerStep::Progress;
+                        }
+                        _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                            *terminal_seen = true;
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(in_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                while let Some(value) = *input {
+                    let next = {
+                        let store = self.store.borrow();
+                        store
+                            .get(value.handle)
+                            .and_then(|bytes| bytes.get(*cursor))
+                            .copied()
+                    };
+                    let Some(byte) = next else {
+                        *input = None;
+                        *cursor = 0;
+                        if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                            *terminal_seen = true;
+                            break;
+                        }
+                        let _ = io.wait_for_input(in_cord);
+                        return SchedulerStep::Pending;
+                    };
+                    *cursor += 1;
+                    if byte != b'\n' {
+                        *retained_bytes += 1;
+                        if *retained_bytes > *maximum_retained_prefix_bytes {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-TXT-001",
+                                "lines retained prefix exceeded the exact bound",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-TXT-001"),
+                            };
+                        }
+                    }
+                    match state.push_byte(byte) {
+                        Ok(true) => {
+                            if io.consume_work(4).is_err() {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/step-work-bound-exceeded"),
+                                };
+                            }
+                            let mut bytes = vec![0; conduit_std::LINES_MAX_LINE_BYTES];
+                            let length = match state.take_ready(&mut bytes) {
+                                Ok(Some(length)) if length <= *maximum_line_bytes => length,
+                                Ok(Some(_)) | Err(_) | Ok(None) => {
+                                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                        "CND-TXT-003",
+                                        "lines output exceeded the exact line bound",
+                                    ));
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-TXT-003"),
+                                    };
+                                }
+                            };
+                            bytes.truncate(length);
+                            *retained_bytes = 0;
+                            let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/value-store-bound-exceeded"),
+                                };
+                            };
+                            let output = RuntimeValue {
+                                handle,
+                                accounted_bytes: length as u32,
+                                envelope: RuntimeValueEnvelope::EMPTY,
+                            };
+                            return match io.send(out_cord, output, None) {
+                                Ok(SendStatus::Reserved) => SchedulerStep::Progress,
+                                Ok(_) | Err(_) => {
+                                    *pending_output = Some(output);
+                                    let _ = io.wait_for_output(out_cord);
+                                    SchedulerStep::Pending
+                                }
+                            };
+                        }
+                        Ok(false) => {}
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(text_line_runtime_error(error));
+                            return SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            };
+                        }
+                    }
+                }
+                if *terminal_seen {
+                    match state.finish() {
+                        Ok(true) => {
+                            if io.consume_work(4).is_err() {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/step-work-bound-exceeded"),
+                                };
+                            }
+                            let mut bytes = vec![0; conduit_std::LINES_MAX_LINE_BYTES];
+                            let length = match state.take_ready(&mut bytes) {
+                                Ok(Some(length)) if length <= *maximum_line_bytes => length,
+                                _ => {
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-TXT-003"),
+                                    };
+                                }
+                            };
+                            bytes.truncate(length);
+                            let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/value-store-bound-exceeded"),
+                                };
+                            };
+                            let output = RuntimeValue {
+                                handle,
+                                accounted_bytes: length as u32,
+                                envelope: RuntimeValueEnvelope::EMPTY,
+                            };
+                            *retained_bytes = 0;
+                            match io.send(out_cord, output, None) {
+                                Ok(SendStatus::Reserved) => SchedulerStep::Progress,
+                                Ok(_) | Err(_) => {
+                                    *pending_output = Some(output);
+                                    let _ = io.wait_for_output(out_cord);
+                                    SchedulerStep::Pending
+                                }
+                            }
+                        }
+                        Ok(false) => SchedulerStep::Completed,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(text_line_runtime_error(error));
+                            SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            }
+                        }
+                    }
+                } else {
+                    SchedulerStep::Progress
+                }
+            }
+            HostedNodeKind::Join {
+                inputs,
+                separator,
+                pending_output,
+                terminal_seen,
+                emitted,
+                maximum_items,
+                maximum_item_bytes,
+                maximum_output_bytes,
+            } => {
+                if *emitted {
+                    return SchedulerStep::Completed;
+                }
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(output) = *pending_output {
+                    return match io.send(out_cord, output, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *emitted = true;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                let in_cord = match self.in_cords.first() {
+                    Some(&cord) => cord,
+                    None => return SchedulerStep::Completed,
+                };
+                if !*terminal_seen {
+                    match io.receive(in_cord) {
+                        Ok(Some(value)) => {
+                            if inputs.len() >= *maximum_items {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-TXT-004",
+                                    "join input exceeded the exact retained-item bound",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-TXT-004"),
+                                };
+                            }
+                            if value.accounted_bytes as usize > *maximum_item_bytes {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-TXT-005",
+                                    "join item exceeded the exact item-byte bound",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-TXT-005"),
+                                };
+                            }
+                            inputs.push(value);
+                            return SchedulerStep::Progress;
+                        }
+                        _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                            *terminal_seen = true;
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(in_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                let joined = {
+                    let store = self.store.borrow();
+                    let mut items = Vec::with_capacity(inputs.len());
+                    for input in inputs.iter() {
+                        let Some(bytes) = store.get(input.handle) else {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-missing"),
+                            };
+                        };
+                        let Ok(text) = std::str::from_utf8(bytes) else {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-TXT-002",
+                                "join input was not valid UTF-8",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-TXT-002"),
+                            };
+                        };
+                        items.push(text);
+                    }
+                    let Ok(separator) = std::str::from_utf8(separator) else {
+                        return SchedulerStep::Failed {
+                            code: Id("CND-TXT-002"),
+                        };
+                    };
+                    let mut output = vec![0; *maximum_output_bytes];
+                    match conduit_std::join_text_into(&items, separator, &mut output) {
+                        Ok(length) => {
+                            output.truncate(length);
+                            Ok(output)
+                        }
+                        Err(error) => Err(error),
+                    }
+                };
+                let joined = match joined {
+                    Ok(joined) => joined,
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(text_line_runtime_error(error));
+                        return SchedulerStep::Failed {
+                            code: Id(error.code()),
+                        };
+                    }
+                };
+                if io.consume_work(4).is_err() {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/step-work-bound-exceeded"),
+                    };
+                }
+                let accounted_bytes = joined.len() as u32;
+                let Some(handle) = self.store.borrow_mut().store(joined) else {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/value-store-bound-exceeded"),
+                    };
+                };
+                let output = RuntimeValue {
+                    handle,
+                    accounted_bytes,
+                    envelope: RuntimeValueEnvelope::EMPTY,
+                };
+                match io.send(out_cord, output, None) {
+                    Ok(SendStatus::Reserved) => {
+                        *emitted = true;
+                        SchedulerStep::Progress
+                    }
+                    Ok(_) | Err(_) => {
+                        *pending_output = Some(output);
+                        let _ = io.wait_for_output(out_cord);
+                        SchedulerStep::Pending
+                    }
                 }
             }
             HostedNodeKind::Stdin { emitted } => {
@@ -4916,6 +5299,112 @@ fn validate_format(node: &Node) -> Result<(), ResolutionError> {
     validate_empty_config(node)
 }
 
+fn source_usize(node: &Node, key: &str) -> Result<usize, RuntimeError> {
+    let value = match node.config_value(key) {
+        Some(SourceValue::Integer(value)) => *value,
+        _ => {
+            return Err(RuntimeError::new(
+                "CND-RUN-004",
+                format!("node `{}` has no exact integer `{key}`", node.id),
+            ));
+        }
+    };
+    usize::try_from(value).map_err(|_| {
+        RuntimeError::new(
+            "CND-RUN-004",
+            format!("node `{}` has out-of-range `{key}`", node.id),
+        )
+    })
+}
+
+fn validate_bounded_integer(
+    node: &Node,
+    key: &str,
+    minimum: usize,
+    maximum: usize,
+) -> Result<(), ResolutionError> {
+    let value = source_usize(node, key)
+        .map_err(|error| ResolutionError::new("CND-SRC-002", error.message))?;
+    if !(minimum..=maximum).contains(&value) {
+        return Err(ResolutionError::new(
+            "CND-SRC-002",
+            format!("node `{}` has out-of-range `{key}`", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_lines(node: &Node) -> Result<(), ResolutionError> {
+    for entry in &node.config {
+        if !["maximum_line_bytes", "maximum_retained_prefix_bytes"].contains(&entry.key.as_str()) {
+            return Err(ResolutionError::new(
+                "CND-SRC-002",
+                format!("lines node `{}` has unknown field `{}`", node.id, entry.key),
+            ));
+        }
+    }
+    validate_bounded_integer(
+        node,
+        "maximum_line_bytes",
+        1,
+        conduit_std::LINES_MAX_LINE_BYTES,
+    )?;
+    validate_bounded_integer(
+        node,
+        "maximum_retained_prefix_bytes",
+        1,
+        conduit_std::LINES_MAX_RETAINED_PREFIX_BYTES,
+    )
+}
+
+fn validate_join(node: &Node) -> Result<(), ResolutionError> {
+    for entry in &node.config {
+        if ![
+            "separator",
+            "maximum_items",
+            "maximum_item_bytes",
+            "maximum_separator_bytes",
+            "maximum_output_bytes",
+        ]
+        .contains(&entry.key.as_str())
+        {
+            return Err(ResolutionError::new(
+                "CND-SRC-002",
+                format!("join node `{}` has unknown field `{}`", node.id, entry.key),
+            ));
+        }
+    }
+    let separator = node.config("separator").ok_or_else(|| {
+        ResolutionError::new(
+            "CND-SRC-002",
+            format!("join node `{}` requires text `separator`", node.id),
+        )
+    })?;
+    let maximum_separator_bytes = source_usize(node, "maximum_separator_bytes")
+        .map_err(|error| ResolutionError::new("CND-SRC-002", error.message))?;
+    if separator.len() > maximum_separator_bytes
+        || maximum_separator_bytes > conduit_std::JOIN_MAX_SEPARATOR_BYTES
+    {
+        return Err(ResolutionError::new(
+            "CND-SRC-002",
+            format!("join node `{}` has an oversized separator", node.id),
+        ));
+    }
+    validate_bounded_integer(node, "maximum_items", 1, conduit_std::JOIN_MAX_ITEMS)?;
+    validate_bounded_integer(
+        node,
+        "maximum_item_bytes",
+        1,
+        conduit_std::JOIN_MAX_ITEM_BYTES,
+    )?;
+    validate_bounded_integer(
+        node,
+        "maximum_output_bytes",
+        1,
+        conduit_std::JOIN_MAX_OUTPUT_BYTES,
+    )
+}
+
 fn validate_format_values_literal(node: &Node) -> Result<(), ResolutionError> {
     if let Some(entry) = node.config.iter().find(|entry| entry.key != "values") {
         return Err(ResolutionError::new(
@@ -5233,6 +5722,84 @@ impl Handler for Format {
         Ok(vec![Value::text(
             format_input_bytes(&template.bytes, &values.bytes).map_err(format_runtime_error)?,
         )])
+    }
+}
+
+fn text_line_runtime_error(error: conduit_std::LineError) -> RuntimeError {
+    RuntimeError::new(error.code(), error.code())
+}
+
+struct Lines;
+
+impl Handler for Lines {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let mut state = conduit_std::LinesState::new();
+        let mut values = Vec::new();
+        for input in inputs {
+            if input.value_type != TEXT_TYPE {
+                return Err(RuntimeError::new(
+                    "CND-TXT-002",
+                    "lines input is not exact text",
+                ));
+            }
+            for byte in &input.bytes {
+                if state.push_byte(*byte).map_err(text_line_runtime_error)? {
+                    let mut output = [0; conduit_std::LINES_MAX_LINE_BYTES];
+                    let length = state
+                        .take_ready(&mut output)
+                        .map_err(text_line_runtime_error)?
+                        .expect("ready line exists");
+                    values.push(Value::text(output[..length].to_vec()));
+                }
+            }
+        }
+        if state.finish().map_err(text_line_runtime_error)? {
+            let mut output = [0; conduit_std::LINES_MAX_LINE_BYTES];
+            let length = state
+                .take_ready(&mut output)
+                .map_err(text_line_runtime_error)?
+                .expect("final line exists");
+            values.push(Value::text(output[..length].to_vec()));
+        }
+        Ok(values)
+    }
+}
+
+struct Join;
+
+impl Handler for Join {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let separator = node
+            .config("separator")
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "join separator disappeared"))?;
+        let mut text = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            if input.value_type != TEXT_TYPE {
+                return Err(RuntimeError::new(
+                    "CND-TXT-002",
+                    "join input is not exact text",
+                ));
+            }
+            text.push(
+                std::str::from_utf8(&input.bytes)
+                    .map_err(|_| RuntimeError::new("CND-TXT-002", "join input is invalid UTF-8"))?,
+            );
+        }
+        let mut output = vec![0; conduit_std::JOIN_MAX_OUTPUT_BYTES];
+        let length = conduit_std::join_text_into(&text, separator, &mut output)
+            .map_err(text_line_runtime_error)?;
+        output.truncate(length);
+        Ok(vec![Value::text(output)])
     }
 }
 

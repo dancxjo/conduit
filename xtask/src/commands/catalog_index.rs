@@ -230,7 +230,9 @@ fn ownership(id: &str) -> Result<Ownership, String> {
 }
 
 fn fixture(id: &str, classification: &str) -> &'static str {
-    if id == "std/text/format" || id == "std/format-values/literal" {
+    if id == "std/text/lines" || id == "std/text/join" {
+        "conformance/c4/text-lines-join-v1.json"
+    } else if id == "std/text/format" || id == "std/format-values/literal" {
         "conformance/c4/text-format-v1.json"
     } else if id == "supervision/supervisor" || id.starts_with("supervision/") {
         "conformance/c4/supervision-v1.json"
@@ -247,7 +249,10 @@ fn lesson(id: &str, composition: bool) -> Lesson {
     let published = match (id, composition) {
         ("std/literal" | "io/stdout", false) => Some("welcome.hello-panel"),
         ("std/literal" | "io/stdout", true) => Some("platform.cross-host-provider-conformance"),
-        ("std/text/format" | "std/format-values/literal", _) => Some("library.typed-text-format"),
+        (
+            "std/text/format" | "std/format-values/literal" | "std/text/lines" | "std/text/join",
+            _,
+        ) => Some("library.typed-text-format"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };

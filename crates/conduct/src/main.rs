@@ -632,7 +632,7 @@ fn execute_run(
                     max_decisions: 256,
                     max_tick: 512,
                     max_consecutive_yields: 8,
-                    max_events: 64,
+                    max_events: 128,
                 },
                 reservation: SchedulerReservation {
                     available_runtime_memory_bytes: plan.budget.memory_bytes,

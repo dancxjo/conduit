@@ -23,7 +23,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog-v1.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog/v1");
-    assert_eq!(projection.entries.len(), 109);
+    assert_eq!(projection.entries.len(), 111);
     let literal = projection
         .entries
         .iter()

@@ -433,3 +433,102 @@ fn run_text_format_boundary_case(case: &serde_json::Value) {
         );
     }
 }
+
+#[test]
+fn text_lines_join_fixture_freezes_semantics_and_boundaries() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/c4/text-lines-join-v1.json"
+    ))
+    .unwrap();
+    let ids = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "lf-crlf-and-empty-lines",
+        "delimiter-split-across-chunks",
+        "chunk-boundary-independence",
+        "empty-input",
+        "final-unterminated-line",
+        "invalid-utf8",
+        "maximum-line",
+        "oversized-line",
+        "join-zero",
+        "join-one",
+        "join-many-and-separator-boundaries",
+        "join-maximum-output",
+        "join-output-overflow",
+        "open-ended-input-rejected",
+        "cancel-retained-line",
+        "cancel-retained-items",
+        "unsupported-provider",
+        "hosted-deterministic-equivalence",
+    ] {
+        assert!(ids.contains(required), "fixture covers {required}");
+    }
+
+    fn split(chunks: &[&[u8]]) -> Result<Vec<String>, conduit_std::LineError> {
+        let mut state = conduit_std::LinesState::new();
+        let mut result = Vec::new();
+        let mut output = [0; conduit_std::LINES_MAX_LINE_BYTES];
+        for chunk in chunks {
+            for byte in *chunk {
+                if state.push_byte(*byte)? {
+                    let length = state.take_ready(&mut output)?.unwrap();
+                    result.push(core::str::from_utf8(&output[..length]).unwrap().to_owned());
+                }
+            }
+        }
+        if state.finish()? {
+            let length = state.take_ready(&mut output)?.unwrap();
+            result.push(core::str::from_utf8(&output[..length]).unwrap().to_owned());
+        }
+        Ok(result)
+    }
+
+    let expected = vec!["alpha".to_owned(), "".to_owned(), "beta".to_owned()];
+    assert_eq!(split(&[b"alpha\r\n\nbeta\n"]).unwrap(), expected);
+    assert_eq!(
+        split(&[b"alpha\r", b"\n", b"\nbe", b"ta\n"]).unwrap(),
+        expected
+    );
+    assert_eq!(split(&[]).unwrap(), Vec::<String>::new());
+    assert_eq!(split(&[b"tail"]).unwrap(), vec!["tail".to_owned()]);
+    assert_eq!(
+        split(&[&[0xff, b'\n']]),
+        Err(conduit_std::LineError::InvalidUtf8)
+    );
+
+    let mut output = [0; conduit_std::JOIN_MAX_OUTPUT_BYTES];
+    assert_eq!(conduit_std::join_text_into(&[], ",", &mut output), Ok(0));
+    assert_eq!(
+        conduit_std::join_text_into(&["one"], ",", &mut output),
+        Ok(3)
+    );
+    let length = conduit_std::join_text_into(&["one", "two", "three"], " / ", &mut output).unwrap();
+    assert_eq!(&output[..length], b"one / two / three");
+
+    let lines = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "std/text/lines")
+        .unwrap();
+    let join = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "std/text/join")
+        .unwrap();
+    assert_eq!(lines.contract.inputs[0].delivery.as_str(), "finite-batch");
+    assert_eq!(lines.contract.outputs[0].delivery.as_str(), "stream");
+    assert_eq!(join.contract.inputs[0].terminal.as_str(), "finite");
+    assert_eq!(
+        join.limits.retained_values,
+        conduit_std::JOIN_MAX_ITEMS as u32
+    );
+    assert_eq!(
+        join.limits.retained_bytes,
+        (conduit_std::JOIN_MAX_ITEMS * conduit_std::JOIN_MAX_ITEM_BYTES) as u64
+    );
+    assert!(!lines.required_support.constrained);
+    assert!(!join.required_support.constrained);
+}

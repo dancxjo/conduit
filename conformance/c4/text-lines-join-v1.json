@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.text-lines-join-fixture/v1",
+  "contracts": ["std/text/lines", "std/text/join"],
+  "cases": [
+    {"id":"lf-crlf-and-empty-lines","class":"semantic","chunks":["alpha\r\n","\nbe","ta\n"],"expected_lines":["alpha","","beta"]},
+    {"id":"delimiter-split-across-chunks","class":"semantic","chunks":["alpha\r","\nbeta"],"expected_lines":["alpha","beta"]},
+    {"id":"chunk-boundary-independence","class":"semantic","equivalent_chunks":[["caf\u00e9\nomega"],["caf","\u00e9\n","omega"]],"expected_lines":["caf\u00e9","omega"]},
+    {"id":"empty-input","class":"semantic","chunks":[],"expected_lines":[]},
+    {"id":"final-unterminated-line","class":"semantic","chunks":["tail"],"expected_lines":["tail"]},
+    {"id":"invalid-utf8","class":"generated-boundary","input_hex":"ff0a","expected_error":"CND-TXT-002"},
+    {"id":"maximum-line","class":"generated-boundary","line_bytes":1024,"expected_lines":1},
+    {"id":"oversized-line","class":"generated-boundary","line_bytes":1025,"expected_error":"CND-TXT-001"},
+    {"id":"join-zero","class":"semantic","items":[],"separator":",","expected_output":""},
+    {"id":"join-one","class":"semantic","items":["one"],"separator":",","expected_output":"one"},
+    {"id":"join-many-and-separator-boundaries","class":"semantic","items":["one","two","three"],"separator":" / ","expected_output":"one / two / three"},
+    {"id":"join-maximum-output","class":"generated-boundary","item_bytes":[1024,1024,1024,1021],"separator":"|","expected_output_bytes":4096},
+    {"id":"join-output-overflow","class":"generated-boundary","item_bytes":[1024,1024,1024,1022],"separator":"|","expected_error":"CND-TXT-007"},
+    {"id":"open-ended-input-rejected","class":"resolution","expected":"CND-CMP-003","proof":"finite input TerminalContract compatibility"},
+    {"id":"cancel-retained-line","class":"exact-execution","expected":"cancelled","proof":"LinesState cancellation plus production executor evidence"},
+    {"id":"cancel-retained-items","class":"exact-execution","expected":"cancelled","proof":"production executor abort clears retained handles"},
+    {"id":"unsupported-provider","class":"availability","expected":"unsupported","proof":"contract-only Registry remains distinct from hosted provider inventory"},
+    {"id":"hosted-deterministic-equivalence","class":"exact-execution","expected":"normalized-equivalent","proof":"production executor and allocator-free reference model"}
+  ]
+}

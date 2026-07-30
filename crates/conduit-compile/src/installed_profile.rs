@@ -66,8 +66,10 @@ impl InstalledProfile {
                 .1
                 .push(node.instance.clone());
         }
-        let requires_format = required.contains_key("std/text/format")
-            || required.contains_key("std/format-values/literal");
+        let requires_large_evidence = required.contains_key("std/text/format")
+            || required.contains_key("std/format-values/literal")
+            || required.contains_key("std/text/lines")
+            || required.contains_key("std/text/join");
         let providers = registry.installed_providers();
         let mut implementations = BTreeMap::new();
         let mut candidates = Vec::with_capacity(required.len());
@@ -152,8 +154,8 @@ impl InstalledProfile {
                 timers: 16,
                 transports: 16,
                 checkpoints: 16,
-                evidence_bytes: if requires_format {
-                    64 * 1024
+                evidence_bytes: if requires_large_evidence {
+                    256 * 1024
                 } else {
                     16 * 1024
                 },
@@ -279,6 +281,10 @@ fn candidate(
         installed.implementation,
         HostedPrimitiveImplementation::Format | HostedPrimitiveImplementation::FormatValuesLiteral
     );
+    let buffered_text_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Lines | HostedPrimitiveImplementation::Join
+    );
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -318,6 +324,8 @@ fn candidate(
             host_service_execution_profile()
         } else if format_profile {
             format_execution_profile()
+        } else if buffered_text_profile {
+            buffered_text_execution_profile()
         } else {
             execution_profile()
         },
@@ -373,13 +381,17 @@ fn candidate(
         allocation: BudgetDocument {
             memory_bytes: if host_service_instance.is_some() {
                 64 * 1024
-            } else if format_profile {
+            } else if format_profile || buffered_text_profile {
                 128 * 1024
             } else {
                 2048
             },
             cpu_units: 1,
-            evidence_bytes: if format_profile { 8 * 1024 } else { 256 },
+            evidence_bytes: if format_profile || buffered_text_profile {
+                8 * 1024
+            } else {
+                256
+            },
             transports: u16::from(host_service_instance.is_some()),
             timers: u16::from(host_service_instance.is_some()),
             ..BudgetDocument::default()
@@ -571,6 +583,55 @@ fn format_execution_profile() -> ExecutionProfileDocument {
                 bytes: (128 * 1024
                     - conduit_std::FORMAT_MAX_RETAINED_BYTES
                     - conduit_std::FORMAT_MAX_OUTPUT_BYTES) as u64,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn buffered_text_execution_profile() -> ExecutionProfileDocument {
+    const RETAINED_BYTES: u64 =
+        (conduit_std::JOIN_MAX_ITEMS * conduit_std::JOIN_MAX_ITEM_BYTES) as u64;
+    const SCRATCH_BYTES: u64 = conduit_std::JOIN_MAX_OUTPUT_BYTES as u64;
+    const MEMORY_BYTES: u64 = 128 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-buffered-text-profile-v1".to_owned(),
+        schema_version: 1,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: conduit_std::JOIN_MAX_ITEMS as u32,
+            max_input_leases: 1,
+            max_input_bytes: RETAINED_BYTES,
+            max_output_reservations: 1,
+            max_output_bytes: conduit_std::JOIN_MAX_OUTPUT_BYTES as u64,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_retained_values: conduit_std::JOIN_MAX_ITEMS as u16,
+            max_retained_bytes: RETAINED_BYTES,
+            max_scratch_bytes: conduit_std::JOIN_MAX_OUTPUT_BYTES as u32,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "retained".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: RETAINED_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "step-scratch".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: SCRATCH_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - RETAINED_BYTES - SCRATCH_BYTES,
             },
         ],
         checkpoint: None,
