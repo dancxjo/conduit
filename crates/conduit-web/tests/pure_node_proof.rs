@@ -41,6 +41,7 @@ fn checked_pure_node_plan_and_browser_run_are_exact_and_bounded() {
     assert_eq!(actual_plan, golden, "exact plan golden drifted");
 
     let result: serde_json::Value = serde_json::from_str(&run_panel(SOURCE.to_owned())).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
     let mut normalized_evidence = result["evidence"].clone();
     for event in normalized_evidence.as_array_mut().unwrap() {
         event["run_id"] = serde_json::Value::String("<normalized-run>".to_owned());
@@ -60,7 +61,6 @@ fn checked_pure_node_plan_and_browser_run_are_exact_and_bounded() {
         evidence_identity, profile["normalized_evidence_sha256"],
         "normalized browser evidence identity drifted"
     );
-    assert_eq!(result["ok"], true);
     assert_eq!(result["terminal"], "succeeded");
     assert_eq!(result["profile"], "exact-plan-deterministic-executor");
     assert_eq!(

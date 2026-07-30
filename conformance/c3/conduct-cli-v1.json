@@ -17,13 +17,13 @@
       "id": "check-file",
       "runner": "process",
       "args": ["--check", "$EXAMPLE"],
-      "expected": {"exit": 0, "stdout": "ok: panel v1; 0 definitions; 3 root nodes; 2 root cords\n", "stderr": "empty"}
+      "expected": {"exit": 0, "stdout": "ok: panel v3; 0 definitions; 3 root nodes; 2 root cords\n", "stderr": "empty"}
     },
     {
       "id": "explain-file",
       "runner": "process",
       "args": ["--explain", "$EXAMPLE"],
-      "expected": {"exit": 0, "stdout_starts": "logical panel v1:", "stderr": "empty"}
+      "expected": {"exit": 0, "stdout_starts": "logical panel v3:", "stderr": "empty"}
     },
     {
       "id": "default-run-stdin",
@@ -67,28 +67,28 @@
       "id": "canonical-diagnostic-flags",
       "runner": "process",
       "args": ["--check", "--diagnostic-format=json", "--color=never", "--verbose-diagnostics", "-"],
-      "stdin": "panel 1\ncord a.out b.in\n",
+      "stdin": "panel 3\ncord a.value b.text\n",
       "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-SRC-001", "ansi": false}
     },
     {
       "id": "concise-human-diagnostic",
       "runner": "process",
       "args": ["--check", "--color=never", "-"],
-      "stdin": "panel 1\ncord a.out b.in\n",
+      "stdin": "panel 3\ncord a.value b.text\n",
       "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "error[CND-SRC-001]", "ansi": false}
     },
     {
       "id": "verbose-human-diagnostic",
       "runner": "process",
       "args": ["--check", "--color=never", "--verbose-diagnostics", "-"],
-      "stdin": "panel 1\ncord a.out b.in\n",
-      "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "bytes 19..20", "ansi": false}
+      "stdin": "panel 3\ncord a.value b.text\n",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "bytes 21..22", "ansi": false}
     },
     {
       "id": "diagnostic-json-clean-stdout",
       "runner": "process",
       "args": ["--check", "--diagnostic-format=json", "-"],
-      "stdin": "panel 1\ncord a.out b.in\n",
+      "stdin": "panel 3\ncord a.value b.text\n",
       "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-SRC-001"}
     },
     {

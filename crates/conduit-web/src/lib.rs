@@ -1006,7 +1006,7 @@ fn run_panel_exact_inner(
                 max_decisions: 256,
                 max_tick: 512,
                 max_consecutive_yields: 8,
-                max_events: if plan.nodes.len() > 5 { 256 } else { 128 },
+                max_events: if plan.nodes.len() > 4 { 256 } else { 128 },
             },
             reservation: SchedulerReservation {
                 available_runtime_memory_bytes: plan.budget.memory_bytes,
@@ -1067,7 +1067,7 @@ mod tests {
         patchbay_open_session, patchbay_replace_source, patchbay_session_view,
     };
 
-    const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
+    const SOURCE: &str = "panel 3\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
 
     #[test]
     fn parser_metadata_and_patchbay_ranges_are_authoritative() {
@@ -1098,7 +1098,7 @@ mod tests {
         let end_byte = range["end_byte"].as_u64().expect("end byte") as usize;
         assert_eq!(
             &source[start_byte..end_byte],
-            "cord greeting.out -> output.in"
+            "cord greeting.value -> output.text"
         );
         assert_eq!(range["source_revision"], 0);
         assert_eq!(range["provenance"], "authored");
@@ -1136,17 +1136,17 @@ mod tests {
         assert_ne!(changed["semantic_hash"], moved["semantic_hash"]);
 
         let explained: Value = serde_json::from_str(&explain_panel(
-            "panel 1\n\
+            "panel 3\n\
              composite example/upper {\n\
                node worker : text/uppercase\n\
-               export input in = worker.in\n\
-               export output out = worker.out\n\
+               export > text = worker.text\n\
+               export uppercased > = worker.text\n\
              }\n\
              node source : std/literal { value = \"hello\" }\n\
              node transform : example/upper\n\
-             node sink : io/stdout\n\
-             cord source.out -> transform.in\n\
-             cord transform.out -> sink.in\n"
+             node sink : display/text\n\
+             cord source.value -> transform.text\n\
+             cord transform.uppercased -> sink.text\n"
                 .to_owned(),
         ))
         .expect("explanation JSON");
@@ -1282,17 +1282,17 @@ mod tests {
 
     #[test]
     fn candidate_connection_rejects_hidden_composite_members() {
-        let composite = "panel 1\n\
+        let composite = "panel 3\n\
 composite example/box {\n\
   node worker : text/uppercase\n\
-  export input in = worker.in\n\
-  export output out = worker.out\n\
+  export > text = worker.text\n\
+  export uppercased > = worker.text\n\
 }\n\
 node source : std/literal { value = \"hello\" }\n\
 node box : example/box\n\
-node sink : io/stdout\n\
-cord source.out -> box.in\n\
-cord box.out -> sink.in\n";
+node sink : display/text\n\
+cord source.value -> box.text\n\
+cord box.uppercased -> sink.text\n";
         let opened: Value = serde_json::from_str(&patchbay_open_session(
             "test/composite".to_owned(),
             composite.to_owned(),
@@ -1332,9 +1332,9 @@ cord box.out -> sink.in\n";
             "operations": [{
                 "Connect": {
                     "from_node": "source",
-                    "from_port": "out",
+                    "from_port": "value",
                     "to_node": "box.worker",
-                    "to_port": "in",
+                    "to_port": "text",
                     "bounds": {
                         "capacity_items": 1,
                         "max_value_bytes": 64,
@@ -1357,12 +1357,12 @@ cord box.out -> sink.in\n";
 
     #[test]
     fn patchbay_projection_reports_deterministic_truncation() {
-        let mut source = String::from("panel 1\n");
+        let mut source = String::from("panel 3\n");
         for index in 0..513 {
             source.push_str(&format!(
                 "node literal_{index} : std/literal {{ value = \"{index}\" }}\n\
-                 node output_{index} : io/stdout\n\
-                 cord literal_{index}.out -> output_{index}.in\n"
+                 node output_{index} : display/text\n\
+                 cord literal_{index}.value -> output_{index}.text\n"
             ));
         }
         let opened: Value =

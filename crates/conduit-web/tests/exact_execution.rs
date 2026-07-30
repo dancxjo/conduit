@@ -2,11 +2,11 @@ mod support;
 
 use conduit_web::{run_panel, run_panel_exact};
 
-const SOURCE: &str = "panel 1\n\
+const SOURCE: &str = "panel 3\n\
 node greeting : std/literal { value = \"Hello from Conduit.\\n\" }\n\
 node shout : text/uppercase\n\
-node output : io/stdout\n\
-cord greeting.out -> shout.in {\n\
+node output : display/text\n\
+cord greeting.value -> shout.text {\n\
   capacity = 2\n\
   max_value_bytes = 64\n\
   max_queued_bytes = 128\n\
@@ -14,7 +14,7 @@ cord greeting.out -> shout.in {\n\
   high_watermark = 2\n\
   pressure = block\n\
 }\n\
-cord shout.out -> output.in {\n\
+cord shout.text -> output.text {\n\
   capacity = 2\n\
   max_value_bytes = 64\n\
   max_queued_bytes = 128\n\
@@ -32,7 +32,8 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
     assert_eq!(result["profile"], "exact-plan-deterministic-executor");
     assert_eq!(result["completed_nodes"], 3);
     assert_eq!(result["cords_conducted"], 2);
-    assert_eq!(result["stdout"], "HELLO FROM CONDUIT.\n");
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["display"], "HELLO FROM CONDUIT.\n");
     assert!(result["scheduler_event_count"].as_u64().unwrap() > 0);
     assert!(result["high_water"]["queue_items"].as_u64().unwrap() <= 4);
     assert!(
@@ -84,7 +85,7 @@ fn patchbay_projects_final_formatter_ports_from_authoritative_contracts() {
         serde_json::from_str(&run_panel(FORMAT_SOURCE.to_owned())).unwrap();
     assert_eq!(result["ok"], true);
     assert_eq!(
-        result["stdout"],
+        result["display"],
         "Hello, operator. Payload: {status = ready}\n"
     );
     assert!(result["evidence_bytes"].as_u64().unwrap() <= 64 * 1024);
@@ -103,7 +104,7 @@ fn patchbay_projects_final_formatter_ports_from_authoritative_contracts() {
         assert_eq!(inputs[1]["type_id"], "std/format-values");
         let outputs = formatter["outputs"].as_array().unwrap();
         assert_eq!(outputs.len(), 1);
-        assert_eq!(outputs[0]["id"], "out");
+        assert_eq!(outputs[0]["id"], "text");
         assert_eq!(outputs[0]["type_id"], "std/text");
     }
 }

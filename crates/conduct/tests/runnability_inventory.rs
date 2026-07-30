@@ -285,8 +285,8 @@ fn every_checked_panel_has_one_verified_runnability_state() {
         assert!(ran.status.success(), "{id} exported source runs");
         assert_eq!(
             String::from_utf8(ran.stdout).expect("lesson stdout is UTF-8"),
-            lesson["expected_stdout"].as_str().expect("runnable stdout"),
-            "{id} exported source has the same canonical result"
+            lesson["expected_display"].as_str().expect("runnable display"),
+            "{id} exported source projects the same display result"
         );
         assert_eq!(
             String::from_utf8(ran.stderr).expect("lesson stderr is UTF-8"),

@@ -13,13 +13,13 @@
         "cord",
         "capacity"
       ],
-      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Hello from the Tour.\\n\"\n}\nnode output : io/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Hello from the Tour.\\n\"\n}\nnode output : display/text\n\ncord greeting.value -> output.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "commands": [
         "conduct --check lesson.panel",
         "conduct --run lesson.panel"
       ],
-      "expected_stdout": "Hello from the Tour.\n",
+      "expected_display": "Hello from the Tour.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 16,
@@ -31,14 +31,14 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "Hello from the Tour.\n"
       },
       "hints": [
-        "The literal node produces text on its out port.",
-        "The stdout node consumes text on its in port."
+        "The literal node produces text on its value port.",
+        "The display node consumes text on its text port."
       ],
-      "solution": "Connect greeting.out to output.in with the declared bounded cord.",
+      "solution": "Connect greeting.value to output.text with the declared bounded cord.",
       "accessibility": {
         "non_audio": "The visible text output is the complete result.",
         "reduced_motion": true
@@ -62,7 +62,7 @@
         "required input",
         "diagnostic"
       ],
-      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Connect me.\\n\"\n}\nnode output : io/stdout\n",
+      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Connect me.\\n\"\n}\nnode output : display/text\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-PRT-002",
       "profile": "browser-dedicated-worker",
@@ -83,7 +83,7 @@
         "The output node has one required input.",
         "A node declaration does not create a connection."
       ],
-      "solution": "Restore the bounded cord from greeting.out to output.in.",
+      "solution": "Restore the bounded cord from greeting.value to output.text.",
       "accessibility": {
         "non_audio": "The structured diagnostic is available as text.",
         "reduced_motion": true
@@ -110,9 +110,9 @@
         "semantic identity",
         "presentation"
       ],
-      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Change me.\\n\"\n}\nnode output : io/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Change me.\\n\"\n}\nnode output : display/text\n\ncord greeting.value -> output.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "Change me.\n",
+      "expected_display": "Change me.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 16,
@@ -124,7 +124,7 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "Change me.\n"
       },
       "hints": [
@@ -157,13 +157,13 @@
         "check",
         "run"
       ],
-      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"No hidden interpreter.\\n\"\n}\nnode output : io/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"No hidden interpreter.\\n\"\n}\nnode output : display/text\n\ncord greeting.value -> output.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "commands": [
         "conduct --check lesson.panel",
         "conduct --run lesson.panel"
       ],
-      "expected_stdout": "No hidden interpreter.\n",
+      "expected_display": "No hidden interpreter.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 16,
@@ -175,7 +175,7 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "No hidden interpreter.\n"
       },
       "hints": [
@@ -207,9 +207,9 @@
         "input boundary",
         "cardinality"
       ],
-      "source": "panel 3\n\ncomposite example/two-input-display {\n    node left_sink : io/stdout\n    node right_sink : io/stdout\n    export > left = left_sink.in\n    export > right = right_sink.in\n}\n\nnode left : std/literal {\n    value = \"Left.\\n\"\n}\nnode right : std/literal {\n    value = \"Right.\\n\"\n}\nnode display : example/two-input-display\n\ncord left.out -> display.left {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord right.out -> display.right {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite example/two-input-display {\n    node left_sink : display/text\n    node right_sink : display/text\n    export > left = left_sink.text\n    export > right = right_sink.text\n}\n\nnode left : std/literal {\n    value = \"Left.\\n\"\n}\nnode right : std/literal {\n    value = \"Right.\\n\"\n}\nnode display : example/two-input-display\n\ncord left.value -> display.left {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord right.value -> display.right {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "Left.\nRight.\n",
+      "expected_display": "Left.\nRight.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 24,
@@ -221,24 +221,22 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "pedagogical-stdout",
+        "kind": "display",
         "value": "Left.\nRight.\n"
       },
       "hints": [
         "The exported names are display.left and display.right.",
         "Each source needs its own cord."
       ],
-      "solution": "Connect left.out to display.left and right.out to display.right with separate bounded cords.",
+      "solution": "Connect left.value to display.left and right.value to display.right with separate bounded cords.",
       "accessibility": {
         "non_audio": "Both named inputs produce ordered visible text.",
         "reduced_motion": true
       },
       "runnability": {
-        "state": "illustrative/unavailable",
+        "state": "runnable",
         "profile": "browser",
-        "proof": "canonical-run-rejection",
-        "code": "CND-CMP-006",
-        "reason": "the current exact planner cannot bind repeated hosted implementation instances"
+        "proof": "browser-worker-exact-plan"
       }
     },
     {
@@ -255,7 +253,7 @@
         "output",
         "directional compatibility"
       ],
-      "source": "panel 3\n\nnode first : std/literal {\n    value = \"First.\\n\"\n}\nnode second : std/literal {\n    value = \"Second.\\n\"\n}\n\ncord first.out -> second.out {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode first : std/literal {\n    value = \"First.\\n\"\n}\nnode second : std/literal {\n    value = \"Second.\\n\"\n}\n\ncord first.value -> second.value {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-CMP-003",
       "profile": "browser-dedicated-worker",
@@ -276,7 +274,7 @@
         "Look at the port after the arrow.",
         "A literal node only exposes an output port."
       ],
-      "solution": "Connect an output port to an input port, such as io/stdout.in.",
+      "solution": "Connect an outgoing port to a receiving port, such as the value and text ports declared by std/literal and display/text.",
       "accessibility": {
         "non_audio": "The direction failure is exposed as a structured text diagnostic.",
         "reduced_motion": true
@@ -296,45 +294,43 @@
       "prerequisites": [
         "welcome.hello-panel"
       ],
-      "objective": "Declare each consumer explicitly when one output feeds more than one sink.",
-      "prose": "The literal output contract permits one or more connections. The two bounded cords are visible in source and each sink receives one value.",
+      "objective": "Choose an explicit bounded fan-out contract when one value must reach more than one sink.",
+      "prose": "The tee contract makes duplication and branch pressure explicit. Its receiving value port and outgoing left and right ports are visible in source, and each sink receives one value.",
       "vocabulary": [
         "fan-out",
         "sink",
         "bounded cord"
       ],
-      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Fan out.\\n\"\n}\nnode first : io/stdout\nnode second : io/stdout\n\ncord greeting.out -> first.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord greeting.out -> second.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode greeting : std/literal {\n    value = \"Fan out.\\n\"\n}\nnode messages : std/text/lines {\n    maximum_line_bytes = 1024\n    maximum_retained_prefix_bytes = 1024\n}\nnode split : conduit.std/tee {\n    mode = \"coupled\"\n}\nnode left_text : std/text/join {\n    separator = \"\"\n    maximum_items = 8\n    maximum_item_bytes = 1024\n    maximum_separator_bytes = 64\n    maximum_output_bytes = 4096\n}\nnode right_text : std/text/join {\n    separator = \"\"\n    maximum_items = 8\n    maximum_item_bytes = 1024\n    maximum_separator_bytes = 64\n    maximum_output_bytes = 4096\n}\nnode first : display/text\nnode second : display/text\n\ncord greeting.value -> messages.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord messages.line -> split.value {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord split.left -> left_text.item {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord split.right -> right_text.item {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord left_text.text -> first.text {\n    capacity = 1\n    max_value_bytes = 4096\n    max_queued_bytes = 4096\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord right_text.text -> second.text {\n    capacity = 1\n    max_value_bytes = 4096\n    max_queued_bytes = 4096\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "Fan out.\nFan out.\n",
+      "expected_display": "Fan out.Fan out.",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 24,
-        "queue_bytes": 2048,
-        "evidence_events": 24
+        "queue_bytes": 12288,
+        "evidence_events": 64
       },
       "presentation": {
         "layout": "minimal",
         "show_plan": false
       },
       "validation": {
-        "kind": "pedagogical-stdout",
-        "value": "Fan out.\nFan out.\n"
+        "kind": "display",
+        "value": "Fan out.Fan out."
       },
       "hints": [
-        "The output node contract accepts more than one connection.",
+        "The tee's coupled mode admits one value only when both outgoing branches can accept it.",
         "Each cord declares its own finite capacity and pressure rule."
       ],
-      "solution": "Keep two explicit cords from greeting.out, one to each sink input.",
+      "solution": "Split the finite text batch into line values, tee messages.line into two explicit branches, join each finite branch, then connect both joined text values to distinct display ports.",
       "accessibility": {
         "non_audio": "Both delivered values appear as text output.",
         "reduced_motion": true
       },
       "runnability": {
-        "state": "illustrative/unavailable",
+        "state": "runnable",
         "profile": "browser",
-        "proof": "canonical-run-rejection",
-        "code": "CND-CMP-006",
-        "reason": "the current exact planner cannot bind repeated hosted implementation instances"
+        "proof": "browser-worker-exact-plan"
       }
     },
     {
@@ -351,7 +347,7 @@
         "implementation",
         "resolution"
       ],
-      "source": "panel 3\n\nnode source : std/literal {\n    value = \"Adapt me.\\n\"\n}\nnode adapter : example/text-adapter\nnode sink : io/stdout\n\ncord source.out -> adapter.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord adapter.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode source : std/literal {\n    value = \"Adapt me.\\n\"\n}\nnode adapter : example/text-adapter\nnode sink : display/text\n\ncord source.value -> adapter.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord adapter.text -> sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-IMP-001",
       "profile": "browser-dedicated-worker",
@@ -399,9 +395,9 @@
         "completion",
         "terminal"
       ],
-      "source": "panel 3\n\nnode empty : std/literal {\n    value = \"\"\n}\nnode sink : io/stdout\n\ncord empty.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode empty : std/literal {\n    value = \"\"\n}\nnode sink : display/text\n\ncord empty.value -> sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "",
+      "expected_display": "",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 16,
@@ -413,7 +409,7 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": ""
       },
       "hints": [
@@ -422,7 +418,7 @@
       ],
       "solution": "Keep one explicit empty literal connected to the sink and inspect the terminal evidence.",
       "accessibility": {
-        "non_audio": "Completion is announced in text even though stdout is empty.",
+        "non_audio": "Completion is announced in text even though display is empty.",
         "reduced_motion": true
       },
       "runnability": {
@@ -446,9 +442,9 @@
         "boundary",
         "substitution"
       ],
-      "source": "panel 3\n\ncomposite example/uppercase {\n    node worker : text/uppercase\n    export > in = worker.in\n    export out > = worker.out\n}\n\nnode source : std/literal {\n    value = \"boundary\"\n}\nnode transform : example/uppercase\nnode sink : io/stdout\n\ncord source.out -> transform.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord transform.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite example/uppercase {\n    node worker : text/uppercase\n    export > text = worker.text\n    export value > = worker.text\n}\n\nnode source : std/literal {\n    value = \"boundary\"\n}\nnode transform : example/uppercase\nnode sink : display/text\n\ncord source.value -> transform.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord transform.value -> sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "BOUNDARY",
+      "expected_display": "BOUNDARY",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 24,
@@ -460,7 +456,7 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "BOUNDARY"
       },
       "hints": [
@@ -492,9 +488,9 @@
         "faceplate",
         "encapsulation"
       ],
-      "source": "panel 3\n\ncomposite example/front-panel {\n    node private_worker : text/uppercase\n    export > text = private_worker.in\n    export result > = private_worker.out\n}\n\nnode source : std/literal {\n    value = \"jacks\"\n}\nnode faceplate : example/front-panel\nnode sink : io/stdout\n\ncord source.out -> faceplate.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord faceplate.result -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite example/front-panel {\n    node private_worker : text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nnode source : std/literal {\n    value = \"jacks\"\n}\nnode faceplate : example/front-panel\nnode sink : display/text\n\ncord source.value -> faceplate.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord faceplate.result -> sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "JACKS",
+      "expected_display": "JACKS",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 24,
@@ -506,7 +502,7 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "JACKS"
       },
       "hints": [
@@ -538,9 +534,9 @@
         "expanded view",
         "execution projection"
       ],
-      "source": "panel 3\n\ncomposite example/upper-box {\n    node worker : text/uppercase\n    export > in = worker.in\n    export out > = worker.out\n}\n\nnode source : std/literal {\n    value = \"inside\"\n}\nnode box : example/upper-box\nnode sink : io/stdout\n\ncord source.out -> box.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord box.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite example/upper-box {\n    node worker : text/uppercase\n    export > text = worker.text\n    export value > = worker.text\n}\n\nnode source : std/literal {\n    value = \"inside\"\n}\nnode box : example/upper-box\nnode sink : display/text\n\ncord source.value -> box.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord box.value -> sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "INSIDE",
+      "expected_display": "INSIDE",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 24,
@@ -552,7 +548,7 @@
         "show_plan": true
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "INSIDE"
       },
       "hints": [
@@ -584,9 +580,9 @@
         "instance",
         "instance path"
       ],
-      "source": "panel 3\n\ncomposite example/reusable-upper {\n    node worker : text/uppercase\n    export > in = worker.in\n    export out > = worker.out\n}\n\nnode first_source : std/literal {\n    value = \"one\\n\"\n}\nnode second_source : std/literal {\n    value = \"two\\n\"\n}\nnode first : example/reusable-upper\nnode second : example/reusable-upper\nnode first_sink : io/stdout\nnode second_sink : io/stdout\n\ncord first_source.out -> first.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord first.out -> first_sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord second_source.out -> second.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord second.out -> second_sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite example/reusable-upper {\n    node worker : text/uppercase\n    export > text = worker.text\n    export value > = worker.text\n}\n\nnode first_source : std/literal {\n    value = \"one\\n\"\n}\nnode second_source : std/literal {\n    value = \"two\\n\"\n}\nnode first : example/reusable-upper\nnode second : example/reusable-upper\nnode first_sink : display/text\nnode second_sink : display/text\n\ncord first_source.value -> first.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord first.value -> first_sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord second_source.value -> second.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord second.value -> second_sink.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "ONE\nTWO\n",
+      "expected_display": "ONE\nTWO\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 40,
@@ -598,7 +594,7 @@
         "show_plan": true
       },
       "validation": {
-        "kind": "pedagogical-stdout",
+        "kind": "display",
         "value": "ONE\nTWO\n"
       },
       "hints": [
@@ -611,11 +607,9 @@
         "reduced_motion": true
       },
       "runnability": {
-        "state": "illustrative/unavailable",
+        "state": "runnable",
         "profile": "browser",
-        "proof": "canonical-run-rejection",
-        "code": "CND-CMP-006",
-        "reason": "the current exact planner cannot bind repeated hosted implementation instances"
+        "proof": "browser-worker-exact-plan"
       }
     },
     {
@@ -632,9 +626,9 @@
         "deterministic fixture",
         "tick"
       ],
-      "source": "panel 3\n\ncomposite example/metronome {\n    node pulse : std/literal {\n        value = \"tick\\n\"\n    }\n    export tick > = pulse.out\n}\n\nnode clock : example/metronome\nnode display : io/stdout\n\ncord clock.tick -> display.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite example/metronome {\n    node pulse : std/literal {\n        value = \"tick\\n\"\n    }\n    export tick > = pulse.value\n}\n\nnode clock : example/metronome\nnode display : display/text\n\ncord clock.tick -> display.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "tick\n",
+      "expected_display": "tick\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 16,
@@ -646,11 +640,11 @@
         "show_plan": false
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "tick\n"
       },
       "hints": [
-        "The composite exports pulse.out as clock.tick.",
+        "The composite exports pulse.value as clock.tick.",
         "The finite fixture does not read wall time."
       ],
       "solution": "Export one literal pulse and connect the metronome boundary to the display.",
@@ -678,9 +672,9 @@
         "meta-panel",
         "composite surfaces"
       ],
-      "source": "panel 3\n\ncomposite patchbay/authoring {\n    node editor : text/uppercase\n    node parser : text/uppercase\n    export > source_in = editor.in\n    export parsed_out > = parser.out\n    cord editor.out -> parser.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/presentation {\n    node layout : text/uppercase\n    node canvas : text/uppercase\n    export > positions_in = layout.in\n    export rendered_out > = canvas.out\n    cord layout.out -> canvas.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/observation {\n    node resolver : text/uppercase\n    node evidence_feed : text/uppercase\n    export > plan_in = resolver.in\n    export telemetry_out > = evidence_feed.out\n    cord resolver.out -> evidence_feed.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\nnode nav_selection : std/literal {\n    value = \"tour/meta-lesson\\n\"\n}\nnode authoring_surface : patchbay/authoring\nnode presentation_surface : patchbay/presentation\nnode observation_surface : patchbay/observation\nnode console_sink : io/stdout\n\ncord nav_selection.out -> authoring_surface.source_in {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord authoring_surface.parsed_out -> presentation_surface.positions_in {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord presentation_surface.rendered_out -> observation_surface.plan_in {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord observation_surface.telemetry_out -> console_sink.in {\n    capacity = 8\n    max_value_bytes = 8192\n    max_queued_bytes = 65536\n    low_watermark = 1\n    high_watermark = 8\n    pressure = block\n}\n",
+      "source": "panel 3\n\ncomposite patchbay/authoring {\n    node editor : text/uppercase\n    node parser : text/uppercase\n    export > source = editor.text\n    export parsed > = parser.text\n    cord editor.text -> parser.text {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/presentation {\n    node layout : text/uppercase\n    node canvas : text/uppercase\n    export > positions = layout.text\n    export rendered > = canvas.text\n    cord layout.text -> canvas.text {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/observation {\n    node resolver : text/uppercase\n    node evidence_feed : text/uppercase\n    export > plan = resolver.text\n    export telemetry > = evidence_feed.text\n    cord resolver.text -> evidence_feed.text {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\nnode nav_selection : std/literal {\n    value = \"tour/meta-lesson\\n\"\n}\nnode authoring_surface : patchbay/authoring\nnode presentation_surface : patchbay/presentation\nnode observation_surface : patchbay/observation\nnode console_sink : display/text\n\ncord nav_selection.value -> authoring_surface.source {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord authoring_surface.parsed -> presentation_surface.positions {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord presentation_surface.rendered -> observation_surface.plan {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord observation_surface.telemetry -> console_sink.text {\n    capacity = 8\n    max_value_bytes = 8192\n    max_queued_bytes = 65536\n    low_watermark = 1\n    high_watermark = 8\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_stdout": "TOUR/META-LESSON\n",
+      "expected_display": "TOUR/META-LESSON\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 96,
@@ -692,7 +686,7 @@
         "show_plan": true
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "TOUR/META-LESSON\n"
       },
       "hints": [
@@ -728,13 +722,13 @@
         "ordered evidence",
         "terminal cause"
       ],
-      "source": "panel 3\n\nnode template : std/literal {\n    value = \"Hello, {name}.\\n\"\n}\nnode values : std/format-values/literal {\n    values = list(record(name=\"name\", value=\"operator\"))\n}\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "source": "panel 3\n\nnode template : std/literal {\n    value = \"Hello, {name}.\\n\"\n}\nnode values : std/format-values/literal {\n    values = list(record(name=\"name\", value=\"operator\"))\n}\nnode message : std/text/format\nnode output : display/text\n\ncord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.text -> output.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
       "command": "conduct --run lesson.panel",
       "commands": [
         "conduct --check lesson.panel",
         "conduct --run lesson.panel"
       ],
-      "expected_stdout": "Hello, operator.\n",
+      "expected_display": "Hello, operator.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -754,7 +748,7 @@
         ]
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "Hello, operator.\n"
       },
       "hints": [
@@ -790,7 +784,7 @@
               "values:std/format-values"
             ],
             "outputs": [
-              "out:std/text"
+              "text:std/text"
             ],
             "descriptor_hash": "sha256:79dd54bc0f880b0ac30a49ebbdbe12ef93c9ec89e282912eb9e623d3bccdb5ab"
           },
@@ -802,7 +796,7 @@
               "values:list(record(name?, value))"
             ],
             "outputs": [
-              "out:std/format-values"
+              "values:std/format-values"
             ],
             "descriptor_hash": "sha256:ba23a9d90589f88599912932d3ed10d8c1a5eebbe2c401e9e163454884ea5cc0"
           },
@@ -810,7 +804,7 @@
             "id": "std/text/lines",
             "kind": "node",
             "instance": "lines",
-            "inputs": ["in:std/text finite-batch"],
+            "inputs": ["text:std/text finite-batch"],
             "outputs": ["line:std/text finite-stream"],
             "configuration": [
               "maximum_line_bytes:std/u64",
@@ -822,7 +816,7 @@
             "kind": "node",
             "instance": "joined",
             "inputs": ["item:std/text finite-stream"],
-            "outputs": ["out:std/text finite-batch"],
+            "outputs": ["text:std/text finite-batch"],
             "configuration": [
               "separator:std/text",
               "maximum_items:std/u64",
@@ -860,22 +854,22 @@
           {
             "id": "standalone",
             "title": "Standalone success",
-            "explanation": "Format one named value and send the resulting text directly to stdout.",
-            "source": "panel 3\n\nnode template : std/literal {\n    value = \"Hello, {name}.\\n\"\n}\nnode values : std/format-values/literal {\n    values = list(record(name=\"name\", value=\"operator\"))\n}\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "explanation": "Format one named value and send the resulting text directly to display.",
+            "source": "panel 3\n\nnode template : std/literal {\n    value = \"Hello, {name}.\\n\"\n}\nnode values : std/format-values/literal {\n    values = list(record(name=\"name\", value=\"operator\"))\n}\nnode message : std/text/format\nnode output : display/text\n\ncord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.text -> output.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
             "execution": "run",
             "validation": {
-              "kind": "stdout",
+              "kind": "display",
               "value": "Hello, operator.\n"
             }
           },
           {
             "id": "composition",
             "title": "Composed with uppercase",
-            "explanation": "Feed the formatter's typed text output into another standard text node before stdout.",
-            "source": "panel 3\n\nnode template : std/literal { value = \"Hello, {name}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode shout : text/uppercase\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> shout.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord shout.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "explanation": "Feed the formatter's typed text output into another standard text node before display.",
+            "source": "panel 3\n\nnode template : std/literal { value = \"Hello, {name}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode shout : text/uppercase\nnode output : display/text\n\ncord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.text -> shout.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord shout.text -> output.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
             "execution": "run",
             "validation": {
-              "kind": "stdout",
+              "kind": "display",
               "value": "HELLO, OPERATOR.\n"
             }
           },
@@ -883,7 +877,7 @@
             "id": "missing-value",
             "title": "Missing named value",
             "explanation": "The authored template requests a name that the typed values collection does not contain.",
-            "source": "panel 3\n\nnode template : std/literal { value = \"Hello, {missing}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "source": "panel 3\n\nnode template : std/literal { value = \"Hello, {missing}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode output : display/text\n\ncord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.text -> output.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
             "execution": "run",
             "validation": {
               "kind": "diagnostic",
@@ -894,7 +888,7 @@
             "id": "cancelled",
             "title": "Cancelled before first step",
             "explanation": "Ask the exact runtime to apply deterministic abort cancellation before any node step.",
-            "source": "panel 3\n\nnode template : std/literal { value = \"Hello, {name}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "source": "panel 3\n\nnode template : std/literal { value = \"Hello, {name}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode output : display/text\n\ncord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.text -> output.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
             "execution": "cancel-before-first-step",
             "validation": {
               "kind": "terminal",
@@ -905,10 +899,10 @@
             "id": "lines-join",
             "title": "Logical lines joined in order",
             "explanation": "Split LF and CRLF text into the same ordered logical values, including an empty line, then join the finite stream.",
-            "source": "panel 3\n\nnode chunks : std/literal {\n    value = \"alpha\\r\\nbeta\\n\\ngamma\"\n}\nnode lines : std/text/lines {\n    maximum_line_bytes = 1024\n    maximum_retained_prefix_bytes = 1024\n}\nnode joined : std/text/join {\n    separator = \" | \"\n    maximum_items = 8\n    maximum_item_bytes = 1024\n    maximum_separator_bytes = 64\n    maximum_output_bytes = 4096\n}\nnode output : io/stdout\n\ncord chunks.out -> lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\ncord joined.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "source": "panel 3\n\nnode chunks : std/literal {\n    value = \"alpha\\r\\nbeta\\n\\ngamma\"\n}\nnode lines : std/text/lines {\n    maximum_line_bytes = 1024\n    maximum_retained_prefix_bytes = 1024\n}\nnode joined : std/text/join {\n    separator = \" | \"\n    maximum_items = 8\n    maximum_item_bytes = 1024\n    maximum_separator_bytes = 64\n    maximum_output_bytes = 4096\n}\nnode output : display/text\n\ncord chunks.value -> lines.text { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\ncord joined.text -> output.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
             "execution": "run",
             "validation": {
-              "kind": "stdout",
+              "kind": "display",
               "value": "alpha | beta |  | gamma"
             }
           },
@@ -916,10 +910,10 @@
             "id": "format-lines",
             "title": "Formatted text becomes logical lines",
             "explanation": "Format typed values into CRLF/LF text, split it into lines, and visibly preserve the same ordering through a finite join.",
-            "source": "panel 3\n\nnode template : std/literal { value = \"{first}\\r\\n{second}\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"first\", value=\"alpha\"), record(name=\"second\", value=\"beta\")) }\nnode formatted : std/text/format\nnode lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode joined : std/text/join { separator = \" / \" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode output : io/stdout\n\ncord template.out -> formatted.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> formatted.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord formatted.out -> lines.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\ncord joined.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "source": "panel 3\n\nnode template : std/literal { value = \"{first}\\r\\n{second}\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"first\", value=\"alpha\"), record(name=\"second\", value=\"beta\")) }\nnode formatted : std/text/format\nnode lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode joined : std/text/join { separator = \" / \" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode output : display/text\n\ncord template.value -> formatted.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.values -> formatted.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord formatted.text -> lines.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\ncord joined.text -> output.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
             "execution": "run",
             "validation": {
-              "kind": "stdout",
+              "kind": "display",
               "value": "alpha / beta"
             }
           }
@@ -943,7 +937,7 @@
         "control priority",
         "terminal policy"
       ],
-      "source": "panel 3\n\nnode left : std/literal { value = \"\" }\nnode right : std/literal { value = \"right\" }\nnode command : std/literal { value = \"in2\" }\nnode left_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode right_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode commands : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode chosen : conduit.std/select { initial = \"in1\" inactive = \"block\" }\nnode split : conduit.std/tee { mode = \"coupled\" }\nnode stdout_text : std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode stderr_text : std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode output : io/stdout\nnode evidence : io/stderr\n\ncord left.out -> left_lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord right.out -> right_lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord command.out -> commands.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord left_lines.line -> chosen.in1 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord right_lines.line -> chosen.in2 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord commands.line -> chosen.control { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord chosen.out -> split.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord split.out1 -> stdout_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord split.out2 -> stderr_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord stdout_text.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord stderr_text.out -> evidence.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "source": "panel 3\n\nnode left : std/literal { value = \"\" }\nnode right : std/literal { value = \"right\" }\nnode command : std/literal { value = \"right\" }\nnode left_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode right_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode commands : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode chosen : conduit.std/select { initial = \"left\" inactive = \"block\" }\nnode split : conduit.std/tee { mode = \"coupled\" }\nnode primary_text : std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode secondary_text : std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode output : display/text\nnode evidence : display/text\n\ncord left.value -> left_lines.text { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord right.value -> right_lines.text { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord command.value -> commands.text { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord left_lines.line -> chosen.left { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord right_lines.line -> chosen.right { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord commands.line -> chosen.selector { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord chosen.selected -> split.value { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord split.left -> primary_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord split.right -> secondary_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord primary_text.text -> output.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord secondary_text.text -> evidence.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
       "command": "conduct --run examples/flow-compose.panel",
       "commands": [
         "conduct --check examples/flow-tee.panel",
@@ -953,8 +947,7 @@
         "conduct --check examples/flow-select.panel",
         "conduct --run examples/flow-compose.panel"
       ],
-      "expected_stdout": "right",
-      "expected_stderr": "right",
+      "expected_display": "rightright",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 128,
@@ -976,8 +969,8 @@
         ]
       },
       "validation": {
-        "kind": "stdout",
-        "value": "right"
+        "kind": "display",
+        "value": "rightright"
       },
       "hints": [
         "Select one standalone scenario before changing its supported configuration.",
@@ -1003,14 +996,14 @@
         "when": "Use these nodes when stream topology needs an explicit, inspectable structural policy instead of hidden callback or host-channel behavior.",
         "wrong": "Legacy flow/* identities, duplicate port IDs, wake-order races, partial coupled publication, unbounded retention, implicit dropping, and fabricated terminal success fail closed.",
         "contracts": [
-          {"id":"conduit.std/tee","inputs":["in:std/text"],"outputs":["out1:std/text","out2:std/text"],"policy":"mode=coupled|isolated"},
-          {"id":"conduit.std/merge","inputs":["in1:std/text","in2:std/text"],"outputs":["out:std/text"],"policy":"ordering=round-robin"},
-          {"id":"conduit.std/zip","inputs":["in1:std/text","in2:std/text"],"outputs":["left:std/text","right:std/text"],"policy":"unpaired=fail|drop"},
-          {"id":"conduit.std/gate","inputs":["in:std/text","control:std/text"],"outputs":["out:std/text"],"policy":"initial=open|closed; retained=block"},
-          {"id":"conduit.std/select","inputs":["in1:std/text","in2:std/text","control:std/text"],"outputs":["out:std/text"],"policy":"initial=in1|in2; inactive=block"}
+          {"id":"conduit.std/tee","inputs":["value:std/text"],"outputs":["left:std/text","right:std/text"],"policy":"mode=coupled|isolated"},
+          {"id":"conduit.std/merge","inputs":["left:std/text","right:std/text"],"outputs":["value:std/text"],"policy":"ordering=round-robin"},
+          {"id":"conduit.std/zip","inputs":["left:std/text","right:std/text"],"outputs":["left:std/text","right:std/text"],"policy":"unpaired=fail|drop"},
+          {"id":"conduit.std/gate","inputs":["candidate:std/text","permit:std/text"],"outputs":["admitted:std/text"],"policy":"initial=open|closed; retained=block"},
+          {"id":"conduit.std/select","inputs":["left:std/text","right:std/text","selector:std/text"],"outputs":["selected:std/text"],"policy":"initial=left|right; inactive=block"}
         ],
         "editable": [
-          "chosen.initial:in1|in2",
+          "chosen.initial:left|right",
           "split.mode:coupled|isolated"
         ],
         "provider": "hosted exact-plan deterministic executor",
@@ -1057,13 +1050,13 @@
         "feedback boundary",
         "retained state"
       ],
-      "source": "panel 3\n\nnode message : std/literal { value = \"Envelope facts stay exact.\\n\" }\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\ncord emphasize.out -> output.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "source": "panel 3\n\nnode source : std/literal { value = \"Envelope facts stay exact.\\n\" }\nnode emphasize : text/uppercase\nnode output : display/text\n\ncord source.value -> emphasize.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\ncord emphasize.text -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\n",
       "command": "conduct --run value-envelope-feedback.panel",
       "commands": [
         "conduct --check value-envelope-feedback.panel",
         "conduct --run value-envelope-feedback.panel"
       ],
-      "expected_stdout": "ENVELOPE FACTS STAY EXACT.\n",
+      "expected_display": "ENVELOPE FACTS STAY EXACT.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -1081,7 +1074,7 @@
         ]
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "ENVELOPE FACTS STAY EXACT.\n"
       },
       "hints": [
@@ -1164,13 +1157,13 @@
         "idempotency key",
         "cleanup disposition"
       ],
-      "source": "panel 3\n\nnode message : std/literal {\n    value = \"Leased effect boundaries stay explicit.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.out -> output.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode source : std/literal {\n    value = \"Leased effect boundaries stay explicit.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : display/text\n\ncord source.value -> emphasize.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.text -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run resource-lease-cleanup.panel",
       "commands": [
         "conduct --check resource-lease-cleanup.panel",
         "conduct --run resource-lease-cleanup.panel"
       ],
-      "expected_stdout": "LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n",
+      "expected_display": "LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -1187,7 +1180,7 @@
         ]
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n"
       },
       "hints": [
@@ -1272,13 +1265,13 @@
         "clock basis",
         "deadline miss"
       ],
-      "source": "panel 3\n\nnode message : std/literal {\n    value = \"Deadline guarantees stay separate from measurements.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.out -> output.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\nnode source : std/literal {\n    value = \"Deadline guarantees stay separate from measurements.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : display/text\n\ncord source.value -> emphasize.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.text -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run workload-deadline-admission.panel",
       "commands": [
         "conduct --check workload-deadline-admission.panel",
         "conduct --run workload-deadline-admission.panel"
       ],
-      "expected_stdout": "DEADLINE GUARANTEES STAY SEPARATE FROM MEASUREMENTS.\n",
+      "expected_display": "DEADLINE GUARANTEES STAY SEPARATE FROM MEASUREMENTS.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -1295,7 +1288,7 @@
         ]
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "DEADLINE GUARANTEES STAY SEPARATE FROM MEASUREMENTS.\n"
       },
       "hints": [
@@ -1387,14 +1380,14 @@
         "conformance result",
         "explicit adapter"
       ],
-      "source": "panel 3\n\n# The graph stays semantic. A host profile may bind exact providers for these\n# nodes only after current observation and conformance checks.\nnode message : std/literal {\n    value = \"Custom contracts need exact conformance and explicit adapters.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.out -> output.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 3\n\n# The graph stays semantic. A host profile may bind exact providers for these\n# nodes only after current observation and conformance checks.\nnode source : std/literal {\n    value = \"Custom contracts need exact conformance and explicit adapters.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : display/text\n\ncord source.value -> emphasize.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.text -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run cross-host-provider-conformance.panel",
       "commands": [
         "conduct inspect host-conformance-report-v1.json",
         "conduct --check cross-host-provider-conformance.panel",
         "conduct --run cross-host-provider-conformance.panel"
       ],
-      "expected_stdout": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n",
+      "expected_display": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -1413,7 +1406,7 @@
         ]
       },
       "validation": {
-        "kind": "stdout",
+        "kind": "display",
         "value": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n"
       },
       "hints": [

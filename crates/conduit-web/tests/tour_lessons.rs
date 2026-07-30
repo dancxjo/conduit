@@ -151,15 +151,15 @@ fn tour_lessons_declare_verified_browser_runnability() {
         let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
         let registry = Registry::compatibility_demo();
 
-        if let Some(expected_stdout) = lesson["expected_stdout"].as_str() {
-            assert_eq!(lesson["validation"]["value"], expected_stdout);
+        if let Some(expected_display) = lesson["expected_display"].as_str() {
+            assert_eq!(lesson["validation"]["value"], expected_display);
             if runnability["state"] == "runnable" {
                 assert_eq!(runnability["proof"], "browser-worker-exact-plan");
-                assert_eq!(lesson["validation"]["kind"], "stdout");
+                assert_eq!(lesson["validation"]["kind"], "display");
             } else {
                 assert_eq!(runnability["state"], "illustrative/unavailable");
                 assert_eq!(runnability["proof"], "canonical-run-rejection");
-                assert_eq!(lesson["validation"]["kind"], "pedagogical-stdout");
+                assert_eq!(lesson["validation"]["kind"], "pedagogical-display");
                 let expected = runnability["code"]
                     .as_str()
                     .filter(|code| code.starts_with("CND-"))
@@ -262,8 +262,9 @@ fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
     let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
     let result: Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(result["ok"], true, "{result}");
-    assert_eq!(result["stdout"], "right");
-    assert_eq!(result["stderr"], "right");
+    assert_eq!(result["display"], "rightright");
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
 }
 
 #[test]
@@ -370,9 +371,9 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
         let validation = &scenario["validation"];
         let expected = validation["value"].as_str().unwrap();
         match validation["kind"].as_str().unwrap() {
-            "stdout" => {
+            "display" => {
                 assert_eq!(result["ok"], true, "{id}: {result}");
-                assert_eq!(result["stdout"], expected, "{id}: {result}");
+                assert_eq!(result["display"], expected, "{id}: {result}");
             }
             "terminal" => {
                 assert_eq!(result["ok"], true, "{id}: {result}");
@@ -444,7 +445,7 @@ fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
     assert_eq!(result["ok"], true, "{result}");
-    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["display"], lesson["expected_display"]);
     assert_eq!(result["terminal"], "succeeded");
 
     let cases = fixture["cases"].as_array().unwrap();
@@ -529,7 +530,7 @@ fn resource_lease_platform_lesson_is_fixture_backed_and_executable() {
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
     assert_eq!(result["ok"], true, "{result}");
-    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["display"], lesson["expected_display"]);
     assert_eq!(result["terminal"], "succeeded");
 
     let cases = fixture["cases"].as_array().unwrap();
@@ -582,7 +583,7 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
     assert_eq!(result["ok"], true, "{result}");
-    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["display"], lesson["expected_display"]);
     assert_eq!(result["terminal"], "succeeded");
 
     let cases = fixture["cases"].as_array().unwrap();
@@ -626,7 +627,7 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
     assert_eq!(result["ok"], true, "{result}");
-    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["display"], lesson["expected_display"]);
     assert_eq!(result["terminal"], "succeeded");
 
     let cases = fixture["cases"].as_array().unwrap();

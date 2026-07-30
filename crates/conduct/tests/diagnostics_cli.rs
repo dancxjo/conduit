@@ -199,13 +199,13 @@ fn every_canonical_invocation_preserves_modes_stdin_and_streams() {
     assert!(checked.status.success());
     assert_eq!(
         checked.stdout,
-        b"ok: panel v1; 0 definitions; 3 root nodes; 2 root cords\n"
+        b"ok: panel v3; 0 definitions; 3 root nodes; 2 root cords\n"
     );
     assert!(checked.stderr.is_empty());
 
     let explained = command().args(["--explain", example]).output().unwrap();
     assert!(explained.status.success());
-    assert!(explained.stdout.starts_with(b"logical panel v1:"));
+    assert!(explained.stdout.starts_with(b"logical panel v3:"));
     assert!(explained.stderr.is_empty());
 
     let source = include_bytes!("../../../examples/hello.panel");
@@ -252,7 +252,7 @@ fn help_version_and_conflict_snapshots_are_exact_at_representative_widths() {
 fn parser_and_argument_failures_support_lossless_json_with_clean_stdout() {
     let parser = output_with_stdin(
         &["--check", "--diagnostic-format=json", "-"],
-        b"panel 1\ncord a.out b.in\n",
+        b"panel 3\ncord a.value b.text\n",
     );
     assert!(!parser.status.success());
     assert!(parser.stdout.is_empty());

@@ -1,8 +1,8 @@
-panel 1
+panel 3
 
 node greeting : std/literal {
     value = "This endpoint does not exist."
 }
-node output : io/stdout
+node output : display/text
 
-cord greeting.missing -> output.in
+cord greeting.missing -> output.text

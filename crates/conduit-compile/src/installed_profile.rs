@@ -66,7 +66,7 @@ impl InstalledProfile {
                 .1
                 .push(node.instance.clone());
         }
-        let requires_large_evidence = topology.nodes.len() > 5
+        let requires_large_evidence = topology.nodes.len() > 3
             || required.contains_key("std/text/format")
             || required.contains_key("std/format-values/literal")
             || required.contains_key("std/text/lines")
