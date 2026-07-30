@@ -245,7 +245,7 @@ document.querySelector(".node-controls").hidden =
   !patchbayFeatures.legacyLinePlacement;
 if (cyContainer) {
   patchbayRenderer = new PatchbayReactFlowRenderer(cyContainer, {
-    onTransaction: (operation) => applyPatchbayOperations([operation]),
+    onTransaction: (operation, options) => applyPatchbayOperations([operation], options),
     onNodeSelect: (nodeId) => {
       selectNode(nodeId);
     },
@@ -296,7 +296,7 @@ function openPatchbaySession() {
   return true;
 }
 
-function applyPatchbayOperations(operations) {
+function applyPatchbayOperations(operations, options = {}) {
   const request = {
     protocol_version: 1,
     document_id: patchbaySessionId,
@@ -315,9 +315,13 @@ function applyPatchbayOperations(operations) {
   patchbaySourceRevision = transaction.result.source.revision;
   patchbayPresentationRevision = transaction.result.presentation.revision;
   acceptedSource = transaction.result.source.source;
+  if (options.preserveFaceplateFocus) {
+    source.value = acceptedSource;
+    syncSourceHighlight();
+  }
   positions = transaction.result.presentation.node_positions;
   rememberLayout(current.id, positions, patchbayView);
-  updateCytoscapeGraph();
+  if (!options.preserveFaceplateFocus) updateCytoscapeGraph();
   return transaction;
 }
 
@@ -636,8 +640,7 @@ function selectNode(node) {
 
   const start = source.value.indexOf(`node ${node} `);
   if (start >= 0) {
-    source.focus();
-    source.setSelectionRange(start, start + node.length + 5);
+    source.setSourceHighlightRange?.(start, start + node.length + 5);
   }
   if (patchbayRenderer) {
     patchbayRenderer.selectNode(node);

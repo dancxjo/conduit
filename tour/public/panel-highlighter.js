@@ -22,7 +22,7 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;");
 }
 
-export function highlightPanelSource(source) {
+export function highlightPanelSource(source, selectedRange = null) {
   let output = "";
   let cursor = 0;
   let expectTypeName = false;
@@ -73,7 +73,26 @@ export function highlightPanelSource(source) {
       }
     }
 
-    const text = escapeHtml(match[0]);
+    const tokenStart = cursor;
+    const tokenEnd = cursor + match[0].length;
+    const selectionStart = Math.max(tokenStart, selectedRange?.start ?? tokenEnd);
+    const selectionEnd = Math.min(tokenEnd, selectedRange?.end ?? tokenStart);
+    const fragments = selectionStart < selectionEnd
+      ? [
+          [match[0].slice(0, selectionStart - tokenStart), false],
+          [match[0].slice(selectionStart - tokenStart, selectionEnd - tokenStart), true],
+          [match[0].slice(selectionEnd - tokenStart), false],
+        ]
+      : [[match[0], false]];
+    const text = fragments
+      .filter(([fragment]) => fragment.length > 0)
+      .map(([fragment, selected]) => {
+        const escaped = escapeHtml(fragment);
+        return selected
+          ? `<mark class="panel-source-selection">${escaped}</mark>`
+          : escaped;
+      })
+      .join("");
     output += kind ? `<span class="panel-token-${kind}">${text}</span>` : text;
     cursor += match[0].length;
   }
@@ -95,12 +114,21 @@ export function attachPanelSourceHighlighting(textarea) {
     highlight.scrollLeft = textarea.scrollLeft;
   };
   const sync = () => {
-    highlight.innerHTML = highlightPanelSource(textarea.value);
+    highlight.innerHTML = highlightPanelSource(
+      textarea.value,
+      textarea.sourceHighlightRange,
+    );
     syncScroll();
   };
 
   textarea.dataset.highlighting = "panel";
   textarea.syncHighlight = sync;
+  textarea.setSourceHighlightRange = (start, end) => {
+    textarea.sourceHighlightRange = Number.isInteger(start) && Number.isInteger(end)
+      ? { start, end }
+      : null;
+    sync();
+  };
   textarea.addEventListener("input", sync);
   textarea.addEventListener("scroll", syncScroll);
   sync();

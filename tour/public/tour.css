@@ -498,6 +498,12 @@ textarea#source::placeholder {
 .panel-token-operator { color: #94a3b8; }
 .panel-token-type { color: #34d399; font-weight: 600; }
 .panel-token-identifier { color: #e2e8f0; }
+.panel-source-selection {
+  padding: 0;
+  color: inherit;
+  background: rgba(56, 189, 248, 0.35);
+  border-radius: 2px;
+}
 
 /* Output Console */
 output#result {

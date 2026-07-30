@@ -133,7 +133,10 @@ export class PatchbayReactFlowRenderer {
 
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
-    this.renderFlow();
+    this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
+      const shell = card.closest(".react-flow__node");
+      card.classList.toggle("selected-faceplate", shell?.dataset.id === nodeId);
+    });
   }
 
   moveNode() {
@@ -148,7 +151,7 @@ export class PatchbayReactFlowRenderer {
         key,
         value: { kind, value },
       },
-    });
+    }, { preserveFaceplateFocus: true });
   }
 
   renderFlow() {
