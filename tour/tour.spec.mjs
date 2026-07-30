@@ -75,6 +75,25 @@ test("highlights panel source while retaining the native editor surface", async 
   await expect(
     highlight.locator(".panel-token-string").filter({ hasText: "Hello from the Tour." }),
   ).toHaveCount(1);
+  await expect(highlight.locator(".panel-token-keyword").filter({
+    hasText: /^output$/,
+  })).toHaveCount(0);
+  await expect(highlight.locator(".panel-token-identifier").filter({
+    hasText: /^output$/,
+  })).toHaveCount(2);
+  await expect(highlight.locator(".panel-token-port-output")).toHaveText(".out");
+  await expect(highlight.locator(".panel-token-port-input")).toHaveText(".in");
+  await expect(highlight.locator(".panel-token-port-output"))
+    .toHaveAttribute("data-token-label", "output port");
+  await expect(highlight.locator(".panel-token-port-input"))
+    .toHaveAttribute("data-token-label", "input port");
+  const inputPortDecoration = await highlight.locator(".panel-token-port-input").evaluate(
+    (element) => getComputedStyle(element).textDecorationStyle,
+  );
+  const outputPortDecoration = await highlight.locator(".panel-token-port-output").evaluate(
+    (element) => getComputedStyle(element).textDecorationStyle,
+  );
+  expect(inputPortDecoration).not.toBe(outputPortDecoration);
 
   await source.fill(
     "panel 2\n# note\ninterface speech/recognizer {\n" +
@@ -163,13 +182,41 @@ test("keeps faceplate controls focused while highlighting and updating source", 
   await input.click();
 
   await expect(input).toBeFocused();
-  await expect.poll(selectedSourceText).toBe("node greeting");
+  await expect.poll(selectedSourceText).toContain("node greeting");
 
   await input.fill("Edited on the faceplate.");
   await expect(input).toBeFocused();
   await expect(input).toHaveValue("Edited on the faceplate.");
   await expect(page.locator("#source")).toHaveValue(/Edited on the faceplate\./);
-  await expect.poll(selectedSourceText).toBe("node greeting");
+  await expect.poll(selectedSourceText).toContain("node greeting");
+});
+
+test("selects a cord by authoritative identity and reveals its declaration", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const edge = page.locator(".react-flow__edge").first();
+  await edge.locator(".react-flow__edge-textbg").click();
+
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected cord: cord-0",
+  );
+  await expect(edge).toHaveClass(/selected/);
+  const highlighted = (
+    await page.locator(".panel-source-selection").allTextContents()
+  ).join("");
+  expect(highlighted).toContain("cord greeting.out -> output.in");
+  expect(highlighted).toContain("pressure = block");
+  const nativeSelection = await page.locator("#source").evaluate((element) =>
+    element.value.slice(element.selectionStart, element.selectionEnd)
+  );
+  expect(nativeSelection).toBe(highlighted);
+
+  await page.locator('[data-id="greeting"]').click();
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected node: greeting",
+  );
+  await expect.poll(async () =>
+    (await page.locator(".panel-source-selection").allTextContents()).join("")
+  ).toContain("node greeting");
 });
 
 test("shows node movement while a topology box is being dragged", async ({ page }) => {
@@ -218,18 +265,47 @@ test("retains committed topology positions across renders and visits", async ({ 
   const committedTransform = await greeting.evaluate(
     (element) => element.style.transform,
   );
+  const output = page.locator('[data-id="output"]');
+  const outputBefore = await output.boundingBox();
+  expect(outputBefore).not.toBeNull();
+  const outputStartX = outputBefore.x + outputBefore.width / 2;
+  const outputStartY = outputBefore.y + 20;
+  await page.mouse.move(outputStartX, outputStartY);
+  await page.mouse.down();
+  await page.mouse.move(outputStartX - 72, outputStartY + 40, { steps: 4 });
+  await page.mouse.up();
+  const committedOutputTransform = await output.evaluate(
+    (element) => element.style.transform,
+  );
 
   await page.locator("#check").click();
   await expect(greeting).toHaveCSS("transform", /matrix/);
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
+  await expect.poll(
+    async () => output.evaluate((element) => element.style.transform),
+  ).toBe(committedOutputTransform);
+
+  await page.locator("#run").click();
+  await expect(page.locator("#result")).toContainText("Lesson complete", {
+    timeout: 20_000,
+  });
+  await expect.poll(
+    async () => greeting.evaluate((element) => element.style.transform),
+  ).toBe(committedTransform);
+  await expect.poll(
+    async () => output.evaluate((element) => element.style.transform),
+  ).toBe(committedOutputTransform);
 
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await page.getByRole("button", { name: "Hello, panel" }).click();
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
+  await expect.poll(
+    async () => output.evaluate((element) => element.style.transform),
+  ).toBe(committedOutputTransform);
 
   await page.reload();
   await expect.poll(

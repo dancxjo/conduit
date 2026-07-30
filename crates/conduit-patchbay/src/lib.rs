@@ -419,6 +419,8 @@ pub struct PatchbayNodeProjection {
     pub id: String,
     pub semantic_id: String,
     pub contract_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_range: Option<SourceRangeProjection>,
     pub inputs: Vec<PatchbayPortProjection>,
     pub outputs: Vec<PatchbayPortProjection>,
     pub config: BTreeMap<String, PatchbayConfigProjection>,
@@ -462,7 +464,24 @@ pub struct PatchbayCordProjection {
     pub high_watermark_items: u16,
     pub pressure: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_range: Option<SourceRangeProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub high_water_items: Option<u16>,
+}
+
+/// Exact authored range for one projected topology item.
+///
+/// Byte offsets preserve Rust source identity. UTF-16 offsets are supplied
+/// separately for browser textarea APIs, so the presentation layer never
+/// guesses across non-ASCII source.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SourceRangeProjection {
+    pub start_byte: usize,
+    pub end_byte: usize,
+    pub start_utf16: usize,
+    pub end_utf16: usize,
+    pub source_revision: u64,
+    pub provenance: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

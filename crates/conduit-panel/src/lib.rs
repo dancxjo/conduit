@@ -35,6 +35,61 @@ pub const MAXIMUM_INTERFACE_MEMBERS: usize = 64;
 /// Maximum explicit interface claims on one node boundary.
 pub const MAXIMUM_INTERFACE_CLAIMS: usize = 32;
 
+/// Words that may never be used where the grammar accepts an identifier.
+///
+/// The grammar is contextual: declaration and field words are accepted by
+/// `expect_any_word` in identifier positions, so it currently has no reserved
+/// words. Browser tooling must not invent an identifier blacklist.
+pub const RESERVED_WORDS: &[&str] = &[];
+
+/// Contextual words with syntactic meaning in at least one grammar position.
+///
+/// This is presentation metadata, not a reserved-word list. A highlighter may
+/// classify one of these as syntax only when it occurs in that grammar
+/// position.
+pub const SYNTAX_WORDS: &[&str] = &[
+    "admission",
+    "as",
+    "bind",
+    "capacity",
+    "cleanup",
+    "coalescer",
+    "composite",
+    "cord",
+    "deadline_ms",
+    "export",
+    "fallback",
+    "high_watermark",
+    "idle_timeout_ms",
+    "implements",
+    "import",
+    "input",
+    "interface",
+    "low_watermark",
+    "max",
+    "max_queued_bytes",
+    "max_value_bytes",
+    "member",
+    "node",
+    "optional",
+    "output",
+    "panel",
+    "pool",
+    "port-group",
+    "pressure",
+    "root",
+    "sample_every",
+    "sample_offset",
+    "supervise",
+    "supervision",
+    "using",
+    "with",
+];
+
+/// Contextual syntax words that remain ordinary identifiers outside their
+/// directional grammar positions.
+pub const IDENTIFIER_COMPATIBLE_SYNTAX_WORDS: &[&str] = &["input", "output"];
+
 /// Parsed editable panel source.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Panel {
@@ -2288,6 +2343,35 @@ mod tests {
         assert_eq!(panel.cords[0].pressure, SourcePressure::Reject);
         assert_eq!(panel.cords[0].max_value_bytes, 65_536);
         assert_eq!(panel.cords[0].max_queued_bytes, 4 * 65_536);
+    }
+
+    #[test]
+    fn output_remains_legal_in_every_identifier_position() {
+        assert!(RESERVED_WORDS.is_empty());
+        assert!(IDENTIFIER_COMPATIBLE_SYNTAX_WORDS.contains(&"output"));
+        let panel = parse(
+            r#"
+                panel 1
+                composite wrapper {
+                    node output : fixture/source { output = "output" }
+                    export output output.out as output
+                }
+                node source : fixture/source { output = "output" }
+                node output : fixture/sink
+                cord source.output -> output.in
+                cord source.out -> output.output
+                root output
+            "#,
+        )
+        .expect("output is contextual syntax, not a reserved identifier");
+
+        assert_eq!(panel.nodes[1].id, "output");
+        assert_eq!(panel.nodes[0].config[0].key, "output");
+        assert_eq!(panel.cords[0].from.port, "output");
+        assert_eq!(panel.cords[1].to.port, "output");
+        assert_eq!(panel.roots[0].target, "output");
+        assert_eq!(panel.definitions[0].nodes[0].id, "output");
+        assert_eq!(panel.definitions[0].exports[0].id, "output");
     }
 
     #[test]

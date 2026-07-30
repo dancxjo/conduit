@@ -42,6 +42,23 @@ export function explain_panel(source) {
 }
 
 /**
+ * Returns parser-owned lexical metadata for browser source presentation.
+ * @returns {string}
+ */
+export function panel_language_metadata() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.panel_language_metadata();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * Returns a small JSON summary produced from `conduit_panel::parse` itself.
  * @param {string} source
  * @returns {string}
