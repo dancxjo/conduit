@@ -178,7 +178,7 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await page.goto("/tour/public/index.html");
   const edge = page.locator(".patchbay-smart-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
-  await expect(edge).toHaveClass(/value-type-text/);
+  await expect(edge).toHaveClass(/value-type-std-text/);
   await expect(edge.locator(".react-flow__edge-path")).toHaveAttribute("d", /^M/);
 });
 
