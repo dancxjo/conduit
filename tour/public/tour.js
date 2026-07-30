@@ -1,3 +1,4 @@
+import "./patchbay-components.js";
 import init, {
   explain_panel,
   parse_panel,

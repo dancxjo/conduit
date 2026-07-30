@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Patchbay — Conduit Visual Studio App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./tour.css">
+  <script src="./cytoscape.min.js"></script>
+</head>
+<body>
+  <patchbay-app id="patchbay-root">
+    <main>
+      <nav aria-label="Patchbay Component Navigation">
+        <div class="brand-header">
+          <div class="brand-badge">CONDUIT CORE</div>
+          <h1>Patchbay App</h1>
+          <p class="lede">Self-hosted <code>.panel</code> application surface.</p>
+        </div>
+        <patchbay-nav></patchbay-nav>
+      </nav>
+
+      <section id="workspace" aria-labelledby="title">
+        <header class="workspace-header">
+          <div class="header-top">
+            <p class="eyebrow">Standalone Embedded App</p>
+            <span id="execution-note" class="host-status">Preparing browser placement…</span>
+          </div>
+          <h2 id="title">Loading Patchbay…</h2>
+          <p id="goal" class="goal"></p>
+          <p id="prose" class="prose-text"></p>
+          <p class="command-box"><code id="command"></code></p>
+        </header>
+
+        <div class="button-row primary-actions" role="group" aria-label="App controls">
+          <button id="run" class="btn primary">⚡ Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
+          <button id="stop" class="btn danger" disabled>⏹ Stop</button>
+          <button id="check" class="btn secondary">🔍 Check</button>
+          <button id="reset" class="btn secondary">🔄 Reset</button>
+          <button id="undo-reset" class="btn secondary" disabled>↩ Undo reset</button>
+          <button id="download" class="btn secondary">💾 Export .panel</button>
+        </div>
+
+        <div class="work-grid">
+          <section aria-labelledby="canvas-title" class="card canvas-card">
+            <patchbay-canvas></patchbay-canvas>
+          </section>
+
+          <section aria-labelledby="source-title" class="card source-card">
+            <patchbay-editor></patchbay-editor>
+          </section>
+        </div>
+
+        <section class="card console-card">
+          <div class="card-header">
+            <h3>Execution Result Console</h3>
+            <span id="console-status-badge" class="badge status-badge idle">Ready</span>
+          </div>
+          <output id="result" aria-live="polite">Initializing production runtime parser...</output>
+        </section>
+
+        <patchbay-inspector></patchbay-inspector>
+      </section>
+    </main>
+  </patchbay-app>
+  <script type="module" src="./tour.js"></script>
+</body>
+</html>

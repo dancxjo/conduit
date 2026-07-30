@@ -1,0 +1,88 @@
+panel 1
+
+composite patchbay/authoring {
+    node editor : conduit/uppercase
+    node parser : conduit/uppercase
+    export input source_in = editor.in
+    export output parsed_out = parser.out
+    cord editor.out -> parser.in {
+        capacity = 1
+        max_value_bytes = 1024
+        max_queued_bytes = 1024
+        low_watermark = 0
+        high_watermark = 1
+        pressure = block
+    }
+}
+
+composite patchbay/presentation {
+    node layout : conduit/uppercase
+    node canvas : conduit/uppercase
+    export input positions_in = layout.in
+    export output rendered_out = canvas.out
+    cord layout.out -> canvas.in {
+        capacity = 1
+        max_value_bytes = 1024
+        max_queued_bytes = 1024
+        low_watermark = 0
+        high_watermark = 1
+        pressure = block
+    }
+}
+
+composite patchbay/observation {
+    node resolver : conduit/uppercase
+    node evidence_feed : conduit/uppercase
+    export input plan_in = resolver.in
+    export output telemetry_out = evidence_feed.out
+    cord resolver.out -> evidence_feed.in {
+        capacity = 1
+        max_value_bytes = 1024
+        max_queued_bytes = 1024
+        low_watermark = 0
+        high_watermark = 1
+        pressure = block
+    }
+}
+
+node nav_selection : conduit/literal { value = "tour/meta-lesson\n" }
+node authoring_surface : patchbay/authoring
+node presentation_surface : patchbay/presentation
+node observation_surface : patchbay/observation
+node console_sink : conduit/stdout
+
+cord nav_selection.out -> authoring_surface.source_in {
+    capacity = 4
+    max_value_bytes = 1024
+    max_queued_bytes = 4096
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord authoring_surface.parsed_out -> presentation_surface.positions_in {
+    capacity = 4
+    max_value_bytes = 4096
+    max_queued_bytes = 16384
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord presentation_surface.rendered_out -> observation_surface.plan_in {
+    capacity = 4
+    max_value_bytes = 4096
+    max_queued_bytes = 16384
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord observation_surface.telemetry_out -> console_sink.in {
+    capacity = 8
+    max_value_bytes = 8192
+    max_queued_bytes = 65536
+    low_watermark = 1
+    high_watermark = 8
+    pressure = block
+}

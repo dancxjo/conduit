@@ -268,6 +268,25 @@
       "hints": ["The composite exports pulse.out as clock.tick.", "The finite fixture does not read wall time."],
       "solution": "Export one literal pulse and connect the metronome boundary to the display.",
       "accessibility": {"non_audio": "The tick is visible text; no sound or motion is required.", "reduced_motion": true}
+    },
+    {
+      "id": "patchbay.observes-patchbay",
+      "chapter": 3,
+      "title": "Patchbay observes Patchbay",
+      "prerequisites": ["panels.tiny-instrument"],
+      "objective": "Inspect the root patchbay.panel graph inside Patchbay itself.",
+      "prose": "Patchbay is an authored .panel graph. Witness its composite surfaces (authoring, presentation, observation) and inspect its own logical and expanded topology.",
+      "vocabulary": ["self-observation", "meta-panel", "composite surfaces"],
+      "source": "panel 1\n\ncomposite patchbay/authoring {\n    node editor : conduit/uppercase\n    node parser : conduit/uppercase\n    export input source_in = editor.in\n    export output parsed_out = parser.out\n    cord editor.out -> parser.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/presentation {\n    node layout : conduit/uppercase\n    node canvas : conduit/uppercase\n    export input positions_in = layout.in\n    export output rendered_out = canvas.out\n    cord layout.out -> canvas.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/observation {\n    node resolver : conduit/uppercase\n    node evidence_feed : conduit/uppercase\n    export input plan_in = resolver.in\n    export output telemetry_out = evidence_feed.out\n    cord resolver.out -> evidence_feed.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\nnode nav_selection : conduit/literal {\n    value = \"tour/meta-lesson\\n\"\n}\nnode authoring_surface : patchbay/authoring\nnode presentation_surface : patchbay/presentation\nnode observation_surface : patchbay/observation\nnode console_sink : conduit/stdout\n\ncord nav_selection.out -> authoring_surface.source_in {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord authoring_surface.parsed_out -> presentation_surface.positions_in {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord presentation_surface.rendered_out -> observation_surface.plan_in {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord observation_surface.telemetry_out -> console_sink.in {\n    capacity = 8\n    max_value_bytes = 8192\n    max_queued_bytes = 65536\n    low_watermark = 1\n    high_watermark = 8\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "expected_stdout": "TOUR/META-LESSON\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {"runtime_ticks": 32, "queue_bytes": 8192, "evidence_events": 32},
+      "presentation": {"layout": "logical-expanded", "show_plan": true},
+      "validation": {"kind": "stdout", "value": "TOUR/META-LESSON\n"},
+      "hints": ["Switch between Logical and Expanded topology to see Patchbay internals unfold.", "Running executes the exact self-observation pipeline."],
+      "solution": "Execute the patchbay.panel graph to observe Patchbay's own execution telemetry.",
+      "accessibility": {"non_audio": "The self-observation results and topology projections are visible as text.", "reduced_motion": true}
     }
   ]
 }

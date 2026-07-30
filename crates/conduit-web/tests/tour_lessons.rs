@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use conduit_runtime::{Registry, RunIo};
 use serde_json::Value;
 
-const REQUIRED_FOUNDATION_LESSONS: [&str; 14] = [
+const REQUIRED_FOUNDATION_LESSONS: [&str; 15] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -18,6 +18,7 @@ const REQUIRED_FOUNDATION_LESSONS: [&str; 14] = [
     "panels.inside-outside",
     "panels.reuse-without-copying",
     "panels.tiny-instrument",
+    "patchbay.observes-patchbay",
 ];
 
 #[test]
