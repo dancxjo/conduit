@@ -3,9 +3,12 @@
 use std::{collections::BTreeMap, convert::Infallible, fmt};
 
 use conduit_core::{
-    CanonicalError, CanonicalValue, ConfigFieldContract, ConfigIdentity, ConfigMutability,
-    ConfigRequirement, FieldDisposition, NodeContract, PortContract, SemanticHash, Sensitivity,
-    TypeContractRef,
+    CanonicalError, CanonicalValue, CompatibilityOutcome, ConfigContract, ConfigFieldContract,
+    ConfigIdentity, ConfigMutability, ConfigRequirement, ConnectionCardinality, Delivery,
+    DescriptorRef, Direction, FieldDisposition, Id, IdError, InterfaceMemberRequirement,
+    LossAcceptance, NodeContract, NodeInterfaceContract, NodeInterfaceContractRef,
+    NodeInterfaceMember, PortContract, PortFlowConstraints, Presence, SemanticHash, Sensitivity,
+    TemporalContract, TerminalContract, TypeContractRef, ValueCardinality, assess_node_interface,
 };
 use conduit_panel::{
     InstancePool, ModuleGraph, Panel, PoolAdmission, PoolCleanup, PoolSupervision, PortGroup,
@@ -199,6 +202,190 @@ pub trait SourceContractCatalog {
         expected: &OwnedTypeReference,
         value: &OwnedSemanticValue,
     ) -> Result<(), LiteralValidationError>;
+
+    fn node_contract(&self, _id: &str) -> Option<OwnedNodeContract> {
+        None
+    }
+    fn interface_contract(&self, _id: &str) -> Option<OwnedInterfaceContract> {
+        None
+    }
+}
+
+/// Owned port contract representation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedPortContract {
+    pub id: String,
+    pub direction: Direction,
+    pub value_type: OwnedTypeReference,
+    pub presence: Presence,
+    pub connections: ConnectionCardinality,
+    pub values: ValueCardinality,
+    pub delivery: Delivery,
+    pub temporal: TemporalContract,
+    pub terminal: TerminalContract,
+    pub sensitivity: Sensitivity,
+    pub loss: LossAcceptance,
+}
+
+impl OwnedPortContract {
+    #[must_use]
+    pub fn from_contract(port: &PortContract<'_>) -> Self {
+        Self {
+            id: port.id.as_str().to_owned(),
+            direction: port.direction,
+            value_type: port.value_type.into(),
+            presence: port.presence,
+            connections: port.connections,
+            values: port.values,
+            delivery: port.delivery,
+            temporal: port.temporal,
+            terminal: port.terminal,
+            sensitivity: port.sensitivity,
+            loss: port.flow.loss,
+        }
+    }
+
+    pub fn to_core<'a>(&'a self) -> Result<PortContract<'a>, IdError> {
+        Ok(PortContract {
+            id: Id::new(&self.id)?,
+            direction: self.direction,
+            value_type: TypeContractRef {
+                contract_id: Id::new(&self.value_type.id)?,
+                schema_version: self.value_type.schema_version,
+                semantic_hash: self.value_type.semantic_hash,
+            },
+            presence: self.presence,
+            connections: self.connections,
+            values: self.values,
+            delivery: self.delivery,
+            temporal: self.temporal,
+            terminal: self.terminal,
+            sensitivity: self.sensitivity,
+            flow: PortFlowConstraints { loss: self.loss },
+        })
+    }
+}
+
+/// Owned node contract representation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedNodeContract {
+    pub id: String,
+    pub inputs: Vec<OwnedPortContract>,
+    pub outputs: Vec<OwnedPortContract>,
+}
+
+impl OwnedNodeContract {
+    #[must_use]
+    pub fn from_contract(contract: &NodeContract<'_>) -> Self {
+        Self {
+            id: contract.id.as_str().to_owned(),
+            inputs: contract
+                .inputs
+                .iter()
+                .map(OwnedPortContract::from_contract)
+                .collect(),
+            outputs: contract
+                .outputs
+                .iter()
+                .map(OwnedPortContract::from_contract)
+                .collect(),
+        }
+    }
+
+    #[must_use]
+    pub fn semantic_hash(&self) -> SemanticHash {
+        let mut facts = Vec::new();
+        facts.push(hash_parts(
+            "conduit/owned-node-contract/v1",
+            &[self.id.as_str()],
+        ));
+        for p in &self.inputs {
+            if let Ok(core_p) = p.to_core() {
+                if let Ok(h) = core_p.semantic_hash() {
+                    facts.push(h);
+                }
+            }
+        }
+        for p in &self.outputs {
+            if let Ok(core_p) = p.to_core() {
+                if let Ok(h) = core_p.semantic_hash() {
+                    facts.push(h);
+                }
+            }
+        }
+        hash_facts("conduit/node-contract", &facts)
+    }
+}
+
+/// Owned interface member representation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedInterfaceMember {
+    pub requirement: InterfaceMemberRequirement,
+    pub id: String,
+    pub direction: Direction,
+    pub value_type: OwnedTypeReference,
+    pub presence: Presence,
+    pub connections: ConnectionCardinality,
+    pub values: ValueCardinality,
+    pub delivery: Delivery,
+    pub temporal: TemporalContract,
+    pub terminal: TerminalContract,
+    pub sensitivity: Sensitivity,
+    pub loss: LossAcceptance,
+}
+
+impl OwnedInterfaceMember {
+    pub fn to_core<'a>(&'a self) -> Result<NodeInterfaceMember<'a>, IdError> {
+        Ok(NodeInterfaceMember {
+            requirement: self.requirement,
+            port: PortContract {
+                id: Id::new(&self.id)?,
+                direction: self.direction,
+                value_type: TypeContractRef {
+                    contract_id: Id::new(&self.value_type.id)?,
+                    schema_version: self.value_type.schema_version,
+                    semantic_hash: self.value_type.semantic_hash,
+                },
+                presence: self.presence,
+                connections: self.connections,
+                values: self.values,
+                delivery: self.delivery,
+                temporal: self.temporal,
+                terminal: self.terminal,
+                sensitivity: self.sensitivity,
+                flow: PortFlowConstraints { loss: self.loss },
+            },
+        })
+    }
+}
+
+/// Owned interface contract representation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedInterfaceContract {
+    pub id: String,
+    pub schema_version: u32,
+    pub members: Vec<OwnedInterfaceMember>,
+    pub semantic_hash: SemanticHash,
+}
+
+impl OwnedInterfaceContract {
+    pub fn compute_semantic_hash(&self) -> Result<SemanticHash, IdError> {
+        let core_id = Id::new(&self.id)?;
+        let members = self
+            .members
+            .iter()
+            .map(|m| m.to_core())
+            .collect::<Result<Vec<_>, IdError>>()?;
+        let core_contract = NodeInterfaceContract {
+            id: core_id,
+            members: &members,
+            requirements: &[],
+        };
+        let mut scratch = vec![SemanticHash::from_bytes([0; 32]); members.len()];
+        core_contract
+            .semantic_hash(&mut scratch)
+            .map_err(|_| IdError::InvalidSlash)
+    }
 }
 
 /// Authored source location, including its content-identified module.
@@ -336,8 +523,10 @@ impl LoweredSource {
 pub const LOWERED_SOURCE_SCHEMA_V1: u16 = 1;
 pub const LOWERED_SOURCE_SCHEMA_V2: u16 = 2;
 pub const LOWERED_SOURCE_SCHEMA_V3: u16 = 3;
+pub const LOWERED_SOURCE_SCHEMA_V4: u16 = 4;
 pub const SOURCE_AST_SCHEMA_V2: u16 = conduit_panel::SOURCE_AST_SCHEMA_V2;
 pub const SOURCE_AST_SCHEMA_V3: u16 = conduit_panel::SOURCE_AST_SCHEMA_V3;
+pub const SOURCE_AST_SCHEMA_V4: u16 = conduit_panel::SOURCE_AST_SCHEMA_V4;
 
 /// Corrected root-selection input to lowering. Selection mode is explanatory;
 /// equivalent explicit and sole-root selections share semantic identity.
@@ -463,12 +652,70 @@ pub struct LoweredSourceV3 {
     pub semantic_hash: SemanticHash,
 }
 
+/// Member-level satisfaction proof retained in lowered source schema 4.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredInterfaceMemberProofV4 {
+    pub member_id: String,
+    pub direction: String,
+    pub requirement: String,
+    pub outcome: String,
+    pub reason: String,
+}
+
+/// Node interface satisfaction proof retained in lowered source schema 4.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredInterfaceProofV4 {
+    pub path: String,
+    pub interface_id: String,
+    pub interface_hash: SemanticHash,
+    pub candidate_hash: SemanticHash,
+    pub outcome: String,
+    pub reason: String,
+    pub member_proofs: Vec<LoweredInterfaceMemberProofV4>,
+    pub semantic_hash: SemanticHash,
+    pub origin: SourceOrigin,
+}
+
+/// Schema version 4 lowered source retaining node-interface satisfaction evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LoweredSourceV4 {
+    pub schema_version: u16,
+    pub source_ast_schema_version: u16,
+    pub v3: Box<LoweredSourceV3>,
+    pub interface_proofs: Vec<LoweredInterfaceProofV4>,
+    pub source_map: Vec<SourceMapEntry>,
+    pub semantic_hash: SemanticHash,
+}
+
 /// Explicit read/lower result for persisted schema selection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VersionedLoweredSource {
     V1(LoweredSource),
     V2(Box<LoweredSourceV2>),
     V3(Box<LoweredSourceV3>),
+    V4(Box<LoweredSourceV4>),
+}
+
+impl VersionedLoweredSource {
+    #[must_use]
+    pub fn schema_version(&self) -> u16 {
+        match self {
+            Self::V1(_) => LOWERED_SOURCE_SCHEMA_V1,
+            Self::V2(_) => LOWERED_SOURCE_SCHEMA_V2,
+            Self::V3(_) => LOWERED_SOURCE_SCHEMA_V3,
+            Self::V4(_) => LOWERED_SOURCE_SCHEMA_V4,
+        }
+    }
+
+    #[must_use]
+    pub fn semantic_hash(&self) -> SemanticHash {
+        match self {
+            Self::V1(s) => s.semantic_hash,
+            Self::V2(s) => s.semantic_hash,
+            Self::V3(s) => s.semantic_hash,
+            Self::V4(s) => s.semantic_hash,
+        }
+    }
 }
 
 /// Structured, value-safe lowering diagnostic.
@@ -863,6 +1110,534 @@ pub fn lower_source_v3(
     })
 }
 
+/// Lowers schema version 4 retaining interface satisfaction proofs.
+pub fn lower_source_v4(
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+) -> Result<LoweredSourceV4, LoweringDiagnostic> {
+    if graph.modules.iter().any(|module| module.panel.version > 2) {
+        return Err(diagnostic(
+            "CND-LWR-011",
+            &graph.entry_uri,
+            None,
+            None,
+            "source grammar is newer than lowered-source schema 4",
+        ));
+    }
+    let v3 = lower_source_v3(graph, catalog)?;
+    let mut source_map = v3.source_map.clone();
+    let mut interface_proofs = Vec::new();
+
+    for module in &graph.modules {
+        let uri = &module.canonical_uri;
+        for node in &module.panel.nodes {
+            for claim in &node.implements {
+                let path = format!("{uri}/node/{}", node.id);
+                let claim_origin = origin(uri, &module.content_hash, claim.source_span);
+                let proof = prove_interface_claim(
+                    path.clone(),
+                    &claim.interface,
+                    &node.kind,
+                    None,
+                    module,
+                    graph,
+                    catalog,
+                    claim_origin.clone(),
+                )?;
+                interface_proofs.push(proof);
+                source_map.push(SourceMapEntry {
+                    semantic_path: path,
+                    origins: vec![claim_origin],
+                });
+            }
+        }
+        for definition in &module.panel.definitions {
+            for claim in &definition.implements {
+                let path = format!("{uri}/definition/{}", definition.id);
+                let claim_origin = origin(uri, &module.content_hash, claim.source_span);
+                let proof = prove_interface_claim(
+                    path.clone(),
+                    &claim.interface,
+                    &definition.id,
+                    Some(definition),
+                    module,
+                    graph,
+                    catalog,
+                    claim_origin.clone(),
+                )?;
+                interface_proofs.push(proof);
+                source_map.push(SourceMapEntry {
+                    semantic_path: path,
+                    origins: vec![claim_origin],
+                });
+            }
+        }
+    }
+
+    interface_proofs.sort_by(|left, right| {
+        left.path
+            .cmp(&right.path)
+            .then_with(|| left.interface_id.cmp(&right.interface_id))
+    });
+
+    let mut facts = Vec::with_capacity(1 + interface_proofs.len());
+    facts.push(v3.semantic_hash);
+    facts.extend(interface_proofs.iter().map(|proof| proof.semantic_hash));
+    facts.extend(graph.modules.iter().map(|module| {
+        let source_hash = conduit_panel::semantic_source_hash_v4(&module.panel);
+        hash_parts(
+            "conduit/source-ast-reference/v4",
+            &[&module.canonical_uri, &source_hash],
+        )
+    }));
+    facts.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
+    let semantic_hash = hash_facts_v4(&facts);
+
+    Ok(LoweredSourceV4 {
+        schema_version: LOWERED_SOURCE_SCHEMA_V4,
+        source_ast_schema_version: SOURCE_AST_SCHEMA_V4,
+        v3: Box::new(v3),
+        interface_proofs,
+        source_map,
+        semantic_hash,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prove_interface_claim(
+    path: String,
+    interface_id: &str,
+    candidate_kind: &str,
+    definition: Option<&conduit_panel::CompositeDefinition>,
+    module: &conduit_panel::ResolvedModule,
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+    claim_origin: SourceOrigin,
+) -> Result<LoweredInterfaceProofV4, LoweringDiagnostic> {
+    let interface =
+        resolve_interface_contract(interface_id, module, graph, catalog, &path, &claim_origin)?;
+    let candidate = if let Some(def) = definition {
+        resolve_composite_candidate_contract(def, module, graph, catalog, &path, &claim_origin)?
+    } else {
+        resolve_primitive_candidate_contract(candidate_kind, catalog, &path, &claim_origin)?
+    };
+
+    let core_interface_id = Id::new(&interface.id).map_err(|_| {
+        diagnostic(
+            "CND-LWR-013",
+            &path,
+            None,
+            Some(claim_origin.clone()),
+            format!("invalid interface id `{}`", interface.id),
+        )
+    })?;
+    let core_members = interface
+        .members
+        .iter()
+        .map(|m| m.to_core())
+        .collect::<Result<Vec<_>, IdError>>()
+        .map_err(|_| {
+            diagnostic(
+                "CND-LWR-013",
+                &path,
+                None,
+                Some(claim_origin.clone()),
+                "invalid member port in interface contract",
+            )
+        })?;
+    let core_interface_contract = NodeInterfaceContract {
+        id: core_interface_id,
+        members: &core_members,
+        requirements: &[],
+    };
+
+    let core_candidate_id = Id::new(&candidate.id).map_err(|_| {
+        diagnostic(
+            "CND-LWR-013",
+            &path,
+            None,
+            Some(claim_origin.clone()),
+            format!("invalid candidate id `{}`", candidate.id),
+        )
+    })?;
+    let core_inputs = candidate
+        .inputs
+        .iter()
+        .map(|p| p.to_core())
+        .collect::<Result<Vec<_>, IdError>>()
+        .map_err(|_| {
+            diagnostic(
+                "CND-LWR-013",
+                &path,
+                None,
+                Some(claim_origin.clone()),
+                "invalid input port in candidate node contract",
+            )
+        })?;
+    let core_outputs = candidate
+        .outputs
+        .iter()
+        .map(|p| p.to_core())
+        .collect::<Result<Vec<_>, IdError>>()
+        .map_err(|_| {
+            diagnostic(
+                "CND-LWR-013",
+                &path,
+                None,
+                Some(claim_origin.clone()),
+                "invalid output port in candidate node contract",
+            )
+        })?;
+    let core_candidate_contract = NodeContract {
+        id: core_candidate_id,
+        config: ConfigContract { fields: &[] },
+        inputs: &core_inputs,
+        outputs: &core_outputs,
+    };
+
+    let candidate_hash = candidate.semantic_hash();
+    let interface_ref = NodeInterfaceContractRef {
+        contract_id: core_interface_id,
+        schema_version: interface.schema_version,
+        semantic_hash: interface.semantic_hash,
+    };
+    let candidate_ref = DescriptorRef {
+        kind: Id("conduit/node-contract"),
+        schema_version: 1,
+        semantic_hash: candidate_hash,
+    };
+
+    let mut member_scratch = vec![
+        conduit_core::NodeInterfaceMemberProof {
+            required: NodeInterfaceMember {
+                requirement: InterfaceMemberRequirement::Required,
+                port: PortContract {
+                    id: Id(""),
+                    direction: Direction::Input,
+                    value_type: TypeContractRef {
+                        contract_id: Id(""),
+                        schema_version: 1,
+                        semantic_hash: SemanticHash::from_bytes([0; 32]),
+                    },
+                    presence: Presence::Required,
+                    connections: ConnectionCardinality::ZeroOrMore,
+                    values: ValueCardinality::ExactlyOne,
+                    delivery: Delivery::Stream,
+                    temporal: TemporalContract::Committed,
+                    terminal: TerminalContract::Either,
+                    sensitivity: Sensitivity::Public,
+                    flow: PortFlowConstraints {
+                        loss: LossAcceptance::LosslessOnly,
+                    },
+                },
+            },
+            offered: None,
+            type_decision: None,
+            port_decision: None,
+            outcome: CompatibilityOutcome::Incompatible,
+            reason: conduit_core::NodeInterfaceMemberReason::MissingRequired,
+        };
+        interface.members.len()
+    ];
+    let mut req_scratch = Vec::new();
+    let fact_count = interface.members.len();
+    let mut hash_scratch1 = vec![SemanticHash::from_bytes([0; 32]); fact_count];
+    let mut hash_scratch2 = vec![SemanticHash::from_bytes([0; 32]); fact_count];
+
+    let proof_result = assess_node_interface(
+        &core_interface_contract,
+        interface_ref,
+        candidate_ref,
+        &core_candidate_contract,
+        &[],
+        &[],
+        &mut member_scratch,
+        &mut req_scratch,
+        &mut hash_scratch1,
+        &mut hash_scratch2,
+    );
+
+    let proof = match proof_result {
+        Ok(p) => p,
+        Err(err) => {
+            return Err(diagnostic(
+                "CND-LWR-013",
+                &path,
+                None,
+                Some(claim_origin),
+                format!("node interface assessment error: {}", err.as_str()),
+            ));
+        }
+    };
+
+    if proof.outcome != CompatibilityOutcome::Compatible {
+        return Err(diagnostic(
+            "CND-LWR-013",
+            &path,
+            None,
+            Some(claim_origin),
+            format!(
+                "interface contract `{interface_id}` satisfaction failed: {}",
+                proof.reason.as_str()
+            ),
+        ));
+    }
+
+    let member_proofs = proof
+        .members
+        .iter()
+        .map(|m| LoweredInterfaceMemberProofV4 {
+            member_id: m.required.port.id.as_str().to_owned(),
+            direction: match m.required.port.direction {
+                Direction::Input => "input".to_owned(),
+                Direction::Output => "output".to_owned(),
+            },
+            requirement: match m.required.requirement {
+                InterfaceMemberRequirement::Required => "required".to_owned(),
+                InterfaceMemberRequirement::Optional => "optional".to_owned(),
+            },
+            outcome: match m.outcome {
+                CompatibilityOutcome::Compatible => "compatible".to_owned(),
+                CompatibilityOutcome::Incompatible => "incompatible".to_owned(),
+                CompatibilityOutcome::Indeterminate => "indeterminate".to_owned(),
+            },
+            reason: m.reason.as_str().to_owned(),
+        })
+        .collect();
+
+    Ok(LoweredInterfaceProofV4 {
+        path,
+        interface_id: interface_id.to_owned(),
+        interface_hash: interface.semantic_hash,
+        candidate_hash,
+        outcome: "compatible".to_owned(),
+        reason: proof.reason.as_str().to_owned(),
+        member_proofs,
+        semantic_hash: proof.identity,
+        origin: claim_origin,
+    })
+}
+
+fn resolve_interface_contract(
+    interface_id: &str,
+    module: &conduit_panel::ResolvedModule,
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+    path: &str,
+    origin: &SourceOrigin,
+) -> Result<OwnedInterfaceContract, LoweringDiagnostic> {
+    if let Some((alias, member_name)) = interface_id.split_once('.') {
+        if let Some(import) = module.panel.imports.iter().find(|imp| imp.alias == alias) {
+            if let Some(imported_mod) = graph
+                .modules
+                .iter()
+                .find(|m| m.canonical_uri == import.target)
+            {
+                if let Some(decl) = imported_mod
+                    .panel
+                    .interfaces
+                    .iter()
+                    .find(|iface| iface.id == member_name)
+                {
+                    return interface_decl_to_owned(decl, catalog);
+                }
+            }
+        }
+    } else if let Some(decl) = module
+        .panel
+        .interfaces
+        .iter()
+        .find(|iface| iface.id == interface_id)
+    {
+        return interface_decl_to_owned(decl, catalog);
+    }
+
+    if let Some(contract) = catalog.interface_contract(interface_id) {
+        return Ok(contract);
+    }
+
+    Err(diagnostic(
+        "CND-LWR-013",
+        path,
+        None,
+        Some(origin.clone()),
+        format!("interface contract `{interface_id}` unavailable in catalog or module graph"),
+    ))
+}
+
+fn resolve_primitive_candidate_contract(
+    kind: &str,
+    catalog: &impl SourceContractCatalog,
+    path: &str,
+    origin: &SourceOrigin,
+) -> Result<OwnedNodeContract, LoweringDiagnostic> {
+    if let Some(contract) = catalog.node_contract(kind) {
+        return Ok(contract);
+    }
+
+    if let Some(schema) = catalog.node_schema(kind) {
+        return Ok(OwnedNodeContract {
+            id: schema.id,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+        });
+    }
+
+    Err(diagnostic(
+        "CND-LWR-013",
+        path,
+        None,
+        Some(origin.clone()),
+        format!("candidate node contract `{kind}` unavailable in catalog"),
+    ))
+}
+
+#[allow(clippy::only_used_in_recursion)]
+fn resolve_composite_candidate_contract(
+    definition: &conduit_panel::CompositeDefinition,
+    module: &conduit_panel::ResolvedModule,
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+    path: &str,
+    origin: &SourceOrigin,
+) -> Result<OwnedNodeContract, LoweringDiagnostic> {
+    let mut inputs = Vec::new();
+    let mut outputs = Vec::new();
+
+    for export in &definition.exports {
+        let child = definition
+            .nodes
+            .iter()
+            .find(|n| n.id == export.target.node)
+            .ok_or_else(|| {
+                diagnostic(
+                    "CND-LWR-013",
+                    path,
+                    None,
+                    Some(origin.clone()),
+                    format!(
+                        "export `{}` targets unknown child node `{}`",
+                        export.id, export.target.node
+                    ),
+                )
+            })?;
+
+        let child_contract = if let Some(child_def) =
+            module.panel.definitions.iter().find(|d| d.id == child.kind)
+        {
+            resolve_composite_candidate_contract(child_def, module, graph, catalog, path, origin)?
+        } else {
+            resolve_primitive_candidate_contract(&child.kind, catalog, path, origin)?
+        };
+
+        let matching_port = match export.direction {
+            conduit_panel::ExportDirection::Input => child_contract
+                .inputs
+                .iter()
+                .find(|p| p.id == export.target.port),
+            conduit_panel::ExportDirection::Output => child_contract
+                .outputs
+                .iter()
+                .find(|p| p.id == export.target.port),
+        }
+        .ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-013",
+                path,
+                None,
+                Some(origin.clone()),
+                format!(
+                    "export `{}` targets unknown child port `{}.{}`",
+                    export.id, export.target.node, export.target.port
+                ),
+            )
+        })?;
+
+        let mut exported_port = matching_port.clone();
+        exported_port.id = export.id.clone();
+        match export.direction {
+            conduit_panel::ExportDirection::Input => inputs.push(exported_port),
+            conduit_panel::ExportDirection::Output => outputs.push(exported_port),
+        }
+    }
+
+    Ok(OwnedNodeContract {
+        id: definition.id.clone(),
+        inputs,
+        outputs,
+    })
+}
+
+fn interface_decl_to_owned(
+    decl: &conduit_panel::InterfaceDeclaration,
+    catalog: &impl SourceContractCatalog,
+) -> Result<OwnedInterfaceContract, LoweringDiagnostic> {
+    let mut members = Vec::new();
+    for m in &decl.members {
+        let direction = match m.direction {
+            conduit_panel::ExportDirection::Input => Direction::Input,
+            conduit_panel::ExportDirection::Output => Direction::Output,
+        };
+        let value_type = catalog.type_reference(&m.port_contract).ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-013",
+                &decl.id,
+                None,
+                None,
+                format!(
+                    "type contract `{}` for interface member `{}` unavailable in catalog",
+                    m.port_contract, m.id
+                ),
+            )
+        })?;
+        let requirement = if m.optional {
+            InterfaceMemberRequirement::Optional
+        } else {
+            InterfaceMemberRequirement::Required
+        };
+        members.push(OwnedInterfaceMember {
+            requirement,
+            id: m.id.clone(),
+            direction,
+            value_type,
+            presence: Presence::Required,
+            connections: ConnectionCardinality::ZeroOrMore,
+            values: ValueCardinality::ExactlyOne,
+            delivery: Delivery::Stream,
+            temporal: TemporalContract::Committed,
+            terminal: TerminalContract::Either,
+            sensitivity: Sensitivity::Public,
+            loss: LossAcceptance::LosslessOnly,
+        });
+    }
+
+    let mut owned = OwnedInterfaceContract {
+        id: decl.id.clone(),
+        schema_version: 1,
+        members,
+        semantic_hash: SemanticHash::from_bytes([0; 32]),
+    };
+    owned.semantic_hash = owned.compute_semantic_hash().map_err(|_| {
+        diagnostic(
+            "CND-LWR-013",
+            &decl.id,
+            None,
+            None,
+            format!("invalid interface identifier `{}`", decl.id),
+        )
+    })?;
+    Ok(owned)
+}
+
+fn hash_facts_v4(facts: &[SemanticHash]) -> SemanticHash {
+    let mut digest = Sha256::new();
+    digest.update(b"conduit.lowered-source/v4\0");
+    for fact in facts {
+        digest.update(fact.as_bytes());
+    }
+    SemanticHash::from_bytes(digest.finalize().into())
+}
+
 /// Selects a persisted lowering schema explicitly.
 pub fn lower_source_version(
     schema_version: u16,
@@ -877,6 +1652,9 @@ pub fn lower_source_version(
         LOWERED_SOURCE_SCHEMA_V3 => lower_source_v3(graph, catalog)
             .map(Box::new)
             .map(VersionedLoweredSource::V3),
+        LOWERED_SOURCE_SCHEMA_V4 => lower_source_v4(graph, catalog)
+            .map(Box::new)
+            .map(VersionedLoweredSource::V4),
         _ => Err(diagnostic(
             "CND-LWR-011",
             &graph.entry_uri,

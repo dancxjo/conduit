@@ -83,14 +83,17 @@ pub use scheduler::{
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LOWERED_SOURCE_SCHEMA_V3,
-    LiteralValidationError, LoweredBindingV2, LoweredCompositeChildV2, LoweredCompositeV2,
-    LoweredConfigEntry, LoweredConfigValue, LoweredCordV2, LoweredExportV2, LoweredGroupPort,
-    LoweredNode, LoweredNodeV2, LoweredPool, LoweredRootSelectionV2, LoweredSource,
-    LoweredSourceV2, LoweredSourceV3, LoweredSupervisionV3, LoweringDiagnostic,
-    OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference,
-    OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3,
+    LOWERED_SOURCE_SCHEMA_V4, LiteralValidationError, LoweredBindingV2, LoweredCompositeChildV2,
+    LoweredCompositeV2, LoweredConfigEntry, LoweredConfigValue, LoweredCordV2, LoweredExportV2,
+    LoweredGroupPort, LoweredInterfaceMemberProofV4, LoweredInterfaceProofV4, LoweredNode,
+    LoweredNodeV2, LoweredPool, LoweredRootSelectionV2, LoweredSource, LoweredSourceV2,
+    LoweredSourceV3, LoweredSourceV4, LoweredSupervisionV3, LoweringDiagnostic,
+    OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract, OwnedInterfaceMember,
+    OwnedNodeContract, OwnedNodeSchema, OwnedPortContract, OwnedPortReference, OwnedSemanticValue,
+    OwnedTypeReference, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3, SOURCE_AST_SCHEMA_V4,
     SourceContractCatalog, SourceMapEntry, SourceOrigin, VersionedLoweredSource, lower_source,
-    lower_source_v2, lower_source_v3, lower_source_version, migrate_lowered_source_v1,
+    lower_source_v2, lower_source_v3, lower_source_v4, lower_source_version,
+    migrate_lowered_source_v1,
 };
 pub use supervision::BoundedSupervisionRuntime;
 pub use transition::{
@@ -317,7 +320,14 @@ struct RegisteredNode {
 /// Registry identity and discovery are deliberately above `conduit-core`.
 pub struct Registry {
     nodes: BTreeMap<&'static str, RegisteredNode>,
+    interfaces: BTreeMap<String, OwnedInterfaceContract>,
     types: TypeRegistry,
+}
+
+impl Registry {
+    pub fn register_interface(&mut self, interface: OwnedInterfaceContract) {
+        self.interfaces.insert(interface.id.clone(), interface);
+    }
 }
 
 impl Default for Registry {
@@ -375,7 +385,11 @@ impl Default for Registry {
         types
             .register(BuiltinTypeProvider)
             .expect("built-in type namespace is unique and valid");
-        Self { nodes, types }
+        Self {
+            nodes,
+            interfaces: BTreeMap::new(),
+            types,
+        }
     }
 }
 
@@ -523,6 +537,16 @@ impl SourceContractCatalog for Registry {
         self.nodes
             .get(id)
             .map(|registered| OwnedNodeSchema::from_contract(registered.contract))
+    }
+
+    fn node_contract(&self, id: &str) -> Option<OwnedNodeContract> {
+        self.nodes
+            .get(id)
+            .map(|registered| OwnedNodeContract::from_contract(registered.contract))
+    }
+
+    fn interface_contract(&self, id: &str) -> Option<OwnedInterfaceContract> {
+        self.interfaces.get(id).cloned()
     }
 
     fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {

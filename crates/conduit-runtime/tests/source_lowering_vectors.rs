@@ -114,7 +114,10 @@ impl SourceContractCatalog for Catalog {
                     OwnedConfigRequirement::Required,
                 ),
             ],
-            "fixture/handler" => Vec::new(),
+            "fixture/handler"
+            | "fixture/speech-node"
+            | "fixture/incomplete-node"
+            | "fixture/swapped-directions" => Vec::new(),
             _ => return None,
         };
         Some(OwnedNodeSchema {
@@ -138,6 +141,68 @@ impl SourceContractCatalog for Catalog {
             id: id.to_owned(),
             direction,
             semantic_hash: Self::type_ref(id).semantic_hash,
+        })
+    }
+
+    fn node_contract(&self, id: &str) -> Option<conduit_runtime::OwnedNodeContract> {
+        fn port(
+            id: &str,
+            dir: conduit_core::Direction,
+            type_id: &str,
+        ) -> conduit_runtime::OwnedPortContract {
+            conduit_runtime::OwnedPortContract {
+                id: id.to_owned(),
+                direction: dir,
+                value_type: Catalog::type_ref(type_id),
+                presence: conduit_core::Presence::Required,
+                connections: conduit_core::ConnectionCardinality::ZeroOrMore,
+                values: conduit_core::ValueCardinality::ExactlyOne,
+                delivery: conduit_core::Delivery::Stream,
+                temporal: conduit_core::TemporalContract::Committed,
+                terminal: conduit_core::TerminalContract::Either,
+                sensitivity: Sensitivity::Public,
+                loss: conduit_core::LossAcceptance::LosslessOnly,
+            }
+        }
+        let (inputs, outputs) = match id {
+            "fixture/speech-node" => (
+                vec![port(
+                    "audio",
+                    conduit_core::Direction::Input,
+                    "fixture/text",
+                )],
+                vec![port(
+                    "final",
+                    conduit_core::Direction::Output,
+                    "fixture/text",
+                )],
+            ),
+            "fixture/incomplete-node" => (
+                vec![port(
+                    "audio",
+                    conduit_core::Direction::Input,
+                    "fixture/text",
+                )],
+                Vec::new(),
+            ),
+            "fixture/swapped-directions" => (
+                vec![port(
+                    "final",
+                    conduit_core::Direction::Input,
+                    "fixture/text",
+                )],
+                vec![port(
+                    "audio",
+                    conduit_core::Direction::Output,
+                    "fixture/text",
+                )],
+            ),
+            _ => return None,
+        };
+        Some(conduit_runtime::OwnedNodeContract {
+            id: id.to_owned(),
+            inputs,
+            outputs,
         })
     }
 
@@ -1094,4 +1159,30 @@ fn groups_and_pools_lower_to_finite_plan_visible_specs() {
             .iter()
             .all(|entry| !entry.origins.is_empty())
     );
+}
+
+#[test]
+fn every_normative_panel_interface_satisfaction_v1_vector_has_the_exact_result() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c3/panel-interface-satisfaction-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["source_ast_schema_version"], 4);
+    assert_eq!(fixture["lowering_schema_version"], 4);
+
+    for case in fixture["cases"].as_array().unwrap() {
+        let id = case["id"].as_str().unwrap();
+        let expected = &case["expected"];
+        let actual = match case["assertion"].as_str().unwrap() {
+            "diagnostic" => {
+                let graph = fixture_graph(case, "source").unwrap();
+                match conduit_runtime::lower_source_v4(&graph, &Catalog) {
+                    Ok(_) => json!({"outcome": "accepted"}),
+                    Err(error) => json!({"outcome": "rejected", "code": error.code}),
+                }
+            }
+            assertion => panic!("{id}: unknown assertion {assertion}"),
+        };
+        assert_eq!(actual, *expected, "{id}");
+    }
 }

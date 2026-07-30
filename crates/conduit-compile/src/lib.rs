@@ -47,10 +47,11 @@ use conduit_core::{
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
     CandidateAuthority, CapabilityPredicate, ExactTopologyView, HostResolverPolicy,
-    LiteralValidationError, OwnedNodeSchema, OwnedPortReference, OwnedSemanticValue,
-    OwnedTypeReference, PlacementCandidate, PlacementRequest, Registry, ResolverTiePolicy,
-    ResourcePredicate, SourceContractCatalog, TopologyPredicate, lower_source_v2, lower_source_v3,
-    resolve_host_placement, seal_resolved_execution_plan, validate_hosted_execution_plan,
+    LiteralValidationError, OwnedInterfaceContract, OwnedNodeContract, OwnedNodeSchema,
+    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, PlacementCandidate,
+    PlacementRequest, Registry, ResolverTiePolicy, ResourcePredicate, SourceContractCatalog,
+    TopologyPredicate, lower_source_v2, lower_source_v4, resolve_host_placement,
+    seal_resolved_execution_plan, validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -924,6 +925,8 @@ pub struct CompileCatalogDocument {
     pub nodes: Vec<PinDocument>,
     pub types: Vec<PinDocument>,
     pub ports: Vec<PinDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub interfaces: Vec<PinDocument>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1694,6 +1697,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?,
+        interfaces: Vec::new(),
     };
     canonicalize_catalog(&mut catalog);
     catalog.identity = catalog_identity(&catalog)?;
@@ -1726,6 +1730,20 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
         let schema = self.registry.node_schema(id)?;
         (pin.schema_version == 1 && pin.semantic_hash == schema.semantic_hash().to_string())
             .then_some(schema)
+    }
+
+    fn node_contract(&self, id: &str) -> Option<OwnedNodeContract> {
+        let pin = self.exact_pin(&self.document.nodes, id)?;
+        let contract = self.registry.node_contract(id)?;
+        (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash().to_string())
+            .then_some(contract)
+    }
+
+    fn interface_contract(&self, id: &str) -> Option<OwnedInterfaceContract> {
+        let pin = self.exact_pin(&self.document.interfaces, id)?;
+        let contract = self.registry.interface_contract(id)?;
+        (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash.to_string())
+            .then_some(contract)
     }
 
     fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
@@ -1866,11 +1884,11 @@ fn lower_compile_source(
 ) -> Result<CompileLoweredSource, CompileError> {
     let catalog = PinnedCatalog::new(catalog)?;
     if graph.modules.iter().any(|module| module.panel.version >= 2) {
-        let lowered = lower_source_v3(graph, &catalog)
+        let lowered = lower_source_v4(graph, &catalog)
             .map_err(|_| CompileError::new(CompileReason::LoweringFailed))?;
         Ok(CompileLoweredSource {
-            topology: *lowered.topology,
-            supervisions: lowered.supervisions,
+            topology: *lowered.v3.topology,
+            supervisions: lowered.v3.supervisions,
             semantic_hash: lowered.semantic_hash,
         })
     } else {
