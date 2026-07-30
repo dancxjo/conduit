@@ -802,8 +802,8 @@ function selectCord(cordId) {
 function selectPort(nodeId, port) {
   const cord = (patchbayView?.topology?.cords || []).find((candidate) =>
     port.direction === "input"
-      ? candidate.to_node === nodeId && candidate.to_port === port.id
-      : candidate.from_node === nodeId && candidate.from_port === port.id
+      ? candidate.to_port_path === port.semantic_path
+      : candidate.from_port_path === port.semantic_path
   );
   if (cord) {
     const range = port.direction === "input"
@@ -903,8 +903,12 @@ function check() {
 
 function renderTopology() {
   const explanation = JSON.parse(explain_panel(source.value));
-  document.querySelector("#logical-view").classList.toggle("active", topologyView === "logical");
-  document.querySelector("#expanded-view").classList.toggle("active", topologyView === "expanded");
+  const logicalButton = document.querySelector("#logical-view");
+  const expandedButton = document.querySelector("#expanded-view");
+  logicalButton.classList.toggle("active", topologyView === "logical");
+  logicalButton.setAttribute("aria-pressed", String(topologyView === "logical"));
+  expandedButton.classList.toggle("active", topologyView === "expanded");
+  expandedButton.setAttribute("aria-pressed", String(topologyView === "expanded"));
   document.querySelector("#topology").textContent = explanation.ok
     ? explanation[topologyView]
     : explanation.diagnostic;

@@ -188,11 +188,31 @@ test("covers Chapters 0-3 and exposes production topology projections", async ({
   await expect(page.locator("#lessons > li")).toHaveCount(20);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
+  await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
+  const logicalReceiving = page.locator("#panel-port-list").getByRole("button", {
+    name: /box, in, receiving port, type std\/text/,
+  });
+  const logicalOutgoing = page.locator("#panel-port-list").getByRole("button", {
+    name: /box, out, outgoing port, type std\/text/,
+  });
+  await expect(logicalReceiving).toContainText("box: > in");
+  await expect(logicalOutgoing).toContainText("box: out >");
+  await logicalReceiving.click();
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected in, receiving port: root/box/port/receiving/in",
+  );
+  await expect(page.locator(".panel-source-selection")).toHaveText("in");
   await page.locator("#expanded-view").click();
+  await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#topology")).toContainText(
     "box.worker : text/uppercase",
   );
+  await expect(page.locator("#panel-port-list")).toContainText("box.worker: > in");
+  await expect(page.locator("#panel-port-list")).toContainText("box.worker: out >");
   await page.locator("#logical-view").click();
+  await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#topology")).toContainText(
     "composite box : example/upper-box",
   );
@@ -267,6 +287,51 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
     exact: true,
   })).toContainText("out >");
   await greeting.getByTitle("Expand Faceplate").click();
+});
+
+test("keeps semantic port direction redundant across presentation media", async ({ page }) => {
+  await page.emulateMedia({
+    colorScheme: "light",
+    forcedColors: "active",
+    reducedMotion: "reduce",
+  });
+  await page.goto("/tour/public/index.html");
+  const receiving = page.locator(".react-flow__node").getByRole("button", {
+    name: "in, receiving port; type std/text",
+    exact: true,
+  });
+  const outgoing = page.locator(".react-flow__node").getByRole("button", {
+    name: "out, outgoing port; type std/text",
+    exact: true,
+  });
+  await expect(receiving).toContainText("> in");
+  await expect(outgoing).toContainText("out >");
+  await expect(receiving.locator("..")).toHaveAttribute(
+    "data-port-direction",
+    "receiving",
+  );
+  await expect(outgoing.locator("..")).toHaveAttribute(
+    "data-port-direction",
+    "outgoing",
+  );
+  await expect(page.locator(".patchbay-smart-cord").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = "200%";
+  });
+  await expect(receiving).toBeVisible();
+  await expect(outgoing).toBeVisible();
+
+  await page.emulateMedia({
+    colorScheme: "dark",
+    forcedColors: "none",
+    reducedMotion: "no-preference",
+  });
+  await expect(receiving).toContainText("> in");
+  await expect(outgoing).toContainText("out >");
 });
 
 test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
