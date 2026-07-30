@@ -22,6 +22,67 @@ pub enum LineError {
     JoinedOutputTooLarge,
 }
 
+/// Allocator-free incremental UTF-8 validator.
+///
+/// Each call validates exactly one byte, allowing hosted drivers to account
+/// scanning work before performing it.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Utf8State {
+    remaining: u8,
+    next_min: u8,
+    next_max: u8,
+}
+
+impl Utf8State {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            remaining: 0,
+            next_min: 0x80,
+            next_max: 0xbf,
+        }
+    }
+
+    pub fn push_byte(&mut self, byte: u8) -> Result<(), LineError> {
+        if self.remaining > 0 {
+            if byte < self.next_min || byte > self.next_max {
+                return Err(LineError::InvalidUtf8);
+            }
+            self.remaining -= 1;
+            self.next_min = 0x80;
+            self.next_max = 0xbf;
+            return Ok(());
+        }
+        let (remaining, next_min, next_max) = match byte {
+            0x00..=0x7f => (0, 0x80, 0xbf),
+            0xc2..=0xdf => (1, 0x80, 0xbf),
+            0xe0 => (2, 0xa0, 0xbf),
+            0xe1..=0xec | 0xee..=0xef => (2, 0x80, 0xbf),
+            0xed => (2, 0x80, 0x9f),
+            0xf0 => (3, 0x90, 0xbf),
+            0xf1..=0xf3 => (3, 0x80, 0xbf),
+            0xf4 => (3, 0x80, 0x8f),
+            _ => return Err(LineError::InvalidUtf8),
+        };
+        self.remaining = remaining;
+        self.next_min = next_min;
+        self.next_max = next_max;
+        Ok(())
+    }
+
+    pub fn finish(&self) -> Result<(), LineError> {
+        if self.remaining == 0 {
+            Ok(())
+        } else {
+            Err(LineError::InvalidUtf8)
+        }
+    }
+
+    pub fn reset(&mut self) {
+        *self = Self::new();
+    }
+}
+
 impl LineError {
     #[must_use]
     pub const fn code(self) -> &'static str {
@@ -41,12 +102,13 @@ impl LineError {
 ///
 /// Delimiters are removed. Empty lines are emitted. A final unterminated,
 /// non-empty prefix is emitted by [`Self::finish`]. UTF-8 is validated per
-/// complete logical line, so a code point may cross input chunk boundaries.
+/// accepted byte, so a code point may cross input chunk boundaries.
 pub struct LinesState {
     retained: [u8; LINES_MAX_RETAINED_PREFIX_BYTES],
     retained_len: usize,
     ready_len: Option<usize>,
     finished: bool,
+    utf8: Utf8State,
 }
 
 impl Default for LinesState {
@@ -63,6 +125,7 @@ impl LinesState {
             retained_len: 0,
             ready_len: None,
             finished: false,
+            utf8: Utf8State::new(),
         }
     }
 
@@ -72,13 +135,14 @@ impl LinesState {
         if self.ready_len.is_some() || self.finished {
             return Err(LineError::OutputTooSmall);
         }
+        self.utf8.push_byte(byte)?;
         if byte == b'\n' {
+            self.utf8.finish()?;
             let length = if self.retained_len > 0 && self.retained[self.retained_len - 1] == b'\r' {
                 self.retained_len - 1
             } else {
                 self.retained_len
             };
-            core::str::from_utf8(&self.retained[..length]).map_err(|_| LineError::InvalidUtf8)?;
             self.ready_len = Some(length);
             return Ok(true);
         }
@@ -97,13 +161,36 @@ impl LinesState {
             return Ok(true);
         }
         self.finished = true;
+        self.utf8.finish()?;
         if self.retained_len == 0 {
             return Ok(false);
         }
-        core::str::from_utf8(&self.retained[..self.retained_len])
-            .map_err(|_| LineError::InvalidUtf8)?;
         self.ready_len = Some(self.retained_len);
         Ok(true)
+    }
+
+    /// Length of the ready logical line, if any.
+    #[must_use]
+    pub const fn ready_len(&self) -> Option<usize> {
+        self.ready_len
+    }
+
+    /// Reads one ready byte without copying the complete line.
+    #[must_use]
+    pub fn ready_byte(&self, index: usize) -> Option<u8> {
+        let length = self.ready_len?;
+        (index < length).then(|| self.retained[index])
+    }
+
+    /// Clears a completely consumed ready line.
+    pub fn clear_ready(&mut self) -> Result<(), LineError> {
+        if self.ready_len.is_none() {
+            return Err(LineError::OutputTooSmall);
+        }
+        self.retained_len = 0;
+        self.ready_len = None;
+        self.utf8.reset();
+        Ok(())
     }
 
     /// Copies the ready line to caller-owned storage and clears retained
@@ -116,8 +203,7 @@ impl LinesState {
             return Err(LineError::OutputTooSmall);
         }
         output[..length].copy_from_slice(&self.retained[..length]);
-        self.retained_len = 0;
-        self.ready_len = None;
+        self.clear_ready()?;
         Ok(Some(length))
     }
 
@@ -126,6 +212,7 @@ impl LinesState {
         self.retained_len = 0;
         self.ready_len = None;
         self.finished = true;
+        self.utf8.reset();
     }
 }
 
@@ -211,6 +298,15 @@ mod tests {
     #[test]
     fn lines_reject_invalid_utf8_and_overflow() {
         assert_eq!(split(&[&[0xff, b'\n']]), Err(LineError::InvalidUtf8));
+        assert_eq!(split(&[&[0xe2, 0x82], b"\n"]), Err(LineError::InvalidUtf8));
+        assert_eq!(
+            split(&[&[0xed, 0xa0, 0x80, b'\n']]),
+            Err(LineError::InvalidUtf8)
+        );
+        assert_eq!(
+            split(&[&[0xf4, 0x90, 0x80, 0x80, b'\n']]),
+            Err(LineError::InvalidUtf8)
+        );
         let oversized = [b'x'; LINES_MAX_LINE_BYTES + 1];
         assert_eq!(split(&[&oversized]), Err(LineError::RetainedPrefixOverflow));
     }

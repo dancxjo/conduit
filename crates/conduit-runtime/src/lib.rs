@@ -3890,6 +3890,8 @@ impl ResolvedPanel<'_> {
                     input: None,
                     cursor: 0,
                     retained_bytes: 0,
+                    output: Vec::with_capacity(conduit_std::LINES_MAX_LINE_BYTES),
+                    output_cursor: 0,
                     pending_output: None,
                     terminal_seen: false,
                     maximum_line_bytes: source_usize(&resolved.source, "maximum_line_bytes")?,
@@ -3906,6 +3908,11 @@ impl ResolvedPanel<'_> {
                         .unwrap_or_default()
                         .as_bytes()
                         .to_vec(),
+                    output: Vec::with_capacity(conduit_std::JOIN_MAX_OUTPUT_BYTES),
+                    copy_item: 0,
+                    copy_byte: 0,
+                    separator_cursor: 0,
+                    utf8: conduit_std::Utf8State::new(),
                     pending_output: None,
                     terminal_seen: false,
                     emitted: false,
@@ -4240,6 +4247,8 @@ enum HostedNodeKind {
         input: Option<RuntimeValue>,
         cursor: usize,
         retained_bytes: usize,
+        output: Vec<u8>,
+        output_cursor: usize,
         pending_output: Option<RuntimeValue>,
         terminal_seen: bool,
         maximum_line_bytes: usize,
@@ -4248,6 +4257,11 @@ enum HostedNodeKind {
     Join {
         inputs: Vec<RuntimeValue>,
         separator: Vec<u8>,
+        output: Vec<u8>,
+        copy_item: usize,
+        copy_byte: usize,
+        separator_cursor: usize,
+        utf8: conduit_std::Utf8State,
         pending_output: Option<RuntimeValue>,
         terminal_seen: bool,
         emitted: bool,
@@ -4434,6 +4448,8 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 input,
                 cursor,
                 retained_bytes,
+                output,
+                output_cursor,
                 pending_output,
                 terminal_seen,
                 maximum_line_bytes,
@@ -4451,6 +4467,76 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         Ok(_) | Err(_) => {
                             let _ = io.wait_for_output(out_cord);
                             SchedulerStep::Pending
+                        }
+                    };
+                }
+                if let Some(length) = state.ready_len() {
+                    if length > *maximum_line_bytes {
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "CND-TXT-003",
+                            "lines output exceeded the exact line bound",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("CND-TXT-003"),
+                        };
+                    }
+                    while *output_cursor < length && io.remaining_work() > 0 {
+                        if io.consume_work(1).is_err() {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            };
+                        }
+                        let Some(byte) = state.ready_byte(*output_cursor) else {
+                            return SchedulerStep::Failed {
+                                code: Id("CND-TXT-003"),
+                            };
+                        };
+                        output.push(byte);
+                        *output_cursor += 1;
+                    }
+                    if *output_cursor < length || io.remaining_work() == 0 {
+                        return if io.record_host_progress().is_ok() {
+                            SchedulerStep::Progress
+                        } else {
+                            SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            }
+                        };
+                    }
+                    if io.consume_work(1).is_err() {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        };
+                    }
+                    if state.clear_ready().is_err() {
+                        return SchedulerStep::Failed {
+                            code: Id("CND-TXT-003"),
+                        };
+                    }
+                    let bytes = std::mem::replace(output, Vec::with_capacity(*maximum_line_bytes));
+                    *output_cursor = 0;
+                    *retained_bytes = 0;
+                    let accounted_bytes = bytes.len() as u32;
+                    let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/value-store-bound-exceeded"),
+                        };
+                    };
+                    let output_value = RuntimeValue {
+                        handle,
+                        accounted_bytes,
+                        envelope: RuntimeValueEnvelope::EMPTY,
+                    };
+                    return match io.send(out_cord, output_value, None) {
+                        Ok(SendStatus::Reserved) => SchedulerStep::Progress,
+                        Ok(_) | Err(_) => {
+                            *pending_output = Some(output_value);
+                            if io.record_host_progress().is_err() {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/step-work-bound-exceeded"),
+                                };
+                            }
+                            SchedulerStep::Progress
                         }
                     };
                 }
@@ -4475,6 +4561,15 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     }
                 }
                 while let Some(value) = *input {
+                    if io.remaining_work() == 0 {
+                        return if io.record_host_progress().is_ok() {
+                            SchedulerStep::Progress
+                        } else {
+                            SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            }
+                        };
+                    }
                     let next = {
                         let store = self.store.borrow();
                         store
@@ -4485,13 +4580,18 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let Some(byte) = next else {
                         *input = None;
                         *cursor = 0;
-                        if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
-                            *terminal_seen = true;
-                            break;
+                        if io.record_host_progress().is_err() {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            };
                         }
-                        let _ = io.wait_for_input(in_cord);
-                        return SchedulerStep::Pending;
+                        return SchedulerStep::Progress;
                     };
+                    if io.consume_work(1).is_err() {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        };
+                    }
                     *cursor += 1;
                     if byte != b'\n' {
                         *retained_bytes += 1;
@@ -4507,44 +4607,21 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     }
                     match state.push_byte(byte) {
                         Ok(true) => {
-                            if io.consume_work(4).is_err() {
+                            if io.remaining_work() == 0 {
+                                return if io.record_host_progress().is_ok() {
+                                    SchedulerStep::Progress
+                                } else {
+                                    SchedulerStep::Failed {
+                                        code: Id("conduit/step-work-bound-exceeded"),
+                                    }
+                                };
+                            }
+                            if io.record_host_progress().is_err() {
                                 return SchedulerStep::Failed {
                                     code: Id("conduit/step-work-bound-exceeded"),
                                 };
                             }
-                            let mut bytes = vec![0; conduit_std::LINES_MAX_LINE_BYTES];
-                            let length = match state.take_ready(&mut bytes) {
-                                Ok(Some(length)) if length <= *maximum_line_bytes => length,
-                                Ok(Some(_)) | Err(_) | Ok(None) => {
-                                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
-                                        "CND-TXT-003",
-                                        "lines output exceeded the exact line bound",
-                                    ));
-                                    return SchedulerStep::Failed {
-                                        code: Id("CND-TXT-003"),
-                                    };
-                                }
-                            };
-                            bytes.truncate(length);
-                            *retained_bytes = 0;
-                            let Some(handle) = self.store.borrow_mut().store(bytes) else {
-                                return SchedulerStep::Failed {
-                                    code: Id("conduit/value-store-bound-exceeded"),
-                                };
-                            };
-                            let output = RuntimeValue {
-                                handle,
-                                accounted_bytes: length as u32,
-                                envelope: RuntimeValueEnvelope::EMPTY,
-                            };
-                            return match io.send(out_cord, output, None) {
-                                Ok(SendStatus::Reserved) => SchedulerStep::Progress,
-                                Ok(_) | Err(_) => {
-                                    *pending_output = Some(output);
-                                    let _ = io.wait_for_output(out_cord);
-                                    SchedulerStep::Pending
-                                }
-                            };
+                            return SchedulerStep::Progress;
                         }
                         Ok(false) => {}
                         Err(error) => {
@@ -4558,39 +4635,12 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 if *terminal_seen {
                     match state.finish() {
                         Ok(true) => {
-                            if io.consume_work(4).is_err() {
-                                return SchedulerStep::Failed {
+                            if io.record_host_progress().is_err() {
+                                SchedulerStep::Failed {
                                     code: Id("conduit/step-work-bound-exceeded"),
-                                };
-                            }
-                            let mut bytes = vec![0; conduit_std::LINES_MAX_LINE_BYTES];
-                            let length = match state.take_ready(&mut bytes) {
-                                Ok(Some(length)) if length <= *maximum_line_bytes => length,
-                                _ => {
-                                    return SchedulerStep::Failed {
-                                        code: Id("CND-TXT-003"),
-                                    };
                                 }
-                            };
-                            bytes.truncate(length);
-                            let Some(handle) = self.store.borrow_mut().store(bytes) else {
-                                return SchedulerStep::Failed {
-                                    code: Id("conduit/value-store-bound-exceeded"),
-                                };
-                            };
-                            let output = RuntimeValue {
-                                handle,
-                                accounted_bytes: length as u32,
-                                envelope: RuntimeValueEnvelope::EMPTY,
-                            };
-                            *retained_bytes = 0;
-                            match io.send(out_cord, output, None) {
-                                Ok(SendStatus::Reserved) => SchedulerStep::Progress,
-                                Ok(_) | Err(_) => {
-                                    *pending_output = Some(output);
-                                    let _ = io.wait_for_output(out_cord);
-                                    SchedulerStep::Pending
-                                }
+                            } else {
+                                SchedulerStep::Progress
                             }
                         }
                         Ok(false) => SchedulerStep::Completed,
@@ -4608,6 +4658,11 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
             HostedNodeKind::Join {
                 inputs,
                 separator,
+                output,
+                copy_item,
+                copy_byte,
+                separator_cursor,
+                utf8,
                 pending_output,
                 terminal_seen,
                 emitted,
@@ -4670,16 +4725,40 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         }
                     }
                 }
-                let joined = {
-                    let store = self.store.borrow();
-                    let mut items = Vec::with_capacity(inputs.len());
-                    for input in inputs.iter() {
-                        let Some(bytes) = store.get(input.handle) else {
+                while *copy_item < inputs.len() && io.remaining_work() > 0 {
+                    if *copy_item > 0 && *separator_cursor < separator.len() {
+                        if io.consume_work(1).is_err() {
                             return SchedulerStep::Failed {
-                                code: Id("conduit/value-store-missing"),
+                                code: Id("conduit/step-work-bound-exceeded"),
                             };
-                        };
-                        let Ok(text) = std::str::from_utf8(bytes) else {
+                        }
+                        if output.len() >= *maximum_output_bytes {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-TXT-007",
+                                "joined output exceeded the exact output bound",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-TXT-007"),
+                            };
+                        }
+                        output.push(separator[*separator_cursor]);
+                        *separator_cursor += 1;
+                        continue;
+                    }
+                    let next = {
+                        let store = self.store.borrow();
+                        store
+                            .get(inputs[*copy_item].handle)
+                            .and_then(|bytes| bytes.get(*copy_byte))
+                            .copied()
+                    };
+                    if let Some(byte) = next {
+                        if io.consume_work(1).is_err() {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            };
+                        }
+                        if utf8.push_byte(byte).is_err() {
                             *self.host_failure.borrow_mut() = Some(RuntimeError::new(
                                 "CND-TXT-002",
                                 "join input was not valid UTF-8",
@@ -4687,38 +4766,61 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                             return SchedulerStep::Failed {
                                 code: Id("CND-TXT-002"),
                             };
-                        };
-                        items.push(text);
-                    }
-                    let Ok(separator) = std::str::from_utf8(separator) else {
-                        return SchedulerStep::Failed {
-                            code: Id("CND-TXT-002"),
-                        };
-                    };
-                    let mut output = vec![0; *maximum_output_bytes];
-                    match conduit_std::join_text_into(&items, separator, &mut output) {
-                        Ok(length) => {
-                            output.truncate(length);
-                            Ok(output)
                         }
-                        Err(error) => Err(error),
-                    }
-                };
-                let joined = match joined {
-                    Ok(joined) => joined,
-                    Err(error) => {
-                        *self.host_failure.borrow_mut() = Some(text_line_runtime_error(error));
-                        return SchedulerStep::Failed {
-                            code: Id(error.code()),
+                        if output.len() >= *maximum_output_bytes {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-TXT-007",
+                                "joined output exceeded the exact output bound",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-TXT-007"),
+                            };
+                        }
+                        output.push(byte);
+                        *copy_byte += 1;
+                        let item_complete = {
+                            let store = self.store.borrow();
+                            store
+                                .get(inputs[*copy_item].handle)
+                                .is_some_and(|bytes| *copy_byte == bytes.len())
                         };
+                        if item_complete {
+                            if utf8.finish().is_err() {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-TXT-002",
+                                    "join input was not valid UTF-8",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-TXT-002"),
+                                };
+                            }
+                            utf8.reset();
+                            *copy_item += 1;
+                            *copy_byte = 0;
+                            *separator_cursor = 0;
+                        }
+                    } else {
+                        if *copy_byte != 0 || io.consume_work(1).is_err() {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-missing"),
+                            };
+                        }
+                        utf8.reset();
+                        *copy_item += 1;
+                        *separator_cursor = 0;
                     }
-                };
-                if io.consume_work(4).is_err() {
-                    return SchedulerStep::Failed {
-                        code: Id("conduit/step-work-bound-exceeded"),
+                }
+                if *copy_item < inputs.len() {
+                    return if io.record_host_progress().is_ok() {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        }
                     };
                 }
-                let accounted_bytes = joined.len() as u32;
+                let accounted_bytes = output.len() as u32;
+                let joined = std::mem::take(output);
                 let Some(handle) = self.store.borrow_mut().store(joined) else {
                     return SchedulerStep::Failed {
                         code: Id("conduit/value-store-bound-exceeded"),
@@ -4736,8 +4838,12 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     }
                     Ok(_) | Err(_) => {
                         *pending_output = Some(output);
-                        let _ = io.wait_for_output(out_cord);
-                        SchedulerStep::Pending
+                        if io.record_host_progress().is_err() {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            };
+                        }
+                        SchedulerStep::Progress
                     }
                 }
             }

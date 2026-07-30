@@ -989,6 +989,16 @@ impl<'p> StepIo<'_, 'p> {
         self.tick
     }
 
+    #[must_use]
+    pub fn remaining_work(&self) -> u32 {
+        self.plan.nodes[self.node]
+            .execution_profile
+            .expect("schema-3 plan profile")
+            .limits
+            .max_step_work
+            .saturating_sub(self.workspace.work_units)
+    }
+
     pub fn consume_work(&mut self, units: u32) -> Result<(), SchedulerError> {
         let next = self
             .workspace
