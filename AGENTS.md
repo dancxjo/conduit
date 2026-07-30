@@ -14,3 +14,32 @@
   workspace Clippy, workspace tests, and the `thumbv6m-none-eabi`
   `conduit-core` check.
 - Keep commits coherent and exclude unrelated concurrent work.
+
+## Pre-release compatibility rule
+
+Conduit has not made its first public release. Do not preserve backwards
+compatibility for repository drafts.
+
+When changing a Conduit-owned grammar, schema, manifest, plan, protocol,
+catalog, evidence shape, Tour resource, or generated artifact:
+
+1. maintain exactly one current pre-release form;
+2. migrate every repository-owned producer, consumer, fixture, example,
+   embedded source, generated asset, document, and snapshot;
+3. verify the migrated corpus;
+4. delete the displaced parser, reader, writer, alias, migrator, hash domain,
+   fixture, and fallback before completing the work.
+
+Git history is the archive. Do not call an unreleased form `legacy`, `stable`,
+or `frozen`. Do not add `v2` merely to avoid replacing an unreleased `v1`.
+Do not retain a one-time migrator after its repository migration has run.
+
+A compatibility path is allowed only when it names the tagged public Conduit
+release that published the displaced artifact. Before the first release, that
+exception set is empty.
+
+This rule does not remove semantic contract compatibility, exact current
+artifact identity, live plan/state transitions, or external protocol versions.
+Read [the pre-release version policy](docs/pre-release-versioning.md) and
+[#191](https://github.com/dancxjo/conduit/issues/191) before changing versioned
+or persisted surfaces.
