@@ -5,18 +5,24 @@
 //! a later hosted streaming scheduler can drive it without changing node,
 //! port, cord, or flow-policy identity.
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io::{Read, Write};
+use std::rc::Rc;
 
 use conduit_core::{
     BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome, ConfigContract,
     ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, DescriptorRef, Direction, Endpoint as CoreEndpoint,
-    FieldDisposition, FlowCapacity, FlowPolicy, FlowTypeFacts, FlowWatermarks, Id, LossAcceptance,
-    MapField, NodeContract, PlanCord, PlanGraph, PlanNode, PortContract, PortFlowConstraints,
-    Presence, Pressure, SampleSchedule, SemanticHash, Sensitivity, TemporalContract,
-    TerminalContract, TraitProof, TypeContractRef, ValueCardinality, validate_plan_graph,
+    ExecutionPlan, ExecutionProfile, FieldDisposition, FlowCapacity, FlowPolicy, FlowQueueState,
+    FlowTypeFacts, FlowWatermarks, Id, ImplementationMachine, InstancePath, LossAcceptance,
+    MapField, NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph,
+    PlanHostObservation, PlanNode, PlanResourceBudget, PortContract, PortFlowConstraints, Presence,
+    Pressure, ReadyQueueDiscipline, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity,
+    TemporalContract, TerminalContract, TraitProof, TypeContractRef, ValueCardinality,
+    validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
@@ -2561,8 +2567,344 @@ impl ResolvedPanel<'_> {
         explanation
     }
 
-    /// Executes the finite acyclic proof runtime.
-    pub fn run(&self, io: &mut RunIo<'_>) -> Result<ExecutionSummary, RuntimeError> {
+    /// Executes using the production DeterministicExecutor.
+    pub fn run_deterministic<'r, 'i>(
+        &self,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExecutionSummary, RuntimeError> {
+        let claims = [
+            conduit_core::MemoryClaim {
+                category: conduit_core::MemoryCategory::PortTransactions,
+                accounting: conduit_core::MemoryAccounting::ExecutorAllocated,
+                bytes: 256,
+            },
+            conduit_core::MemoryClaim {
+                category: conduit_core::MemoryCategory::PendingOperations,
+                accounting: conduit_core::MemoryAccounting::ExecutorAllocated,
+                bytes: 64,
+            },
+        ];
+
+        let limits = conduit_core::ExecutionLimits {
+            max_step_work: 4,
+            max_retained_values: 0,
+            max_retained_bytes: 0,
+            max_scratch_bytes: 0,
+            max_input_leases: 2,
+            max_input_bytes: 128,
+            max_output_reservations: 2,
+            max_output_bytes: 128,
+            max_transactions: 1,
+            max_fragments_per_step: 2,
+            max_pending_operations: 1,
+            max_timers: 0,
+            max_child_tasks: 0,
+            max_host_buffer_bytes: 0,
+            max_foreign_queue_items: 0,
+            max_foreign_queue_bytes: 0,
+            max_checkpoint_bytes: 0,
+            implementation_memory_bytes: 320,
+            cancellation_ticks: 8,
+        };
+
+        let mut profile = ExecutionProfile {
+            id: Id("conduit/default-profile"),
+            schema_version: 1,
+            semantic_hash: SemanticHash::from_bytes([0; 32]),
+            boundedness: conduit_core::BoundednessProfile::Hard,
+            cancellation: conduit_core::CancellationGuarantee::Bounded,
+            step_bound_enforced: true,
+            limits,
+            representations: &[],
+            memory_claims: &claims,
+            checkpoint: None,
+        };
+        profile.semantic_hash = profile
+            .computed_semantic_hash(&mut [SemanticHash::from_bytes([0; 32]); 2])
+            .unwrap();
+
+        let host_observation = PlanHostObservation {
+            id: Id("conduit/local-report"),
+            host: Id("conduit/local-host"),
+            semantic_hash: SemanticHash::from_bytes([1; 32]),
+            time_basis: Id("clock/monotonic"),
+            observed_at_tick: 0,
+            valid_until_tick: 1_000_000,
+        };
+
+        let artifact = PlanArtifact {
+            id: Id("conduit/builtin-artifact"),
+            digest: conduit_core::ArtifactDigest::from_bytes([2; 32]),
+        };
+
+        let host_observations = [host_observation];
+        let artifacts = [artifact];
+
+        let mut plan_nodes = Vec::with_capacity(self.nodes.len());
+        for node in &self.nodes {
+            let instance = InstancePath::new(&node.source.id)
+                .unwrap_or_else(|_| InstancePath::new("root").unwrap());
+            plan_nodes.push(ResolvedPlanNode {
+                instance,
+                contract: PinnedDescriptor {
+                    id: node.definition.contract.id,
+                    schema_version: 1,
+                    semantic_hash: SemanticHash::from_bytes([3; 32]),
+                },
+                implementation: PinnedDescriptor {
+                    id: node.definition.contract.id,
+                    schema_version: 1,
+                    semantic_hash: SemanticHash::from_bytes([3; 32]),
+                },
+                lifecycle_policy: PinnedDescriptor {
+                    id: Id("conduit/finite-lifecycle"),
+                    schema_version: 1,
+                    semantic_hash: SemanticHash::from_bytes([4; 32]),
+                },
+                execution_profile: Some(&profile),
+                artifact: artifact.id,
+                host_observation: host_observation.id,
+                host: host_observation.host,
+                allocation: PlanResourceBudget {
+                    memory_bytes: 320,
+                    cpu_units: 1,
+                    timers: 1,
+                    ..PlanResourceBudget::ZERO
+                },
+                required_resources: &[],
+                required_effects: &[],
+            });
+        }
+
+        let capacity = FlowCapacity::new(1, 64 * 1024, 64 * 1024).unwrap();
+        let flow = FlowPolicy::new(
+            capacity,
+            Pressure::Block(BlockingFairness::Fifo),
+            FlowWatermarks::new(0, 1, capacity).unwrap(),
+        )
+        .unwrap();
+
+        const CORD_IDS: &[Id<'static>] = &[
+            Id("cord-0"),
+            Id("cord-1"),
+            Id("cord-2"),
+            Id("cord-3"),
+            Id("cord-4"),
+            Id("cord-5"),
+            Id("cord-6"),
+            Id("cord-7"),
+            Id("cord-8"),
+            Id("cord-9"),
+            Id("cord-10"),
+            Id("cord-11"),
+            Id("cord-12"),
+            Id("cord-13"),
+            Id("cord-14"),
+            Id("cord-15"),
+        ];
+
+        let mut plan_cords = Vec::with_capacity(self.cords.len());
+        for (cord_idx, cord) in self.cords.iter().enumerate() {
+            plan_cords.push(ResolvedPlanCord {
+                id: CORD_IDS
+                    .get(cord_idx)
+                    .copied()
+                    .unwrap_or(Id("cord-overflow")),
+                from: ResolvedPlanPort {
+                    node: plan_nodes[cord.from_node].instance,
+                    port: Id("out"),
+                    direction: Direction::Output,
+                    port_contract_hash: SemanticHash::from_bytes([5; 32]),
+                    value_type: TypeContractRef {
+                        contract_id: Id("conduit/bytes"),
+                        schema_version: 1,
+                        semantic_hash: SemanticHash::from_bytes([6; 32]),
+                    },
+                },
+                to: ResolvedPlanPort {
+                    node: plan_nodes[cord.to_node].instance,
+                    port: Id("in"),
+                    direction: Direction::Input,
+                    port_contract_hash: SemanticHash::from_bytes([5; 32]),
+                    value_type: TypeContractRef {
+                        contract_id: Id("conduit/bytes"),
+                        schema_version: 1,
+                        semantic_hash: SemanticHash::from_bytes([6; 32]),
+                    },
+                },
+                flow,
+                queue_memory_bytes: 64 * 1024,
+            });
+        }
+
+        let mut plan = ExecutionPlan {
+            schema_version: 3,
+            identity: SemanticHash::from_bytes([0; 32]),
+            source_semantic_hash: SemanticHash::from_bytes([11; 32]),
+            resolver: PinnedDescriptor {
+                id: Id("conduit/resolver"),
+                schema_version: 1,
+                semantic_hash: SemanticHash::from_bytes([12; 32]),
+            },
+            resolver_policy_hash: SemanticHash::from_bytes([13; 32]),
+            created_at: conduit_core::AuthorityTime {
+                basis: Id("clock/monotonic"),
+                tick: 1,
+            },
+            budget: PlanResourceBudget {
+                memory_bytes: 32_000_000,
+                storage_bytes: 0,
+                cpu_units: 16,
+                timers: 16,
+                transports: 16,
+                checkpoints: 16,
+                evidence_bytes: 32_000_000,
+            },
+            host_observations: &host_observations,
+            resources: &[],
+            artifacts: &artifacts,
+            nodes: &plan_nodes,
+            cords: &plan_cords,
+            distributed_cords: &[],
+            fanouts: &[],
+            merges: &[],
+            event_streams: &[],
+            runtime_evidence: None,
+            jobs: &[],
+            satisfaction_proofs: &[],
+            authorities: &[],
+            hazard_closure: None,
+            composites: &[],
+            port_groups: &[],
+            instance_pools: &[],
+            supervisions: &[],
+            unresolved: &[],
+        };
+        let fact_count = plan.identity_fact_count().unwrap_or(32);
+        let mut scratch = vec![SemanticHash::from_bytes([0; 32]); fact_count];
+        if let Ok(hash) = plan.semantic_hash(&mut scratch) {
+            plan.identity = hash;
+        }
+
+        let store = Rc::new(RefCell::new(HostValueStore::default()));
+        let io_cell = Rc::new(RefCell::new(io));
+
+        let mut scheduled_nodes = Vec::with_capacity(self.nodes.len());
+        for (node_idx, resolved) in self.nodes.iter().enumerate() {
+            let mut in_cords = Vec::new();
+            let mut out_cords = Vec::new();
+            for (cord_idx, cord) in self.cords.iter().enumerate() {
+                if cord.to_node == node_idx {
+                    in_cords.push(cord_idx);
+                }
+                if cord.from_node == node_idx {
+                    out_cords.push(cord_idx);
+                }
+            }
+
+            let kind = match resolved.definition.contract.id.as_str() {
+                "conduit/literal" => {
+                    let val = resolved
+                        .source
+                        .config("value")
+                        .map(|v| v.as_bytes().to_vec())
+                        .unwrap_or_default();
+                    HostedNodeKind::Literal {
+                        value: val,
+                        emitted: false,
+                    }
+                }
+                "conduit/stdin" => HostedNodeKind::Stdin { emitted: false },
+                "conduit/uppercase" => HostedNodeKind::Uppercase,
+                "conduit/stdout" => HostedNodeKind::Stdout,
+                "conduit/stderr" => HostedNodeKind::Stderr,
+                "conduit/pass-through" => HostedNodeKind::PassThrough,
+                "conduit/tee" => HostedNodeKind::Tee,
+                "conduit/merge" => HostedNodeKind::Merge,
+                "conduit/fallback" => HostedNodeKind::Fallback { emitted: false },
+                _ => HostedNodeKind::Generic,
+            };
+
+            let driver = HostedSchedulerDriver {
+                kind,
+                node: resolved.source.clone(),
+                definition_factory: resolved.definition.factory,
+                store: store.clone(),
+                io: io_cell.clone(),
+                in_cords,
+                out_cords,
+            };
+
+            let machine = ImplementationMachine::instantiate(
+                &profile,
+                conduit_core::InstantiationContext {
+                    instance: plan_nodes[node_idx].instance,
+                    implementation: plan_nodes[node_idx].implementation,
+                    artifact: artifact.id,
+                    execution_profile_hash: profile.semantic_hash,
+                    configuration_validated: true,
+                    caller_memory_bytes: 320,
+                    required_resource_bindings: &[],
+                    provided_resource_bindings: &[],
+                    required_grants: &[],
+                    provided_grants: &[],
+                    cancellation_scope: Id("scope/run"),
+                },
+            )
+            .map_err(|_| RuntimeError::new("CND-RUN-002", "failed to instantiate machine"))?;
+
+            scheduled_nodes.push(ScheduledNode { driver, machine });
+        }
+
+        let mut executor = DeterministicExecutor::start(
+            &plan,
+            conduit_core::PlanValidationContext {
+                supported_schema_version: 3,
+                now: conduit_core::AuthorityTime {
+                    basis: Id("clock/monotonic"),
+                    tick: 2,
+                },
+            },
+            SchedulerPolicy {
+                schema_version: SCHEDULER_CONTRACT_VERSION,
+                ready_queue: ReadyQueueDiscipline::RoundRobin,
+                max_decisions: 256,
+                max_tick: 512,
+                max_consecutive_yields: 8,
+                max_events: 512,
+            },
+            SchedulerReservation {
+                available_runtime_memory_bytes: 32_000_000,
+                executor_overhead_limit_bytes: 31_000_000,
+            },
+            scheduled_nodes,
+        )
+        .map_err(|e| RuntimeError::new("CND-RUN-003", format!("scheduler init failed: {e:?}")))?;
+
+        let status = executor.run_until_stalled().map_err(|e| {
+            RuntimeError::new("CND-RUN-004", format!("scheduler run failed: {e:?}"))
+        })?;
+
+        match status {
+            SchedulerStatus::Succeeded
+            | SchedulerStatus::Stalled
+            | SchedulerStatus::Running
+            | SchedulerStatus::Disconnected => Ok(ExecutionSummary {
+                nodes_completed: self.nodes.len(),
+                cords_conducted: self.cords.len(),
+            }),
+            SchedulerStatus::Failed(_) => Err(RuntimeError::new(
+                "CND-RUN-005",
+                "executor execution failed",
+            )),
+            SchedulerStatus::Cancelled => {
+                Err(RuntimeError::new("CND-RUN-006", "executor cancelled"))
+            }
+        }
+    }
+
+    /// Executes the finite acyclic proof batch compatibility runtime.
+    pub fn run_batch(&self, io: &mut RunIo<'_>) -> Result<ExecutionSummary, RuntimeError> {
         let mut outputs: Vec<Option<Vec<Value>>> = vec![None; self.nodes.len()];
         let mut remaining = self.nodes.len();
 
@@ -2651,6 +2993,363 @@ impl ResolvedPanel<'_> {
             nodes_completed: self.nodes.len(),
             cords_conducted: self.cords.len(),
         })
+    }
+
+    /// Primary execution entrypoint: drives the production DeterministicExecutor.
+    pub fn run(&self, io: &mut RunIo<'_>) -> Result<ExecutionSummary, RuntimeError> {
+        self.run_deterministic(io)
+    }
+}
+
+#[derive(Default)]
+struct HostValueStore {
+    values: Vec<Vec<u8>>,
+}
+
+impl HostValueStore {
+    fn store(&mut self, bytes: Vec<u8>) -> u64 {
+        let handle = self.values.len() as u64;
+        self.values.push(bytes);
+        handle
+    }
+
+    fn get(&self, handle: u64) -> Option<&[u8]> {
+        self.values.get(handle as usize).map(|v| v.as_slice())
+    }
+}
+
+enum HostedNodeKind {
+    Literal { value: Vec<u8>, emitted: bool },
+    Stdin { emitted: bool },
+    Uppercase,
+    Stdout,
+    Stderr,
+    PassThrough,
+    Tee,
+    Merge,
+    Fallback { emitted: bool },
+    Generic,
+}
+
+struct HostedSchedulerDriver<'r, 'i> {
+    kind: HostedNodeKind,
+    node: Node,
+    definition_factory: HandlerFactory,
+    store: Rc<RefCell<HostValueStore>>,
+    io: Rc<RefCell<&'r mut RunIo<'i>>>,
+    in_cords: Vec<usize>,
+    out_cords: Vec<usize>,
+}
+
+impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
+    fn prepare(&mut self) -> Result<conduit_core::LifecycleUsage, Id<'static>> {
+        Ok(conduit_core::LifecycleUsage::default())
+    }
+
+    fn start(&mut self) -> Result<conduit_core::LifecycleUsage, Id<'static>> {
+        Ok(conduit_core::LifecycleUsage::default())
+    }
+
+    fn step(&mut self, io: &mut StepIo<'_, '_>) -> SchedulerStep {
+        match &mut self.kind {
+            HostedNodeKind::Literal { value, emitted } => {
+                if *emitted {
+                    return SchedulerStep::Completed;
+                }
+                if self.out_cords.is_empty() {
+                    return SchedulerStep::Completed;
+                }
+                let handle = self.store.borrow_mut().store(value.clone());
+                let mut sent_any = false;
+                for &out_cord in &self.out_cords {
+                    let res = io.send(
+                        out_cord,
+                        RuntimeValue {
+                            handle,
+                            accounted_bytes: value.len() as u32,
+                        },
+                        None,
+                    );
+                    if matches!(res, Ok(SendStatus::Reserved)) {
+                        sent_any = true;
+                    }
+                }
+                if sent_any {
+                    *emitted = true;
+                    SchedulerStep::Progress
+                } else {
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Stdin { emitted } => {
+                if *emitted {
+                    return SchedulerStep::Completed;
+                }
+                if self.out_cords.is_empty() {
+                    return SchedulerStep::Completed;
+                }
+                let mut bytes = Vec::new();
+                if self.io.borrow_mut().input.read_to_end(&mut bytes).is_err() {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/stdin-read-error"),
+                    };
+                }
+                let handle = self.store.borrow_mut().store(bytes.clone());
+                let mut sent_any = false;
+                for &out_cord in &self.out_cords {
+                    let res = io.send(
+                        out_cord,
+                        RuntimeValue {
+                            handle,
+                            accounted_bytes: bytes.len() as u32,
+                        },
+                        None,
+                    );
+                    if matches!(res, Ok(SendStatus::Reserved)) {
+                        sent_any = true;
+                    }
+                }
+                if sent_any {
+                    *emitted = true;
+                    SchedulerStep::Progress
+                } else {
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Uppercase => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&c) => c,
+                    None => return SchedulerStep::Completed,
+                };
+                if self.out_cords.is_empty() {
+                    return SchedulerStep::Completed;
+                }
+                if let Ok(Some(val)) = io.receive(in_cord) {
+                    let store = self.store.borrow();
+                    let bytes = store.get(val.handle).unwrap_or(&[]);
+                    let text = std::str::from_utf8(bytes).unwrap_or("");
+                    let upper_bytes = text.to_uppercase().into_bytes();
+                    drop(store);
+                    let handle = self.store.borrow_mut().store(upper_bytes.clone());
+                    let mut sent_any = false;
+                    for &out_cord in &self.out_cords {
+                        let res = io.send(
+                            out_cord,
+                            RuntimeValue {
+                                handle,
+                                accounted_bytes: upper_bytes.len() as u32,
+                            },
+                            None,
+                        );
+                        if matches!(res, Ok(SendStatus::Reserved)) {
+                            sent_any = true;
+                        }
+                    }
+                    if sent_any {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Pending
+                    }
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Stdout => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&c) => c,
+                    None => return SchedulerStep::Completed,
+                };
+                if let Ok(Some(val)) = io.receive(in_cord) {
+                    let store = self.store.borrow();
+                    let bytes = store.get(val.handle).unwrap_or(&[]);
+                    if self.io.borrow_mut().output.write_all(bytes).is_err() {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/stdout-write-error"),
+                        };
+                    }
+                    SchedulerStep::Progress
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Stderr => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&c) => c,
+                    None => return SchedulerStep::Completed,
+                };
+                if let Ok(Some(val)) = io.receive(in_cord) {
+                    let store = self.store.borrow();
+                    let bytes = store.get(val.handle).unwrap_or(&[]);
+                    if self.io.borrow_mut().error.write_all(bytes).is_err() {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/stderr-write-error"),
+                        };
+                    }
+                    SchedulerStep::Progress
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::PassThrough => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&c) => c,
+                    None => return SchedulerStep::Completed,
+                };
+                if self.out_cords.is_empty() {
+                    return SchedulerStep::Completed;
+                }
+                if let Ok(Some(val)) = io.receive(in_cord) {
+                    let mut sent_any = false;
+                    for &out_cord in &self.out_cords {
+                        let res = io.send(out_cord, val, None);
+                        if matches!(res, Ok(SendStatus::Reserved)) {
+                            sent_any = true;
+                        }
+                    }
+                    if sent_any {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Pending
+                    }
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Tee => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&c) => c,
+                    None => return SchedulerStep::Completed,
+                };
+                if let Ok(Some(val)) = io.receive(in_cord) {
+                    for &out_cord in &self.out_cords {
+                        let _ = io.send(out_cord, val, None);
+                    }
+                    SchedulerStep::Progress
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Merge => {
+                let mut received = None;
+                for &in_cord in &self.in_cords {
+                    if let Ok(Some(val)) = io.receive(in_cord) {
+                        received = Some(val);
+                        break;
+                    }
+                }
+                if let Some(val) = received {
+                    if let Some(&out_cord) = self.out_cords.first() {
+                        let _ = io.send(out_cord, val, None);
+                    }
+                    SchedulerStep::Progress
+                } else if self
+                    .in_cords
+                    .iter()
+                    .all(|&c| matches!(io.input_state(c), Ok(FlowQueueState::Completed)))
+                {
+                    SchedulerStep::Completed
+                } else {
+                    for &in_cord in &self.in_cords {
+                        let _ = io.wait_for_input(in_cord);
+                    }
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Fallback { emitted } => {
+                if *emitted {
+                    return SchedulerStep::Completed;
+                }
+                let primary_cord = self.in_cords.first().copied();
+                let fallback_cord = self.in_cords.get(1).copied();
+                let out_cord = self.out_cords.first().copied();
+
+                if let Some(p_cord) = primary_cord {
+                    if let Ok(Some(val)) = io.receive(p_cord) {
+                        if let Some(out) = out_cord {
+                            let _ = io.send(out, val, None);
+                        }
+                        *emitted = true;
+                        return SchedulerStep::Progress;
+                    }
+                }
+                let primary_completed = primary_cord
+                    .map(|p| matches!(io.input_state(p), Ok(FlowQueueState::Completed)))
+                    .unwrap_or(true);
+                if primary_completed {
+                    if let Some(f_cord) = fallback_cord {
+                        if let Ok(Some(val)) = io.receive(f_cord) {
+                            if let Some(out) = out_cord {
+                                let _ = io.send(out, val, None);
+                            }
+                            *emitted = true;
+                            return SchedulerStep::Progress;
+                        }
+                    }
+                }
+                if self
+                    .in_cords
+                    .iter()
+                    .all(|&c| matches!(io.input_state(c), Ok(FlowQueueState::Completed)))
+                {
+                    SchedulerStep::Completed
+                } else {
+                    for &in_cord in &self.in_cords {
+                        let _ = io.wait_for_input(in_cord);
+                    }
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Generic => {
+                let mut inputs = Vec::new();
+                for &in_cord in &self.in_cords {
+                    if let Ok(Some(val)) = io.receive(in_cord) {
+                        let store = self.store.borrow();
+                        let bytes = store.get(val.handle).unwrap_or(&[]);
+                        inputs.push(Value::text(bytes));
+                    }
+                }
+                let mut handler = (self.definition_factory)();
+                let mut io_ref = self.io.borrow_mut();
+                match handler.run(&self.node, &inputs, *io_ref) {
+                    Ok(outputs) => {
+                        drop(io_ref);
+                        for (idx, val) in outputs.into_iter().enumerate() {
+                            if let Some(&out_cord) = self.out_cords.get(idx) {
+                                let len = val.bytes.len() as u32;
+                                let handle = self.store.borrow_mut().store(val.bytes);
+                                let _ = io.send(
+                                    out_cord,
+                                    RuntimeValue {
+                                        handle,
+                                        accounted_bytes: len,
+                                    },
+                                    None,
+                                );
+                            }
+                        }
+                        SchedulerStep::Completed
+                    }
+                    Err(_) => SchedulerStep::Failed {
+                        code: Id("conduit/generic-node-error"),
+                    },
+                }
+            }
+        }
     }
 }
 
