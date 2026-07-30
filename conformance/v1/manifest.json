@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 50,
+  "manifest_revision": 51,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -5027,6 +5027,79 @@
         {"package": "conduit-core", "test": "resource_lease_vectors"},
         {"package": "conduit-core", "test": "execution_plan_vectors"},
         {"package": "conduit-runtime", "test": "resource_effects"}
+      ]
+    },
+    {
+      "id": "workload-admission-deadline",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "WRK-001", "WRK-002", "WRK-003", "WRK-004",
+        "WRK-005", "WRK-006", "WRK-007", "WRK-008"
+      ],
+      "artifacts": [{
+        "id": "workload-admission-deadline-v1",
+        "path": "../c5/workload-admission-deadline-v1.json",
+        "sha256": "sha256:b41f431ad1c9d677d48dbc8d9574e86cac029cd07fd82823715efef99c44ea35",
+        "operation": "workload-admission-deadline-v1",
+        "requirement_ids": [
+          "WRK-001", "WRK-002", "WRK-003", "WRK-004",
+          "WRK-005", "WRK-006", "WRK-007", "WRK-008"
+        ],
+        "default_rule": "WRK-001",
+        "case_rules": {
+          "hard-exact-enforcement": "WRK-004",
+          "deterministic-deadline-completion": "WRK-007",
+          "linux-measurement-stays-observation": "WRK-008",
+          "browser-best-effort-profile": "WRK-008",
+          "constrained-profile-unsupported": "WRK-002",
+          "benchmark-as-guarantee": "WRK-001",
+          "wrong-clock": "WRK-005",
+          "stale-host-report": "WRK-004",
+          "hidden-callback-queue": "WRK-006",
+          "transition-overlap-underaccounted": "WRK-006",
+          "deadline-overflow": "WRK-005",
+          "deadline-miss": "WRK-005",
+          "unsupported-hard-real-time": "WRK-004",
+          "implicit-priority-escalation": "WRK-003",
+          "best-effort-downgrade-as-success": "WRK-002",
+          "schema-18-rejects-workloads": "WRK-001"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "workload-admission-deadline-v1#exact-plan-round-trip",
+          "workload-admission-deadline-v1#hard-exact-enforcement",
+          "workload-admission-deadline-v1#deterministic-deadline-completion",
+          "workload-admission-deadline-v1#linux-measurement-stays-observation",
+          "workload-admission-deadline-v1#browser-best-effort-profile"
+        ],
+        "negative": [
+          "workload-admission-deadline-v1#constrained-profile-unsupported",
+          "workload-admission-deadline-v1#benchmark-as-guarantee",
+          "workload-admission-deadline-v1#wrong-clock",
+          "workload-admission-deadline-v1#stale-host-report",
+          "workload-admission-deadline-v1#unsupported-hard-real-time",
+          "workload-admission-deadline-v1#implicit-priority-escalation",
+          "workload-admission-deadline-v1#best-effort-downgrade-as-success"
+        ],
+        "boundary": [
+          "workload-admission-deadline-v1#hidden-callback-queue",
+          "workload-admission-deadline-v1#transition-overlap-underaccounted",
+          "workload-admission-deadline-v1#deadline-overflow",
+          "workload-admission-deadline-v1#deadline-miss"
+        ],
+        "migration": [
+          "workload-admission-deadline-v1#schema-18-rejects-workloads"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "workload_vectors"},
+        {"package": "conduit-core", "test": "execution_plan_vectors"},
+        {"package": "conduit-runtime", "test": "workload_evidence"}
       ]
     }
   ]

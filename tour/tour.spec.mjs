@@ -142,7 +142,7 @@ test("highlights panel source while retaining the native editor surface", async 
 
 test("covers Chapters 0-3 and exposes production topology projections", async ({ page }) => {
   await page.goto("/tour/public/index.html");
-  await expect(page.locator("#lessons > li")).toHaveCount(18);
+  await expect(page.locator("#lessons > li")).toHaveCount(19);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await page.locator("#expanded-view").click();
@@ -543,6 +543,40 @@ test("resource lease lesson keeps unknown commit and cleanup visible", async ({ 
   );
   await page.locator("#run").click();
   await expect(result).toContainText("EDITED LEASE LESSON.", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+  await expect(page.locator("#timeline-table")).toContainText("succeeded");
+});
+
+test("workload lesson keeps hard admission distinct from observations", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=platform.workload-admission-deadline",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+  const source = page.locator("#source");
+
+  await expect(story).toBeVisible();
+  await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
+  await expect(page.locator("#scenario option")).toHaveCount(5);
+  await expect(story).toContainText("linux-measurement");
+  await expect(story.locator("#library-docs a")).toHaveCount(3);
+
+  await story.getByRole("button", { name: "unsupported-hard-real-time" }).click();
+  await expect(result).toContainText("rejected before execution with CND-WRK-005");
+  await expect(source).toHaveValue(/node emphasize : text\/uppercase/);
+
+  await page.locator("#scenario").selectOption("browser-best-effort");
+  await expect(result).toContainText("admitted by the checked contract");
+  await source.fill(
+    (await source.inputValue()).replace(
+      "Deadline guarantees stay separate from measurements.",
+      "Edited workload lesson.",
+    ),
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText("EDITED WORKLOAD LESSON.", {
     timeout: 20_000,
   });
   await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);

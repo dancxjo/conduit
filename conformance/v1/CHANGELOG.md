@@ -1,5 +1,12 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 51 — 2026-07-30
+
+- Added plan-v19 workload declarations with explicit finite-or-unsupported
+  resource categories and exact deadline clock/jitter facts.
+- Added deterministic overload/deadline outcomes and a Linux measurement
+  witness that cannot satisfy hard admission authority.
+
 ## Manifest revision 50 — 2026-07-30
 
 - Added plan-v18 exact resource leases and domain-owned effect commit profiles

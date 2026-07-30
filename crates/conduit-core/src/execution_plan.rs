@@ -19,12 +19,13 @@ use crate::{
     ResourceLeaseContract, ResourceLeaseReason, RetentionPolicy, RuntimeEvidencePolicy,
     SatisfactionProof, SatisfactionRole, SemanticHash, StopPolicy, SubscriberCoupling,
     SupervisionActionKind, SupervisionContract, TypeContractRef, ValueEnvelopePolicy,
-    ValueEnvelopeReason, analyze_effect_closure, validate_administrative_proof,
-    validate_authority_at_use, validate_clock_conversion, validate_distributed_binding,
-    validate_effect_commit_profile, validate_feedback_boundary, validate_hazardous_host_binding,
-    validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
-    validate_policy_budget_status, validate_resource_lease, validate_runtime_evidence_policy,
-    validate_satisfaction_proof, validate_stream_contract, validate_value_envelope_policy,
+    ValueEnvelopeReason, WorkloadCapability, WorkloadContract, WorkloadLimit, admit_workload,
+    analyze_effect_closure, validate_administrative_proof, validate_authority_at_use,
+    validate_clock_conversion, validate_distributed_binding, validate_effect_commit_profile,
+    validate_feedback_boundary, validate_hazardous_host_binding, validate_job_contract,
+    validate_offline_lease, validate_plan_execution_profile, validate_policy_budget_status,
+    validate_resource_lease, validate_runtime_evidence_policy, validate_satisfaction_proof,
+    validate_stream_contract, validate_value_envelope_policy, validate_workload_contract,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -47,9 +48,11 @@ use crate::{
 /// runtime admission, lifecycle, resource, and generation-overlap contracts.
 /// Schema 17 adds bounded value-envelope authorization, exact clock
 /// conversions, and finite feedback boundaries. Schema 18 pins run-scoped
-/// resource leases and domain-owned effect commit/cleanup profiles. Earlier
-/// schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 18;
+/// resource leases and domain-owned effect commit/cleanup profiles. Schema 19
+/// pins workload admission, resource-category support, and deadline
+/// enforcement evidence without promoting observations into authority.
+/// Earlier schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 19;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -67,6 +70,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V14: u32 = 14;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V15: u32 = 15;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V16: u32 = 16;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V17: u32 = 17;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V18: u32 = 18;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -129,6 +133,13 @@ pub struct PlanResourceBinding<'a> {
     pub host_observation: Id<'a>,
     /// Finite run/epoch-scoped lease introduced in schema 18.
     pub lease: Option<ResourceLeaseContract<'a>>,
+}
+
+/// Exact workload declaration and independently sourced enforcement evidence.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanWorkload<'a> {
+    pub contract: WorkloadContract<'a>,
+    pub capability: WorkloadCapability<'a>,
 }
 
 /// Exact resource ceiling or allocation.
@@ -519,6 +530,8 @@ pub struct ExecutionPlan<'a> {
     pub budget: PlanResourceBudget,
     pub host_observations: &'a [PlanHostObservation<'a>],
     pub resources: &'a [PlanResourceBinding<'a>],
+    /// Admission/deadline declarations introduced in schema 19.
+    pub workloads: &'a [PlanWorkload<'a>],
     pub artifacts: &'a [PlanArtifact<'a>],
     pub nodes: &'a [ResolvedPlanNode<'a>],
     pub cords: &'a [ResolvedPlanCord<'a>],
@@ -566,6 +579,7 @@ pub enum PlanCollection {
     Header,
     HostObservations,
     Resources,
+    Workloads,
     Artifacts,
     Nodes,
     Cords,
@@ -620,6 +634,7 @@ pub enum PlanDiagnosticCode {
     Distributed(crate::DistributedReason),
     ValueEnvelope(ValueEnvelopeReason),
     ResourceLease(ResourceLeaseReason),
+    Workload(crate::WorkloadReason),
     ScratchTooSmall,
 }
 
@@ -655,6 +670,7 @@ impl PlanDiagnosticCode {
             Self::Distributed(reason) => reason.code(),
             Self::ValueEnvelope(reason) => reason.code(),
             Self::ResourceLease(reason) => reason.code(),
+            Self::Workload(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -699,6 +715,7 @@ impl ExecutionPlan<'_> {
             .host_observations
             .len()
             .checked_add(self.resources.len())
+            .and_then(|value| value.checked_add(self.workloads.len()))
             .and_then(|value| value.checked_add(self.artifacts.len()))
             .and_then(|value| value.checked_add(self.nodes.len()))
             .and_then(|value| value.checked_add(self.cords.len()))
@@ -811,6 +828,9 @@ impl ExecutionPlan<'_> {
         }
         for value in self.resources {
             push!(hash_resource_binding(self.schema_version, *value));
+        }
+        for value in self.workloads {
+            push!(hash_workload(*value));
         }
         for value in self.artifacts {
             push!(hash_artifact(*value));
@@ -1198,6 +1218,61 @@ pub fn validate_execution_plan(
             }
             _ => {}
         }
+    }
+
+    if plan.schema_version < 19 && !plan.workloads.is_empty() {
+        return Err(error(
+            PlanDiagnosticCode::UnsupportedVersion,
+            PlanCollection::Workloads,
+            Some(0),
+        ));
+    }
+    for (index, workload) in plan.workloads.iter().enumerate() {
+        let contract = workload.contract;
+        let capability = workload.capability;
+        if !plan.nodes.iter().any(|node| node.instance == contract.node)
+            || plan.workloads[..index]
+                .iter()
+                .any(|prior| prior.contract.id == contract.id)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::DanglingReference,
+                PlanCollection::Workloads,
+                index,
+            ));
+        }
+        validate_workload_contract(contract).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::Workload(reason),
+                PlanCollection::Workloads,
+                index,
+            )
+        })?;
+        let observation = plan
+            .host_observations
+            .iter()
+            .find(|observation| observation.id == capability.host_observation)
+            .ok_or_else(|| {
+                indexed(
+                    PlanDiagnosticCode::DanglingReference,
+                    PlanCollection::Workloads,
+                    index,
+                )
+            })?;
+        if observation.time_basis != capability.time_basis {
+            return Err(indexed(
+                PlanDiagnosticCode::Workload(crate::WorkloadReason::ClockMismatch),
+                PlanCollection::Workloads,
+                index,
+            ));
+        }
+        admit_workload(contract, capability, observation.id, context.now).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::Workload(reason),
+                PlanCollection::Workloads,
+                index,
+            )
+        })?;
     }
 
     for (index, artifact) in plan.artifacts.iter().enumerate() {
@@ -2904,6 +2979,135 @@ fn hash_resource_binding(
                 },
             ),
         ],
+    )
+}
+
+fn hash_workload(value: PlanWorkload<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let contract = value.contract;
+    let deadline = contract.deadline;
+    let contract_hash = descriptor_hash(
+        Id("conduit/workload-contract"),
+        &[
+            semantic("id", CanonicalValue::Identifier(contract.id)),
+            semantic("service", CanonicalValue::Identifier(contract.service)),
+            semantic("node", CanonicalValue::Text(contract.node.as_str())),
+            semantic(
+                "guarantee",
+                CanonicalValue::Identifier(Id(contract.guarantee.as_str())),
+            ),
+            semantic(
+                "deadline_time_basis",
+                deadline.map_or(CanonicalValue::Null, |value| {
+                    CanonicalValue::Identifier(value.time_basis)
+                }),
+            ),
+            semantic(
+                "relative_deadline_ticks",
+                CanonicalValue::Integer(i128::from(
+                    deadline.map_or(0, |value| value.relative_deadline_ticks),
+                )),
+            ),
+            semantic(
+                "maximum_jitter_ticks",
+                CanonicalValue::Integer(i128::from(
+                    deadline.map_or(0, |value| value.maximum_jitter_ticks),
+                )),
+            ),
+            semantic(
+                "maximum_evidence_events",
+                CanonicalValue::Integer(i128::from(contract.maximum_evidence_events)),
+            ),
+            workload_limit_field("work_units", contract.budget.work_units),
+            workload_limit_field("tasks", contract.budget.tasks),
+            workload_limit_field("processes", contract.budget.processes),
+            workload_limit_field("descriptors", contract.budget.descriptors),
+            workload_limit_field("connections", contract.budget.connections),
+            workload_limit_field("storage_bytes", contract.budget.storage_bytes),
+            workload_limit_field("device_operations", contract.budget.device_operations),
+            workload_limit_field("network_bytes", contract.budget.network_bytes),
+            workload_limit_field("callbacks", contract.budget.callbacks),
+            workload_limit_field("foreign_queue_items", contract.budget.foreign_queue_items),
+            workload_limit_field(
+                "transition_overlap_work_units",
+                contract.budget.transition_overlap_work_units,
+            ),
+        ],
+    )?;
+    let capability = value.capability;
+    let capability_hash = descriptor_hash(
+        Id("conduit/workload-capability"),
+        &[
+            semantic("id", CanonicalValue::Identifier(capability.id)),
+            semantic(
+                "identity",
+                CanonicalValue::Bytes(capability.identity.as_bytes()),
+            ),
+            semantic(
+                "host_observation",
+                CanonicalValue::Identifier(capability.host_observation),
+            ),
+            semantic(
+                "evidence_kind",
+                CanonicalValue::Identifier(Id(capability.evidence_kind.as_str())),
+            ),
+            semantic(
+                "time_basis",
+                CanonicalValue::Identifier(capability.time_basis),
+            ),
+            semantic(
+                "observed_at_tick",
+                CanonicalValue::Integer(i128::from(capability.observed_at_tick)),
+            ),
+            semantic(
+                "valid_until_tick",
+                CanonicalValue::Integer(i128::from(capability.valid_until_tick)),
+            ),
+            semantic(
+                "maximum_deadline_ticks",
+                CanonicalValue::Integer(i128::from(capability.maximum_deadline_ticks)),
+            ),
+            semantic(
+                "maximum_jitter_ticks",
+                CanonicalValue::Integer(i128::from(capability.maximum_jitter_ticks)),
+            ),
+            workload_limit_field("work_units", capability.capacity.work_units),
+            workload_limit_field("tasks", capability.capacity.tasks),
+            workload_limit_field("processes", capability.capacity.processes),
+            workload_limit_field("descriptors", capability.capacity.descriptors),
+            workload_limit_field("connections", capability.capacity.connections),
+            workload_limit_field("storage_bytes", capability.capacity.storage_bytes),
+            workload_limit_field("device_operations", capability.capacity.device_operations),
+            workload_limit_field("network_bytes", capability.capacity.network_bytes),
+            workload_limit_field("callbacks", capability.capacity.callbacks),
+            workload_limit_field(
+                "foreign_queue_items",
+                capability.capacity.foreign_queue_items,
+            ),
+            workload_limit_field(
+                "transition_overlap_work_units",
+                capability.capacity.transition_overlap_work_units,
+            ),
+        ],
+    )?;
+    descriptor_hash(
+        Id("conduit/plan-workload"),
+        &[
+            semantic("contract", CanonicalValue::Bytes(contract_hash.as_bytes())),
+            semantic(
+                "capability",
+                CanonicalValue::Bytes(capability_hash.as_bytes()),
+            ),
+        ],
+    )
+}
+
+const fn workload_limit_field(name: &'static str, limit: WorkloadLimit) -> MapField<'static> {
+    semantic(
+        name,
+        match limit {
+            WorkloadLimit::Finite(value) => CanonicalValue::Integer(value as i128),
+            WorkloadLimit::Unsupported => CanonicalValue::Null,
+        },
     )
 }
 

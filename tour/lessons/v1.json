@@ -1081,6 +1081,121 @@
           "finite cancellation cleanup, release sequence, and escalation"
         ]
       }
+    },
+    {
+      "id": "platform.workload-admission-deadline",
+      "chapter": 4,
+      "title": "Deadline guarantees are not measurements",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.resource-lease-effect-commit"
+      ],
+      "objective": "Run a representative panel while comparing hard admission authority with measured Linux, best-effort browser, and unsupported constrained profiles.",
+      "prose": "A fast benchmark and a fresh host report are observations. A schema-19 plan admits a hard deadline only from exact enforcement evidence on the named clock with every required resource category reserved.",
+      "vocabulary": [
+        "workload declaration",
+        "hard guarantee",
+        "measurement",
+        "clock basis",
+        "deadline miss"
+      ],
+      "source": "panel 1\n\nnode message : std/literal {\n    value = \"Deadline guarantees stay separate from measurements.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.out -> output.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run workload-deadline-admission.panel",
+      "commands": [
+        "conduct --check workload-deadline-admission.panel",
+        "conduct --run workload-deadline-admission.panel"
+      ],
+      "expected_stdout": "DEADLINE GUARANTEES STAY SEPARATE FROM MEASUREMENTS.\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 256,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "plan-admission-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "workloads",
+          "bindings"
+        ]
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "DEADLINE GUARANTEES STAY SEPARATE FROM MEASUREMENTS.\n"
+      },
+      "hints": [
+        "Edit message.value and rerun; the ordinary nodes stay distinct from the plan workload declaration.",
+        "A Linux timing sample and browser availability remain observations even when they look fast.",
+        "Callbacks, foreign queues, and transition overlap must fit the same finite admission."
+      ],
+      "solution": "Declare every category finite or unsupported, pin one clock and deadline, and require fresh exact enforcement evidence before calling the result hard.",
+      "accessibility": {
+        "non_audio": "The graph is paired with ordered text for declaration, observation, admission, usage, deadline, overload, and terminal evidence.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered execution story has focus.",
+        "color_independent": "Guarantee labels, resource values, reason codes, and ordered text duplicate every admission and deadline color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "platform": {
+        "schema": "conduit.tour-platform-lesson/v1",
+        "what": "A schema-19 exact plan pins the workload class, finite-or-unsupported categories, clock, deadline, jitter, host observation, and exact enforcement evidence separately.",
+        "when": "Use hard admission only when the selected host can enforce the declared reservation and deadline. Use measured or best-effort profiles for observations that do not grant that authority.",
+        "wrong": "Benchmarks, stale reports, wrong clocks, hidden callbacks, uncounted overlap, implicit priority escalation, and best-effort downgrade reported as hard success fail closed.",
+        "editable": [
+          "message.value:std/text"
+        ],
+        "fixture": "../../conformance/c5/workload-admission-deadline-v1.json",
+        "panel": "../../examples/workload-deadline-admission.panel",
+        "docs": [
+          "../../spec/057-workload-admission-deadline-v1.md"
+        ],
+        "profiles": [
+          {
+            "id": "hard-exact-enforcement",
+            "fixture_case": "hard-exact-enforcement",
+            "admission": "accepted",
+            "guarantee": "hard"
+          },
+          {
+            "id": "linux-measurement",
+            "fixture_case": "linux-measurement-stays-observation",
+            "admission": "accepted",
+            "guarantee": "measured"
+          },
+          {
+            "id": "browser-best-effort",
+            "fixture_case": "browser-best-effort-profile",
+            "admission": "accepted",
+            "guarantee": "host-observed-best-effort"
+          },
+          {
+            "id": "unsupported-hard-real-time",
+            "fixture_case": "unsupported-hard-real-time",
+            "admission": "rejected",
+            "code": "CND-WRK-005"
+          },
+          {
+            "id": "deadline-miss",
+            "fixture_case": "deadline-miss",
+            "admission": "accepted",
+            "terminal": "deadline-missed",
+            "code": "CND-WRK-014"
+          }
+        ],
+        "authoritative_story": [
+          "plan workload classification and finite-or-unsupported resource categories",
+          "fresh capability evidence, named clock, deadline, and jitter admission",
+          "ordered work, callback, foreign-queue, and transition-overlap accounting",
+          "measured Linux and best-effort browser observations remain non-authoritative",
+          "overload, missed deadline, exact reason code, and terminal evidence"
+        ]
+      }
     }
   ]
 }

@@ -303,6 +303,7 @@ fn with_equivalence_plans(
         },
         host_observations: &desktop_observations,
         resources: &[],
+        workloads: &[],
         artifacts: &desktop_artifacts,
         nodes: &desktop_nodes,
         cords: &desktop_cords,

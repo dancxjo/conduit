@@ -1,9 +1,10 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationCheckpointPolicy, CancellationGuarantee,
-    CheckpointProviderCapabilities, ClockRounding, DelegationPolicy, DeliveryClaim, DescriptorRef,
-    Direction, DuplicatePolicy, DuplicationRule, EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V17, EffectCommitProfile,
+    CheckpointProviderCapabilities, ClockRounding, DeadlineContract, DelegationPolicy,
+    DeliveryClaim, DescriptorRef, Direction, DuplicatePolicy, DuplicationRule,
+    EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION_V17, EXECUTION_PLAN_SCHEMA_VERSION_V18, EffectCommitProfile,
     EffectDiscontinuity, EffectIdempotency, EffectRequirement, EventClass,
     EventProviderCapabilities, EventStreamContract, ExecutionLimits, ExecutionPlan,
     ExecutionProfile, ExplicitSatisfactionRequirement, FanOutMode, FeedbackBoundaryKind,
@@ -14,14 +15,16 @@ use conduit_core::{
     PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary, PlanHostObservation,
     PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember,
     PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject,
-    PlanValidationContext, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
+    PlanValidationContext, PlanWorkload, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
     RUNTIME_EVIDENCE_POLICY_VERSION, ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode,
     ResolvedPlanPort, ResourceLeaseContract, ResourceLeaseReason, ResourceRef, ResourceSelector,
     ResourceSharingMode, RestartPolicy, RetentionPolicy, RuntimeEvidenceMode,
     RuntimeEvidencePolicy, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation,
     SatisfactionPin, SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
     Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef, UnknownCommitPolicy,
-    UnresolvedPlanConstraint, UnresolvedPlanKind, ValueEnvelopePolicy, resolve_authority,
+    UnresolvedPlanConstraint, UnresolvedPlanKind, ValueEnvelopePolicy,
+    WORKLOAD_CONTRACT_SCHEMA_VERSION, WorkloadBudget, WorkloadCapability, WorkloadContract,
+    WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit, resolve_authority,
     validate_execution_plan,
 };
 
@@ -298,6 +301,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         budget: PLAN_BUDGET,
         host_observations: &observations,
         resources: &resources,
+        workloads: &[],
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
@@ -329,6 +333,172 @@ fn context(tick: u64) -> PlanValidationContext<'static> {
         supported_schema_version: 1,
         now: time(tick),
     }
+}
+
+fn workload_budget(work_units: u64) -> WorkloadBudget {
+    WorkloadBudget {
+        work_units: WorkloadLimit::Finite(work_units),
+        tasks: WorkloadLimit::Finite(1),
+        processes: WorkloadLimit::Unsupported,
+        descriptors: WorkloadLimit::Finite(2),
+        connections: WorkloadLimit::Finite(1),
+        storage_bytes: WorkloadLimit::Unsupported,
+        device_operations: WorkloadLimit::Unsupported,
+        network_bytes: WorkloadLimit::Unsupported,
+        callbacks: WorkloadLimit::Finite(2),
+        foreign_queue_items: WorkloadLimit::Finite(1),
+        transition_overlap_work_units: WorkloadLimit::Finite(20),
+    }
+}
+
+#[test]
+fn schema_19_pins_workload_admission_separately_from_observations() {
+    with_plan(|plan, scratch| {
+        let mut profile = ExecutionProfile {
+            id: Id("fixture/workload-profile"),
+            schema_version: 1,
+            semantic_hash: ZERO_HASH,
+            boundedness: BoundednessProfile::Hard,
+            cancellation: CancellationGuarantee::Bounded,
+            step_bound_enforced: true,
+            limits: ExecutionLimits {
+                max_step_work: 8,
+                max_retained_values: 0,
+                max_retained_bytes: 0,
+                max_scratch_bytes: 0,
+                max_input_leases: 0,
+                max_input_bytes: 0,
+                max_output_reservations: 0,
+                max_output_bytes: 0,
+                max_transactions: 1,
+                max_fragments_per_step: 0,
+                max_pending_operations: 0,
+                max_timers: 0,
+                max_child_tasks: 0,
+                max_host_buffer_bytes: 0,
+                max_foreign_queue_items: 0,
+                max_foreign_queue_bytes: 0,
+                max_checkpoint_bytes: 0,
+                implementation_memory_bytes: 0,
+                cancellation_ticks: 1,
+            },
+            representations: &[],
+            memory_claims: &[],
+            checkpoint: None,
+        };
+        profile.semantic_hash = profile.computed_semantic_hash(&mut []).unwrap();
+        let nodes = [
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                required_resources: &[],
+                required_effects: &[],
+                ..plan.nodes[0]
+            },
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                required_resources: &[],
+                required_effects: &[],
+                ..plan.nodes[1]
+            },
+        ];
+        let contract = WorkloadContract {
+            schema_version: WORKLOAD_CONTRACT_SCHEMA_VERSION,
+            id: Id("workload/source"),
+            service: Id("service/source"),
+            node: plan.nodes[0].instance,
+            guarantee: WorkloadGuarantee::Hard,
+            budget: workload_budget(100),
+            deadline: Some(DeadlineContract {
+                time_basis: plan.created_at.basis,
+                relative_deadline_ticks: 20,
+                maximum_jitter_ticks: 2,
+            }),
+            maximum_evidence_events: 4,
+        };
+        let capability = WorkloadCapability {
+            id: Id("capability/source-deadline"),
+            identity: hash(90),
+            host_observation: plan.host_observations[0].id,
+            evidence_kind: WorkloadEvidenceKind::ExactEnforcement,
+            time_basis: plan.created_at.basis,
+            observed_at_tick: 0,
+            valid_until_tick: 100,
+            capacity: workload_budget(200),
+            maximum_deadline_ticks: 30,
+            maximum_jitter_ticks: 1,
+        };
+        let workloads = [PlanWorkload {
+            contract,
+            capability,
+        }];
+        let validation = PlanValidationContext {
+            supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            now: time(20),
+        };
+        let mut current = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            identity: ZERO_HASH,
+            resources: &[],
+            workloads: &workloads,
+            nodes: &nodes,
+            authorities: &[],
+            composites: &[],
+            port_groups: &[],
+            instance_pools: &[],
+            ..plan
+        };
+        current.identity = current.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&current, validation, scratch),
+            Ok(())
+        );
+
+        let benchmark = [PlanWorkload {
+            capability: WorkloadCapability {
+                evidence_kind: WorkloadEvidenceKind::Benchmark,
+                ..capability
+            },
+            ..workloads[0]
+        }];
+        let mut benchmark_plan = ExecutionPlan {
+            identity: ZERO_HASH,
+            workloads: &benchmark,
+            ..current
+        };
+        benchmark_plan.identity = benchmark_plan.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&benchmark_plan, validation, scratch),
+            Err(conduit_core::PlanValidationError {
+                code: PlanDiagnosticCode::Workload(
+                    conduit_core::WorkloadReason::BenchmarkIsNotAuthority,
+                ),
+                collection: PlanCollection::Workloads,
+                subject_index: Some(0),
+            })
+        );
+
+        let mut legacy = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V18,
+            identity: ZERO_HASH,
+            ..current
+        };
+        legacy.identity = legacy.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(
+                &legacy,
+                PlanValidationContext {
+                    supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V18,
+                    now: time(20),
+                },
+                scratch,
+            ),
+            Err(conduit_core::PlanValidationError {
+                code: PlanDiagnosticCode::UnsupportedVersion,
+                collection: PlanCollection::Workloads,
+                subject_index: Some(0),
+            })
+        );
+    });
 }
 
 #[test]

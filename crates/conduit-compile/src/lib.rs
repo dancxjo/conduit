@@ -13,39 +13,40 @@ use conduit_core::{
     AdministrativeProposal, AdministrativeSubject, AdmittedSupervisionAction, ArtifactDigest,
     ArtifactManifest, ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope,
     AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ClockRounding,
-    ContainmentContext, ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy,
-    Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION,
+    ContainmentContext, ContainmentPolicy, ContainmentReason, DeadlineContract, DelegationEnvelope,
+    DelegationPolicy, Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION,
     EXECUTION_PLAN_SCHEMA_VERSION_V3, EXECUTION_PLAN_SCHEMA_VERSION_V11,
     EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
     EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
-    EXECUTION_PLAN_SCHEMA_VERSION_V16, EXECUTION_PLAN_SCHEMA_VERSION_V17, EffectClassBinding,
-    EffectClassTraits, EffectCommitProfile, EffectDiscontinuity, EffectFlowBinding,
-    EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile,
-    ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy,
-    FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention,
-    GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits,
-    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode,
-    HazardousHostBinding, HazardousHostProfile, HostCapability, HostDistributionKind, Id,
-    ImplementationConfinement, ImplementationManifest, InhibitLatchState, InhibitObservation,
-    InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint,
-    MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit,
-    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion, PlanCompositeMapping,
-    PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure, PlanHostObservation,
-    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
-    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
-    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
-    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
-    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
-    ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
-    ReplacementSupport, ReportCapability, ReportMembership, ReportResource, ReportTopology,
-    ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode, RollingLimit,
-    SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
+    EXECUTION_PLAN_SCHEMA_VERSION_V16, EXECUTION_PLAN_SCHEMA_VERSION_V17,
+    EXECUTION_PLAN_SCHEMA_VERSION_V18, EffectClassBinding, EffectClassTraits, EffectCommitProfile,
+    EffectDiscontinuity, EffectFlowBinding, EffectIdempotency, EffectRequirement, ExecutionLimits,
+    ExecutionPlan, ExecutionProfile, ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization,
+    FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks,
+    ForeignRetention, GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext,
+    HazardClosureLimits, HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind,
+    HazardProofNode, HazardousHostBinding, HazardousHostProfile, HostCapability,
+    HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest, InhibitLatchState,
+    InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef,
+    ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
+    OperatingEnvelopeLimit, OwnershipModel, PassportStatus, PassportStatusObservation,
+    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion,
+    PlanCompositeMapping, PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure,
+    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
+    PlanSupervisionTarget, PlanValidationContext, PlanWorkload, PolicyBudgetAnchor,
+    PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason,
+    PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract,
+    PoolGenerationReservation, PoolReservationProfile, PoolSupervisionPolicy, Pressure,
+    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
+    ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
+    ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode,
+    RollingLimit, SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
     SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
     ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
-    TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation,
+    TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation, WorkloadBudget,
+    WorkloadCapability, WorkloadContract, WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit,
     analyze_effect_closure, assess_provider_requirement, resolve_authority,
     validate_administrative_proof, validate_reference_distribution,
 };
@@ -75,6 +76,7 @@ pub const SUPERVISION_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v7";
 pub const POOL_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v8";
 pub const VALUE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v9";
 pub const EFFECT_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v10";
+pub const WORKLOAD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v11";
 pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -1988,6 +1990,66 @@ pub struct ResourceLeaseDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct WorkloadBudgetDocument {
+    pub work_units: Option<u64>,
+    pub tasks: Option<u64>,
+    pub processes: Option<u64>,
+    pub descriptors: Option<u64>,
+    pub connections: Option<u64>,
+    pub storage_bytes: Option<u64>,
+    pub device_operations: Option<u64>,
+    pub network_bytes: Option<u64>,
+    pub callbacks: Option<u64>,
+    pub foreign_queue_items: Option<u64>,
+    pub transition_overlap_work_units: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeadlineContractDocument {
+    pub time_basis: String,
+    pub relative_deadline_ticks: u64,
+    pub maximum_jitter_ticks: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkloadContractDocument {
+    pub schema_version: u32,
+    pub id: String,
+    pub service: String,
+    pub node: String,
+    pub guarantee: String,
+    pub budget: WorkloadBudgetDocument,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline: Option<DeadlineContractDocument>,
+    pub maximum_evidence_events: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkloadCapabilityDocument {
+    pub id: String,
+    pub identity: String,
+    pub host_observation: String,
+    pub evidence_kind: String,
+    pub time_basis: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub capacity: WorkloadBudgetDocument,
+    pub maximum_deadline_ticks: u64,
+    pub maximum_jitter_ticks: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlanWorkloadDocument {
+    pub contract: WorkloadContractDocument,
+    pub capability: WorkloadCapabilityDocument,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlanNodeDocument {
     pub instance: String,
     pub contract: PinDocument,
@@ -2219,6 +2281,8 @@ pub struct ExactPlanDocument {
     pub budget: BudgetDocument,
     pub host_observations: Vec<PlanHostDocument>,
     pub resources: Vec<PlanResourceDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub workloads: Vec<PlanWorkloadDocument>,
     pub artifacts: Vec<PlanArtifactDocument>,
     pub nodes: Vec<PlanNodeDocument>,
     pub cords: Vec<PlanCordDocument>,
@@ -2300,6 +2364,8 @@ impl ExactPlanDocument {
             || (self.schema == VALUE_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V17)
             || (self.schema == EFFECT_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V18)
+            || (self.schema == WORKLOAD_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
@@ -2343,6 +2409,11 @@ impl ExactPlanDocument {
                     lease: resource.lease.as_ref().map(resource_lease).transpose()?,
                 })
             })
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        let workloads = self
+            .workloads
+            .iter()
+            .map(workload_binding)
             .collect::<Result<Vec<_>, CompileError>>()?;
         let nodes = self
             .nodes
@@ -2699,6 +2770,7 @@ impl ExactPlanDocument {
             budget: self.budget.into(),
             host_observations: arena.alloc_slice_copy(&hosts),
             resources: arena.alloc_slice_copy(&resources),
+            workloads: arena.alloc_slice_copy(&workloads),
             artifacts: arena.alloc_slice_copy(&artifacts),
             nodes: arena.alloc_slice_copy(&nodes),
             cords: arena.alloc_slice_copy(&cords),
@@ -3506,6 +3578,7 @@ fn compile_topology(
         budget: input.plan_budget.into(),
         host_observations: &host_observations,
         resources: &resource_bindings,
+        workloads: &[],
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
@@ -5275,6 +5348,65 @@ fn effect_commit_profile_document(profile: EffectCommitProfile<'_>) -> EffectCom
     }
 }
 
+fn workload_limit_document(limit: WorkloadLimit) -> Option<u64> {
+    match limit {
+        WorkloadLimit::Finite(value) => Some(value),
+        WorkloadLimit::Unsupported => None,
+    }
+}
+
+fn workload_budget_document(budget: WorkloadBudget) -> WorkloadBudgetDocument {
+    WorkloadBudgetDocument {
+        work_units: workload_limit_document(budget.work_units),
+        tasks: workload_limit_document(budget.tasks),
+        processes: workload_limit_document(budget.processes),
+        descriptors: workload_limit_document(budget.descriptors),
+        connections: workload_limit_document(budget.connections),
+        storage_bytes: workload_limit_document(budget.storage_bytes),
+        device_operations: workload_limit_document(budget.device_operations),
+        network_bytes: workload_limit_document(budget.network_bytes),
+        callbacks: workload_limit_document(budget.callbacks),
+        foreign_queue_items: workload_limit_document(budget.foreign_queue_items),
+        transition_overlap_work_units: workload_limit_document(
+            budget.transition_overlap_work_units,
+        ),
+    }
+}
+
+fn workload_document(workload: PlanWorkload<'_>) -> PlanWorkloadDocument {
+    PlanWorkloadDocument {
+        contract: WorkloadContractDocument {
+            schema_version: workload.contract.schema_version,
+            id: workload.contract.id.to_string(),
+            service: workload.contract.service.to_string(),
+            node: workload.contract.node.as_str().to_owned(),
+            guarantee: workload.contract.guarantee.as_str().to_owned(),
+            budget: workload_budget_document(workload.contract.budget),
+            deadline: workload
+                .contract
+                .deadline
+                .map(|deadline| DeadlineContractDocument {
+                    time_basis: deadline.time_basis.to_string(),
+                    relative_deadline_ticks: deadline.relative_deadline_ticks,
+                    maximum_jitter_ticks: deadline.maximum_jitter_ticks,
+                }),
+            maximum_evidence_events: workload.contract.maximum_evidence_events,
+        },
+        capability: WorkloadCapabilityDocument {
+            id: workload.capability.id.to_string(),
+            identity: workload.capability.identity.to_string(),
+            host_observation: workload.capability.host_observation.to_string(),
+            evidence_kind: workload.capability.evidence_kind.as_str().to_owned(),
+            time_basis: workload.capability.time_basis.to_string(),
+            observed_at_tick: workload.capability.observed_at_tick,
+            valid_until_tick: workload.capability.valid_until_tick,
+            capacity: workload_budget_document(workload.capability.capacity),
+            maximum_deadline_ticks: workload.capability.maximum_deadline_ticks,
+            maximum_jitter_ticks: workload.capability.maximum_jitter_ticks,
+        },
+    }
+}
+
 fn plan_document(
     plan: &ExecutionPlan<'_>,
     topology: &ExactTopologyView,
@@ -5314,6 +5446,13 @@ fn plan_document(
         })
         .collect::<Vec<_>>();
     resources.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut workloads = plan
+        .workloads
+        .iter()
+        .copied()
+        .map(workload_document)
+        .collect::<Vec<_>>();
+    workloads.sort_by(|left, right| left.contract.id.cmp(&right.contract.id));
     let mut nodes = plan
         .nodes
         .iter()
@@ -5637,7 +5776,9 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 18 {
+        schema: if plan.schema_version >= 19 {
+            WORKLOAD_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 18 {
             EFFECT_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else if plan.schema_version >= 17 {
             VALUE_PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -5664,6 +5805,7 @@ fn plan_document(
         budget: plan.budget.into(),
         host_observations: hosts,
         resources,
+        workloads,
         artifacts,
         nodes,
         cords,
@@ -5690,6 +5832,78 @@ fn port_document(document: &PlanPortDocument) -> Result<ResolvedPlanPort<'_>, Co
             contract_id: id(&document.value_type_id)?,
             schema_version: document.value_type_schema_version,
             semantic_hash: parse_hash(&document.value_type_semantic_hash)?,
+        },
+    })
+}
+
+fn workload_limit(value: Option<u64>) -> WorkloadLimit {
+    value.map_or(WorkloadLimit::Unsupported, WorkloadLimit::Finite)
+}
+
+fn workload_budget(document: &WorkloadBudgetDocument) -> WorkloadBudget {
+    WorkloadBudget {
+        work_units: workload_limit(document.work_units),
+        tasks: workload_limit(document.tasks),
+        processes: workload_limit(document.processes),
+        descriptors: workload_limit(document.descriptors),
+        connections: workload_limit(document.connections),
+        storage_bytes: workload_limit(document.storage_bytes),
+        device_operations: workload_limit(document.device_operations),
+        network_bytes: workload_limit(document.network_bytes),
+        callbacks: workload_limit(document.callbacks),
+        foreign_queue_items: workload_limit(document.foreign_queue_items),
+        transition_overlap_work_units: workload_limit(document.transition_overlap_work_units),
+    }
+}
+
+fn workload_binding(document: &PlanWorkloadDocument) -> Result<PlanWorkload<'_>, CompileError> {
+    let contract = &document.contract;
+    let capability = &document.capability;
+    Ok(PlanWorkload {
+        contract: WorkloadContract {
+            schema_version: contract.schema_version,
+            id: id(&contract.id)?,
+            service: id(&contract.service)?,
+            node: instance(&contract.node)?,
+            guarantee: match contract.guarantee.as_str() {
+                "hard" => WorkloadGuarantee::Hard,
+                "measured" => WorkloadGuarantee::Measured,
+                "host-observed-best-effort" => WorkloadGuarantee::HostObservedBestEffort,
+                "unsupported" => WorkloadGuarantee::Unsupported,
+                _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+            },
+            budget: workload_budget(&contract.budget),
+            deadline: contract
+                .deadline
+                .as_ref()
+                .map(|deadline| {
+                    Ok(DeadlineContract {
+                        time_basis: id(&deadline.time_basis)?,
+                        relative_deadline_ticks: deadline.relative_deadline_ticks,
+                        maximum_jitter_ticks: deadline.maximum_jitter_ticks,
+                    })
+                })
+                .transpose()?,
+            maximum_evidence_events: contract.maximum_evidence_events,
+        },
+        capability: WorkloadCapability {
+            id: id(&capability.id)?,
+            identity: parse_hash(&capability.identity)?,
+            host_observation: id(&capability.host_observation)?,
+            evidence_kind: match capability.evidence_kind.as_str() {
+                "exact-enforcement" => WorkloadEvidenceKind::ExactEnforcement,
+                "host-observation" => WorkloadEvidenceKind::HostObservation,
+                "measurement" => WorkloadEvidenceKind::Measurement,
+                "benchmark" => WorkloadEvidenceKind::Benchmark,
+                "none" => WorkloadEvidenceKind::None,
+                _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+            },
+            time_basis: id(&capability.time_basis)?,
+            observed_at_tick: capability.observed_at_tick,
+            valid_until_tick: capability.valid_until_tick,
+            capacity: workload_budget(&capability.capacity),
+            maximum_deadline_ticks: capability.maximum_deadline_ticks,
+            maximum_jitter_ticks: capability.maximum_jitter_ticks,
         },
     })
 }
@@ -8517,7 +8731,7 @@ mod tests {
 
         let mut effect_plan = plan.clone();
         effect_plan.schema = EFFECT_PLAN_DOCUMENT_SCHEMA.to_owned();
-        effect_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        effect_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION_V18;
         let authority_node = effect_plan.authorities[0].node.clone();
         let resource_id = effect_plan.authorities[0].binding.resource_id.clone();
         let resource_index = effect_plan
@@ -8593,6 +8807,60 @@ mod tests {
         let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, effect_plan);
         assert_eq!(decoded.schema, EFFECT_PLAN_DOCUMENT_SCHEMA);
+
+        let finite_work = WorkloadBudgetDocument {
+            work_units: Some(100),
+            tasks: Some(1),
+            processes: None,
+            descriptors: Some(1),
+            connections: None,
+            storage_bytes: None,
+            device_operations: Some(1),
+            network_bytes: None,
+            callbacks: Some(1),
+            foreign_queue_items: Some(1),
+            transition_overlap_work_units: Some(20),
+        };
+        let mut workload_plan = effect_plan.clone();
+        workload_plan.schema = WORKLOAD_PLAN_DOCUMENT_SCHEMA.to_owned();
+        workload_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        workload_plan.workloads = vec![PlanWorkloadDocument {
+            contract: WorkloadContractDocument {
+                schema_version: conduit_core::WORKLOAD_CONTRACT_SCHEMA_VERSION,
+                id: "workload/fixture-read".to_owned(),
+                service: "service/fixture-read".to_owned(),
+                node: workload_plan.nodes[0].instance.clone(),
+                guarantee: "hard".to_owned(),
+                budget: finite_work.clone(),
+                deadline: Some(DeadlineContractDocument {
+                    time_basis: workload_plan.time_basis.clone(),
+                    relative_deadline_ticks: 5,
+                    maximum_jitter_ticks: 1,
+                }),
+                maximum_evidence_events: 4,
+            },
+            capability: WorkloadCapabilityDocument {
+                id: "capability/fixture-deadline".to_owned(),
+                identity: hash(105),
+                host_observation: workload_plan.host_observations[0].id.clone(),
+                evidence_kind: "exact-enforcement".to_owned(),
+                time_basis: workload_plan.time_basis.clone(),
+                observed_at_tick: workload_plan.host_observations[0].observed_at_tick,
+                valid_until_tick: workload_plan.host_observations[0].valid_until_tick,
+                capacity: WorkloadBudgetDocument {
+                    work_units: Some(200),
+                    ..finite_work
+                },
+                maximum_deadline_ticks: 10,
+                maximum_jitter_ticks: 1,
+            },
+        }];
+        workload_plan.identity = computed_identity(&workload_plan);
+        workload_plan.validate().unwrap();
+        let encoded = serde_json::to_vec(&workload_plan).unwrap();
+        let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, workload_plan);
+        assert_eq!(decoded.schema, WORKLOAD_PLAN_DOCUMENT_SCHEMA);
 
         let mut missing_commit = effect_plan.clone();
         missing_commit.authorities[0].commit_profile = None;
