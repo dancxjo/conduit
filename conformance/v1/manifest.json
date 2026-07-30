@@ -1467,7 +1467,7 @@
         {
           "id": "conduct-cli-command-v1",
           "path": "../c3/conduct-cli-v1.json",
-          "sha256": "sha256:fc581865fbb40dd5f0f2ca7db0936fdb3ce85378fbc9b86cf74ebe10ea375306",
+          "sha256": "sha256:6163af9a9ecbdaaf05a664f680adde77588a08baa5fef34ec4a35ca2667940b9",
           "operation": "conduct-cli-command-v1",
           "requirement_ids": [
             "CLI-001",
@@ -1503,7 +1503,7 @@
         {
           "id": "conduct-cli-presentation-v1",
           "path": "../c3/conduct-cli-v1.json",
-          "sha256": "sha256:fc581865fbb40dd5f0f2ca7db0936fdb3ce85378fbc9b86cf74ebe10ea375306",
+          "sha256": "sha256:6163af9a9ecbdaaf05a664f680adde77588a08baa5fef34ec4a35ca2667940b9",
           "operation": "conduct-cli-presentation-v1",
           "requirement_ids": [
             "CLI-005",

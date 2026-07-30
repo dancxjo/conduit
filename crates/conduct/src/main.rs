@@ -461,6 +461,7 @@ fn run(
                         execute_run(
                             &resolved,
                             compiled.as_ref(),
+                            arguments.compatibility_demo,
                             &mut RunIo {
                                 input: &mut stdin,
                                 output: &mut output,
@@ -485,6 +486,7 @@ fn run(
                         execute_run(
                             &resolved,
                             compiled.as_ref(),
+                            arguments.compatibility_demo,
                             &mut RunIo {
                                 input: &mut stdin,
                                 output: &mut output,
@@ -535,10 +537,17 @@ fn run(
 fn execute_run(
     resolved: &ResolvedPanel<'_>,
     compiled: Option<&(CompileInput, ExactPlanDocument)>,
+    compatibility_demo: bool,
     io: &mut RunIo<'_>,
 ) -> Result<ExecutionSummary, RuntimeError> {
     let Some((input, document)) = compiled else {
-        return resolved.run(io);
+        if compatibility_demo {
+            return resolved.run_batch(io);
+        }
+        return Err(RuntimeError::new(
+            "CND-RUN-011",
+            "production run requires an explicit --compile-input exact binding snapshot",
+        ));
     };
     let arena = bumpalo::Bump::new();
     let plan = document
@@ -689,6 +698,18 @@ fn validate_output_format(
     arguments: &Arguments,
     presentation: PresentationOptions,
 ) -> Result<(), CliError> {
+    if arguments.compatibility_demo
+        && (arguments.secondary.is_some() || arguments.mode() != Mode::Run)
+    {
+        return Err(cli_error(
+            simple_diagnostic(
+                "CND-CLI-004",
+                "--compatibility-demo is available only with run mode",
+            ),
+            presentation,
+            vec![],
+        ));
+    }
     if arguments.compile_input.is_some() && arguments.secondary.is_some() {
         return Err(cli_error(
             simple_diagnostic(

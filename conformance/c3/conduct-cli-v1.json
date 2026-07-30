@@ -4,13 +4,13 @@
     {
       "id": "default-run-file",
       "runner": "process",
-      "args": ["$EXAMPLE"],
+      "args": ["--compatibility-demo", "$EXAMPLE"],
       "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
     },
     {
       "id": "explicit-run-file",
       "runner": "process",
-      "args": ["--run", "$EXAMPLE"],
+      "args": ["--run", "--compatibility-demo", "$EXAMPLE"],
       "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
     },
     {
@@ -28,14 +28,14 @@
     {
       "id": "default-run-stdin",
       "runner": "process",
-      "args": [],
+      "args": ["--compatibility-demo"],
       "stdin": "$HELLO_SOURCE",
       "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
     },
     {
       "id": "dash-run-stdin",
       "runner": "process",
-      "args": ["-"],
+      "args": ["--compatibility-demo", "-"],
       "stdin": "$HELLO_SOURCE",
       "expected": {"exit": 0, "stdout": "HELLO FROM CONDUIT.\n", "stderr": "empty"}
     },

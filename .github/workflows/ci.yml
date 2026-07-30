@@ -34,8 +34,8 @@ jobs:
       - run: cargo xtask check-python-boundary
       - run: cargo run -p conduct -- --check examples/hello.panel
       - run: cargo run -p conduct -- --explain examples/hello.panel
-      - run: test "$(cargo run -q -p conduct -- --run examples/hello.panel)" = "HELLO FROM CONDUIT."
-      - run: test "$(cargo run -q -p conduct -- examples/hello.panel)" = "HELLO FROM CONDUIT."
+      - run: test "$(cargo run -q -p conduct -- --run --compatibility-demo examples/hello.panel)" = "HELLO FROM CONDUIT."
+      - run: test "$(cargo run -q -p conduct -- --compatibility-demo examples/hello.panel)" = "HELLO FROM CONDUIT."
 
   browser-engines:
     runs-on: ubuntu-latest

@@ -73,7 +73,12 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
     assert_eq!(explain["result"]["cords"].as_array().unwrap().len(), 2);
     assert_eq!(explain["result"]["cords"][0]["pressure"], "block(fifo)");
 
-    let run = execute(&["--run".into(), "--format=ndjson".into(), example]);
+    let run = execute(&[
+        "--run".into(),
+        "--compatibility-demo".into(),
+        "--format=ndjson".into(),
+        example,
+    ]);
     assert!(run.status.success());
     assert!(run.stderr.is_empty());
     assert_clean_machine_stdout(&run.stdout);
@@ -102,7 +107,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
     assert_eq!(records[1]["cords_conducted"], 2);
 
     let mut child = command()
-        .args(["--run", "--format=ndjson", "-"])
+        .args(["--run", "--compatibility-demo", "--format=ndjson", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -144,12 +149,16 @@ fn every_result_and_diagnostic_format_combination_keeps_streams_separate() {
         let format = case["format"].as_str().unwrap();
         let accepted = case["expected"]["accepted"].as_bool().unwrap();
         for diagnostic_format in ["human", "json"] {
-            let output = execute(&[
+            let mut arguments = vec![
                 mode_flag(mode),
                 format!("--format={format}"),
                 format!("--diagnostic-format={diagnostic_format}"),
-                example.clone(),
-            ]);
+            ];
+            if mode == "run" {
+                arguments.push("--compatibility-demo".into());
+            }
+            arguments.push(example.clone());
+            let output = execute(&arguments);
             assert_eq!(
                 output.status.success(),
                 accepted,
@@ -286,7 +295,7 @@ fn quiet_verbosity_and_malformed_options_preserve_required_output() {
 fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
     let example = example();
     let mut child = command()
-        .args(["--run", "--format=ndjson"])
+        .args(["--run", "--compatibility-demo", "--format=ndjson"])
         .arg(&example)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -298,7 +307,7 @@ fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
     assert!(output.stderr.is_empty());
 
     let mut child = command()
-        .args(["--run", "--format=ndjson"])
+        .args(["--run", "--compatibility-demo", "--format=ndjson"])
         .arg(&example)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -318,7 +327,12 @@ fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
 
     let full = File::options().write(true).open("/dev/full").unwrap();
     let output = command()
-        .args(["--run", "--format=ndjson", "--diagnostic-format=json"])
+        .args([
+            "--run",
+            "--compatibility-demo",
+            "--format=ndjson",
+            "--diagnostic-format=json",
+        ])
         .arg(example)
         .stdout(Stdio::from(full))
         .stderr(Stdio::piped())

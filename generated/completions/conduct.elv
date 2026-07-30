@@ -29,6 +29,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
             cand -v 'Add bounded resolution status detail; repeat for future detail levels'
             cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand --compatibility-demo 'Run the finite batch compatibility demo instead of an exact plan'
             cand -h 'Print help'
             cand --help 'Print help'
             cand -V 'Print version'

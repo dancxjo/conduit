@@ -818,7 +818,7 @@ fn compile_diagnostics_stay_on_stderr_and_reserved_path_is_disambiguated() {
     std::fs::write(root.join("compile"), source).unwrap();
     let disambiguated = command()
         .current_dir(&root)
-        .args(["--run", "--", "compile"])
+        .args(["--run", "--compatibility-demo", "--", "compile"])
         .stdin(Stdio::null())
         .output()
         .unwrap();

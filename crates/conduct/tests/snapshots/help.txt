@@ -31,6 +31,8 @@ Options:
           Include related spans, notes, paths, and causes
       --compile-input <INPUT>
           Resolve and run against this explicit compile-input snapshot
+      --compatibility-demo
+          Run the finite batch compatibility demo instead of an exact plan
   -h, --help
           Print help
   -V, --version

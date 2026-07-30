@@ -206,6 +206,10 @@ pub struct Arguments {
     #[arg(long, value_name = "INPUT")]
     pub compile_input: Option<PathBuf>,
 
+    /// Run the finite batch compatibility demo instead of an exact plan.
+    #[arg(long, conflicts_with = "compile_input")]
+    pub compatibility_demo: bool,
+
     /// Additive read-only operations.
     #[command(subcommand)]
     pub secondary: Option<SecondaryCommand>,
