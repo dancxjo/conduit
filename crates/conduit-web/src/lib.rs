@@ -218,7 +218,7 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
         let result = workspace.apply_validated(
             request,
             |contract_id| availability_projection(&registry, contract_id),
-            |candidate| validate_patchbay_candidate(candidate),
+            validate_patchbay_candidate,
         );
         match result {
             Ok(result) => match authoritative_patchbay_view(workspace, None, None, None, &[]) {
