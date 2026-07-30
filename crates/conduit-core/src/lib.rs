@@ -42,6 +42,7 @@ mod structural;
 mod supervision;
 mod transition;
 mod type_contract;
+mod value_envelope;
 
 pub use authority::{
     AuthorityConstraintRef, AuthorityDenial, AuthorityEvent, AuthorityEventKind, AuthorityGrant,
@@ -313,6 +314,15 @@ pub use transition::{
     TransitionUsage, validate_replacement_support, validate_transition_contract,
 };
 pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
+pub use value_envelope::{
+    CLOCK_CONVERSION_SCHEMA_VERSION, ClockRounding, ConvertedTime,
+    FEEDBACK_BOUNDARY_SCHEMA_VERSION, FeedbackBoundaryKind, FeedbackInitialization,
+    FeedbackReplayGapPolicy, FeedbackTerminalPolicy, MAX_VALUE_CLOCK_DOMAINS, PlanClockConversion,
+    PlanFeedbackBoundary, VALUE_ENVELOPE_POLICY_SCHEMA_VERSION, ValueEnvelope, ValueEnvelopePolicy,
+    ValueEnvelopeReason, ValueTimestamp, convert_clock, validate_clock_conversion,
+    validate_feedback_boundary, validate_feedback_graph, validate_value_envelope,
+    validate_value_envelope_policy,
+};
 
 /// A stable identifier borrowed from a descriptor or resolved plan.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

@@ -214,6 +214,10 @@ containment program is tracked by
   template-plus-values formatter, exact text/integer/format-values
   descriptors, finite placeholder grammar, normalized failures, provider
   separation, migration, exact execution, and Patchbay proof.
+- [`055-value-envelope-clock-feedback-v1.md`](055-value-envelope-clock-feedback-v1.md)
+  defines plan-authorized bounded value metadata, exact clock conversion with
+  uncertainty, and finite delay/state feedback admission without introducing
+  a second event model or scheduler.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
