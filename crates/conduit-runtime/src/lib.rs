@@ -231,6 +231,97 @@ const SUPERVISION_DECISION_OUTPUT: PortContract<'static> = PortContract {
     },
 };
 
+const INPUT_TEXT_1: PortContract<'static> = PortContract {
+    id: Id("in1"),
+    direction: Direction::Input,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const INPUT_TEXT_2: PortContract<'static> = PortContract {
+    id: Id("in2"),
+    direction: Direction::Input,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const INPUT_PRIMARY: PortContract<'static> = PortContract {
+    id: Id("primary"),
+    direction: Direction::Input,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const INPUT_FALLBACK: PortContract<'static> = PortContract {
+    id: Id("fallback"),
+    direction: Direction::Input,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const OUTPUT_TEXT_1: PortContract<'static> = PortContract {
+    id: Id("out1"),
+    direction: Direction::Output,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const OUTPUT_TEXT_2: PortContract<'static> = PortContract {
+    id: Id("out2"),
+    direction: Direction::Output,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+
 const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/literal"),
     config: LITERAL_CONFIG,
@@ -266,6 +357,66 @@ const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
     config: EMPTY_CONFIG,
     inputs: &[TERMINAL_OBSERVATION_INPUT],
     outputs: &[SUPERVISION_DECISION_OUTPUT],
+};
+const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/pass-through"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const TEE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/tee"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT_1, OUTPUT_TEXT_2],
+};
+const MERGE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/merge"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT_1, INPUT_TEXT_2],
+    outputs: &[OUTPUT_TEXT],
+};
+const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/delay"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/debounce"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/throttle"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/take"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const SKIP_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/skip"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const FILTER_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/filter"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/fallback"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_PRIMARY, INPUT_FALLBACK],
+    outputs: &[OUTPUT_TEXT],
 };
 
 /// Typed runtime value.
@@ -378,6 +529,86 @@ impl Default for Registry {
             RegisteredNode {
                 contract: &SUPERVISOR_CONTRACT,
                 factory: || Box::new(Supervisor),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            PASS_THROUGH_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &PASS_THROUGH_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            TEE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &TEE_CONTRACT,
+                factory: || Box::new(TeeHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            MERGE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &MERGE_CONTRACT,
+                factory: || Box::new(MergeHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            DELAY_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &DELAY_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            DEBOUNCE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &DEBOUNCE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            THROTTLE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &THROTTLE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            TAKE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &TAKE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            SKIP_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &SKIP_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            FILTER_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &FILTER_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            FALLBACK_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &FALLBACK_CONTRACT,
+                factory: || Box::new(FallbackHandler),
                 validate_config: validate_empty_config,
             },
         );
@@ -2415,6 +2646,67 @@ impl Handler for Supervisor {
             "CND-SUP-015",
             "typed supervisors run through the bounded supervision scheduler, not the legacy one-shot executor",
         ))
+    }
+}
+
+struct PassThroughHandler;
+impl Handler for PassThroughHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs.first().cloned().unwrap_or_else(|| Value::text(""));
+        Ok(vec![input])
+    }
+}
+
+struct TeeHandler;
+impl Handler for TeeHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs.first().cloned().unwrap_or_else(|| Value::text(""));
+        Ok(vec![input.clone(), input])
+    }
+}
+
+struct MergeHandler;
+impl Handler for MergeHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let val = inputs
+            .first()
+            .or_else(|| inputs.get(1))
+            .cloned()
+            .unwrap_or_else(|| Value::text(""));
+        Ok(vec![val])
+    }
+}
+
+struct FallbackHandler;
+impl Handler for FallbackHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if let Some(val) = inputs.first() {
+            if !val.bytes.is_empty() {
+                return Ok(vec![val.clone()]);
+            }
+        }
+        let fallback = inputs.get(1).cloned().unwrap_or_else(|| Value::text(""));
+        Ok(vec![fallback])
     }
 }
 

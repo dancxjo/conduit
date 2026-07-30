@@ -9,14 +9,48 @@ use crate::{Id, SupervisionContract};
 /// A behavior family supplied by a standard node library.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StandardNodeKind {
+    Identity,
     Literal,
-    Transform,
+    Sequence,
+    Empty,
+    Never,
+    Collect,
+    First,
+    Last,
+    Count,
+    Discard,
+    Tee,
+    Merge,
+    Zip,
+    Mux,
+    Demux,
+    Select,
+    Gate,
+    Switch,
+    Take,
+    Skip,
+    Fallback,
+    Map,
     Filter,
+    FilterMap,
+    Validate,
+    Adapter,
+    Encode,
+    Decode,
+    Frame,
+    Deframe,
+    Transform,
     Fold,
     Window,
     Debounce,
     Throttle,
     Delay,
+    Ticker,
+    Deadline,
+    Timeout,
+    Sample,
+    RateLimit,
+    Batch,
     Retry,
     Supervisor,
     TerminalProjection,
@@ -202,6 +236,11 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::Delay
             | StandardNodeKind::Retry
             | StandardNodeKind::Supervisor
+            | StandardNodeKind::Ticker
+            | StandardNodeKind::Deadline
+            | StandardNodeKind::Timeout
+            | StandardNodeKind::Sample
+            | StandardNodeKind::RateLimit
     );
     if needs_timer && limits.timers == 0 {
         return Err(StandardContractError::IncompatibleLimits);
@@ -211,7 +250,14 @@ pub fn validate_standard_node_contract(
         StandardNodeKind::Fold
             | StandardNodeKind::Window
             | StandardNodeKind::Debounce
+            | StandardNodeKind::Throttle
             | StandardNodeKind::Supervisor
+            | StandardNodeKind::Sequence
+            | StandardNodeKind::Collect
+            | StandardNodeKind::Zip
+            | StandardNodeKind::Select
+            | StandardNodeKind::Batch
+            | StandardNodeKind::RateLimit
     );
     if needs_state && (limits.retained_values == 0 || limits.retained_bytes == 0) {
         return Err(StandardContractError::IncompatibleLimits);

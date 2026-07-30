@@ -123,6 +123,134 @@ fn given_a_dangerous_service_when_enabled_by_default_then_it_is_rejected() {
     );
 }
 
+fn node_contract_outcome(id: &str) -> &'static str {
+    let (kind, limits) = match id {
+        "finite-window" => (
+            StandardNodeKind::Window,
+            StandardNodeLimits {
+                retained_values: 8,
+                retained_bytes: 4096,
+                pending_operations: 0,
+                timers: 1,
+                work_per_step: 8,
+                evidence_events: 16,
+            },
+        ),
+        "debounce-without-timer" => (
+            StandardNodeKind::Debounce,
+            StandardNodeLimits {
+                retained_values: 1,
+                retained_bytes: 64,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "ticker-without-timer" => (
+            StandardNodeKind::Ticker,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-ticker" => (
+            StandardNodeKind::Ticker,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 1,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "batch-without-state" => (
+            StandardNodeKind::Batch,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-batch" => (
+            StandardNodeKind::Batch,
+            StandardNodeLimits {
+                retained_values: 8,
+                retained_bytes: 512,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-merge" => (
+            StandardNodeKind::Merge,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-select" => (
+            StandardNodeKind::Select,
+            StandardNodeLimits {
+                retained_values: 2,
+                retained_bytes: 64,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        _ => panic!("unknown node fixture {id}"),
+    };
+
+    let contract = StandardNodeContract {
+        id: Id("standard/fixture"),
+        kind,
+        limits,
+        terminal_policy: Id("terminal/drain"),
+        cancellation_policy: Id("cancel/abort"),
+    };
+    match validate_standard_node_contract(contract) {
+        Ok(()) => "accepted",
+        Err(StandardContractError::IncompatibleLimits) => "incompatible-limits",
+        Err(StandardContractError::Unbounded) => "unbounded",
+        Err(err) => panic!("unexpected node validation error: {err:?}"),
+    }
+}
+
+#[test]
+fn every_standard_node_contract_fixture_executes_independently() {
+    let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+    assert_eq!(
+        fixture["schema"],
+        "conduit.standard-node-library-fixture/v1"
+    );
+    let cases = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|case| case["contract"] == "node")
+        .collect::<Vec<_>>();
+    assert_eq!(cases.len(), 8);
+    for case in cases {
+        let id = case["id"].as_str().unwrap();
+        assert_eq!(node_contract_outcome(id), case["expected"], "{id}");
+    }
+}
+
 fn host_service_resolution_outcome(id: &str) -> &'static str {
     let mut capability = host_capability();
     let mut current_tick = 15;
