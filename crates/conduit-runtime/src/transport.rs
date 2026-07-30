@@ -5,18 +5,30 @@
 
 pub use conduit_core::CarrierSecurityMode;
 use conduit_core::{
-    Id, PinnedDescriptor, PlanArtifact, PlanDistributedCord, SemanticHash, TerminalClass,
+    Id, PinnedDescriptor, PlanArtifact, PlanDistributedCord, SemanticHash, Sensitivity,
+    TerminalClass,
 };
 
-use crate::{DistributedFrameKind, OutboundDistributedFrame, ResolvedPlacementBinding};
+use crate::{
+    DistributedFrameKind, OutboundDistributedFrame, ResolvedPlacementBinding, RuntimeTimestamp,
+    RuntimeValueEnvelope,
+};
 
-pub const DISTRIBUTED_ENVELOPE_VERSION: u16 = 1;
+pub const DISTRIBUTED_ENVELOPE_VERSION_V1: u16 = 1;
+pub const DISTRIBUTED_ENVELOPE_VERSION_V2: u16 = 2;
+/// Latest envelope version implemented by the hosted transport boundary.
+pub const DISTRIBUTED_ENVELOPE_VERSION: u16 = DISTRIBUTED_ENVELOPE_VERSION_V2;
 pub const DISTRIBUTED_ENVELOPE_FIXED_BYTES: usize = 132;
+pub const DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES: usize = 442;
 
 const MAGIC: [u8; 4] = *b"CNDT";
 const FLAG_SEQUENCE: u16 = 1 << 0;
 const FLAG_ATTEMPT: u16 = 1 << 1;
 const FLAG_CORRELATION: u16 = 1 << 2;
+const VALUE_IDENTITY: u8 = 1 << 0;
+const VALUE_CORRELATION: u8 = 1 << 1;
+const VALUE_CAUSATION: u8 = 1 << 2;
+const VALUE_PROVENANCE: u8 = 1 << 3;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CarrierSecurityCapabilities {
@@ -286,6 +298,9 @@ pub fn encode_distributed_envelope(
     frame: OutboundDistributedFrame<'_>,
     destination: &mut [u8],
 ) -> Result<usize, TransportReason> {
+    if frame.value_envelope.is_some() {
+        return Err(TransportReason::UnsupportedProtocol);
+    }
     if frame.session_epoch == 0
         || frame.payload.len() > binding.budget.maximum_payload_bytes as usize
     {
@@ -307,7 +322,7 @@ pub fn encode_distributed_envelope(
         return Err(TransportReason::EnvelopeTooLarge);
     }
     destination[..4].copy_from_slice(&MAGIC);
-    destination[4..6].copy_from_slice(&DISTRIBUTED_ENVELOPE_VERSION.to_be_bytes());
+    destination[4..6].copy_from_slice(&DISTRIBUTED_ENVELOPE_VERSION_V1.to_be_bytes());
     let (kind, terminal) = encode_kind(frame.kind);
     destination[6] = kind;
     destination[7] = terminal;
@@ -337,6 +352,104 @@ pub fn encode_distributed_envelope(
     Ok(total)
 }
 
+pub fn encode_distributed_envelope_v2(
+    plan_identity: SemanticHash,
+    binding: &PlanDistributedCord<'_>,
+    frame: OutboundDistributedFrame<'_>,
+    destination: &mut [u8],
+) -> Result<usize, TransportReason> {
+    let envelope = frame
+        .value_envelope
+        .ok_or(TransportReason::EnvelopeMalformed)?;
+    if frame.session_epoch == 0
+        || envelope.correlation != frame.correlation
+        || frame.payload.len() > binding.budget.maximum_payload_bytes as usize
+        || usize::from(envelope.timestamp_count) > envelope.timestamps.len()
+    {
+        return Err(TransportReason::EnvelopeMalformed);
+    }
+    let cord = binding.cord.as_str().as_bytes();
+    let session = binding.session.as_str().as_bytes();
+    let cord_len = u16::try_from(cord.len()).map_err(|_| TransportReason::EnvelopeTooLarge)?;
+    let session_len =
+        u16::try_from(session.len()).map_err(|_| TransportReason::EnvelopeTooLarge)?;
+    let payload_len =
+        u32::try_from(frame.payload.len()).map_err(|_| TransportReason::EnvelopeTooLarge)?;
+    let total = DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES
+        .checked_add(cord.len())
+        .and_then(|value| value.checked_add(session.len()))
+        .and_then(|value| value.checked_add(frame.payload.len()))
+        .ok_or(TransportReason::EnvelopeTooLarge)?;
+    if total > binding.budget.maximum_frame_bytes as usize || destination.len() < total {
+        return Err(TransportReason::EnvelopeTooLarge);
+    }
+
+    destination[..DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES].fill(0);
+    destination[..4].copy_from_slice(&MAGIC);
+    destination[4..6].copy_from_slice(&DISTRIBUTED_ENVELOPE_VERSION_V2.to_be_bytes());
+    let (kind, terminal) = encode_kind(frame.kind);
+    destination[6] = kind;
+    destination[7] = terminal;
+    destination[8..16].copy_from_slice(&frame.session_epoch.to_be_bytes());
+    destination[16..24].copy_from_slice(&frame.sequence.unwrap_or(0).to_be_bytes());
+    destination[24..26].copy_from_slice(&frame.attempt.unwrap_or(0).to_be_bytes());
+    let mut flags = 0_u16;
+    flags |= u16::from(frame.sequence.is_some()) * FLAG_SEQUENCE;
+    flags |= u16::from(frame.attempt.is_some()) * FLAG_ATTEMPT;
+    flags |= u16::from(frame.correlation.is_some()) * FLAG_CORRELATION;
+    destination[26..28].copy_from_slice(&flags.to_be_bytes());
+    if let Some(correlation) = frame.correlation {
+        destination[28..60].copy_from_slice(correlation.as_bytes());
+    }
+    destination[60..92].copy_from_slice(plan_identity.as_bytes());
+    destination[92..124].copy_from_slice(binding.identity.as_bytes());
+    destination[124..126].copy_from_slice(&cord_len.to_be_bytes());
+    destination[126..128].copy_from_slice(&session_len.to_be_bytes());
+    destination[128..132].copy_from_slice(&payload_len.to_be_bytes());
+
+    destination[132..164].copy_from_slice(envelope.representation.as_bytes());
+    destination[164..168].copy_from_slice(&envelope.envelope_bytes.to_be_bytes());
+    destination[168..170].copy_from_slice(&envelope.fragment_count.to_be_bytes());
+    destination[170..174].copy_from_slice(&envelope.fragment_bytes.to_be_bytes());
+    let mut value_flags = 0_u8;
+    for (flag, value, range) in [
+        (VALUE_IDENTITY, envelope.identity, 178..210),
+        (VALUE_CORRELATION, envelope.correlation, 210..242),
+        (VALUE_CAUSATION, envelope.causation, 242..274),
+        (VALUE_PROVENANCE, envelope.provenance, 274..306),
+    ] {
+        if let Some(value) = value {
+            value_flags |= flag;
+            destination[range].copy_from_slice(value.as_bytes());
+        }
+    }
+    destination[174] = value_flags;
+    destination[175] = envelope.timestamp_count;
+    destination[176] = match envelope.sensitivity {
+        Sensitivity::Public => 0,
+        Sensitivity::Restricted => 1,
+        Sensitivity::Secret => 2,
+    };
+    for (index, timestamp) in envelope.timestamps[..usize::from(envelope.timestamp_count)]
+        .iter()
+        .enumerate()
+    {
+        let start = 306 + index * 17;
+        destination[start] = timestamp.domain_index;
+        destination[start + 1..start + 9].copy_from_slice(&timestamp.tick.to_be_bytes());
+        destination[start + 9..start + 17]
+            .copy_from_slice(&timestamp.uncertainty_ticks.to_be_bytes());
+    }
+
+    let mut cursor = DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES;
+    destination[cursor..cursor + cord.len()].copy_from_slice(cord);
+    cursor += cord.len();
+    destination[cursor..cursor + session.len()].copy_from_slice(session);
+    cursor += session.len();
+    destination[cursor..cursor + frame.payload.len()].copy_from_slice(frame.payload);
+    Ok(total)
+}
+
 pub fn decode_distributed_envelope<'a>(
     input: &'a [u8],
     expected_plan_identity: SemanticHash,
@@ -348,7 +461,7 @@ pub fn decode_distributed_envelope<'a>(
     {
         return Err(TransportReason::EnvelopeMalformed);
     }
-    if read_u16(input, 4)? != DISTRIBUTED_ENVELOPE_VERSION {
+    if read_u16(input, 4)? != DISTRIBUTED_ENVELOPE_VERSION_V1 {
         return Err(TransportReason::UnsupportedProtocol);
     }
     let kind = decode_kind(input[6], input[7])?;
@@ -427,6 +540,185 @@ pub fn decode_distributed_envelope<'a>(
             sequence,
             attempt,
             correlation,
+            value_envelope: None,
+            payload: &input[payload_start..],
+        },
+    })
+}
+
+pub fn decode_distributed_envelope_v2<'a>(
+    input: &'a [u8],
+    expected_plan_identity: SemanticHash,
+    binding: &PlanDistributedCord<'_>,
+) -> Result<DecodedDistributedEnvelope<'a>, TransportReason> {
+    if input.len() < DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES
+        || input.len() > binding.budget.maximum_frame_bytes as usize
+        || input[..4] != MAGIC
+        || read_u16(input, 4)? != DISTRIBUTED_ENVELOPE_VERSION_V2
+    {
+        return Err(TransportReason::EnvelopeMalformed);
+    }
+    let kind = decode_kind(input[6], input[7])?;
+    let session_epoch = read_u64(input, 8)?;
+    let flags = read_u16(input, 26)?;
+    if flags & !(FLAG_SEQUENCE | FLAG_ATTEMPT | FLAG_CORRELATION) != 0 || session_epoch == 0 {
+        return Err(TransportReason::EnvelopeMalformed);
+    }
+    let sequence = (flags & FLAG_SEQUENCE != 0)
+        .then(|| read_u64(input, 16))
+        .transpose()?;
+    let attempt = (flags & FLAG_ATTEMPT != 0)
+        .then(|| read_u16(input, 24))
+        .transpose()?;
+    let correlation = if flags & FLAG_CORRELATION != 0 {
+        Some(SemanticHash::from_bytes(
+            input[28..60]
+                .try_into()
+                .map_err(|_| TransportReason::EnvelopeMalformed)?,
+        ))
+    } else if input[28..60].iter().any(|byte| *byte != 0) {
+        return Err(TransportReason::EnvelopeMalformed);
+    } else {
+        None
+    };
+    let plan_identity = SemanticHash::from_bytes(
+        input[60..92]
+            .try_into()
+            .map_err(|_| TransportReason::EnvelopeMalformed)?,
+    );
+    let binding_identity = SemanticHash::from_bytes(
+        input[92..124]
+            .try_into()
+            .map_err(|_| TransportReason::EnvelopeMalformed)?,
+    );
+    if plan_identity != expected_plan_identity || binding_identity != binding.identity {
+        return Err(TransportReason::EnvelopeIdentityMismatch);
+    }
+    let cord_len = usize::from(read_u16(input, 124)?);
+    let session_len = usize::from(read_u16(input, 126)?);
+    let payload_len =
+        usize::try_from(read_u32(input, 128)?).map_err(|_| TransportReason::EnvelopeTooLarge)?;
+    if payload_len > binding.budget.maximum_payload_bytes as usize {
+        return Err(TransportReason::EnvelopeTooLarge);
+    }
+    let expected = DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES
+        .checked_add(cord_len)
+        .and_then(|value| value.checked_add(session_len))
+        .and_then(|value| value.checked_add(payload_len))
+        .ok_or(TransportReason::EnvelopeTooLarge)?;
+    if expected != input.len() {
+        return Err(TransportReason::EnvelopeMalformed);
+    }
+
+    let value_flags = input[174];
+    let timestamp_count = input[175];
+    if value_flags & !(VALUE_IDENTITY | VALUE_CORRELATION | VALUE_CAUSATION | VALUE_PROVENANCE) != 0
+        || usize::from(timestamp_count) > conduit_core::MAX_VALUE_CLOCK_DOMAINS
+        || input[177] != 0
+    {
+        return Err(TransportReason::EnvelopeMalformed);
+    }
+    let optional_hash = |flag, range: core::ops::Range<usize>| {
+        if value_flags & flag == 0 {
+            if input[range].iter().any(|byte| *byte != 0) {
+                return Err(TransportReason::EnvelopeMalformed);
+            }
+            return Ok(None);
+        }
+        let value = SemanticHash::from_bytes(
+            input[range]
+                .try_into()
+                .map_err(|_| TransportReason::EnvelopeMalformed)?,
+        );
+        if value == SemanticHash::from_bytes([0; 32]) {
+            return Err(TransportReason::EnvelopeMalformed);
+        }
+        Ok(Some(value))
+    };
+    let identity = optional_hash(VALUE_IDENTITY, 178..210)?;
+    let value_correlation = optional_hash(VALUE_CORRELATION, 210..242)?;
+    let causation = optional_hash(VALUE_CAUSATION, 242..274)?;
+    let provenance = optional_hash(VALUE_PROVENANCE, 274..306)?;
+    if value_correlation != correlation {
+        return Err(TransportReason::EnvelopeIdentityMismatch);
+    }
+    let mut timestamps = [RuntimeTimestamp::default(); conduit_core::MAX_VALUE_CLOCK_DOMAINS];
+    for (index, timestamp) in timestamps
+        .iter_mut()
+        .take(usize::from(timestamp_count))
+        .enumerate()
+    {
+        let start = 306 + index * 17;
+        *timestamp = RuntimeTimestamp {
+            domain_index: input[start],
+            tick: i64::from_be_bytes(
+                input[start + 1..start + 9]
+                    .try_into()
+                    .map_err(|_| TransportReason::EnvelopeMalformed)?,
+            ),
+            uncertainty_ticks: u64::from_be_bytes(
+                input[start + 9..start + 17]
+                    .try_into()
+                    .map_err(|_| TransportReason::EnvelopeMalformed)?,
+            ),
+        };
+    }
+    let unused_timestamp_start = 306 + usize::from(timestamp_count) * 17;
+    if input[unused_timestamp_start..DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES]
+        .iter()
+        .any(|byte| *byte != 0)
+    {
+        return Err(TransportReason::EnvelopeMalformed);
+    }
+    let sensitivity = match input[176] {
+        0 => Sensitivity::Public,
+        1 => Sensitivity::Restricted,
+        2 => Sensitivity::Secret,
+        _ => return Err(TransportReason::EnvelopeMalformed),
+    };
+    let value_envelope = RuntimeValueEnvelope {
+        representation: SemanticHash::from_bytes(
+            input[132..164]
+                .try_into()
+                .map_err(|_| TransportReason::EnvelopeMalformed)?,
+        ),
+        envelope_bytes: read_u32(input, 164)?,
+        fragment_count: read_u16(input, 168)?,
+        fragment_bytes: read_u32(input, 170)?,
+        identity,
+        correlation: value_correlation,
+        causation,
+        provenance,
+        timestamp_count,
+        timestamps,
+        sensitivity,
+    };
+
+    let cord_start = DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES;
+    let session_start = cord_start + cord_len;
+    let payload_start = session_start + session_len;
+    let cord = core::str::from_utf8(&input[cord_start..session_start])
+        .map_err(|_| TransportReason::EnvelopeMalformed)?;
+    let session = core::str::from_utf8(&input[session_start..payload_start])
+        .map_err(|_| TransportReason::EnvelopeMalformed)?;
+    if cord != binding.cord.as_str()
+        || session != binding.session.as_str()
+        || session_epoch < binding.initial_session_epoch
+    {
+        return Err(TransportReason::EnvelopeIdentityMismatch);
+    }
+    Ok(DecodedDistributedEnvelope {
+        plan_identity,
+        binding_identity,
+        cord,
+        session,
+        frame: OutboundDistributedFrame {
+            kind,
+            session_epoch,
+            sequence,
+            attempt,
+            correlation,
+            value_envelope: Some(value_envelope),
             payload: &input[payload_start..],
         },
     })

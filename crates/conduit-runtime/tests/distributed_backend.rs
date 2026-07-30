@@ -12,6 +12,8 @@ use conduit_core::{
 use conduit_runtime::{
     DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,
     InMemoryDistributedCordBackend, InMemoryTransportFault, OutboundDistributedFrame,
+    RuntimeTimestamp, RuntimeValueEnvelope, decode_distributed_envelope_v2,
+    encode_distributed_envelope, encode_distributed_envelope_v2,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -380,8 +382,66 @@ fn value(sequence: u64, payload: &[u8]) -> OutboundDistributedFrame<'_> {
         sequence: Some(sequence),
         attempt: None,
         correlation: Some(hash(100)),
+        value_envelope: None,
         payload,
     }
+}
+
+#[test]
+fn distributed_v2_preserves_authorized_value_facts_and_rejects_impersonation() {
+    let mut binding = binding();
+    binding.budget.maximum_frame_bytes = 1_024;
+    binding.identity = binding.semantic_hash().unwrap();
+    let mut timestamps = [RuntimeTimestamp::default(); conduit_core::MAX_VALUE_CLOCK_DOMAINS];
+    timestamps[0] = RuntimeTimestamp {
+        domain_index: 0,
+        tick: 44,
+        uncertainty_ticks: 2,
+    };
+    let envelope = RuntimeValueEnvelope {
+        representation: hash(101),
+        envelope_bytes: 48,
+        fragment_count: 1,
+        fragment_bytes: 4,
+        identity: Some(hash(102)),
+        correlation: Some(hash(100)),
+        causation: Some(hash(103)),
+        provenance: Some(hash(104)),
+        timestamp_count: 1,
+        timestamps,
+        sensitivity: conduit_core::Sensitivity::Restricted,
+    };
+    let frame = OutboundDistributedFrame {
+        value_envelope: Some(envelope),
+        ..value(1, b"data")
+    };
+    let mut bytes = [0_u8; 1_024];
+    assert_eq!(
+        encode_distributed_envelope(PLAN, &binding, frame, &mut bytes),
+        Err(conduit_runtime::TransportReason::UnsupportedProtocol)
+    );
+    let used = encode_distributed_envelope_v2(PLAN, &binding, frame, &mut bytes).unwrap();
+    let decoded = decode_distributed_envelope_v2(&bytes[..used], PLAN, &binding).unwrap();
+    assert_eq!(decoded.frame.value_envelope, Some(envelope));
+    assert_eq!(decoded.frame.payload, b"data");
+
+    bytes[210] ^= 1;
+    assert_eq!(
+        decode_distributed_envelope_v2(&bytes[..used], PLAN, &binding),
+        Err(conduit_runtime::TransportReason::EnvelopeIdentityMismatch)
+    );
+
+    let (fault_binding, mut backend) = open_backend();
+    backend
+        .send(&fault_binding, frame, authorities(fault_binding))
+        .unwrap();
+    let mut payload = [0_u8; 64];
+    let received = backend
+        .receive(&fault_binding, &mut payload, authorities(fault_binding))
+        .unwrap()
+        .unwrap();
+    assert_eq!(received.value_envelope, Some(envelope));
+    assert_eq!(&payload[..received.payload_bytes], b"data");
 }
 
 #[test]
@@ -561,6 +621,7 @@ fn fault_backend_reproduces_duplicate_reorder_lost_ack_and_partition() {
                 sequence: Some(0),
                 attempt: None,
                 correlation: None,
+                value_envelope: None,
                 payload: &[],
             },
             authorities(lost_ack_binding),
@@ -585,6 +646,7 @@ fn fault_backend_reproduces_duplicate_reorder_lost_ack_and_partition() {
                 sequence: Some(1),
                 attempt: None,
                 correlation: None,
+                value_envelope: None,
                 payload: &[],
             },
             authorities(lost_terminal_ack_binding),

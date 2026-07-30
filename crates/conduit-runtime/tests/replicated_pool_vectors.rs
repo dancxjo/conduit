@@ -706,7 +706,7 @@ fn execute(id: &str) -> Value {
             };
             json!({"code":error.code()})
         }
-        "schema-16-roundtrip" => {
+        "schema-17-roundtrip" => {
             let pool = plan_pool(true);
             json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION,"runtime":pool.runtime.is_some()})
         }

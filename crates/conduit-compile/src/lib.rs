@@ -12,13 +12,15 @@ use conduit_core::{
     AdministrativeCommit, AdministrativeExecution, AdministrativePrincipal, AdministrativeProof,
     AdministrativeProposal, AdministrativeSubject, AdmittedSupervisionAction, ArtifactDigest,
     ArtifactManifest, ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope,
-    AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ContainmentContext,
-    ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy, Direction,
-    DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12,
-    EXECUTION_PLAN_SCHEMA_VERSION_V13, EXECUTION_PLAN_SCHEMA_VERSION_V14,
-    EXECUTION_PLAN_SCHEMA_VERSION_V15, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
+    AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ClockRounding,
+    ContainmentContext, ContainmentPolicy, ContainmentReason, DelegationEnvelope, DelegationPolicy,
+    Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION_V3, EXECUTION_PLAN_SCHEMA_VERSION_V11,
+    EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
+    EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
+    EXECUTION_PLAN_SCHEMA_VERSION_V16, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
     EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
+    FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy,
     FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason, GrantStatus, HandleDisposition,
     HazardClosureContext, HazardClosureLimits, HazardClosurePolicy, HazardClosureReason,
     HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding, HazardousHostProfile,
@@ -27,20 +29,21 @@ use conduit_core::{
     ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
     ObservedGrant, OperatingEnvelopeLimit, OwnershipModel, PassportStatus,
     PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure, PlanHostObservation,
-    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
-    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
-    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
-    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
-    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
-    ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
-    ReplacementSupport, ReportCapability, ReportMembership, ReportResource, ReportTopology,
-    ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
-    ResourceSelector, RollingLimit, SampleSchedule, SemanticHash, StopPolicy,
-    SupervisionActionKind, SupervisionContract, SupervisionFailureMode, SupervisionLimits,
-    SupervisionScope, ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement,
-    TraitRequirement, TypeContractRef, ValueRepresentation, analyze_effect_closure,
+    PlanAuthority, PlanClockConversion, PlanCompositeMapping, PlanExportBinding,
+    PlanFeedbackBoundary, PlanHazardClosure, PlanHostObservation, PlanInstancePool,
+    PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanSupervision, PlanSupervisionTarget, PlanValidationContext,
+    PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits,
+    PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy,
+    PoolCleanupPolicy, PoolContract, PoolGenerationReservation, PoolReservationProfile,
+    PoolSupervisionPolicy, Pressure, ProviderAvailability, ProviderRequirement, ProviderRiskTraits,
+    ProviderSelection, ReferenceDistributionProfile, ReplacementSupport, ReportCapability,
+    ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RollingLimit,
+    SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
+    SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
+    ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
+    TypeContractRef, ValueEnvelopePolicy, ValueRepresentation, analyze_effect_closure,
     assess_provider_requirement, resolve_authority, validate_administrative_proof,
     validate_reference_distribution,
 };
@@ -68,6 +71,7 @@ pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
 pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
 pub const SUPERVISION_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v7";
 pub const POOL_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v8";
+pub const VALUE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v9";
 pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -2008,6 +2012,61 @@ pub struct PlanCordDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ValueEnvelopePolicyDocument {
+    pub cord: String,
+    pub representation: PinDocument,
+    pub maximum_payload_bytes: u32,
+    pub maximum_envelope_bytes: u32,
+    pub maximum_fragments: u16,
+    pub maximum_fragment_bytes: u32,
+    pub maximum_timestamps: u8,
+    pub clock_domains: Vec<String>,
+    pub identity_allowed: bool,
+    pub correlation_allowed: bool,
+    pub causation_allowed: bool,
+    pub provenance_allowed: bool,
+    pub sensitivity_ceiling: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClockConversionDocument {
+    pub id: String,
+    pub source: String,
+    pub destination: String,
+    pub numerator: u64,
+    pub denominator: u64,
+    pub offset_ticks: i64,
+    pub rounding: String,
+    pub maximum_uncertainty_ticks: u64,
+    pub observed_time_basis: String,
+    pub observed_tick: u64,
+    pub valid_until_tick: u64,
+    pub authority: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FeedbackBoundaryDocument {
+    pub id: String,
+    pub node: String,
+    pub cord: String,
+    pub kind: String,
+    pub initialization: String,
+    pub initial_items: u16,
+    pub initial_bytes: u64,
+    pub maximum_retained_items: u16,
+    pub maximum_retained_bytes: u64,
+    pub delay_ticks: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock: Option<String>,
+    pub replay_gap: String,
+    pub cancellation: PinDocument,
+    pub terminal: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlanExportDocument {
     pub boundary_port: String,
     pub member: String,
@@ -2114,6 +2173,12 @@ pub struct ExactPlanDocument {
     pub artifacts: Vec<PlanArtifactDocument>,
     pub nodes: Vec<PlanNodeDocument>,
     pub cords: Vec<PlanCordDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub value_envelopes: Vec<ValueEnvelopePolicyDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub clock_conversions: Vec<ClockConversionDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub feedback_boundaries: Vec<FeedbackBoundaryDocument>,
     pub authorities: Vec<PlanAuthorityDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hazard_closure: Option<HazardClosureDocument>,
@@ -2182,6 +2247,8 @@ impl ExactPlanDocument {
             || (self.schema == SUPERVISION_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V15)
             || (self.schema == POOL_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V16)
+            || (self.schema == VALUE_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
@@ -2265,6 +2332,76 @@ impl ExactPlanDocument {
                     to: port_document(&cord.to)?,
                     flow: flow_document(cord)?,
                     queue_memory_bytes: cord.queue_memory_bytes,
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        let value_envelopes = self
+            .value_envelopes
+            .iter()
+            .map(|policy| {
+                let clock_domains = policy
+                    .clock_domains
+                    .iter()
+                    .map(|clock| id(clock))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(ValueEnvelopePolicy {
+                    cord: id(&policy.cord)?,
+                    representation: pin(&policy.representation)?,
+                    maximum_payload_bytes: policy.maximum_payload_bytes,
+                    maximum_envelope_bytes: policy.maximum_envelope_bytes,
+                    maximum_fragments: policy.maximum_fragments,
+                    maximum_fragment_bytes: policy.maximum_fragment_bytes,
+                    maximum_timestamps: policy.maximum_timestamps,
+                    clock_domains: arena.alloc_slice_copy(&clock_domains),
+                    identity_allowed: policy.identity_allowed,
+                    correlation_allowed: policy.correlation_allowed,
+                    causation_allowed: policy.causation_allowed,
+                    provenance_allowed: policy.provenance_allowed,
+                    sensitivity_ceiling: sensitivity(&policy.sensitivity_ceiling)?,
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        let clock_conversions = self
+            .clock_conversions
+            .iter()
+            .map(|conversion| {
+                Ok(PlanClockConversion {
+                    id: id(&conversion.id)?,
+                    source: id(&conversion.source)?,
+                    destination: id(&conversion.destination)?,
+                    numerator: conversion.numerator,
+                    denominator: conversion.denominator,
+                    offset_ticks: conversion.offset_ticks,
+                    rounding: clock_rounding(&conversion.rounding)?,
+                    maximum_uncertainty_ticks: conversion.maximum_uncertainty_ticks,
+                    observed_at: AuthorityTime {
+                        basis: id(&conversion.observed_time_basis)?,
+                        tick: conversion.observed_tick,
+                    },
+                    valid_until_tick: conversion.valid_until_tick,
+                    authority: id(&conversion.authority)?,
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?;
+        let feedback_boundaries = self
+            .feedback_boundaries
+            .iter()
+            .map(|boundary| {
+                Ok(PlanFeedbackBoundary {
+                    id: id(&boundary.id)?,
+                    node: instance(&boundary.node)?,
+                    cord: id(&boundary.cord)?,
+                    kind: feedback_kind(&boundary.kind)?,
+                    initialization: feedback_initialization(&boundary.initialization)?,
+                    initial_items: boundary.initial_items,
+                    initial_bytes: boundary.initial_bytes,
+                    maximum_retained_items: boundary.maximum_retained_items,
+                    maximum_retained_bytes: boundary.maximum_retained_bytes,
+                    delay_ticks: boundary.delay_ticks,
+                    clock: boundary.clock.as_deref().map(id).transpose()?,
+                    replay_gap: feedback_replay_gap(&boundary.replay_gap)?,
+                    cancellation: pin(&boundary.cancellation)?,
+                    terminal: feedback_terminal(&boundary.terminal)?,
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
@@ -2508,6 +2645,9 @@ impl ExactPlanDocument {
             artifacts: arena.alloc_slice_copy(&artifacts),
             nodes: arena.alloc_slice_copy(&nodes),
             cords: arena.alloc_slice_copy(&cords),
+            value_envelopes: arena.alloc_slice_copy(&value_envelopes),
+            clock_conversions: arena.alloc_slice_copy(&clock_conversions),
+            feedback_boundaries: arena.alloc_slice_copy(&feedback_boundaries),
             distributed_cords: &[],
             fanouts: &[],
             merges: &[],
@@ -3273,7 +3413,7 @@ fn compile_topology(
         })
         .transpose()?;
     let plan_schema_version = if !instance_pools.is_empty() {
-        EXECUTION_PLAN_SCHEMA_VERSION
+        EXECUTION_PLAN_SCHEMA_VERSION_V16
     } else if !supervisions.is_empty() {
         EXECUTION_PLAN_SCHEMA_VERSION_V15
     } else if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
@@ -3309,6 +3449,9 @@ fn compile_topology(
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        value_envelopes: &[],
+        clock_conversions: &[],
+        feedback_boundaries: &[],
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],
@@ -5269,8 +5412,98 @@ fn plan_document(
             required_behavior: supervision.contract.required_behavior,
         })
         .collect();
+    let value_envelopes = plan
+        .value_envelopes
+        .iter()
+        .map(|policy| ValueEnvelopePolicyDocument {
+            cord: policy.cord.to_string(),
+            representation: pin_document(policy.representation),
+            maximum_payload_bytes: policy.maximum_payload_bytes,
+            maximum_envelope_bytes: policy.maximum_envelope_bytes,
+            maximum_fragments: policy.maximum_fragments,
+            maximum_fragment_bytes: policy.maximum_fragment_bytes,
+            maximum_timestamps: policy.maximum_timestamps,
+            clock_domains: policy
+                .clock_domains
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+            identity_allowed: policy.identity_allowed,
+            correlation_allowed: policy.correlation_allowed,
+            causation_allowed: policy.causation_allowed,
+            provenance_allowed: policy.provenance_allowed,
+            sensitivity_ceiling: match policy.sensitivity_ceiling {
+                Sensitivity::Public => "public",
+                Sensitivity::Restricted => "restricted",
+                Sensitivity::Secret => "secret",
+            }
+            .to_owned(),
+        })
+        .collect();
+    let clock_conversions = plan
+        .clock_conversions
+        .iter()
+        .map(|conversion| ClockConversionDocument {
+            id: conversion.id.to_string(),
+            source: conversion.source.to_string(),
+            destination: conversion.destination.to_string(),
+            numerator: conversion.numerator,
+            denominator: conversion.denominator,
+            offset_ticks: conversion.offset_ticks,
+            rounding: match conversion.rounding {
+                ClockRounding::Exact => "exact",
+                ClockRounding::Floor => "floor",
+                ClockRounding::Ceiling => "ceiling",
+            }
+            .to_owned(),
+            maximum_uncertainty_ticks: conversion.maximum_uncertainty_ticks,
+            observed_time_basis: conversion.observed_at.basis.to_string(),
+            observed_tick: conversion.observed_at.tick,
+            valid_until_tick: conversion.valid_until_tick,
+            authority: conversion.authority.to_string(),
+        })
+        .collect();
+    let feedback_boundaries = plan
+        .feedback_boundaries
+        .iter()
+        .map(|boundary| FeedbackBoundaryDocument {
+            id: boundary.id.to_string(),
+            node: boundary.node.as_str().to_owned(),
+            cord: boundary.cord.to_string(),
+            kind: match boundary.kind {
+                FeedbackBoundaryKind::Delay => "delay",
+                FeedbackBoundaryKind::State => "state",
+            }
+            .to_owned(),
+            initialization: match boundary.initialization {
+                FeedbackInitialization::Empty => "empty",
+                FeedbackInitialization::InitialValue => "initial-value",
+            }
+            .to_owned(),
+            initial_items: boundary.initial_items,
+            initial_bytes: boundary.initial_bytes,
+            maximum_retained_items: boundary.maximum_retained_items,
+            maximum_retained_bytes: boundary.maximum_retained_bytes,
+            delay_ticks: boundary.delay_ticks,
+            clock: boundary.clock.map(|clock| clock.to_string()),
+            replay_gap: match boundary.replay_gap {
+                FeedbackReplayGapPolicy::Fail => "fail",
+                FeedbackReplayGapPolicy::Reset => "reset",
+                FeedbackReplayGapPolicy::Wait => "wait",
+            }
+            .to_owned(),
+            cancellation: pin_document(boundary.cancellation),
+            terminal: match boundary.terminal {
+                FeedbackTerminalPolicy::DropRetained => "drop-retained",
+                FeedbackTerminalPolicy::DrainRetained => "drain-retained",
+            }
+            .to_owned(),
+        })
+        .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 16 {
+        schema: if plan.schema_version >= 17 {
+            VALUE_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 16 {
             POOL_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else if plan.schema_version >= 15 {
             SUPERVISION_PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -5296,6 +5529,9 @@ fn plan_document(
         artifacts,
         nodes,
         cords,
+        value_envelopes,
+        clock_conversions,
+        feedback_boundaries,
         authorities,
         hazard_closure,
         composites,
@@ -6533,6 +6769,57 @@ fn direction(value: &str) -> Result<Direction, CompileError> {
     }
 }
 
+fn sensitivity(value: &str) -> Result<Sensitivity, CompileError> {
+    match value {
+        "public" => Ok(Sensitivity::Public),
+        "restricted" => Ok(Sensitivity::Restricted),
+        "secret" => Ok(Sensitivity::Secret),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn clock_rounding(value: &str) -> Result<ClockRounding, CompileError> {
+    match value {
+        "exact" => Ok(ClockRounding::Exact),
+        "floor" => Ok(ClockRounding::Floor),
+        "ceiling" => Ok(ClockRounding::Ceiling),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn feedback_kind(value: &str) -> Result<FeedbackBoundaryKind, CompileError> {
+    match value {
+        "delay" => Ok(FeedbackBoundaryKind::Delay),
+        "state" => Ok(FeedbackBoundaryKind::State),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn feedback_initialization(value: &str) -> Result<FeedbackInitialization, CompileError> {
+    match value {
+        "empty" => Ok(FeedbackInitialization::Empty),
+        "initial-value" => Ok(FeedbackInitialization::InitialValue),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn feedback_replay_gap(value: &str) -> Result<FeedbackReplayGapPolicy, CompileError> {
+    match value {
+        "fail" => Ok(FeedbackReplayGapPolicy::Fail),
+        "reset" => Ok(FeedbackReplayGapPolicy::Reset),
+        "wait" => Ok(FeedbackReplayGapPolicy::Wait),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
+fn feedback_terminal(value: &str) -> Result<FeedbackTerminalPolicy, CompileError> {
+    match value {
+        "drop-retained" => Ok(FeedbackTerminalPolicy::DropRetained),
+        "drain-retained" => Ok(FeedbackTerminalPolicy::DrainRetained),
+        _ => Err(CompileError::new(CompileReason::PlanInvalid)),
+    }
+}
+
 fn supervision_action(
     value: &SupervisionActionDocument,
 ) -> Result<AdmittedSupervisionAction<'_>, CompileError> {
@@ -7459,6 +7746,76 @@ mod tests {
         let mut mismatched_catalog = input;
         mismatched_catalog.catalog.nodes[0].semantic_hash = hash(99);
         assert_eq!(mismatched_catalog.seal().unwrap_err().code(), "CND-CMP-002");
+    }
+
+    #[test]
+    fn value_clock_and_feedback_plan_round_trips_exactly() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let input = compile_input(source, &panel);
+        let mut document = compile_panel(&panel, &input).unwrap();
+        let cord = document.cords.first_mut().unwrap();
+        cord.queue_memory_bytes += u64::from(cord.capacity_items) * 16;
+        document.schema = VALUE_PLAN_DOCUMENT_SCHEMA.to_owned();
+        document.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        document.value_envelopes = vec![ValueEnvelopePolicyDocument {
+            cord: cord.id.clone(),
+            representation: pin_doc("fixture/value-bytes", 211),
+            maximum_payload_bytes: cord.max_value_bytes,
+            maximum_envelope_bytes: 16,
+            maximum_fragments: 2,
+            maximum_fragment_bytes: cord.max_value_bytes.div_ceil(2),
+            maximum_timestamps: 1,
+            clock_domains: vec!["clock/compile".to_owned()],
+            identity_allowed: true,
+            correlation_allowed: true,
+            causation_allowed: true,
+            provenance_allowed: true,
+            sensitivity_ceiling: "restricted".to_owned(),
+        }];
+        document.clock_conversions = vec![ClockConversionDocument {
+            id: "fixture/device-to-compile-clock".to_owned(),
+            source: "fixture/device-clock".to_owned(),
+            destination: "clock/compile".to_owned(),
+            numerator: 1,
+            denominator: 1,
+            offset_ticks: 0,
+            rounding: "exact".to_owned(),
+            maximum_uncertainty_ticks: 1,
+            observed_time_basis: "clock/compile".to_owned(),
+            observed_tick: 10,
+            valid_until_tick: 20,
+            authority: "fixture/clock-authority".to_owned(),
+        }];
+        document.feedback_boundaries = vec![FeedbackBoundaryDocument {
+            id: "fixture/delayed-edge".to_owned(),
+            node: cord.to.node.clone(),
+            cord: cord.id.clone(),
+            kind: "delay".to_owned(),
+            initialization: "empty".to_owned(),
+            initial_items: 0,
+            initial_bytes: 0,
+            maximum_retained_items: 1,
+            maximum_retained_bytes: u64::from(cord.max_value_bytes),
+            delay_ticks: 1,
+            clock: Some("clock/compile".to_owned()),
+            replay_gap: "fail".to_owned(),
+            cancellation: pin_doc("fixture/bounded-cancellation", 212),
+            terminal: "drop-retained".to_owned(),
+        }];
+        document.identity = {
+            let arena = Bump::new();
+            let plan = document.as_plan(&arena).unwrap();
+            let mut scratch =
+                vec![SemanticHash::from_bytes([0; 32]); plan.validation_scratch_count().unwrap()];
+            plan.semantic_hash(&mut scratch).unwrap().to_string()
+        };
+
+        document.validate().unwrap();
+        let bytes = serde_json::to_vec(&document).unwrap();
+        let decoded: ExactPlanDocument = serde_json::from_slice(&bytes).unwrap();
+        decoded.validate().unwrap();
+        assert_eq!(decoded, document);
     }
 
     #[test]
@@ -8545,7 +8902,7 @@ mod tests {
         input.seal().unwrap();
 
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V16);
         assert_eq!(plan.instance_pools.len(), 1);
         assert_eq!(plan.instance_pools[0].maximum_live, 2);
         assert_eq!(plan.instance_pools[0].maximum_queued, 2);

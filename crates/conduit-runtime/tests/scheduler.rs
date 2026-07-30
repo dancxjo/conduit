@@ -5,24 +5,27 @@ use std::time::Instant;
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
-    EffectRequirement, EventClass, EventCorrelation, EventProviderCapabilities,
-    EventStreamContract, EvidencePolicy, EvidenceStreamExtension, ExecutionLimits, ExecutionPlan,
-    ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowQueueState, FlowWatermarks,
-    GrantStatus, HostCapability, Id, ImplementationMachine, InstancePath, InstantiationContext,
-    LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor,
-    PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanEventStream, PlanExportBinding,
-    PlanFanOut, PlanHostObservation, PlanResourceBinding, PlanResourceBudget,
-    PlanValidationContext, Pressure, RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline,
-    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
-    ResourceSelector, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy,
-    SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerDecisionReason, SchedulerPolicy,
-    SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef,
+    EXECUTION_PLAN_SCHEMA_VERSION, EffectRequirement, EventClass, EventCorrelation,
+    EventProviderCapabilities, EventStreamContract, EvidencePolicy, EvidenceStreamExtension,
+    ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FeedbackBoundaryKind,
+    FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity,
+    FlowPolicy, FlowQueueState, FlowWatermarks, GrantStatus, HostCapability, Id,
+    ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting,
+    MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCompositeMapping, PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary,
+    PlanHostObservation, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
+    RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline, ReplayDelivery, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RetentionPolicy,
+    RuntimeEvidenceMode, RuntimeEvidencePolicy, SCHEDULER_CONTRACT_VERSION, SampleSchedule,
+    SchedulerDecisionReason, SchedulerPolicy, SemanticHash, Sensitivity, StopPolicy,
+    SubscriberCoupling, TypeContractRef, ValueEnvelopePolicy, ValueEnvelopeReason,
     extend_execution_event, resolve_authority,
 };
 use conduit_runtime::{
-    DeterministicExecutor, OwnedEventPayload, RuntimeEvidenceContext, RuntimeValue, ScheduledNode,
-    SchedulerError, SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus,
-    SchedulerStep, SendStatus, StepIo, record_scheduler_evidence,
+    DeterministicExecutor, OwnedEventPayload, RuntimeEvidenceContext, RuntimeTimestamp,
+    RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind,
+    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    record_scheduler_evidence, validate_hosted_execution_plan, validate_runtime_value_for_cord,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -224,6 +227,9 @@ fn with_plan(
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        value_envelopes: &[],
+        clock_conversions: &[],
+        feedback_boundaries: &[],
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],
@@ -274,6 +280,7 @@ enum FixtureNode {
         total: u64,
         cord: usize,
         fragments_per_value: u16,
+        envelope: Box<RuntimeValueEnvelope>,
         prepare_count: Rc<Cell<u32>>,
         start_count: Rc<Cell<u32>>,
         fail_prepare: bool,
@@ -286,6 +293,7 @@ enum FixtureNode {
     },
     Sink {
         seen: Rc<RefCell<Vec<u64>>>,
+        seen_envelopes: Option<Rc<RefCell<Vec<RuntimeValueEnvelope>>>>,
         cord: usize,
         yields_remaining: u32,
         rollback_once: bool,
@@ -326,6 +334,7 @@ impl FixtureNode {
             total,
             cord: 0,
             fragments_per_value: 0,
+            envelope: Box::new(RuntimeValueEnvelope::EMPTY),
             prepare_count: Rc::new(Cell::new(0)),
             start_count: Rc::new(Cell::new(0)),
             fail_prepare: false,
@@ -338,6 +347,7 @@ impl FixtureNode {
             total,
             cord,
             fragments_per_value: 0,
+            envelope: Box::new(RuntimeValueEnvelope::EMPTY),
             prepare_count: Rc::new(Cell::new(0)),
             start_count: Rc::new(Cell::new(0)),
             fail_prepare: false,
@@ -350,6 +360,7 @@ impl FixtureNode {
             total,
             cord: 0,
             fragments_per_value: 2,
+            envelope: Box::new(RuntimeValueEnvelope::EMPTY),
             prepare_count: Rc::new(Cell::new(0)),
             start_count: Rc::new(Cell::new(0)),
             fail_prepare: false,
@@ -363,6 +374,7 @@ impl FixtureNode {
     fn sink_on(seen: Rc<RefCell<Vec<u64>>>, cord: usize) -> Self {
         Self::Sink {
             seen,
+            seen_envelopes: None,
             cord,
             yields_remaining: 0,
             rollback_once: false,
@@ -446,6 +458,7 @@ impl SchedulerNode for FixtureNode {
                 total,
                 cord,
                 fragments_per_value,
+                envelope,
                 ..
             } => {
                 if *next == *total {
@@ -457,6 +470,7 @@ impl SchedulerNode for FixtureNode {
                 let value = RuntimeValue {
                     handle: *next,
                     accounted_bytes: 8,
+                    envelope: **envelope,
                 };
                 match io.send(*cord, value, None).unwrap() {
                     SendStatus::Reserved => {
@@ -486,6 +500,7 @@ impl SchedulerNode for FixtureNode {
                 let value = RuntimeValue {
                     handle: *next,
                     accounted_bytes: 8,
+                    envelope: RuntimeValueEnvelope::EMPTY,
                 };
                 match io.send_coupled(0, &[value, value], &[None, None]).unwrap() {
                     SendStatus::Reserved => {
@@ -508,6 +523,7 @@ impl SchedulerNode for FixtureNode {
             }
             Self::Sink {
                 seen,
+                seen_envelopes,
                 cord,
                 yields_remaining,
                 rollback_once,
@@ -526,6 +542,9 @@ impl SchedulerNode for FixtureNode {
                         return SchedulerStep::Pending;
                     }
                     seen.borrow_mut().push(value.handle);
+                    if let Some(envelopes) = seen_envelopes {
+                        envelopes.borrow_mut().push(value.envelope);
+                    }
                     return SchedulerStep::Progress;
                 }
                 if matches!(
@@ -641,6 +660,187 @@ fn start_executor<'a>(
         reservation(),
         nodes,
     )
+}
+
+#[test]
+fn scheduler_preserves_only_plan_authorized_value_envelopes() {
+    with_plan(2, 128, |base, profile| {
+        let clocks = [Id("clock/monotonic")];
+        let representation = pin("fixture/runtime-representation", 90);
+        let policies = [ValueEnvelopePolicy {
+            cord: base.cords[0].id,
+            representation,
+            maximum_payload_bytes: base.cords[0].flow.capacity.max_value_bytes(),
+            maximum_envelope_bytes: 64,
+            maximum_fragments: 4,
+            maximum_fragment_bytes: 64,
+            maximum_timestamps: 1,
+            clock_domains: &clocks,
+            identity_allowed: true,
+            correlation_allowed: true,
+            causation_allowed: true,
+            provenance_allowed: true,
+            sensitivity_ceiling: Sensitivity::Restricted,
+        }];
+        let cords = [ResolvedPlanCord {
+            queue_memory_bytes: base.cords[0].queue_memory_bytes
+                + u64::from(base.cords[0].flow.capacity.items())
+                    * u64::from(policies[0].maximum_envelope_bytes),
+            ..base.cords[0]
+        }];
+        let mut plan = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            identity: ZERO,
+            cords: &cords,
+            value_envelopes: &policies,
+            ..base
+        };
+        plan.identity = plan.semantic_hash(&mut [ZERO; 16]).unwrap();
+
+        let mut timestamps = [RuntimeTimestamp::default(); conduit_core::MAX_VALUE_CLOCK_DOMAINS];
+        timestamps[0] = RuntimeTimestamp {
+            domain_index: 0,
+            tick: 7,
+            uncertainty_ticks: 1,
+        };
+        let envelope = RuntimeValueEnvelope {
+            representation: representation.semantic_hash,
+            envelope_bytes: 48,
+            fragment_count: 1,
+            fragment_bytes: 8,
+            identity: Some(hash(91)),
+            correlation: Some(hash(92)),
+            causation: Some(hash(93)),
+            provenance: Some(hash(94)),
+            timestamp_count: 1,
+            timestamps,
+            sensitivity: Sensitivity::Restricted,
+        };
+        let value = RuntimeValue {
+            handle: 1,
+            accounted_bytes: 8,
+            envelope,
+        };
+        validate_runtime_value_for_cord(&plan, cords[0].id, value).unwrap();
+
+        let mut forbidden = value;
+        forbidden.envelope.sensitivity = Sensitivity::Secret;
+        assert_eq!(
+            validate_runtime_value_for_cord(&plan, cords[0].id, forbidden),
+            Err(ValueEnvelopeReason::SensitivityWidening)
+        );
+        assert_eq!(
+            validate_runtime_value_for_cord(&base, base.cords[0].id, value),
+            Err(ValueEnvelopeReason::UnauthorizedField)
+        );
+
+        let mut source = FixtureNode::source(1);
+        if let FixtureNode::Source {
+            envelope: source_envelope,
+            ..
+        } = &mut source
+        {
+            **source_envelope = envelope;
+        }
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let seen_envelopes = Rc::new(RefCell::new(Vec::new()));
+        let mut sink = FixtureNode::sink(seen);
+        if let FixtureNode::Sink {
+            seen_envelopes: destination,
+            ..
+        } = &mut sink
+        {
+            *destination = Some(seen_envelopes.clone());
+        }
+        let mut executor =
+            start_executor(&plan, profile, source, sink, policy(100, 1_000)).unwrap();
+        assert_eq!(
+            executor.run_until_stalled().unwrap(),
+            SchedulerStatus::Succeeded
+        );
+        assert_eq!(&*seen_envelopes.borrow(), &[envelope]);
+    });
+}
+
+#[test]
+fn feedback_cycle_requires_a_finite_boundary_and_reserves_retained_state() {
+    with_plan(2, 128, |base, profile| {
+        let cords = [
+            base.cords[0],
+            ResolvedPlanCord {
+                id: Id("feedback"),
+                from: ResolvedPlanPort {
+                    node: base.nodes[1].instance,
+                    ..base.cords[0].from
+                },
+                to: ResolvedPlanPort {
+                    node: base.nodes[0].instance,
+                    ..base.cords[0].to
+                },
+                ..base.cords[0]
+            },
+        ];
+        let mut cyclic = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            identity: ZERO,
+            cords: &cords,
+            ..base
+        };
+        cyclic.identity = cyclic.semantic_hash(&mut [ZERO; 16]).unwrap();
+        let context = PlanValidationContext {
+            supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            now: AuthorityTime {
+                basis: Id("clock/monotonic"),
+                tick: 2,
+            },
+        };
+        assert_eq!(
+            validate_hosted_execution_plan(&cyclic, context)
+                .unwrap_err()
+                .code
+                .as_str(),
+            "CND-FBK-002"
+        );
+
+        let boundaries = [PlanFeedbackBoundary {
+            id: Id("fixture/feedback-state"),
+            node: base.nodes[1].instance,
+            cord: cords[1].id,
+            kind: FeedbackBoundaryKind::State,
+            initialization: FeedbackInitialization::Empty,
+            initial_items: 0,
+            initial_bytes: 0,
+            maximum_retained_items: 2,
+            maximum_retained_bytes: 64,
+            delay_ticks: 0,
+            clock: None,
+            replay_gap: FeedbackReplayGapPolicy::Fail,
+            cancellation: pin("fixture/feedback-cancellation", 96),
+            terminal: FeedbackTerminalPolicy::DropRetained,
+        }];
+        let mut admitted = ExecutionPlan {
+            identity: ZERO,
+            feedback_boundaries: &boundaries,
+            ..cyclic
+        };
+        admitted.identity = admitted.semantic_hash(&mut [ZERO; 16]).unwrap();
+        validate_hosted_execution_plan(&admitted, context).unwrap();
+
+        let mut executor = start_executor(
+            &admitted,
+            profile,
+            FixtureNode::source(1),
+            FixtureNode::sink(Rc::new(RefCell::new(Vec::new()))),
+            policy(100, 1_000),
+        )
+        .unwrap();
+        assert_eq!(executor.allocation().feedback_memory_bytes, 64);
+        executor.cancel(StopPolicy::Abort).unwrap();
+        assert_eq!(
+            executor.run_until_stalled().unwrap(),
+            SchedulerStatus::Cancelled
+        );
+    });
 }
 
 #[test]

@@ -42,6 +42,7 @@ mod structural;
 mod supervision;
 mod transition;
 mod type_contract;
+mod value_envelope;
 
 pub use authority::{
     AuthorityConstraintRef, AuthorityDenial, AuthorityEvent, AuthorityEventKind, AuthorityGrant,
@@ -113,15 +114,16 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
     EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
     EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
-    EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15, ExecutionPlan,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
-    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHazardClosure,
-    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
-    PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision,
-    PlanSupervisionTarget, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    minimum_supervision_allocation, validate_execution_plan, validate_supervision_allocation,
+    EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
+    EXECUTION_PLAN_SCHEMA_VERSION_V16, ExecutionPlan, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
+    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
+    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPoolRuntime,
+    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
+    PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision, PlanSupervisionTarget,
+    PlanValidationContext, PlanValidationError, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind, minimum_supervision_allocation,
+    validate_execution_plan, validate_supervision_allocation,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -313,6 +315,15 @@ pub use transition::{
     TransitionUsage, validate_replacement_support, validate_transition_contract,
 };
 pub use type_contract::{TypeContractRef, TypeContractRefError, assess_type_contract_exact};
+pub use value_envelope::{
+    CLOCK_CONVERSION_SCHEMA_VERSION, ClockRounding, ConvertedTime,
+    FEEDBACK_BOUNDARY_SCHEMA_VERSION, FeedbackBoundaryKind, FeedbackInitialization,
+    FeedbackReplayGapPolicy, FeedbackRuntimePhase, FeedbackRuntimeState, FeedbackTerminalPolicy,
+    MAX_VALUE_CLOCK_DOMAINS, PlanClockConversion, PlanFeedbackBoundary,
+    VALUE_ENVELOPE_POLICY_SCHEMA_VERSION, ValueEnvelope, ValueEnvelopePolicy, ValueEnvelopeReason,
+    ValueTimestamp, convert_clock, validate_clock_conversion, validate_feedback_boundary,
+    validate_feedback_graph, validate_value_envelope, validate_value_envelope_policy,
+};
 
 /// A stable identifier borrowed from a descriptor or resolved plan.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

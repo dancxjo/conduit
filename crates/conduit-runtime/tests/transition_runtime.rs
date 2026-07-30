@@ -34,8 +34,8 @@ use conduit_runtime::{
     CandidateAuthority, HostResolverPolicy, HostedDrainObservation, HostedGenerationBinding,
     HostedTransitionAdmission, HostedTransitionAdmissionError, HostedTransitionGeneration,
     HostedTransitionTransaction, PlacementCandidate, PlacementRequest, ResolvedReplacementSupport,
-    ResolverTiePolicy, RetainedReplayItem, RetainedReplayProvider, StableBoundaryRouter,
-    admit_hosted_transition, resolve_host_placement,
+    ResolverTiePolicy, RetainedReplayItem, RetainedReplayProvider, RuntimeValueEnvelope,
+    StableBoundaryRouter, admit_hosted_transition, resolve_host_placement,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -868,7 +868,7 @@ fn control(
 struct FixtureGeneration {
     binding: HostedGenerationBinding<'static>,
     state: Vec<u8>,
-    replayed: Vec<(u64, Vec<u8>)>,
+    replayed: Vec<(u64, Vec<u8>, Option<RuntimeValueEnvelope>)>,
     prepared: bool,
     admission_stopped: bool,
     retired: bool,
@@ -931,9 +931,10 @@ impl HostedTransitionGeneration for FixtureGeneration {
         &mut self,
         cursor: u64,
         value: &[u8],
+        envelope: Option<RuntimeValueEnvelope>,
         _: bool,
     ) -> Result<(), Id<'static>> {
-        self.replayed.push((cursor, value.to_vec()));
+        self.replayed.push((cursor, value.to_vec(), envelope));
         Ok(())
     }
 
@@ -1031,6 +1032,20 @@ impl RetainedReplayProvider for FixtureReplay {
             bytes: value.len(),
             redelivered: false,
             gap: false,
+            value_envelope: Some(RuntimeValueEnvelope {
+                representation: hash(80),
+                envelope_bytes: 32,
+                fragment_count: 1,
+                fragment_bytes: value.len() as u32,
+                identity: Some(hash(81)),
+                correlation: Some(hash(82)),
+                causation: None,
+                provenance: Some(hash(83)),
+                timestamp_count: 0,
+                timestamps: [conduit_runtime::RuntimeTimestamp::default();
+                    conduit_core::MAX_VALUE_CLOCK_DOMAINS],
+                sensitivity: Sensitivity::Restricted,
+            }),
         };
         self.index += 1;
         Ok(Some(item))
@@ -1319,6 +1334,23 @@ fn tongues_asr_segment_transition_uses_opaque_state_retained_replay_and_real_adm
     assert!(old.retired);
     assert_eq!(candidate.state, b"bounded-state");
     assert_eq!(candidate.replayed.len(), 2);
+    assert_eq!(
+        candidate.replayed[0].2,
+        Some(RuntimeValueEnvelope {
+            representation: hash(80),
+            envelope_bytes: 32,
+            fragment_count: 1,
+            fragment_bytes: 9,
+            identity: Some(hash(81)),
+            correlation: Some(hash(82)),
+            causation: None,
+            provenance: Some(hash(83)),
+            timestamp_count: 0,
+            timestamps: [conduit_runtime::RuntimeTimestamp::default();
+                conduit_core::MAX_VALUE_CLOCK_DOMAINS],
+            sensitivity: Sensitivity::Restricted,
+        })
+    );
     assert_eq!(router.active, fixture.contract.candidate);
 }
 

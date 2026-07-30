@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 16] = [
+const REQUIRED_TOUR_LESSONS: [&str; 17] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -21,6 +21,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 16] = [
     "panels.tiny-instrument",
     "patchbay.observes-patchbay",
     "library.typed-text-format",
+    "platform.value-envelope-clock-feedback",
 ];
 
 #[test]
@@ -310,6 +311,99 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
                 "{id} scheduler observations stay inside the browser-plan bound"
             );
         }
+    }
+}
+
+#[test]
+fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c5/value-envelope-clock-feedback-v1.json"
+    ))
+    .expect("value envelope fixture is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "platform.value-envelope-clock-feedback")
+        .expect("platform lesson is selectable");
+    let platform = &lesson["platform"];
+    assert_eq!(platform["schema"], "conduit.tour-platform-lesson/v1");
+    for field in ["what", "when", "wrong"] {
+        assert!(
+            platform[field]
+                .as_str()
+                .is_some_and(|value| !value.is_empty()),
+            "platform lesson explains {field}"
+        );
+    }
+
+    let result: Value =
+        serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["terminal"], "succeeded");
+
+    let cases = fixture["cases"].as_array().unwrap();
+    for profile in platform["profiles"].as_array().unwrap() {
+        let fixture_case = cases
+            .iter()
+            .find(|case| case["id"] == profile["fixture_case"])
+            .expect("lesson profile names a conformance case");
+        match profile["admission"].as_str().unwrap() {
+            "accepted" => assert_eq!(fixture_case["expected"]["accepted"], true),
+            "rejected" => {
+                assert_eq!(fixture_case["expected"]["accepted"], false);
+                assert_eq!(fixture_case["expected"]["code"], profile["code"]);
+            }
+            other => panic!("unknown admission state {other}"),
+        }
+        if let Some(bytes) = profile["maximum_retained_bytes"].as_u64() {
+            assert_eq!(
+                fixture_case["expected"]["retained_bytes"].as_u64(),
+                Some(bytes)
+            );
+        }
+    }
+
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        fields,
+        [
+            "clock_conversions",
+            "feedback_boundaries",
+            "value_envelopes"
+        ]
+        .into_iter()
+        .collect()
+    );
+
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for link in [
+        platform["fixture"].as_str().unwrap(),
+        platform["panel"].as_str().unwrap(),
+    ]
+    .into_iter()
+    .chain(
+        platform["docs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|link| link.as_str().unwrap()),
+    ) {
+        let path = link
+            .split('#')
+            .next()
+            .unwrap()
+            .strip_prefix("../../")
+            .unwrap();
+        assert!(root.join(path).is_file(), "lesson reference {path} exists");
     }
 }
 

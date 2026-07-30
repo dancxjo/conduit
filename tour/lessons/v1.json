@@ -866,6 +866,113 @@
           }
         ]
       }
+    },
+    {
+      "id": "platform.value-envelope-clock-feedback",
+      "chapter": 4,
+      "title": "Bounded value facts, clocks, and feedback",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "nodes.direction-matters"
+      ],
+      "objective": "Run real text nodes, then see how the exact plan admits only bounded value facts, explicit clock conversion, and finite feedback.",
+      "prose": "The panel remains ordinary source. Its exact plan decides whether a cord may carry correlation, provenance, sensitivity, and timestamps. Clock integers compare only through a fresh conversion with uncertainty. A cycle starts only when one edge is an admitted finite delay or state boundary.",
+      "vocabulary": [
+        "value envelope",
+        "clock domain",
+        "uncertainty",
+        "feedback boundary",
+        "retained state"
+      ],
+      "source": "panel 1\n\nnode message : std/literal { value = \"Envelope facts stay exact.\\n\" }\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\ncord emphasize.out -> output.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run value-envelope-feedback.panel",
+      "commands": [
+        "conduct --check value-envelope-feedback.panel",
+        "conduct --run value-envelope-feedback.panel"
+      ],
+      "expected_stdout": "ENVELOPE FACTS STAY EXACT.\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 256,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "plan-admission-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "value_envelopes",
+          "clock_conversions",
+          "feedback_boundaries"
+        ]
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "ENVELOPE FACTS STAY EXACT.\n"
+      },
+      "hints": [
+        "Edit message.value and rerun; the nodes still execute under the exact bounded plan.",
+        "An authorized optional field may remain absent. The runtime never invents correlation or provenance.",
+        "Remove the finite boundary from the cycle profile and admission fails before any node starts."
+      ],
+      "solution": "Keep each cord finite, authorize only the value facts its consumers need, bind cross-clock comparisons explicitly, and break every intentional cycle with one finite state or delay boundary.",
+      "accessibility": {
+        "non_audio": "The graph is paired with an ordered table containing sequence, tick, clock domain, uncertainty, pressure, retained state, cancellation, errors, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered execution story has focus.",
+        "color_independent": "Labels, bounds, marker shapes, and ordered text duplicate envelope, clock, state, pressure, error, and terminal colors."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "platform": {
+        "schema": "conduit.tour-platform-lesson/v1",
+        "what": "A schema-17 exact plan pins every permitted envelope field and byte ceiling, every clock conversion and uncertainty claim, and every finite feedback boundary.",
+        "when": "Use these facts when values need traceable identity or time across a cord, when clocks differ, or when a real graph intentionally feeds state back.",
+        "wrong": "Unbounded metadata, sensitivity widening, unlisted clocks, stale conversion, impersonated correlation, zero retention, and cycles without boundaries are rejected before consumer visibility or execution.",
+        "editable": [
+          "message.value:std/text"
+        ],
+        "fixture": "../../conformance/c5/value-envelope-clock-feedback-v1.json",
+        "panel": "../../examples/value-envelope-feedback.panel",
+        "docs": [
+          "../../spec/055-value-envelope-clock-feedback-v1.md"
+        ],
+        "profiles": [
+          {
+            "id": "payload-only",
+            "fixture_case": "payload-only",
+            "admission": "accepted"
+          },
+          {
+            "id": "bounded-envelope",
+            "fixture_case": "authorized-correlation-provenance",
+            "admission": "accepted"
+          },
+          {
+            "id": "cycle-without-boundary",
+            "fixture_case": "cycle-without-boundary",
+            "admission": "rejected",
+            "code": "CND-FBK-002"
+          },
+          {
+            "id": "finite-state-feedback",
+            "fixture_case": "finite-state-feedback",
+            "admission": "accepted",
+            "maximum_retained_bytes": 64
+          }
+        ],
+        "authoritative_story": [
+          "plan envelope authorization and queue bytes",
+          "clock domain plus converted uncertainty interval",
+          "ordered value acceptance and pressure evidence",
+          "feedback initialization and retained-state ceiling",
+          "cancellation, exact error, and terminal evidence"
+        ]
+      }
     }
   ]
 }

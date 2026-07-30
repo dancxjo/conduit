@@ -38,6 +38,6 @@
     {"id":"fair-pool-selection","expected":{"order":[1,2,1]}},
     {"id":"evidence-exhaustion-before-mutation","expected":{"code":"CND-POL-006","unchanged":true}},
     {"id":"legacy-plan-not-executable","expected":{"code":"CND-POOL-HOST-002"}},
-    {"id":"schema-16-roundtrip","expected":{"schema_version":16,"runtime":true}}
+    {"id":"schema-17-roundtrip","expected":{"schema_version":17,"runtime":true}}
   ]
 }

@@ -18,8 +18,8 @@ use conduit_embedded::{
 };
 use conduit_rp2040_hil::PLAN_HASH as FIRMWARE_PLAN_HASH;
 use conduit_runtime::{
-    DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerEventKind, SchedulerNode,
-    SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    DeterministicExecutor, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerEventKind,
+    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -306,6 +306,9 @@ fn with_equivalence_plans(
         artifacts: &desktop_artifacts,
         nodes: &desktop_nodes,
         cords: &desktop_cords,
+        value_envelopes: &[],
+        clock_conversions: &[],
+        feedback_boundaries: &[],
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],
@@ -460,6 +463,7 @@ impl SchedulerNode for DesktopDriver {
                         RuntimeValue {
                             handle: 42,
                             accounted_bytes: 4,
+                            envelope: RuntimeValueEnvelope::EMPTY,
                         },
                         None,
                     )
@@ -487,6 +491,7 @@ impl SchedulerNode for DesktopDriver {
                             RuntimeValue {
                                 handle: u64::from(sample.handle >= 40),
                                 accounted_bytes: 1,
+                                envelope: RuntimeValueEnvelope::EMPTY,
                             },
                             None,
                         )

@@ -532,6 +532,65 @@ pub struct PlanSnapshot {
     pub source_semantic_hash: String,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub bindings: Vec<PlanBindingProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub value_envelopes: Vec<ValueEnvelopeProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub clock_conversions: Vec<ClockConversionProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub feedback_boundaries: Vec<FeedbackBoundaryProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ValueEnvelopeProjection {
+    pub cord: String,
+    pub representation_id: String,
+    pub representation_identity: String,
+    pub maximum_payload_bytes: u32,
+    pub maximum_envelope_bytes: u32,
+    pub maximum_fragments: u16,
+    pub maximum_fragment_bytes: u32,
+    pub maximum_timestamps: u8,
+    pub clock_domains: Vec<String>,
+    pub identity_allowed: bool,
+    pub correlation_allowed: bool,
+    pub causation_allowed: bool,
+    pub provenance_allowed: bool,
+    pub sensitivity_ceiling: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ClockConversionProjection {
+    pub id: String,
+    pub source: String,
+    pub destination: String,
+    pub numerator: u64,
+    pub denominator: u64,
+    pub offset_ticks: i64,
+    pub rounding: String,
+    pub maximum_uncertainty_ticks: u64,
+    pub observed_time_basis: String,
+    pub observed_tick: u64,
+    pub valid_until_tick: u64,
+    pub authority: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct FeedbackBoundaryProjection {
+    pub id: String,
+    pub node: String,
+    pub cord: String,
+    pub kind: String,
+    pub initialization: String,
+    pub initial_items: u16,
+    pub initial_bytes: u64,
+    pub maximum_retained_items: u16,
+    pub maximum_retained_bytes: u64,
+    pub delay_ticks: u64,
+    pub clock: Option<String>,
+    pub replay_gap: String,
+    pub cancellation_id: String,
+    pub cancellation_identity: String,
+    pub terminal: String,
 }
 
 impl PlanSnapshot {
@@ -560,10 +619,103 @@ impl PlanSnapshot {
                 }
             })
             .collect();
+        let value_envelopes = plan
+            .value_envelopes
+            .iter()
+            .map(|policy| ValueEnvelopeProjection {
+                cord: policy.cord.as_str().to_owned(),
+                representation_id: policy.representation.id.as_str().to_owned(),
+                representation_identity: policy.representation.semantic_hash.to_string(),
+                maximum_payload_bytes: policy.maximum_payload_bytes,
+                maximum_envelope_bytes: policy.maximum_envelope_bytes,
+                maximum_fragments: policy.maximum_fragments,
+                maximum_fragment_bytes: policy.maximum_fragment_bytes,
+                maximum_timestamps: policy.maximum_timestamps,
+                clock_domains: policy
+                    .clock_domains
+                    .iter()
+                    .map(|clock| clock.as_str().to_owned())
+                    .collect(),
+                identity_allowed: policy.identity_allowed,
+                correlation_allowed: policy.correlation_allowed,
+                causation_allowed: policy.causation_allowed,
+                provenance_allowed: policy.provenance_allowed,
+                sensitivity_ceiling: match policy.sensitivity_ceiling {
+                    conduit_core::Sensitivity::Public => "public",
+                    conduit_core::Sensitivity::Restricted => "restricted",
+                    conduit_core::Sensitivity::Secret => "secret",
+                }
+                .to_owned(),
+            })
+            .collect();
+        let clock_conversions = plan
+            .clock_conversions
+            .iter()
+            .map(|conversion| ClockConversionProjection {
+                id: conversion.id.as_str().to_owned(),
+                source: conversion.source.as_str().to_owned(),
+                destination: conversion.destination.as_str().to_owned(),
+                numerator: conversion.numerator,
+                denominator: conversion.denominator,
+                offset_ticks: conversion.offset_ticks,
+                rounding: match conversion.rounding {
+                    conduit_core::ClockRounding::Exact => "exact",
+                    conduit_core::ClockRounding::Floor => "floor",
+                    conduit_core::ClockRounding::Ceiling => "ceiling",
+                }
+                .to_owned(),
+                maximum_uncertainty_ticks: conversion.maximum_uncertainty_ticks,
+                observed_time_basis: conversion.observed_at.basis.as_str().to_owned(),
+                observed_tick: conversion.observed_at.tick,
+                valid_until_tick: conversion.valid_until_tick,
+                authority: conversion.authority.as_str().to_owned(),
+            })
+            .collect();
+        let feedback_boundaries = plan
+            .feedback_boundaries
+            .iter()
+            .map(|boundary| FeedbackBoundaryProjection {
+                id: boundary.id.as_str().to_owned(),
+                node: boundary.node.as_str().to_owned(),
+                cord: boundary.cord.as_str().to_owned(),
+                kind: match boundary.kind {
+                    conduit_core::FeedbackBoundaryKind::Delay => "delay",
+                    conduit_core::FeedbackBoundaryKind::State => "state",
+                }
+                .to_owned(),
+                initialization: match boundary.initialization {
+                    conduit_core::FeedbackInitialization::Empty => "empty",
+                    conduit_core::FeedbackInitialization::InitialValue => "initial-value",
+                }
+                .to_owned(),
+                initial_items: boundary.initial_items,
+                initial_bytes: boundary.initial_bytes,
+                maximum_retained_items: boundary.maximum_retained_items,
+                maximum_retained_bytes: boundary.maximum_retained_bytes,
+                delay_ticks: boundary.delay_ticks,
+                clock: boundary.clock.map(|clock| clock.as_str().to_owned()),
+                replay_gap: match boundary.replay_gap {
+                    conduit_core::FeedbackReplayGapPolicy::Fail => "fail",
+                    conduit_core::FeedbackReplayGapPolicy::Reset => "reset",
+                    conduit_core::FeedbackReplayGapPolicy::Wait => "wait",
+                }
+                .to_owned(),
+                cancellation_id: boundary.cancellation.id.as_str().to_owned(),
+                cancellation_identity: boundary.cancellation.semantic_hash.to_string(),
+                terminal: match boundary.terminal {
+                    conduit_core::FeedbackTerminalPolicy::DropRetained => "drop-retained",
+                    conduit_core::FeedbackTerminalPolicy::DrainRetained => "drain-retained",
+                }
+                .to_owned(),
+            })
+            .collect();
         Self {
             identity: plan.identity.to_string(),
             source_semantic_hash: plan.source_semantic_hash.to_string(),
             bindings,
+            value_envelopes,
+            clock_conversions,
+            feedback_boundaries,
         }
     }
 }

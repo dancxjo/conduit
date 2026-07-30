@@ -45,6 +45,9 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
         identity: "sha256:plan".to_owned(),
         source_semantic_hash: old.clone(),
         bindings: Vec::new(),
+        value_envelopes: Vec::new(),
+        clock_conversions: Vec::new(),
+        feedback_boundaries: Vec::new(),
     };
     let run = RunSnapshot {
         run_id: "run/1".to_owned(),
@@ -177,8 +180,10 @@ fn fixture_names_each_required_protocol_boundary() {
 #[test]
 fn exact_plan_projection_preserves_authoritative_binding_state() {
     use conduit_core::{
-        AuthorityTime, ExecutionPlan, Id, InstancePath, PinnedDescriptor, PlanHostObservation,
-        PlanResourceBudget, ResolvedPlanNode, SemanticHash,
+        AuthorityTime, ClockRounding, ExecutionPlan, FeedbackBoundaryKind, FeedbackInitialization,
+        FeedbackReplayGapPolicy, FeedbackTerminalPolicy, Id, InstancePath, PinnedDescriptor,
+        PlanClockConversion, PlanFeedbackBoundary, PlanHostObservation, PlanResourceBudget,
+        ResolvedPlanNode, SemanticHash, Sensitivity, ValueEnvelopePolicy,
     };
 
     const fn hash(byte: u8) -> SemanticHash {
@@ -218,8 +223,64 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         required_resources: &[],
         required_effects: &[],
     }];
+    let clocks = [Id("clock/device")];
+    let value_envelopes = [ValueEnvelopePolicy {
+        cord: Id("cord/value"),
+        representation: PinnedDescriptor {
+            id: Id("representation/bytes"),
+            schema_version: 1,
+            semantic_hash: hash(10),
+        },
+        maximum_payload_bytes: 64,
+        maximum_envelope_bytes: 32,
+        maximum_fragments: 2,
+        maximum_fragment_bytes: 32,
+        maximum_timestamps: 1,
+        clock_domains: &clocks,
+        identity_allowed: true,
+        correlation_allowed: true,
+        causation_allowed: true,
+        provenance_allowed: true,
+        sensitivity_ceiling: Sensitivity::Restricted,
+    }];
+    let clock_conversions = [PlanClockConversion {
+        id: Id("conversion/device-host"),
+        source: clocks[0],
+        destination: Id("clock/host"),
+        numerator: 1,
+        denominator: 1,
+        offset_ticks: 2,
+        rounding: ClockRounding::Exact,
+        maximum_uncertainty_ticks: 1,
+        observed_at: AuthorityTime {
+            basis: Id("clock/test"),
+            tick: 10,
+        },
+        valid_until_tick: 20,
+        authority: Id("host/browser"),
+    }];
+    let feedback_boundaries = [PlanFeedbackBoundary {
+        id: Id("feedback/state"),
+        node: nodes[0].instance,
+        cord: Id("cord/value"),
+        kind: FeedbackBoundaryKind::State,
+        initialization: FeedbackInitialization::InitialValue,
+        initial_items: 1,
+        initial_bytes: 8,
+        maximum_retained_items: 1,
+        maximum_retained_bytes: 64,
+        delay_ticks: 0,
+        clock: None,
+        replay_gap: FeedbackReplayGapPolicy::Fail,
+        cancellation: PinnedDescriptor {
+            id: Id("cancellation/bounded"),
+            schema_version: 1,
+            semantic_hash: hash(11),
+        },
+        terminal: FeedbackTerminalPolicy::DropRetained,
+    }];
     let plan = ExecutionPlan {
-        schema_version: 1,
+        schema_version: 17,
         identity: hash(1),
         source_semantic_hash: hash(5),
         resolver: PinnedDescriptor {
@@ -238,6 +299,9 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         artifacts: &[],
         nodes: &nodes,
         cords: &[],
+        value_envelopes: &value_envelopes,
+        clock_conversions: &clock_conversions,
+        feedback_boundaries: &feedback_boundaries,
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],
@@ -263,6 +327,14 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
     assert_eq!(binding.host_id, "host/browser");
     assert_eq!(binding.host_observation_id, "report/browser");
     assert_eq!(binding.host_observation_identity, hash(9).to_string());
+    assert_eq!(projection.value_envelopes[0].cord, "cord/value");
+    assert_eq!(
+        projection.value_envelopes[0].sensitivity_ceiling,
+        "restricted"
+    );
+    assert_eq!(projection.clock_conversions[0].maximum_uncertainty_ticks, 1);
+    assert_eq!(projection.feedback_boundaries[0].kind, "state");
+    assert_eq!(projection.feedback_boundaries[0].maximum_retained_bytes, 64);
 }
 
 #[test]

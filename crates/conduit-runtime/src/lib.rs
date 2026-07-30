@@ -88,9 +88,10 @@ pub use runtime_evidence::{
     RuntimeEvidenceContext, RuntimeEvidenceError, record_scheduler_evidence,
 };
 pub use scheduler::{
-    DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerAllocation, SchedulerError,
-    SchedulerEvent, SchedulerEventKind, SchedulerHighWater, SchedulerNode, SchedulerReservation,
-    SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
+    DeterministicExecutor, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
+    SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventKind, SchedulerHighWater,
+    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SchedulerSubject,
+    SendStatus, StepIo, validate_runtime_value_for_cord,
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LOWERED_SOURCE_SCHEMA_V3,
@@ -115,9 +116,11 @@ pub use transition::{
 };
 pub use transport::{
     CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_FIXED_BYTES,
-    DISTRIBUTED_ENVELOPE_VERSION, DecodedDistributedEnvelope, ResolvedTransportSelection,
-    TransportCapabilities, TransportReason, TransportTransition, decode_distributed_envelope,
-    encode_distributed_envelope, validate_transport_selection, validate_transport_transition,
+    DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES, DISTRIBUTED_ENVELOPE_VERSION,
+    DISTRIBUTED_ENVELOPE_VERSION_V1, DISTRIBUTED_ENVELOPE_VERSION_V2, DecodedDistributedEnvelope,
+    ResolvedTransportSelection, TransportCapabilities, TransportReason, TransportTransition,
+    decode_distributed_envelope, decode_distributed_envelope_v2, encode_distributed_envelope,
+    encode_distributed_envelope_v2, validate_transport_selection, validate_transport_transition,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
@@ -137,7 +140,24 @@ pub fn validate_hosted_execution_plan(
                 subject_index: None,
             })?;
     let mut scratch = vec![SemanticHash::from_bytes([0; 32]); fact_count];
-    conduit_core::validate_execution_plan(plan, context, &mut scratch)
+    conduit_core::validate_execution_plan(plan, context, &mut scratch)?;
+    let nodes = plan
+        .nodes
+        .iter()
+        .map(|node| node.instance)
+        .collect::<Vec<_>>();
+    let mut removed = vec![false; nodes.len()];
+    conduit_core::validate_feedback_graph(
+        &nodes,
+        plan.cords,
+        plan.feedback_boundaries,
+        &mut removed,
+    )
+    .map_err(|reason| conduit_core::PlanValidationError {
+        code: conduit_core::PlanDiagnosticCode::ValueEnvelope(reason),
+        collection: conduit_core::PlanCollection::FeedbackBoundaries,
+        subject_index: None,
+    })
 }
 
 const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
@@ -4131,6 +4151,9 @@ impl HostValueStore {
     }
 }
 
+// Runtime values carry the complete fixed envelope inline so executor
+// allocation remains exact and no per-value metadata allocation is hidden.
+#[allow(clippy::large_enum_variant)]
 enum HostedNodeKind {
     Literal {
         value: Vec<u8>,
@@ -4203,6 +4226,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         RuntimeValue {
                             handle,
                             accounted_bytes: value.len() as u32,
+                            envelope: RuntimeValueEnvelope::EMPTY,
                         },
                         None,
                     );
@@ -4303,6 +4327,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     *output = Some(RuntimeValue {
                         handle,
                         accounted_bytes,
+                        envelope: RuntimeValueEnvelope::EMPTY,
                     });
                 }
                 let Some(&out_cord) = self.out_cords.first() else {
@@ -4368,6 +4393,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         RuntimeValue {
                             handle,
                             accounted_bytes: bytes.len() as u32,
+                            envelope: RuntimeValueEnvelope::EMPTY,
                         },
                         None,
                     );
@@ -4432,6 +4458,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                             RuntimeValue {
                                 handle,
                                 accounted_bytes: upper_bytes.len() as u32,
+                                envelope: RuntimeValueEnvelope::EMPTY,
                             },
                             None,
                         );
