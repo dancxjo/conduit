@@ -1,22 +1,24 @@
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationCheckpointPolicy, CancellationGuarantee,
-    CheckpointProviderCapabilities, DelegationPolicy, DeliveryClaim, DescriptorRef, Direction,
-    DuplicatePolicy, DuplicationRule, EffectRequirement, EventClass, EventProviderCapabilities,
-    EventStreamContract, ExecutionLimits, ExecutionPlan, ExecutionProfile,
-    ExplicitSatisfactionRequirement, FanOutMode, FlowCapacity, FlowPolicy, FlowWatermarks,
-    GrantStatus, HostCapability, Id, InstancePath, JobContract, MergeOrdering, MergeTerminalPolicy,
-    ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection,
-    PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut,
-    PlanHostObservation, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
-    PlanSatisfactionSubject, PlanValidationContext, Pressure, RUNTIME_EVIDENCE_POLICY_VERSION,
-    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef,
-    ResourceSelector, RestartPolicy, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy,
-    SatisfactionFacet, SatisfactionMethod, SatisfactionObligation, SatisfactionPin,
-    SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy,
+    CheckpointProviderCapabilities, ClockRounding, DelegationPolicy, DeliveryClaim, DescriptorRef,
+    Direction, DuplicatePolicy, DuplicationRule, EXECUTION_PLAN_SCHEMA_VERSION, EffectRequirement,
+    EventClass, EventProviderCapabilities, EventStreamContract, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, ExplicitSatisfactionRequirement, FanOutMode, FeedbackBoundaryKind,
+    FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity,
+    FlowPolicy, FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, JobContract,
+    MergeOrdering, MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanClockConversion, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode,
+    PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary, PlanHostObservation,
+    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember,
+    PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject,
+    PlanValidationContext, Pressure, RUNTIME_EVIDENCE_POLICY_VERSION, ReplayDelivery,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
+    RestartPolicy, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy, SatisfactionFacet,
+    SatisfactionMethod, SatisfactionObligation, SatisfactionPin, SatisfactionProof,
+    SatisfactionReason, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy,
     SubscriberCoupling, TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    resolve_authority, validate_execution_plan,
+    ValueEnvelopePolicy, resolve_authority, validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -293,6 +295,9 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        value_envelopes: &[],
+        clock_conversions: &[],
+        feedback_boundaries: &[],
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],
@@ -1589,6 +1594,135 @@ fn portable_validator_rejects_every_required_malformed_class() {
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::ScratchTooSmall
+        );
+    });
+}
+
+#[test]
+fn plan_v17_pins_value_clock_and_feedback_facts() {
+    with_plan(|base, scratch| {
+        let mut profile = ExecutionProfile {
+            id: Id("fixture/execution-profile"),
+            schema_version: 1,
+            semantic_hash: ZERO_HASH,
+            boundedness: BoundednessProfile::Hard,
+            cancellation: CancellationGuarantee::Bounded,
+            step_bound_enforced: true,
+            limits: ExecutionLimits {
+                max_step_work: 8,
+                max_retained_values: 0,
+                max_retained_bytes: 0,
+                max_scratch_bytes: 0,
+                max_input_leases: 0,
+                max_input_bytes: 0,
+                max_output_reservations: 0,
+                max_output_bytes: 0,
+                max_transactions: 1,
+                max_fragments_per_step: 0,
+                max_pending_operations: 0,
+                max_timers: 0,
+                max_child_tasks: 0,
+                max_host_buffer_bytes: 0,
+                max_foreign_queue_items: 0,
+                max_foreign_queue_bytes: 0,
+                max_checkpoint_bytes: 0,
+                implementation_memory_bytes: 0,
+                cancellation_ticks: 1,
+            },
+            representations: &[],
+            memory_claims: &[],
+            checkpoint: None,
+        };
+        profile.semantic_hash = profile.computed_semantic_hash(&mut []).unwrap();
+        let nodes = [
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                ..base.nodes[0]
+            },
+            ResolvedPlanNode {
+                execution_profile: Some(&profile),
+                ..base.nodes[1]
+            },
+        ];
+        let clocks = [Id("fixture/clock")];
+        let envelopes = [ValueEnvelopePolicy {
+            cord: base.cords[0].id,
+            representation: pin("fixture/bytes", 90),
+            maximum_payload_bytes: base.cords[0].flow.capacity.max_value_bytes(),
+            maximum_envelope_bytes: 16,
+            maximum_fragments: 2,
+            maximum_fragment_bytes: 16,
+            maximum_timestamps: 1,
+            clock_domains: &clocks,
+            identity_allowed: true,
+            correlation_allowed: true,
+            causation_allowed: true,
+            provenance_allowed: true,
+            sensitivity_ceiling: Sensitivity::Restricted,
+        }];
+        let conversions = [PlanClockConversion {
+            id: Id("fixture/clock-conversion"),
+            source: Id("fixture/device-clock"),
+            destination: clocks[0],
+            numerator: 1,
+            denominator: 1,
+            offset_ticks: 0,
+            rounding: ClockRounding::Exact,
+            maximum_uncertainty_ticks: 1,
+            observed_at: base.created_at,
+            valid_until_tick: 50,
+            authority: Id("fixture/clock-authority"),
+        }];
+        let boundaries = [PlanFeedbackBoundary {
+            id: Id("fixture/feedback"),
+            node: base.cords[0].to.node,
+            cord: base.cords[0].id,
+            kind: FeedbackBoundaryKind::Delay,
+            initialization: FeedbackInitialization::Empty,
+            initial_items: 0,
+            initial_bytes: 0,
+            maximum_retained_items: 1,
+            maximum_retained_bytes: 32,
+            delay_ticks: 1,
+            clock: Some(clocks[0]),
+            replay_gap: FeedbackReplayGapPolicy::Fail,
+            cancellation: pin("fixture/cancellation", 91),
+            terminal: FeedbackTerminalPolicy::DropRetained,
+        }];
+        let cords = [ResolvedPlanCord {
+            queue_memory_bytes: base.cords[0].queue_memory_bytes
+                + u64::from(envelopes[0].maximum_envelope_bytes)
+                    * u64::from(base.cords[0].flow.capacity.items()),
+            ..base.cords[0]
+        }];
+        let mut plan = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            cords: &cords,
+            value_envelopes: &envelopes,
+            clock_conversions: &conversions,
+            feedback_boundaries: &boundaries,
+            nodes: &nodes,
+            instance_pools: &[],
+            ..base
+        };
+        plan.identity = plan.semantic_hash(scratch).unwrap();
+        validate_execution_plan(
+            &plan,
+            PlanValidationContext {
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+                now: time(20),
+            },
+            scratch,
+        )
+        .unwrap();
+
+        let without_feedback = ExecutionPlan {
+            feedback_boundaries: &[],
+            ..plan
+        };
+        assert_ne!(
+            plan.identity,
+            without_feedback.semantic_hash(scratch).unwrap()
         );
     });
 }

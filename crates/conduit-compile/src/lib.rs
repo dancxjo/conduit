@@ -17,21 +17,21 @@ use conduit_core::{
     DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3,
     EXECUTION_PLAN_SCHEMA_VERSION_V11, EXECUTION_PLAN_SCHEMA_VERSION_V12,
     EXECUTION_PLAN_SCHEMA_VERSION_V13, EXECUTION_PLAN_SCHEMA_VERSION_V14,
-    EXECUTION_PLAN_SCHEMA_VERSION_V15, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
-    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
-    FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason, GrantStatus, HandleDisposition,
-    HazardClosureContext, HazardClosureLimits, HazardClosurePolicy, HazardClosureReason,
-    HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding, HazardousHostProfile,
-    HostCapability, HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest,
-    InhibitLatchState, InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES,
-    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
-    ObservedGrant, OperatingEnvelopeLimit, OwnershipModel, PassportStatus,
-    PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure, PlanHostObservation,
-    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
-    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
-    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
+    EXECUTION_PLAN_SCHEMA_VERSION_V15, EXECUTION_PLAN_SCHEMA_VERSION_V16, EffectClassBinding,
+    EffectClassTraits, EffectFlowBinding, EffectRequirement, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason,
+    GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
+    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding,
+    HazardousHostProfile, HostCapability, HostDistributionKind, Id, ImplementationConfinement,
+    ImplementationManifest, InhibitLatchState, InhibitObservation, InstancePath,
+    MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting,
+    MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit, OwnershipModel,
+    PassportStatus, PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor,
+    PlanArtifact, PlanAuthority, PlanCompositeMapping, PlanExportBinding, PlanHazardClosure,
+    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
+    PlanSupervisionTarget, PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability,
+    PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
     PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
     PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
     ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
@@ -2182,7 +2182,7 @@ impl ExactPlanDocument {
             || (self.schema == SUPERVISION_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V15)
             || (self.schema == POOL_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V16);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
         }
@@ -2508,6 +2508,9 @@ impl ExactPlanDocument {
             artifacts: arena.alloc_slice_copy(&artifacts),
             nodes: arena.alloc_slice_copy(&nodes),
             cords: arena.alloc_slice_copy(&cords),
+            value_envelopes: &[],
+            clock_conversions: &[],
+            feedback_boundaries: &[],
             distributed_cords: &[],
             fanouts: &[],
             merges: &[],
@@ -3273,7 +3276,7 @@ fn compile_topology(
         })
         .transpose()?;
     let plan_schema_version = if !instance_pools.is_empty() {
-        EXECUTION_PLAN_SCHEMA_VERSION
+        EXECUTION_PLAN_SCHEMA_VERSION_V16
     } else if !supervisions.is_empty() {
         EXECUTION_PLAN_SCHEMA_VERSION_V15
     } else if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
@@ -3309,6 +3312,9 @@ fn compile_topology(
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,
+        value_envelopes: &[],
+        clock_conversions: &[],
+        feedback_boundaries: &[],
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],
@@ -8545,7 +8551,7 @@ mod tests {
         input.seal().unwrap();
 
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V16);
         assert_eq!(plan.instance_pools.len(), 1);
         assert_eq!(plan.instance_pools[0].maximum_live, 2);
         assert_eq!(plan.instance_pools[0].maximum_queued, 2);

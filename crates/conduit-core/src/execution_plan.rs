@@ -18,10 +18,12 @@ use crate::{
     PoolReservationProfile, PoolSupervisionPolicy, Pressure, ResolvedAuthorityBinding,
     RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof, SatisfactionRole, SemanticHash,
     StopPolicy, SubscriberCoupling, SupervisionActionKind, SupervisionContract, TypeContractRef,
-    analyze_effect_closure, validate_administrative_proof, validate_authority_at_use,
-    validate_distributed_binding, validate_hazardous_host_binding, validate_job_contract,
-    validate_offline_lease, validate_plan_execution_profile, validate_policy_budget_status,
-    validate_runtime_evidence_policy, validate_satisfaction_proof, validate_stream_contract,
+    ValueEnvelopePolicy, ValueEnvelopeReason, analyze_effect_closure,
+    validate_administrative_proof, validate_authority_at_use, validate_clock_conversion,
+    validate_distributed_binding, validate_feedback_boundary, validate_hazardous_host_binding,
+    validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
+    validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
+    validate_stream_contract, validate_value_envelope_policy,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -42,8 +44,10 @@ use crate::{
 /// supervision bindings, admitted actions, ordinary handler placement, and
 /// complete finite recovery resources. Schema 16 adds exact replicated-pool
 /// runtime admission, lifecycle, resource, and generation-overlap contracts.
-/// Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 16;
+/// Schema 17 adds bounded value-envelope authorization, exact clock
+/// conversions, and finite feedback boundaries. Earlier schemas remain
+/// readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 17;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -59,6 +63,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V12: u32 = 12;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V13: u32 = 13;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V14: u32 = 14;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V15: u32 = 15;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V16: u32 = 16;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -510,6 +515,12 @@ pub struct ExecutionPlan<'a> {
     pub artifacts: &'a [PlanArtifact<'a>],
     pub nodes: &'a [ResolvedPlanNode<'a>],
     pub cords: &'a [ResolvedPlanCord<'a>],
+    /// Bounded per-value metadata authorization introduced in schema 17.
+    pub value_envelopes: &'a [ValueEnvelopePolicy<'a>],
+    /// Exact cross-domain clock conversions introduced in schema 17.
+    pub clock_conversions: &'a [crate::PlanClockConversion<'a>],
+    /// Finite dependency edges that intentionally break cycles in schema 17.
+    pub feedback_boundaries: &'a [crate::PlanFeedbackBoundary<'a>],
     /// Cross-host bindings introduced in schema 9 and exact-carrier revised
     /// in schema 10.
     pub distributed_cords: &'a [PlanDistributedCord<'a>],
@@ -551,6 +562,9 @@ pub enum PlanCollection {
     Artifacts,
     Nodes,
     Cords,
+    ValueEnvelopes,
+    ClockConversions,
+    FeedbackBoundaries,
     DistributedCords,
     FanOuts,
     Merges,
@@ -597,6 +611,7 @@ pub enum PlanDiagnosticCode {
     Inhibit(InhibitReason),
     Supervision(crate::SupervisionReason),
     Distributed(crate::DistributedReason),
+    ValueEnvelope(ValueEnvelopeReason),
     ScratchTooSmall,
 }
 
@@ -630,6 +645,7 @@ impl PlanDiagnosticCode {
             Self::Inhibit(reason) => reason.code(),
             Self::Supervision(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
+            Self::ValueEnvelope(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -677,6 +693,9 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.artifacts.len()))
             .and_then(|value| value.checked_add(self.nodes.len()))
             .and_then(|value| value.checked_add(self.cords.len()))
+            .and_then(|value| value.checked_add(self.value_envelopes.len()))
+            .and_then(|value| value.checked_add(self.clock_conversions.len()))
+            .and_then(|value| value.checked_add(self.feedback_boundaries.len()))
             .and_then(|value| value.checked_add(self.distributed_cords.len()))
             .and_then(|value| value.checked_add(self.fanouts.len()))
             .and_then(|value| value.checked_add(self.merges.len()))
@@ -806,6 +825,15 @@ impl ExecutionPlan<'_> {
         }
         for value in self.cords {
             push!(hash_cord(*value));
+        }
+        for value in self.value_envelopes {
+            push!(hash_value_envelope_policy(*value));
+        }
+        for value in self.clock_conversions {
+            push!(hash_clock_conversion(*value));
+        }
+        for value in self.feedback_boundaries {
+            push!(hash_feedback_boundary(*value));
         }
         for value in self.distributed_cords {
             push!(hash_distributed_cord(*value));
@@ -1244,13 +1272,54 @@ pub fn validate_execution_plan(
         }
     }
 
+    if plan.schema_version < 17
+        && (!plan.value_envelopes.is_empty()
+            || !plan.clock_conversions.is_empty()
+            || !plan.feedback_boundaries.is_empty())
+    {
+        return Err(error(
+            PlanDiagnosticCode::UnsupportedVersion,
+            PlanCollection::ValueEnvelopes,
+            Some(0),
+        ));
+    }
+
     for (index, cord) in plan.cords.iter().enumerate() {
+        let envelope_memory = if let Some(policy) = plan
+            .value_envelopes
+            .iter()
+            .find(|policy| policy.cord == cord.id)
+        {
+            u64::from(policy.maximum_envelope_bytes)
+                .checked_mul(u64::from(cord.flow.capacity.items()))
+                .ok_or_else(|| {
+                    indexed(
+                        PlanDiagnosticCode::BudgetExceeded,
+                        PlanCollection::ValueEnvelopes,
+                        index,
+                    )
+                })?
+        } else {
+            0
+        };
+        let expected_queue_memory = cord
+            .flow
+            .capacity
+            .max_queued_bytes()
+            .checked_add(envelope_memory)
+            .ok_or_else(|| {
+                indexed(
+                    PlanDiagnosticCode::BudgetExceeded,
+                    PlanCollection::Cords,
+                    index,
+                )
+            })?;
         if !valid_id(cord.id)
             || !valid_port(cord.from)
             || !valid_port(cord.to)
             || FlowPolicy::new(cord.flow.capacity, cord.flow.pressure, cord.flow.watermarks)
                 .is_err()
-            || cord.queue_memory_bytes != cord.flow.capacity.max_queued_bytes()
+            || cord.queue_memory_bytes != expected_queue_memory
         {
             return Err(indexed(
                 PlanDiagnosticCode::QueueInvalid,
@@ -1308,6 +1377,109 @@ pub fn validate_execution_plan(
                     index,
                 )
             })?;
+    }
+
+    for (index, policy) in plan.value_envelopes.iter().enumerate() {
+        validate_value_envelope_policy(*policy).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::ValueEnvelope(reason),
+                PlanCollection::ValueEnvelopes,
+                index,
+            )
+        })?;
+        if plan.value_envelopes[..index]
+            .iter()
+            .any(|prior| prior.cord == policy.cord)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicateIdentity,
+                PlanCollection::ValueEnvelopes,
+                index,
+            ));
+        }
+        let Some(cord) = plan.cords.iter().find(|cord| cord.id == policy.cord) else {
+            return Err(indexed(
+                PlanDiagnosticCode::DanglingReference,
+                PlanCollection::ValueEnvelopes,
+                index,
+            ));
+        };
+        if policy.maximum_payload_bytes != cord.flow.capacity.max_value_bytes() {
+            return Err(indexed(
+                PlanDiagnosticCode::ValueEnvelope(ValueEnvelopeReason::InvalidBound),
+                PlanCollection::ValueEnvelopes,
+                index,
+            ));
+        }
+    }
+
+    for (index, conversion) in plan.clock_conversions.iter().enumerate() {
+        validate_clock_conversion(*conversion).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::ValueEnvelope(reason),
+                PlanCollection::ClockConversions,
+                index,
+            )
+        })?;
+        if plan.clock_conversions[..index]
+            .iter()
+            .any(|prior| prior.id == conversion.id)
+            || conversion.observed_at.basis != context.now.basis
+            || conversion.observed_at.tick > context.now.tick
+            || conversion.valid_until_tick < context.now.tick
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::ValueEnvelope(ValueEnvelopeReason::StaleClockConversion),
+                PlanCollection::ClockConversions,
+                index,
+            ));
+        }
+    }
+
+    for (index, boundary) in plan.feedback_boundaries.iter().enumerate() {
+        validate_feedback_boundary(*boundary).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::ValueEnvelope(reason),
+                PlanCollection::FeedbackBoundaries,
+                index,
+            )
+        })?;
+        if plan.feedback_boundaries[..index]
+            .iter()
+            .any(|prior| prior.id == boundary.id || prior.cord == boundary.cord)
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::DuplicateIdentity,
+                PlanCollection::FeedbackBoundaries,
+                index,
+            ));
+        }
+        let Some(cord) = plan.cords.iter().find(|cord| cord.id == boundary.cord) else {
+            return Err(indexed(
+                PlanDiagnosticCode::DanglingReference,
+                PlanCollection::FeedbackBoundaries,
+                index,
+            ));
+        };
+        if boundary.node != cord.from.node && boundary.node != cord.to.node {
+            return Err(indexed(
+                PlanDiagnosticCode::DanglingReference,
+                PlanCollection::FeedbackBoundaries,
+                index,
+            ));
+        }
+        if boundary.clock.is_some_and(|clock| {
+            !plan
+                .value_envelopes
+                .iter()
+                .any(|policy| policy.clock_domains.contains(&clock))
+        }) {
+            return Err(indexed(
+                PlanDiagnosticCode::ValueEnvelope(ValueEnvelopeReason::ClockNotAuthorized),
+                PlanCollection::FeedbackBoundaries,
+                index,
+            ));
+        }
     }
 
     if plan.schema_version < 9 && !plan.distributed_cords.is_empty() {
@@ -2720,6 +2892,211 @@ fn hash_cord(value: ResolvedPlanCord<'_>) -> Result<SemanticHash, CanonicalError
             semantic(
                 "queue_memory_bytes",
                 CanonicalValue::Integer(i128::from(value.queue_memory_bytes)),
+            ),
+        ],
+    )
+}
+
+fn hash_value_envelope_policy(
+    value: ValueEnvelopePolicy<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let mut clocks = [CanonicalValue::Null; crate::MAX_VALUE_CLOCK_DOMAINS];
+    for (destination, source) in clocks.iter_mut().zip(value.clock_domains) {
+        *destination = CanonicalValue::Identifier(*source);
+    }
+    descriptor_hash(
+        Id("conduit/plan-value-envelope-policy"),
+        &[
+            semantic("cord", CanonicalValue::Identifier(value.cord)),
+            semantic(
+                "representation_id",
+                CanonicalValue::Identifier(value.representation.id),
+            ),
+            semantic(
+                "representation_version",
+                CanonicalValue::Integer(i128::from(value.representation.schema_version)),
+            ),
+            semantic(
+                "representation_hash",
+                CanonicalValue::Bytes(value.representation.semantic_hash.as_bytes()),
+            ),
+            semantic(
+                "maximum_payload_bytes",
+                CanonicalValue::Integer(i128::from(value.maximum_payload_bytes)),
+            ),
+            semantic(
+                "maximum_envelope_bytes",
+                CanonicalValue::Integer(i128::from(value.maximum_envelope_bytes)),
+            ),
+            semantic(
+                "maximum_fragments",
+                CanonicalValue::Integer(i128::from(value.maximum_fragments)),
+            ),
+            semantic(
+                "maximum_fragment_bytes",
+                CanonicalValue::Integer(i128::from(value.maximum_fragment_bytes)),
+            ),
+            semantic(
+                "maximum_timestamps",
+                CanonicalValue::Integer(i128::from(value.maximum_timestamps)),
+            ),
+            semantic(
+                "clock_domains",
+                CanonicalValue::Set(&clocks[..value.clock_domains.len()]),
+            ),
+            semantic(
+                "identity_allowed",
+                CanonicalValue::Boolean(value.identity_allowed),
+            ),
+            semantic(
+                "correlation_allowed",
+                CanonicalValue::Boolean(value.correlation_allowed),
+            ),
+            semantic(
+                "causation_allowed",
+                CanonicalValue::Boolean(value.causation_allowed),
+            ),
+            semantic(
+                "provenance_allowed",
+                CanonicalValue::Boolean(value.provenance_allowed),
+            ),
+            semantic(
+                "sensitivity_ceiling",
+                CanonicalValue::Identifier(Id(match value.sensitivity_ceiling {
+                    crate::Sensitivity::Public => "public",
+                    crate::Sensitivity::Restricted => "restricted",
+                    crate::Sensitivity::Secret => "secret",
+                })),
+            ),
+        ],
+    )
+}
+
+fn hash_clock_conversion(
+    value: crate::PlanClockConversion<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-clock-conversion"),
+        &[
+            semantic("id", CanonicalValue::Identifier(value.id)),
+            semantic("source", CanonicalValue::Identifier(value.source)),
+            semantic("destination", CanonicalValue::Identifier(value.destination)),
+            semantic(
+                "numerator",
+                CanonicalValue::Integer(i128::from(value.numerator)),
+            ),
+            semantic(
+                "denominator",
+                CanonicalValue::Integer(i128::from(value.denominator)),
+            ),
+            semantic(
+                "offset_ticks",
+                CanonicalValue::Integer(i128::from(value.offset_ticks)),
+            ),
+            semantic(
+                "rounding",
+                CanonicalValue::Identifier(Id(match value.rounding {
+                    crate::ClockRounding::Exact => "exact",
+                    crate::ClockRounding::Floor => "floor",
+                    crate::ClockRounding::Ceiling => "ceiling",
+                })),
+            ),
+            semantic(
+                "maximum_uncertainty_ticks",
+                CanonicalValue::Integer(i128::from(value.maximum_uncertainty_ticks)),
+            ),
+            semantic(
+                "observed_time_basis",
+                CanonicalValue::Identifier(value.observed_at.basis),
+            ),
+            semantic(
+                "observed_tick",
+                CanonicalValue::Integer(i128::from(value.observed_at.tick)),
+            ),
+            semantic(
+                "valid_until_tick",
+                CanonicalValue::Integer(i128::from(value.valid_until_tick)),
+            ),
+            semantic("authority", CanonicalValue::Identifier(value.authority)),
+        ],
+    )
+}
+
+fn hash_feedback_boundary(
+    value: crate::PlanFeedbackBoundary<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-feedback-boundary"),
+        &[
+            semantic("id", CanonicalValue::Identifier(value.id)),
+            semantic("node", CanonicalValue::Text(value.node.as_str())),
+            semantic("cord", CanonicalValue::Identifier(value.cord)),
+            semantic(
+                "kind",
+                CanonicalValue::Identifier(Id(match value.kind {
+                    crate::FeedbackBoundaryKind::Delay => "delay",
+                    crate::FeedbackBoundaryKind::State => "state",
+                })),
+            ),
+            semantic(
+                "initialization",
+                CanonicalValue::Identifier(Id(match value.initialization {
+                    crate::FeedbackInitialization::Empty => "empty",
+                    crate::FeedbackInitialization::InitialValue => "initial-value",
+                })),
+            ),
+            semantic(
+                "initial_items",
+                CanonicalValue::Integer(i128::from(value.initial_items)),
+            ),
+            semantic(
+                "initial_bytes",
+                CanonicalValue::Integer(i128::from(value.initial_bytes)),
+            ),
+            semantic(
+                "maximum_retained_items",
+                CanonicalValue::Integer(i128::from(value.maximum_retained_items)),
+            ),
+            semantic(
+                "maximum_retained_bytes",
+                CanonicalValue::Integer(i128::from(value.maximum_retained_bytes)),
+            ),
+            semantic(
+                "delay_ticks",
+                CanonicalValue::Integer(i128::from(value.delay_ticks)),
+            ),
+            semantic(
+                "clock",
+                value
+                    .clock
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "replay_gap",
+                CanonicalValue::Identifier(Id(match value.replay_gap {
+                    crate::FeedbackReplayGapPolicy::Fail => "fail",
+                    crate::FeedbackReplayGapPolicy::Reset => "reset",
+                    crate::FeedbackReplayGapPolicy::Wait => "wait",
+                })),
+            ),
+            semantic(
+                "cancellation_id",
+                CanonicalValue::Identifier(value.cancellation.id),
+            ),
+            semantic(
+                "cancellation_version",
+                CanonicalValue::Integer(i128::from(value.cancellation.schema_version)),
+            ),
+            semantic(
+                "cancellation_hash",
+                CanonicalValue::Bytes(value.cancellation.semantic_hash.as_bytes()),
+            ),
+            semantic(
+                "terminal",
+                CanonicalValue::Identifier(Id(match value.terminal {
+                    crate::FeedbackTerminalPolicy::DropRetained => "drop-retained",
+                    crate::FeedbackTerminalPolicy::DrainRetained => "drain-retained",
+                })),
             ),
         ],
     )
