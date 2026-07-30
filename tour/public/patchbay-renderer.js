@@ -91,6 +91,24 @@ export class PatchbayReactFlowRenderer {
   }
 
   renderFlow() {
+    if (window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__) {
+      const unavailable = e(
+        "div",
+        { className: "card-subtitle error-text" },
+        "React Flow renderer unavailable.",
+      );
+      if (this.reactRoot) {
+        this.reactRoot.render(unavailable);
+      } else {
+        this.flowWrapper.replaceChildren(
+          Object.assign(document.createElement("div"), {
+            className: "card-subtitle error-text",
+            textContent: "React Flow renderer unavailable.",
+          }),
+        );
+      }
+      return;
+    }
     if (!window.React || !window.ReactDOM || !window.ReactFlow) {
       this.container.innerHTML =
         '<div class="card-subtitle error-text">React Flow libraries unavailable.</div>';

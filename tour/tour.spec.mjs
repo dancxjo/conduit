@@ -84,12 +84,12 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   await page.evaluate(() => {
-    window.React = undefined;
+    window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
   const source = page.locator("#source");
   await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Headless proof."));
   await expect(page.locator("#result")).toContainText("Valid panel");
-  await expect(page.locator("#cy")).toContainText("React Flow libraries unavailable.");
+  await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
   await page.locator("#run").click();
   await expect(page.locator("#result")).toContainText("Headless proof.", {
     timeout: 20_000,
@@ -101,5 +101,5 @@ test("styles cords from their projected type and pressure policy", async ({ page
   const edge = page.locator(".patchbay-smart-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/value-type-text/);
-  await expect(edge).toHaveAttribute("d", /^M/);
+  await expect(edge.locator(".react-flow__edge-path")).toHaveAttribute("d", /^M/);
 });
