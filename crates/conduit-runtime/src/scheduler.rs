@@ -12,9 +12,122 @@ use conduit_core::{
     DuplicationRule, ExecutionPlan, FanOutMode, FlowEventKind, FlowPolicy, FlowQueueState, Id,
     ImplementationError, ImplementationMachine, InstancePhase, LifecycleUsage, OfferDisposition,
     PlanResourceBudget, PrepareOutcome, Pressure, ReadyQueueDiscipline, SchedulerDecisionReason,
-    SchedulerPolicy, StepObservation, StepOutcome, StepOutcomeKind, StepUsage, StopPolicy,
-    TerminalClass, WakeInterest, WakeInterestKind, prepare_all, start_all,
+    SchedulerPolicy, SemanticHash, Sensitivity, StepObservation, StepOutcome, StepOutcomeKind,
+    StepUsage, StopPolicy, TerminalClass, ValueEnvelopeReason, WakeInterest, WakeInterestKind,
+    prepare_all, start_all,
 };
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct RuntimeTimestamp {
+    /// Index into the cord policy's exact `clock_domains` set.
+    pub domain_index: u8,
+    pub tick: i64,
+    pub uncertainty_ticks: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeValueEnvelope {
+    pub representation: SemanticHash,
+    pub envelope_bytes: u32,
+    pub fragment_count: u16,
+    pub fragment_bytes: u32,
+    pub identity: Option<SemanticHash>,
+    pub correlation: Option<SemanticHash>,
+    pub causation: Option<SemanticHash>,
+    pub provenance: Option<SemanticHash>,
+    pub timestamp_count: u8,
+    pub timestamps: [RuntimeTimestamp; conduit_core::MAX_VALUE_CLOCK_DOMAINS],
+    pub sensitivity: Sensitivity,
+}
+
+impl RuntimeValueEnvelope {
+    pub const EMPTY: Self = Self {
+        representation: SemanticHash::from_bytes([0; 32]),
+        envelope_bytes: 0,
+        fragment_count: 0,
+        fragment_bytes: 0,
+        identity: None,
+        correlation: None,
+        causation: None,
+        provenance: None,
+        timestamp_count: 0,
+        timestamps: [RuntimeTimestamp {
+            domain_index: 0,
+            tick: 0,
+            uncertainty_ticks: 0,
+        }; conduit_core::MAX_VALUE_CLOCK_DOMAINS],
+        sensitivity: Sensitivity::Public,
+    };
+}
+
+pub fn validate_runtime_value_for_cord(
+    plan: &ExecutionPlan<'_>,
+    cord: Id<'_>,
+    value: RuntimeValue,
+) -> Result<(), ValueEnvelopeReason> {
+    let Some(policy) = plan
+        .value_envelopes
+        .iter()
+        .find(|policy| policy.cord == cord)
+    else {
+        return (value.envelope == RuntimeValueEnvelope::EMPTY)
+            .then_some(())
+            .ok_or(ValueEnvelopeReason::UnauthorizedField);
+    };
+    let envelope = value.envelope;
+    if envelope.representation != policy.representation.semantic_hash {
+        return Err(ValueEnvelopeReason::RepresentationMismatch);
+    }
+    if value.accounted_bytes == 0
+        || value.accounted_bytes > policy.maximum_payload_bytes
+        || envelope.envelope_bytes == 0
+        || envelope.envelope_bytes > policy.maximum_envelope_bytes
+        || envelope.fragment_count == 0
+        || envelope.fragment_count > policy.maximum_fragments
+        || envelope.fragment_bytes < value.accounted_bytes
+        || envelope.fragment_bytes
+            > u32::from(envelope.fragment_count)
+                .checked_mul(policy.maximum_fragment_bytes)
+                .ok_or(ValueEnvelopeReason::InvalidBound)?
+        || envelope.timestamp_count > policy.maximum_timestamps
+    {
+        return Err(ValueEnvelopeReason::InvalidBound);
+    }
+    if (envelope.identity.is_some() && !policy.identity_allowed)
+        || (envelope.correlation.is_some() && !policy.correlation_allowed)
+        || (envelope.causation.is_some() && !policy.causation_allowed)
+        || (envelope.provenance.is_some() && !policy.provenance_allowed)
+    {
+        return Err(ValueEnvelopeReason::UnauthorizedField);
+    }
+    let zero = SemanticHash::from_bytes([0; 32]);
+    if [
+        envelope.identity,
+        envelope.correlation,
+        envelope.causation,
+        envelope.provenance,
+    ]
+    .into_iter()
+    .flatten()
+    .any(|identity| identity == zero)
+    {
+        return Err(ValueEnvelopeReason::UnauthorizedField);
+    }
+    let timestamp_count = usize::from(envelope.timestamp_count);
+    for (index, timestamp) in envelope.timestamps[..timestamp_count].iter().enumerate() {
+        if usize::from(timestamp.domain_index) >= policy.clock_domains.len()
+            || envelope.timestamps[..index]
+                .iter()
+                .any(|prior| prior.domain_index == timestamp.domain_index)
+        {
+            return Err(ValueEnvelopeReason::ClockNotAuthorized);
+        }
+    }
+    if envelope.sensitivity > policy.sensitivity_ceiling {
+        return Err(ValueEnvelopeReason::SensitivityWidening);
+    }
+    Ok(())
+}
 
 /// Opaque executor-mediated value. Payload ownership remains in the exact
 /// representation binding; the cord charges `accounted_bytes` against its
@@ -23,6 +136,7 @@ use conduit_core::{
 pub struct RuntimeValue {
     pub handle: u64,
     pub accounted_bytes: u32,
+    pub envelope: RuntimeValueEnvelope,
 }
 
 /// Result of attempting to reserve one output.
@@ -181,6 +295,7 @@ pub enum SchedulerError {
     CancellationDeadlineExceeded,
     NodeFailed,
     QueueFailed,
+    ValueEnvelope(ValueEnvelopeReason),
 }
 
 impl SchedulerError {
@@ -201,6 +316,7 @@ impl SchedulerError {
             Self::ZeroProgressLivelock => "CND-SCH-011",
             Self::CancellationDeadlineExceeded => "CND-SCH-012",
             Self::NodeFailed | Self::QueueFailed => "CND-SCH-013",
+            Self::ValueEnvelope(reason) => reason.code(),
         }
     }
 }
@@ -218,6 +334,7 @@ impl fmt::Display for SchedulerError {
             Self::PrepareFailed => "prepare-all failed before any node started",
             Self::StartFailed => "start-all failed before any node started",
             Self::StepContractViolation => "node violated the bounded step contract",
+            Self::ValueEnvelope(_) => "runtime value violates its exact envelope policy",
             Self::PortAccessViolation => "node accessed a cord outside its exact endpoints",
             Self::TransactionCapacityExceeded => "step exceeded preallocated transaction storage",
             Self::DecisionLimitExceeded => "scheduler decision limit was exhausted",
@@ -926,6 +1043,8 @@ impl<'p> StepIo<'_, 'p> {
         if plan_cord.from.node != self.plan.nodes[self.node].instance {
             return Err(SchedulerError::PortAccessViolation);
         }
+        validate_runtime_value_for_cord(self.plan, plan_cord.id, value)
+            .map_err(SchedulerError::ValueEnvelope)?;
         if self.cords[cord].state() != FlowQueueState::Active {
             return Ok(SendStatus::Terminated);
         }
@@ -2489,6 +2608,7 @@ mod tests {
                 let value = RuntimeValue {
                     handle: sequence,
                     accounted_bytes: 8,
+                    envelope: RuntimeValueEnvelope::EMPTY,
                 };
                 let core_transition = core.offer(
                     value,

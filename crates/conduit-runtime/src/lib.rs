@@ -88,9 +88,10 @@ pub use runtime_evidence::{
     RuntimeEvidenceContext, RuntimeEvidenceError, record_scheduler_evidence,
 };
 pub use scheduler::{
-    DeterministicExecutor, RuntimeValue, ScheduledNode, SchedulerAllocation, SchedulerError,
-    SchedulerEvent, SchedulerEventKind, SchedulerHighWater, SchedulerNode, SchedulerReservation,
-    SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
+    DeterministicExecutor, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
+    SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventKind, SchedulerHighWater,
+    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SchedulerSubject,
+    SendStatus, StepIo, validate_runtime_value_for_cord,
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LOWERED_SOURCE_SCHEMA_V3,
@@ -4131,6 +4132,9 @@ impl HostValueStore {
     }
 }
 
+// Runtime values carry the complete fixed envelope inline so executor
+// allocation remains exact and no per-value metadata allocation is hidden.
+#[allow(clippy::large_enum_variant)]
 enum HostedNodeKind {
     Literal {
         value: Vec<u8>,
@@ -4203,6 +4207,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         RuntimeValue {
                             handle,
                             accounted_bytes: value.len() as u32,
+                            envelope: RuntimeValueEnvelope::EMPTY,
                         },
                         None,
                     );
@@ -4303,6 +4308,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     *output = Some(RuntimeValue {
                         handle,
                         accounted_bytes,
+                        envelope: RuntimeValueEnvelope::EMPTY,
                     });
                 }
                 let Some(&out_cord) = self.out_cords.first() else {
@@ -4368,6 +4374,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         RuntimeValue {
                             handle,
                             accounted_bytes: bytes.len() as u32,
+                            envelope: RuntimeValueEnvelope::EMPTY,
                         },
                         None,
                     );
@@ -4432,6 +4439,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                             RuntimeValue {
                                 handle,
                                 accounted_bytes: upper_bytes.len() as u32,
+                                envelope: RuntimeValueEnvelope::EMPTY,
                             },
                             None,
                         );
