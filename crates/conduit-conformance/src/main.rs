@@ -5,7 +5,9 @@ use std::{
     process::ExitCode,
 };
 
-use conduit_conformance::{check_results, load_manifest, run_reference, write_requests};
+use conduit_conformance::{
+    check_results, load_manifest, run_reference, verify_reference_fixtures, write_requests,
+};
 
 fn main() -> ExitCode {
     match run() {
@@ -27,7 +29,7 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
         .unwrap_or_else(default_manifest);
     if args.next().is_some() {
         return Err(
-            "usage: conduit-conformance [audit|requests|check-results|reference] [manifest]".into(),
+            "usage: conduit-conformance [audit|verify-fixtures|requests|check-results|reference] [manifest]".into(),
         );
     }
     let loaded = load_manifest(&manifest)?;
@@ -46,6 +48,15 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
             write_requests(&loaded, io::stdout().lock())?;
             Ok(true)
         }
+        "verify-fixtures" => {
+            verify_reference_fixtures(&loaded)?;
+            println!(
+                "ok reference fixtures: {} suites, {} normative cases",
+                loaded.manifest.suites.len(),
+                loaded.cases.len()
+            );
+            Ok(true)
+        }
         "check-results" => check_results(
             &loaded,
             BufReader::new(io::stdin().lock()),
@@ -62,7 +73,7 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
             Ok(true)
         }
         _ => Err(format!(
-            "unknown command {command:?}; expected audit, requests, check-results, or reference"
+            "unknown command {command:?}; expected audit, verify-fixtures, requests, check-results, or reference"
         )
         .into()),
     }

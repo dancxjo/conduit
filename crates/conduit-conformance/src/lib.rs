@@ -898,7 +898,7 @@ fn json_pointer_escape(value: &str) -> String {
 }
 
 pub fn run_reference(loaded: &LoadedManifest) -> Result<(), HarnessError> {
-    verify_canonical_vectors(loaded)?;
+    verify_reference_fixtures(loaded)?;
     let repository = loaded
         .path
         .parent()
@@ -925,6 +925,15 @@ pub fn run_reference(loaded: &LoadedManifest) -> Result<(), HarnessError> {
         }
     }
     Ok(())
+}
+
+/// Verify fixture integrity and the in-process canonical reference without
+/// re-running the Rust test binaries named by the manifest.
+///
+/// CI uses this after `cargo test --workspace`, which has already executed
+/// those binaries. `run_reference` remains the standalone all-in-one command.
+pub fn verify_reference_fixtures(loaded: &LoadedManifest) -> Result<(), HarnessError> {
+    verify_canonical_vectors(loaded)
 }
 
 fn verify_canonical_vectors(loaded: &LoadedManifest) -> Result<(), HarnessError> {
@@ -1263,6 +1272,11 @@ mod tests {
                 .len(),
             loaded.cases.len()
         );
+    }
+
+    #[test]
+    fn fixture_only_reference_verifies_canonical_outputs_without_test_recursion() {
+        verify_reference_fixtures(&fixture_manifest()).unwrap();
     }
 
     #[test]

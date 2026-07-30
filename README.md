@@ -320,6 +320,7 @@ and a hosted Rust reference runner:
 
 ```sh
 cargo run -p conduit-conformance -- audit conformance/v1/manifest.json
+cargo run -p conduit-conformance -- verify-fixtures conformance/v1/manifest.json
 cargo run -p conduit-conformance -- requests conformance/v1/manifest.json
 cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
 ```
