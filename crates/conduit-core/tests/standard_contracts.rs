@@ -345,6 +345,50 @@ fn node_contract_outcome(id: &str) -> &'static str {
                 evidence_events: 32,
             },
         ),
+        "cell-without-state" => (
+            StandardNodeKind::RegisterCell,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-cell" => (
+            StandardNodeKind::RegisterCell,
+            StandardNodeLimits {
+                retained_values: 1,
+                retained_bytes: 256,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "circuit-breaker-without-timer" => (
+            StandardNodeKind::CircuitBreaker,
+            StandardNodeLimits {
+                retained_values: 10,
+                retained_bytes: 1024,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 10,
+            },
+        ),
+        "finite-circuit-breaker" => (
+            StandardNodeKind::CircuitBreaker,
+            StandardNodeLimits {
+                retained_values: 10,
+                retained_bytes: 1024,
+                pending_operations: 0,
+                timers: 1,
+                work_per_step: 1,
+                evidence_events: 10,
+            },
+        ),
         _ => panic!("unknown node fixture {id}"),
     };
 
@@ -376,7 +420,7 @@ fn every_standard_node_contract_fixture_executes_independently() {
         .iter()
         .filter(|case| case["contract"] == "node")
         .collect::<Vec<_>>();
-    assert_eq!(cases.len(), 20);
+    assert_eq!(cases.len(), 24);
     for case in cases {
         let id = case["id"].as_str().unwrap();
         assert_eq!(node_contract_outcome(id), case["expected"], "{id}");

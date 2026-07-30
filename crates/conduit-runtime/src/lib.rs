@@ -496,6 +496,48 @@ const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
+const CELL_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/cell"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/counter"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/deduplicate"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/cache"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/circuit-breaker"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/health-gate"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/backoff"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
 
 /// Typed runtime value.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -790,6 +832,62 @@ impl Default for Registry {
             SERIAL_PORT_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &SERIAL_PORT_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            CELL_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &CELL_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            COUNTER_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &COUNTER_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            DEDUPLICATE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &DEDUPLICATE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            CACHE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &CACHE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            CIRCUIT_BREAKER_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &CIRCUIT_BREAKER_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            HEALTH_GATE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &HEALTH_GATE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            BACKOFF_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &BACKOFF_CONTRACT,
                 factory: || Box::new(PassThroughHandler),
                 validate_config: validate_empty_config,
             },

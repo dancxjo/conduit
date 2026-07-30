@@ -77,6 +77,16 @@ pub enum StandardNodeKind {
     SerialPort,
     I2cBus,
     SpiBus,
+    RegisterCell,
+    Counter,
+    StateMachine,
+    Deduplicate,
+    BoundedCache,
+    CircuitBreaker,
+    HealthGate,
+    Backoff,
+    StateSnapshot,
+    StateRestore,
 }
 
 /// Finite resources that are part of a standard node's semantic contract.
@@ -263,6 +273,9 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::RateLimit
             | StandardNodeKind::InjectedClock
             | StandardNodeKind::ControlGate
+            | StandardNodeKind::CircuitBreaker
+            | StandardNodeKind::Backoff
+            | StandardNodeKind::HealthGate
     );
     if needs_timer && limits.timers == 0 {
         return Err(StandardContractError::IncompatibleLimits);
@@ -294,6 +307,16 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::KeyValueStore
             | StandardNodeKind::ProcessSpawn
             | StandardNodeKind::SerialPort
+            | StandardNodeKind::RegisterCell
+            | StandardNodeKind::Counter
+            | StandardNodeKind::StateMachine
+            | StandardNodeKind::Deduplicate
+            | StandardNodeKind::BoundedCache
+            | StandardNodeKind::CircuitBreaker
+            | StandardNodeKind::HealthGate
+            | StandardNodeKind::Backoff
+            | StandardNodeKind::StateSnapshot
+            | StandardNodeKind::StateRestore
     );
     if needs_state && (limits.retained_values == 0 || limits.retained_bytes == 0) {
         return Err(StandardContractError::IncompatibleLimits);
