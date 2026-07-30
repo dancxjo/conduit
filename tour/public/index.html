@@ -3,70 +3,110 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tour of Conduit</title>
+  <title>Conduit Patchbay — Interactive Visual Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./tour.css">
+  <script src="./cytoscape.min.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to lesson workspace</a>
   <main>
-    <nav aria-label="Lessons">
-      <p class="eyebrow">Interactive handbook</p>
-      <h1>Tour of Conduit</h1>
-      <p class="lede">Learn the real <code>.panel</code> language by patching and running it.</p>
-      <ol id="lessons"></ol>
+    <nav aria-label="Lessons and Reference Panels">
+      <div class="brand-header">
+        <div class="brand-badge">CONDUIT</div>
+        <h1>Patchbay Studio</h1>
+        <p class="lede">Author, patch, resolve, and witness executable <code>.panel</code> graphs.</p>
+      </div>
+
+      <div class="nav-section">
+        <h3 class="nav-heading">Tour Lessons</h3>
+        <ol id="lessons" class="nav-list"></ol>
+      </div>
+
+      <div class="nav-section">
+        <h3 class="nav-heading">Reference Panels</h3>
+        <ol id="reference-panels" class="nav-list"></ol>
+      </div>
     </nav>
+
     <section id="workspace" aria-labelledby="title">
-      <header>
-        <p class="eyebrow">Current lesson</p>
-        <h2 id="title">Loading lesson…</h2>
+      <header class="workspace-header">
+        <div class="header-top">
+          <p class="eyebrow">Interactive Workspace</p>
+          <span id="execution-note" class="host-status">Preparing browser placement…</span>
+        </div>
+        <h2 id="title">Loading Patchbay…</h2>
         <p id="goal" class="goal"></p>
-        <p id="prose"></p>
-        <p id="execution-note" class="host-status">Preparing exact browser-host placement…</p>
-        <p><code id="command"></code></p>
+        <p id="prose" class="prose-text"></p>
+        <p class="command-box"><code id="command"></code></p>
       </header>
 
-      <div class="work-grid">
-        <section aria-labelledby="source-title">
-          <h3 id="source-title">Source</h3>
-          <label for="source">Real <code>.panel</code> source</label>
-          <textarea id="source" rows="22" spellcheck="false"></textarea>
-        </section>
-        <section aria-labelledby="panel-title">
-          <h3 id="panel-title">Panel</h3>
-          <p id="panel-help">Select a node to reveal its source; position controls change only its presentation.</p>
-          <ul id="panel" aria-label="Parsed nodes" aria-describedby="panel-help"></ul>
-          <p class="button-row">
-            <button id="move-left" disabled>Move selected left</button>
-            <button id="move-right" disabled>Move selected right</button>
-          </p>
-        </section>
-      </div>
-
       <div class="button-row primary-actions" role="group" aria-label="Lesson controls">
-        <button id="run" class="primary">Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
-        <button id="stop" disabled>Stop</button>
-        <button id="check">Check</button>
-        <button id="reset">Reset</button>
-        <button id="undo-reset" disabled>Undo reset</button>
-        <button id="download">Download</button>
+        <button id="run" class="btn primary">⚡ Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
+        <button id="stop" class="btn danger" disabled>⏹ Stop</button>
+        <button id="check" class="btn secondary">🔍 Check</button>
+        <button id="reset" class="btn secondary">🔄 Reset</button>
+        <button id="undo-reset" class="btn secondary" disabled>↩ Undo reset</button>
+        <button id="download" class="btn secondary">💾 Export .panel</button>
       </div>
-      <output id="result" aria-live="polite">Loading production parser…</output>
 
+      <div class="work-grid">
+        <!-- Interactive Cytoscape Graph Canvas -->
+        <section aria-labelledby="canvas-title" class="card canvas-card">
+          <div class="card-header">
+            <h3 id="canvas-title">Patchbay Topology Canvas</h3>
+            <div class="view-toggle" role="group" aria-label="Topology projection">
+              <button id="logical-view" class="toggle-btn active" aria-pressed="true">Logical</button>
+              <button id="expanded-view" class="toggle-btn" aria-pressed="false">Expanded</button>
+            </div>
+          </div>
+          <p id="canvas-help" class="card-subtitle">Drag nodes to adjust presentation layout. Click nodes or cords to inspect typed contracts.</p>
+          
+          <div id="cy" class="cytoscape-container"></div>
+          
+          <div class="node-controls">
+            <span id="selected-node-label" class="selected-label">No node selected</span>
+            <div class="button-row">
+              <button id="move-left" class="btn small" disabled>◀ Move Left</button>
+              <button id="move-right" class="btn small" disabled>Move Right ▶</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Source Code Editor -->
+        <section aria-labelledby="source-title" class="card source-card">
+          <div class="card-header">
+            <h3 id="source-title">Source Editor</h3>
+            <span class="badge lang-badge">.panel v1</span>
+          </div>
+          <label for="source" class="sr-only">Real .panel source</label>
+          <textarea id="source" rows="20" spellcheck="false" placeholder="Authoring .panel graph..."></textarea>
+        </section>
+      </div>
+
+      <!-- Execution Console Output -->
+      <section class="card console-card">
+        <div class="card-header">
+          <h3>Execution Result Console</h3>
+          <span id="console-status-badge" class="badge status-badge idle">Ready</span>
+        </div>
+        <output id="result" aria-live="polite">Initializing production runtime parser...</output>
+      </section>
+
+      <!-- Detailed Inspectors -->
       <div class="inspectors">
-        <details>
-          <summary>Exact plan</summary>
+        <details class="card inspector-card" open>
+          <summary>📜 Exact Plan Identity & Artifacts</summary>
           <pre id="plan"></pre>
         </details>
-        <details id="topology-inspector">
-          <summary>Logical / expanded topology</summary>
-          <p class="button-row" role="group" aria-label="Topology projection">
-            <button id="logical-view" aria-pressed="true">Logical</button>
-            <button id="expanded-view" aria-pressed="false">Expanded</button>
-          </p>
+        <details id="topology-inspector" class="card inspector-card">
+          <summary>🧩 Topology Resolution</summary>
           <pre id="topology"></pre>
         </details>
-        <details>
-          <summary>Bounded evidence</summary>
+        <details class="card inspector-card" open>
+          <summary>📡 Bounded Execution Evidence Stream</summary>
           <pre id="evidence">No run evidence yet.</pre>
         </details>
       </div>

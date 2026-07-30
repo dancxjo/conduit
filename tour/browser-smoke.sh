@@ -27,6 +27,6 @@ for attempt in $(seq 1 3); do
     break
   fi
 done
-grep --fixed-strings "Select a node to reveal its source" "${browser_log}"
+grep --fixed-strings "Drag nodes to adjust presentation layout" "${browser_log}"
 grep --fixed-strings "exact dedicated-worker placement" "${browser_log}"
 grep --fixed-strings "conduit/tour-production-wasm-worker" "${browser_log}"
