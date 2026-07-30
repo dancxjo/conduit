@@ -22,6 +22,7 @@
     {"path":"examples/network-health.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/ollama-text.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/patchbay.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-RUN-007"},
+    {"path":"examples/resource-lease-cleanup.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n"},
     {"path":"examples/scheduled-backup.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/stdin-uppercase.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-CMP-004"},
     {"path":"examples/threshold-alarm.panel","state":"contract-only","profile":"device","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},

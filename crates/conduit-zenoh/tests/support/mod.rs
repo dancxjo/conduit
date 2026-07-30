@@ -412,6 +412,7 @@ fn endpoint_authority<'a>(
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
+        commit_profile: None,
     }
 }
 

@@ -86,10 +86,17 @@ The following commands are the stable file interface:
 
 ```text
 conduit-conformance audit [manifest]
+conduit-conformance verify-fixtures [manifest]
 conduit-conformance requests [manifest]
 conduit-conformance check-results [manifest] < results.ndjson
 conduit-conformance reference [manifest]
 ```
+
+`verify-fixtures` checks artifact digests, manifest coverage, and canonical
+reference outputs without launching the manifest's Rust test binaries. CI uses
+it after the workspace suite has already run those binaries. `reference`
+remains the standalone command that performs both fixture verification and
+the complete referenced Rust test set.
 
 With no manifest argument, the version 1 manifest is selected.
 

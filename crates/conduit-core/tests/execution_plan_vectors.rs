@@ -2,23 +2,27 @@ use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationCheckpointPolicy, CancellationGuarantee,
     CheckpointProviderCapabilities, ClockRounding, DelegationPolicy, DeliveryClaim, DescriptorRef,
-    Direction, DuplicatePolicy, DuplicationRule, EXECUTION_PLAN_SCHEMA_VERSION, EffectRequirement,
-    EventClass, EventProviderCapabilities, EventStreamContract, ExecutionLimits, ExecutionPlan,
+    Direction, DuplicatePolicy, DuplicationRule, EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V17, EffectCommitProfile,
+    EffectDiscontinuity, EffectIdempotency, EffectRequirement, EventClass,
+    EventProviderCapabilities, EventStreamContract, ExecutionLimits, ExecutionPlan,
     ExecutionProfile, ExplicitSatisfactionRequirement, FanOutMode, FeedbackBoundaryKind,
     FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity,
-    FlowPolicy, FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath, JobContract,
-    MergeOrdering, MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact,
+    FlowPolicy, FlowWatermarks, ForeignRetention, GrantStatus, HostCapability, Id, InstancePath,
+    JobContract, MergeOrdering, MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact,
     PlanAuthority, PlanClockConversion, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode,
     PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary, PlanHostObservation,
     PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember,
     PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject,
-    PlanValidationContext, Pressure, RUNTIME_EVIDENCE_POLICY_VERSION, ReplayDelivery,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector,
-    RestartPolicy, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy, SatisfactionFacet,
-    SatisfactionMethod, SatisfactionObligation, SatisfactionPin, SatisfactionProof,
-    SatisfactionReason, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy,
-    SubscriberCoupling, TypeContractRef, UnresolvedPlanConstraint, UnresolvedPlanKind,
-    ValueEnvelopePolicy, resolve_authority, validate_execution_plan,
+    PlanValidationContext, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
+    RUNTIME_EVIDENCE_POLICY_VERSION, ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, ResourceLeaseContract, ResourceLeaseReason, ResourceRef, ResourceSelector,
+    ResourceSharingMode, RestartPolicy, RetentionPolicy, RuntimeEvidenceMode,
+    RuntimeEvidencePolicy, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation,
+    SatisfactionPin, SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
+    Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef, UnknownCommitPolicy,
+    UnresolvedPlanConstraint, UnresolvedPlanKind, ValueEnvelopePolicy, resolve_authority,
+    validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -131,6 +135,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
+        commit_profile: None,
     };
     let required_effects = [effect_hash];
     let required_resources = [Id("fixture/source-device")];
@@ -157,6 +162,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         node: effect.requester,
         resource: RESOURCE,
         host_observation: observations[0].id,
+        lease: None,
     }];
     let nodes = [
         ResolvedPlanNode {
@@ -373,6 +379,170 @@ fn valid_nested_plan_pins_every_runnable_boundary() {
                 "missing fixture {case}"
             );
         }
+    });
+}
+
+#[test]
+fn schema_18_pins_resource_lease_and_domain_commit_disposition() {
+    with_plan(|plan, scratch| {
+        let mut execution_profile = ExecutionProfile {
+            id: Id("fixture/lease-execution-profile"),
+            schema_version: 1,
+            semantic_hash: ZERO_HASH,
+            boundedness: BoundednessProfile::Hard,
+            cancellation: CancellationGuarantee::Bounded,
+            step_bound_enforced: true,
+            limits: ExecutionLimits {
+                max_step_work: 8,
+                max_retained_values: 0,
+                max_retained_bytes: 0,
+                max_scratch_bytes: 0,
+                max_input_leases: 0,
+                max_input_bytes: 0,
+                max_output_reservations: 0,
+                max_output_bytes: 0,
+                max_transactions: 1,
+                max_fragments_per_step: 0,
+                max_pending_operations: 0,
+                max_timers: 0,
+                max_child_tasks: 0,
+                max_host_buffer_bytes: 0,
+                max_foreign_queue_items: 0,
+                max_foreign_queue_bytes: 0,
+                max_checkpoint_bytes: 0,
+                implementation_memory_bytes: 0,
+                cancellation_ticks: 1,
+            },
+            representations: &[],
+            memory_claims: &[],
+            checkpoint: None,
+        };
+        execution_profile.semantic_hash =
+            execution_profile.computed_semantic_hash(&mut []).unwrap();
+        let nodes = [
+            ResolvedPlanNode {
+                execution_profile: Some(&execution_profile),
+                ..plan.nodes[0]
+            },
+            ResolvedPlanNode {
+                execution_profile: Some(&execution_profile),
+                ..plan.nodes[1]
+            },
+        ];
+        let lease = ResourceLeaseContract {
+            schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+            id: Id("fixture/source-lease"),
+            resource_binding: plan.resources[0].id,
+            holder: plan.resources[0].node,
+            run: Id("fixture/run"),
+            epoch: 7,
+            scope: Id("fixture/read-scope"),
+            sharing: ResourceSharingMode::Exclusive,
+            reservation: PlanResourceBudget {
+                memory_bytes: 50,
+                ..PlanResourceBudget::ZERO
+            },
+            time_basis: plan.created_at.basis,
+            issued_at_tick: 5,
+            expires_at_tick: 60,
+            revocation_grace_ticks: 5,
+            cleanup_ticks: 10,
+            maximum_operations: 2,
+            maximum_evidence_events: 4,
+            cleanup_escalation: pin("fixture/force-close", 30),
+            foreign_retention: ForeignRetention::Unsupported,
+        };
+        let profile = EffectCommitProfile {
+            schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: Id("fixture/read-commit"),
+            operation: plan.authorities[0].effect.action,
+            resource_lease: lease.id,
+            commit_boundary: pin("fixture/read-commit-boundary", 31),
+            idempotency: EffectIdempotency::ReconcileBeforeRetry,
+            unknown_commit: UnknownCommitPolicy::Reconcile,
+            discontinuity: EffectDiscontinuity::ReconcileRequired,
+            cleanup: pin("fixture/read-cleanup", 32),
+            maximum_attempts: 2,
+            evidence_events_per_attempt: 2,
+        };
+        let resources = [PlanResourceBinding {
+            lease: Some(lease),
+            ..plan.resources[0]
+        }];
+        let authorities = [PlanAuthority {
+            commit_profile: Some(profile),
+            ..plan.authorities[0]
+        }];
+        let mut plan = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            resources: &resources,
+            authorities: &authorities,
+            nodes: &nodes,
+            instance_pools: &[],
+            identity: ZERO_HASH,
+            ..plan
+        };
+        plan.identity = plan.semantic_hash(scratch).unwrap();
+        let latest_context = PlanValidationContext {
+            supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            now: time(20),
+        };
+        assert_eq!(
+            validate_execution_plan(&plan, latest_context, scratch),
+            Ok(())
+        );
+
+        let no_commit_authorities = [PlanAuthority {
+            commit_profile: None,
+            ..authorities[0]
+        }];
+        let mut no_commit = ExecutionPlan {
+            authorities: &no_commit_authorities,
+            identity: ZERO_HASH,
+            ..plan
+        };
+        no_commit.identity = no_commit.semantic_hash(scratch).unwrap();
+        let error = validate_execution_plan(&no_commit, latest_context, scratch).unwrap_err();
+        assert_eq!(
+            error.code,
+            PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract)
+        );
+        assert_eq!(error.collection, PlanCollection::Authorities);
+
+        let wrong_holder_lease = ResourceLeaseContract {
+            holder: InstancePath::new("root/sink").unwrap(),
+            ..lease
+        };
+        let wrong_holder_resources = [PlanResourceBinding {
+            lease: Some(wrong_holder_lease),
+            ..resources[0]
+        }];
+        let mut wrong_holder = ExecutionPlan {
+            resources: &wrong_holder_resources,
+            identity: ZERO_HASH,
+            ..plan
+        };
+        wrong_holder.identity = wrong_holder.semantic_hash(scratch).unwrap();
+        let error = validate_execution_plan(&wrong_holder, latest_context, scratch).unwrap_err();
+        assert_eq!(
+            error.code,
+            PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::IdentityMismatch)
+        );
+        assert_eq!(error.collection, PlanCollection::Resources);
+
+        let mut legacy = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
+            identity: ZERO_HASH,
+            ..plan
+        };
+        legacy.identity = legacy.semantic_hash(scratch).unwrap();
+        let legacy_context = PlanValidationContext {
+            supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
+            now: time(20),
+        };
+        let error = validate_execution_plan(&legacy, legacy_context, scratch).unwrap_err();
+        assert_eq!(error.code, PlanDiagnosticCode::UnsupportedVersion);
+        assert_eq!(error.collection, PlanCollection::Resources);
     });
 }
 
@@ -1696,7 +1866,7 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
             ..base.cords[0]
         }];
         let mut plan = ExecutionPlan {
-            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
             cords: &cords,
             value_envelopes: &envelopes,
             clock_conversions: &conversions,
@@ -1709,7 +1879,7 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
         validate_execution_plan(
             &plan,
             PlanValidationContext {
-                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
                 now: time(20),
             },
             scratch,
@@ -1739,7 +1909,7 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
         let error = validate_execution_plan(
             &unauthorized_clock,
             PlanValidationContext {
-                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
                 now: time(20),
             },
             scratch,

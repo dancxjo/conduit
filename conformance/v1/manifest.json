@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 49,
+  "manifest_revision": 50,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -4939,6 +4939,94 @@
         {"package": "conduit-runtime", "test": "distributed_backend"},
         {"package": "conduit-runtime", "test": "transition_runtime"},
         {"package": "conduit-patchbay", "test": "protocol"}
+      ]
+    },
+    {
+      "id": "resource-lease-effect-commit",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "LSE-001", "LSE-002", "LSE-003", "LSE-004",
+        "CMT-001", "CMT-002", "CMT-003", "CMT-004"
+      ],
+      "artifacts": [{
+        "id": "resource-lease-effect-commit-v1",
+        "path": "../c5/resource-lease-effect-commit-v1.json",
+        "sha256": "sha256:c3856d1db9ece140c90aeea4d258511f52c2752924b83a7176744d65630feec4",
+        "operation": "resource-lease-effect-commit-v1",
+        "requirement_ids": [
+          "LSE-001", "LSE-002", "LSE-003", "LSE-004",
+          "CMT-001", "CMT-002", "CMT-003", "CMT-004"
+        ],
+        "default_rule": "LSE-001",
+        "case_rules": {
+          "lease-and-commit-change-plan-identity": "CMT-001",
+          "fresh-use-admitted": "LSE-002",
+          "acknowledged-domain-commit": "CMT-002",
+          "same-key-retry-after-lost-ack": "CMT-003",
+          "bounded-cleanup": "LSE-003",
+          "linux-file-commit": "CMT-004",
+          "linux-process-commit-and-kill": "CMT-004",
+          "linux-socket-commit": "CMT-004",
+          "wrong-holder": "LSE-001",
+          "wrong-run": "LSE-001",
+          "wrong-epoch": "LSE-001",
+          "wrong-resource": "LSE-001",
+          "expired-or-revoked": "LSE-002",
+          "operation-limit-before-mutation": "LSE-002",
+          "evidence-exhausted-before-mutation": "LSE-004",
+          "missing-commit-profile": "CMT-001",
+          "reservation-exceeds-allocation": "LSE-001",
+          "stale-release": "LSE-003",
+          "lost-ack-is-commit-unknown": "CMT-002",
+          "retry-with-different-key": "CMT-003",
+          "cleanup-timeout-forces-escalation": "LSE-003",
+          "foreign-retention-over-cleanup-bound": "LSE-004",
+          "schema-17-rejects-lease-fields": "CMT-001"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "resource-lease-effect-commit-v1#exact-plan-round-trip",
+          "resource-lease-effect-commit-v1#fresh-use-admitted",
+          "resource-lease-effect-commit-v1#acknowledged-domain-commit",
+          "resource-lease-effect-commit-v1#same-key-retry-after-lost-ack",
+          "resource-lease-effect-commit-v1#bounded-cleanup",
+          "resource-lease-effect-commit-v1#linux-file-commit",
+          "resource-lease-effect-commit-v1#linux-process-commit-and-kill",
+          "resource-lease-effect-commit-v1#linux-socket-commit"
+        ],
+        "negative": [
+          "resource-lease-effect-commit-v1#wrong-holder",
+          "resource-lease-effect-commit-v1#wrong-run",
+          "resource-lease-effect-commit-v1#wrong-epoch",
+          "resource-lease-effect-commit-v1#wrong-resource",
+          "resource-lease-effect-commit-v1#expired-or-revoked",
+          "resource-lease-effect-commit-v1#missing-commit-profile",
+          "resource-lease-effect-commit-v1#reservation-exceeds-allocation",
+          "resource-lease-effect-commit-v1#retry-with-different-key",
+          "resource-lease-effect-commit-v1#foreign-retention-over-cleanup-bound",
+          "resource-lease-effect-commit-v1#schema-17-rejects-lease-fields"
+        ],
+        "boundary": [
+          "resource-lease-effect-commit-v1#lease-and-commit-change-plan-identity",
+          "resource-lease-effect-commit-v1#operation-limit-before-mutation",
+          "resource-lease-effect-commit-v1#evidence-exhausted-before-mutation",
+          "resource-lease-effect-commit-v1#stale-release",
+          "resource-lease-effect-commit-v1#lost-ack-is-commit-unknown",
+          "resource-lease-effect-commit-v1#cleanup-timeout-forces-escalation"
+        ],
+        "migration": [
+          "resource-lease-effect-commit-v1#schema-17-rejects-lease-fields"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "resource_lease_vectors"},
+        {"package": "conduit-core", "test": "execution_plan_vectors"},
+        {"package": "conduit-runtime", "test": "resource_effects"}
       ]
     }
   ]

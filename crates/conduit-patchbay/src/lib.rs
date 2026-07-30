@@ -538,6 +538,61 @@ pub struct PlanSnapshot {
     pub clock_conversions: Vec<ClockConversionProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub feedback_boundaries: Vec<FeedbackBoundaryProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub resource_leases: Vec<ResourceLeaseProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub effect_commit_profiles: Vec<EffectCommitProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ResourceBudgetProjection {
+    pub memory_bytes: u64,
+    pub storage_bytes: u64,
+    pub cpu_units: u32,
+    pub timers: u16,
+    pub transports: u16,
+    pub checkpoints: u16,
+    pub evidence_bytes: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ResourceLeaseProjection {
+    pub id: String,
+    pub resource_binding: String,
+    pub holder: String,
+    pub run: String,
+    pub epoch: u64,
+    pub scope: String,
+    pub sharing: String,
+    pub maximum_holders: u16,
+    pub reservation: ResourceBudgetProjection,
+    pub time_basis: String,
+    pub issued_at_tick: u64,
+    pub expires_at_tick: u64,
+    pub revocation_grace_ticks: u64,
+    pub cleanup_ticks: u64,
+    pub maximum_operations: u32,
+    pub maximum_evidence_events: u32,
+    pub cleanup_escalation_id: String,
+    pub cleanup_escalation_identity: String,
+    pub foreign_retention: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct EffectCommitProjection {
+    pub node: String,
+    pub id: String,
+    pub operation: String,
+    pub resource_lease: String,
+    pub commit_boundary_id: String,
+    pub commit_boundary_identity: String,
+    pub idempotency: String,
+    pub unknown_commit: String,
+    pub discontinuity: String,
+    pub cleanup_id: String,
+    pub cleanup_identity: String,
+    pub maximum_attempts: u16,
+    pub evidence_events_per_attempt: u16,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -709,6 +764,100 @@ impl PlanSnapshot {
                 .to_owned(),
             })
             .collect();
+        let resource_leases = plan
+            .resources
+            .iter()
+            .filter_map(|resource| resource.lease)
+            .map(|lease| ResourceLeaseProjection {
+                id: lease.id.as_str().to_owned(),
+                resource_binding: lease.resource_binding.as_str().to_owned(),
+                holder: lease.holder.as_str().to_owned(),
+                run: lease.run.as_str().to_owned(),
+                epoch: lease.epoch,
+                scope: lease.scope.as_str().to_owned(),
+                sharing: match lease.sharing {
+                    conduit_core::ResourceSharingMode::Exclusive => "exclusive",
+                    conduit_core::ResourceSharingMode::SharedRead => "shared-read",
+                    conduit_core::ResourceSharingMode::SharedBounded { .. } => "shared-bounded",
+                }
+                .to_owned(),
+                maximum_holders: match lease.sharing {
+                    conduit_core::ResourceSharingMode::Exclusive => 1,
+                    conduit_core::ResourceSharingMode::SharedRead => u16::MAX,
+                    conduit_core::ResourceSharingMode::SharedBounded { maximum_holders } => {
+                        maximum_holders
+                    }
+                },
+                reservation: ResourceBudgetProjection {
+                    memory_bytes: lease.reservation.memory_bytes,
+                    storage_bytes: lease.reservation.storage_bytes,
+                    cpu_units: lease.reservation.cpu_units,
+                    timers: lease.reservation.timers,
+                    transports: lease.reservation.transports,
+                    checkpoints: lease.reservation.checkpoints,
+                    evidence_bytes: lease.reservation.evidence_bytes,
+                },
+                time_basis: lease.time_basis.as_str().to_owned(),
+                issued_at_tick: lease.issued_at_tick,
+                expires_at_tick: lease.expires_at_tick,
+                revocation_grace_ticks: lease.revocation_grace_ticks,
+                cleanup_ticks: lease.cleanup_ticks,
+                maximum_operations: lease.maximum_operations,
+                maximum_evidence_events: lease.maximum_evidence_events,
+                cleanup_escalation_id: lease.cleanup_escalation.id.as_str().to_owned(),
+                cleanup_escalation_identity: lease.cleanup_escalation.semantic_hash.to_string(),
+                foreign_retention: match lease.foreign_retention {
+                    conduit_core::ForeignRetention::None => "none",
+                    conduit_core::ForeignRetention::Bounded { .. } => "bounded",
+                    conduit_core::ForeignRetention::ObservedOnly => "observed-only",
+                    conduit_core::ForeignRetention::Unsupported => "unsupported",
+                }
+                .to_owned(),
+            })
+            .collect();
+        let effect_commit_profiles = plan
+            .authorities
+            .iter()
+            .filter_map(|authority| {
+                authority
+                    .commit_profile
+                    .map(|profile| (authority.node, profile))
+            })
+            .map(|(node, profile)| EffectCommitProjection {
+                node: node.as_str().to_owned(),
+                id: profile.id.as_str().to_owned(),
+                operation: profile.operation.as_str().to_owned(),
+                resource_lease: profile.resource_lease.as_str().to_owned(),
+                commit_boundary_id: profile.commit_boundary.id.as_str().to_owned(),
+                commit_boundary_identity: profile.commit_boundary.semantic_hash.to_string(),
+                idempotency: match profile.idempotency {
+                    conduit_core::EffectIdempotency::None => "none",
+                    conduit_core::EffectIdempotency::SameKeySameEffect => "same-key-same-effect",
+                    conduit_core::EffectIdempotency::ReconcileBeforeRetry => {
+                        "reconcile-before-retry"
+                    }
+                }
+                .to_owned(),
+                unknown_commit: match profile.unknown_commit {
+                    conduit_core::UnknownCommitPolicy::Fail => "fail",
+                    conduit_core::UnknownCommitPolicy::Reconcile => "reconcile",
+                    conduit_core::UnknownCommitPolicy::RetrySameIdempotencyKey => {
+                        "retry-same-idempotency-key"
+                    }
+                }
+                .to_owned(),
+                discontinuity: match profile.discontinuity {
+                    conduit_core::EffectDiscontinuity::FailedBeforeCommit => "failed-before-commit",
+                    conduit_core::EffectDiscontinuity::CommitUnknown => "commit-unknown",
+                    conduit_core::EffectDiscontinuity::ReconcileRequired => "reconcile-required",
+                }
+                .to_owned(),
+                cleanup_id: profile.cleanup.id.as_str().to_owned(),
+                cleanup_identity: profile.cleanup.semantic_hash.to_string(),
+                maximum_attempts: profile.maximum_attempts,
+                evidence_events_per_attempt: profile.evidence_events_per_attempt,
+            })
+            .collect();
         Self {
             identity: plan.identity.to_string(),
             source_semantic_hash: plan.source_semantic_hash.to_string(),
@@ -716,6 +865,8 @@ impl PlanSnapshot {
             value_envelopes,
             clock_conversions,
             feedback_boundaries,
+            resource_leases,
+            effect_commit_profiles,
         }
     }
 }

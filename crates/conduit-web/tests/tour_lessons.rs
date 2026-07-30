@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 17] = [
+const REQUIRED_TOUR_LESSONS: [&str; 18] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -22,6 +22,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 17] = [
     "patchbay.observes-patchbay",
     "library.typed-text-format",
     "platform.value-envelope-clock-feedback",
+    "platform.resource-lease-effect-commit",
 ];
 
 #[test]
@@ -405,6 +406,59 @@ fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
             .unwrap();
         assert!(root.join(path).is_file(), "lesson reference {path} exists");
     }
+}
+
+#[test]
+fn resource_lease_platform_lesson_is_fixture_backed_and_executable() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c5/resource-lease-effect-commit-v1.json"
+    ))
+    .expect("resource lease fixture is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "platform.resource-lease-effect-commit")
+        .expect("resource lease lesson is selectable");
+    let platform = &lesson["platform"];
+    assert_eq!(platform["schema"], "conduit.tour-platform-lesson/v1");
+
+    let result: Value =
+        serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["terminal"], "succeeded");
+
+    let cases = fixture["cases"].as_array().unwrap();
+    for profile in platform["profiles"].as_array().unwrap() {
+        let fixture_case = cases
+            .iter()
+            .find(|case| case["id"] == profile["fixture_case"])
+            .expect("lesson profile names a conformance case");
+        match profile["admission"].as_str().unwrap() {
+            "accepted" => assert_eq!(fixture_case["expected"]["accepted"], true),
+            "rejected" => {
+                assert_eq!(fixture_case["expected"]["accepted"], false);
+                assert_eq!(fixture_case["expected"]["code"], profile["code"]);
+            }
+            other => panic!("unknown admission state {other}"),
+        }
+    }
+
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        fields,
+        ["effect_commit_profiles", "resource_leases"]
+            .into_iter()
+            .collect()
+    );
 }
 
 #[test]

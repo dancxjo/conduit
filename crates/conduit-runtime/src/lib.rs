@@ -39,6 +39,7 @@ mod exact_evidence;
 mod host_resolution;
 mod implementation_binding;
 mod pool;
+mod resource_effect;
 mod runtime_evidence;
 mod scheduler;
 mod source_lowering;
@@ -83,6 +84,12 @@ pub use implementation_binding::{
 pub use pool::{
     HostedPoolError, HostedPoolRuntime, HostedPoolStepError, HostedPoolStepObservation,
     instantiate_plan_pool, instantiate_pool, observe_pool_step,
+};
+#[cfg(target_os = "linux")]
+pub use resource_effect::linux::{commit_file, commit_process, commit_socket, force_kill_and_wait};
+pub use resource_effect::{
+    DeterministicEffectBackend, DeterministicEffectFault, HostedEffectDisposition,
+    HostedEffectError, HostedLeaseUse,
 };
 pub use runtime_evidence::{
     RuntimeEvidenceContext, RuntimeEvidenceError, record_scheduler_evidence,

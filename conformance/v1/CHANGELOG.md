@@ -1,5 +1,13 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 50 — 2026-07-30
+
+- Added plan-v18 exact resource leases and domain-owned effect commit profiles
+  with use-time authority, finite operation/evidence, and cleanup bounds.
+- Added deterministic before-commit, lost-ack, and cleanup faults plus real
+  Linux file, process, and local-socket commit witnesses without claiming
+  global exactly-once execution.
+
 ## Manifest revision 48 — 2026-07-30
 
 - Added an exact installed bounded HTTP host-service provider, a checked-in

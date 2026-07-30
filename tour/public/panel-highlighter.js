@@ -29,35 +29,14 @@ export function configurePanelLanguage(metadata) {
 }
 
 export function highlightPanelSource(source, selectedRange = null) {
-  let output = "";
+  const runs = [];
   let cursor = 0;
   let expectTypeName = false;
   let inImplementsList = false;
   let cordEndpoint = null;
 
   const renderText = (text, tokenStart, kind, attributes = "") => {
-    const tokenEnd = tokenStart + text.length;
-    const selectionStart = Math.max(tokenStart, selectedRange?.start ?? tokenEnd);
-    const selectionEnd = Math.min(tokenEnd, selectedRange?.end ?? tokenStart);
-    const fragments = selectionStart < selectionEnd
-      ? [
-          [text.slice(0, selectionStart - tokenStart), false],
-          [text.slice(selectionStart - tokenStart, selectionEnd - tokenStart), true],
-          [text.slice(selectionEnd - tokenStart), false],
-        ]
-      : [[text, false]];
-    const rendered = fragments
-      .filter(([fragment]) => fragment.length > 0)
-      .map(([fragment, selected]) => {
-        const escaped = escapeHtml(fragment);
-        return selected
-          ? `<mark class="panel-source-selection">${escaped}</mark>`
-          : escaped;
-      })
-      .join("");
-    return kind
-      ? `<span class="panel-token-${kind}"${attributes}>${rendered}</span>`
-      : rendered;
+    runs.push({ text, tokenStart, kind, attributes });
   };
 
   while (cursor < source.length) {
@@ -119,9 +98,9 @@ export function highlightPanelSource(source, selectedRange = null) {
       : null;
     if (endpointSelector) {
       const [, node, selector] = endpointSelector;
-      output += renderText(node, tokenStart, "identifier");
+      renderText(node, tokenStart, "identifier");
       const direction = selector === ".in" ? "input" : "output";
-      output += renderText(
+      renderText(
         selector,
         tokenStart + node.length,
         `port panel-token-port-${direction}`,
@@ -130,11 +109,55 @@ export function highlightPanelSource(source, selectedRange = null) {
       );
       cordEndpoint = null;
     } else {
-      output += renderText(match[0], tokenStart, kind);
+      renderText(match[0], tokenStart, kind);
       if (kind === "identifier" && cordEndpoint) cordEndpoint = null;
     }
     cursor += match[0].length;
   }
+
+  const selectionStart = selectedRange?.start;
+  const selectionEnd = selectedRange?.end;
+  const hasSelection = Number.isInteger(selectionStart) &&
+    Number.isInteger(selectionEnd) &&
+    selectionStart < selectionEnd;
+  let output = "";
+  let selectionOpen = false;
+
+  for (const { text, tokenStart, kind, attributes } of runs) {
+    const tokenEnd = tokenStart + text.length;
+    const boundaries = [tokenStart, tokenEnd];
+    if (hasSelection && selectionStart > tokenStart && selectionStart < tokenEnd) {
+      boundaries.push(selectionStart);
+    }
+    if (hasSelection && selectionEnd > tokenStart && selectionEnd < tokenEnd) {
+      boundaries.push(selectionEnd);
+    }
+    boundaries.sort((left, right) => left - right);
+
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const fragmentStart = boundaries[index];
+      const fragmentEnd = boundaries[index + 1];
+      const selected = hasSelection &&
+        fragmentStart >= selectionStart &&
+        fragmentEnd <= selectionEnd;
+
+      if (selected && !selectionOpen) {
+        output += '<mark class="panel-source-selection">';
+        selectionOpen = true;
+      } else if (!selected && selectionOpen) {
+        output += "</mark>";
+        selectionOpen = false;
+      }
+
+      const escaped = escapeHtml(
+        text.slice(fragmentStart - tokenStart, fragmentEnd - tokenStart),
+      );
+      output += kind
+        ? `<span class="panel-token-${kind}"${attributes}>${escaped}</span>`
+        : escaped;
+    }
+  }
+  if (selectionOpen) output += "</mark>";
 
   // A final newline needs a visible line box to keep overlay scrolling aligned.
   return source.endsWith("\n") ? `${output} ` : output;

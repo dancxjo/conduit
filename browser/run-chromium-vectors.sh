@@ -9,6 +9,14 @@ cleanup() {
   kill "${server_pid}" 2>/dev/null || true
   rm -f "${server_log}" "${browser_log}"
 }
+report_browser_failure() {
+  local result
+  result=$(grep -o '<pre id="result">[^<]*</pre>' "${browser_log}" | tail -1 || true)
+  if [[ -n "${result}" ]]; then
+    echo "Browser vector result: ${result}" >&2
+  fi
+  tail -80 "${browser_log}" >&2
+}
 trap cleanup EXIT
 
 port=""
@@ -57,7 +65,7 @@ for _attempt in {1..3}; do
   fi
 done
 if [[ "${passed}" != true ]]; then
-  tail -80 "${browser_log}" >&2
+  report_browser_failure
   exit 1
 fi
 if ! google-chrome \
@@ -68,7 +76,7 @@ if ! google-chrome \
   "http://127.0.0.1:${port}/browser/pure-node-proof.test.html" \
   >"${browser_log}" 2>&1 ||
   ! grep -q '<pre id="result">ok</pre>' "${browser_log}"; then
-  tail -80 "${browser_log}" >&2
+  report_browser_failure
   exit 1
 fi
 if ! google-chrome \
@@ -79,6 +87,6 @@ if ! google-chrome \
   "http://127.0.0.1:${port}/browser/patchbay-session-proof.test.html" \
   >"${browser_log}" 2>&1 ||
   ! grep -q '<pre id="result">ok</pre>' "${browser_log}"; then
-  tail -80 "${browser_log}" >&2
+  report_browser_failure
   exit 1
 fi

@@ -7,23 +7,24 @@ use crate::canonical::semantic_hash_with_hash_set;
 use crate::{
     AdministrativeProof, AdministrativeSubject, AuthorityGrant, AuthorityTime, CanonicalDescriptor,
     CanonicalError, CanonicalValue, CheckpointProviderCapabilities, ContainmentContext,
-    ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectFlowBinding,
-    EffectRequirement, EventProviderCapabilities, EventStreamContract, ExecutionProfile,
-    FanOutMode, FieldDisposition, FlowPolicy, GrantStatus, HazardClosureContext,
+    ContainmentReason, DescriptorRef, Direction, DuplicationRule, EffectCommitProfile,
+    EffectFlowBinding, EffectRequirement, EventProviderCapabilities, EventStreamContract,
+    ExecutionProfile, FanOutMode, FieldDisposition, FlowPolicy, GrantStatus, HazardClosureContext,
     HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofNode, HazardousHostBinding,
     HostCapability, Id, InhibitReason, InstancePath, JobContract, MAX_HAZARD_PROOF_NODES, MapField,
     MergeOrdering, MergeTerminalPolicy, ObservedGrant, OwnershipModel, PersistentBudgetPolicy,
     PlanDistributedCord, PolicyBudgetLease, PolicyBudgetReason, PolicyBudgetStatus,
     PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
     PoolReservationProfile, PoolSupervisionPolicy, Pressure, ResolvedAuthorityBinding,
-    RetentionPolicy, RuntimeEvidencePolicy, SatisfactionProof, SatisfactionRole, SemanticHash,
-    StopPolicy, SubscriberCoupling, SupervisionActionKind, SupervisionContract, TypeContractRef,
-    ValueEnvelopePolicy, ValueEnvelopeReason, analyze_effect_closure,
-    validate_administrative_proof, validate_authority_at_use, validate_clock_conversion,
-    validate_distributed_binding, validate_feedback_boundary, validate_hazardous_host_binding,
+    ResourceLeaseContract, ResourceLeaseReason, RetentionPolicy, RuntimeEvidencePolicy,
+    SatisfactionProof, SatisfactionRole, SemanticHash, StopPolicy, SubscriberCoupling,
+    SupervisionActionKind, SupervisionContract, TypeContractRef, ValueEnvelopePolicy,
+    ValueEnvelopeReason, analyze_effect_closure, validate_administrative_proof,
+    validate_authority_at_use, validate_clock_conversion, validate_distributed_binding,
+    validate_effect_commit_profile, validate_feedback_boundary, validate_hazardous_host_binding,
     validate_job_contract, validate_offline_lease, validate_plan_execution_profile,
-    validate_policy_budget_status, validate_runtime_evidence_policy, validate_satisfaction_proof,
-    validate_stream_contract, validate_value_envelope_policy,
+    validate_policy_budget_status, validate_resource_lease, validate_runtime_evidence_policy,
+    validate_satisfaction_proof, validate_stream_contract, validate_value_envelope_policy,
 };
 
 /// Latest exact schema supported by the portable validator.
@@ -45,9 +46,10 @@ use crate::{
 /// complete finite recovery resources. Schema 16 adds exact replicated-pool
 /// runtime admission, lifecycle, resource, and generation-overlap contracts.
 /// Schema 17 adds bounded value-envelope authorization, exact clock
-/// conversions, and finite feedback boundaries. Earlier schemas remain
-/// readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 17;
+/// conversions, and finite feedback boundaries. Schema 18 pins run-scoped
+/// resource leases and domain-owned effect commit/cleanup profiles. Earlier
+/// schemas remain readable with frozen identities.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 18;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
@@ -64,6 +66,7 @@ pub const EXECUTION_PLAN_SCHEMA_VERSION_V13: u32 = 13;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V14: u32 = 14;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V15: u32 = 15;
 pub const EXECUTION_PLAN_SCHEMA_VERSION_V16: u32 = 16;
+pub const EXECUTION_PLAN_SCHEMA_VERSION_V17: u32 = 17;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -124,6 +127,8 @@ pub struct PlanResourceBinding<'a> {
     pub node: InstancePath<'a>,
     pub resource: crate::ResourceRef<'a>,
     pub host_observation: Id<'a>,
+    /// Finite run/epoch-scoped lease introduced in schema 18.
+    pub lease: Option<ResourceLeaseContract<'a>>,
 }
 
 /// Exact resource ceiling or allocation.
@@ -309,6 +314,8 @@ pub struct PlanAuthority<'a> {
     pub administrative_subject: Option<AdministrativeSubject<'a>>,
     pub containment: Option<AdministrativeProof<'a>>,
     pub policy_budgets: &'a [PlanPolicyBudget<'a>],
+    /// Domain commit/retry/cleanup semantics introduced in schema 18.
+    pub commit_profile: Option<EffectCommitProfile<'a>>,
 }
 
 /// One exact persistent governance budget selected for an effect.
@@ -612,6 +619,7 @@ pub enum PlanDiagnosticCode {
     Supervision(crate::SupervisionReason),
     Distributed(crate::DistributedReason),
     ValueEnvelope(ValueEnvelopeReason),
+    ResourceLease(ResourceLeaseReason),
     ScratchTooSmall,
 }
 
@@ -646,6 +654,7 @@ impl PlanDiagnosticCode {
             Self::Supervision(reason) => reason.code(),
             Self::Distributed(reason) => reason.code(),
             Self::ValueEnvelope(reason) => reason.code(),
+            Self::ResourceLease(reason) => reason.code(),
             Self::ScratchTooSmall => "CND-PLN-007",
         }
     }
@@ -801,7 +810,7 @@ impl ExecutionPlan<'_> {
             push!(hash_host_observation(*value));
         }
         for value in self.resources {
-            push!(hash_resource_binding(*value));
+            push!(hash_resource_binding(self.schema_version, *value));
         }
         for value in self.artifacts {
             push!(hash_artifact(*value));
@@ -1145,6 +1154,49 @@ pub fn validate_execution_plan(
                 PlanCollection::Resources,
                 index,
             ));
+        }
+        match (plan.schema_version >= 18, resource.lease) {
+            (false, Some(_)) => {
+                return Err(indexed(
+                    PlanDiagnosticCode::UnsupportedVersion,
+                    PlanCollection::Resources,
+                    index,
+                ));
+            }
+            (true, Some(lease)) => {
+                validate_resource_lease(lease).map_err(|reason| {
+                    indexed(
+                        PlanDiagnosticCode::ResourceLease(reason),
+                        PlanCollection::Resources,
+                        index,
+                    )
+                })?;
+                let node = plan
+                    .nodes
+                    .iter()
+                    .find(|node| node.instance == resource.node)
+                    .ok_or_else(|| {
+                        indexed(
+                            PlanDiagnosticCode::DanglingReference,
+                            PlanCollection::Resources,
+                            index,
+                        )
+                    })?;
+                if lease.resource_binding != resource.id
+                    || lease.holder != resource.node
+                    || lease.time_basis != plan.created_at.basis
+                    || lease.issued_at_tick > plan.created_at.tick
+                    || plan.created_at.tick >= lease.expires_at_tick
+                    || !lease.reservation.fits_within(node.allocation)
+                {
+                    return Err(indexed(
+                        PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::IdentityMismatch),
+                        PlanCollection::Resources,
+                        index,
+                    ));
+                }
+            }
+            _ => {}
         }
     }
 
@@ -2015,6 +2067,13 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
+        if plan.schema_version < 18 && authority.commit_profile.is_some() {
+            return Err(indexed(
+                PlanDiagnosticCode::UnsupportedVersion,
+                PlanCollection::Authorities,
+                index,
+            ));
+        }
         let Some(node) = plan
             .nodes
             .iter()
@@ -2067,6 +2126,51 @@ pub fn validate_execution_plan(
                 PlanCollection::Authorities,
                 index,
             ));
+        }
+        if plan.schema_version >= 18 {
+            let Some(profile) = authority.commit_profile else {
+                return Err(indexed(
+                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract),
+                    PlanCollection::Authorities,
+                    index,
+                ));
+            };
+            let Some(lease) = plan.resources.iter().find_map(|resource| {
+                (resource.node == authority.node && resource.resource == authority.binding.resource)
+                    .then_some(resource.lease)
+                    .flatten()
+            }) else {
+                return Err(indexed(
+                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::WrongResource),
+                    PlanCollection::Authorities,
+                    index,
+                ));
+            };
+            validate_effect_commit_profile(profile, lease).map_err(|reason| {
+                indexed(
+                    PlanDiagnosticCode::ResourceLease(reason),
+                    PlanCollection::Authorities,
+                    index,
+                )
+            })?;
+            let required_evidence = u32::from(profile.maximum_attempts)
+                .checked_mul(u32::from(profile.evidence_events_per_attempt))
+                .ok_or_else(|| {
+                    indexed(
+                        PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::EvidenceExhausted),
+                        PlanCollection::Authorities,
+                        index,
+                    )
+                })?;
+            if profile.operation != authority.effect.action
+                || required_evidence > lease.maximum_evidence_events
+            {
+                return Err(indexed(
+                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract),
+                    PlanCollection::Authorities,
+                    index,
+                ));
+            }
         }
         match (
             authority.effect.administrative_class,
@@ -2768,8 +2872,13 @@ fn hash_host_observation(
 }
 
 fn hash_resource_binding(
+    schema_version: u32,
     value: PlanResourceBinding<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let lease = value
+        .lease
+        .map(ResourceLeaseContract::semantic_hash)
+        .transpose()?;
     descriptor_hash(
         Id("conduit/plan-resource-binding"),
         &[
@@ -2783,6 +2892,16 @@ fn hash_resource_binding(
             semantic(
                 "host_observation",
                 CanonicalValue::Identifier(value.host_observation),
+            ),
+            defaulted_null(
+                "lease",
+                if schema_version >= 18 {
+                    lease.as_ref().map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    })
+                } else {
+                    CanonicalValue::Null
+                },
             ),
         ],
     )
@@ -3616,6 +3735,10 @@ fn hash_authority(
         .transpose()?;
     let containment = value.containment.map(|proof| proof.execution.identity);
     let policy_budgets = hash_policy_budget_set(value.policy_budgets)?;
+    let commit_profile = value
+        .commit_profile
+        .map(EffectCommitProfile::semantic_hash)
+        .transpose()?;
     descriptor_hash(
         Id("conduit/plan-authority"),
         &[
@@ -3654,6 +3777,18 @@ fn hash_authority(
                     containment.as_ref().map_or(CanonicalValue::Null, |hash| {
                         CanonicalValue::Bytes(hash.as_bytes())
                     })
+                } else {
+                    CanonicalValue::Null
+                },
+            ),
+            defaulted_null(
+                "commit_profile",
+                if schema_version >= 18 {
+                    commit_profile
+                        .as_ref()
+                        .map_or(CanonicalValue::Null, |hash| {
+                            CanonicalValue::Bytes(hash.as_bytes())
+                        })
                 } else {
                     CanonicalValue::Null
                 },
