@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use bumpalo::Bump;
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
@@ -398,4 +399,29 @@ fn source_limits_are_part_of_compile_input_identity() {
     changed.source_limits.maximum_entry_source_bytes -= 1;
     changed.seal().unwrap();
     assert_ne!(original.identity, changed.identity);
+}
+
+#[test]
+fn sealed_document_exposes_the_exact_core_plan_without_replanning() {
+    let document = compile_source(SOURCE, &input(SOURCE)).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+
+    assert_eq!(plan.identity.to_string(), document.identity);
+    assert_eq!(
+        plan.source_semantic_hash.to_string(),
+        document.source_semantic_hash
+    );
+    assert_eq!(plan.nodes.len(), document.nodes.len());
+    assert_eq!(plan.cords.len(), document.cords.len());
+    for (planned, encoded) in plan.nodes.iter().zip(&document.nodes) {
+        assert_eq!(planned.contract.id.as_str(), encoded.contract.id);
+        assert_eq!(
+            planned.implementation.id.as_str(),
+            encoded.implementation.id
+        );
+        assert_eq!(planned.artifact.as_str(), encoded.artifact);
+        assert_eq!(planned.host.as_str(), encoded.host);
+        assert_eq!(planned.host_observation.as_str(), encoded.host_observation);
+    }
 }

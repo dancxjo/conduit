@@ -2155,7 +2155,12 @@ impl ExactPlanDocument {
             })
     }
 
-    fn as_plan<'a>(&'a self, arena: &'a Bump) -> Result<ExecutionPlan<'a>, CompileError> {
+    /// Borrow this sealed document as the exact portable execution plan.
+    ///
+    /// The caller owns the arena for the complete borrow. This conversion
+    /// validates document/schema structure but does not resolve, select,
+    /// fetch, provision, or synthesize any binding.
+    pub fn as_plan<'a>(&'a self, arena: &'a Bump) -> Result<ExecutionPlan<'a>, CompileError> {
         let supported_document = (self.schema == PLAN_DOCUMENT_SCHEMA
             && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V3)
             || (self.schema == ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA
