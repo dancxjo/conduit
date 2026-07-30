@@ -90,23 +90,46 @@ export function patchbay_replace_source(source, replacement) {
 }
 
 /**
- * Executes the existing finite hosted proof runtime with bounded in-memory
- * streams, returning only public stdout/stderr and the exact runtime result.
+ * Executes the finite hosted compatibility demo with bounded in-memory streams.
  * @param {string} source
  * @returns {string}
  */
-export function run_panel(source) {
+export function run_panel_compatibility_demo(source) {
     let deferred2_0;
     let deferred2_1;
     try {
         const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.run_panel(ptr0, len0);
+        const ret = wasm.run_panel_compatibility_demo(ptr0, len0);
         deferred2_0 = ret[0];
         deferred2_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Compiles immutable inputs and executes their exact plan through the same
+ * bounded deterministic executor used by `conduct run`.
+ * @param {string} source
+ * @param {string} compile_input_json
+ * @returns {string}
+ */
+export function run_panel_exact(source, compile_input_json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(compile_input_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.run_panel_exact(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 function __wbg_get_imports() {

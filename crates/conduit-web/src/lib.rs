@@ -2,6 +2,15 @@
 
 use wasm_bindgen::prelude::*;
 
+use conduit_compile::{CompileInput, compile_source};
+use conduit_core::{
+    ExecutionPlan, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
+};
+use conduit_runtime::{
+    ExactHostedBinding, ExactHostedBindings, ExactRunContext, HostedPrimitiveImplementation,
+    RuntimeError, SchedulerReservation,
+};
+
 fn patchbay_error(error: conduit_patchbay::ProtocolError) -> String {
     format!(
         "{{\"ok\":false,\"diagnostic\":{:?},\"code\":{:?}}}",
@@ -115,10 +124,9 @@ pub fn explain_panel(source: String) -> String {
     }
 }
 
-/// Executes the existing finite hosted proof runtime with bounded in-memory
-/// streams, returning only public stdout/stderr and the exact runtime result.
+/// Executes the finite hosted compatibility demo with bounded in-memory streams.
 #[wasm_bindgen]
-pub fn run_panel(source: String) -> String {
+pub fn run_panel_compatibility_demo(source: String) -> String {
     let panel = match conduit_panel::parse(&source) {
         Ok(panel) => panel,
         Err(error) => return format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
@@ -136,7 +144,7 @@ pub fn run_panel(source: String) -> String {
         output: &mut output,
         error: &mut error,
     };
-    match resolved.run(&mut io) {
+    match resolved.run_batch(&mut io) {
         Ok(summary) => format!(
             "{{\"ok\":true,\"completed_nodes\":{},\"cords_conducted\":{},\"stdout\":{:?},\"stderr\":{:?}}}",
             summary.nodes_completed,
@@ -146,6 +154,142 @@ pub fn run_panel(source: String) -> String {
         ),
         Err(error) => format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
     }
+}
+
+/// Compiles immutable inputs and executes their exact plan through the same
+/// bounded deterministic executor used by `conduct run`.
+#[wasm_bindgen]
+pub fn run_panel_exact(source: String, compile_input_json: String) -> String {
+    match run_panel_exact_inner(&source, &compile_input_json) {
+        Ok((summary, output, error)) => serde_json::json!({
+            "ok": true,
+            "completed_nodes": summary.nodes_completed,
+            "cords_conducted": summary.cords_conducted,
+            "stdout": String::from_utf8_lossy(&output),
+            "stderr": String::from_utf8_lossy(&error),
+            "profile": "exact-plan-deterministic-executor",
+        })
+        .to_string(),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "code": error.code,
+            "diagnostic": error.to_string(),
+        })
+        .to_string(),
+    }
+}
+
+fn run_panel_exact_inner(
+    source: &str,
+    compile_input_json: &str,
+) -> Result<(conduit_runtime::ExecutionSummary, Vec<u8>, Vec<u8>), RuntimeError> {
+    let panel = conduit_panel::parse(source)
+        .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
+    let input: CompileInput = serde_json::from_str(compile_input_json)
+        .map_err(|_| RuntimeError::new("CND-CMP-002", "invalid compile-input/v2 JSON"))?;
+    let document = compile_source(source, &input)
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let arena = bumpalo::Bump::new();
+    let plan = document
+        .as_plan(&arena)
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let bindings = exact_hosted_bindings(&input, &plan)?;
+    let registry = conduit_runtime::Registry::compatibility_demo();
+    let resolved = registry
+        .resolve(&panel)
+        .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    let mut input_stream = std::io::empty();
+    let mut output = Vec::new();
+    let mut error = Vec::new();
+    let mut io = conduit_runtime::RunIo {
+        input: &mut input_stream,
+        output: &mut output,
+        error: &mut error,
+    };
+    let summary = resolved.run_exact(
+        &plan,
+        &bindings,
+        ExactRunContext {
+            semantic_source_hash: plan.source_semantic_hash,
+            validation: conduit_core::PlanValidationContext {
+                supported_schema_version: plan.schema_version,
+                now: plan.created_at,
+            },
+            scheduler_policy: SchedulerPolicy {
+                schema_version: SCHEDULER_CONTRACT_VERSION,
+                ready_queue: ReadyQueueDiscipline::RoundRobin,
+                max_decisions: 256,
+                max_tick: 512,
+                max_consecutive_yields: 8,
+                max_events: 64,
+            },
+            reservation: SchedulerReservation {
+                available_runtime_memory_bytes: plan.budget.memory_bytes,
+                executor_overhead_limit_bytes: plan.budget.memory_bytes,
+            },
+        },
+        &mut io,
+    )?;
+    drop(io);
+    Ok((summary, output, error))
+}
+
+fn exact_hosted_bindings(
+    input: &CompileInput,
+    plan: &ExecutionPlan<'_>,
+) -> Result<ExactHostedBindings, RuntimeError> {
+    let mut bindings = Vec::with_capacity(plan.nodes.len());
+    for node in plan.nodes {
+        let candidate = input
+            .candidates
+            .iter()
+            .find(|candidate| {
+                candidate.implementation.id == node.implementation.id.as_str()
+                    && candidate.implementation.identity
+                        == node.implementation.semantic_hash.to_string()
+                    && candidate.host_report.id == node.host_observation.as_str()
+            })
+            .ok_or_else(|| RuntimeError::new("CND-RUN-007", "exact implementation is absent"))?;
+        if candidate.implementation.entrypoint_adapter != "conduit/hosted-primitive-step"
+            || candidate.implementation.entrypoint_abi != "conduit/hosted-primitive-v1"
+            || candidate.implementation.runtime_protocol_version != 1
+        {
+            return Err(RuntimeError::new(
+                "CND-RUN-007",
+                "exact implementation uses an unavailable browser adapter",
+            ));
+        }
+        let implementation = match candidate.implementation.entrypoint_name.as_str() {
+            "literal" => HostedPrimitiveImplementation::Literal,
+            "stdin" => HostedPrimitiveImplementation::Stdin,
+            "uppercase" => HostedPrimitiveImplementation::Uppercase,
+            "stdout" => HostedPrimitiveImplementation::Stdout,
+            "stderr" => HostedPrimitiveImplementation::Stderr,
+            "pass-through" => HostedPrimitiveImplementation::PassThrough,
+            "tee" => HostedPrimitiveImplementation::Tee,
+            "merge" => HostedPrimitiveImplementation::Merge,
+            "fallback" => HostedPrimitiveImplementation::Fallback,
+            _ => {
+                return Err(RuntimeError::new(
+                    "CND-RUN-007",
+                    "exact implementation names an unavailable browser entrypoint",
+                ));
+            }
+        };
+        let artifact = plan
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.id == node.artifact)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-008", "exact artifact is absent"))?;
+        bindings.push(ExactHostedBinding {
+            implementation_id: node.implementation.id.to_string(),
+            implementation_identity: node.implementation.semantic_hash,
+            artifact_id: node.artifact.to_string(),
+            artifact_digest: artifact.digest,
+            implementation,
+        });
+    }
+    ExactHostedBindings::new(bindings)
 }
 
 #[cfg(test)]

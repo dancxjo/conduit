@@ -1,4 +1,7 @@
-import init, { run_panel } from "./conduit_web.js";
+import init, {
+  run_panel_compatibility_demo,
+  run_panel_exact,
+} from "./conduit_web.js";
 import {
   BrowserHostReason,
   verifyExactArtifact,
@@ -33,7 +36,15 @@ globalThis.onmessage = async (event) => {
       globalThis.postMessage({
         id,
         ok: true,
-        value: JSON.parse(run_panel(value.source)),
+        value: JSON.parse(run_panel_compatibility_demo(value.source)),
+      });
+      return;
+    }
+    if (operation === "run-exact" && configured) {
+      globalThis.postMessage({
+        id,
+        ok: true,
+        value: JSON.parse(run_panel_exact(value.source, value.compileInputJson)),
       });
       return;
     }

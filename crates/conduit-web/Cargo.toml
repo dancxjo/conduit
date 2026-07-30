@@ -11,6 +11,9 @@ rust-version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+bumpalo = "3"
+conduit-compile = { path = "../conduit-compile" }
+conduit-core = { path = "../conduit-core" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-patchbay = { path = "../conduit-patchbay" }
 conduit-runtime = { path = "../conduit-runtime" }

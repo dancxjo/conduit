@@ -23,10 +23,15 @@ export function patchbay_move_node(source: string, node_id: string, x: number, y
 export function patchbay_replace_source(source: string, replacement: string): string;
 
 /**
- * Executes the existing finite hosted proof runtime with bounded in-memory
- * streams, returning only public stdout/stderr and the exact runtime result.
+ * Executes the finite hosted compatibility demo with bounded in-memory streams.
  */
-export function run_panel(source: string): string;
+export function run_panel_compatibility_demo(source: string): string;
+
+/**
+ * Compiles immutable inputs and executes their exact plan through the same
+ * bounded deterministic executor used by `conduct run`.
+ */
+export function run_panel_exact(source: string, compile_input_json: string): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -36,7 +41,8 @@ export interface InitOutput {
     readonly parse_panel: (a: number, b: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly run_panel: (a: number, b: number) => [number, number];
+    readonly run_panel_compatibility_demo: (a: number, b: number) => [number, number];
+    readonly run_panel_exact: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

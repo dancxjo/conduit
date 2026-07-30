@@ -480,6 +480,9 @@ dependencies = [
 name = "conduit-web"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
+ "conduit-compile",
+ "conduit-core",
  "conduit-panel",
  "conduit-patchbay",
  "conduit-runtime",
