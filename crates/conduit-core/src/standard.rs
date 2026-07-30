@@ -67,6 +67,16 @@ pub enum StandardNodeKind {
     SequenceSource,
     InjectedClock,
     InjectedEntropy,
+    FileRead,
+    FileWrite,
+    DirectoryList,
+    BlobStore,
+    KeyValueStore,
+    ProcessSpawn,
+    GpioPin,
+    SerialPort,
+    I2cBus,
+    SpiBus,
 }
 
 /// Finite resources that are part of a standard node's semantic contract.
@@ -278,6 +288,12 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::Trace
             | StandardNodeKind::SequenceSource
             | StandardNodeKind::InjectedEntropy
+            | StandardNodeKind::FileRead
+            | StandardNodeKind::FileWrite
+            | StandardNodeKind::BlobStore
+            | StandardNodeKind::KeyValueStore
+            | StandardNodeKind::ProcessSpawn
+            | StandardNodeKind::SerialPort
     );
     if needs_state && (limits.retained_values == 0 || limits.retained_bytes == 0) {
         return Err(StandardContractError::IncompatibleLimits);

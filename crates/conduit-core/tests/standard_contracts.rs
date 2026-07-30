@@ -301,6 +301,50 @@ fn node_contract_outcome(id: &str) -> &'static str {
                 evidence_events: 1,
             },
         ),
+        "file-read-without-state" => (
+            StandardNodeKind::FileRead,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-file-read" => (
+            StandardNodeKind::FileRead,
+            StandardNodeLimits {
+                retained_values: 16,
+                retained_bytes: 4096,
+                pending_operations: 1,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 16,
+            },
+        ),
+        "process-without-state" => (
+            StandardNodeKind::ProcessSpawn,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-process" => (
+            StandardNodeKind::ProcessSpawn,
+            StandardNodeLimits {
+                retained_values: 32,
+                retained_bytes: 8192,
+                pending_operations: 1,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 32,
+            },
+        ),
         _ => panic!("unknown node fixture {id}"),
     };
 
@@ -332,7 +376,7 @@ fn every_standard_node_contract_fixture_executes_independently() {
         .iter()
         .filter(|case| case["contract"] == "node")
         .collect::<Vec<_>>();
-    assert_eq!(cases.len(), 16);
+    assert_eq!(cases.len(), 20);
     for case in cases {
         let id = case["id"].as_str().unwrap();
         assert_eq!(node_contract_outcome(id), case["expected"], "{id}");

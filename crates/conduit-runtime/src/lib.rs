@@ -454,6 +454,48 @@ const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
+const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/file-read"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/file-write"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[],
+};
+const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/blob-store"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/kv-store"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/process-spawn"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/gpio-pin"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/serial-port"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
 
 /// Typed runtime value.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -693,6 +735,62 @@ impl Default for Registry {
             RegisteredNode {
                 contract: &FAULT_SOURCE_CONTRACT,
                 factory: || Box::new(Literal),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            FILE_READ_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &FILE_READ_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            FILE_WRITE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &FILE_WRITE_CONTRACT,
+                factory: || Box::new(Stdout),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            BLOB_STORE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &BLOB_STORE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            KV_STORE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &KV_STORE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            PROCESS_SPAWN_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &PROCESS_SPAWN_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            GPIO_PIN_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &GPIO_PIN_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            SERIAL_PORT_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &SERIAL_PORT_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
                 validate_config: validate_empty_config,
             },
         );
