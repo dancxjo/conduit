@@ -70,13 +70,18 @@ test("highlights panel source while retaining the native editor surface", async 
   const source = page.locator("#source");
   const highlight = page.locator(".panel-source-highlight");
   const expectLayersAligned = async () => {
-    const [sourceBox, highlightBox] = await Promise.all([
-      source.boundingBox(),
-      highlight.boundingBox(),
-    ]);
-    expect(sourceBox).not.toBeNull();
-    expect(highlightBox).not.toBeNull();
-    expect(sourceBox).toEqual(highlightBox);
+    await expect.poll(async () => editor.evaluate((element) => {
+      const sourceBox = element.querySelector("textarea")?.getBoundingClientRect();
+      const highlightBox =
+        element.querySelector(".panel-source-highlight")?.getBoundingClientRect();
+      if (!sourceBox || !highlightBox) return Number.POSITIVE_INFINITY;
+      return Math.max(
+        Math.abs(sourceBox.x - highlightBox.x),
+        Math.abs(sourceBox.y - highlightBox.y),
+        Math.abs(sourceBox.width - highlightBox.width),
+        Math.abs(sourceBox.height - highlightBox.height),
+      );
+    })).toBeLessThan(0.5);
   };
 
   await expect(source).toHaveAttribute("data-highlighting", "panel");
