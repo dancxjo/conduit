@@ -35,6 +35,7 @@ mod artifact_verification;
 mod config_resolution;
 mod distributed;
 mod evidence_ndjson;
+mod exact_evidence;
 mod host_resolution;
 mod implementation_binding;
 mod pool;
@@ -67,6 +68,7 @@ pub use evidence_ndjson::{
     OwnedPayloadShape, OwnedTypeRef, decode_event_ndjson, decode_event_ndjson_with_limits,
     encode_event_ndjson, encode_owned_event_ndjson,
 };
+pub use exact_evidence::ExactEvidenceRecord;
 pub use host_resolution::{
     CandidateAuthority, CandidateRejection, CandidateRejectionReason, CapabilityPredicate,
     HostResolverPolicy, PlacementCandidate, PlacementRequest, PlanSealingReason, ResolutionFailure,
@@ -147,6 +149,11 @@ const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
         0x6e, 0x9b,
     ]),
 };
+const TEXT_LIST_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("conduit/text-list"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([0x6f; 32]),
+};
 const TERMINAL_OBSERVATION_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("conduit/terminal-observation"),
     schema_version: 1,
@@ -175,6 +182,26 @@ const LITERAL_CONFIG: ConfigContract<'static> = ConfigContract {
         mutability: ConfigMutability::PreStart,
         identity: ConfigIdentity::Semantic,
     }],
+};
+const FORMAT_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        ConfigFieldContract {
+            key: Id("template"),
+            value_type: TEXT_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Semantic,
+        },
+        ConfigFieldContract {
+            key: Id("parameters"),
+            value_type: TEXT_LIST_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Semantic,
+        },
+    ],
 };
 const INPUT_TEXT: PortContract<'static> = PortContract {
     id: Id("in"),
@@ -361,6 +388,12 @@ pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.std/uppercase"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.std/format"),
+    config: FORMAT_CONFIG,
+    inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 pub const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
@@ -635,6 +668,7 @@ pub struct RunIo<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HostedPrimitiveImplementation {
     Literal,
+    Format,
     Stdin,
     Uppercase,
     Stdout,
@@ -734,6 +768,8 @@ impl ExactHostedBindings {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ExactRunContext<'a> {
     pub semantic_source_hash: SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: Id<'a>,
     pub validation: conduit_core::PlanValidationContext<'a>,
     pub scheduler_policy: SchedulerPolicy,
     pub reservation: SchedulerReservation,
@@ -746,6 +782,8 @@ pub struct ExactExecutionReport {
     pub allocation: SchedulerAllocation,
     pub high_water: SchedulerHighWater,
     pub scheduler_events: Vec<SchedulerEvent>,
+    pub evidence: Vec<ExactEvidenceRecord>,
+    pub evidence_bytes: u64,
 }
 
 pub trait Handler {
@@ -905,12 +943,17 @@ impl Registry {
     }
 
     /// Resolves a contract ID to its canonical semantic ID.
-    pub fn resolve_canonical_id<'a>(
-        &'a self,
-        contract_id: &'a str,
-    ) -> Result<&'a str, RegistryError> {
-        if self.nodes.contains_key(contract_id) {
-            return Ok(contract_id);
+    pub fn resolve_canonical_id<'a>(&'a self, contract_id: &str) -> Result<&'a str, RegistryError> {
+        if let Some((canonical, _)) = self.nodes.get_key_value(contract_id) {
+            return Ok(canonical);
+        }
+        if let Some(suffix) = contract_id.strip_prefix("std/")
+            && let Some((canonical, _)) = self
+                .nodes
+                .iter()
+                .find(|(id, _)| id.strip_prefix("conduit.std/") == Some(suffix))
+        {
+            return Ok(canonical);
         }
         Err(RegistryError {
             code: "CND-REG-003",
@@ -919,7 +962,13 @@ impl Registry {
     }
 
     fn get_registered_node(&self, contract_id: &str) -> Option<&RegisteredNode> {
-        self.nodes.get(contract_id)
+        self.nodes.get(contract_id).or_else(|| {
+            let suffix = contract_id.strip_prefix("std/")?;
+            self.nodes
+                .iter()
+                .find(|(id, _)| id.strip_prefix("conduit.std/") == Some(suffix))
+                .map(|(_, node)| node)
+        })
     }
 
     /// Registers a concrete executable provider implementation with manifest and host resolution evidence.
@@ -1130,6 +1179,7 @@ impl Registry {
             });
         };
         install(&LITERAL_CONTRACT, || Box::new(Literal), validate_literal);
+        install(&FORMAT_CONTRACT, || Box::new(Format), validate_format);
         install(&STDIN_CONTRACT, || Box::new(Stdin), validate_empty_config);
         install(
             &UPPERCASE_CONTRACT,
@@ -1261,6 +1311,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::Literal,
                 || Box::new(Literal),
                 validate_literal,
+            ),
+            (
+                &FORMAT_CONTRACT,
+                "format",
+                HostedPrimitiveImplementation::Format,
+                || Box::new(Format),
+                validate_format,
             ),
             (
                 &STDIN_CONTRACT,
@@ -1410,6 +1467,10 @@ impl Default for Registry {
         nodes.insert(
             LITERAL_CONTRACT.id.as_str(),
             honest_primitive(&LITERAL_CONTRACT, || Box::new(Literal), validate_literal),
+        );
+        nodes.insert(
+            FORMAT_CONTRACT.id.as_str(),
+            honest_primitive(&FORMAT_CONTRACT, || Box::new(Format), validate_format),
         );
         nodes.insert(
             STDIN_CONTRACT.id.as_str(),
@@ -1772,6 +1833,7 @@ impl SourceContractCatalog for Registry {
     fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
         match id {
             value if value == TEXT_TYPE.contract_id.as_str() => Some(TEXT_TYPE.into()),
+            value if value == TEXT_LIST_TYPE.contract_id.as_str() => Some(TEXT_LIST_TYPE.into()),
             value if value == TERMINAL_OBSERVATION_TYPE.contract_id.as_str() => {
                 Some(TERMINAL_OBSERVATION_TYPE.into())
             }
@@ -1806,13 +1868,30 @@ impl SourceContractCatalog for Registry {
         expected: &OwnedTypeReference,
         source: &conduit_panel::SourceValue,
     ) -> Result<OwnedSemanticValue, LiteralValidationError> {
-        if expected != &OwnedTypeReference::from(TEXT_TYPE) {
-            return Err(LiteralValidationError::ProviderUnavailable);
+        if expected == &OwnedTypeReference::from(TEXT_TYPE) {
+            return match source {
+                conduit_panel::SourceValue::Text(value) => {
+                    Ok(OwnedSemanticValue::Text(value.clone()))
+                }
+                _ => Err(LiteralValidationError::WrongKind),
+            };
         }
-        match source {
-            conduit_panel::SourceValue::Text(value) => Ok(OwnedSemanticValue::Text(value.clone())),
-            _ => Err(LiteralValidationError::WrongKind),
+        if expected == &OwnedTypeReference::from(TEXT_LIST_TYPE) {
+            return match source {
+                conduit_panel::SourceValue::List(values) => values
+                    .iter()
+                    .map(|value| match value {
+                        conduit_panel::SourceValue::Text(value) => {
+                            Ok(OwnedSemanticValue::Text(value.clone()))
+                        }
+                        _ => Err(LiteralValidationError::WrongKind),
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(OwnedSemanticValue::List),
+                _ => Err(LiteralValidationError::WrongKind),
+            };
         }
+        Err(LiteralValidationError::ProviderUnavailable)
     }
 
     fn validate_default(
@@ -1851,6 +1930,8 @@ impl TypeContractProvider for BuiltinTypeProvider {
     ) -> Option<TypeContractDescription<'a>> {
         let (reference, human_name) = if reference == TEXT_TYPE {
             (TEXT_TYPE, "UTF-8 text")
+        } else if reference == TEXT_LIST_TYPE {
+            (TEXT_LIST_TYPE, "finite list of UTF-8 text")
         } else if reference == TERMINAL_OBSERVATION_TYPE {
             (TERMINAL_OBSERVATION_TYPE, "terminal observation")
         } else if reference == SUPERVISION_DECISION_TYPE {
@@ -3234,6 +3315,7 @@ impl ResolvedPanel<'_> {
             let implementation = bindings.resolve(planned, plan.artifacts)?;
             let expected_contract = match implementation {
                 HostedPrimitiveImplementation::Literal => "conduit.std/literal",
+                HostedPrimitiveImplementation::Format => "conduit.std/format",
                 HostedPrimitiveImplementation::Stdin => "conduit.std/stdin",
                 HostedPrimitiveImplementation::Uppercase => "conduit.std/uppercase",
                 HostedPrimitiveImplementation::Stdout => "conduit.std/stdout",
@@ -3279,6 +3361,13 @@ impl ResolvedPanel<'_> {
                         .map_or_else(Vec::new, |value| value.as_bytes().to_vec());
                     HostedNodeKind::Literal {
                         value,
+                        emitted: false,
+                    }
+                }
+                HostedPrimitiveImplementation::Format => {
+                    let bytes = format_node(&resolved.source)?.into_bytes();
+                    HostedNodeKind::Literal {
+                        value: bytes,
                         emitted: false,
                     }
                 }
@@ -3389,7 +3478,21 @@ impl ResolvedPanel<'_> {
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         let allocation = executor.allocation();
         let high_water = executor.high_water();
-        let scheduler_events = executor.events().copied().collect();
+        let scheduler_events: Vec<SchedulerEvent> = executor.events().copied().collect();
+        let evidence = exact_evidence::project_exact_evidence(
+            plan,
+            context.plan_epoch,
+            context.run_id.as_str(),
+            &scheduler_events,
+        );
+        let evidence_bytes = evidence
+            .iter()
+            .map(|record| {
+                serde_json::to_vec(record).map_or(u64::MAX, |bytes| {
+                    u64::try_from(bytes.len()).unwrap_or(u64::MAX)
+                })
+            })
+            .fold(0_u64, u64::saturating_add);
         match status {
             SchedulerStatus::Succeeded => Ok(ExactExecutionReport {
                 summary: ExecutionSummary {
@@ -3399,6 +3502,8 @@ impl ResolvedPanel<'_> {
                 allocation,
                 high_water,
                 scheduler_events,
+                evidence,
+                evidence_bytes,
             }),
             SchedulerStatus::Failed(_) => Err(RuntimeError::new(
                 "CND-RUN-005",
@@ -4131,6 +4236,115 @@ fn validate_literal(node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
 
+fn validate_format(node: &Node) -> Result<(), ResolutionError> {
+    let template = node.config("template").ok_or_else(|| {
+        ResolutionError::new(
+            "CND-SRC-002",
+            format!("format node `{}` requires `template`", node.id),
+        )
+    })?;
+    let parameters = node
+        .config
+        .iter()
+        .find(|entry| entry.key == "parameters")
+        .and_then(|entry| match &entry.value {
+            conduit_panel::SourceValue::List(values) => Some(values),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            ResolutionError::new(
+                "CND-SRC-002",
+                format!(
+                    "format node `{}` requires a text array `parameters`",
+                    node.id
+                ),
+            )
+        })?;
+    if parameters
+        .iter()
+        .any(|value| !matches!(value, conduit_panel::SourceValue::Text(_)))
+    {
+        return Err(ResolutionError::new(
+            "CND-SRC-002",
+            format!("format node `{}` parameters must all be text", node.id),
+        ));
+    }
+    if let Some(entry) = node
+        .config
+        .iter()
+        .find(|entry| entry.key != "template" && entry.key != "parameters")
+    {
+        return Err(ResolutionError::new(
+            "CND-SRC-002",
+            format!(
+                "format node `{}` has unknown field `{}`",
+                node.id, entry.key
+            ),
+        ));
+    }
+    render_template(template, parameters)
+        .map(|_| ())
+        .map_err(|message| {
+            ResolutionError::new(
+                "CND-SRC-002",
+                format!("format node `{}`: {message}", node.id),
+            )
+        })
+}
+
+fn render_template(
+    template: &str,
+    parameters: &[conduit_panel::SourceValue],
+) -> Result<String, &'static str> {
+    let mut output = String::with_capacity(template.len());
+    let mut parameter = 0;
+    let mut chars = template.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match (ch, chars.peek().copied()) {
+            ('{', Some('{')) => {
+                chars.next();
+                output.push('{');
+            }
+            ('}', Some('}')) => {
+                chars.next();
+                output.push('}');
+            }
+            ('{', Some('}')) => {
+                chars.next();
+                let Some(conduit_panel::SourceValue::Text(value)) = parameters.get(parameter)
+                else {
+                    return Err("template has more placeholders than parameters");
+                };
+                output.push_str(value);
+                parameter += 1;
+            }
+            ('{' | '}', _) => return Err("unmatched brace in template"),
+            _ => output.push(ch),
+        }
+    }
+    if parameter != parameters.len() {
+        return Err("template has fewer placeholders than parameters");
+    }
+    Ok(output)
+}
+
+fn format_node(node: &Node) -> Result<String, RuntimeError> {
+    let template = node
+        .config("template")
+        .ok_or_else(|| RuntimeError::new("CND-RUN-004", "format template disappeared"))?;
+    let parameters = node
+        .config
+        .iter()
+        .find(|entry| entry.key == "parameters")
+        .and_then(|entry| match &entry.value {
+            conduit_panel::SourceValue::List(values) => Some(values.as_slice()),
+            _ => None,
+        })
+        .ok_or_else(|| RuntimeError::new("CND-RUN-004", "format parameters disappeared"))?;
+    render_template(template, parameters)
+        .map_err(|message| RuntimeError::new("CND-RUN-004", message))
+}
+
 struct Literal;
 
 impl Handler for Literal {
@@ -4144,6 +4358,19 @@ impl Handler for Literal {
             .config("value")
             .ok_or_else(|| RuntimeError::new("CND-RUN-004", "literal value disappeared"))?;
         Ok(vec![Value::text(value.as_bytes())])
+    }
+}
+
+struct Format;
+
+impl Handler for Format {
+    fn run(
+        &mut self,
+        node: &Node,
+        _inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        Ok(vec![Value::text(format_node(node)?.into_bytes())])
     }
 }
 
@@ -4303,6 +4530,52 @@ impl Handler for FallbackHandler {
 mod tests {
     use super::*;
     use conduit_panel::parse;
+
+    #[test]
+    fn format_uses_positional_placeholders_and_escaped_braces() {
+        let panel = parse(
+            r#"
+                panel 1
+                node message : std/format {
+                    template = "{} = {{status: {}}}"
+                    parameters = list("worker", "ready")
+                }
+                node output : std/stdout
+                cord message.out -> output.in
+            "#,
+        )
+        .unwrap();
+        let registry = Registry::compatibility_demo();
+        let resolved = registry.resolve(&panel).unwrap();
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        resolved
+            .run_batch(&mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+            })
+            .unwrap();
+        assert_eq!(output, b"worker = {status: ready}");
+    }
+
+    #[test]
+    fn format_rejects_placeholder_count_mismatch() {
+        let panel = parse(
+            r#"
+                panel 1
+                node message : std/format {
+                    template = "{} {}"
+                    parameters = list("only-one")
+                }
+            "#,
+        )
+        .unwrap();
+        let error = Registry::compatibility_demo().resolve(&panel).unwrap_err();
+        assert_eq!(error.code, "CND-SRC-002");
+        assert!(error.message.contains("more placeholders than parameters"));
+    }
 
     #[test]
     fn resolves_explains_and_runs_a_panel() {

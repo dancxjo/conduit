@@ -483,6 +483,8 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             &ExactHostedBindings::default(),
             ExactRunContext {
                 semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: conduit_core::Id("fixture/run"),
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -519,6 +521,8 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             &wrong_bindings,
             ExactRunContext {
                 semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: conduit_core::Id("fixture/run"),
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -554,6 +558,8 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             &bindings,
             ExactRunContext {
                 semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: conduit_core::Id("fixture/run"),
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

@@ -33,8 +33,8 @@ use conduit_package::{
 };
 use conduit_panel::{MAXIMUM_PANEL_SOURCE_BYTES, parse, parse_with_root};
 use conduit_runtime::{
-    ExactRunContext, ExecutionSummary, Registry, ResolvedPanel, ResolvedPanelView, RunIo,
-    RuntimeError, SchedulerReservation,
+    ExactExecutionReport, ExactRunContext, ExecutionSummary, Registry, ResolvedPanel,
+    ResolvedPanelView, RunIo, RuntimeError, SchedulerReservation,
 };
 use serde::Serialize;
 
@@ -43,6 +43,20 @@ struct PresentationOptions {
     diagnostic_format: DiagnosticFormat,
     color: ColorChoice,
     verbose_diagnostics: bool,
+}
+
+enum RunOutcome {
+    Exact(ExactExecutionReport),
+    Compatibility(ExecutionSummary),
+}
+
+impl RunOutcome {
+    const fn summary(&self) -> ExecutionSummary {
+        match self {
+            Self::Exact(report) => report.summary,
+            Self::Compatibility(summary) => *summary,
+        }
+    }
 }
 
 fn presentation(arguments: &Arguments) -> PresentationOptions {
@@ -523,8 +537,18 @@ fn run(
                     if let Some(failure) = stream.inner.failure.take() {
                         return Err(output_failure(&failure, presentation));
                     }
-                    if let Ok(summary) = &summary {
-                        if let Err(error) = stream.write_summary(*summary) {
+                    if let Ok(outcome) = &summary {
+                        if let RunOutcome::Exact(report) = outcome {
+                            for evidence in &report.evidence {
+                                if let Err(error) = stream.write_exact_evidence(evidence) {
+                                    if stream.inner.broken_pipe {
+                                        return Ok(Completion::BrokenPipe);
+                                    }
+                                    return Err(output_error(error, presentation));
+                                }
+                            }
+                        }
+                        if let Err(error) = stream.write_summary(outcome.summary()) {
                             if stream.inner.broken_pipe {
                                 return Ok(Completion::BrokenPipe);
                             }
@@ -535,13 +559,14 @@ fn run(
                 }
                 OutputFormat::Json => unreachable!("validated above"),
             };
-            let summary = summary.map_err(|error| {
+            let outcome = summary.map_err(|error| {
                 cli_error(
                     from_runtime_error(&error),
                     presentation,
                     vec![source_document],
                 )
             })?;
+            let summary = outcome.summary();
             emit_finished(
                 status_enabled,
                 "run",
@@ -562,10 +587,10 @@ fn execute_run(
     installed_profile: Option<&InstalledProfile>,
     compatibility_demo: bool,
     io: &mut RunIo<'_>,
-) -> Result<ExecutionSummary, RuntimeError> {
+) -> Result<RunOutcome, RuntimeError> {
     let Some(document) = compiled else {
         if compatibility_demo {
-            return resolved.run_batch(io);
+            return resolved.run_batch(io).map(RunOutcome::Compatibility);
         }
         return Err(RuntimeError::new(
             "CND-RUN-011",
@@ -579,30 +604,34 @@ fn execute_run(
     let bindings = installed_profile
         .ok_or_else(|| RuntimeError::new("CND-RUN-007", "installed provider profile is absent"))?
         .bindings(&plan)?;
-    resolved.run_exact(
-        &plan,
-        &bindings,
-        ExactRunContext {
-            semantic_source_hash: plan.source_semantic_hash,
-            validation: conduit_core::PlanValidationContext {
-                supported_schema_version: plan.schema_version,
-                now: plan.created_at,
+    resolved
+        .run_exact_report(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: conduit_core::Id("conduit/conduct-run"),
+                validation: conduit_core::PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 256,
+                    max_tick: 512,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
             },
-            scheduler_policy: SchedulerPolicy {
-                schema_version: SCHEDULER_CONTRACT_VERSION,
-                ready_queue: ReadyQueueDiscipline::RoundRobin,
-                max_decisions: 256,
-                max_tick: 512,
-                max_consecutive_yields: 8,
-                max_events: 64,
-            },
-            reservation: SchedulerReservation {
-                available_runtime_memory_bytes: plan.budget.memory_bytes,
-                executor_overhead_limit_bytes: plan.budget.memory_bytes,
-            },
-        },
-        io,
-    )
+            io,
+        )
+        .map(RunOutcome::Exact)
 }
 
 fn parse_arguments(

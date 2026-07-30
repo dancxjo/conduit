@@ -40,6 +40,31 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
             .unwrap()
             <= 256
     );
+    let evidence = result["evidence"].as_array().expect("typed evidence array");
+    assert!(!evidence.is_empty());
+    assert!(result["evidence_bytes"].as_u64().unwrap() <= 16 * 1024);
+    assert!(evidence.iter().all(|event| {
+        event["schema"] == "conduit.exact-execution-evidence/v1"
+            && event["plan_epoch"] == 1
+            && event["run_id"] == "conduit/browser-run"
+    }));
+    assert!(evidence.iter().any(|event| {
+        event["subject_kind"] == "node"
+            && event["implementation_id"]
+                .as_str()
+                .is_some_and(|value| value.starts_with("conduit/hosted-"))
+            && event["artifact_id"].as_str().is_some()
+            && event["host_id"] == "conduit/conduct-host"
+    }));
+    assert!(evidence.iter().any(|event| {
+        event["subject_kind"] == "cord"
+            && event["from_port"].as_str().is_some()
+            && event["to_port"].as_str().is_some()
+            && event["pressure"] == "block"
+    }));
+    assert!(evidence.iter().any(|event| {
+        event["event_kind"] == "terminal" && event["terminal_cause"] == "succeeded"
+    }));
 }
 
 #[test]

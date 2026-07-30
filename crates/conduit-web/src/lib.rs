@@ -181,6 +181,8 @@ fn run_panel_result(source: &str, compile_input_json: Option<&str>) -> String {
                 "decisions": report.high_water.decisions,
             },
             "scheduler_event_count": report.scheduler_events.len(),
+            "evidence_bytes": report.evidence_bytes,
+            "evidence": report.evidence,
         })
         .to_string(),
         Err(error) => serde_json::json!({
@@ -231,6 +233,8 @@ fn run_panel_exact_inner(
             &bindings,
             ExactRunContext {
                 semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: conduit_core::Id("conduit/browser-run"),
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

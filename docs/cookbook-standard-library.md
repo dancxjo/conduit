@@ -4,7 +4,26 @@ This cookbook provides executable recipes for the `conduit-std` standard catalog
 
 ---
 
-## 1. Structural & Flow Control Nodes
+## 1. Text Formatting
+
+`conduit.std/format` uses Rust-style positional `{}` placeholders. Parameters
+are consumed from a finite text array in order; `{{` and `}}` produce literal
+braces. Missing or unused parameters and unmatched braces are rejected while
+the panel is resolved.
+
+```panel
+panel 1
+
+node message : conduit.std/format {
+    template = "{} processed {} records; payload = {{ok}}.\n"
+    parameters = list("worker-1", "42")
+}
+node sink : conduit.std/stdout
+
+cord message.out -> sink.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+```
+
+## 2. Structural & Flow Control Nodes
 
 ### Pass-Through & Merge
 ```panel
@@ -36,7 +55,7 @@ cord splitter.out -> store.in { capacity = 8 max_value_bytes = 4096 max_queued_b
 
 ---
 
-## 2. State & Memory Nodes
+## 3. State & Memory Nodes
 
 ### Counter & Cell State
 ```panel
@@ -64,7 +83,7 @@ cord dedup.out -> sink.in { capacity = 16 max_value_bytes = 4096 max_queued_byte
 
 ---
 
-## 3. Resilience & Supervision Nodes
+## 4. Resilience & Supervision Nodes
 
 ### Circuit Breaker & Exponential Backoff
 ```panel
@@ -82,7 +101,7 @@ cord backoff_retry.out -> client.in { capacity = 8 max_value_bytes = 2048 max_qu
 
 ---
 
-## 4. Hardware & Wireless Nodes
+## 5. Hardware & Wireless Nodes
 
 ### Wi-Fi Station Join
 ```panel
@@ -106,7 +125,7 @@ cord button.out -> led.in { capacity = 4 max_value_bytes = 256 max_queued_bytes 
 
 ---
 
-## 5. Verification Commands
+## 6. Verification Commands
 
 Run validation, lowering, and plan execution for any recipe:
 

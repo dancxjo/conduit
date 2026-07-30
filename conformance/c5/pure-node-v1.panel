@@ -1,0 +1,26 @@
+# Canonical Recovery R3 proof: one finite value through installed pure nodes.
+panel 1
+
+node source : conduit.std/literal {
+    value = "Conduit exact slice.\n"
+}
+node transform : conduit.std/uppercase
+node sink : conduit.std/stdout
+
+cord source.out -> transform.in {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+
+cord transform.out -> sink.in {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

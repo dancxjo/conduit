@@ -1,0 +1,18 @@
+# Rust-style positional formatting with escaped literal braces.
+panel 1
+
+node greeting : std/format {
+    template = "Hello, {}. Payload: {{status = {}}}\n"
+    parameters = list("operator", "ready")
+}
+
+node output : std/stdout
+
+cord greeting.out -> output.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

@@ -220,6 +220,9 @@ const TRANSFORM: ConfigContract<'static> = ConfigContract {
         field("maximum_outputs_per_input", U64),
     ],
 };
+const FORMAT: ConfigContract<'static> = ConfigContract {
+    fields: &[field("template", BYTES), field("parameters", RECORD)],
+};
 const STATEFUL: ConfigContract<'static> = ConfigContract {
     fields: &[
         field("maximum_values", U64),
@@ -371,6 +374,17 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         ProducesDeclaredType,
         None,
         FINITE,
+        PURE
+    ),
+    entry!(
+        "conduit.std/format",
+        Transform,
+        FORMAT,
+        &[],
+        &[OUT_FINITE],
+        ProducesDeclaredType,
+        None,
+        BUFFERED,
         PURE
     ),
     entry!(

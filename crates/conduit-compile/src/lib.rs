@@ -1650,6 +1650,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         identity: String::new(),
         nodes: [
             "conduit.std/literal",
+            "conduit.std/format",
             "conduit.std/stdout",
             "conduit.std/uppercase",
             "conduit.std/supervisor",
@@ -1668,6 +1669,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         .collect::<Result<Vec<_>, CompileError>>()?,
         types: [
             "conduit/text.utf8",
+            "conduit/text-list",
             "conduit/terminal-observation",
             "conduit/supervision-decision",
         ]
@@ -1742,6 +1744,10 @@ impl<'a> PinnedCatalog<'a> {
 
 impl SourceContractCatalog for PinnedCatalog<'_> {
     fn node_schema(&self, id: &str) -> Option<OwnedNodeSchema> {
+        let canonical = id
+            .strip_prefix("std/")
+            .map(|name| format!("conduit.std/{name}"));
+        let id = canonical.as_deref().unwrap_or(id);
         let pin = self.exact_pin(&self.document.nodes, id)?;
         let schema = self.registry.node_schema(id)?;
         (pin.schema_version == 1 && pin.semantic_hash == schema.semantic_hash().to_string())
@@ -1749,6 +1755,10 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
     }
 
     fn node_contract(&self, id: &str) -> Option<OwnedNodeContract> {
+        let canonical = id
+            .strip_prefix("std/")
+            .map(|name| format!("conduit.std/{name}"));
+        let id = canonical.as_deref().unwrap_or(id);
         let pin = self.exact_pin(&self.document.nodes, id)?;
         let contract = self.registry.node_contract(id)?;
         (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash().to_string())
@@ -2707,6 +2717,9 @@ fn rewrite_node_kind(
     module: &conduit_panel::ResolvedModule,
     modules: &BTreeMap<&str, &conduit_panel::ResolvedModule>,
 ) -> Result<String, CompileError> {
+    if let Some(name) = kind.strip_prefix("std/") {
+        return Ok(format!("conduit.std/{name}"));
+    }
     if kind.starts_with("module.h") || kind.starts_with("conduit.std/") {
         return Ok(kind.to_owned());
     }
