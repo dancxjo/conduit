@@ -44,6 +44,7 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
     let plan = PlanSnapshot {
         identity: "sha256:plan".to_owned(),
         source_semantic_hash: old.clone(),
+        bindings: Vec::new(),
     };
     let run = RunSnapshot {
         run_id: "run/1".to_owned(),

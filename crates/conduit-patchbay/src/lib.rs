@@ -325,15 +325,42 @@ pub struct PresentationSnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct NodeAvailabilityProjection {
+    pub contract_id: String,
+    pub availability_state: String,
+    pub reason_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub implementation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_id: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub rejection_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SemanticSnapshot {
     pub source_semantic_hash: String,
     pub descriptor_identity: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub availabilities: Vec<NodeAvailabilityProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PlanBindingProjection {
+    pub instance: String,
+    pub contract_id: String,
+    pub implementation_id: String,
+    pub host_id: String,
+    pub availability_state: String,
+    pub reason_code: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PlanSnapshot {
     pub identity: String,
     pub source_semantic_hash: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub bindings: Vec<PlanBindingProjection>,
 }
 
 /// A run is pinned to its resolved plan even if source changes later.
@@ -547,6 +574,7 @@ impl Workspace {
         SemanticSnapshot {
             source_semantic_hash: self.source.semantic_hash.clone(),
             descriptor_identity: self.descriptor_identity.clone(),
+            availabilities: Vec::new(),
         }
     }
 

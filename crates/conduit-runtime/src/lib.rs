@@ -27,7 +27,7 @@ use conduit_core::{
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 mod artifact_verification;
 mod config_resolution;
@@ -328,253 +328,253 @@ const OUTPUT_TEXT_2: PortContract<'static> = PortContract {
     },
 };
 
-const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
+pub const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/literal"),
     config: LITERAL_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
-const STDIN_CONTRACT: NodeContract<'static> = NodeContract {
+pub const STDIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/stdin"),
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
-const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/uppercase"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
+pub const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/stdout"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
-const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
+pub const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/stderr"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
-const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
+pub const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/supervisor"),
     config: EMPTY_CONFIG,
     inputs: &[TERMINAL_OBSERVATION_INPUT],
     outputs: &[SUPERVISION_DECISION_OUTPUT],
 };
-const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
+pub const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/pass-through"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const TEE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const TEE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/tee"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT_1, OUTPUT_TEXT_2],
 };
-const MERGE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const MERGE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/merge"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT_1, INPUT_TEXT_2],
     outputs: &[OUTPUT_TEXT],
 };
-const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
+pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/delay"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/debounce"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/throttle"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/take"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const SKIP_CONTRACT: NodeContract<'static> = NodeContract {
+pub const SKIP_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/skip"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const FILTER_CONTRACT: NodeContract<'static> = NodeContract {
+pub const FILTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/filter"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
+pub const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/fallback"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_PRIMARY, INPUT_FALLBACK],
     outputs: &[OUTPUT_TEXT],
 };
-const PROBE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const PROBE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/probe"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const LOG_CONTRACT: NodeContract<'static> = NodeContract {
+pub const LOG_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/log"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const ASSERT_CONTRACT: NodeContract<'static> = NodeContract {
+pub const ASSERT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/assert"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const RECORD_CONTRACT: NodeContract<'static> = NodeContract {
+pub const RECORD_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/record"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const REPLAY_CONTRACT: NodeContract<'static> = NodeContract {
+pub const REPLAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/replay"),
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
-const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/fault-source"),
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
-const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
+pub const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/file-read"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/file-write"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
-const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/blob-store"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/kv-store"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
+pub const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/process-spawn"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
+pub const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/gpio-pin"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
+pub const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/serial-port"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const CELL_CONTRACT: NodeContract<'static> = NodeContract {
+pub const CELL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/cell"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
+pub const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/counter"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/deduplicate"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/cache"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
+pub const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/circuit-breaker"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/health-gate"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
+pub const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/backoff"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
+pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/wifi-station"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
+pub const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/wifi-ap"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
+pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/network-interface"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
+pub const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/tcp-socket"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
+pub const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/udp-socket"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
-const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
+pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit/dns-resolver"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
@@ -591,7 +591,8 @@ pub struct Value {
 }
 
 impl Value {
-    fn text(value: impl Into<Vec<u8>>) -> Self {
+    #[must_use]
+    pub fn text(value: impl Into<Vec<u8>>) -> Self {
         Self {
             value_type: TEXT_TYPE,
             bytes: value.into(),
@@ -609,7 +610,7 @@ pub struct RunIo<'a> {
     pub error: &'a mut dyn Write,
 }
 
-trait Handler {
+pub trait Handler {
     fn run(
         &mut self,
         node: &Node,
@@ -622,10 +623,74 @@ type HandlerFactory = fn() -> Box<dyn Handler>;
 type ConfigValidator = fn(&Node) -> Result<(), ResolutionError>;
 
 #[derive(Debug)]
-struct RegisteredNode {
-    contract: &'static NodeContract<'static>,
+struct RegisteredExecutable {
     factory: HandlerFactory,
     validate_config: ConfigValidator,
+}
+
+#[derive(Debug)]
+struct RegisteredNode {
+    contract: &'static NodeContract<'static>,
+    executable: Option<RegisteredExecutable>,
+}
+
+impl RegisteredNode {
+    fn factory(&self) -> HandlerFactory {
+        self.executable
+            .as_ref()
+            .expect("resolved node has executable implementation")
+            .factory
+    }
+}
+
+/// Operational availability state of a node or provider contract.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AvailabilityState {
+    /// Semantic contract present, but no executable provider implementation is registered.
+    ContractOnly,
+    /// Executable provider implementation is registered in the host registry.
+    ProviderAvailable,
+    /// Provider implementation is registered and satisfied for host execution.
+    ResolvableOnThisHost,
+    /// Node is bound to a specific node instance in an execution plan.
+    BoundInThisPlan,
+    /// Node instance is running.
+    Running,
+    /// Node is unsupported due to missing provider, artifact, capability, or grant.
+    Unsupported,
+}
+
+impl AvailabilityState {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ContractOnly => "contract-only",
+            Self::ProviderAvailable => "provider-available",
+            Self::ResolvableOnThisHost => "resolvable-on-this-host",
+            Self::BoundInThisPlan => "bound-in-this-plan",
+            Self::Running => "running",
+            Self::Unsupported => "unsupported",
+        }
+    }
+}
+
+/// Structured availability facts with stable reason codes.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct NodeAvailability {
+    pub contract_id: String,
+    pub state: AvailabilityState,
+    pub reason_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub implementation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub rejection_reasons: Vec<String>,
 }
 
 /// Built-in hosted implementation registry.
@@ -641,347 +706,228 @@ impl Registry {
     pub fn register_interface(&mut self, interface: OwnedInterfaceContract) {
         self.interfaces.insert(interface.id.clone(), interface);
     }
+
+    /// Registers a concrete executable provider implementation.
+    pub fn register_executable_node(
+        &mut self,
+        contract: &'static NodeContract<'static>,
+        factory: HandlerFactory,
+        validate_config: ConfigValidator,
+    ) {
+        self.nodes.insert(
+            contract.id.as_str(),
+            RegisteredNode {
+                contract,
+                executable: Some(RegisteredExecutable {
+                    factory,
+                    validate_config,
+                }),
+            },
+        );
+    }
+
+    /// Registers a semantic contract as contract-only.
+    pub fn register_contract_only(&mut self, contract: &'static NodeContract<'static>) {
+        self.nodes.insert(
+            contract.id.as_str(),
+            RegisteredNode {
+                contract,
+                executable: None,
+            },
+        );
+    }
+
+    /// Returns the availability state for a contract id.
+    pub fn node_availability(&self, contract_id: &str) -> NodeAvailability {
+        if let Some(registered) = self.nodes.get(contract_id) {
+            if registered.executable.is_some() {
+                NodeAvailability {
+                    contract_id: contract_id.to_owned(),
+                    state: AvailabilityState::ResolvableOnThisHost,
+                    reason_code: "CND-AVL-003".to_owned(),
+                    implementation_id: Some(format!("{contract_id}.default")),
+                    host_id: Some("hosted-default".to_owned()),
+                    plan_identity: None,
+                    run_id: None,
+                    rejection_reasons: Vec::new(),
+                }
+            } else {
+                NodeAvailability {
+                    contract_id: contract_id.to_owned(),
+                    state: AvailabilityState::ContractOnly,
+                    reason_code: "CND-AVL-001".to_owned(),
+                    implementation_id: None,
+                    host_id: None,
+                    plan_identity: None,
+                    run_id: None,
+                    rejection_reasons: vec!["CND-RES-008".to_owned()],
+                }
+            }
+        } else {
+            NodeAvailability {
+                contract_id: contract_id.to_owned(),
+                state: AvailabilityState::Unsupported,
+                reason_code: "CND-AVL-006".to_owned(),
+                implementation_id: None,
+                host_id: None,
+                plan_identity: None,
+                run_id: None,
+                rejection_reasons: vec!["CND-RES-001".to_owned()],
+            }
+        }
+    }
 }
 
 impl Default for Registry {
     fn default() -> Self {
         let mut nodes = BTreeMap::new();
+        // Honest runnable primitives
         nodes.insert(
             LITERAL_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &LITERAL_CONTRACT,
-                factory: || Box::new(Literal),
-                validate_config: validate_literal,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(Literal),
+                    validate_config: validate_literal,
+                }),
             },
         );
         nodes.insert(
             STDIN_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &STDIN_CONTRACT,
-                factory: || Box::new(Stdin),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(Stdin),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             UPPERCASE_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &UPPERCASE_CONTRACT,
-                factory: || Box::new(Uppercase),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(Uppercase),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             STDOUT_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &STDOUT_CONTRACT,
-                factory: || Box::new(Stdout),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(Stdout),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             STDERR_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &STDERR_CONTRACT,
-                factory: || Box::new(Stderr),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(Stderr),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             SUPERVISOR_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &SUPERVISOR_CONTRACT,
-                factory: || Box::new(Supervisor),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(Supervisor),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             PASS_THROUGH_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &PASS_THROUGH_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(PassThroughHandler),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             TEE_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &TEE_CONTRACT,
-                factory: || Box::new(TeeHandler),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(TeeHandler),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             MERGE_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &MERGE_CONTRACT,
-                factory: || Box::new(MergeHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            DELAY_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &DELAY_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            DEBOUNCE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &DEBOUNCE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            THROTTLE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &THROTTLE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            TAKE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &TAKE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            SKIP_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &SKIP_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            FILTER_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &FILTER_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(MergeHandler),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
         nodes.insert(
             FALLBACK_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &FALLBACK_CONTRACT,
-                factory: || Box::new(FallbackHandler),
-                validate_config: validate_empty_config,
+                executable: Some(RegisteredExecutable {
+                    factory: || Box::new(FallbackHandler),
+                    validate_config: validate_empty_config,
+                }),
             },
         );
-        nodes.insert(
-            PROBE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &PROBE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            LOG_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &LOG_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            ASSERT_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &ASSERT_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            RECORD_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &RECORD_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            REPLAY_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &REPLAY_CONTRACT,
-                factory: || Box::new(Literal),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            FAULT_SOURCE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &FAULT_SOURCE_CONTRACT,
-                factory: || Box::new(Literal),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            FILE_READ_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &FILE_READ_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            FILE_WRITE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &FILE_WRITE_CONTRACT,
-                factory: || Box::new(Stdout),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            BLOB_STORE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &BLOB_STORE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            KV_STORE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &KV_STORE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            PROCESS_SPAWN_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &PROCESS_SPAWN_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            GPIO_PIN_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &GPIO_PIN_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            SERIAL_PORT_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &SERIAL_PORT_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            CELL_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &CELL_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            COUNTER_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &COUNTER_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            DEDUPLICATE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &DEDUPLICATE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            CACHE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &CACHE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            CIRCUIT_BREAKER_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &CIRCUIT_BREAKER_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            HEALTH_GATE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &HEALTH_GATE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            BACKOFF_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &BACKOFF_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            WIFI_STATION_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &WIFI_STATION_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            WIFI_AP_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &WIFI_AP_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            NETWORK_INTERFACE_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &NETWORK_INTERFACE_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            TCP_SOCKET_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &TCP_SOCKET_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            UDP_SOCKET_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &UDP_SOCKET_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
-        nodes.insert(
-            DNS_RESOLVER_CONTRACT.id.as_str(),
-            RegisteredNode {
-                contract: &DNS_RESOLVER_CONTRACT,
-                factory: || Box::new(PassThroughHandler),
-                validate_config: validate_empty_config,
-            },
-        );
+
+        // Discoverable contract-only semantic nodes (no default executable provider)
+        let contract_only_list: &[&'static NodeContract<'static>] = &[
+            &DELAY_CONTRACT,
+            &DEBOUNCE_CONTRACT,
+            &THROTTLE_CONTRACT,
+            &TAKE_CONTRACT,
+            &SKIP_CONTRACT,
+            &FILTER_CONTRACT,
+            &PROBE_CONTRACT,
+            &LOG_CONTRACT,
+            &ASSERT_CONTRACT,
+            &RECORD_CONTRACT,
+            &REPLAY_CONTRACT,
+            &FAULT_SOURCE_CONTRACT,
+            &FILE_READ_CONTRACT,
+            &FILE_WRITE_CONTRACT,
+            &BLOB_STORE_CONTRACT,
+            &KV_STORE_CONTRACT,
+            &PROCESS_SPAWN_CONTRACT,
+            &GPIO_PIN_CONTRACT,
+            &SERIAL_PORT_CONTRACT,
+            &CELL_CONTRACT,
+            &COUNTER_CONTRACT,
+            &DEDUPLICATE_CONTRACT,
+            &CACHE_CONTRACT,
+            &CIRCUIT_BREAKER_CONTRACT,
+            &HEALTH_GATE_CONTRACT,
+            &BACKOFF_CONTRACT,
+            &WIFI_STATION_CONTRACT,
+            &WIFI_AP_CONTRACT,
+            &NETWORK_INTERFACE_CONTRACT,
+            &TCP_SOCKET_CONTRACT,
+            &UDP_SOCKET_CONTRACT,
+            &DNS_RESOLVER_CONTRACT,
+        ];
+
+        for &contract in contract_only_list {
+            nodes.insert(
+                contract.id.as_str(),
+                RegisteredNode {
+                    contract,
+                    executable: None,
+                },
+            );
+        }
         let mut types = TypeRegistry::default();
         types
             .register(BuiltinTypeProvider)
@@ -1105,7 +1051,13 @@ impl Registry {
                     format!("no ready implementation for `{}`", source.kind),
                 )
             })?;
-            (definition.validate_config)(&source)?;
+            let executable = definition.executable.as_ref().ok_or_else(|| {
+                ResolutionError::new(
+                    "CND-IMP-001",
+                    format!("no ready implementation for `{}`", source.kind),
+                )
+            })?;
+            (executable.validate_config)(&source)?;
             nodes.push(ResolvedNode { source, definition });
         }
 
@@ -2828,7 +2780,7 @@ impl ResolvedPanel<'_> {
             let driver = HostedSchedulerDriver {
                 kind,
                 node: resolved.source.clone(),
-                definition_factory: resolved.definition.factory,
+                definition_factory: resolved.definition.factory(),
                 store: store.clone(),
                 io: io_cell.clone(),
                 in_cords,
@@ -2947,7 +2899,7 @@ impl ResolvedPanel<'_> {
                 }
 
                 let resolved = &self.nodes[node_index];
-                let mut handler = (resolved.definition.factory)();
+                let mut handler = (resolved.definition.factory())();
                 let node_outputs = handler.run(&resolved.source, &inputs, io)?;
                 if node_outputs.len() != resolved.definition.contract.outputs.len() {
                     return Err(RuntimeError::new(
