@@ -7,12 +7,13 @@ use conduit_core::{
     BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
     EXECUTION_PLAN_SCHEMA_VERSION, EffectRequirement, EventClass, EventCorrelation,
     EventProviderCapabilities, EventStreamContract, EvidencePolicy, EvidenceStreamExtension,
-    ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy,
-    FlowQueueState, FlowWatermarks, GrantStatus, HostCapability, Id, ImplementationMachine,
-    InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting, MemoryCategory,
-    MemoryClaim, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCompositeMapping, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHostObservation,
-    PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
+    ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FeedbackBoundaryKind,
+    FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity,
+    FlowPolicy, FlowQueueState, FlowWatermarks, GrantStatus, HostCapability, Id,
+    ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting,
+    MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanCompositeMapping, PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary,
+    PlanHostObservation, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
     RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline, ReplayDelivery, ResolvedPlanCord,
     ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RetentionPolicy,
     RuntimeEvidenceMode, RuntimeEvidencePolicy, SCHEDULER_CONTRACT_VERSION, SampleSchedule,
@@ -24,7 +25,7 @@ use conduit_runtime::{
     DeterministicExecutor, OwnedEventPayload, RuntimeEvidenceContext, RuntimeTimestamp,
     RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind,
     SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
-    record_scheduler_evidence, validate_runtime_value_for_cord,
+    record_scheduler_evidence, validate_hosted_execution_plan, validate_runtime_value_for_cord,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -758,6 +759,87 @@ fn scheduler_preserves_only_plan_authorized_value_envelopes() {
             SchedulerStatus::Succeeded
         );
         assert_eq!(&*seen_envelopes.borrow(), &[envelope]);
+    });
+}
+
+#[test]
+fn feedback_cycle_requires_a_finite_boundary_and_reserves_retained_state() {
+    with_plan(2, 128, |base, profile| {
+        let cords = [
+            base.cords[0],
+            ResolvedPlanCord {
+                id: Id("feedback"),
+                from: ResolvedPlanPort {
+                    node: base.nodes[1].instance,
+                    ..base.cords[0].from
+                },
+                to: ResolvedPlanPort {
+                    node: base.nodes[0].instance,
+                    ..base.cords[0].to
+                },
+                ..base.cords[0]
+            },
+        ];
+        let mut cyclic = ExecutionPlan {
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            identity: ZERO,
+            cords: &cords,
+            ..base
+        };
+        cyclic.identity = cyclic.semantic_hash(&mut [ZERO; 16]).unwrap();
+        let context = PlanValidationContext {
+            supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+            now: AuthorityTime {
+                basis: Id("clock/monotonic"),
+                tick: 2,
+            },
+        };
+        assert_eq!(
+            validate_hosted_execution_plan(&cyclic, context)
+                .unwrap_err()
+                .code
+                .as_str(),
+            "CND-FBK-002"
+        );
+
+        let boundaries = [PlanFeedbackBoundary {
+            id: Id("fixture/feedback-state"),
+            node: base.nodes[1].instance,
+            cord: cords[1].id,
+            kind: FeedbackBoundaryKind::State,
+            initialization: FeedbackInitialization::Empty,
+            initial_items: 0,
+            initial_bytes: 0,
+            maximum_retained_items: 2,
+            maximum_retained_bytes: 64,
+            delay_ticks: 0,
+            clock: None,
+            replay_gap: FeedbackReplayGapPolicy::Fail,
+            cancellation: pin("fixture/feedback-cancellation", 96),
+            terminal: FeedbackTerminalPolicy::DropRetained,
+        }];
+        let mut admitted = ExecutionPlan {
+            identity: ZERO,
+            feedback_boundaries: &boundaries,
+            ..cyclic
+        };
+        admitted.identity = admitted.semantic_hash(&mut [ZERO; 16]).unwrap();
+        validate_hosted_execution_plan(&admitted, context).unwrap();
+
+        let mut executor = start_executor(
+            &admitted,
+            profile,
+            FixtureNode::source(1),
+            FixtureNode::sink(Rc::new(RefCell::new(Vec::new()))),
+            policy(100, 1_000),
+        )
+        .unwrap();
+        assert_eq!(executor.allocation().feedback_memory_bytes, 64);
+        executor.cancel(StopPolicy::Abort).unwrap();
+        assert_eq!(
+            executor.run_until_stalled().unwrap(),
+            SchedulerStatus::Cancelled
+        );
     });
 }
 

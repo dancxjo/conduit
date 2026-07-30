@@ -1480,6 +1480,18 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
+        allocated = allocated
+            .checked_add(PlanResourceBudget {
+                memory_bytes: boundary.maximum_retained_bytes,
+                ..PlanResourceBudget::ZERO
+            })
+            .ok_or_else(|| {
+                indexed(
+                    PlanDiagnosticCode::BudgetExceeded,
+                    PlanCollection::FeedbackBoundaries,
+                    index,
+                )
+            })?;
     }
 
     if plan.schema_version < 9 && !plan.distributed_cords.is_empty() {

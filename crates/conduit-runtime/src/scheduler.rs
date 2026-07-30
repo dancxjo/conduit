@@ -194,6 +194,7 @@ pub struct SchedulerReservation {
 pub struct SchedulerAllocation {
     pub node_memory_bytes: u64,
     pub cord_memory_bytes: u64,
+    pub feedback_memory_bytes: u64,
     pub pool_memory_bytes: u64,
     pub event_stream_memory_bytes: u64,
     pub job_memory_bytes: u64,
@@ -370,6 +371,11 @@ struct RuntimeCord<'p> {
     consumer_waiting: bool,
     state: FlowQueueState,
     drain_target: Option<FlowQueueState>,
+}
+
+struct FeedbackReservation {
+    _bytes: Box<[u8]>,
+    _items: Box<[Option<RuntimeValue>]>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1442,6 +1448,7 @@ pub struct DeterministicExecutor<'p, N> {
     drivers: Vec<N>,
     machines: Vec<ImplementationMachine<'p>>,
     cords: Vec<RuntimeCord<'p>>,
+    _feedback_reservations: Vec<FeedbackReservation>,
     workspaces: Vec<NodeWorkspace<'p>>,
     waits: Vec<Vec<WaitCondition<'p>>>,
     ready: FixedReadyQueue,
@@ -1536,6 +1543,29 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         for cord in plan.cords {
             cords.push(RuntimeCord::allocate(cord.flow, cord.queue_memory_bytes)?);
         }
+        let mut feedback_reservations = Vec::new();
+        feedback_reservations
+            .try_reserve_exact(plan.feedback_boundaries.len())
+            .map_err(|_| SchedulerError::AllocationFailed)?;
+        for boundary in plan.feedback_boundaries {
+            let byte_count = usize::try_from(boundary.maximum_retained_bytes)
+                .map_err(|_| SchedulerError::AllocationFailed)?;
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(byte_count)
+                .map_err(|_| SchedulerError::AllocationFailed)?;
+            bytes.resize(byte_count, 0);
+            let item_count = usize::from(boundary.maximum_retained_items);
+            let mut items = Vec::new();
+            items
+                .try_reserve_exact(item_count)
+                .map_err(|_| SchedulerError::AllocationFailed)?;
+            items.resize(item_count, None);
+            feedback_reservations.push(FeedbackReservation {
+                _bytes: bytes.into_boxed_slice(),
+                _items: items.into_boxed_slice(),
+            });
+        }
 
         let mut workspaces = Vec::new();
         let mut waits = Vec::new();
@@ -1563,6 +1593,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             drivers,
             machines,
             cords,
+            _feedback_reservations: feedback_reservations,
             workspaces,
             waits,
             ready: FixedReadyQueue::allocate(plan.nodes.len())?,
@@ -2361,6 +2392,11 @@ fn compute_allocation(
 ) -> Result<SchedulerAllocation, SchedulerError> {
     let node_memory_bytes = sum_memory(plan.nodes.iter().map(|node| node.allocation.memory_bytes))?;
     let cord_memory_bytes = sum_memory(plan.cords.iter().map(|cord| cord.queue_memory_bytes))?;
+    let feedback_memory_bytes = sum_memory(
+        plan.feedback_boundaries
+            .iter()
+            .map(|boundary| boundary.maximum_retained_bytes),
+    )?;
     let pool_memory_bytes = sum_memory(
         plan.instance_pools
             .iter()
@@ -2375,6 +2411,7 @@ fn compute_allocation(
     let planned_memory_bytes = [
         node_memory_bytes,
         cord_memory_bytes,
+        feedback_memory_bytes,
         pool_memory_bytes,
         event_stream_memory_bytes,
         job_memory_bytes,
@@ -2391,6 +2428,13 @@ fn compute_allocation(
         .iter()
         .try_fold(0_u64, |total, cord| {
             total.checked_add(u64::from(cord.flow.capacity.items()))
+        })
+        .ok_or(SchedulerError::ArithmeticOverflow)?;
+    let feedback_slots = plan
+        .feedback_boundaries
+        .iter()
+        .try_fold(0_u64, |total, boundary| {
+            total.checked_add(u64::from(boundary.maximum_retained_items))
         })
         .ok_or(SchedulerError::ArithmeticOverflow)?;
     let wake_interest_slots = plan.nodes.iter().try_fold(0_u64, |total, node| {
@@ -2417,6 +2461,7 @@ fn compute_allocation(
     let event_slots = policy.max_events;
 
     let queue_metadata = checked_size(queue_slots, size_of::<Option<QueuedValue>>())?;
+    let feedback_metadata = checked_size(feedback_slots, size_of::<Option<RuntimeValue>>())?;
     let ready_metadata = checked_size(u64::from(ready_slots), size_of::<Option<ReadyEntry>>())?;
     let wake_metadata = checked_size(
         wake_interest_slots
@@ -2449,6 +2494,7 @@ fn compute_allocation(
     )?;
     let executor_overhead_bytes = [
         queue_metadata,
+        feedback_metadata,
         ready_metadata,
         wake_metadata,
         transaction_metadata,
@@ -2464,6 +2510,7 @@ fn compute_allocation(
     Ok(SchedulerAllocation {
         node_memory_bytes,
         cord_memory_bytes,
+        feedback_memory_bytes,
         pool_memory_bytes,
         event_stream_memory_bytes,
         job_memory_bytes,

@@ -140,7 +140,24 @@ pub fn validate_hosted_execution_plan(
                 subject_index: None,
             })?;
     let mut scratch = vec![SemanticHash::from_bytes([0; 32]); fact_count];
-    conduit_core::validate_execution_plan(plan, context, &mut scratch)
+    conduit_core::validate_execution_plan(plan, context, &mut scratch)?;
+    let nodes = plan
+        .nodes
+        .iter()
+        .map(|node| node.instance)
+        .collect::<Vec<_>>();
+    let mut removed = vec![false; nodes.len()];
+    conduit_core::validate_feedback_graph(
+        &nodes,
+        plan.cords,
+        plan.feedback_boundaries,
+        &mut removed,
+    )
+    .map_err(|reason| conduit_core::PlanValidationError {
+        code: conduit_core::PlanDiagnosticCode::ValueEnvelope(reason),
+        collection: conduit_core::PlanCollection::FeedbackBoundaries,
+        subject_index: None,
+    })
 }
 
 const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
