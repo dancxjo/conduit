@@ -13,6 +13,7 @@ use conduit_core::{
     validate_distributed_handshake,
 };
 
+use crate::RuntimeValueEnvelope;
 use crate::transport::{
     CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_VERSION,
     TransportCapabilities,
@@ -48,6 +49,7 @@ pub struct OutboundDistributedFrame<'a> {
     pub sequence: Option<u64>,
     pub attempt: Option<u16>,
     pub correlation: Option<SemanticHash>,
+    pub value_envelope: Option<RuntimeValueEnvelope>,
     pub payload: &'a [u8],
 }
 
@@ -59,6 +61,7 @@ pub struct ReceivedDistributedFrame {
     pub sequence: Option<u64>,
     pub attempt: Option<u16>,
     pub correlation: Option<SemanticHash>,
+    pub value_envelope: Option<RuntimeValueEnvelope>,
     pub payload_bytes: usize,
 }
 
@@ -163,6 +166,7 @@ pub trait DistributedCordBackend {
                 sequence: Some(sequence),
                 attempt: None,
                 correlation,
+                value_envelope: None,
                 payload: &[],
             },
             authority,
@@ -186,6 +190,7 @@ pub trait DistributedCordBackend {
                 sequence: Some(sequence),
                 attempt: None,
                 correlation,
+                value_envelope: None,
                 payload: &[],
             },
             authority,
@@ -202,6 +207,7 @@ struct OwnedFrame {
     sequence: Option<u64>,
     attempt: Option<u16>,
     correlation: Option<SemanticHash>,
+    value_envelope: Option<RuntimeValueEnvelope>,
     payload: Vec<u8>,
 }
 
@@ -213,6 +219,7 @@ impl OwnedFrame {
             sequence: self.sequence,
             attempt: self.attempt,
             correlation: self.correlation,
+            value_envelope: self.value_envelope,
             payload: &self.payload,
         }
     }
@@ -551,6 +558,7 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
             sequence: frame.sequence,
             attempt: frame.attempt,
             correlation: frame.correlation,
+            value_envelope: frame.value_envelope,
             payload: frame.payload.to_vec(),
         };
         let fault = self.faults.front().copied();
@@ -670,6 +678,7 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
                     sequence: frame.sequence,
                     attempt: frame.attempt,
                     correlation: frame.correlation,
+                    value_envelope: frame.value_envelope,
                     payload: &[],
                 };
                 return self.reject_frame(frame, reason);
@@ -686,6 +695,7 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
                 sequence: frame.sequence,
                 attempt: frame.attempt,
                 correlation: frame.correlation,
+                value_envelope: frame.value_envelope,
                 payload: &[],
             };
             return self.reject_frame(frame, DistributedReason::BufferFull);
@@ -706,6 +716,7 @@ impl DistributedCordBackend for InMemoryDistributedCordBackend {
             sequence: frame.sequence,
             attempt: frame.attempt,
             correlation: frame.correlation,
+            value_envelope: frame.value_envelope,
             payload_bytes: frame.payload.len(),
         }))
     }

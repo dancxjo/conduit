@@ -18,9 +18,9 @@ use conduit_runtime::{
     CandidateRejectionReason, CapabilityPredicate, CarrierSecurityMode, DistributedCordBackend,
     DistributedFrameKind, HostResolverPolicy, InMemoryDistributedCordBackend,
     InMemoryTransportFault, OutboundDistributedFrame, PlacementCandidate, PlacementRequest,
-    ResolverTiePolicy, TransportReason, TransportTransition, decode_distributed_envelope,
-    encode_distributed_envelope, resolve_host_placement, validate_transport_selection,
-    validate_transport_transition,
+    ResolverTiePolicy, RuntimeTimestamp, RuntimeValueEnvelope, TransportReason,
+    TransportTransition, decode_distributed_envelope, encode_distributed_envelope,
+    resolve_host_placement, validate_transport_selection, validate_transport_transition,
 };
 use conduit_zenoh::{
     FIRMWARE_HOST_SERVICE_ADAPTER_ID, FIRMWARE_MESSAGE_ABI_ID, SecretFileHandle,
@@ -223,6 +223,7 @@ fn real_exchange(mode: CarrierSecurityMode) -> Value {
                 sequence: Some(1),
                 attempt: None,
                 correlation: Some(hash(92)),
+                value_envelope: None,
                 payload: mode.as_str().as_bytes(),
             },
             authorities(binding),
@@ -420,12 +421,32 @@ fn plaintext_zenoh_exchanges_a_real_frame_and_matches_the_oracle_evidence() {
     );
 
     let correlation = hash(91);
+    let mut timestamps = [RuntimeTimestamp::default(); conduit_core::MAX_VALUE_CLOCK_DOMAINS];
+    timestamps[0] = RuntimeTimestamp {
+        domain_index: 0,
+        tick: 12,
+        uncertainty_ticks: 1,
+    };
+    let value_envelope = RuntimeValueEnvelope {
+        representation: hash(92),
+        envelope_bytes: 48,
+        fragment_count: 1,
+        fragment_bytes: 10,
+        identity: Some(hash(93)),
+        correlation: Some(correlation),
+        causation: Some(hash(94)),
+        provenance: Some(hash(95)),
+        timestamp_count: 1,
+        timestamps,
+        sensitivity: Sensitivity::Restricted,
+    };
     let outbound = OutboundDistributedFrame {
         kind: DistributedFrameKind::Value,
         session_epoch: 1,
         sequence: Some(1),
         attempt: Some(0),
         correlation: Some(correlation),
+        value_envelope: Some(value_envelope),
         payload: b"live-zenoh",
     };
     connector
@@ -437,6 +458,7 @@ fn plaintext_zenoh_exchanges_a_real_frame_and_matches_the_oracle_evidence() {
     assert_eq!(received.sequence, Some(1));
     assert_eq!(received.attempt, Some(0));
     assert_eq!(received.correlation, Some(correlation));
+    assert_eq!(received.value_envelope, Some(value_envelope));
     assert_eq!(&destination[..received.payload_bytes], b"live-zenoh");
 
     let sent = connector.take_evidence().expect("Zenoh send evidence");
@@ -517,6 +539,7 @@ fn envelope_codec_rejects_wrong_identity_malformed_and_oversized_frames() {
         sequence: Some(7),
         attempt: None,
         correlation: None,
+        value_envelope: None,
         payload: b"bounded",
     };
     let mut bytes = [0_u8; 512];
@@ -1010,6 +1033,7 @@ fn value_frame(sequence: u64, payload: &'static [u8]) -> OutboundDistributedFram
         sequence: Some(sequence),
         attempt: None,
         correlation: Some(hash(100)),
+        value_envelope: None,
         payload,
     }
 }
@@ -1405,6 +1429,7 @@ fn execute_fixture(case: &str) -> Value {
                                 sequence: Some(1),
                                 attempt: None,
                                 correlation: None,
+                                value_envelope: None,
                                 payload: &[],
                             },
                             authorities(binding),

@@ -116,9 +116,11 @@ pub use transition::{
 };
 pub use transport::{
     CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_FIXED_BYTES,
-    DISTRIBUTED_ENVELOPE_VERSION, DecodedDistributedEnvelope, ResolvedTransportSelection,
+    DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES, DISTRIBUTED_ENVELOPE_VERSION,
+    DISTRIBUTED_ENVELOPE_VERSION_V2, DecodedDistributedEnvelope, ResolvedTransportSelection,
     TransportCapabilities, TransportReason, TransportTransition, decode_distributed_envelope,
-    encode_distributed_envelope, validate_transport_selection, validate_transport_transition,
+    decode_distributed_envelope_v2, encode_distributed_envelope, encode_distributed_envelope_v2,
+    validate_transport_selection, validate_transport_transition,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
