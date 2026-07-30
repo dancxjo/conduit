@@ -1,4 +1,5 @@
 use std::{
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -145,12 +146,70 @@ fn host_metadata(workspace_root: &Path, baseline: &Value) -> Value {
     })
 }
 
-fn workload_report(workspace_root: &Path, workloads: &[Value]) -> Vec<Value> {
-    let _ = run_cmd(
-        &["cargo", "test", "--release", "--workspace", "--no-run"],
-        workspace_root,
-        false,
-    );
+fn workload_test_targets(workloads: &[Value]) -> BTreeMap<String, BTreeSet<String>> {
+    let mut targets = BTreeMap::<String, BTreeSet<String>>::new();
+
+    for workload in workloads {
+        let Some(command) = workload.get("command").and_then(Value::as_array) else {
+            continue;
+        };
+        let args: Vec<&str> = command.iter().filter_map(Value::as_str).collect();
+        if args.get(..2) != Some(&["cargo", "test"]) {
+            continue;
+        }
+
+        let package = args
+            .windows(2)
+            .find(|pair| pair[0] == "-p" || pair[0] == "--package")
+            .map(|pair| pair[1]);
+        let test = args
+            .windows(2)
+            .find(|pair| pair[0] == "--test")
+            .map(|pair| pair[1]);
+
+        if let (Some(package), Some(test)) = (package, test) {
+            targets
+                .entry(package.to_owned())
+                .or_default()
+                .insert(test.to_owned());
+        }
+    }
+
+    targets
+}
+
+fn prebuild_workloads(workspace_root: &Path, workloads: &[Value]) -> Result<(), String> {
+    for (package, tests) in workload_test_targets(workloads) {
+        let mut args = vec![
+            "test".to_owned(),
+            "--release".to_owned(),
+            "-p".to_owned(),
+            package,
+            "--no-run".to_owned(),
+        ];
+        for test in tests {
+            args.push("--test".to_owned());
+            args.push(test);
+        }
+
+        let output = Command::new("cargo")
+            .args(&args)
+            .current_dir(workspace_root)
+            .output()
+            .map_err(|error| format!("failed to prebuild performance workloads: {error}"))?;
+        if !output.status.success() {
+            return Err(format!(
+                "performance workload prebuild failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn workload_report(workspace_root: &Path, workloads: &[Value]) -> Result<Vec<Value>, String> {
+    prebuild_workloads(workspace_root, workloads)?;
 
     let mut report = Vec::new();
     for wl in workloads {
@@ -161,7 +220,7 @@ fn workload_report(workspace_root: &Path, workloads: &[Value]) -> Vec<Value> {
         let elapsed_ns = if let Some(arr) = cmd_arr {
             let str_args: Vec<&str> = arr.iter().filter_map(Value::as_str).collect();
             let start = Instant::now();
-            let _ = run_cmd(&str_args, workspace_root, false);
+            run_cmd(&str_args, workspace_root, false)?;
             start.elapsed().as_nanos() as u64
         } else {
             0
@@ -173,7 +232,7 @@ fn workload_report(workspace_root: &Path, workloads: &[Value]) -> Vec<Value> {
             "gate": timing_gate
         }));
     }
-    report
+    Ok(report)
 }
 
 pub fn run(workspace_root: &Path, update: bool) -> Result<(), Box<dyn std::error::Error>> {
@@ -266,11 +325,12 @@ pub fn run(workspace_root: &Path, update: bool) -> Result<(), Box<dyn std::error
         .cloned()
         .unwrap_or_default();
 
+    let workload_report = workload_report(workspace_root, &workloads)?;
     let report = json!({
         "schema": "conduit.performance-report/v1",
         "metadata": host_metadata(workspace_root, &baseline),
         "artifacts": measured,
-        "workloads": workload_report(workspace_root, &workloads),
+        "workloads": workload_report,
     });
 
     println!("{}", serde_json::to_string_pretty(&report)?);
@@ -283,4 +343,50 @@ pub fn run(workspace_root: &Path, update: bool) -> Result<(), Box<dyn std::error
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::workload_test_targets;
+    use serde_json::json;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    #[test]
+    fn groups_only_the_release_test_binaries_used_by_workloads() {
+        let workloads = json!([
+            {
+                "command": ["cargo", "test", "--release", "-p", "alpha", "--test", "one"]
+            },
+            {
+                "command": [
+                    "cargo",
+                    "test",
+                    "--release",
+                    "--package",
+                    "alpha",
+                    "--test",
+                    "two"
+                ]
+            },
+            {
+                "command": ["cargo", "test", "--release", "-p", "beta", "--test", "three"]
+            },
+            {
+                "command": ["cargo", "run", "-p", "ignored"]
+            }
+        ]);
+
+        let expected = BTreeMap::from([
+            (
+                "alpha".to_owned(),
+                BTreeSet::from(["one".to_owned(), "two".to_owned()]),
+            ),
+            ("beta".to_owned(), BTreeSet::from(["three".to_owned()])),
+        ]);
+
+        assert_eq!(
+            workload_test_targets(workloads.as_array().unwrap()),
+            expected
+        );
+    }
 }
