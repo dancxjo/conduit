@@ -25,7 +25,7 @@ export function parsePanelToViewModel(sourceText, runtimeState = {}, savedPositi
     const trimmed = line.trim();
 
     // Composite header
-    const compMatch = trimmed.match(/^composite\s+([A-Za-z0-9_\/-]+)\s*\{/);
+    const compMatch = trimmed.match(/^composite\s+([A-Za-z0-9_.\/-]+)\s*\{/);
     if (compMatch) {
       currentComposite = {
         name: compMatch[1],
@@ -55,7 +55,7 @@ export function parsePanelToViewModel(sourceText, runtimeState = {}, savedPositi
     }
 
     // Node definition with optional block config
-    const nodeMatch = trimmed.match(/^node\s+([A-Za-z0-9_-]+)\s*:\s*([A-Za-z0-9_\/-]+)(?:\s*\{)?/);
+    const nodeMatch = trimmed.match(/^node\s+([A-Za-z0-9_-]+)\s*:\s*([A-Za-z0-9_.\/-]+)(?:\s*\{)?/);
     if (nodeMatch && !currentComposite) {
       const id = nodeMatch[1];
       const kind = nodeMatch[2];
@@ -180,6 +180,8 @@ export function parsePanelToViewModel(sourceText, runtimeState = {}, savedPositi
 
   // Build Edge View Models
   cords.forEach(c => {
+    const sourceNode = nodes.find(node => node.id === c.sourceNodeId);
+    const sourcePort = sourceNode?.outputs.find(port => port.name === c.sourcePortId);
     edges.push({
       id: c.id,
       sourceNodeId: c.sourceNodeId,
@@ -187,7 +189,8 @@ export function parsePanelToViewModel(sourceText, runtimeState = {}, savedPositi
       targetNodeId: c.targetNodeId,
       targetPortId: c.targetPortId,
       capacity: c.capacity,
-      pressure: c.pressure
+      pressure: c.pressure,
+      valueType: sourcePort?.type || "conduit/any"
     });
   });
 

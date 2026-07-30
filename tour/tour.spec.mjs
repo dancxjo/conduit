@@ -84,8 +84,17 @@ test("routes projected cords around intervening faceplates", async ({ page }) =>
 
   expect(route).not.toBeNull();
   expect(route.path).toMatch(/^M /);
+  expect(route.path).toContain(" Q ");
   expect(route.points.some((point) => point.y < 16 || point.y > 144)).toBe(true);
   expect(route.points.every((point) =>
     point.x < 104 || point.x > 216 || point.y < 16 || point.y > 144
   )).toBe(true);
+});
+
+test("styles cords from their projected type and pressure policy", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const edge = page.locator(".patchbay-smart-cord").first();
+  await expect(edge).toHaveClass(/pressure-block/);
+  await expect(edge).toHaveClass(/value-type-text/);
+  await expect(edge).toHaveAttribute("d", / Q /);
 });

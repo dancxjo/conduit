@@ -503,6 +503,52 @@ pre {
   position: relative;
 }
 
+.patchbay-smart-cord {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.patchbay-smart-cord.pressure-block {
+  stroke-dasharray: 10 6;
+  animation: patchbay-cord-flow 1.1s linear infinite;
+}
+
+.patchbay-smart-cord.pressure-sample {
+  stroke-dasharray: 2 10;
+  animation: patchbay-cord-sample 2s linear infinite;
+}
+
+.patchbay-smart-cord.pressure-coalesce {
+  stroke-dasharray: 14 4 3 4;
+  animation: patchbay-cord-flow 1.6s ease-in-out infinite;
+}
+
+.patchbay-smart-cord.pressure-drop-disposable {
+  stroke-dasharray: 4 7;
+  animation: patchbay-cord-drop 0.85s ease-out infinite;
+}
+
+@keyframes patchbay-cord-flow {
+  to { stroke-dashoffset: -32; }
+}
+
+@keyframes patchbay-cord-sample {
+  50% { stroke-opacity: 0.45; }
+  to { stroke-dashoffset: -24; }
+}
+
+@keyframes patchbay-cord-drop {
+  50% { stroke-opacity: 0.3; }
+  to { stroke-dashoffset: -22; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patchbay-smart-cord {
+    animation: none !important;
+  }
+}
+
 .conduit-faceplate-card {
   min-width: 220px;
   max-width: 320px;

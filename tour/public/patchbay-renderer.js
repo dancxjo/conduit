@@ -13,6 +13,25 @@ import { PatchbaySmartEdge } from "./patchbay-smart-edge.js";
 
 const e = window.React.createElement;
 
+function edgePresentation(edge) {
+  const pressure = edge.pressure.replaceAll("_", "-");
+  const type = edge.valueType.replace(/^conduit\//, "").replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const colors = {
+    any: "#38bdf8",
+    bytes: "#22d3ee",
+    text: "#34d399",
+    utf8: "#34d399",
+    json: "#c084fc",
+    "http-req": "#f59e0b",
+    "http-res": "#fb7185"
+  };
+  return {
+    color: colors[type] || "#60a5fa",
+    className: `pressure-${pressure} value-type-${type}`,
+    label: `${edge.valueType} · ${edge.capacity} cap · ${edge.pressure}`
+  };
+}
+
 export class PatchbayReactFlowRenderer {
   constructor(containerElement, options = {}) {
     this.container = containerElement;
@@ -151,20 +170,25 @@ export class PatchbayReactFlowRenderer {
       }
     }));
 
-    const flowEdges = viewModel.edges.map((edge) => ({
-      id: edge.id,
-      type: "smartCord",
-      source: edge.sourceNodeId,
-      sourceHandle: edge.sourcePortId,
-      target: edge.targetNodeId,
-      targetHandle: edge.targetPortId,
-      animated: edge.pressure === "block",
-      style: { stroke: "#38bdf8", strokeWidth: 2 },
-      labelStyle: { fill: "#94a3b8", fontSize: 11 },
-      labelBgStyle: { fill: "#0f172a", fillOpacity: 0.9 },
-      labelBgPadding: [6, 3],
-      label: `${edge.capacity} cap`
-    }));
+    const flowEdges = viewModel.edges.map((edge) => {
+      const presentation = edgePresentation(edge);
+      return {
+        id: edge.id,
+        type: "smartCord",
+        source: edge.sourceNodeId,
+        sourceHandle: edge.sourcePortId,
+        target: edge.targetNodeId,
+        targetHandle: edge.targetPortId,
+        animated: false,
+        className: presentation.className,
+        data: { presentationClass: presentation.className },
+        style: { stroke: presentation.color, strokeWidth: 2 },
+        labelStyle: { fill: "#cbd5e1", fontSize: 10 },
+        labelBgStyle: { fill: "#0f172a", fillOpacity: 0.92 },
+        labelBgPadding: [6, 3],
+        label: presentation.label
+      };
+    });
 
     const FlowApp = () => {
       const [nodes, setNodes, onNodesChange] = window.ReactFlow.useNodesState(flowNodes);
