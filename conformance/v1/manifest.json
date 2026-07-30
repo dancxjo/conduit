@@ -4606,7 +4606,7 @@
       "artifacts": [{
         "id": "replicated-pools-v1",
         "path": "../c4/replicated-pools-v1.json",
-        "sha256": "sha256:10ba9ad62ef2b255a5796645a825c9f860d6eabcccf30de7d6830c1efe53bcb2",
+        "sha256": "sha256:38d0c3ca3422ece9ff57b7ea65a100d90435f3a3853346641707a8de60592bfd",
         "operation": "replicated-pools-v1",
         "requirement_ids": [
           "POL-001", "POL-002", "POL-003", "POL-004", "POL-005",
@@ -4652,7 +4652,7 @@
           "fair-pool-selection": "POL-007",
           "evidence-exhaustion-before-mutation": "POL-010",
           "legacy-plan-not-executable": "POL-015",
-          "schema-16-roundtrip": "POL-002"
+          "schema-17-roundtrip": "POL-002"
         },
         "format": "json-vectors",
         "collection": "cases",
@@ -4667,7 +4667,7 @@
           "replicated-pools-v1#restart-success",
           "replicated-pools-v1#checkpoint-compatible",
           "replicated-pools-v1#generation-overlap",
-          "replicated-pools-v1#schema-16-roundtrip"
+          "replicated-pools-v1#schema-17-roundtrip"
         ],
         "negative": [
           "replicated-pools-v1#queue-full",

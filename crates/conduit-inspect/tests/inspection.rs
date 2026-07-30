@@ -317,31 +317,46 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         cpu_units: 1,
         ..PlanResourceBudget::ZERO
     };
-    let nodes = [ResolvedPlanNode {
-        instance: InstancePath::new("root/node").unwrap(),
-        contract: pin("fixture/contract", 6),
-        implementation: pin("fixture/implementation", 7),
-        lifecycle_policy: pin("fixture/lifecycle", 8),
-        execution_profile: None,
-        artifact: Id("artifact/a"),
-        host_observation: Id("observation/a"),
-        host: Id("host/a"),
-        allocation,
-        required_resources: &[],
-        required_effects: &[],
-    }];
+    let nodes = [
+        ResolvedPlanNode {
+            instance: InstancePath::new("root/source").unwrap(),
+            contract: pin("fixture/contract", 6),
+            implementation: pin("fixture/implementation", 7),
+            lifecycle_policy: pin("fixture/lifecycle", 8),
+            execution_profile: None,
+            artifact: Id("artifact/a"),
+            host_observation: Id("observation/a"),
+            host: Id("host/a"),
+            allocation,
+            required_resources: &[],
+            required_effects: &[],
+        },
+        ResolvedPlanNode {
+            instance: InstancePath::new("root/sink").unwrap(),
+            contract: pin("fixture/contract", 6),
+            implementation: pin("fixture/implementation", 7),
+            lifecycle_policy: pin("fixture/lifecycle", 8),
+            execution_profile: None,
+            artifact: Id("artifact/a"),
+            host_observation: Id("observation/a"),
+            host: Id("host/a"),
+            allocation: PlanResourceBudget::ZERO,
+            required_resources: &[],
+            required_effects: &[],
+        },
+    ];
     let capacity = FlowCapacity::new(1, 8, 8).unwrap();
     let cords = [ResolvedPlanCord {
         id: Id("cord/a"),
         from: ResolvedPlanPort {
-            node: InstancePath::new("root/node").unwrap(),
+            node: InstancePath::new("root/source").unwrap(),
             port: Id("out"),
             direction: Direction::Output,
             port_contract_hash: hash(11),
             value_type: VALUE_TYPE,
         },
         to: ResolvedPlanPort {
-            node: InstancePath::new("root/node").unwrap(),
+            node: InstancePath::new("root/sink").unwrap(),
             port: Id("in"),
             direction: Direction::Input,
             port_contract_hash: hash(12),
