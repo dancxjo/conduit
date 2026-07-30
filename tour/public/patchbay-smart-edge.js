@@ -11,7 +11,7 @@ const GRID = 16;
 const NODE_CLEARANCE = 16;
 const SEARCH_MARGIN = 96;
 const MAX_SEARCH_CELLS = 24_000;
-const CORNER_RADIUS = 10;
+const FLOWINESS = 0.32;
 
 function cellKey(x, y) {
   return `${x},${y}`;
@@ -39,33 +39,31 @@ function simplify(points) {
   return result;
 }
 
-function pointBeforeCorner(previous, corner, radius) {
-  const distance = Math.hypot(corner.x - previous.x, corner.y - previous.y);
-  const scale = Math.min(radius, distance / 2) / distance;
-  return {
-    x: corner.x + (previous.x - corner.x) * scale,
-    y: corner.y + (previous.y - corner.y) * scale,
-  };
-}
-
-function svgSmoothStepPath(points) {
+function catmullRomToSmoothPath(points, tension = FLOWINESS) {
   if (points.length < 2) return "";
   if (points.length === 2) {
     return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
   }
 
   const commands = [`M ${points[0].x} ${points[0].y}`];
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const previous = points[index - 1];
-    const corner = points[index];
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = points[Math.max(0, index - 1)];
+    const current = points[index];
     const next = points[index + 1];
-    const intoCorner = pointBeforeCorner(previous, corner, CORNER_RADIUS);
-    const outOfCorner = pointBeforeCorner(next, corner, CORNER_RADIUS);
-    commands.push(`L ${intoCorner.x} ${intoCorner.y}`);
-    commands.push(`Q ${corner.x} ${corner.y} ${outOfCorner.x} ${outOfCorner.y}`);
+    const nextNext = points[Math.min(points.length - 1, index + 2)];
+    const cp1 = {
+      x: current.x + ((next.x - previous.x) / 6) * tension,
+      y: current.y + ((next.y - previous.y) / 6) * tension,
+    };
+    const cp2 = {
+      x: next.x - ((nextNext.x - current.x) / 6) * tension,
+      y: next.y - ((nextNext.y - current.y) / 6) * tension,
+    };
+
+    commands.push(
+      `C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${next.x} ${next.y}`,
+    );
   }
-  const last = points[points.length - 1];
-  commands.push(`L ${last.x} ${last.y}`);
   return commands.join(" ");
 }
 
@@ -148,7 +146,7 @@ export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
       points[points.length - 1] = target;
       const simplified = simplify(points);
       return {
-        path: svgSmoothStepPath(simplified),
+        path: catmullRomToSmoothPath(simplified),
         points: simplified,
       };
     }

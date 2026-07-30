@@ -1,5 +1,7 @@
 //! Safe browser bindings to the production `.panel` parser.
 
+use std::{cell::RefCell, collections::BTreeMap};
+
 use wasm_bindgen::prelude::*;
 
 use conduit_compile::{CompileInput, InstalledProfile, compile_source};
@@ -7,6 +9,15 @@ use conduit_core::{
     ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, TerminalClass,
 };
 use conduit_runtime::{ExactExecutionReport, ExactRunContext, RuntimeError, SchedulerReservation};
+
+const MAXIMUM_PATCHBAY_SESSIONS: usize = 8;
+const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
+const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
+
+thread_local! {
+    static PATCHBAY_SESSIONS: RefCell<BTreeMap<String, conduit_patchbay::Workspace>> =
+        const { RefCell::new(BTreeMap::new()) };
+}
 
 struct ExactBrowserResult {
     report: ExactExecutionReport,
@@ -25,23 +36,628 @@ const fn terminal_name(terminal: TerminalClass) -> &'static str {
 }
 
 fn patchbay_error(error: conduit_patchbay::ProtocolError) -> String {
-    format!(
-        "{{\"ok\":false,\"diagnostic\":{:?},\"code\":{:?}}}",
-        error.to_string(),
-        error.code
-    )
+    serde_json::json!({
+        "ok": false,
+        "diagnostic": error.to_string(),
+        "code": error.code,
+        "diagnostics": error.diagnostics,
+        "disposition": error.disposition,
+    })
+    .to_string()
 }
 
 fn patchbay_result(result: conduit_patchbay::EditResult) -> String {
-    format!(
-        "{{\"ok\":true,\"source_revision\":{},\"presentation_revision\":{},\"semantic_hash\":{:?},\"presentation_identity\":{:?},\"positions\":{}}}",
-        result.source.revision,
-        result.presentation.revision,
-        result.semantic.source_semantic_hash,
-        result.presentation.identity,
-        serde_json::to_string(&result.presentation.node_positions)
-            .expect("Patchbay positions are serializable")
-    )
+    serde_json::json!({
+        "ok": true,
+        "source_revision": result.source.revision,
+        "presentation_revision": result.presentation.revision,
+        "semantic_hash": result.semantic.source_semantic_hash,
+        "presentation_identity": result.presentation.identity,
+        "positions": result.presentation.node_positions,
+        "candidate_revision": result.candidate_revision,
+        "diagnostics": result.diagnostics,
+        "compatibility": result.compatibility,
+        "disposition": result.disposition,
+    })
+    .to_string()
+}
+
+fn patchbay_rejection(
+    error: conduit_patchbay::ProtocolError,
+    workspace: &conduit_patchbay::Workspace,
+) -> String {
+    serde_json::json!({
+        "ok": false,
+        "diagnostic": error.to_string(),
+        "code": error.code,
+        "diagnostics": error.diagnostics,
+        "candidate_revision": {
+            "source": workspace.source().revision,
+            "presentation": workspace.presentation().revision,
+        },
+        "compatibility": {
+            "compatible": false,
+            "code": error.code,
+            "producer_type": null,
+            "consumer_type": null,
+            "candidate_plan_identity": null,
+            "plan_disposition": "rejected",
+        },
+        "disposition": error.disposition,
+    })
+    .to_string()
+}
+
+/// Opens one finite, revisioned Patchbay authoring session.
+#[wasm_bindgen]
+pub fn patchbay_open_session(document_id: String, source: String) -> String {
+    if document_id.is_empty() || document_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "Patchbay session identity exceeds its finite bound",
+            "diagnostics": [],
+            "disposition": "rejected",
+        })
+        .to_string();
+    }
+    let workspace = match conduit_patchbay::Workspace::new_with_history(
+        document_id.clone(),
+        source,
+        conduit_patchbay::DEFAULT_WORKSPACE_HISTORY_LIMIT,
+    ) {
+        Ok(workspace) => workspace,
+        Err(error) => return patchbay_error(error),
+    };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        if !sessions.contains_key(&document_id) && sessions.len() >= MAXIMUM_PATCHBAY_SESSIONS {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-006",
+                "diagnostic": "finite Patchbay session capacity exhausted",
+                "diagnostics": [],
+                "disposition": "rejected",
+            })
+            .to_string();
+        }
+        let view = match authoritative_patchbay_view(&workspace, None, None, None, &[]) {
+            Ok(view) => view,
+            Err(error) => return patchbay_error(error),
+        };
+        sessions.insert(document_id.clone(), workspace);
+        serde_json::json!({
+            "ok": true,
+            "session_id": document_id,
+            "view": view,
+        })
+        .to_string()
+    })
+}
+
+/// Returns the current authoritative Rust projection for a Patchbay session.
+#[wasm_bindgen]
+pub fn patchbay_session_view(session_id: String) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let sessions = sessions.borrow();
+        let Some(workspace) = sessions.get(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+                "diagnostics": [],
+                "disposition": "rejected",
+            })
+            .to_string();
+        };
+        match authoritative_patchbay_view(workspace, None, None, None, &[]) {
+            Ok(view) => serde_json::json!({"ok": true, "view": view}).to_string(),
+            Err(error) => patchbay_rejection(error, workspace),
+        }
+    })
+}
+
+/// Applies one typed candidate transaction against persistent session
+/// revisions. Candidate source is resolved and exactly planned before commit.
+#[wasm_bindgen]
+pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> String {
+    if request_json.len() > MAXIMUM_PATCHBAY_REQUEST_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "typed Patchbay transaction exceeds its finite byte budget",
+            "diagnostics": [],
+            "candidate_revision": null,
+            "compatibility": {
+                "compatible": false,
+                "code": "CND-PBY-006",
+                "producer_type": null,
+                "consumer_type": null,
+                "candidate_plan_identity": null,
+                "plan_disposition": "rejected",
+            },
+            "disposition": "rejected",
+        })
+        .to_string();
+    }
+    let request = match serde_json::from_str::<conduit_patchbay::EditRequest>(&request_json) {
+        Ok(request) => request,
+        Err(error) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-012",
+                "diagnostic": format!("invalid typed Patchbay transaction: {error}"),
+                "diagnostics": [],
+                "candidate_revision": null,
+                "compatibility": {
+                    "compatible": false,
+                    "code": "CND-PBY-012",
+                    "producer_type": null,
+                    "consumer_type": null,
+                    "candidate_plan_identity": null,
+                    "plan_disposition": "rejected",
+                },
+                "disposition": "rejected",
+            })
+            .to_string();
+        }
+    };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(workspace) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+                "diagnostics": [],
+                "disposition": "rejected",
+            })
+            .to_string();
+        };
+        let registry = conduit_runtime::Registry::hosted_primitives();
+        let result = workspace.apply_validated(
+            request,
+            |contract_id| availability_projection(&registry, contract_id),
+            |candidate| validate_patchbay_candidate(candidate),
+        );
+        match result {
+            Ok(result) => match authoritative_patchbay_view(workspace, None, None, None, &[]) {
+                Ok(view) => serde_json::json!({
+                    "ok": true,
+                    "result": result,
+                    "view": view,
+                    "history_retained": workspace.history().len(),
+                })
+                .to_string(),
+                Err(error) => patchbay_rejection(error, workspace),
+            },
+            Err(error) => patchbay_rejection(error, workspace),
+        }
+    })
+}
+
+fn availability_projection(
+    registry: &conduit_runtime::Registry,
+    contract_id: &str,
+) -> conduit_patchbay::NodeAvailabilityProjection {
+    let availability = registry.node_availability(contract_id);
+    conduit_patchbay::NodeAvailabilityProjection {
+        contract_id: availability.contract_id,
+        availability_state: availability.state.as_str().to_owned(),
+        reason_code: availability.reason_code,
+        implementation_id: availability.implementation_id,
+        host_id: availability.host_id,
+        rejection_reasons: availability.rejection_reasons,
+    }
+}
+
+fn validate_patchbay_candidate(
+    source: &str,
+) -> Result<conduit_patchbay::CompatibilityProof, conduit_patchbay::ProtocolError> {
+    let panel = conduit_panel::parse(source).map_err(|error| conduit_patchbay::ProtocolError {
+        code: "CND-PBY-004",
+        message: "candidate source failed parser validation".to_owned(),
+        diagnostics: vec![error.to_string()],
+        disposition: conduit_patchbay::EditDisposition::Rejected,
+    })?;
+    conduit_runtime::Registry::hosted_primitives()
+        .resolve(&panel)
+        .map_err(|error| conduit_patchbay::ProtocolError {
+            code: "CND-PBY-010",
+            message: "candidate source failed resolver compatibility validation".to_owned(),
+            diagnostics: vec![format!("{}: {}", error.code, error.message)],
+            disposition: conduit_patchbay::EditDisposition::Rejected,
+        })?;
+    let candidate_plan_identity = exact_plan_snapshot(source).map(|plan| plan.identity);
+    let plan_disposition = if candidate_plan_identity.is_some() {
+        "candidate-only"
+    } else {
+        "not-applicable"
+    };
+    Ok(conduit_patchbay::CompatibilityProof {
+        compatible: true,
+        code: if candidate_plan_identity.is_some() {
+            "CND-PBY-EXACT-PLAN".to_owned()
+        } else {
+            "CND-PBY-RESOLVED".to_owned()
+        },
+        producer_type: None,
+        consumer_type: None,
+        candidate_plan_identity,
+        plan_disposition: plan_disposition.to_owned(),
+    })
+}
+
+fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
+    let installed = InstalledProfile::observe(source).ok()?;
+    let document = compile_source(source, &installed.input).ok()?;
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).ok()?;
+    Some(conduit_patchbay::PlanSnapshot::from_exact_plan(&plan))
+}
+
+fn authoritative_patchbay_view(
+    workspace: &conduit_patchbay::Workspace,
+    exact_plan: Option<conduit_patchbay::PlanSnapshot>,
+    run: Option<conduit_patchbay::RunSnapshot>,
+    high_water: Option<conduit_patchbay::PatchbayHighWaterProjection>,
+    evidence: &[serde_json::Value],
+) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
+    let panel = conduit_panel::parse(&workspace.source().source).map_err(|error| {
+        conduit_patchbay::ProtocolError {
+            code: "CND-PBY-004",
+            message: "Patchbay source projection failed parser validation".to_owned(),
+            diagnostics: vec![error.to_string()],
+            disposition: conduit_patchbay::EditDisposition::Rejected,
+        }
+    })?;
+    let registry = conduit_runtime::Registry::hosted_primitives();
+    let resolved = registry
+        .resolve(&panel)
+        .map_err(|error| conduit_patchbay::ProtocolError {
+            code: "CND-PBY-010",
+            message: "Patchbay source projection failed resolver validation".to_owned(),
+            diagnostics: vec![format!("{}: {}", error.code, error.message)],
+            disposition: conduit_patchbay::EditDisposition::Rejected,
+        })?;
+    let resolved_view = resolved.view();
+    let plan = exact_plan.or_else(|| exact_plan_snapshot(&workspace.source().source));
+    let semantic = workspace.semantic_with_lookup(|id| availability_projection(&registry, id));
+    let bounds = conduit_patchbay::PatchbayProjectionBounds::default();
+    let mut expanded_nodes = resolved_view
+        .nodes
+        .iter()
+        .map(|node| {
+            project_resolved_node(
+                node,
+                &semantic,
+                plan.as_ref(),
+                run.as_ref(),
+                BTreeMap::new(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let expanded_by_id = expanded_nodes
+        .iter()
+        .map(|node| (node.id.clone(), node.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let mut logical_nodes = panel
+        .nodes
+        .iter()
+        .map(|source_node| {
+            let config = source_node
+                .config
+                .iter()
+                .map(|entry| (entry.key.clone(), project_config_value(&entry.value)))
+                .collect::<BTreeMap<_, _>>();
+            if let Some(node) = expanded_by_id.get(&source_node.id) {
+                let mut node = node.clone();
+                node.contract_id.clone_from(&source_node.kind);
+                node.config = config;
+                node
+            } else {
+                let composite = resolved_view
+                    .composites
+                    .iter()
+                    .find(|composite| composite.path == source_node.id);
+                let mut inputs = Vec::new();
+                let mut outputs = Vec::new();
+                if let Some(composite) = composite {
+                    for export in &composite.exports {
+                        let target = expanded_by_id.get(&export.target_node);
+                        let target_port = target.and_then(|node| {
+                            if export.direction == "input" {
+                                node.inputs
+                                    .iter()
+                                    .find(|port| port.id == export.target_port)
+                            } else {
+                                node.outputs
+                                    .iter()
+                                    .find(|port| port.id == export.target_port)
+                            }
+                        });
+                        let projected = conduit_patchbay::PatchbayPortProjection {
+                            id: export.id.clone(),
+                            direction: export.direction.to_owned(),
+                            type_id: target_port
+                                .map_or("unknown", |port| port.type_id.as_str())
+                                .to_owned(),
+                            delivery: target_port
+                                .map_or("unknown", |port| port.delivery.as_str())
+                                .to_owned(),
+                            connections: target_port
+                                .map_or("unknown", |port| port.connections.as_str())
+                                .to_owned(),
+                            connected: panel.cords.iter().any(|cord| {
+                                if export.direction == "input" {
+                                    cord.to.node == source_node.id && cord.to.port == export.id
+                                } else {
+                                    cord.from.node == source_node.id && cord.from.port == export.id
+                                }
+                            }),
+                        };
+                        if export.direction == "input" {
+                            inputs.push(projected);
+                        } else {
+                            outputs.push(projected);
+                        }
+                    }
+                }
+                conduit_patchbay::PatchbayNodeProjection {
+                    id: source_node.id.clone(),
+                    semantic_id: format!("root/{}", source_node.id),
+                    contract_id: source_node.kind.clone(),
+                    inputs,
+                    outputs,
+                    config,
+                    availability: availability_projection(&registry, &source_node.kind),
+                    placement: plan_placement(plan.as_ref(), &source_node.id),
+                    activity: None,
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+    for expanded in &mut expanded_nodes {
+        if let Some(logical) = logical_nodes
+            .iter()
+            .find(|logical| logical.id == expanded.id)
+        {
+            expanded.config.clone_from(&logical.config);
+        }
+    }
+    let mut cords = resolved_view
+        .cords
+        .iter()
+        .map(|cord| {
+            let producer_type = expanded_by_id
+                .get(&cord.from_node)
+                .and_then(|node| node.outputs.iter().find(|port| port.id == cord.from_port))
+                .map(|port| port.type_id.clone())
+                .unwrap_or_else(|| "unknown".to_owned());
+            let consumer_type = expanded_by_id
+                .get(&cord.to_node)
+                .and_then(|node| node.inputs.iter().find(|port| port.id == cord.to_port))
+                .map(|port| port.type_id.clone())
+                .unwrap_or_else(|| "unknown".to_owned());
+            conduit_patchbay::PatchbayCordProjection {
+                id: cord.id.clone(),
+                from_node: cord.from_node.clone(),
+                from_port: cord.from_port.clone(),
+                to_node: cord.to_node.clone(),
+                to_port: cord.to_port.clone(),
+                value_type: producer_type.clone(),
+                compatibility: conduit_patchbay::CompatibilityProof {
+                    compatible: true,
+                    code: "CND-TYP-EXACT".to_owned(),
+                    producer_type: Some(producer_type),
+                    consumer_type: Some(consumer_type),
+                    candidate_plan_identity: plan.as_ref().map(|plan| plan.identity.clone()),
+                    plan_disposition: "observed-active-plan".to_owned(),
+                },
+                capacity_items: cord.capacity_items,
+                max_value_bytes: cord.max_value_bytes,
+                max_queued_bytes: cord.max_queued_bytes,
+                low_watermark_items: cord.low_watermark_items,
+                high_watermark_items: cord.high_watermark_items,
+                pressure: cord.pressure.clone(),
+                high_water_items: None,
+            }
+        })
+        .collect::<Vec<_>>();
+    for node in &mut expanded_nodes {
+        for port in &mut node.inputs {
+            port.connected = cords
+                .iter()
+                .any(|cord| cord.to_node == node.id && cord.to_port == port.id);
+        }
+        for port in &mut node.outputs {
+            port.connected = cords
+                .iter()
+                .any(|cord| cord.from_node == node.id && cord.from_port == port.id);
+        }
+    }
+    for node in &mut logical_nodes {
+        for port in &mut node.inputs {
+            port.connected = panel
+                .cords
+                .iter()
+                .any(|cord| cord.to.node == node.id && cord.to.port == port.id);
+        }
+        for port in &mut node.outputs {
+            port.connected = panel
+                .cords
+                .iter()
+                .any(|cord| cord.from.node == node.id && cord.from.port == port.id);
+        }
+    }
+    let mut composites = resolved_view
+        .composites
+        .iter()
+        .map(|composite| conduit_patchbay::PatchbayCompositeProjection {
+            id: composite.path.clone(),
+            definition: composite.definition.clone(),
+            members: composite
+                .children
+                .iter()
+                .map(|child| child.path.clone())
+                .collect(),
+            exports: composite
+                .exports
+                .iter()
+                .map(|export| conduit_patchbay::PatchbayExportProjection {
+                    direction: export.direction.to_owned(),
+                    id: export.id.clone(),
+                    target_node: export.target_node.clone(),
+                    target_port: export.target_port.clone(),
+                })
+                .collect(),
+        })
+        .collect::<Vec<_>>();
+    let mut truncated = logical_nodes.len() > bounds.maximum_nodes
+        || expanded_nodes.len() > bounds.maximum_nodes
+        || cords.len() > bounds.maximum_cords
+        || composites.len() > bounds.maximum_composites
+        || evidence.len() > bounds.maximum_evidence_events;
+    logical_nodes.truncate(bounds.maximum_nodes);
+    expanded_nodes.truncate(bounds.maximum_nodes);
+    cords.truncate(bounds.maximum_cords);
+    composites.truncate(bounds.maximum_composites);
+    for node in logical_nodes.iter_mut().chain(expanded_nodes.iter_mut()) {
+        truncated |= node.inputs.len() > bounds.maximum_ports_per_node
+            || node.outputs.len() > bounds.maximum_ports_per_node
+            || node.config.len() > bounds.maximum_config_fields_per_node;
+        node.inputs.truncate(bounds.maximum_ports_per_node);
+        node.outputs.truncate(bounds.maximum_ports_per_node);
+        if node.config.len() > bounds.maximum_config_fields_per_node {
+            node.config = std::mem::take(&mut node.config)
+                .into_iter()
+                .take(bounds.maximum_config_fields_per_node)
+                .collect();
+        }
+    }
+    for composite in &mut composites {
+        truncated |= composite.members.len() > bounds.maximum_nodes
+            || composite.exports.len() > bounds.maximum_ports_per_node;
+        composite.members.truncate(bounds.maximum_nodes);
+        composite.exports.truncate(bounds.maximum_ports_per_node);
+    }
+    Ok(conduit_patchbay::PatchbayViewModel {
+        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_V1,
+        source: workspace.source().clone(),
+        semantic,
+        presentation: workspace.presentation().clone(),
+        plan,
+        run,
+        high_water,
+        evidence: evidence
+            .iter()
+            .take(bounds.maximum_evidence_events)
+            .cloned()
+            .collect(),
+        topology: conduit_patchbay::PatchbayTopologyProjection {
+            logical_nodes,
+            expanded_nodes,
+            cords,
+            composites,
+        },
+        bounds,
+        truncated,
+    })
+}
+
+fn project_resolved_node(
+    node: &conduit_runtime::ResolvedNodeView,
+    semantic: &conduit_patchbay::SemanticSnapshot,
+    plan: Option<&conduit_patchbay::PlanSnapshot>,
+    _run: Option<&conduit_patchbay::RunSnapshot>,
+    config: BTreeMap<String, conduit_patchbay::PatchbayConfigProjection>,
+) -> conduit_patchbay::PatchbayNodeProjection {
+    let project_port = |port: &conduit_runtime::ResolvedPortView, direction: &str| {
+        conduit_patchbay::PatchbayPortProjection {
+            id: port.id.clone(),
+            direction: direction.to_owned(),
+            type_id: port.type_id.clone(),
+            delivery: port.delivery.to_owned(),
+            connections: port.connections.to_owned(),
+            connected: false,
+        }
+    };
+    conduit_patchbay::PatchbayNodeProjection {
+        id: node.id.clone(),
+        semantic_id: format!("root/{}", node.id),
+        contract_id: node.contract_id.clone(),
+        inputs: node
+            .inputs
+            .iter()
+            .map(|port| project_port(port, "input"))
+            .collect(),
+        outputs: node
+            .outputs
+            .iter()
+            .map(|port| project_port(port, "output"))
+            .collect(),
+        config,
+        availability: semantic
+            .availabilities
+            .iter()
+            .find(|availability| availability.contract_id == node.contract_id)
+            .cloned()
+            .unwrap_or_else(|| conduit_patchbay::NodeAvailabilityProjection {
+                contract_id: node.contract_id.clone(),
+                availability_state: "unsupported".to_owned(),
+                reason_code: "CND-AVL-006".to_owned(),
+                implementation_id: None,
+                host_id: None,
+                rejection_reasons: vec!["no authoritative availability observation".to_owned()],
+            }),
+        placement: plan_placement(plan, &node.id),
+        activity: None,
+    }
+}
+
+fn project_config_value(
+    value: &conduit_panel::SourceValue,
+) -> conduit_patchbay::PatchbayConfigProjection {
+    let (kind, display_value, editable) = match value {
+        conduit_panel::SourceValue::Boolean(value) => ("boolean", value.to_string(), false),
+        conduit_panel::SourceValue::Integer(value) => ("integer", value.to_string(), false),
+        conduit_panel::SourceValue::Text(value) => ("text", value.clone(), true),
+        conduit_panel::SourceValue::Bytes(value) => {
+            ("bytes", format!("[{} bytes]", value.len()), false)
+        }
+        conduit_panel::SourceValue::Reference(value) => ("reference", value.clone(), false),
+        conduit_panel::SourceValue::ContractReference(value) => {
+            ("contract-reference", value.clone(), false)
+        }
+        conduit_panel::SourceValue::SecretReference(_) => {
+            ("secret-reference", "[redacted]".to_owned(), false)
+        }
+        conduit_panel::SourceValue::ExactDecimal(value) => ("exact-decimal", value.clone(), false),
+        conduit_panel::SourceValue::List(values) => {
+            ("list", format!("[{} values]", values.len()), false)
+        }
+        conduit_panel::SourceValue::Record(fields) => {
+            ("record", format!("{{{} fields}}", fields.len()), false)
+        }
+    };
+    conduit_patchbay::PatchbayConfigProjection {
+        kind: kind.to_owned(),
+        display_value,
+        editable,
+    }
+}
+
+fn plan_placement(plan: Option<&conduit_patchbay::PlanSnapshot>, node_id: &str) -> Option<String> {
+    plan.and_then(|plan| {
+        plan.bindings
+            .iter()
+            .find(|binding| {
+                binding.instance == node_id
+                    || binding.instance == format!("root/{node_id}")
+                    || binding.instance.ends_with(&format!("/{node_id}"))
+            })
+            .map(|binding| binding.host_id.clone())
+    })
 }
 
 /// Applies a source transaction through the production Patchbay protocol.
@@ -264,30 +880,6 @@ fn run_panel_exact_inner(
     let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
     let workspace = conduit_patchbay::Workspace::new("conduit/browser-source", source)
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?;
-    let semantic = workspace.semantic_with_lookup(|contract_id| {
-        plan_snapshot
-            .bindings
-            .iter()
-            .find(|binding| binding.contract_id == contract_id)
-            .map_or_else(
-                || conduit_patchbay::NodeAvailabilityProjection {
-                    contract_id: contract_id.to_owned(),
-                    availability_state: "unavailable".to_owned(),
-                    reason_code: "CND-AVL-006".to_owned(),
-                    implementation_id: None,
-                    host_id: None,
-                    rejection_reasons: vec!["not bound in the exact plan".to_owned()],
-                },
-                |binding| conduit_patchbay::NodeAvailabilityProjection {
-                    contract_id: contract_id.to_owned(),
-                    availability_state: binding.availability_state.clone(),
-                    reason_code: binding.reason_code.clone(),
-                    implementation_id: Some(binding.implementation_id.clone()),
-                    host_id: Some(binding.host_id.clone()),
-                    rejection_reasons: Vec::new(),
-                },
-            )
-    });
     let registry = conduit_runtime::Registry::hosted_primitives();
     let resolved = registry
         .resolve(&panel)
@@ -333,14 +925,31 @@ fn run_panel_exact_inner(
         source_semantic_hash: plan_snapshot.source_semantic_hash.clone(),
         state: conduit_patchbay::RunState::Terminal,
     };
-    let patchbay = serde_json::json!({
-        "source": workspace.source(),
-        "semantic": semantic,
-        "presentation": workspace.presentation(),
-        "plan": plan_snapshot,
-        "run": run,
-        "evidence": &report.evidence,
-    });
+    let evidence = report
+        .evidence
+        .iter()
+        .map(|event| {
+            serde_json::to_value(event)
+                .map_err(|error| RuntimeError::new("CND-PBY-009", error.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let patchbay = serde_json::to_value(
+        authoritative_patchbay_view(
+            &workspace,
+            Some(plan_snapshot),
+            Some(run),
+            Some(conduit_patchbay::PatchbayHighWaterProjection {
+                queue_items: report.high_water.queue_items,
+                queue_payload_bytes: report.high_water.queue_payload_bytes,
+                ready_slots: report.high_water.ready_slots,
+                event_slots: report.high_water.event_slots,
+                decisions: report.high_water.decisions,
+            }),
+            &evidence,
+        )
+        .map_err(|error| RuntimeError::new(error.code, error.to_string()))?,
+    )
+    .map_err(|error| RuntimeError::new("CND-PBY-009", error.to_string()))?;
     Ok(ExactBrowserResult {
         report,
         output,
@@ -353,7 +962,10 @@ fn run_panel_exact_inner(
 mod tests {
     use serde_json::Value;
 
-    use super::{explain_panel, patchbay_move_node, patchbay_replace_source};
+    use super::{
+        explain_panel, patchbay_apply_transaction, patchbay_move_node, patchbay_open_session,
+        patchbay_replace_source, patchbay_session_view,
+    };
 
     const SOURCE: &str = "panel 1\nnode greeting : conduit.std/literal { value = \"hello\\n\" }\nnode output : conduit.std/stdout\ncord greeting.out -> output.in\n";
 
@@ -406,5 +1018,200 @@ mod tests {
             value.contains("transform.worker : conduit.std/uppercase")
                 || value.contains("transform.worker : conduit.std/uppercase")
         }));
+    }
+
+    #[test]
+    fn persistent_patchbay_session_returns_only_rust_resolved_facts() {
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/session".to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true);
+        assert_eq!(opened["view"]["protocol_version"], 1);
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["type_id"],
+            "conduit/text.utf8"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["cords"][0]["compatibility"]["compatible"],
+            true
+        );
+        assert!(
+            opened["view"]["topology"]["logical_nodes"][0]
+                .get("fake_activity")
+                .is_none()
+        );
+
+        let request = serde_json::json!({
+            "protocol_version": 1,
+            "document_id": "test/session",
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{
+                "MoveNode": {
+                    "node_id": "greeting",
+                    "position": {"x": 12, "y": 24}
+                }
+            }]
+        });
+        let moved: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/session".to_owned(),
+            request.to_string(),
+        ))
+        .expect("move JSON");
+        assert_eq!(moved["ok"], true);
+        assert_eq!(moved["result"]["candidate_revision"]["presentation"], 1);
+        assert_eq!(moved["result"]["disposition"], "committed");
+        assert_eq!(
+            moved["result"]["compatibility"]["code"],
+            "CND-PBY-PRESENTATION-ONLY"
+        );
+
+        let stale: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/session".to_owned(),
+            request.to_string(),
+        ))
+        .expect("stale JSON");
+        assert_eq!(stale["ok"], false);
+        assert_eq!(stale["code"], "CND-PBY-003");
+        assert_eq!(stale["disposition"], "rejected");
+
+        let observed: Value =
+            serde_json::from_str(&patchbay_session_view("test/session".to_owned()))
+                .expect("view JSON");
+        assert_eq!(
+            observed["view"]["presentation"]["node_positions"]["greeting"]["x"],
+            12
+        );
+
+        let replacement = serde_json::json!({
+            "protocol_version": 1,
+            "document_id": "test/session",
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 1,
+            "operations": [{
+                "ReplaceSource": {"source": SOURCE.replace("hello", "candidate")}
+            }]
+        });
+        let replaced: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/session".to_owned(),
+            replacement.to_string(),
+        ))
+        .expect("replacement JSON");
+        assert_eq!(replaced["ok"], true, "{replaced}");
+        assert_eq!(
+            replaced["result"]["compatibility"]["code"],
+            "CND-PBY-EXACT-PLAN"
+        );
+        assert_eq!(
+            replaced["result"]["compatibility"]["plan_disposition"],
+            "candidate-only"
+        );
+        assert!(
+            replaced["result"]["compatibility"]["candidate_plan_identity"]
+                .as_str()
+                .is_some_and(|identity| identity.starts_with("sha256:"))
+        );
+        assert_eq!(replaced["result"]["candidate_revision"]["source"], 1);
+    }
+
+    #[test]
+    fn candidate_connection_rejects_hidden_composite_members() {
+        let composite = "panel 1\n\
+composite example/box {\n\
+  node worker : conduit.std/uppercase\n\
+  export input in = worker.in\n\
+  export output out = worker.out\n\
+}\n\
+node source : conduit.std/literal { value = \"hello\" }\n\
+node box : example/box\n\
+node sink : conduit.std/stdout\n\
+cord source.out -> box.in\n\
+cord box.out -> sink.in\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/composite".to_owned(),
+            composite.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true);
+        assert_eq!(
+            opened["view"]["topology"]["composites"][0]["exports"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(
+            opened["view"]["topology"]["expanded_nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|node| node["id"] == "box.worker")
+        );
+        assert!(
+            opened["view"]["topology"]["logical_nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|node| node["id"] == "box")
+                .is_some_and(|node| {
+                    node["inputs"].as_array().unwrap().len() == 1
+                        && node["outputs"].as_array().unwrap().len() == 1
+                })
+        );
+        let request = serde_json::json!({
+            "protocol_version": 1,
+            "document_id": "test/composite",
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{
+                "Connect": {
+                    "from_node": "source",
+                    "from_port": "out",
+                    "to_node": "box.worker",
+                    "to_port": "in",
+                    "bounds": {
+                        "capacity_items": 1,
+                        "max_value_bytes": 64,
+                        "max_queued_bytes": 64,
+                        "low_watermark_items": 0,
+                        "high_watermark_items": 1,
+                        "pressure": "block"
+                    }
+                }
+            }]
+        });
+        let rejected: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/composite".to_owned(),
+            request.to_string(),
+        ))
+        .expect("rejection JSON");
+        assert_eq!(rejected["ok"], false);
+        assert_eq!(rejected["code"], "CND-PBY-005");
+    }
+
+    #[test]
+    fn patchbay_projection_reports_deterministic_truncation() {
+        let mut source = String::from("panel 1\n");
+        for index in 0..513 {
+            source.push_str(&format!(
+                "node literal_{index} : conduit.std/literal {{ value = \"{index}\" }}\n\
+                 node output_{index} : conduit.std/stdout\n\
+                 cord literal_{index}.out -> output_{index}.in\n"
+            ));
+        }
+        let opened: Value =
+            serde_json::from_str(&patchbay_open_session("test/truncation".to_owned(), source))
+                .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        assert_eq!(opened["view"]["truncated"], true);
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1_024
+        );
     }
 }

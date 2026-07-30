@@ -41,6 +41,10 @@ try {
     JSON.stringify(run.patchbay.evidence) === JSON.stringify(run.evidence),
     "Patchbay invented or omitted evidence",
   );
+  assert(
+    JSON.stringify(run.patchbay.high_water) === JSON.stringify(run.high_water),
+    "Patchbay invented or omitted executor high-water facts",
+  );
   const binding = run.patchbay.plan.bindings[0];
   for (const invented of ["port_type", "placement", "activity"]) {
     assert(!Object.hasOwn(binding, invented), `Rust projection contains invented ${invented}`);

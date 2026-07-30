@@ -68,14 +68,30 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
   await expect(source).toHaveValue(/node salutation/);
 });
 
-test("uses Reaflow with legacy line placement disabled", async ({ page }) => {
+test("uses React Flow with legacy line placement disabled", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const canvas = page.locator("#patchbay-flow-root");
-  await expect(canvas).toHaveAttribute("data-renderer", "reaflow");
+  await expect(canvas).toHaveAttribute("data-renderer", "react-flow");
+  await expect(canvas).toHaveAttribute("data-projection", "rust-authoritative-v1");
   await expect(canvas).toHaveAttribute("data-legacy-line-placement", "false");
   await expect(canvas).toHaveAttribute("data-node-count", "2");
   await expect(canvas).toHaveAttribute("data-edge-count", "1");
   await expect(page.locator(".conduit-faceplate-card")).toHaveCount(2, {
+    timeout: 20_000,
+  });
+});
+
+test("retains headless editing and execution when presentation fails", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  await page.evaluate(() => {
+    window.React = undefined;
+  });
+  const source = page.locator("#source");
+  await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Headless proof."));
+  await expect(page.locator("#result")).toContainText("Valid panel");
+  await expect(page.locator("#cy")).toContainText("React Flow libraries unavailable.");
+  await page.locator("#run").click();
+  await expect(page.locator("#result")).toContainText("Headless proof.", {
     timeout: 20_000,
   });
 });

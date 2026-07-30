@@ -2,7 +2,7 @@
  * Conduit Patchbay Rich Equipment Faceplate Renderer (#90, #99, #91)
  *
  * Implements standard customizable equipment faceplate DOM components
- * for Reaflow projection.
+ * for ReactFlow projection.
  */
 
 const e = window.React.createElement;
@@ -15,6 +15,8 @@ export function FaceplateNodeComponent({ data, id }) {
     inputs = [],
     outputs = [],
     status = "idle",
+    placement = null,
+    activity = null,
     isComposite = false,
     isSelected = false,
     onConfigChange,
@@ -28,24 +30,34 @@ export function FaceplateNodeComponent({ data, id }) {
     setConfigValues(config);
   }, [config]);
 
-  const handleInputChange = (key, val) => {
-    const next = { ...configValues, [key]: val };
+  const handleInputChange = (key, projection, val) => {
+    const next = {
+      ...configValues,
+      [key]: { ...projection, display_value: val }
+    };
     setConfigValues(next);
     if (onConfigChange) {
-      onConfigChange(id, key, val);
+      onConfigChange(id, key, val, projection.kind);
     }
   };
 
   const statusColor = status === "running" ? "#22c55e" : status === "error" ? "#ef4444" : "#94a3b8";
 
-  // Reaflow owns port geometry. These labels are presentation only.
+  // ReactFlow owns port geometry. Type and connection facts come from Rust.
   const inputJacks = inputs.map((port, idx) => {
     const topOffset = 60 + idx * 36;
 
     return e("div", { key: port.id, className: "faceplate-jack input-jack", style: { top: `${topOffset}px` } },
-      e("span", { className: "jack-label", title: `Type: ${port.type}` },
-        e("span", { className: "jack-status-dot", style: { background: port.connectionState === "connected" ? "#38bdf8" : "#475569" } }),
-        port.name
+      e(window.ReactFlow.Handle, {
+        id: port.id,
+        type: "target",
+        position: window.ReactFlow.Position.Left,
+        className: "jack-handle",
+        isConnectable: false,
+      }),
+      e("span", { className: "jack-label", title: `Type: ${port.type_id}` },
+        e("span", { className: "jack-status-dot", style: { background: port.connected ? "#38bdf8" : "#475569" } }),
+        port.id
       )
     );
   });
@@ -55,70 +67,35 @@ export function FaceplateNodeComponent({ data, id }) {
     const topOffset = 60 + idx * 36;
 
     return e("div", { key: port.id, className: "faceplate-jack output-jack", style: { top: `${topOffset}px` } },
-      e("span", { className: "jack-label", title: `Type: ${port.type}` },
-        port.name,
-        e("span", { className: "jack-status-dot", style: { background: port.connectionState === "connected" ? "#38bdf8" : "#475569" } })
+      e(window.ReactFlow.Handle, {
+        id: port.id,
+        type: "source",
+        position: window.ReactFlow.Position.Right,
+        className: "jack-handle",
+        isConnectable: false,
+      }),
+      e("span", { className: "jack-label", title: `Type: ${port.type_id}` },
+        port.id,
+        e("span", { className: "jack-status-dot", style: { background: port.connected ? "#38bdf8" : "#475569" } })
       )
     );
   });
 
   // Config controls
   const configFields = Object.keys(configValues).map((key) => {
+    const projection = configValues[key];
     return e("div", { key, className: "faceplate-control-row" },
       e("label", { className: "control-label" }, key),
       e("input", {
         type: "text",
         className: "control-input nodrag",
-        value: configValues[key] || "",
+        value: projection.display_value,
+        readOnly: !projection.editable,
         onMouseDown: (evt) => evt.stopPropagation(),
-        onChange: (evt) => handleInputChange(key, evt.target.value)
+        onChange: (evt) => handleInputChange(key, projection, evt.target.value)
       })
     );
   });
-
-  // Default fields for known node types if not explicitly set
-  if (configFields.length === 0 && expanded) {
-    if (kind.includes("literal")) {
-      configFields.push(
-        e("div", { key: "value", className: "faceplate-control-row" },
-          e("label", { className: "control-label" }, "value"),
-          e("input", {
-            type: "text",
-            className: "control-input nodrag",
-            placeholder: "Literal string...",
-            onMouseDown: (evt) => evt.stopPropagation(),
-            onChange: (evt) => handleInputChange("value", evt.target.value)
-          })
-        )
-      );
-    } else if (kind.includes("http-server")) {
-      configFields.push(
-        e("div", { key: "port", className: "faceplate-control-row" },
-          e("label", { className: "control-label" }, "port"),
-          e("input", {
-            type: "text",
-            className: "control-input nodrag",
-            defaultValue: "8080",
-            onMouseDown: (evt) => evt.stopPropagation(),
-            onChange: (evt) => handleInputChange("port", evt.target.value)
-          })
-        )
-      );
-    } else if (kind.includes("file-read") || kind.includes("file-write")) {
-      configFields.push(
-        e("div", { key: "path", className: "faceplate-control-row" },
-          e("label", { className: "control-label" }, "path"),
-          e("input", {
-            type: "text",
-            className: "control-input nodrag",
-            placeholder: "/var/data.log",
-            onMouseDown: (evt) => evt.stopPropagation(),
-            onChange: (evt) => handleInputChange("path", evt.target.value)
-          })
-        )
-      );
-    }
-  }
 
   return e("div", {
       className: `conduit-faceplate-card ${status} ${isComposite ? "composite-faceplate" : ""} ${isSelected ? "selected-faceplate" : ""}`,
@@ -144,15 +121,14 @@ export function FaceplateNodeComponent({ data, id }) {
     // Subheader
     e("div", { className: "faceplate-subhead" },
       e("code", { className: "kind-tag" }, kind),
-      e("span", { className: "badge placement-tag" }, "dedicated-worker")
+      placement && e("span", { className: "badge placement-tag" }, placement)
     ),
     // Body
     expanded && e("div", { className: "faceplate-body" },
       configFields,
-      // Activity meter
-      (kind.includes("stdout") || kind.includes("log") || kind.includes("http")) && e("div", { className: "faceplate-meter" },
+      activity && e("div", { className: "faceplate-meter" },
         e("span", { className: "meter-label" }, "Activity:"),
-        e("span", { className: "sparkline" }, "▂▃▅▂▇ 184 msg/s")
+        e("span", { className: "sparkline" }, activity)
       ),
       // Composite panel inspection action
       isComposite && e("div", { className: "composite-action-row" },

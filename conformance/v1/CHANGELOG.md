@@ -1,5 +1,19 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 47 — 2026-07-30
+
+- Replaced Patchbay browser parsing, contract inference, configuration regex
+  rewriting, hard-coded placement, and fake activity with a versioned bounded
+  Rust view model derived from parser, resolver, exact-plan, runtime evidence,
+  and separate presentation resources.
+- Added persistent finite-history browser sessions and typed candidate
+  move/connect/disconnect/config/source transactions with revisions,
+  diagnostics, compatibility proofs, dispositions, and exact candidate-plan
+  identities when resolvable.
+- Added stale/concurrent, incompatible connection, hidden composite port,
+  invalid span, projection truncation, renderer failure/headless recovery, and
+  direct active-plan mutation negatives for recovery issue #115.
+
 ## Manifest revision 45 — 2026-07-29
 
 - Added 33 independently dispatched live-plan-transition cases covering

@@ -500,7 +500,7 @@ pre {
 
 }
 
-/* Reaflow & Equipment Faceplates Styling (#90, #99, #91) */
+/* React Flow & Equipment Faceplates Styling (#90, #99, #91) */
 .patchbay-flow-container {
   overflow: hidden;
   border-radius: 8px;
@@ -513,18 +513,17 @@ pre {
   height: 100%;
 }
 
-.reaflow-node-shell {
-  overflow: visible;
+.react-flow-node-shell {
+  position: relative;
+  width: 280px;
 }
 
-.reaflow-node-shell .conduit-faceplate-card {
+.react-flow-node-shell .conduit-faceplate-card {
   box-sizing: border-box;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
 }
 
-.reaflow-cord {
+.react-flow-cord {
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -756,14 +755,16 @@ pre {
   font-size: 0.75rem;
   font-family: var(--font-mono);
   color: var(--text-muted);
+  max-width: calc(100% - 0.6rem);
+  white-space: nowrap;
 }
 
 .input-jack {
-  left: -8px;
+  left: 4px;
 }
 
 .output-jack {
-  right: -8px;
+  right: 4px;
   flex-direction: row-reverse;
 }
 
@@ -792,6 +793,10 @@ pre {
   border-radius: 4px;
   border: 1px solid var(--line-color);
   font-size: 0.7rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 1024px) {

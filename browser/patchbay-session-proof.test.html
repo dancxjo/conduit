@@ -1,0 +1,114 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Patchbay authoritative session proof</title>
+<pre id="result">running</pre>
+<script type="module">
+  import init, {
+    patchbay_apply_transaction,
+    patchbay_open_session,
+    patchbay_session_view,
+  } from "../tour/public/conduit_web.js";
+
+  const result = document.querySelector("#result");
+  const assert = (condition, message) => {
+    if (!condition) throw new Error(message);
+  };
+  const source = `panel 1
+node greeting : conduit.std/literal { value = "hello" }
+node output : conduit.std/stdout
+cord greeting.out -> output.in {
+  capacity = 1
+  max_value_bytes = 64
+  max_queued_bytes = 64
+  low_watermark = 0
+  high_watermark = 1
+  pressure = block
+}
+`;
+  const request = (documentId, sourceRevision, presentationRevision, operations) =>
+    JSON.stringify({
+      protocol_version: 1,
+      document_id: documentId,
+      expected_source_revision: sourceRevision,
+      expected_presentation_revision: presentationRevision,
+      operations,
+    });
+
+  try {
+    await init();
+    const opened = JSON.parse(patchbay_open_session("browser/proof", source));
+    assert(opened.ok, opened.diagnostic);
+    const view = opened.view;
+    assert(view.protocol_version === 1, "view model is not versioned");
+    assert(view.bounds.maximum_history === 16, "history is not explicitly bounded");
+    assert(view.topology.logical_nodes.length === 2, "Rust logical projection drifted");
+    assert(view.topology.expanded_nodes.length === 2, "Rust expanded projection drifted");
+    assert(view.topology.cords[0].value_type === "conduit/text.utf8", "typed cord was inferred");
+    assert(view.topology.cords[0].compatibility.compatible, "compatibility proof missing");
+    assert(view.topology.logical_nodes.every((node) => !("fake_activity" in node)),
+      "browser projection invented activity");
+
+    const movedRequest = request("browser/proof", 0, 0, [{
+      MoveNode: { node_id: "greeting", position: { x: 31, y: -7 } },
+    }]);
+    const moved = JSON.parse(patchbay_apply_transaction("browser/proof", movedRequest));
+    assert(moved.ok && moved.result.disposition === "committed", "move did not commit");
+    assert(moved.result.candidate_revision.presentation === 1, "candidate revision missing");
+    assert(moved.result.compatibility.code === "CND-PBY-PRESENTATION-ONLY",
+      "presentation move claimed semantic compatibility");
+
+    const stale = JSON.parse(patchbay_apply_transaction("browser/proof", movedRequest));
+    assert(!stale.ok && stale.code === "CND-PBY-003", "stale revision did not fail atomically");
+    const afterStale = JSON.parse(patchbay_session_view("browser/proof"));
+    assert(afterStale.view.presentation.node_positions.greeting.x === 31,
+      "stale edit mutated session state");
+
+    const incompatible = JSON.parse(patchbay_apply_transaction(
+      "browser/proof",
+      request("browser/proof", 0, 1, [{
+        Connect: {
+          from_node: "greeting",
+          from_port: "out",
+          to_node: "greeting",
+          to_port: "missing",
+          bounds: {
+            capacity_items: 1,
+            max_value_bytes: 64,
+            max_queued_bytes: 64,
+            low_watermark_items: 0,
+            high_watermark_items: 1,
+            pressure: "block",
+          },
+        },
+      }]),
+    ));
+    assert(!incompatible.ok && incompatible.code === "CND-PBY-010",
+      "incompatible connection was not resolver-rejected");
+
+    const invalidConfig = JSON.parse(patchbay_apply_transaction(
+      "browser/proof",
+      request("browser/proof", 0, 1, [{
+        SetConfig: {
+          node_id: "output",
+          key: "missing",
+          value: { kind: "text", value: "invented" },
+        },
+      }]),
+    ));
+    assert(!invalidConfig.ok && invalidConfig.code === "CND-PBY-012",
+      "invalid config span did not fail closed");
+
+    const activeMutation = JSON.parse(patchbay_apply_transaction(
+      "browser/proof",
+      request("browser/proof", 0, 1, [{
+        DirectActivePlanMutation: { plan_identity: "attacker-plan" },
+      }]),
+    ));
+    assert(!activeMutation.ok && activeMutation.code === "CND-PBY-012",
+      "direct active-plan mutation entered the protocol");
+
+    result.textContent = "ok";
+  } catch (error) {
+    result.textContent = `failed: ${error.stack || error}`;
+  }
+</script>

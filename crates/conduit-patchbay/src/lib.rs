@@ -4,12 +4,15 @@
 //! projections.  It never makes layout part of `.panel` semantics, resolves a
 //! plan, executes a node, or appends executor evidence.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
 pub const PATCHBAY_PROTOCOL_V1: u16 = 1;
+pub const DEFAULT_WORKSPACE_HISTORY_LIMIT: usize = 16;
+pub const MAXIMUM_EDIT_OPERATIONS: usize = 32;
+pub const MAXIMUM_PATCHBAY_DIAGNOSTICS: usize = 64;
 
 /// Rebuildable presentation of one exact pool generation. Source, plan, run,
 /// evidence, and presentation identities remain separate.
@@ -345,6 +348,151 @@ pub struct SemanticSnapshot {
     pub availabilities: Vec<NodeAvailabilityProjection>,
 }
 
+/// Versioned, bounded renderer input. Every field is copied from an
+/// authoritative Rust resource; presentation clients may arrange these facts
+/// but may not infer missing semantic or runtime state.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayViewModel {
+    pub protocol_version: u16,
+    pub source: SourceSnapshot,
+    pub semantic: SemanticSnapshot,
+    pub presentation: PresentationSnapshot,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan: Option<PlanSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run: Option<RunSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub high_water: Option<PatchbayHighWaterProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub evidence: Vec<serde_json::Value>,
+    pub topology: PatchbayTopologyProjection,
+    pub bounds: PatchbayProjectionBounds,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayHighWaterProjection {
+    pub queue_items: u64,
+    pub queue_payload_bytes: u64,
+    pub ready_slots: u32,
+    pub event_slots: u32,
+    pub decisions: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayProjectionBounds {
+    pub maximum_nodes: usize,
+    pub maximum_cords: usize,
+    pub maximum_composites: usize,
+    pub maximum_ports_per_node: usize,
+    pub maximum_config_fields_per_node: usize,
+    pub maximum_evidence_events: usize,
+    pub maximum_diagnostics: usize,
+    pub maximum_history: usize,
+}
+
+impl Default for PatchbayProjectionBounds {
+    fn default() -> Self {
+        Self {
+            maximum_nodes: 1_024,
+            maximum_cords: 4_096,
+            maximum_composites: 1_024,
+            maximum_ports_per_node: 256,
+            maximum_config_fields_per_node: 256,
+            maximum_evidence_events: 256,
+            maximum_diagnostics: MAXIMUM_PATCHBAY_DIAGNOSTICS,
+            maximum_history: DEFAULT_WORKSPACE_HISTORY_LIMIT,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayTopologyProjection {
+    pub logical_nodes: Vec<PatchbayNodeProjection>,
+    pub expanded_nodes: Vec<PatchbayNodeProjection>,
+    pub cords: Vec<PatchbayCordProjection>,
+    pub composites: Vec<PatchbayCompositeProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayNodeProjection {
+    pub id: String,
+    pub semantic_id: String,
+    pub contract_id: String,
+    pub inputs: Vec<PatchbayPortProjection>,
+    pub outputs: Vec<PatchbayPortProjection>,
+    pub config: BTreeMap<String, PatchbayConfigProjection>,
+    pub availability: NodeAvailabilityProjection,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placement: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayConfigProjection {
+    pub kind: String,
+    pub display_value: String,
+    pub editable: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayPortProjection {
+    pub id: String,
+    pub direction: String,
+    pub type_id: String,
+    pub delivery: String,
+    pub connections: String,
+    pub connected: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayCordProjection {
+    pub id: String,
+    pub from_node: String,
+    pub from_port: String,
+    pub to_node: String,
+    pub to_port: String,
+    pub value_type: String,
+    pub compatibility: CompatibilityProof,
+    pub capacity_items: u16,
+    pub max_value_bytes: u32,
+    pub max_queued_bytes: u64,
+    pub low_watermark_items: u16,
+    pub high_watermark_items: u16,
+    pub pressure: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub high_water_items: Option<u16>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayCompositeProjection {
+    pub id: String,
+    pub definition: String,
+    pub members: Vec<String>,
+    pub exports: Vec<PatchbayExportProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayExportProjection {
+    pub direction: String,
+    pub id: String,
+    pub target_node: String,
+    pub target_port: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CompatibilityProof {
+    pub compatible: bool,
+    pub code: String,
+    pub producer_type: Option<String>,
+    pub consumer_type: Option<String>,
+    pub candidate_plan_identity: Option<String>,
+    /// `candidate-only` means source may commit but no active plan changes;
+    /// activation requires the bounded #57 transition protocol.
+    pub plan_disposition: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PlanBindingProjection {
     pub instance: String,
@@ -424,6 +572,7 @@ impl RunSnapshot {
                     message: "execution evidence does not match the projected run and exact plan"
                         .to_owned(),
                     diagnostics: Vec::new(),
+                    disposition: EditDisposition::Rejected,
                 });
             }
             terminal |= matches!(
@@ -501,6 +650,7 @@ impl ProjectionLog {
                 code: "CND-PBY-006",
                 message: "projection retention capacity must be finite and nonzero".to_owned(),
                 diagnostics: Vec::new(),
+                disposition: EditDisposition::Rejected,
             });
         }
         Ok(Self {
@@ -562,6 +712,44 @@ pub enum EditOperation {
         node_id: String,
         position: NodePosition,
     },
+    /// Adds one explicitly bounded cord. Rust constructs and validates the
+    /// candidate source; the browser never appends `.panel` text.
+    Connect {
+        from_node: String,
+        from_port: String,
+        to_node: String,
+        to_port: String,
+        bounds: CordEditBounds,
+    },
+    /// Removes one parsed cord by its stable source identity.
+    Disconnect { cord_id: String },
+    /// Replaces one existing typed configuration value at its parser span.
+    SetConfig {
+        node_id: String,
+        key: String,
+        value: EditValue,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CordEditBounds {
+    pub capacity_items: u16,
+    pub max_value_bytes: u32,
+    pub max_queued_bytes: u64,
+    pub low_watermark_items: u16,
+    pub high_watermark_items: u16,
+    pub pressure: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "value", rename_all = "kebab-case")]
+pub enum EditValue {
+    Boolean(bool),
+    Integer(i128),
+    Text(String),
+    Reference(String),
+    ContractReference(String),
+    ExactDecimal(String),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -578,13 +766,31 @@ pub struct EditResult {
     pub source: SourceSnapshot,
     pub presentation: PresentationSnapshot,
     pub semantic: SemanticSnapshot,
+    pub candidate_revision: CandidateRevision,
+    pub diagnostics: Vec<String>,
+    pub compatibility: CompatibilityProof,
+    pub disposition: EditDisposition,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CandidateRevision {
+    pub source: u64,
+    pub presentation: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum EditDisposition {
+    Committed,
+    Rejected,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ProtocolError {
     pub code: &'static str,
     pub message: String,
     pub diagnostics: Vec<String>,
+    pub disposition: EditDisposition,
 }
 
 impl std::fmt::Display for ProtocolError {
@@ -602,6 +808,14 @@ pub struct Workspace {
     source: SourceSnapshot,
     presentation: PresentationSnapshot,
     descriptor_identity: Option<String>,
+    history_limit: usize,
+    history: VecDeque<WorkspaceRevision>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WorkspaceRevision {
+    pub source: SourceSnapshot,
+    pub presentation: PresentationSnapshot,
 }
 
 impl Workspace {
@@ -609,6 +823,20 @@ impl Workspace {
         document_id: impl Into<String>,
         source: impl Into<String>,
     ) -> Result<Self, ProtocolError> {
+        Self::new_with_history(document_id, source, DEFAULT_WORKSPACE_HISTORY_LIMIT)
+    }
+
+    pub fn new_with_history(
+        document_id: impl Into<String>,
+        source: impl Into<String>,
+        history_limit: usize,
+    ) -> Result<Self, ProtocolError> {
+        if history_limit == 0 {
+            return Err(rejected(
+                "CND-PBY-006",
+                "workspace history capacity must be finite and nonzero",
+            ));
+        }
         let document_id = document_id.into();
         let source = source.into();
         let document = conduit_panel::parse_document(&source);
@@ -620,17 +848,26 @@ impl Workspace {
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
+            disposition: EditDisposition::Rejected,
         })?;
         let presentation = presentation_snapshot(&document_id, 0, BTreeMap::new());
+        let source = SourceSnapshot {
+            document_id,
+            revision: 0,
+            source,
+            semantic_hash,
+        };
+        let mut history = VecDeque::with_capacity(history_limit);
+        history.push_back(WorkspaceRevision {
+            source: source.clone(),
+            presentation: presentation.clone(),
+        });
         Ok(Self {
-            source: SourceSnapshot {
-                document_id,
-                revision: 0,
-                source,
-                semantic_hash,
-            },
+            source,
             presentation,
             descriptor_identity: None,
+            history_limit,
+            history,
         })
     }
 
@@ -642,6 +879,11 @@ impl Workspace {
     #[must_use]
     pub fn presentation(&self) -> &PresentationSnapshot {
         &self.presentation
+    }
+
+    #[must_use]
+    pub fn history(&self) -> &VecDeque<WorkspaceRevision> {
+        &self.history
     }
 
     #[must_use]
@@ -675,7 +917,16 @@ impl Workspace {
     }
 
     pub fn apply(&mut self, request: EditRequest) -> Result<EditResult, ProtocolError> {
-        self.apply_with_lookup(request, Self::unsupported_lookup)
+        self.apply_validated(request, Self::unsupported_lookup, |_| {
+            Ok(CompatibilityProof {
+                compatible: true,
+                code: "CND-PBY-VALIDATED".to_owned(),
+                producer_type: None,
+                consumer_type: None,
+                candidate_plan_identity: None,
+                plan_disposition: "not-applicable".to_owned(),
+            })
+        })
     }
 
     fn unsupported_lookup(kind: &str) -> NodeAvailabilityProjection {
@@ -697,11 +948,36 @@ impl Workspace {
     where
         F: Fn(&str) -> NodeAvailabilityProjection,
     {
+        self.apply_validated(request, lookup, |_| {
+            Ok(CompatibilityProof {
+                compatible: true,
+                code: "CND-PBY-VALIDATED".to_owned(),
+                producer_type: None,
+                consumer_type: None,
+                candidate_plan_identity: None,
+                plan_disposition: "not-applicable".to_owned(),
+            })
+        })
+    }
+
+    /// Applies a candidate only after the caller's authoritative
+    /// parser/resolver/planner validation succeeds.
+    pub fn apply_validated<F, V>(
+        &mut self,
+        request: EditRequest,
+        lookup: F,
+        validate: V,
+    ) -> Result<EditResult, ProtocolError>
+    where
+        F: Fn(&str) -> NodeAvailabilityProjection,
+        V: Fn(&str) -> Result<CompatibilityProof, ProtocolError>,
+    {
         if request.protocol_version != PATCHBAY_PROTOCOL_V1 {
             return Err(ProtocolError {
                 code: "CND-PBY-001",
                 message: "unsupported Patchbay protocol version".to_owned(),
                 diagnostics: Vec::new(),
+                disposition: EditDisposition::Rejected,
             });
         }
         if request.document_id != self.source.document_id {
@@ -709,6 +985,7 @@ impl Workspace {
                 code: "CND-PBY-002",
                 message: "request names another source document".to_owned(),
                 diagnostics: Vec::new(),
+                disposition: EditDisposition::Rejected,
             });
         }
         if request.expected_source_revision != self.source.revision
@@ -718,7 +995,14 @@ impl Workspace {
                 code: "CND-PBY-003",
                 message: "stale source or presentation base revision".to_owned(),
                 diagnostics: Vec::new(),
+                disposition: EditDisposition::Rejected,
             });
+        }
+        if request.operations.len() > MAXIMUM_EDIT_OPERATIONS {
+            return Err(rejected(
+                "CND-PBY-006",
+                "candidate transaction exceeds its finite operation budget",
+            ));
         }
 
         let mut candidate_source = self.source.clone();
@@ -739,6 +1023,7 @@ impl Workspace {
                                 .iter()
                                 .map(ToString::to_string)
                                 .collect(),
+                            disposition: EditDisposition::Rejected,
                         })?;
                     candidate_source.source = source;
                     candidate_source.semantic_hash = semantic_hash;
@@ -750,19 +1035,126 @@ impl Workspace {
                         code: "CND-PBY-004",
                         message: "current source is not editable".to_owned(),
                         diagnostics: vec![error.to_string()],
+                        disposition: EditDisposition::Rejected,
                     })?;
                     if !panel.nodes.iter().any(|node| node.id == node_id) {
                         return Err(ProtocolError {
                             code: "CND-PBY-005",
                             message: format!("unknown source node `{node_id}`"),
                             diagnostics: Vec::new(),
+                            disposition: EditDisposition::Rejected,
                         });
                     }
                     positions.insert(node_id, position);
                     presentation_changed = true;
                 }
+                EditOperation::Connect {
+                    from_node,
+                    from_port,
+                    to_node,
+                    to_port,
+                    bounds,
+                } => {
+                    validate_cord_bounds(&bounds)?;
+                    let panel =
+                        conduit_panel::parse(&candidate_source.source).map_err(|error| {
+                            rejected_with_diagnostics(
+                                "CND-PBY-004",
+                                "current source is not editable",
+                                vec![error.to_string()],
+                            )
+                        })?;
+                    if !panel.nodes.iter().any(|node| node.id == from_node)
+                        || !panel.nodes.iter().any(|node| node.id == to_node)
+                    {
+                        return Err(rejected(
+                            "CND-PBY-005",
+                            "connection names an unknown or hidden source node",
+                        ));
+                    }
+                    candidate_source.source.push_str(&canonical_cord_source(
+                        &from_node, &from_port, &to_node, &to_port, &bounds,
+                    ));
+                    source_changed = true;
+                }
+                EditOperation::Disconnect { cord_id } => {
+                    let panel =
+                        conduit_panel::parse(&candidate_source.source).map_err(|error| {
+                            rejected_with_diagnostics(
+                                "CND-PBY-004",
+                                "current source is not editable",
+                                vec![error.to_string()],
+                            )
+                        })?;
+                    let cord = panel
+                        .cords
+                        .iter()
+                        .find(|cord| cord.id == cord_id)
+                        .ok_or_else(|| {
+                            rejected("CND-PBY-005", "disconnect names an unknown source cord")
+                        })?;
+                    remove_source_span(&mut candidate_source.source, cord.source_span)?;
+                    source_changed = true;
+                }
+                EditOperation::SetConfig {
+                    node_id,
+                    key,
+                    value,
+                } => {
+                    let panel =
+                        conduit_panel::parse(&candidate_source.source).map_err(|error| {
+                            rejected_with_diagnostics(
+                                "CND-PBY-004",
+                                "current source is not editable",
+                                vec![error.to_string()],
+                            )
+                        })?;
+                    let entry = panel
+                        .nodes
+                        .iter()
+                        .find(|node| node.id == node_id)
+                        .and_then(|node| node.config.iter().find(|entry| entry.key == key))
+                        .ok_or_else(|| {
+                            rejected(
+                                "CND-PBY-012",
+                                "configuration edit names no existing typed value span",
+                            )
+                        })?;
+                    replace_source_span(
+                        &mut candidate_source.source,
+                        entry.source_span,
+                        &canonical_edit_value(&value),
+                    )?;
+                    source_changed = true;
+                }
             }
         }
+        let compatibility = if source_changed {
+            let document = conduit_panel::parse_document(&candidate_source.source);
+            candidate_source.semantic_hash =
+                document.semantic_hash_v2().ok_or_else(|| ProtocolError {
+                    code: "CND-PBY-004",
+                    message: "candidate source did not parse; transaction was not applied"
+                        .to_owned(),
+                    diagnostics: document
+                        .diagnostics
+                        .iter()
+                        .take(MAXIMUM_PATCHBAY_DIAGNOSTICS)
+                        .map(ToString::to_string)
+                        .collect(),
+                    disposition: EditDisposition::Rejected,
+                })?;
+            validate(&candidate_source.source)?
+        } else {
+            CompatibilityProof {
+                compatible: true,
+                code: "CND-PBY-PRESENTATION-ONLY".to_owned(),
+                producer_type: None,
+                consumer_type: None,
+                candidate_plan_identity: None,
+                plan_disposition: "not-applicable".to_owned(),
+            }
+        };
         if source_changed {
             candidate_source.revision += 1;
         }
@@ -771,12 +1163,140 @@ impl Workspace {
             presentation_snapshot(&self.source.document_id, presentation_revision, positions);
         self.source = candidate_source;
         self.presentation = candidate_presentation;
+        self.history.push_back(WorkspaceRevision {
+            source: self.source.clone(),
+            presentation: self.presentation.clone(),
+        });
+        while self.history.len() > self.history_limit {
+            self.history.pop_front();
+        }
         Ok(EditResult {
             source: self.source.clone(),
             presentation: self.presentation.clone(),
             semantic: self.semantic_with_lookup(lookup),
+            candidate_revision: CandidateRevision {
+                source: self.source.revision,
+                presentation: self.presentation.revision,
+            },
+            diagnostics: Vec::new(),
+            compatibility,
+            disposition: EditDisposition::Committed,
         })
     }
+}
+
+fn rejected(code: &'static str, message: &str) -> ProtocolError {
+    rejected_with_diagnostics(code, message, Vec::new())
+}
+
+fn rejected_with_diagnostics(
+    code: &'static str,
+    message: &str,
+    diagnostics: Vec<String>,
+) -> ProtocolError {
+    ProtocolError {
+        code,
+        message: message.to_owned(),
+        diagnostics: diagnostics
+            .into_iter()
+            .take(MAXIMUM_PATCHBAY_DIAGNOSTICS)
+            .collect(),
+        disposition: EditDisposition::Rejected,
+    }
+}
+
+fn validate_cord_bounds(bounds: &CordEditBounds) -> Result<(), ProtocolError> {
+    if bounds.capacity_items == 0
+        || bounds.max_value_bytes == 0
+        || bounds.max_queued_bytes
+            < u64::from(bounds.capacity_items) * u64::from(bounds.max_value_bytes)
+        || bounds.high_watermark_items == 0
+        || bounds.high_watermark_items > bounds.capacity_items
+        || bounds.low_watermark_items >= bounds.high_watermark_items
+        || bounds.pressure != "block"
+    {
+        return Err(rejected(
+            "CND-PBY-010",
+            "connection requires valid finite bounds and a supported pressure contract",
+        ));
+    }
+    Ok(())
+}
+
+fn canonical_cord_source(
+    from_node: &str,
+    from_port: &str,
+    to_node: &str,
+    to_port: &str,
+    bounds: &CordEditBounds,
+) -> String {
+    format!(
+        "\ncord {from_node}.{from_port} -> {to_node}.{to_port} {{\n    capacity = {}\n    max_value_bytes = {}\n    max_queued_bytes = {}\n    low_watermark = {}\n    high_watermark = {}\n    pressure = {}\n}}\n",
+        bounds.capacity_items,
+        bounds.max_value_bytes,
+        bounds.max_queued_bytes,
+        bounds.low_watermark_items,
+        bounds.high_watermark_items,
+        bounds.pressure
+    )
+}
+
+fn canonical_edit_value(value: &EditValue) -> String {
+    match value {
+        EditValue::Boolean(value) => value.to_string(),
+        EditValue::Integer(value) => value.to_string(),
+        EditValue::Text(value) => format!("{value:?}"),
+        EditValue::Reference(value) => format!("ref({value:?})"),
+        EditValue::ContractReference(value) => format!("contract({value:?})"),
+        EditValue::ExactDecimal(value) => format!("decimal({value:?})"),
+    }
+}
+
+fn source_span_offsets(source: &str, span: conduit_panel::SourceSpan) -> Option<(usize, usize)> {
+    fn offset(source: &str, line: usize, column: usize) -> Option<usize> {
+        if line == 0 || column == 0 {
+            return None;
+        }
+        let line_start = source
+            .split_inclusive('\n')
+            .take(line.saturating_sub(1))
+            .map(str::len)
+            .sum::<usize>();
+        let line_text = source.get(line_start..)?.split('\n').next()?;
+        let column_offset = line_text
+            .char_indices()
+            .nth(column.saturating_sub(1))
+            .map_or(line_text.len(), |(index, _)| index);
+        Some(line_start + column_offset)
+    }
+    let start = offset(source, span.line, span.column)?;
+    let end = offset(source, span.end_line, span.end_column)?;
+    (start <= end && end <= source.len()).then_some((start, end))
+}
+
+fn replace_source_span(
+    source: &mut String,
+    span: conduit_panel::SourceSpan,
+    replacement: &str,
+) -> Result<(), ProtocolError> {
+    let (start, end) = source_span_offsets(source, span)
+        .ok_or_else(|| rejected("CND-PBY-012", "invalid configuration source span"))?;
+    source.replace_range(start..end, replacement);
+    Ok(())
+}
+
+fn remove_source_span(
+    source: &mut String,
+    span: conduit_panel::SourceSpan,
+) -> Result<(), ProtocolError> {
+    let whole_declaration = conduit_panel::SourceSpan { column: 1, ..span };
+    let (start, mut end) = source_span_offsets(source, whole_declaration)
+        .ok_or_else(|| rejected("CND-PBY-012", "invalid cord source span"))?;
+    if source.as_bytes().get(end) == Some(&b'\n') {
+        end += 1;
+    }
+    source.replace_range(start..end, "");
+    Ok(())
 }
 
 fn presentation_snapshot(

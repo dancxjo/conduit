@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 46,
+  "manifest_revision": 47,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -3825,7 +3825,7 @@
       "artifacts": [{
         "id": "patchbay-protocol-v1",
         "path": "../c8/patchbay-protocol-v1.json",
-        "sha256": "sha256:149618aad5d887cf95417fb6f58b99d5bfe6233336600f1d3511eb2ac1df53ca",
+        "sha256": "sha256:905e457671c157cbb5aecc3eef3e7805cb62265f5c5fb79e0597d93da1285360",
         "operation": "patchbay-protocol-v1",
         "requirement_ids": ["PBY-001", "PBY-002", "PBY-003", "PBY-004", "PBY-005", "PBY-006", "PBY-007", "PBY-008"],
         "default_rule": "PBY-001",
@@ -3836,15 +3836,25 @@
           "run-remains-pinned-while-source-changes": "PBY-005",
           "logical-and-expanded-subjects-are-distinct": "PBY-006",
           "projection-gap-requires-resync": "PBY-007",
-          "protocol-version-mismatch-fails-closed": "PBY-008"
+          "protocol-version-mismatch-fails-closed": "PBY-008",
+          "persistent-session-rejects-stale-concurrent-revision": "PBY-003",
+          "typed-connect-validates-through-resolver": "PBY-002",
+          "incompatible-connection-is-atomic": "PBY-004",
+          "hidden-composite-port-is-inaccessible": "PBY-006",
+          "invalid-config-span-is-atomic": "PBY-004",
+          "projection-truncation-is-explicit": "PBY-007",
+          "renderer-failure-preserves-headless-control": "PBY-006",
+          "direct-active-plan-mutation-is-not-a-protocol-operation": "PBY-005",
+          "candidate-plan-does-not-mutate-active-run": "PBY-005",
+          "authoritative-view-has-no-browser-inference": "PBY-006"
         },
         "format": "json-vectors", "collection": "cases", "case_fields": ["id"], "expected_fields": ["expected"]
       }],
       "coverage": {
-        "positive": ["patchbay-protocol-v1#move-only-preserves-semantic-identity", "patchbay-protocol-v1#source-edit-creates-new-semantic-revision"],
-        "negative": ["patchbay-protocol-v1#stale-edit-is-atomic-conflict", "patchbay-protocol-v1#invalid-source-is-atomic-diagnostic", "patchbay-protocol-v1#protocol-version-mismatch-fails-closed"],
-        "boundary": ["patchbay-protocol-v1#projection-gap-requires-resync"],
-        "migration": ["patchbay-protocol-v1#run-remains-pinned-while-source-changes"]
+        "positive": ["patchbay-protocol-v1#move-only-preserves-semantic-identity", "patchbay-protocol-v1#source-edit-creates-new-semantic-revision", "patchbay-protocol-v1#typed-connect-validates-through-resolver", "patchbay-protocol-v1#authoritative-view-has-no-browser-inference"],
+        "negative": ["patchbay-protocol-v1#stale-edit-is-atomic-conflict", "patchbay-protocol-v1#invalid-source-is-atomic-diagnostic", "patchbay-protocol-v1#protocol-version-mismatch-fails-closed", "patchbay-protocol-v1#persistent-session-rejects-stale-concurrent-revision", "patchbay-protocol-v1#incompatible-connection-is-atomic", "patchbay-protocol-v1#hidden-composite-port-is-inaccessible", "patchbay-protocol-v1#invalid-config-span-is-atomic", "patchbay-protocol-v1#direct-active-plan-mutation-is-not-a-protocol-operation"],
+        "boundary": ["patchbay-protocol-v1#projection-gap-requires-resync", "patchbay-protocol-v1#projection-truncation-is-explicit", "patchbay-protocol-v1#renderer-failure-preserves-headless-control"],
+        "migration": ["patchbay-protocol-v1#run-remains-pinned-while-source-changes", "patchbay-protocol-v1#candidate-plan-does-not-mutate-active-run"]
       },
       "reference_tests": [{"package": "conduit-patchbay", "test": "protocol"}]
     },

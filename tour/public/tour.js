@@ -2,10 +2,10 @@ import "./patchbay-components.js";
 import init, {
   explain_panel,
   parse_panel,
-  patchbay_move_node,
-  patchbay_replace_source,
+  patchbay_apply_transaction,
+  patchbay_open_session,
 } from "./conduit_web.js";
-import { PatchbayReaflowRenderer } from "./patchbay-renderer.js";
+import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 import { patchbayFeatures } from "./patchbay-features.js";
 
 const source = document.querySelector("#source");
@@ -185,6 +185,10 @@ let current = lessons.lessons[0];
 let acceptedSource = "";
 let selectedNode = null;
 let positions = {};
+let patchbaySessionId = "";
+let patchbaySourceRevision = 0;
+let patchbayPresentationRevision = 0;
+let patchbayView = null;
 let activeAdapter = null;
 let runEpoch = 0;
 let topologyView = "logical";
@@ -192,17 +196,14 @@ const evidence = [];
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
 
-// Initialize Reaflow Patchbay Renderer
+// Initialize React Flow Patchbay Renderer
 let patchbayRenderer = null;
 const cyContainer = document.getElementById("cy");
 document.querySelector(".node-controls").hidden =
   !patchbayFeatures.legacyLinePlacement;
 if (cyContainer) {
-  patchbayRenderer = new PatchbayReaflowRenderer(cyContainer, {
-    onSourceMutation: (newSource) => {
-      source.value = newSource;
-      updateAnalysis();
-    },
+  patchbayRenderer = new PatchbayReactFlowRenderer(cyContainer, {
+    onTransaction: (operation) => applyPatchbayOperations([operation]),
     onNodeSelect: (nodeId) => {
       selectNode(nodeId);
     },
@@ -214,9 +215,48 @@ if (cyContainer) {
 }
 
 function updateCytoscapeGraph() {
-  if (patchbayRenderer) {
-    patchbayRenderer.setSource(source.value, {}, current.id);
+  if (patchbayRenderer && patchbayView) {
+    patchbayRenderer.setViewModel(patchbayView, current.id);
   }
+}
+
+function openPatchbaySession() {
+  patchbaySessionId = `tour/${current.id}`;
+  const opened = JSON.parse(patchbay_open_session(patchbaySessionId, acceptedSource));
+  if (!opened.ok) {
+    patchbayView = null;
+    result.textContent = opened.diagnostic;
+    return false;
+  }
+  patchbayView = opened.view;
+  patchbaySourceRevision = opened.view.source.revision;
+  patchbayPresentationRevision = opened.view.presentation.revision;
+  updateCytoscapeGraph();
+  return true;
+}
+
+function applyPatchbayOperations(operations) {
+  const request = {
+    protocol_version: 1,
+    document_id: patchbaySessionId,
+    expected_source_revision: patchbaySourceRevision,
+    expected_presentation_revision: patchbayPresentationRevision,
+    operations
+  };
+  const transaction = JSON.parse(
+    patchbay_apply_transaction(patchbaySessionId, JSON.stringify(request)),
+  );
+  if (!transaction.ok) {
+    result.textContent = transaction.diagnostic;
+    return transaction;
+  }
+  patchbayView = transaction.view;
+  patchbaySourceRevision = transaction.result.source.revision;
+  patchbayPresentationRevision = transaction.result.presentation.revision;
+  acceptedSource = transaction.result.source.source;
+  positions = transaction.result.presentation.node_positions;
+  updateCytoscapeGraph();
+  return transaction;
 }
 
 function recordEvidence(event) {
@@ -242,6 +282,8 @@ function renderRustProjection(projection) {
     throw new Error("CND-PBY-009: incomplete Rust Patchbay projection");
   }
   renderPlan(projection);
+  patchbayView = projection;
+  updateCytoscapeGraph();
   evidence.splice(0, evidence.length, ...projection.evidence);
   document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
 }
@@ -288,6 +330,7 @@ function show(lesson) {
   evidence.length = 0;
   recordEvidence({ kind: "lesson-selected", lesson: lesson.id });
   renderPlan();
+  openPatchbaySession();
   check();
 }
 
@@ -349,17 +392,8 @@ for (const refPanel of referencePanels) {
 
 source.addEventListener("input", () => {
   localStorage.setItem(draftKey(current.id), source.value);
-  const transaction = JSON.parse(patchbay_replace_source(acceptedSource, source.value));
-  if (transaction.ok) acceptedSource = source.value;
+  applyPatchbayOperations([{ ReplaceSource: { source: source.value } }]);
   check();
-});
-
-source.addEventListener("select", () => {
-  const before = source.value.slice(0, source.selectionStart);
-  const match = before.match(/node\s+([A-Za-z][A-Za-z0-9_-]*)\s*$/);
-  if (match) {
-    selectNode(match[1]);
-  }
 });
 
 document.querySelector("#check").onclick = check;
@@ -374,23 +408,21 @@ document.querySelector("#expanded-view").onclick = () => {
 
 function moveSelected(delta) {
   if (!selectedNode) return;
-  const currentPos = (patchbayRenderer && patchbayRenderer.savedPositions[selectedNode])
-    || positions[selectedNode]
+  const currentPos = positions[selectedNode]
     || { x: 100, y: 80 };
   const newX = currentPos.x + delta;
   const newY = currentPos.y;
-  const transaction = JSON.parse(
-    patchbay_move_node(source.value, selectedNode, newX, newY),
-  );
+  const transaction = applyPatchbayOperations([{
+    MoveNode: {
+      node_id: selectedNode,
+      position: { x: newX, y: newY }
+    }
+  }]);
   if (!transaction.ok) {
-    result.textContent = transaction.diagnostic;
     return;
   }
-  positions = transaction.positions;
-  if (patchbayRenderer) {
-    patchbayRenderer.moveNode(selectedNode, { x: newX, y: newY });
-  }
-  result.textContent = `Presentation moved; semantic hash remains ${transaction.semantic_hash}.`;
+  result.textContent =
+    `Presentation moved; semantic hash remains ${transaction.result.semantic.source_semantic_hash}.`;
 }
 
 moveLeftBtn.onclick = () => moveSelected(-20);
@@ -503,6 +535,7 @@ document.querySelector("#reset").onclick = () => {
   moveRightBtn.disabled = true;
   localStorage.removeItem(draftKey(current.id));
   undoResetButton.disabled = false;
+  openPatchbaySession();
   check();
 };
 
@@ -515,6 +548,7 @@ undoResetButton.onclick = () => {
   undoResetButton.disabled = true;
   const parsed = JSON.parse(parse_panel(recovered));
   acceptedSource = parsed.ok ? recovered : current.source;
+  openPatchbaySession();
   check();
 };
 

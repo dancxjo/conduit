@@ -159,6 +159,16 @@ fn fixture_names_each_required_protocol_boundary() {
         "logical-and-expanded-subjects-are-distinct",
         "projection-gap-requires-resync",
         "protocol-version-mismatch-fails-closed",
+        "persistent-session-rejects-stale-concurrent-revision",
+        "typed-connect-validates-through-resolver",
+        "incompatible-connection-is-atomic",
+        "hidden-composite-port-is-inaccessible",
+        "invalid-config-span-is-atomic",
+        "projection-truncation-is-explicit",
+        "renderer-failure-preserves-headless-control",
+        "direct-active-plan-mutation-is-not-a-protocol-operation",
+        "candidate-plan-does-not-mutate-active-run",
+        "authoritative-view-has-no-browser-inference",
     ] {
         assert!(ids.contains(required), "fixture covers {required}");
     }
@@ -271,6 +281,121 @@ fn workspace_semantic_does_not_emit_contract_only_by_default() {
             .iter()
             .all(|availability| availability.availability_state != "contract-only")
     );
+}
+
+#[test]
+fn typed_source_edits_are_atomic_and_history_is_finite() {
+    let source = "panel 1\n\
+node greeting : conduit.std/literal {\n\
+  value = \"hello\"\n\
+}\n\
+node output : conduit.std/stdout\n";
+    let mut workspace =
+        Workspace::new_with_history("tour/typed", source, 3).expect("source parses");
+    let configured = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::SetConfig {
+                node_id: "greeting".to_owned(),
+                key: "value".to_owned(),
+                value: conduit_patchbay::EditValue::Text("goodbye".to_owned()),
+            }],
+        ))
+        .expect("typed config applies");
+    assert!(configured.source.source.contains("value = \"goodbye\""));
+    assert_eq!(
+        configured.disposition,
+        conduit_patchbay::EditDisposition::Committed
+    );
+    assert!(configured.compatibility.compatible);
+
+    let connected = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::Connect {
+                from_node: "greeting".to_owned(),
+                from_port: "out".to_owned(),
+                to_node: "output".to_owned(),
+                to_port: "in".to_owned(),
+                bounds: conduit_patchbay::CordEditBounds {
+                    capacity_items: 1,
+                    max_value_bytes: 64,
+                    max_queued_bytes: 64,
+                    low_watermark_items: 0,
+                    high_watermark_items: 1,
+                    pressure: "block".to_owned(),
+                },
+            }],
+        ))
+        .expect("bounded connection applies");
+    let connected_panel = conduit_panel::parse(&connected.source.source).unwrap();
+    assert_eq!(connected_panel.cords.len(), 1);
+    let cord_id = connected_panel.cords[0].id.clone();
+    let disconnected = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::Disconnect { cord_id }],
+        ))
+        .expect("typed disconnect applies");
+    assert!(
+        conduit_panel::parse(&disconnected.source.source)
+            .unwrap()
+            .cords
+            .is_empty()
+    );
+
+    for x in 0..4 {
+        workspace
+            .apply(request(
+                &workspace,
+                vec![EditOperation::MoveNode {
+                    node_id: "greeting".to_owned(),
+                    position: NodePosition { x, y: 0 },
+                }],
+            ))
+            .expect("move applies");
+    }
+    assert_eq!(workspace.history().len(), 3);
+}
+
+#[test]
+fn invalid_typed_edits_do_not_mutate_the_workspace() {
+    let mut workspace = Workspace::new("tour/negative", SOURCE).expect("source parses");
+    let before = workspace.source().clone();
+    let invalid_span = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::SetConfig {
+                node_id: "output".to_owned(),
+                key: "missing".to_owned(),
+                value: conduit_patchbay::EditValue::Text("no".to_owned()),
+            }],
+        ))
+        .expect_err("missing config is rejected");
+    assert_eq!(invalid_span.code, "CND-PBY-012");
+    assert_eq!(workspace.source(), &before);
+
+    let unbounded = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::Connect {
+                from_node: "greeting".to_owned(),
+                from_port: "out".to_owned(),
+                to_node: "output".to_owned(),
+                to_port: "in".to_owned(),
+                bounds: conduit_patchbay::CordEditBounds {
+                    capacity_items: 0,
+                    max_value_bytes: 64,
+                    max_queued_bytes: 64,
+                    low_watermark_items: 0,
+                    high_watermark_items: 0,
+                    pressure: "block".to_owned(),
+                },
+            }],
+        ))
+        .expect_err("unbounded connection is rejected");
+    assert_eq!(unbounded.code, "CND-PBY-010");
+    assert_eq!(workspace.source(), &before);
 }
 
 #[test]
