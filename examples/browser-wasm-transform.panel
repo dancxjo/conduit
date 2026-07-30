@@ -2,11 +2,11 @@
 # exact implementation manifest select the WASM placement outside the panel.
 panel 1
 
-node greeting : conduit/literal {
+node greeting : conduit.std/literal {
     value = "Browser-local semantics stay portable.\n"
 }
-node transform : conduit/uppercase
-node output : conduit/stdout
+node transform : conduit.std/uppercase
+node output : conduit.std/stdout
 
 cord greeting.out -> transform.in {
     capacity = 2

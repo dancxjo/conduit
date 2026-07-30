@@ -42,7 +42,7 @@ test("covers Chapters 0-3 and exposes production topology projections", async ({
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await page.locator("#expanded-view").click();
   await expect(page.locator("#topology")).toContainText(
-    "box.worker : conduit/uppercase",
+    "box.worker : conduit.std/uppercase",
   );
   await page.locator("#logical-view").click();
   await expect(page.locator("#topology")).toContainText(

@@ -4,7 +4,7 @@ use conduit_patchbay::{
     Workspace, project_pool, project_supervision,
 };
 
-const SOURCE: &str = "panel 1\nnode greeting : conduit/literal { value = \"hello\\n\" }\nnode output : conduit/stdout\ncord greeting.out -> output.in\n";
+const SOURCE: &str = "panel 1\nnode greeting : conduit.std/literal { value = \"hello\\n\" }\nnode output : conduit.std/stdout\ncord greeting.out -> output.in\n";
 const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol-v1.json");
 
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
@@ -162,6 +162,115 @@ fn fixture_names_each_required_protocol_boundary() {
     ] {
         assert!(ids.contains(required), "fixture covers {required}");
     }
+}
+
+#[test]
+fn exact_plan_projection_preserves_authoritative_binding_state() {
+    use conduit_core::{
+        AuthorityTime, ExecutionPlan, Id, InstancePath, PinnedDescriptor, PlanHostObservation,
+        PlanResourceBudget, ResolvedPlanNode, SemanticHash,
+    };
+
+    const fn hash(byte: u8) -> SemanticHash {
+        SemanticHash::from_bytes([byte; 32])
+    }
+
+    let hosts = [PlanHostObservation {
+        id: Id("report/browser"),
+        host: Id("host/browser"),
+        semantic_hash: hash(9),
+        time_basis: Id("clock/test"),
+        observed_at_tick: 1,
+        valid_until_tick: 100,
+    }];
+    let nodes = [ResolvedPlanNode {
+        instance: InstancePath::new("greeting").unwrap(),
+        contract: PinnedDescriptor {
+            id: Id("conduit.std/literal"),
+            schema_version: 1,
+            semantic_hash: hash(2),
+        },
+        implementation: PinnedDescriptor {
+            id: Id("conduit.std/literal.native"),
+            schema_version: 1,
+            semantic_hash: hash(3),
+        },
+        lifecycle_policy: PinnedDescriptor {
+            id: Id("conduit/lifecycle"),
+            schema_version: 1,
+            semantic_hash: hash(4),
+        },
+        execution_profile: None,
+        artifact: Id("artifact/literal"),
+        host_observation: Id("report/browser"),
+        host: Id("host/browser"),
+        allocation: PlanResourceBudget::ZERO,
+        required_resources: &[],
+        required_effects: &[],
+    }];
+    let plan = ExecutionPlan {
+        schema_version: 1,
+        identity: hash(1),
+        source_semantic_hash: hash(5),
+        resolver: PinnedDescriptor {
+            id: Id("resolver/test"),
+            schema_version: 1,
+            semantic_hash: hash(6),
+        },
+        resolver_policy_hash: hash(7),
+        created_at: AuthorityTime {
+            basis: Id("clock/test"),
+            tick: 10,
+        },
+        budget: PlanResourceBudget::ZERO,
+        host_observations: &hosts,
+        resources: &[],
+        artifacts: &[],
+        nodes: &nodes,
+        cords: &[],
+        distributed_cords: &[],
+        fanouts: &[],
+        merges: &[],
+        event_streams: &[],
+        runtime_evidence: None,
+        jobs: &[],
+        satisfaction_proofs: &[],
+        authorities: &[],
+        hazard_closure: None,
+        composites: &[],
+        port_groups: &[],
+        instance_pools: &[],
+        supervisions: &[],
+        unresolved: &[],
+    };
+
+    let projection = PlanSnapshot::from_exact_plan(&plan);
+    let binding = &projection.bindings[0];
+    assert_eq!(binding.availability_state, "bound-in-this-plan");
+    assert_eq!(binding.reason_code, "CND-AVL-004");
+    assert_eq!(binding.contract_id, "conduit.std/literal");
+    assert_eq!(binding.implementation_id, "conduit.std/literal.native");
+    assert_eq!(binding.host_id, "host/browser");
+    assert_eq!(binding.host_observation_id, "report/browser");
+    assert_eq!(binding.host_observation_identity, hash(9).to_string());
+}
+
+#[test]
+fn workspace_semantic_does_not_emit_contract_only_by_default() {
+    let workspace = Workspace::new("tour/hello", SOURCE).expect("source parses");
+    let semantic = workspace.semantic();
+    assert!(
+        semantic
+            .availabilities
+            .iter()
+            .any(|availability| availability.availability_state == "unsupported")
+    );
+    assert!(
+        semantic
+            .availabilities
+            .iter()
+            .all(|availability| availability.availability_state != "contract-only")
+    );
 }
 
 #[test]

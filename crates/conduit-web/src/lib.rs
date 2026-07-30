@@ -100,7 +100,7 @@ pub fn explain_panel(source: String) -> String {
             .to_string();
         }
     };
-    match conduit_runtime::Registry::default().resolve(&panel) {
+    match conduit_runtime::Registry::compatibility_demo().resolve(&panel) {
         Ok(resolved) => serde_json::json!({
             "ok": true,
             "logical": resolved.explain_logical(),
@@ -123,7 +123,7 @@ pub fn run_panel(source: String) -> String {
         Ok(panel) => panel,
         Err(error) => return format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
     };
-    let registry = conduit_runtime::Registry::default();
+    let registry = conduit_runtime::Registry::compatibility_demo();
     let resolved = match registry.resolve(&panel) {
         Ok(resolved) => resolved,
         Err(error) => return format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
@@ -154,7 +154,7 @@ mod tests {
 
     use super::{explain_panel, patchbay_move_node, patchbay_replace_source};
 
-    const SOURCE: &str = "panel 1\nnode greeting : conduit/literal { value = \"hello\\n\" }\nnode output : conduit/stdout\ncord greeting.out -> output.in\n";
+    const SOURCE: &str = "panel 1\nnode greeting : conduit.std/literal { value = \"hello\\n\" }\nnode output : conduit.std/stdout\ncord greeting.out -> output.in\n";
 
     #[test]
     fn wasm_bridge_keeps_source_and_presentation_identities_separate() {
@@ -183,13 +183,13 @@ mod tests {
         let explained: Value = serde_json::from_str(&explain_panel(
             "panel 1\n\
              composite example/upper {\n\
-               node worker : conduit/uppercase\n\
+               node worker : conduit.std/uppercase\n\
                export input in = worker.in\n\
                export output out = worker.out\n\
              }\n\
-             node source : conduit/literal { value = \"hello\" }\n\
+             node source : conduit.std/literal { value = \"hello\" }\n\
              node transform : example/upper\n\
-             node sink : conduit/stdout\n\
+             node sink : conduit.std/stdout\n\
              cord source.out -> transform.in\n\
              cord transform.out -> sink.in\n"
                 .to_owned(),
@@ -202,7 +202,7 @@ mod tests {
                 .is_some_and(|value| value.contains("composite transform : example/upper"))
         );
         assert!(explained["expanded"].as_str().is_some_and(|value| {
-            value.contains("transform.worker : conduit/uppercase")
+            value.contains("transform.worker : conduit.std/uppercase")
                 || value.contains("transform.worker : conduit.std/uppercase")
         }));
     }

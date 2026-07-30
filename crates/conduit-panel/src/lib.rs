@@ -512,10 +512,10 @@ struct Token {
 /// ```text
 /// panel 1
 ///
-/// node greeting : conduit/literal {
+/// node greeting : conduit.std/literal {
 ///     value = "Hello from Conduit."
 /// }
-/// node output : conduit/stdout
+/// node output : conduit.std/stdout
 ///
 /// cord greeting.out -> output.in {
 ///     capacity = 8
@@ -2270,10 +2270,10 @@ mod tests {
         let panel = parse(
             r#"
                 panel 1
-                node greeting : conduit/literal {
+                node greeting : conduit.std/literal {
                     value = "Hello\n"
                 }
-                node output : conduit/stdout
+                node output : conduit.std/stdout
                 cord greeting.out -> output.in {
                     capacity = 4
                     pressure = reject
@@ -2292,7 +2292,7 @@ mod tests {
 
     #[test]
     fn reports_source_location() {
-        let error = parse("panel 1\nnode broken conduit/literal").expect_err("invalid panel");
+        let error = parse("panel 1\nnode broken conduit.std/literal").expect_err("invalid panel");
         assert_eq!(error.code, "CND-SRC-001");
         assert_eq!(error.line, 2);
     }
@@ -2300,21 +2300,21 @@ mod tests {
     #[test]
     fn requires_exact_parameters_for_sampling_and_coalescing() {
         let missing_sample = parse(
-            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
              cord a.out -> b.in { pressure = sample }",
         )
         .expect_err("sampling interval must not be implicit");
         assert!(missing_sample.message.contains("sample_every"));
 
         let missing_coalescer = parse(
-            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
              cord a.out -> b.in { pressure = coalesce }",
         )
         .expect_err("coalescing relation must not be implicit");
         assert!(missing_coalescer.message.contains("coalescer"));
 
         let panel = parse(
-            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
              cord a.out -> b.in {\n\
                pressure = sample\n\
                sample_every = 4\n\
@@ -2337,14 +2337,14 @@ mod tests {
             r#"
                 panel 1
                 composite example/upper-line {
-                    node source : conduit/literal
-                    node upper : conduit/uppercase
+                    node source : conduit.std/literal
+                    node upper : conduit.std/uppercase
                     cord source.out -> upper.in
                     export output text = upper.out
                     bind value = source.value
                 }
                 node line : example/upper-line { value = "hello" }
-                node sink : conduit/stdout
+                node sink : conduit.std/stdout
                 cord line.text -> sink.in
             "#,
         )

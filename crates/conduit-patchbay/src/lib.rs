@@ -349,8 +349,12 @@ pub struct SemanticSnapshot {
 pub struct PlanBindingProjection {
     pub instance: String,
     pub contract_id: String,
+    pub contract_identity: String,
     pub implementation_id: String,
+    pub implementation_identity: String,
     pub host_id: String,
+    pub host_observation_id: String,
+    pub host_observation_identity: String,
     pub availability_state: String,
     pub reason_code: String,
 }
@@ -365,44 +369,33 @@ pub struct PlanSnapshot {
 
 impl PlanSnapshot {
     #[must_use]
-    pub fn project_from_panel<F>(
-        identity: String,
-        source_semantic_hash: String,
-        panel: &conduit_panel::Panel,
-        lookup: F,
-    ) -> Self
-    where
-        F: Fn(&str) -> NodeAvailabilityProjection,
-    {
-        let mut bindings = Vec::new();
-        for node in &panel.nodes {
-            let avail = lookup(node.kind.as_str());
-            let is_resolved = (avail.availability_state == "resolvable-on-this-host"
-                || avail.availability_state == "bound-in-this-plan")
-                && avail.implementation_id.is_some()
-                && avail.host_id.is_some();
-            bindings.push(PlanBindingProjection {
-                instance: node.id.clone(),
-                contract_id: avail.contract_id,
-                implementation_id: avail
-                    .implementation_id
-                    .unwrap_or_else(|| "unbound".to_owned()),
-                host_id: avail.host_id.unwrap_or_else(|| "unassigned".to_owned()),
-                availability_state: if is_resolved {
-                    "bound-in-this-plan".to_owned()
-                } else {
-                    avail.availability_state
-                },
-                reason_code: if is_resolved {
-                    "CND-AVL-004".to_owned()
-                } else {
-                    avail.reason_code
-                },
-            });
-        }
+    pub fn from_exact_plan(plan: &conduit_core::ExecutionPlan<'_>) -> Self {
+        let bindings = plan
+            .nodes
+            .iter()
+            .map(|node| {
+                let observation = plan
+                    .host_observations
+                    .iter()
+                    .find(|observation| observation.id == node.host_observation)
+                    .expect("validated exact plan nodes name an existing host observation");
+                PlanBindingProjection {
+                    instance: node.instance.as_str().to_owned(),
+                    contract_id: node.contract.id.as_str().to_owned(),
+                    contract_identity: node.contract.semantic_hash.to_string(),
+                    implementation_id: node.implementation.id.as_str().to_owned(),
+                    implementation_identity: node.implementation.semantic_hash.to_string(),
+                    host_id: node.host.as_str().to_owned(),
+                    host_observation_id: observation.id.as_str().to_owned(),
+                    host_observation_identity: observation.semantic_hash.to_string(),
+                    availability_state: "bound-in-this-plan".to_owned(),
+                    reason_code: "CND-AVL-004".to_owned(),
+                }
+            })
+            .collect();
         Self {
-            identity,
-            source_semantic_hash,
+            identity: plan.identity.to_string(),
+            source_semantic_hash: plan.source_semantic_hash.to_string(),
             bindings,
         }
     }
@@ -415,6 +408,43 @@ pub struct RunSnapshot {
     pub plan_identity: String,
     pub source_semantic_hash: String,
     pub state: RunState,
+}
+
+impl RunSnapshot {
+    pub fn from_execution_events(
+        plan: &conduit_core::ExecutionPlan<'_>,
+        run_id: &str,
+        events: &[conduit_core::ExecutionEvent<'_>],
+    ) -> Result<Self, ProtocolError> {
+        let mut terminal = false;
+        for event in events {
+            if event.plan_identity != plan.identity || event.run_id.as_str() != run_id {
+                return Err(ProtocolError {
+                    code: "CND-PBY-008",
+                    message: "execution evidence does not match the projected run and exact plan"
+                        .to_owned(),
+                    diagnostics: Vec::new(),
+                });
+            }
+            terminal |= matches!(
+                event.terminality,
+                conduit_core::EventTerminality::Terminal { .. }
+            );
+        }
+        let state = if terminal {
+            RunState::Terminal
+        } else if events.is_empty() {
+            RunState::Prepared
+        } else {
+            RunState::Running
+        };
+        Ok(Self {
+            run_id: run_id.to_owned(),
+            plan_identity: plan.identity.to_string(),
+            source_semantic_hash: plan.source_semantic_hash.to_string(),
+            state,
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -616,7 +646,7 @@ impl Workspace {
 
     #[must_use]
     pub fn semantic(&self) -> SemanticSnapshot {
-        self.semantic_with_lookup(Self::contract_only_lookup)
+        self.semantic_with_lookup(Self::unsupported_lookup)
     }
 
     #[must_use]
@@ -638,23 +668,6 @@ impl Workspace {
         }
     }
 
-    pub fn contract_only_lookup(kind: &str) -> NodeAvailabilityProjection {
-        let canonical_id = if let Some(stripped) = kind.strip_prefix("conduit/") {
-            format!("conduit.std/{stripped}")
-        } else {
-            kind.to_owned()
-        };
-
-        NodeAvailabilityProjection {
-            contract_id: canonical_id,
-            availability_state: "contract-only".to_owned(),
-            reason_code: "CND-AVL-001".to_owned(),
-            implementation_id: None,
-            host_id: None,
-            rejection_reasons: vec!["CND-RES-008".to_owned()],
-        }
-    }
-
     /// Binds an externally resolved descriptor without making it source or
     /// presentation state. Callers must supply the exact resolver result.
     pub fn set_descriptor_identity(&mut self, identity: Option<String>) {
@@ -662,7 +675,18 @@ impl Workspace {
     }
 
     pub fn apply(&mut self, request: EditRequest) -> Result<EditResult, ProtocolError> {
-        self.apply_with_lookup(request, Self::contract_only_lookup)
+        self.apply_with_lookup(request, Self::unsupported_lookup)
+    }
+
+    fn unsupported_lookup(kind: &str) -> NodeAvailabilityProjection {
+        NodeAvailabilityProjection {
+            contract_id: kind.to_owned(),
+            availability_state: "unsupported".to_owned(),
+            reason_code: "CND-AVL-006".to_owned(),
+            implementation_id: None,
+            host_id: None,
+            rejection_reasons: vec![],
+        }
     }
 
     pub fn apply_with_lookup<F>(

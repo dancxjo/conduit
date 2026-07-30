@@ -1,389 +1,302 @@
-use conduit_panel::parse;
-use conduit_runtime::{AvailabilityState, Registry};
+mod support;
+
+use conduit_core::{PinnedDescriptor, SemanticHash};
+use conduit_panel::{Node, parse};
+use conduit_runtime::{
+    AvailabilityState, FILE_READ_CONTRACT, Handler, Registry, RunIo, RuntimeError,
+    SourceContractCatalog, Value,
+};
+
+struct DummyHandler;
+const FIXTURE: &str = include_str!("../../../conformance/c5/registry-availability-v1.json");
+
+impl Handler for DummyHandler {
+    fn run(
+        &mut self,
+        _: &Node,
+        _: &[Value],
+        _: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        Ok(Vec::new())
+    }
+}
 
 #[test]
-fn delay_filter_assert_record_file_process_gpio_serial_wifi_fail_without_provider() {
-    let unverified_node_kinds = [
-        "conduit/delay",
-        "conduit/debounce",
-        "conduit/throttle",
-        "conduit/take",
-        "conduit/skip",
-        "conduit/filter",
-        "conduit/probe",
-        "conduit/log",
-        "conduit/assert",
-        "conduit/record",
-        "conduit/replay",
-        "conduit/fault-source",
-        "conduit/file-read",
-        "conduit/file-write",
-        "conduit/blob-store",
-        "conduit/kv-store",
-        "conduit/process-spawn",
-        "conduit/gpio-pin",
-        "conduit/serial-port",
-        "conduit/cell",
-        "conduit/counter",
-        "conduit/deduplicate",
-        "conduit/cache",
-        "conduit/circuit-breaker",
-        "conduit/health-gate",
-        "conduit/backoff",
-        "conduit/wifi-station",
-        "conduit/wifi-ap",
-        "conduit/network-interface",
-        "conduit/tcp-socket",
-        "conduit/udp-socket",
-        "conduit/dns-resolver",
-    ];
+fn registry_availability_fixture_names_every_required_boundary() {
+    let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+    let ids = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "default-contract-is-contract-only",
+        "compatibility-demo-is-not-provider-availability",
+        "exact-manifest-and-artifact-install-provider",
+        "resolved-placement-establishes-host-resolvability",
+        "exact-plan-establishes-bound-state",
+        "typed-run-event-establishes-running-state",
+        "unknown-contract-is-unsupported",
+        "missing-implementation-artifact-rejected",
+        "incompatible-contract-hash-rejected",
+        "stale-host-report-rejected",
+        "insufficient-host-budget-rejected",
+        "missing-or-denied-grant-rejected",
+        "same-contract-callback-proves-no-behavior",
+        "noncanonical-standard-id-is-not-aliased",
+    ] {
+        assert!(ids.contains(required), "fixture covers {required}");
+    }
+}
 
+#[test]
+fn default_registry_publishes_contracts_without_installing_callbacks() {
     let registry = Registry::default();
-
-    for kind in unverified_node_kinds {
-        let avail = registry.node_availability(kind);
+    for kind in [
+        "conduit.std/literal",
+        "conduit.std/stdin",
+        "conduit.std/uppercase",
+        "conduit.std/stdout",
+        "conduit.std/stderr",
+        "conduit.std/supervisor",
+        "conduit.std/pass-through",
+        "conduit.std/tee",
+        "conduit.std/merge",
+        "conduit.std/fallback",
+        "conduit.std/delay",
+        "conduit.std/debounce",
+        "conduit.std/throttle",
+        "conduit.std/take",
+        "conduit.std/skip",
+        "conduit.std/filter",
+        "conduit.std/probe",
+        "conduit.std/log",
+        "conduit.std/assert",
+        "conduit.std/record",
+        "conduit.std/replay",
+        "conduit.std/fault-source",
+        "conduit.std/file-read",
+        "conduit.std/file-write",
+        "conduit.std/blob-store",
+        "conduit.std/kv-store",
+        "conduit.std/process-spawn",
+        "conduit.std/gpio-pin",
+        "conduit.std/serial-port",
+        "conduit.std/cell",
+        "conduit.std/counter",
+        "conduit.std/deduplicate",
+        "conduit.std/cache",
+        "conduit.std/circuit-breaker",
+        "conduit.std/health-gate",
+        "conduit.std/backoff",
+        "conduit.std/wifi-station",
+        "conduit.std/wifi-ap",
+        "conduit.std/network-interface",
+        "conduit.std/tcp-socket",
+        "conduit.std/udp-socket",
+        "conduit.std/dns-resolver",
+    ] {
+        let availability = registry.node_availability(kind);
         assert_eq!(
-            avail.state,
+            availability.state,
             AvailabilityState::ContractOnly,
-            "kind {kind} should be ContractOnly"
+            "{kind}"
         );
-        assert_eq!(avail.reason_code, "CND-AVL-001");
-        assert_eq!(avail.rejection_reasons, vec!["CND-RES-008"]);
-
-        let panel_src = format!("panel 1\nnode n : {kind}\n");
-        if let Ok(panel) = parse(&panel_src) {
-            let err = registry
+        assert_eq!(availability.reason_code, "CND-AVL-001");
+        let panel = parse(&format!("panel 1\nnode node : {kind}\n")).unwrap();
+        assert_eq!(
+            registry
                 .resolve(&panel)
-                .expect_err(&format!("{kind} resolution should fail"));
-            assert_eq!(err.code, "CND-IMP-001");
-        }
+                .expect_err("default registry must not execute contracts")
+                .code,
+            "CND-IMP-001"
+        );
     }
 }
 
 #[test]
-fn contract_present_but_executable_absent_fails_resolution() {
-    let registry = Registry::default();
-    let avail = registry.node_availability("conduit/file-read");
-    assert_eq!(avail.state, AvailabilityState::ContractOnly);
-    assert_eq!(avail.reason_code, "CND-AVL-001");
-    assert_eq!(avail.rejection_reasons, vec!["CND-RES-008"]);
-
-    let panel = parse("panel 1\nnode r : conduit/file-read\n").unwrap();
-    let err = registry
+fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availability() {
+    let registry = Registry::compatibility_demo();
+    for kind in [
+        "conduit.std/literal",
+        "conduit.std/stdin",
+        "conduit.std/uppercase",
+        "conduit.std/stdout",
+        "conduit.std/stderr",
+        "conduit.std/supervisor",
+        "conduit.std/pass-through",
+        "conduit.std/tee",
+        "conduit.std/merge",
+        "conduit.std/fallback",
+    ] {
+        assert_eq!(
+            registry.node_availability(kind).state,
+            AvailabilityState::ContractOnly
+        );
+    }
+    let panel = parse(
+        "panel 1\n\
+         node source : conduit.std/literal { value = \"fixture\" }\n\
+         node upper : conduit.std/uppercase\n\
+         node sink : conduit.std/stdout\n\
+         cord source.out -> upper.in\n\
+         cord upper.out -> sink.in\n",
+    )
+    .unwrap();
+    registry
         .resolve(&panel)
-        .expect_err("file-read resolution fails");
-    assert_eq!(err.code, "CND-IMP-001");
+        .expect("proven compatibility pipeline resolves");
 }
 
 #[test]
-fn honest_primitives_remain_resolvable() {
-    let registry = Registry::default();
-    let honest_kinds = [
-        "conduit/literal",
-        "conduit/stdin",
-        "conduit/uppercase",
-        "conduit/stdout",
-        "conduit/stderr",
-        "conduit/supervisor",
-        "conduit/pass-through",
-        "conduit/tee",
-        "conduit/merge",
-        "conduit/fallback",
-    ];
+fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvable() {
+    let fixture = support::provider(&FILE_READ_CONTRACT, "test/file-read-native");
+    let mut registry = Registry::default();
+    registry
+        .register_executable_provider(
+            &FILE_READ_CONTRACT,
+            fixture.manifest,
+            fixture.artifacts,
+            || Box::new(DummyHandler),
+            |_| Ok(()),
+        )
+        .unwrap();
+    let availability = registry.node_availability("conduit.std/file-read");
+    assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
+    assert_eq!(availability.reason_code, "CND-AVL-002");
+    assert_eq!(
+        availability.implementation_id.as_deref(),
+        Some("test/file-read-native")
+    );
+    assert_eq!(availability.host_id, None);
+    assert_eq!(availability.rejection_reasons, vec!["CND-RES-025"]);
 
-    for kind in honest_kinds {
-        let avail = registry.node_availability(kind);
-        assert_eq!(avail.state, AvailabilityState::ResolvableOnThisHost);
-        assert_eq!(avail.reason_code, "CND-AVL-003");
-        assert!(avail.rejection_reasons.is_empty());
-    }
-}
-
-#[test]
-fn unknown_node_returns_unsupported_availability() {
-    let registry = Registry::default();
-    let avail = registry.node_availability("conduit/nonexistent");
-    assert_eq!(avail.state, AvailabilityState::Unsupported);
-    assert_eq!(avail.reason_code, "CND-AVL-006");
+    let panel = parse("panel 1\nnode file : conduit.std/file-read\n").unwrap();
+    assert_eq!(
+        registry
+            .resolve(&panel)
+            .expect_err("installed provider cannot enter compatibility execution")
+            .code,
+        "CND-IMP-001"
+    );
 }
 
 #[test]
 fn cross_contract_semantic_impersonation_is_rejected() {
-    use conduit_panel::Node;
-    use conduit_runtime::{
-        FILE_READ_CONTRACT, Handler, HostResolutionEvidence, ImplementationManifest, RunIo,
-        RuntimeError, Value, compute_contract_hash,
-    };
-
-    struct DummyHandler;
-    impl Handler for DummyHandler {
-        fn run(
-            &mut self,
-            _: &Node,
-            _: &[Value],
-            _: &mut RunIo<'_>,
-        ) -> Result<Vec<Value>, RuntimeError> {
-            Ok(Vec::new())
-        }
-    }
-
-    let mut registry = Registry::default();
-
-    // Impersonator manifest claims to be "conduit.std/literal" while attempting to implement "conduit.std/file-read"
-    let fake_manifest = ImplementationManifest {
-        implementation_id: "fake.literal.impersonator".to_owned(),
-        contract_id: "conduit.std/literal".to_owned(),
-        contract_hash: compute_contract_hash(&FILE_READ_CONTRACT),
-    };
-
-    let err = registry
-        .register_executable_provider(
-            &FILE_READ_CONTRACT,
-            fake_manifest,
-            Some(HostResolutionEvidence {
-                host_id: "local-host".to_owned(),
-                time_basis: "clock/monotonic".to_owned(),
-                observed_at_tick: 1,
-                valid_until_tick: 1000,
-                available_memory_bytes: 1_000_000,
-                required_memory_bytes: 1_000,
-                rejection_reasons: Vec::new(),
-            }),
-            || Box::new(DummyHandler),
-            |_| Ok(()),
-        )
-        .expect_err("cross-contract impersonation must be rejected during provider registration");
-
-    assert_eq!(err.code, "CND-REG-004");
-    assert!(
-        err.message
-            .contains("cross-contract semantic impersonation rejected")
+    let literal = Registry::default()
+        .node_schema("conduit.std/literal")
+        .expect("literal schema");
+    let fixture = support::provider_with_contract(
+        &FILE_READ_CONTRACT,
+        PinnedDescriptor {
+            id: conduit_core::Id("conduit.std/literal"),
+            schema_version: 1,
+            semantic_hash: literal.semantic_hash(),
+        },
+        "test/impersonator",
     );
-
-    // Ensure node availability remains ContractOnly despite the failed attempt
-    let avail = registry.node_availability("conduit/file-read");
-    assert_eq!(avail.state, AvailabilityState::ContractOnly);
-}
-
-#[test]
-fn contract_hash_mismatch_is_rejected() {
-    use conduit_panel::Node;
-    use conduit_runtime::{
-        FILE_READ_CONTRACT, Handler, ImplementationManifest, RunIo, RuntimeError, Value,
-    };
-
-    struct DummyHandler;
-    impl Handler for DummyHandler {
-        fn run(
-            &mut self,
-            _: &Node,
-            _: &[Value],
-            _: &mut RunIo<'_>,
-        ) -> Result<Vec<Value>, RuntimeError> {
-            Ok(Vec::new())
-        }
-    }
-
     let mut registry = Registry::default();
-
-    let invalid_hash_manifest = ImplementationManifest {
-        implementation_id: "test.file-read.invalid-hash".to_owned(),
-        contract_id: FILE_READ_CONTRACT.id.as_str().to_owned(),
-        contract_hash: "invalid-hash-12345".to_owned(),
-    };
-
-    let err = registry
-        .register_executable_provider(
-            &FILE_READ_CONTRACT,
-            invalid_hash_manifest,
-            None,
-            || Box::new(DummyHandler),
-            |_| Ok(()),
-        )
-        .expect_err("contract hash mismatch must be rejected");
-
-    assert_eq!(err.code, "CND-REG-005");
-    assert!(err.message.contains("contract hash mismatch"));
-}
-
-#[test]
-fn provider_available_state_when_host_evidence_absent_incapable_or_stale() {
-    use conduit_panel::Node;
-    use conduit_runtime::{
-        FILE_READ_CONTRACT, Handler, HostResolutionEvidence, ImplementationManifest, RunIo,
-        RuntimeError, Value, compute_contract_hash,
-    };
-
-    struct DummyHandler;
-    impl Handler for DummyHandler {
-        fn run(
-            &mut self,
-            _: &Node,
-            _: &[Value],
-            _: &mut RunIo<'_>,
-        ) -> Result<Vec<Value>, RuntimeError> {
-            Ok(Vec::new())
-        }
-    }
-
-    let mut registry = Registry::default();
-
-    let valid_manifest = ImplementationManifest {
-        implementation_id: "test.file-read.native".to_owned(),
-        contract_id: FILE_READ_CONTRACT.id.as_str().to_owned(),
-        contract_hash: compute_contract_hash(&FILE_READ_CONTRACT),
-    };
-
-    // Case 1: Manifest present, but host facts/evidence absent
-    registry
-        .register_executable_provider(
-            &FILE_READ_CONTRACT,
-            valid_manifest.clone(),
-            None,
-            || Box::new(DummyHandler),
-            |_| Ok(()),
-        )
-        .expect("registration succeeds");
-
-    let avail_no_evidence = registry.node_availability("conduit/file-read");
     assert_eq!(
-        avail_no_evidence.state,
-        AvailabilityState::ProviderAvailable
-    );
-    assert_eq!(avail_no_evidence.reason_code, "CND-AVL-002");
-    assert_eq!(
-        avail_no_evidence.implementation_id.as_deref(),
-        Some("test.file-read.native")
-    );
-    assert_eq!(avail_no_evidence.host_id, None);
-
-    // Case 2: Manifest present, host facts present but host is not capable
-    registry
-        .register_executable_provider(
-            &FILE_READ_CONTRACT,
-            valid_manifest.clone(),
-            Some(HostResolutionEvidence {
-                host_id: "remote-pico".to_owned(),
-                time_basis: "clock/monotonic".to_owned(),
-                observed_at_tick: 1,
-                valid_until_tick: 1000,
-                available_memory_bytes: 1_000_000,
-                required_memory_bytes: 1_000,
-                rejection_reasons: vec!["CND-RES-015".to_owned()],
-            }),
-            || Box::new(DummyHandler),
-            |_| Ok(()),
-        )
-        .expect("registration succeeds");
-
-    let avail_incapable = registry.node_availability("conduit/file-read");
-    assert_eq!(avail_incapable.state, AvailabilityState::ProviderAvailable);
-    assert_eq!(avail_incapable.reason_code, "CND-AVL-002");
-    assert_eq!(avail_incapable.host_id.as_deref(), Some("remote-pico"));
-    assert_eq!(avail_incapable.rejection_reasons, vec!["CND-RES-015"]);
-
-    // Case 3: Stale evidence at tick 2000 (valid_until_tick = 1000)
-    let avail_stale = registry.node_availability_at_tick("conduit/file-read", 2000);
-    assert_eq!(avail_stale.state, AvailabilityState::ProviderAvailable);
-    assert_eq!(avail_stale.reason_code, "CND-AVL-002");
-    assert!(
-        avail_stale
-            .rejection_reasons
-            .iter()
-            .any(|r| r.contains("CND-RES-003"))
+        registry
+            .register_executable_provider(
+                &FILE_READ_CONTRACT,
+                fixture.manifest,
+                fixture.artifacts,
+                || Box::new(DummyHandler),
+                |_| Ok(()),
+            )
+            .expect_err("cross-contract provider must fail")
+            .code,
+        "CND-REG-004"
     );
 }
 
 #[test]
-fn bound_in_plan_and_running_availability_states() {
+fn incompatible_contract_hash_is_rejected() {
+    let fixture = support::provider_with_contract(
+        &FILE_READ_CONTRACT,
+        PinnedDescriptor {
+            id: FILE_READ_CONTRACT.id,
+            schema_version: 1,
+            semantic_hash: SemanticHash::from_bytes([77; 32]),
+        },
+        "test/wrong-contract-hash",
+    );
+    let mut registry = Registry::default();
+    assert_eq!(
+        registry
+            .register_executable_provider(
+                &FILE_READ_CONTRACT,
+                fixture.manifest,
+                fixture.artifacts,
+                || Box::new(DummyHandler),
+                |_| Ok(()),
+            )
+            .expect_err("wrong semantic hash must fail")
+            .code,
+        "CND-REG-005"
+    );
+}
+
+#[test]
+fn missing_exact_artifact_is_rejected() {
+    let fixture = support::provider(&FILE_READ_CONTRACT, "test/missing-artifact");
+    let mut registry = Registry::default();
+    assert_eq!(
+        registry
+            .register_executable_provider(
+                &FILE_READ_CONTRACT,
+                fixture.manifest,
+                &[],
+                || Box::new(DummyHandler),
+                |_| Ok(()),
+            )
+            .expect_err("missing exact artifact must fail")
+            .code,
+        "CND-REG-008"
+    );
+}
+
+#[test]
+fn discarded_standard_id_is_unsupported_and_never_aliased() {
     let registry = Registry::default();
-    let avail = registry.node_availability("conduit/literal");
-
-    let bound = avail.clone().bound_in_plan("sha256:plan-123");
-    assert_eq!(bound.state, AvailabilityState::BoundInThisPlan);
-    assert_eq!(bound.reason_code, "CND-AVL-004");
-    assert_eq!(bound.plan_identity.as_deref(), Some("sha256:plan-123"));
-
-    let running = avail.with_run("run/99");
-    assert_eq!(running.state, AvailabilityState::Running);
-    assert_eq!(running.reason_code, "CND-AVL-005");
-    assert_eq!(running.run_id.as_deref(), Some("run/99"));
+    let availability = registry.node_availability("conduit/literal");
+    assert_eq!(availability.state, AvailabilityState::Unsupported);
+    assert_eq!(availability.reason_code, "CND-AVL-006");
+    assert_eq!(availability.rejection_reasons, vec!["CND-RES-001"]);
+    let panel = parse("panel 1\nnode legacy : conduit/literal\n").unwrap();
+    assert_eq!(
+        registry
+            .resolve(&panel)
+            .expect_err("discarded ID must fail")
+            .code,
+        "CND-IMP-001"
+    );
 }
 
 #[test]
-fn patchbay_snapshot_carries_truthful_node_availabilities() {
-    let src = "panel 1\nnode greeting : conduit/literal { value = \"hello\" }\nnode output : conduit/stdout\n";
-    let workspace = conduit_patchbay::Workspace::new("doc-1", src).expect("parses");
+fn patchbay_receives_registry_facts_without_node_name_inference() {
+    let workspace = conduit_patchbay::Workspace::new(
+        "doc-1",
+        "panel 1\nnode greeting : conduit.std/literal { value = \"hello\" }\n",
+    )
+    .unwrap();
     let registry = Registry::default();
     let snapshot = workspace.semantic_with_lookup(|kind| {
-        let avail = registry.node_availability(kind);
+        let availability = registry.node_availability(kind);
         conduit_patchbay::NodeAvailabilityProjection {
-            contract_id: avail.contract_id,
-            availability_state: avail.state.as_str().to_owned(),
-            reason_code: avail.reason_code,
-            implementation_id: avail.implementation_id,
-            host_id: avail.host_id,
-            rejection_reasons: avail.rejection_reasons,
+            contract_id: availability.contract_id,
+            availability_state: availability.state.as_str().to_owned(),
+            reason_code: availability.reason_code,
+            implementation_id: availability.implementation_id,
+            host_id: availability.host_id,
+            rejection_reasons: availability.rejection_reasons,
         }
     });
-
-    assert_eq!(snapshot.availabilities.len(), 2);
-
-    let greeting_avail = &snapshot.availabilities[0];
-    assert_eq!(greeting_avail.contract_id, "conduit.std/literal");
-    assert_eq!(greeting_avail.availability_state, "resolvable-on-this-host");
-    assert_eq!(greeting_avail.reason_code, "CND-AVL-003");
-}
-
-#[test]
-fn stale_or_incapable_host_evidence_fails_resolution() {
-    use conduit_panel::Node;
-    use conduit_runtime::{
-        FILE_READ_CONTRACT, Handler, HostResolutionEvidence, ImplementationManifest, RunIo,
-        RuntimeError, Value, compute_contract_hash,
-    };
-
-    struct DummyHandler;
-    impl Handler for DummyHandler {
-        fn run(
-            &mut self,
-            _: &Node,
-            _: &[Value],
-            _: &mut RunIo<'_>,
-        ) -> Result<Vec<Value>, RuntimeError> {
-            Ok(Vec::new())
-        }
-    }
-
-    let mut registry = Registry::default();
-    let valid_manifest = ImplementationManifest {
-        implementation_id: "test.file-read.native".to_owned(),
-        contract_id: FILE_READ_CONTRACT.id.as_str().to_owned(),
-        contract_hash: compute_contract_hash(&FILE_READ_CONTRACT),
-    };
-
-    // Host evidence with rejection reason (incapable host)
-    registry
-        .register_executable_provider(
-            &FILE_READ_CONTRACT,
-            valid_manifest,
-            Some(HostResolutionEvidence {
-                host_id: "remote-pico".to_owned(),
-                time_basis: "clock/monotonic".to_owned(),
-                observed_at_tick: 1,
-                valid_until_tick: 10,
-                available_memory_bytes: 1_000,
-                required_memory_bytes: 1_000,
-                rejection_reasons: vec!["CND-RES-015".to_owned()],
-            }),
-            || Box::new(DummyHandler),
-            |_| Ok(()),
-        )
-        .expect("registration succeeds");
-
-    let panel = parse("panel 1\nnode r : conduit/file-read\n").unwrap();
-    let err = registry
-        .resolve(&panel)
-        .expect_err("resolution must fail when host evidence is incapable");
-    assert_eq!(err.code, "CND-IMP-001");
+    assert_eq!(snapshot.availabilities.len(), 1);
+    assert_eq!(
+        snapshot.availabilities[0].availability_state,
+        "contract-only"
+    );
 }

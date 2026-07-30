@@ -1,9 +1,9 @@
 # With a panel read from a file, process stdin remains available to this node.
 panel 1
 
-node input : conduit/stdin
-node transform : conduit/uppercase
-node output : conduit/stdout
+node input : conduit.std/stdin
+node transform : conduit.std/uppercase
+node output : conduit.std/stdout
 
 cord input.out -> transform.in {
     capacity = 8

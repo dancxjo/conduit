@@ -57,7 +57,7 @@
         {
           "id": "canonical-v1",
           "path": "../c1/canonical-v1.json",
-          "sha256": "sha256:ad94b0458c8bfcb3138c68217182421451f7ea4f8a57229f6fa523aa3df1e4a9",
+          "sha256": "sha256:2bf400fa905d3bbf8350f0e3b41e2c7a072fe1f1c70e4fe042e305fdbbb4d6b6",
           "operation": "canonical-descriptor-v1",
           "requirement_ids": [
             "CAN-001",
@@ -84,7 +84,7 @@
         {
           "id": "canonical-negative-v1",
           "path": "../c1/canonical-v1.json",
-          "sha256": "sha256:ad94b0458c8bfcb3138c68217182421451f7ea4f8a57229f6fa523aa3df1e4a9",
+          "sha256": "sha256:2bf400fa905d3bbf8350f0e3b41e2c7a072fe1f1c70e4fe042e305fdbbb4d6b6",
           "operation": "canonical-descriptor-rejection-v1",
           "requirement_ids": [
             "CAN-004",
@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar-v1",
           "path": "../c3/panel-grammar-v1.json",
-          "sha256": "sha256:a848279642ed08251aee007760bad6f26d8917bf8cbfcbc3a1046cfce281bc88",
+          "sha256": "sha256:b88ad9e4442df06eac8ddcfca1b41a44f6704920cf483f35c2788957a961395e",
           "operation": "panel-source-v1",
           "requirement_ids": [
             "SRC-001",
@@ -3185,6 +3185,37 @@
           "collection": "cases",
           "case_fields": ["id"],
           "expected_fields": ["expected"]
+        },
+        {
+          "id": "registry-availability-v1",
+          "path": "../c5/registry-availability-v1.json",
+          "sha256": "sha256:1844431f42f470ce27d1fca58d68d395f44496b9c9d0da239aea42dc2ffb3a7b",
+          "operation": "registry-availability-v1",
+          "requirement_ids": [
+            "RES-001", "RES-002", "RES-003", "RES-008", "RES-013", "RES-015",
+            "RES-025"
+          ],
+          "default_rule": "RES-025",
+          "case_rules": {
+            "default-contract-is-contract-only": "RES-025",
+            "compatibility-demo-is-not-provider-availability": "RES-025",
+            "exact-manifest-and-artifact-install-provider": "RES-008",
+            "resolved-placement-establishes-host-resolvability": "RES-025",
+            "exact-plan-establishes-bound-state": "RES-025",
+            "typed-run-event-establishes-running-state": "RES-025",
+            "unknown-contract-is-unsupported": "RES-001",
+            "missing-implementation-artifact-rejected": "RES-008",
+            "incompatible-contract-hash-rejected": "RES-002",
+            "stale-host-report-rejected": "RES-003",
+            "insufficient-host-budget-rejected": "RES-013",
+            "missing-or-denied-grant-rejected": "RES-015",
+            "same-contract-callback-proves-no-behavior": "RES-025",
+            "noncanonical-standard-id-is-not-aliased": "RES-001"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
         }
       ],
       "coverage": {
@@ -3193,26 +3224,37 @@
           "host-resolution-v1#linux-pico-equivalent-capability",
           "host-resolution-v1#distributed-placement",
           "host-resolution-v1#exact-plan-sealed",
-          "host-resolution-v1#report-membership-binds-realm-entity-passport-status"
+          "host-resolution-v1#report-membership-binds-realm-entity-passport-status",
+          "registry-availability-v1#exact-manifest-and-artifact-install-provider",
+          "registry-availability-v1#resolved-placement-establishes-host-resolvability",
+          "registry-availability-v1#exact-plan-establishes-bound-state",
+          "registry-availability-v1#typed-run-event-establishes-running-state"
         ],
         "negative": [
           "host-resolution-v1#stale-report-rejected",
           "host-resolution-v1#authority-denial",
           "host-resolution-v1#topology-conflict",
           "host-resolution-v1#full-candidate-rejection-tree",
-          "host-resolution-v1#missing-revoked-or-untrusted-passport-status"
+          "host-resolution-v1#missing-revoked-or-untrusted-passport-status",
+          "registry-availability-v1#missing-implementation-artifact-rejected",
+          "registry-availability-v1#incompatible-contract-hash-rejected",
+          "registry-availability-v1#same-contract-callback-proves-no-behavior"
         ],
         "boundary": [
           "host-resolution-v1#ambiguous-tie-rejected",
           "host-resolution-v1#bounded-search-limit",
           "host-resolution-v1#ap-sta-supported-not-concurrent",
           "host-resolution-v1#station-lease-socket-capacity-insufficient",
-          "host-resolution-v1#stale-passport-status"
+          "host-resolution-v1#stale-passport-status",
+          "registry-availability-v1#default-contract-is-contract-only",
+          "registry-availability-v1#compatibility-demo-is-not-provider-availability",
+          "registry-availability-v1#unknown-contract-is-unsupported"
         ],
         "migration": [
           "host-resolution-v1#active-plan-never-mutated",
           "host-resolution-v1#resolver-policy-plan-mismatch",
-          "host-resolution-v1#required-realm-mismatch"
+          "host-resolution-v1#required-realm-mismatch",
+          "registry-availability-v1#noncanonical-standard-id-is-not-aliased"
         ]
       },
       "reference_tests": [
@@ -3223,6 +3265,10 @@
         {
           "package": "conduit-inspect",
           "test": "inspection"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "truthful_registry_vectors"
         }
       ]
     },

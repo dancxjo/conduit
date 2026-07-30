@@ -208,9 +208,9 @@ impl ModuleLoader for MemoryLoader {
 
 fn panel_v2_source() -> &'static str {
     "panel 2\n\
-     node subject : conduit/literal { value = \"work\" }\n\
-     node sink : conduit/stdout\n\
-     node handler : conduit/supervisor\n\
+     node subject : conduit.std/literal { value = \"work\" }\n\
+     node sink : conduit.std/stdout\n\
+     node handler : conduit.std/supervisor\n\
      cord subject.out -> sink.in\n\
      supervise subject with handler\n"
 }
@@ -730,7 +730,7 @@ fn execute_case(id: &str) -> Value {
             json!({"redacted":true})
         }
         "source-self-supervision-rejected" => {
-            let source = "panel 2\nnode subject : conduit/literal { value = \"x\" }\nsupervise subject with subject\n";
+            let source = "panel 2\nnode subject : conduit.std/literal { value = \"x\" }\nsupervise subject with subject\n";
             let error = parse(source).unwrap_err();
             json!({"code":error.code})
         }
@@ -870,7 +870,7 @@ fn supervisor_type_descriptors_are_canonical_and_resolvable() {
     let lowered = lower_panel_v2();
     panel.supervisions[0].resolved_identity =
         Some(lowered.supervisions[0].semantic_hash.to_string());
-    let topology = Registry::default()
+    let topology = Registry::compatibility_demo()
         .resolve(&panel)
         .unwrap()
         .exact_topology()
@@ -941,7 +941,7 @@ fn standard_supervisor_consumes_the_portable_contract() {
         limits(),
     );
     let standard = StandardNodeContract {
-        id: Id("conduit/supervisor"),
+        id: Id("conduit.std/supervisor"),
         kind: StandardNodeKind::Supervisor,
         limits: StandardNodeLimits {
             retained_values: 2,

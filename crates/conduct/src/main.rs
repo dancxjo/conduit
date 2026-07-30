@@ -337,7 +337,7 @@ fn run(
     }
 
     emit_status(status_enabled, "Resolving", &document_id);
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let resolved = registry.resolve(&panel).map_err(|error| {
         cli_error(
             from_resolution_error(&error),

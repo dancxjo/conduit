@@ -6,10 +6,10 @@ fn tee_node_duplicates_flow_to_multiple_sinks() {
     let panel = parse(
         r#"
             panel 1
-            node source : conduit/literal { value = "flow data" }
-            node splitter : conduit/tee
-            node sink1 : conduit/stdout
-            node sink2 : conduit/stderr
+            node source : conduit.std/literal { value = "flow data" }
+            node splitter : conduit.std/tee
+            node sink1 : conduit.std/stdout
+            node sink2 : conduit.std/stderr
             cord source.out -> splitter.in
             cord splitter.out1 -> sink1.in
             cord splitter.out2 -> sink2.in
@@ -17,7 +17,7 @@ fn tee_node_duplicates_flow_to_multiple_sinks() {
     )
     .expect("tee panel parses");
 
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let resolved = registry.resolve(&panel).expect("tee panel resolves");
 
     let mut input = &b""[..];
@@ -41,10 +41,10 @@ fn fallback_node_selects_primary_or_fallback() {
     let panel = parse(
         r#"
             panel 1
-            node primary : conduit/literal { value = "primary data" }
-            node secondary : conduit/literal { value = "fallback data" }
-            node router : conduit/fallback
-            node sink : conduit/stdout
+            node primary : conduit.std/literal { value = "primary data" }
+            node secondary : conduit.std/literal { value = "fallback data" }
+            node router : conduit.std/fallback
+            node sink : conduit.std/stdout
             cord primary.out -> router.primary
             cord secondary.out -> router.fallback
             cord router.out -> sink.in
@@ -52,7 +52,7 @@ fn fallback_node_selects_primary_or_fallback() {
     )
     .expect("fallback panel parses");
 
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let resolved = registry.resolve(&panel).expect("fallback panel resolves");
 
     let mut input = &b""[..];
@@ -75,11 +75,11 @@ fn pass_through_and_merge_nodes_shape_flow() {
     let panel = parse(
         r#"
             panel 1
-            node src1 : conduit/literal { value = "merged" }
-            node src2 : conduit/literal { value = "" }
-            node pass : conduit/pass-through
-            node combiner : conduit/merge
-            node sink : conduit/stdout
+            node src1 : conduit.std/literal { value = "merged" }
+            node src2 : conduit.std/literal { value = "" }
+            node pass : conduit.std/pass-through
+            node combiner : conduit.std/merge
+            node sink : conduit.std/stdout
             cord src1.out -> pass.in
             cord pass.out -> combiner.in1
             cord src2.out -> combiner.in2
@@ -88,7 +88,7 @@ fn pass_through_and_merge_nodes_shape_flow() {
     )
     .expect("merge panel parses");
 
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let resolved = registry.resolve(&panel).expect("merge panel resolves");
 
     let mut input = &b""[..];

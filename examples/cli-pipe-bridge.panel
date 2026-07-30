@@ -1,9 +1,9 @@
 # Single-port CLI pipe bridge panel.
 panel 1
 
-node input_pipe : conduit/stdin
-node processor : conduit/uppercase
-node output_pipe : conduit/stdout
+node input_pipe : conduit.std/stdin
+node processor : conduit.std/uppercase
+node output_pipe : conduit.std/stdout
 
 cord input_pipe.out -> processor.in {
     capacity = 16

@@ -1,14 +1,14 @@
 # Sensor threshold alarm and LED control panel.
 panel 1
 
-node sensor_pin : conduit/gpio-pin {
+node sensor_pin : conduit.std/gpio-pin {
     pin = 14
     mode = "read"
 }
 
-node filter : conduit/deduplicate
-node alarm_counter : conduit/counter
-node led_pin : conduit/gpio-pin {
+node filter : conduit.std/deduplicate
+node alarm_counter : conduit.std/counter
+node led_pin : conduit.std/gpio-pin {
     pin = 15
     mode = "write"
 }

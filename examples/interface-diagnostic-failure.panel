@@ -6,5 +6,5 @@ interface speech/recognizer {
   output error_channel : conduit/text.utf8
 }
 
-# Fails because conduit/stdout lacks output port `final` and `error_channel`
-node invalid_worker : conduit/stdout implements speech/recognizer
+# Fails because conduit.std/stdout lacks output port `final` and `error_channel`
+node invalid_worker : conduit.std/stdout implements speech/recognizer

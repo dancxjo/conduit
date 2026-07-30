@@ -1,11 +1,11 @@
 # Scheduled bounded backup pipeline panel.
 panel 1
 
-node trigger : conduit/counter
-node reader : conduit/file-read {
+node trigger : conduit.std/counter
+node reader : conduit.std/file-read {
     path = "data/db.sqlite"
 }
-node backup_store : conduit/blob-store {
+node backup_store : conduit.std/blob-store {
     bucket = "backups"
 }
 

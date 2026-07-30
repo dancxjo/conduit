@@ -113,8 +113,8 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .take()
         .unwrap()
         .write_all(
-            b"panel 1\nnode message : conduit/literal { value = \"semantic error\\n\" }\n\
-              node sink : conduit/stderr\ncord message.out -> sink.in\n",
+            b"panel 1\nnode message : conduit.std/literal { value = \"semantic error\\n\" }\n\
+              node sink : conduit.std/stderr\ncord message.out -> sink.in\n",
         )
         .unwrap();
     let output = child.wait_with_output().unwrap();

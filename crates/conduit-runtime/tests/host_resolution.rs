@@ -11,9 +11,9 @@ use conduit_core::{
 };
 use conduit_rp2040_hil::FIRMWARE_IDENTITY;
 use conduit_runtime::{
-    CandidateRejectionReason, CapabilityPredicate, HostResolverPolicy, PlacementCandidate,
-    PlacementRequest, ResolverTiePolicy, ResourcePredicate, resolve_host_placement,
-    seal_resolved_execution_plan,
+    AvailabilityState, CandidateRejectionReason, CapabilityPredicate, HostResolverPolicy,
+    NodeAvailability, PlacementCandidate, PlacementRequest, ResolverTiePolicy, ResourcePredicate,
+    resolve_host_placement, seal_resolved_execution_plan,
 };
 use serde_json::Value;
 
@@ -428,6 +428,25 @@ fn pico_w_wifi_requirement_succeeds_resolution() {
             "fixture/pico-w-wifi"
         );
         assert_eq!(resolved.bindings[0].host, "conduit/pico-w");
+        let availability =
+            NodeAvailability::from_resolved_binding(CONTRACT, &resolved.bindings[0]).unwrap();
+        assert_eq!(availability.state, AvailabilityState::ResolvableOnThisHost);
+        assert_eq!(availability.reason_code, "CND-AVL-003");
+        assert_eq!(
+            availability.implementation_id.as_deref(),
+            Some("fixture/pico-w-wifi")
+        );
+        assert_eq!(availability.host_id.as_deref(), Some("conduit/pico-w"));
+        let wrong_contract = PinnedDescriptor {
+            semantic_hash: SemanticHash::from_bytes([250; 32]),
+            ..CONTRACT
+        };
+        assert_eq!(
+            NodeAvailability::from_resolved_binding(wrong_contract, &resolved.bindings[0])
+                .expect_err("a different semantic contract must not inherit host resolvability")
+                .code,
+            "CND-REG-006"
+        );
     });
 }
 

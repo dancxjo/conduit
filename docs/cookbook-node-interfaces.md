@@ -29,11 +29,11 @@ interface speech/recognizer {
 }
 
 # Primitive node declaring interface satisfaction
-node asr_primary : conduit/stdout implements speech/recognizer
+node asr_primary : conduit.std/stdout implements speech/recognizer
 
 # Composite node declaring interface satisfaction via transparent exports
 node speech_pipeline implements speech/recognizer {
-  node sink : conduit/stdout
+  node sink : conduit.std/stdout
   export input sink.in as audio
   export output sink.in as final
 }

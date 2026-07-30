@@ -12,8 +12,8 @@ use std::io::{Read, Write};
 use std::rc::Rc;
 
 use conduit_core::{
-    BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome, ConfigContract,
-    ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
+    ArtifactManifest, BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome,
+    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, DescriptorRef, Direction, Endpoint as CoreEndpoint,
     ExecutionPlan, ExecutionProfile, FieldDisposition, FlowCapacity, FlowPolicy, FlowQueueState,
     FlowTypeFacts, FlowWatermarks, Id, ImplementationMachine, InstancePath, LossAcceptance,
@@ -22,13 +22,12 @@ use conduit_core::{
     Pressure, ReadyQueueDiscipline, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
     SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity,
     TemporalContract, TerminalContract, TraitProof, TypeContractRef, ValueCardinality,
-    validate_plan_graph,
+    validate_artifact_manifest, validate_implementation_manifest, validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
 };
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 mod artifact_verification;
 mod config_resolution;
@@ -50,6 +49,7 @@ pub use artifact_verification::{
     VerifiedArtifactBytes, verify_artifact_bytes, verify_artifact_owned,
     verify_artifact_owned_evidenced,
 };
+pub use conduit_core::ImplementationManifest;
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,
@@ -328,13 +328,6 @@ const OUTPUT_TEXT_2: PortContract<'static> = PortContract {
         loss: LossAcceptance::LosslessOnly,
     },
 };
-
-pub struct ContractAlias {
-    pub alias_id: String,
-    pub canonical_id: String,
-    pub schema_version: u32,
-    pub migration_note: String,
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RegistryError {
@@ -644,91 +637,38 @@ pub trait Handler {
 pub type HandlerFactory = fn() -> Box<dyn Handler>;
 pub type ConfigValidator = fn(&Node) -> Result<(), ResolutionError>;
 
-/// Concrete implementation manifest describing a registered provider.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ImplementationManifest {
-    pub implementation_id: String,
-    pub contract_id: String,
-    pub contract_hash: String,
-}
-
-/// Host facts and resolution evidence for provider availability.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct HostResolutionEvidence {
-    pub host_id: String,
-    pub time_basis: String,
-    pub observed_at_tick: u64,
-    pub valid_until_tick: u64,
-    pub available_memory_bytes: u64,
-    pub required_memory_bytes: u64,
-    pub rejection_reasons: Vec<String>,
-}
-
-impl HostResolutionEvidence {
-    #[must_use]
-    pub fn is_fresh_and_capable(&self, current_tick: u64) -> bool {
-        current_tick >= self.observed_at_tick
-            && current_tick <= self.valid_until_tick
-            && self.available_memory_bytes >= self.required_memory_bytes
-            && self.rejection_reasons.is_empty()
-    }
-
-    #[must_use]
-    pub fn fresh_rejection_reasons(&self, current_tick: u64) -> Vec<String> {
-        let mut reasons = self.rejection_reasons.clone();
-        if current_tick < self.observed_at_tick {
-            reasons.push("CND-HST-006: host observation not yet valid".to_owned());
-        }
-        if current_tick > self.valid_until_tick {
-            reasons.push("CND-RES-003: host resolution evidence is stale".to_owned());
-        }
-        if self.available_memory_bytes < self.required_memory_bytes {
-            reasons.push("CND-RES-013: insufficient host capacity".to_owned());
-        }
-        reasons
-    }
-}
-
-/// Computes the exact deterministic contract hash for a NodeContract.
-pub fn compute_contract_hash(contract: &NodeContract) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(contract.id.as_str().as_bytes());
-    hasher.update(b":config:");
-    for field in contract.config.fields {
-        hasher.update(field.key.as_str().as_bytes());
-        hasher.update(field.value_type.contract_id.as_str().as_bytes());
-    }
-    hasher.update(b":inputs:");
-    for input in contract.inputs {
-        hasher.update(input.id.as_str().as_bytes());
-    }
-    hasher.update(b":outputs:");
-    for output in contract.outputs {
-        hasher.update(output.id.as_str().as_bytes());
-    }
-    format!("{:x}", hasher.finalize())
+#[derive(Debug)]
+pub struct RegisteredExecutable {
+    pub manifest: &'static ImplementationManifest<'static>,
+    pub artifacts: &'static [&'static ArtifactManifest<'static>],
+    pub factory: HandlerFactory,
+    pub validate_config: ConfigValidator,
 }
 
 #[derive(Debug)]
-pub struct RegisteredExecutable {
-    pub manifest: ImplementationManifest,
-    pub host_evidence: Option<HostResolutionEvidence>,
-    pub factory: HandlerFactory,
-    pub validate_config: ConfigValidator,
+struct CompatibilityExecutable {
+    factory: HandlerFactory,
+    validate_config: ConfigValidator,
 }
 
 #[derive(Debug)]
 struct RegisteredNode {
     contract: &'static NodeContract<'static>,
     executable: Option<RegisteredExecutable>,
+    compatibility_executable: Option<CompatibilityExecutable>,
 }
 
 impl RegisteredNode {
     fn factory(&self) -> HandlerFactory {
         self.executable
             .as_ref()
+            .map(|executable| executable.factory)
+            .or_else(|| {
+                self.compatibility_executable
+                    .as_ref()
+                    .map(|executable| executable.factory)
+            })
             .expect("resolved node has executable implementation")
-            .factory
     }
 }
 
@@ -783,20 +723,29 @@ pub struct NodeAvailability {
 }
 
 impl NodeAvailability {
-    #[must_use]
-    pub fn bound_in_plan(mut self, plan_identity: impl Into<String>) -> Self {
-        self.plan_identity = Some(plan_identity.into());
-        self.state = AvailabilityState::BoundInThisPlan;
-        self.reason_code = "CND-AVL-004".to_owned();
-        self
-    }
-
-    #[must_use]
-    pub fn with_run(mut self, run_id: impl Into<String>) -> Self {
-        self.run_id = Some(run_id.into());
-        self.state = AvailabilityState::Running;
-        self.reason_code = "CND-AVL-005".to_owned();
-        self
+    pub fn from_resolved_binding(
+        contract: PinnedDescriptor<'_>,
+        binding: &ResolvedPlacementBinding,
+    ) -> Result<Self, RegistryError> {
+        if binding.semantic_contract != contract.semantic_hash {
+            return Err(RegistryError {
+                code: "CND-REG-006",
+                message: format!(
+                    "resolved binding for `{}` names a different semantic contract",
+                    binding.instance
+                ),
+            });
+        }
+        Ok(Self {
+            contract_id: contract.id.as_str().to_owned(),
+            state: AvailabilityState::ResolvableOnThisHost,
+            reason_code: "CND-AVL-003".to_owned(),
+            implementation_id: Some(binding.implementation_id.clone()),
+            host_id: Some(binding.host.clone()),
+            plan_identity: None,
+            run_id: None,
+            rejection_reasons: Vec::new(),
+        })
     }
 }
 
@@ -805,7 +754,6 @@ impl NodeAvailability {
 /// Registry identity and discovery are deliberately above `conduit-core`.
 pub struct Registry {
     nodes: BTreeMap<&'static str, RegisteredNode>,
-    aliases: BTreeMap<String, ContractAlias>,
     interfaces: BTreeMap<String, OwnedInterfaceContract>,
     types: TypeRegistry,
 }
@@ -815,51 +763,13 @@ impl Registry {
         self.interfaces.insert(interface.id.clone(), interface);
     }
 
-    /// Registers a versioned contract alias migration mapping.
-    pub fn register_alias(&mut self, alias: ContractAlias) -> Result<(), RegistryError> {
-        if let Some(existing) = self.aliases.get(&alias.alias_id) {
-            if existing.canonical_id != alias.canonical_id {
-                return Err(RegistryError {
-                    code: "CND-REG-001",
-                    message: format!(
-                        "conflicting alias mapping for `{}`: maps to `{}` and `{}`",
-                        alias.alias_id, existing.canonical_id, alias.canonical_id
-                    ),
-                });
-            }
-        }
-        self.aliases.insert(alias.alias_id.clone(), alias);
-        Ok(())
-    }
-
-    pub fn get_alias(&self, alias_id: &str) -> Option<&ContractAlias> {
-        self.aliases.get(alias_id)
-    }
-
-    pub fn contract_aliases(&self) -> &BTreeMap<String, ContractAlias> {
-        &self.aliases
-    }
-
-    /// Resolves an alias or canonical contract ID to its canonical semantic ID.
+    /// Resolves a contract ID to its canonical semantic ID.
     pub fn resolve_canonical_id<'a>(
         &'a self,
         contract_id: &'a str,
     ) -> Result<&'a str, RegistryError> {
         if self.nodes.contains_key(contract_id) {
             return Ok(contract_id);
-        }
-        if let Some(alias) = self.aliases.get(contract_id) {
-            if self.nodes.contains_key(alias.canonical_id.as_str()) {
-                return Ok(alias.canonical_id.as_str());
-            } else {
-                return Err(RegistryError {
-                    code: "CND-REG-002",
-                    message: format!(
-                        "alias `{}` targets non-existent canonical contract `{}`",
-                        contract_id, alias.canonical_id
-                    ),
-                });
-            }
         }
         Err(RegistryError {
             code: "CND-REG-003",
@@ -868,56 +778,84 @@ impl Registry {
     }
 
     fn get_registered_node(&self, contract_id: &str) -> Option<&RegisteredNode> {
-        if let Some(registered) = self.nodes.get(contract_id) {
-            return Some(registered);
-        }
-        if let Some(alias) = self.aliases.get(contract_id) {
-            if let Some(registered) = self.nodes.get(alias.canonical_id.as_str()) {
-                return Some(registered);
-            }
-        }
-        None
+        self.nodes.get(contract_id)
     }
 
     /// Registers a concrete executable provider implementation with manifest and host resolution evidence.
     pub fn register_executable_provider(
         &mut self,
         contract: &'static NodeContract<'static>,
-        manifest: ImplementationManifest,
-        host_evidence: Option<HostResolutionEvidence>,
+        manifest: &'static ImplementationManifest<'static>,
+        artifacts: &'static [&'static ArtifactManifest<'static>],
         factory: HandlerFactory,
         validate_config: ConfigValidator,
     ) -> Result<(), RegistryError> {
-        let canonical_target_id = self
-            .resolve_canonical_id(contract.id.as_str())
-            .unwrap_or(contract.id.as_str());
-
-        let manifest_target_canonical = self
-            .resolve_canonical_id(&manifest.contract_id)
-            .unwrap_or(&manifest.contract_id);
+        let canonical_target_id = self.resolve_canonical_id(contract.id.as_str())?;
+        let manifest_target_canonical =
+            self.resolve_canonical_id(manifest.semantic_contract.id.as_str())?;
 
         if manifest_target_canonical != canonical_target_id {
             return Err(RegistryError {
                 code: "CND-REG-004",
                 message: format!(
                     "cross-contract semantic impersonation rejected: handler advertised contract `{}` cannot implement `{}`",
-                    manifest.contract_id,
+                    manifest.semantic_contract.id,
                     contract.id.as_str()
                 ),
             });
         }
 
-        let expected_hash = compute_contract_hash(contract);
-        if manifest.contract_hash != expected_hash {
+        let expected_hash = OwnedNodeSchema::from_contract(contract).semantic_hash();
+        if manifest.semantic_contract.semantic_hash != expected_hash {
             return Err(RegistryError {
                 code: "CND-REG-005",
                 message: format!(
                     "contract hash mismatch for `{}`: manifest specifies `{}`, expected `{}`",
                     contract.id.as_str(),
-                    manifest.contract_hash,
+                    manifest.semantic_contract.semantic_hash,
                     expected_hash
                 ),
             });
+        }
+        let mut manifest_scratch =
+            vec![SemanticHash::from_bytes([0; 32]); manifest.identity_fact_count()];
+        validate_implementation_manifest(manifest, &mut manifest_scratch).map_err(|reason| {
+            RegistryError {
+                code: "CND-REG-007",
+                message: format!(
+                    "invalid implementation manifest `{}`: {}",
+                    manifest.id,
+                    reason.code()
+                ),
+            }
+        })?;
+        for artifact_ref in manifest.artifacts {
+            let artifact = artifacts
+                .iter()
+                .copied()
+                .find(|artifact| {
+                    artifact.id == artifact_ref.id && artifact.digest == artifact_ref.digest
+                })
+                .ok_or_else(|| RegistryError {
+                    code: "CND-REG-008",
+                    message: format!(
+                        "implementation manifest `{}` is missing exact artifact `{}`",
+                        manifest.id, artifact_ref.id
+                    ),
+                })?;
+            let mut artifact_scratch =
+                vec![SemanticHash::from_bytes([0; 32]); artifact.identity_fact_count()];
+            validate_artifact_manifest(artifact, &mut artifact_scratch).map_err(|reason| {
+                RegistryError {
+                    code: "CND-REG-008",
+                    message: format!(
+                        "invalid artifact manifest `{}` for implementation `{}`: {}",
+                        artifact.id,
+                        manifest.id,
+                        reason.code()
+                    ),
+                }
+            })?;
         }
 
         self.nodes.insert(
@@ -926,10 +864,11 @@ impl Registry {
                 contract,
                 executable: Some(RegisteredExecutable {
                     manifest,
-                    host_evidence,
+                    artifacts,
                     factory,
                     validate_config,
                 }),
+                compatibility_executable: None,
             },
         );
         Ok(())
@@ -942,11 +881,12 @@ impl Registry {
             RegisteredNode {
                 contract,
                 executable: None,
+                compatibility_executable: None,
             },
         );
     }
 
-    /// Returns the availability state for a contract id (supporting aliases) at tick 100.
+    /// Returns the availability state for a contract id at tick 100.
     pub fn node_availability(&self, contract_id: &str) -> NodeAvailability {
         self.node_availability_at_tick(contract_id, 100)
     }
@@ -955,16 +895,17 @@ impl Registry {
     pub fn node_availability_at_tick(
         &self,
         contract_id: &str,
-        current_tick: u64,
+        _current_tick: u64,
     ) -> NodeAvailability {
         if let Some(registered) = self.get_registered_node(contract_id) {
             let canonical_id = registered.contract.id.as_str();
             if let Some(ref exec) = registered.executable {
                 let manifest_canonical = self
-                    .resolve_canonical_id(&exec.manifest.contract_id)
-                    .unwrap_or(&exec.manifest.contract_id);
+                    .resolve_canonical_id(exec.manifest.semantic_contract.id.as_str())
+                    .unwrap_or(exec.manifest.semantic_contract.id.as_str());
 
-                let expected_hash = compute_contract_hash(registered.contract);
+                let expected_hash =
+                    OwnedNodeSchema::from_contract(registered.contract).semantic_hash();
 
                 if manifest_canonical != canonical_id {
                     // Cross-contract mismatch
@@ -978,7 +919,7 @@ impl Registry {
                         run_id: None,
                         rejection_reasons: vec!["CND-RES-008".to_owned()],
                     }
-                } else if exec.manifest.contract_hash != expected_hash {
+                } else if exec.manifest.semantic_contract.semantic_hash != expected_hash {
                     // Contract hash mismatch
                     NodeAvailability {
                         contract_id: canonical_id.to_owned(),
@@ -990,37 +931,12 @@ impl Registry {
                         run_id: None,
                         rejection_reasons: vec!["CND-RES-002".to_owned()],
                     }
-                } else if let Some(ref evidence) = exec.host_evidence {
-                    let rejections = evidence.fresh_rejection_reasons(current_tick);
-                    if evidence.is_fresh_and_capable(current_tick) {
-                        NodeAvailability {
-                            contract_id: canonical_id.to_owned(),
-                            state: AvailabilityState::ResolvableOnThisHost,
-                            reason_code: "CND-AVL-003".to_owned(),
-                            implementation_id: Some(exec.manifest.implementation_id.clone()),
-                            host_id: Some(evidence.host_id.clone()),
-                            plan_identity: None,
-                            run_id: None,
-                            rejection_reasons: Vec::new(),
-                        }
-                    } else {
-                        NodeAvailability {
-                            contract_id: canonical_id.to_owned(),
-                            state: AvailabilityState::ProviderAvailable,
-                            reason_code: "CND-AVL-002".to_owned(),
-                            implementation_id: Some(exec.manifest.implementation_id.clone()),
-                            host_id: Some(evidence.host_id.clone()),
-                            plan_identity: None,
-                            run_id: None,
-                            rejection_reasons: rejections,
-                        }
-                    }
                 } else {
                     NodeAvailability {
                         contract_id: canonical_id.to_owned(),
                         state: AvailabilityState::ProviderAvailable,
                         reason_code: "CND-AVL-002".to_owned(),
-                        implementation_id: Some(exec.manifest.implementation_id.clone()),
+                        implementation_id: Some(exec.manifest.id.to_string()),
                         host_id: None,
                         plan_identity: None,
                         run_id: None,
@@ -1039,17 +955,6 @@ impl Registry {
                     rejection_reasons: vec!["CND-RES-008".to_owned()],
                 }
             }
-        } else if self.aliases.contains_key(contract_id) {
-            NodeAvailability {
-                contract_id: contract_id.to_owned(),
-                state: AvailabilityState::Unsupported,
-                reason_code: "CND-AVL-006".to_owned(),
-                implementation_id: None,
-                host_id: None,
-                plan_identity: None,
-                run_id: None,
-                rejection_reasons: vec!["CND-RES-009".to_owned()],
-            }
         } else {
             NodeAvailability {
                 contract_id: contract_id.to_owned(),
@@ -1063,38 +968,77 @@ impl Registry {
             }
         }
     }
+
+    /// Explicit finite batch/demo registry.
+    ///
+    /// These linked callbacks are not implementation manifests, host reports,
+    /// exact bindings, or production availability claims.
+    #[must_use]
+    pub fn compatibility_demo() -> Self {
+        let mut registry = Self::default();
+        let mut install = |contract: &'static NodeContract<'static>,
+                           factory: HandlerFactory,
+                           validate_config: ConfigValidator| {
+            let registered = registry
+                .nodes
+                .get_mut(contract.id.as_str())
+                .expect("default registry contains every compatibility contract");
+            registered.compatibility_executable = Some(CompatibilityExecutable {
+                factory,
+                validate_config,
+            });
+        };
+        install(&LITERAL_CONTRACT, || Box::new(Literal), validate_literal);
+        install(&STDIN_CONTRACT, || Box::new(Stdin), validate_empty_config);
+        install(
+            &UPPERCASE_CONTRACT,
+            || Box::new(Uppercase),
+            validate_empty_config,
+        );
+        install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
+        install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
+        install(
+            &SUPERVISOR_CONTRACT,
+            || Box::new(Supervisor),
+            validate_empty_config,
+        );
+        install(
+            &PASS_THROUGH_CONTRACT,
+            || Box::new(PassThroughHandler),
+            validate_empty_config,
+        );
+        install(
+            &TEE_CONTRACT,
+            || Box::new(TeeHandler),
+            validate_empty_config,
+        );
+        install(
+            &MERGE_CONTRACT,
+            || Box::new(MergeHandler),
+            validate_empty_config,
+        );
+        install(
+            &FALLBACK_CONTRACT,
+            || Box::new(FallbackHandler),
+            validate_empty_config,
+        );
+        registry
+    }
 }
 
 impl Default for Registry {
     fn default() -> Self {
         let mut nodes = BTreeMap::new();
-        let mut aliases = BTreeMap::new();
-
-        // Helper to construct honest primitive registered node
+        // Default discovery publishes semantic contracts only. Runnable
+        // compatibility callbacks are installed only by `compatibility_demo`.
         let honest_primitive = |contract: &'static NodeContract<'static>,
-                                factory: HandlerFactory,
-                                validate_config: ConfigValidator|
+                                _factory: HandlerFactory,
+                                _validate_config: ConfigValidator|
          -> RegisteredNode {
             RegisteredNode {
                 contract,
-                executable: Some(RegisteredExecutable {
-                    manifest: ImplementationManifest {
-                        implementation_id: format!("{}.native", contract.id.as_str()),
-                        contract_id: contract.id.as_str().to_owned(),
-                        contract_hash: compute_contract_hash(contract),
-                    },
-                    host_evidence: Some(HostResolutionEvidence {
-                        host_id: "hosted-local".to_owned(),
-                        time_basis: "clock/monotonic".to_owned(),
-                        observed_at_tick: 1,
-                        valid_until_tick: 1000,
-                        available_memory_bytes: 1_000_000,
-                        required_memory_bytes: 1_000,
-                        rejection_reasons: Vec::new(),
-                    }),
-                    factory,
-                    validate_config,
-                }),
+                executable: None,
+                compatibility_executable: None,
             }
         };
 
@@ -1206,64 +1150,7 @@ impl Default for Registry {
                 RegisteredNode {
                     contract,
                     executable: None,
-                },
-            );
-        }
-
-        // Register default legacy contract aliases pointing to canonical conduit.std/... IDs
-        let standard_alias_pairs = [
-            ("conduit/literal", "conduit.std/literal"),
-            ("conduit/stdin", "conduit.std/stdin"),
-            ("conduit/uppercase", "conduit.std/uppercase"),
-            ("conduit/stdout", "conduit.std/stdout"),
-            ("conduit/stderr", "conduit.std/stderr"),
-            ("conduit/supervisor", "conduit.std/supervisor"),
-            ("conduit/pass-through", "conduit.std/pass-through"),
-            ("conduit/tee", "conduit.std/tee"),
-            ("conduit/merge", "conduit.std/merge"),
-            ("conduit/fallback", "conduit.std/fallback"),
-            ("conduit/delay", "conduit.std/delay"),
-            ("conduit/debounce", "conduit.std/debounce"),
-            ("conduit/throttle", "conduit.std/throttle"),
-            ("conduit/take", "conduit.std/take"),
-            ("conduit/skip", "conduit.std/skip"),
-            ("conduit/filter", "conduit.std/filter"),
-            ("conduit/probe", "conduit.std/probe"),
-            ("conduit/log", "conduit.std/log"),
-            ("conduit/assert", "conduit.std/assert"),
-            ("conduit/record", "conduit.std/record"),
-            ("conduit/replay", "conduit.std/replay"),
-            ("conduit/fault-source", "conduit.std/fault-source"),
-            ("conduit/file-read", "conduit.std/file-read"),
-            ("conduit/file-write", "conduit.std/file-write"),
-            ("conduit/blob-store", "conduit.std/blob-store"),
-            ("conduit/kv-store", "conduit.std/kv-store"),
-            ("conduit/process-spawn", "conduit.std/process-spawn"),
-            ("conduit/gpio-pin", "conduit.std/gpio-pin"),
-            ("conduit/serial-port", "conduit.std/serial-port"),
-            ("conduit/cell", "conduit.std/cell"),
-            ("conduit/counter", "conduit.std/counter"),
-            ("conduit/deduplicate", "conduit.std/deduplicate"),
-            ("conduit/cache", "conduit.std/cache"),
-            ("conduit/circuit-breaker", "conduit.std/circuit-breaker"),
-            ("conduit/health-gate", "conduit.std/health-gate"),
-            ("conduit/backoff", "conduit.std/backoff"),
-            ("conduit/wifi-station", "conduit.std/wifi-station"),
-            ("conduit/wifi-ap", "conduit.std/wifi-ap"),
-            ("conduit/network-interface", "conduit.std/network-interface"),
-            ("conduit/tcp-socket", "conduit.std/tcp-socket"),
-            ("conduit/udp-socket", "conduit.std/udp-socket"),
-            ("conduit/dns-resolver", "conduit.std/dns-resolver"),
-        ];
-
-        for (alias_id, canonical_id) in standard_alias_pairs {
-            aliases.insert(
-                alias_id.to_owned(),
-                ContractAlias {
-                    alias_id: alias_id.to_owned(),
-                    canonical_id: canonical_id.to_owned(),
-                    schema_version: 1,
-                    migration_note: "Legacy standard node contract alias".to_owned(),
+                    compatibility_executable: None,
                 },
             );
         }
@@ -1340,7 +1227,6 @@ impl Default for Registry {
 
         Self {
             nodes,
-            aliases,
             interfaces,
             types,
         }
@@ -1392,49 +1278,17 @@ impl Registry {
                     format!("no ready implementation for `{}`", source.kind),
                 )
             })?;
-            let executable = definition.executable.as_ref().ok_or_else(|| {
-                ResolutionError::new(
-                    "CND-IMP-001",
-                    format!("no ready implementation for `{}`", source.kind),
-                )
-            })?;
-            let target_canonical = self
-                .resolve_canonical_id(definition.contract.id.as_str())
-                .unwrap_or(definition.contract.id.as_str());
-            let manifest_canonical = self
-                .resolve_canonical_id(&executable.manifest.contract_id)
-                .unwrap_or(&executable.manifest.contract_id);
-            if manifest_canonical != target_canonical {
-                return Err(ResolutionError::new(
-                    "CND-IMP-001",
-                    format!(
-                        "cross-contract semantic impersonation rejected for `{}`: provider advertises `{}`",
-                        source.kind, executable.manifest.contract_id
-                    ),
-                ));
-            }
-            let expected_hash = compute_contract_hash(definition.contract);
-            if executable.manifest.contract_hash != expected_hash {
-                return Err(ResolutionError::new(
-                    "CND-IMP-001",
-                    format!(
-                        "contract hash mismatch for `{}`: manifest specifies `{}`, expected `{}`",
-                        source.kind, executable.manifest.contract_hash, expected_hash
-                    ),
-                ));
-            }
-            if let Some(ref evidence) = executable.host_evidence {
-                if !evidence.is_fresh_and_capable(100) {
-                    return Err(ResolutionError::new(
+            let validate_config = definition
+                .compatibility_executable
+                .as_ref()
+                .map(|executable| executable.validate_config)
+                .ok_or_else(|| {
+                    ResolutionError::new(
                         "CND-IMP-001",
-                        format!(
-                            "host resolution evidence rejected for `{}`: host is not capable or evidence is stale",
-                            source.kind
-                        ),
-                    ));
-                }
-            }
-            (executable.validate_config)(&source)?;
+                        format!("no ready implementation for `{}`", source.kind),
+                    )
+                })?;
+            validate_config(&source)?;
             nodes.push(ResolvedNode { source, definition });
         }
 
@@ -3118,7 +2972,7 @@ impl ResolvedPanel<'_> {
             }
 
             let kind = match resolved.definition.contract.id.as_str() {
-                "conduit.std/literal" | "conduit/literal" => {
+                "conduit.std/literal" => {
                     let val = resolved
                         .source
                         .config("value")
@@ -3129,16 +2983,14 @@ impl ResolvedPanel<'_> {
                         emitted: false,
                     }
                 }
-                "conduit.std/stdin" | "conduit/stdin" => HostedNodeKind::Stdin { emitted: false },
-                "conduit.std/uppercase" | "conduit/uppercase" => HostedNodeKind::Uppercase,
-                "conduit.std/stdout" | "conduit/stdout" => HostedNodeKind::Stdout,
-                "conduit.std/stderr" | "conduit/stderr" => HostedNodeKind::Stderr,
-                "conduit.std/pass-through" | "conduit/pass-through" => HostedNodeKind::PassThrough,
-                "conduit.std/tee" | "conduit/tee" => HostedNodeKind::Tee,
-                "conduit.std/merge" | "conduit/merge" => HostedNodeKind::Merge,
-                "conduit.std/fallback" | "conduit/fallback" => {
-                    HostedNodeKind::Fallback { emitted: false }
-                }
+                "conduit.std/stdin" => HostedNodeKind::Stdin { emitted: false },
+                "conduit.std/uppercase" => HostedNodeKind::Uppercase,
+                "conduit.std/stdout" => HostedNodeKind::Stdout,
+                "conduit.std/stderr" => HostedNodeKind::Stderr,
+                "conduit.std/pass-through" => HostedNodeKind::PassThrough,
+                "conduit.std/tee" => HostedNodeKind::Tee,
+                "conduit.std/merge" => HostedNodeKind::Merge,
+                "conduit.std/fallback" => HostedNodeKind::Fallback { emitted: false },
                 _ => HostedNodeKind::Generic,
             };
 
@@ -3408,7 +3260,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 let mut bytes = Vec::new();
                 if self.io.borrow_mut().input.read_to_end(&mut bytes).is_err() {
                     return SchedulerStep::Failed {
-                        code: Id("conduit/stdin-read-error"),
+                        code: Id("conduit.std/stdin-read-error"),
                     };
                 }
                 let handle = self.store.borrow_mut().store(bytes.clone());
@@ -3484,7 +3336,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let bytes = store.get(val.handle).unwrap_or(&[]);
                     if self.io.borrow_mut().output.write_all(bytes).is_err() {
                         return SchedulerStep::Failed {
-                            code: Id("conduit/stdout-write-error"),
+                            code: Id("conduit.std/stdout-write-error"),
                         };
                     }
                     SchedulerStep::Progress
@@ -3505,7 +3357,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let bytes = store.get(val.handle).unwrap_or(&[]);
                     if self.io.borrow_mut().error.write_all(bytes).is_err() {
                         return SchedulerStep::Failed {
-                            code: Id("conduit/stderr-write-error"),
+                            code: Id("conduit.std/stderr-write-error"),
                         };
                     }
                     SchedulerStep::Progress
@@ -4100,17 +3952,17 @@ mod tests {
         let panel = parse(
             r#"
                 panel 1
-                node greeting : conduit/literal {
+                node greeting : conduit.std/literal {
                     value = "Hello from Conduit.\n"
                 }
-                node shout : conduit/uppercase
-                node output : conduit/stdout
+                node shout : conduit.std/uppercase
+                node output : conduit.std/stdout
                 cord greeting.out -> shout.in
                 cord shout.out -> output.in
             "#,
         )
         .expect("panel parses");
-        let registry = Registry::default();
+        let registry = Registry::compatibility_demo();
         let resolved = registry.resolve(&panel).expect("panel resolves");
         let explanation = resolved.explain();
         assert!(explanation.contains("capacity=8"));
@@ -4138,7 +3990,7 @@ mod tests {
     #[test]
     fn rejects_unknown_implementations() {
         let panel = parse("panel 1\nnode mystery : example/missing").expect("panel parses");
-        let error = Registry::default()
+        let error = Registry::compatibility_demo()
             .resolve(&panel)
             .expect_err("missing implementation");
         assert_eq!(error.code, "CND-IMP-001");
@@ -4150,11 +4002,11 @@ mod tests {
             "panel 1\nimport \"./child.panel\" as child",
             "panel 1\nport-group routes input : fixture/request indexed max 8",
             "panel 1\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
-            "panel 1\nnode app { node child : conduit/literal }\nroot app",
-            "panel 1\nnode source : conduit/literal using ready",
+            "panel 1\nnode app { node child : conduit.std/literal }\nroot app",
+            "panel 1\nnode source : conduit.std/literal using ready",
         ] {
             let panel = parse(source).expect("source form parses");
-            let error = Registry::default()
+            let error = Registry::compatibility_demo()
                 .resolve(&panel)
                 .expect_err("source-only construct must not be ignored");
             assert_eq!(error.code, "CND-PLN-005");
@@ -4164,27 +4016,27 @@ mod tests {
     #[test]
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
-            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
              cord a.out -> b.in {\n\
                pressure = sample\n\
                sample_every = 2\n\
              }",
         )
         .unwrap();
-        let error = Registry::default()
+        let error = Registry::compatibility_demo()
             .resolve(&sample)
             .expect_err("lossless ports reject sampling");
         assert_eq!(error.code, "CND-FLW-002");
 
         let coalesce = parse(
-            "panel 1\nnode a : conduit/stdin\nnode b : conduit/stdout\n\
+            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
              cord a.out -> b.in {\n\
                pressure = coalesce\n\
                coalescer = conduit/replace-latest\n\
              }",
         )
         .unwrap();
-        let error = Registry::default()
+        let error = Registry::compatibility_demo()
             .resolve(&coalesce)
             .expect_err("text type does not declare coalescing");
         assert_eq!(error.code, "CND-FLW-004");
@@ -4196,13 +4048,13 @@ mod tests {
         let panel = parse(
             r#"
                 panel 1
-                node input : conduit/stdin
-                node output : conduit/stdout
+                node input : conduit.std/stdin
+                node output : conduit.std/stdout
                 cord input.out -> output.in
             "#,
         )
         .expect("panel parses");
-        let registry = Registry::default();
+        let registry = Registry::compatibility_demo();
         let resolved = registry.resolve(&panel).expect("panel resolves");
         let mut input = &b"pipe friendly"[..];
         let mut output = Vec::new();
@@ -4225,32 +4077,32 @@ mod tests {
             r#"
                 panel 1
                 composite example/literal-line {
-                    node source : conduit/literal
+                    node source : conduit.std/literal
                     export output text = source.out
                     bind value = source.value
                 }
                 composite example/upper-line {
                     node source : example/literal-line
-                    node upper : conduit/uppercase
+                    node upper : conduit.std/uppercase
                     cord source.text -> upper.in
                     export output text = upper.out
                     bind value = source.value
                 }
                 node line : example/upper-line { value = "mixed Case" }
-                node stdout : conduit/stdout
-                node stderr : conduit/stderr
+                node stdout : conduit.std/stdout
+                node stderr : conduit.std/stderr
                 cord line.text -> stdout.in
                 cord line.text -> stderr.in
             "#,
         )
         .expect("nested composite parses");
-        let registry = Registry::default();
+        let registry = Registry::compatibility_demo();
         let resolved = registry.resolve(&panel).expect("composite resolves");
         let logical = resolved.explain_logical();
         let expanded = resolved.explain_expanded();
         assert!(logical.contains("composite line : example/upper-line"));
         assert!(logical.contains("composite line/source : example/literal-line"));
-        assert!(logical.contains("child line/upper : conduit/uppercase"));
+        assert!(logical.contains("child line/upper : conduit.std/uppercase"));
         assert!(logical.contains("export output text -> line.upper.out"));
         assert!(logical.contains("bind value -> line/source.value"));
         assert!(expanded.contains("line.source.source : conduit.std/literal"));
@@ -4278,19 +4130,19 @@ mod tests {
             r#"
                 panel 1
                 composite example/uppercase {
-                    node worker : conduit/uppercase
+                    node worker : conduit.std/uppercase
                     export input in = worker.in
                     export output out = worker.out
                 }
-                node source : conduit/literal { value = "boundary" }
+                node source : conduit.std/literal { value = "boundary" }
                 node transform : example/uppercase
-                node sink : conduit/stdout
+                node sink : conduit.std/stdout
                 cord source.out -> transform.in
                 cord transform.out -> sink.in
             "#,
         )
         .expect("transparent composite parses");
-        let registry = Registry::default();
+        let registry = Registry::compatibility_demo();
         let resolved = registry
             .resolve(&panel)
             .expect("transparent boundary resolves");
@@ -4309,7 +4161,7 @@ mod tests {
 
     #[test]
     fn rejects_recursive_duplicate_dangling_and_boundary_bypass() {
-        let registry = Registry::default();
+        let registry = Registry::compatibility_demo();
         for (source, source_code, runtime_code) in [
             (
                 "panel 1\ncomposite example/a { node b : example/b }\n\
@@ -4320,7 +4172,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit/stdin\n\
+                   node source : conduit.std/stdin\n\
                    export output out = source.out\n\
                    export output out = source.out\n\
                  }\nnode root : example/a",
@@ -4329,7 +4181,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit/stdin\n\
+                   node source : conduit.std/stdin\n\
                    export output out = missing.out\n\
                  }\nnode root : example/a",
                 Some("CND-SRC-009"),
@@ -4337,7 +4189,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit/stdin\n\
+                   node source : conduit.std/stdin\n\
                    export input in = source.out\n\
                  }\nnode root : example/a",
                 None,
@@ -4345,7 +4197,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit/literal\n\
+                   node source : conduit.std/literal\n\
                    export output out = source.out\n\
                    bind value = source.missing\n\
                  }\nnode root : example/a { value = x }",
@@ -4354,9 +4206,9 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit/stdin\n\
+                   node source : conduit.std/stdin\n\
                    export output out = source.out\n\
-                 }\nnode root : example/a\nnode sink : conduit/stdout\n\
+                 }\nnode root : example/a\nnode sink : conduit.std/stdout\n\
                  cord root.source.out -> sink.in",
                 Some("CND-SRC-009"),
                 None,

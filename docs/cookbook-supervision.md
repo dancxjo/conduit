@@ -9,11 +9,11 @@ The source relationship is intentionally small:
 ```panel
 panel 2
 
-node request : conduit/literal {
+node request : conduit.std/literal {
     value = "work"
 }
-node output : conduit/stdout
-node request_policy : conduit/supervisor
+node output : conduit.std/stdout
+node request_policy : conduit.std/supervisor
 
 cord request.out -> output.in
 supervise request with request_policy

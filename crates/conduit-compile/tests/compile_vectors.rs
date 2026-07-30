@@ -18,9 +18,9 @@ const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.j
 const SOURCE_LIMIT_FIXTURE: &str =
     include_str!("../../../conformance/c5/compile-source-limits-v1.json");
 const SOURCE: &str = "panel 1\n\
-node source : conduit/literal { value = \"hello\" }\n\
-node upper : conduit/uppercase using ready\n\
-node sink : conduit/stdout\n\
+node source : conduit.std/literal { value = \"hello\" }\n\
+node upper : conduit.std/uppercase using ready\n\
+node sink : conduit.std/stdout\n\
 cord source.out -> upper.in\n\
 cord upper.out -> sink.in\n";
 
@@ -159,7 +159,7 @@ fn input(source: &str) -> CompileInput {
             node.constraint_span = None;
         }
     }
-    let topology = Registry::default()
+    let topology = Registry::compatibility_demo()
         .resolve(&executable)
         .unwrap()
         .exact_topology()

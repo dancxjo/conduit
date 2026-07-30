@@ -27,14 +27,14 @@ const referencePanels = [
     title: "File Copier Pipeline",
     objective: "Bounded file stream copy with pressure control",
     prose: "Transfers data from source file to destination file through a bounded 8-value cord.",
-    source: `panel 1\n\nnode reader : conduit/file-read {\n    path = "source.txt"\n}\n\nnode writer : conduit/file-write {\n    path = "destination.txt"\n}\n\ncord reader.out -> writer.in {\n    capacity = 8\n    max_value_bytes = 65536\n    max_queued_bytes = 524288\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}`
+    source: `panel 1\n\nnode reader : conduit.std/file-read {\n    path = "source.txt"\n}\n\nnode writer : conduit.std/file-write {\n    path = "destination.txt"\n}\n\ncord reader.out -> writer.in {\n    capacity = 8\n    max_value_bytes = 65536\n    max_queued_bytes = 524288\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}`
   },
   {
     id: "dir-watcher",
     title: "Directory Watcher & Filter",
     objective: "Stream directory inspection, uppercase filter, and logging",
     prose: "Watches a directory stream, passes through a filter, converts to uppercase, and writes to log.",
-    source: `panel 1\n\nnode watcher : conduit/file-read {\n    path = "watch_directory"\n}\n\nnode filter : conduit/passthrough\nnode processor : conduit/uppercase\nnode logger : conduit/log\n\ncord watcher.out -> filter.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}\n\ncord filter.out -> processor.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}\n\ncord processor.out -> logger.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}`
+    source: `panel 1\n\nnode watcher : conduit.std/file-read {\n    path = "watch_directory"\n}\n\nnode filter : conduit/passthrough\nnode processor : conduit.std/uppercase\nnode logger : conduit.std/log\n\ncord watcher.out -> filter.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}\n\ncord filter.out -> processor.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}\n\ncord processor.out -> logger.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}`
   },
   {
     id: "http-webhook-relay",
@@ -48,21 +48,21 @@ const referencePanels = [
     title: "Local Ollama AI Generation",
     objective: "Stream text generation request to local Ollama LLM endpoint",
     prose: "Sends a JSON prompt to local Ollama HTTP server without cloud fallback or hidden state.",
-    source: `panel 1\n\nnode prompt : conduit/literal {\n    value = "{\\"model\\": \\"llama3\\", \\"prompt\\": \\"Summarize Conduit architecture.\\", \\"stream\\": false}"\n}\n\nnode ollama_api : conduit/http-client {\n    endpoint = "http://127.0.0.1:11434/api/generate"\n}\n\nnode output : conduit/stdout\n\ncord prompt.out -> ollama_api.in {\n    capacity = 4\n    max_value_bytes = 8192\n    max_queued_bytes = 32768\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord ollama_api.out -> output.in {\n    capacity = 4\n    max_value_bytes = 65536\n    max_queued_bytes = 262144\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}`
+    source: `panel 1\n\nnode prompt : conduit.std/literal {\n    value = "{\\"model\\": \\"llama3\\", \\"prompt\\": \\"Summarize Conduit architecture.\\", \\"stream\\": false}"\n}\n\nnode ollama_api : conduit/http-client {\n    endpoint = "http://127.0.0.1:11434/api/generate"\n}\n\nnode output : conduit.std/stdout\n\ncord prompt.out -> ollama_api.in {\n    capacity = 4\n    max_value_bytes = 8192\n    max_queued_bytes = 32768\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord ollama_api.out -> output.in {\n    capacity = 4\n    max_value_bytes = 65536\n    max_queued_bytes = 262144\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}`
   },
   {
     id: "network-health",
     title: "Network Health & Circuit Breaker",
     objective: "UDP socket health monitoring with backoff retry and circuit breaker",
     prose: "Probes DNS port 53, evaluates health gate, trips circuit breaker if unreachable, and applies backoff.",
-    source: `panel 1\n\nnode probe_ping : conduit/udp-socket {\n    port = 53\n}\n\nnode health_check : conduit/health-gate\nnode breaker : conduit/circuit-breaker\nnode backoff_retry : conduit/backoff\n\ncord probe_ping.out -> health_check.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}\n\ncord health_check.out -> breaker.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}\n\ncord breaker.out -> backoff_retry.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}`
+    source: `panel 1\n\nnode probe_ping : conduit.std/udp-socket {\n    port = 53\n}\n\nnode health_check : conduit.std/health-gate\nnode breaker : conduit.std/circuit-breaker\nnode backoff_retry : conduit.std/backoff\n\ncord probe_ping.out -> health_check.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}\n\ncord health_check.out -> breaker.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}\n\ncord breaker.out -> backoff_retry.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}`
   },
   {
     id: "wifi-station-join",
     title: "Wi-Fi Station Profile",
     objective: "Witness Wi-Fi Station join contract without background scanning",
     prose: "Resolves Wi-Fi station capability requirement on Linux or Pico W host.",
-    source: `panel 1\n\nnode wifi_sta : conduit/wifi-station {\n    ssid = "ConduitNet"\n}\n\nnode status_logger : conduit/log\n\ncord wifi_sta.out -> status_logger.in {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}`
+    source: `panel 1\n\nnode wifi_sta : conduit.std/wifi-station {\n    ssid = "ConduitNet"\n}\n\nnode status_logger : conduit.std/log\n\ncord wifi_sta.out -> status_logger.in {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}`
   }
 ];
 

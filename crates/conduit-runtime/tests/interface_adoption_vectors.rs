@@ -15,7 +15,7 @@ impl ModuleLoader for MemoryLoader {
 
 #[test]
 fn builtin_registry_interfaces_are_present_and_valid() {
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     assert!(registry.interface_contract("conduit/stream-sink").is_some());
     assert!(
         registry
@@ -38,7 +38,7 @@ fn builtin_registry_interfaces_are_present_and_valid() {
 #[test]
 fn cookbook_interface_primitive_satisfaction_example_lowers_successfully() {
     let source = include_str!("../../../examples/interface-primitive-satisfaction.panel");
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let graph = resolve_modules(
         "mem://example/primitive.panel",
         None,
@@ -61,7 +61,7 @@ fn cookbook_interface_primitive_satisfaction_example_lowers_successfully() {
 #[test]
 fn cookbook_interface_composite_satisfaction_example_lowers_successfully() {
     let source = include_str!("../../../examples/interface-composite-satisfaction.panel");
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let graph = resolve_modules(
         "mem://example/composite.panel",
         None,
@@ -84,7 +84,7 @@ fn cookbook_interface_composite_satisfaction_example_lowers_successfully() {
 #[test]
 fn cookbook_interface_consumer_example_lowers_successfully() {
     let source = include_str!("../../../examples/interface-consumer.panel");
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let graph = resolve_modules(
         "mem://example/consumer.panel",
         None,
@@ -107,7 +107,7 @@ fn cookbook_interface_consumer_example_lowers_successfully() {
 #[test]
 fn cookbook_interface_adapter_bridge_example_lowers_successfully() {
     let source = include_str!("../../../examples/interface-adapter-bridge.panel");
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let graph = resolve_modules(
         "mem://example/adapter.panel",
         None,
@@ -130,7 +130,7 @@ fn cookbook_interface_adapter_bridge_example_lowers_successfully() {
 #[test]
 fn cookbook_interface_diagnostic_failure_example_triggers_rejection() {
     let source = include_str!("../../../examples/interface-diagnostic-failure.panel");
-    let registry = Registry::default();
+    let registry = Registry::compatibility_demo();
     let graph = resolve_modules(
         "mem://example/failure.panel",
         None,

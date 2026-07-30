@@ -1,12 +1,12 @@
 # CSV to JSON transformation pipeline panel.
 panel 1
 
-node input_data : conduit/literal {
+node input_data : conduit.std/literal {
     value = "id,name\n1,alice\n2,bob\n"
 }
 
-node transformer : conduit/uppercase
-node storage : conduit/kv-store {
+node transformer : conduit.std/uppercase
+node storage : conduit.std/kv-store {
     table = "users"
 }
 

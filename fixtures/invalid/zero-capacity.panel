@@ -1,9 +1,9 @@
 panel 1
 
-node greeting : conduit/literal {
+node greeting : conduit.std/literal {
     value = "This panel must not resolve."
 }
-node output : conduit/stdout
+node output : conduit.std/stdout
 
 cord greeting.out -> output.in {
     capacity = 0

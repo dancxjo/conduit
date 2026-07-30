@@ -121,7 +121,7 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
         }
         let panel = conduit_panel::parse(source)
             .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
-        let registry = Registry::default();
+        let registry = Registry::compatibility_demo();
 
         if let Some(expected_stdout) = lesson["expected_stdout"].as_str() {
             assert_eq!(lesson["validation"]["kind"], "stdout");

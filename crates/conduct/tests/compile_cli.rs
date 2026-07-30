@@ -178,7 +178,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
 
 fn input(source: &str) -> CompileInput {
     let panel = parse(source).unwrap();
-    let topology = Registry::default()
+    let topology = Registry::compatibility_demo()
         .resolve(&panel)
         .unwrap()
         .exact_topology()
@@ -284,7 +284,7 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
         .iter_mut()
         .find(|candidate| {
             let id = &candidate["implementation"]["semantic_contract"]["id"];
-            id == "conduit/literal" || id == "conduit.std/literal"
+            id == "conduit.std/literal"
         })
         .unwrap();
     candidate["implementation"]["maximum_plan_version"] =
@@ -403,7 +403,7 @@ fn toxic_hazard_input(source: &str) -> CompileInput {
         .iter_mut()
         .find(|candidate| {
             let id = &candidate["implementation"]["semantic_contract"]["id"];
-            id == "conduit/literal" || id == "conduit.std/literal"
+            id == "conduit.std/literal"
         })
         .unwrap();
     candidate["implementation"]["maximum_plan_version"] =

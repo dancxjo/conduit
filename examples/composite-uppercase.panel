@@ -1,8 +1,8 @@
 panel 1
 
 composite example/upper-line {
-    node source : conduit/literal
-    node upper : conduit/uppercase
+    node source : conduit.std/literal
+    node upper : conduit.std/uppercase
 
     cord source.out -> upper.in {
         capacity = 2
@@ -20,7 +20,7 @@ composite example/upper-line {
 node line : example/upper-line {
     value = "Composite nodes stay ordinary."
 }
-node output : conduit/stdout
+node output : conduit.std/stdout
 
 cord line.text -> output.in {
     capacity = 2
