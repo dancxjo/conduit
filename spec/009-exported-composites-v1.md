@@ -31,15 +31,15 @@ The executable seed grammar adds reusable definitions:
 
 ```text
 composite example/upper-line {
-    node source : conduit/literal
-    node upper : conduit/uppercase
+    node source : conduit.std/literal
+    node upper : conduit.std/uppercase
     cord source.out -> upper.in
     export output text = upper.out
     bind value = source.value
 }
 
 node line : example/upper-line { value = "hello" }
-node sink : conduit/stdout
+node sink : conduit.std/stdout
 cord line.text -> sink.in
 ```
 

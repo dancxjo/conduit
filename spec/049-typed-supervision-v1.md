@@ -215,7 +215,7 @@ binding, and evidence origins.
 The standard `supervisor`, retry, fallback, terminal-projection,
 operator-action, and deterministic fault-source families consume this
 contract. They do not define parallel retry or error semantics. The
-`conduit/supervisor` reference node exposes nominal
+`conduit.std/supervisor` reference node exposes nominal
 `conduit/terminal-observation` and `conduit/supervision-decision` type
 contracts; their source-visible ports are optional because the exact
 supervision relationship, not a data cord, supplies and consumes them.
