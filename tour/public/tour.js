@@ -315,11 +315,13 @@ function renderStructuredTopology() {
   }
   for (const cord of patchbayView?.topology?.cords || []) {
     const item = document.createElement("li");
+    item.dataset.fromPortPath = cord.from_port_path;
+    item.dataset.toPortPath = cord.to_port_path;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "structured-topology-button";
     button.textContent =
-      `${cord.from_node}.${cord.from_port} → ${cord.to_node}.${cord.to_port} — ` +
+      `${cord.from_node}.${cord.from_port} > → > ${cord.to_node}.${cord.to_port} — ` +
       `${cord.value_type}; ${cord.pressure}`;
     button.setAttribute(
       "aria-label",
@@ -804,7 +806,22 @@ function selectPort(nodeId, port) {
       : candidate.from_node === nodeId && candidate.from_port === port.id
   );
   if (cord) {
-    selectCord(cord.id);
+    const range = port.direction === "input"
+      ? cord.to_port_range
+      : cord.from_port_range;
+    const projectedPath = port.direction === "input"
+      ? cord.to_port_path
+      : cord.from_port_path;
+    if (projectedPath !== port.semantic_path ||
+        !selectSourceRange("port", port.semantic_path, range)) {
+      result.textContent =
+        `CND-PBY-STALE: port selection path ${port.semantic_path} ` +
+        "does not match its authoritative cord projection.";
+      return;
+    }
+    selectedNode = null;
+    selectedCord = cord.id;
+    patchbayRenderer?.selectCord(cord.id);
     selectedNodeLabel.textContent =
       `Selected ${port.accessible_label}: ${port.semantic_path}`;
     return;

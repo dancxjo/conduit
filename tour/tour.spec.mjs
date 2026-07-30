@@ -101,7 +101,10 @@ test("highlights panel source while retaining the native editor surface", async 
   })).toHaveCount(0);
   await expect(highlight.locator(".panel-token-identifier").filter({
     hasText: /^output$/,
-  })).toHaveCount(2);
+  })).toHaveCount(1);
+  await expect(highlight.locator(".panel-token-identifier").filter({
+    hasText: /^output\.$/,
+  })).toHaveCount(1);
   await expect(highlight.locator(".panel-token-port-outgoing")).toHaveText("out");
   await expect(highlight.locator(".panel-token-port-receiving")).toHaveText("in");
   await expect(highlight.locator(".panel-token-port-outgoing"))
@@ -238,14 +241,32 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   });
   await expect(receiving).toContainText("> in");
   await expect(outgoing).toContainText("out >");
-  await expect(page.locator(".faceplate-jack")).not.toContainText("<");
+  expect(
+    await page.locator(".faceplate-jack").allTextContents(),
+  ).toEqual(expect.not.arrayContaining([expect.stringContaining("<")]));
   await expect(page.locator("#panel-port-list")).toContainText("> in");
   await expect(page.locator("#panel-port-list")).toContainText("out >");
+  await expect(page.locator("#panel-connection-list")).toContainText(
+    "greeting.out > → > output.in",
+  );
   await outgoing.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#selected-node-label")).toContainText(
     "Selected out, outgoing port: root/greeting/port/outgoing/out",
   );
+  await expect(page.locator(".panel-source-selection")).toHaveText("out");
+  const selectedEndpoint = await page.locator("#source").evaluate((element) =>
+    element.value.slice(element.selectionStart, element.selectionEnd)
+  );
+  expect(selectedEndpoint).toBe("out");
+
+  const greeting = page.locator('[data-id="greeting"]');
+  await greeting.getByTitle("Collapse Faceplate").click();
+  await expect(greeting.getByRole("button", {
+    name: "out, outgoing port; type std/text",
+    exact: true,
+  })).toContainText("out >");
+  await greeting.getByTitle("Expand Faceplate").click();
 });
 
 test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {

@@ -484,25 +484,48 @@ fn authoritative_patchbay_view(
                 .and_then(|node| node.inputs.iter().find(|port| port.id == cord.to_port))
                 .map(|port| port.type_id.clone())
                 .unwrap_or_else(|| "unknown".to_owned());
-            let source_range = panel
+            let source_cord = panel
                 .cords
                 .iter()
-                .find(|source_cord| source_cord.id == cord.id)
-                .and_then(|source_cord| {
-                    declaration_source_range(
-                        source_text,
-                        source_cord.source_span,
-                        "cord",
-                        source_revision,
-                        "authored",
-                    )
-                });
+                .find(|source_cord| source_cord.id == cord.id);
+            let source_range = source_cord.and_then(|source_cord| {
+                declaration_source_range(
+                    source_text,
+                    source_cord.source_span,
+                    "cord",
+                    source_revision,
+                    "authored",
+                )
+            });
+            let endpoint_ranges = source_cord
+                .and_then(|source_cord| cord_endpoint_member_offsets(source_text, source_cord));
+            let from_port_range = endpoint_ranges.and_then(|(from, _)| {
+                source_range_from_offsets(source_text, from, source_revision, "authored-endpoint")
+            });
+            let to_port_range = endpoint_ranges.and_then(|(_, to)| {
+                source_range_from_offsets(source_text, to, source_revision, "authored-endpoint")
+            });
             conduit_patchbay::PatchbayCordProjection {
                 id: cord.id.clone(),
                 from_node: cord.from_node.clone(),
                 from_port: cord.from_port.clone(),
+                from_port_path: source_cord.map_or_else(
+                    || format!("root/{}/port/outgoing/{}", cord.from_node, cord.from_port),
+                    |source| {
+                        format!(
+                            "root/{}/port/outgoing/{}",
+                            source.from.node, source.from.port
+                        )
+                    },
+                ),
+                from_port_range,
                 to_node: cord.to_node.clone(),
                 to_port: cord.to_port.clone(),
+                to_port_path: source_cord.map_or_else(
+                    || format!("root/{}/port/receiving/{}", cord.to_node, cord.to_port),
+                    |source| format!("root/{}/port/receiving/{}", source.to.node, source.to.port),
+                ),
+                to_port_range,
                 value_type: producer_type.clone(),
                 compatibility: conduit_patchbay::CompatibilityProof {
                     compatible: true,
@@ -880,6 +903,29 @@ fn source_span_offsets(source: &str, span: conduit_panel::SourceSpan) -> Option<
     (start <= end && end <= source.len()).then_some((start, end))
 }
 
+fn source_range_from_offsets(
+    source: &str,
+    (start_byte, end_byte): (usize, usize),
+    source_revision: u64,
+    provenance: &str,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    if start_byte >= end_byte
+        || end_byte > source.len()
+        || !source.is_char_boundary(start_byte)
+        || !source.is_char_boundary(end_byte)
+    {
+        return None;
+    }
+    Some(conduit_patchbay::SourceRangeProjection {
+        start_byte,
+        end_byte,
+        start_utf16: source[..start_byte].encode_utf16().count(),
+        end_utf16: source[..end_byte].encode_utf16().count(),
+        source_revision,
+        provenance: provenance.to_owned(),
+    })
+}
+
 fn is_panel_identifier_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'/' | b'@' | b'[' | b']')
 }
@@ -986,28 +1032,59 @@ fn annotate_endpoint(
     semantic_path: String,
     reverse: bool,
 ) {
-    let (search_start, search_end) = search_range;
-    let complete = format!("{}.{}", endpoint.node, endpoint.port);
-    let Some(region) = source.get(search_start..search_end) else {
+    let Some((member_start, member_end)) =
+        endpoint_member_offset(source, search_range, endpoint, reverse)
+    else {
         return;
     };
-    let relative = if reverse {
-        region.rfind(&complete)
-    } else {
-        region.find(&complete)
-    };
-    let Some(relative) = relative else {
-        return;
-    };
-    let member_start = search_start + relative + complete.len() - endpoint.port.len();
     annotations.push(annotation(
         source,
         member_start,
-        member_start + endpoint.port.len(),
+        member_end,
         "port-name",
         direction,
         semantic_path,
     ));
+}
+
+fn endpoint_member_offset(
+    source: &str,
+    (search_start, search_end): (usize, usize),
+    endpoint: &conduit_panel::Endpoint,
+    reverse: bool,
+) -> Option<(usize, usize)> {
+    let complete = format!("{}.{}", endpoint.node, endpoint.port);
+    let region = source.get(search_start..search_end)?;
+    let relative = if reverse {
+        region.rfind(&complete)
+    } else {
+        region.find(&complete)
+    }?;
+    let member_start = search_start + relative + complete.len() - endpoint.port.len();
+    Some((member_start, member_start + endpoint.port.len()))
+}
+
+fn cord_endpoint_member_offsets(
+    source: &str,
+    cord: &conduit_panel::Cord,
+) -> Option<((usize, usize), (usize, usize))> {
+    let (start, end) = source_span_offsets(source, cord.source_span)?;
+    let declaration = source.get(start..end)?;
+    let body_start = declaration.find('{').unwrap_or(declaration.len());
+    let endpoints = &declaration[..body_start];
+    if let Some(relative) = endpoints.find("->") {
+        let arrow = start + relative;
+        let from = endpoint_member_offset(source, (start, arrow), &cord.from, true)?;
+        let to = endpoint_member_offset(source, (arrow + 2, start + body_start), &cord.to, false)?;
+        Some((from, to))
+    } else {
+        let relative = endpoints.find("<-")?;
+        let arrow = start + relative;
+        let to = endpoint_member_offset(source, (start, arrow), &cord.to, true)?;
+        let from =
+            endpoint_member_offset(source, (arrow + 2, start + body_start), &cord.from, false)?;
+        Some((from, to))
+    }
 }
 
 fn annotate_cords(
@@ -1017,60 +1094,26 @@ fn annotate_cords(
     cords: &[conduit_panel::Cord],
 ) {
     for cord in cords {
-        let Some((start, end)) = source_span_offsets(source, cord.source_span) else {
+        let Some((from_range, to_range)) = cord_endpoint_member_offsets(source, cord) else {
             continue;
         };
-        let declaration = source.get(start..end).unwrap_or_default();
-        let body_start = declaration.find('{').unwrap_or(declaration.len());
-        let endpoints = &declaration[..body_start];
-        let (arrow_relative, reverse_arrow) = if let Some(index) = endpoints.find("->") {
-            (index, false)
-        } else if let Some(index) = endpoints.find("<-") {
-            (index, true)
-        } else {
-            continue;
-        };
-        let arrow = start + arrow_relative;
         let cord_path = format!("{owner}/cord/{}", cord.id);
-        if reverse_arrow {
-            annotate_endpoint(
-                source,
-                annotations,
-                (start, arrow),
-                &cord.to,
-                "receiving",
-                format!("{cord_path}/to/{}/{}", cord.to.node, cord.to.port),
-                true,
-            );
-            annotate_endpoint(
-                source,
-                annotations,
-                (arrow + 2, start + body_start),
-                &cord.from,
-                "outgoing",
-                format!("{cord_path}/from/{}/{}", cord.from.node, cord.from.port),
-                false,
-            );
-        } else {
-            annotate_endpoint(
-                source,
-                annotations,
-                (start, arrow),
-                &cord.from,
-                "outgoing",
-                format!("{cord_path}/from/{}/{}", cord.from.node, cord.from.port),
-                true,
-            );
-            annotate_endpoint(
-                source,
-                annotations,
-                (arrow + 2, start + body_start),
-                &cord.to,
-                "receiving",
-                format!("{cord_path}/to/{}/{}", cord.to.node, cord.to.port),
-                false,
-            );
-        }
+        annotations.push(annotation(
+            source,
+            from_range.0,
+            from_range.1,
+            "port-name",
+            "outgoing",
+            format!("{cord_path}/from/{}/{}", cord.from.node, cord.from.port),
+        ));
+        annotations.push(annotation(
+            source,
+            to_range.0,
+            to_range.1,
+            "port-name",
+            "receiving",
+            format!("{cord_path}/to/{}/{}", cord.to.node, cord.to.port),
+        ));
     }
 }
 
@@ -1490,6 +1533,22 @@ mod tests {
                     .expect("browser source offset") as usize,
             "UTF-8 and browser UTF-16 offsets must remain distinct"
         );
+        for (field, expected, path) in [
+            ("from_port_range", "out", "root/greeting/port/outgoing/out"),
+            ("to_port_range", "in", "root/output/port/receiving/in"),
+        ] {
+            let endpoint = &cord[field];
+            let endpoint_start = endpoint["start_byte"].as_u64().unwrap() as usize;
+            let endpoint_end = endpoint["end_byte"].as_u64().unwrap() as usize;
+            assert_eq!(&source[endpoint_start..endpoint_end], expected);
+            assert_eq!(endpoint["provenance"], "authored-endpoint");
+            let path_field = if field == "from_port_range" {
+                "from_port_path"
+            } else {
+                "to_port_path"
+            };
+            assert_eq!(cord[path_field], path);
+        }
     }
 
     #[test]

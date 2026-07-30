@@ -19,10 +19,10 @@
       "sha256": "480971c55a2e89ed767a4a96bb5d27b34ae1a098d64f4281a0a0b79aa848683a"
     },
     {
-      "bytes": 3653219,
+      "bytes": 3655639,
       "id": "conduit-web-wasm",
       "path": "./conduit_web_bg.wasm",
-      "sha256": "25b815a1e09567b089916e7c4822ce34439b1d17dfadb282631bc4e6d5600418"
+      "sha256": "7f00185a1f2c4cc971416a6a20eb5ac8ae72e2877284240d3219aa65b64ed698"
     }
   ],
   "bounds": {
@@ -36,7 +36,7 @@
   "implementation_id": "conduit/tour-production-wasm-worker",
   "observation_id": "conduit/tour-static-browser-observation-v1",
   "placement": "dedicated-worker",
-  "plan_identity": "9f64fe5f2bfcd7a603cb07f64670628a65df9285bff47eff957182c8976dd827",
+  "plan_identity": "2f0371346b3b7fd43f4856a57c72bce860910dd55695cdc363bd8c082885f78c",
   "schema": "conduit.tour-browser-plan/v1",
   "semantic_contract": "conduit/tour-panel-run"
 }
