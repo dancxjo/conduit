@@ -5,6 +5,7 @@ import init, {
   patchbay_move_node,
   patchbay_replace_source,
 } from "./conduit_web.js";
+import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 
 const source = document.querySelector("#source");
 const result = document.querySelector("#result");
@@ -179,67 +180,6 @@ if (hostReport.ok === false) {
   throw new Error(`${hostReport.code}:${hostReport.detail}`);
 }
 
-// Cytoscape initialization
-let cy = cytoscape({
-  container: document.getElementById("cy"),
-  style: [
-    {
-      selector: "node",
-      style: {
-        "label": "data(label)",
-        "shape": "round-rectangle",
-        "width": "label",
-        "height": "label",
-        "padding": "12px",
-        "color": "#f8fafc",
-        "background-color": "data(bg)",
-        "border-width": "2px",
-        "border-color": "data(borderColor)",
-        "font-family": "Fira Code, monospace",
-        "font-size": "13px",
-        "text-valign": "center",
-        "text-halign": "center"
-      }
-    },
-    {
-      selector: "node:selected",
-      style: {
-        "border-width": "4px",
-        "border-color": "#38bdf8",
-        "shadow-blur": "15px",
-        "shadow-color": "#38bdf8"
-      }
-    },
-    {
-      selector: "edge",
-      style: {
-        "label": "data(label)",
-        "width": 3,
-        "line-color": "#64748b",
-        "target-arrow-color": "#64748b",
-        "target-arrow-shape": "triangle",
-        "curve-style": "bezier",
-        "font-size": "10px",
-        "color": "#94a3b8",
-        "font-family": "Fira Code, monospace",
-        "text-background-color": "#090d12",
-        "text-background-opacity": 0.8,
-        "text-background-padding": "3px"
-      }
-    },
-    {
-      selector: "edge:selected",
-      style: {
-        "line-color": "#38bdf8",
-        "target-arrow-color": "#38bdf8",
-        "width": 4
-      }
-    }
-  ],
-  elements: [],
-  layout: { name: "preset" }
-});
-
 let current = lessons.lessons[0];
 let acceptedSource = "";
 let selectedNode = null;
@@ -251,115 +191,30 @@ const evidence = [];
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
 
-function getNodeColor(kind) {
-  if (!kind) return { bg: "#1e293b", border: "#475569" };
-  if (kind.includes("literal")) return { bg: "#064e3b", border: "#10b981" };
-  if (kind.includes("stdout") || kind.includes("stdin")) return { bg: "#0c4a6e", border: "#38bdf8" };
-  if (kind.includes("uppercase") || kind.includes("passthrough")) return { bg: "#312e81", border: "#818cf8" };
-  if (kind.includes("http") || kind.includes("wifi") || kind.includes("socket")) return { bg: "#581c87", border: "#c084fc" };
-  if (kind.includes("gpio") || kind.includes("counter") || kind.includes("cell")) return { bg: "#78350f", border: "#fbbf24" };
-  return { bg: "#1e293b", border: "#64748b" };
+// Initialize React Flow Patchbay Renderer
+let patchbayRenderer = null;
+const cyContainer = document.getElementById("cy");
+if (cyContainer) {
+  patchbayRenderer = new PatchbayReactFlowRenderer(cyContainer, {
+    onSourceMutation: (newSource) => {
+      source.value = newSource;
+      updateAnalysis();
+    },
+    onNodeSelect: (nodeId) => {
+      selectNode(nodeId);
+    },
+    onNotification: (msg) => {
+      result.textContent = msg;
+    }
+  });
+  patchbayRenderer.init();
 }
 
 function updateCytoscapeGraph() {
-  const parsed = JSON.parse(parse_panel(source.value));
-  if (!parsed.ok) {
-    cy.elements().remove();
-    return;
+  if (patchbayRenderer) {
+    patchbayRenderer.setSource(source.value, {}, current.id);
   }
-
-  const elements = [];
-  const nodesMap = new Map();
-  const cordsMap = [];
-
-  // Parse lines to extract node definitions and cord connections
-  const lines = source.value.split("\n");
-  let currentCord = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const nodeMatch = trimmed.match(/^node\s+([A-Za-z0-9_-]+)\s*:\s*([A-Za-z0-9_\/-]+)/);
-    if (nodeMatch) {
-      nodesMap.set(nodeMatch[1], nodeMatch[2]);
-    }
-    const cordMatch = trimmed.match(/^cord\s+([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\s*->\s*([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)/);
-    if (cordMatch) {
-      currentCord = {
-        source: cordMatch[1],
-        sourcePort: cordMatch[2],
-        target: cordMatch[3],
-        targetPort: cordMatch[4],
-        capacity: "8",
-        pressure: "block"
-      };
-      cordsMap.push(currentCord);
-    } else if (currentCord) {
-      const capMatch = trimmed.match(/capacity\s*=\s*(\d+)/);
-      if (capMatch) currentCord.capacity = capMatch[1];
-      const pressMatch = trimmed.match(/pressure\s*=\s*([A-Za-z0-9_-]+)/);
-      if (pressMatch) currentCord.pressure = pressMatch[1];
-      if (trimmed.includes("}")) currentCord = null;
-    }
-  }
-
-  // Create Nodes
-  let idx = 0;
-  const nodeCount = nodesMap.size;
-  nodesMap.forEach((kind, id) => {
-    const colors = getNodeColor(kind);
-    const pos = positions[id] ?? {
-      x: 100 + (idx % 3) * 220,
-      y: 100 + Math.floor(idx / 3) * 120
-    };
-    elements.push({
-      group: "nodes",
-      data: {
-        id,
-        label: `${id}\n[${kind}]`,
-        kind,
-        bg: colors.bg,
-        borderColor: colors.border
-      },
-      position: pos
-    });
-    idx++;
-  });
-
-  // Create Edges (Cords)
-  cordsMap.forEach((c, index) => {
-    elements.push({
-      group: "edges",
-      data: {
-        id: `cord_${index}_${c.source}_${c.target}`,
-        source: c.source,
-        target: c.target,
-        label: `${c.sourcePort} → ${c.targetPort}\ncap:${c.capacity} [${c.pressure}]`
-      }
-    });
-  });
-
-  cy.json({ elements });
-  cy.fit(undefined, 30);
 }
-
-// Cytoscape Event Listeners
-cy.on("dragfree", "node", (event) => {
-  const node = event.target;
-  const pos = node.position();
-  const nodeId = node.id();
-  const transaction = JSON.parse(
-    patchbay_move_node(source.value, nodeId, Math.round(pos.x), Math.round(pos.y))
-  );
-  if (transaction.ok) {
-    positions = transaction.positions;
-    result.textContent = `Presentation moved node ${nodeId}; semantic hash remains ${transaction.semantic_hash}.`;
-  }
-});
-
-cy.on("tap", "node", (event) => {
-  const node = event.target;
-  selectNode(node.id());
-});
 
 function recordEvidence(event) {
   evidence.push(event);

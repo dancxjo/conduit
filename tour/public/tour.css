@@ -494,6 +494,228 @@ pre {
   border: 1px solid var(--line-color);
 }
 
+}
+
+/* React Flow & Equipment Faceplates Styling (#90, #99, #91) */
+.patchbay-flow-container {
+  overflow: hidden;
+  border-radius: 8px;
+  position: relative;
+}
+
+.conduit-faceplate-card {
+  min-width: 220px;
+  max-width: 320px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 0.75rem;
+  font-family: var(--font-main);
+  color: var(--text-primary);
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.conduit-faceplate-card:focus,
+.conduit-faceplate-card:focus-within {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+}
+
+.conduit-faceplate-card.composite-faceplate {
+  border-color: #a855f7;
+  background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+}
+
+.faceplate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line-color);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.faceplate-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
+}
+
+.node-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.faceplate-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+.btn-icon:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.faceplate-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.kind-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #38bdf8;
+}
+
+.placement-tag {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  border-radius: 4px;
+}
+
+.composite-badge {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid #a855f7;
+  color: #c084fc;
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.faceplate-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.faceplate-control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.control-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.control-input {
+  background: #1e293b;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  color: #f1f5f9;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  width: 100%;
+}
+
+.control-input:focus {
+  border-color: #38bdf8;
+  outline: none;
+}
+
+.faceplate-meter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.meter-label {
+  color: var(--text-muted);
+}
+
+.sparkline {
+  color: var(--accent-emerald);
+}
+
+.composite-action-row {
+  margin-top: 0.3rem;
+}
+
+/* Jack handles */
+.faceplate-jack {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.input-jack {
+  left: -8px;
+}
+
+.output-jack {
+  right: -8px;
+  flex-direction: row-reverse;
+}
+
+.jack-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+}
+
+.jack-handle {
+  width: 12px !important;
+  height: 12px !important;
+  border: 2px solid #0f172a !important;
+  border-radius: 50% !important;
+  cursor: crosshair !important;
+}
+
+.jack-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line-color);
+  font-size: 0.7rem;
+}
+
 @media (max-width: 1024px) {
   main {
     grid-template-columns: 1fr;
