@@ -10,24 +10,27 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::io::{Read, Write};
 use std::rc::Rc;
+use std::sync::OnceLock;
 
 use conduit_core::{
-    ArtifactManifest, BlockingFairness, CanonicalDescriptor, CanonicalValue, CompatibilityOutcome,
-    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
-    ConnectionCardinality, Delivery, DescriptorRef, Direction, Endpoint as CoreEndpoint,
-    ExecutionPlan, ExecutionProfile, FieldDisposition, FlowCapacity, FlowPolicy, FlowQueueState,
-    FlowTypeFacts, FlowWatermarks, Id, ImplementationMachine, InstancePath, LossAcceptance,
+    ArtifactDigest, ArtifactManifest, ArtifactProvenance, BlockingFairness, CanonicalDescriptor,
+    CanonicalValue, CompatibilityOutcome, ConfigContract, ConfigFieldContract, ConfigIdentity,
+    ConfigMutability, ConfigRequirement, ConnectionCardinality, Delivery, DescriptorRef, Direction,
+    Endpoint as CoreEndpoint, ExecutionPlan, ExecutionProfile, ExecutorKind, FieldDisposition,
+    FlowCapacity, FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, Id,
+    ImplementationMachine, InstancePath, LossAcceptance, ManifestArtifactRef, ManifestEntrypoint,
     MapField, MemoryAccounting, NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph,
     PlanHostObservation, PlanNode, PlanResourceBudget, PortContract, PortFlowConstraints, Presence,
-    Pressure, ReadyQueueDiscipline, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity,
-    TemporalContract, TerminalContract, TraitProof, TypeContractRef, ValueCardinality,
+    Pressure, ReadyQueueDiscipline, ReplacementSupport, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerPolicy, SemanticHash,
+    Sensitivity, TemporalContract, TerminalContract, TraitProof, TypeContractRef, ValueCardinality,
     validate_artifact_manifest, validate_implementation_manifest, validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest as _, Sha256};
 
 mod artifact_verification;
 mod config_resolution;
@@ -770,6 +773,23 @@ struct RegisteredNode {
     compatibility_executable: Option<CompatibilityExecutable>,
 }
 
+/// Exact compiled-in provider facts independently trusted by the hosted runtime.
+#[derive(Clone, Copy, Debug)]
+pub struct InstalledHostedProvider {
+    pub contract: &'static NodeContract<'static>,
+    pub manifest: &'static ImplementationManifest<'static>,
+    pub artifact: &'static ArtifactManifest<'static>,
+    pub implementation: HostedPrimitiveImplementation,
+}
+
+#[derive(Clone, Copy)]
+struct HostedProviderDefinition {
+    installed: InstalledHostedProvider,
+    artifacts: &'static [&'static ArtifactManifest<'static>],
+    factory: HandlerFactory,
+    validate_config: ConfigValidator,
+}
+
 impl RegisteredNode {
     fn factory(&self) -> HandlerFactory {
         self.executable
@@ -868,6 +888,7 @@ pub struct Registry {
     nodes: BTreeMap<&'static str, RegisteredNode>,
     interfaces: BTreeMap<String, OwnedInterfaceContract>,
     types: TypeRegistry,
+    allow_installed_resolution: bool,
 }
 
 impl Registry {
@@ -1136,6 +1157,227 @@ impl Registry {
         );
         registry
     }
+
+    /// Registry of compiled-in hosted primitive providers.
+    ///
+    /// Each callback is coupled to a validated implementation manifest and
+    /// source-attested artifact before it can participate in resolution.
+    #[must_use]
+    pub fn hosted_primitives() -> Self {
+        let mut registry = Self::default();
+        registry.allow_installed_resolution = true;
+        for definition in hosted_provider_definitions() {
+            registry
+                .register_executable_provider(
+                    definition.installed.contract,
+                    definition.installed.manifest,
+                    definition.artifacts,
+                    definition.factory,
+                    definition.validate_config,
+                )
+                .expect("compiled-in hosted primitive manifest is valid");
+        }
+        registry
+    }
+
+    /// Finite exact inventory used to compare planned bindings with installed
+    /// executable providers. These facts are not derived from compile input.
+    #[must_use]
+    pub fn installed_hosted_providers() -> &'static [InstalledHostedProvider] {
+        static INSTALLED: OnceLock<Vec<InstalledHostedProvider>> = OnceLock::new();
+        INSTALLED
+            .get_or_init(|| {
+                hosted_provider_definitions()
+                    .iter()
+                    .map(|definition| definition.installed)
+                    .collect()
+            })
+            .as_slice()
+    }
+}
+
+fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
+    static DEFINITIONS: OnceLock<Vec<HostedProviderDefinition>> = OnceLock::new();
+    DEFINITIONS.get_or_init(|| {
+        let source_bytes = include_bytes!("lib.rs");
+        let source_hash: [u8; 32] = Sha256::digest(source_bytes).into();
+        let artifact_digest = ArtifactDigest::from_bytes(source_hash);
+        let mut artifact = ArtifactManifest {
+            schema_version: 1,
+            identity: SemanticHash::from_bytes([0; 32]),
+            id: Id("conduit/hosted-primitives-artifact"),
+            digest: artifact_digest,
+            media_type: "application/vnd.conduit.compiled-in-provider",
+            byte_size: u64::try_from(source_bytes.len()).expect("source length fits u64"),
+            target: Some(Id(std::env::consts::ARCH)),
+            abi: Some(Id("conduit/rust-in-process-v1")),
+            provenance: ArtifactProvenance {
+                builder: Id("conduit/rustc-workspace-build"),
+                source_digest: artifact_digest,
+                build_recipe_digest: ArtifactDigest::from_bytes(
+                    Sha256::digest(b"cargo build -p conduit-runtime").into(),
+                ),
+                reproducible: true,
+            },
+            signatures: &[],
+            license_expressions: &["MIT", "Apache-2.0"],
+            notices: &[],
+            sbom: None,
+            source: None,
+            related_artifacts: &[],
+            locations: &[],
+        };
+        let mut artifact_scratch =
+            vec![SemanticHash::from_bytes([0; 32]); artifact.identity_fact_count()];
+        artifact.identity = artifact
+            .computed_semantic_hash(&mut artifact_scratch)
+            .expect("compiled-in artifact identity");
+        let artifact = &*Box::leak(Box::new(artifact));
+        let artifacts: &'static [&'static ArtifactManifest<'static>] =
+            Box::leak(Box::new([artifact]));
+        let profile_hash =
+            SemanticHash::from_bytes(Sha256::digest(b"conduit/hosted-primitive-profile/v1").into());
+
+        let specifications: &[(
+            &'static NodeContract<'static>,
+            &'static str,
+            HostedPrimitiveImplementation,
+            HandlerFactory,
+            ConfigValidator,
+        )] = &[
+            (
+                &LITERAL_CONTRACT,
+                "literal",
+                HostedPrimitiveImplementation::Literal,
+                || Box::new(Literal),
+                validate_literal,
+            ),
+            (
+                &STDIN_CONTRACT,
+                "stdin",
+                HostedPrimitiveImplementation::Stdin,
+                || Box::new(Stdin),
+                validate_empty_config,
+            ),
+            (
+                &UPPERCASE_CONTRACT,
+                "uppercase",
+                HostedPrimitiveImplementation::Uppercase,
+                || Box::new(Uppercase),
+                validate_empty_config,
+            ),
+            (
+                &STDOUT_CONTRACT,
+                "stdout",
+                HostedPrimitiveImplementation::Stdout,
+                || Box::new(Stdout),
+                validate_empty_config,
+            ),
+            (
+                &STDERR_CONTRACT,
+                "stderr",
+                HostedPrimitiveImplementation::Stderr,
+                || Box::new(Stderr),
+                validate_empty_config,
+            ),
+            (
+                &PASS_THROUGH_CONTRACT,
+                "pass-through",
+                HostedPrimitiveImplementation::PassThrough,
+                || Box::new(PassThroughHandler),
+                validate_empty_config,
+            ),
+            (
+                &TEE_CONTRACT,
+                "tee",
+                HostedPrimitiveImplementation::Tee,
+                || Box::new(TeeHandler),
+                validate_empty_config,
+            ),
+            (
+                &MERGE_CONTRACT,
+                "merge",
+                HostedPrimitiveImplementation::Merge,
+                || Box::new(MergeHandler),
+                validate_empty_config,
+            ),
+            (
+                &FALLBACK_CONTRACT,
+                "fallback",
+                HostedPrimitiveImplementation::Fallback,
+                || Box::new(FallbackHandler),
+                validate_empty_config,
+            ),
+        ];
+
+        specifications
+            .iter()
+            .map(
+                |(contract, entrypoint, implementation, factory, validate_config)| {
+                    let implementation_id: &'static str =
+                        Box::leak(format!("conduit/hosted-{entrypoint}-v1").into_boxed_str());
+                    let artifact_references = Box::leak(Box::new([ManifestArtifactRef {
+                        id: artifact.id,
+                        digest: artifact.digest,
+                        role: Id("executable"),
+                        required: true,
+                    }]));
+                    let mut manifest = ImplementationManifest {
+                        schema_version: 1,
+                        identity: SemanticHash::from_bytes([0; 32]),
+                        id: Id(implementation_id),
+                        implementation_version: "1",
+                        semantic_contract: PinnedDescriptor {
+                            id: contract.id,
+                            schema_version: 1,
+                            semantic_hash: OwnedNodeSchema::from_contract(contract).semantic_hash(),
+                        },
+                        executor: ExecutorKind::NativeInProcess,
+                        entrypoint: ManifestEntrypoint {
+                            name: Id(entrypoint),
+                            adapter: Id("conduit/hosted-primitive-step"),
+                            abi: Id("conduit/hosted-primitive-v1"),
+                            protocol_version: 1,
+                        },
+                        execution_profile: PinnedDescriptor {
+                            id: Id("conduit/hosted-primitive-profile-v1"),
+                            schema_version: 1,
+                            semantic_hash: profile_hash,
+                        },
+                        artifacts: artifact_references,
+                        required_interfaces: &[],
+                        provided_interfaces: &[],
+                        required_authorities: &[],
+                        required_effects: &[],
+                        minimum_plan_version: 1,
+                        maximum_plan_version: u32::MAX,
+                        minimum_runtime_protocol: 1,
+                        maximum_runtime_protocol: 1,
+                        replacement: ReplacementSupport::Cold,
+                        coexistence_memory_bytes: 0,
+                        reproducibility: None,
+                    };
+                    let mut manifest_scratch =
+                        vec![SemanticHash::from_bytes([0; 32]); manifest.identity_fact_count()];
+                    manifest.identity = manifest
+                        .computed_semantic_hash(&mut manifest_scratch)
+                        .expect("compiled-in implementation identity");
+                    let manifest = &*Box::leak(Box::new(manifest));
+                    HostedProviderDefinition {
+                        installed: InstalledHostedProvider {
+                            contract,
+                            manifest,
+                            artifact,
+                            implementation: *implementation,
+                        },
+                        artifacts,
+                        factory: *factory,
+                        validate_config: *validate_config,
+                    }
+                },
+            )
+            .collect()
+    })
 }
 
 impl Default for Registry {
@@ -1341,6 +1583,7 @@ impl Default for Registry {
             nodes,
             interfaces,
             types,
+            allow_installed_resolution: false,
         }
     }
 }
@@ -1391,9 +1634,16 @@ impl Registry {
                 )
             })?;
             let validate_config = definition
-                .compatibility_executable
+                .executable
                 .as_ref()
+                .filter(|_| self.allow_installed_resolution)
                 .map(|executable| executable.validate_config)
+                .or_else(|| {
+                    definition
+                        .compatibility_executable
+                        .as_ref()
+                        .map(|executable| executable.validate_config)
+                })
                 .ok_or_else(|| {
                     ResolutionError::new(
                         "CND-IMP-001",

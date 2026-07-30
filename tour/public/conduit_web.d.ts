@@ -23,6 +23,11 @@ export function patchbay_move_node(source: string, node_id: string, x: number, y
 export function patchbay_replace_source(source: string, replacement: string): string;
 
 /**
+ * Observes compiled-in browser providers and executes their exact plan.
+ */
+export function run_panel(source: string): string;
+
+/**
  * Executes the finite hosted compatibility demo with bounded in-memory streams.
  */
 export function run_panel_compatibility_demo(source: string): string;
@@ -41,6 +46,7 @@ export interface InitOutput {
     readonly parse_panel: (a: number, b: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly run_panel: (a: number, b: number) => [number, number];
     readonly run_panel_compatibility_demo: (a: number, b: number) => [number, number];
     readonly run_panel_exact: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;

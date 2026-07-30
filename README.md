@@ -96,10 +96,10 @@ admission, identity, reservation, cleanup, and generation-overlap guidance.
 The `conduct` command checks, explains, and runs panels:
 
 ```sh
-cargo run -p conduct -- --compatibility-demo examples/hello.panel
+cargo run -p conduct -- examples/hello.panel
 cargo run -p conduct -- --check examples/hello.panel
 cargo run -p conduct -- --explain examples/hello.panel
-cat examples/hello.panel | cargo run -p conduct -- --compatibility-demo -
+cat examples/hello.panel | cargo run -p conduct -- -
 ```
 
 `--run` is the default. A `.panel` is source, not bytecode, ELF, or a
@@ -119,9 +119,12 @@ semantic catalog snapshot, manifests, fresh host reports, realm/passport
 policy, authority observations, time, schema-16 pool runtime and generation
 bindings, and finite budgets.
 Compilation performs no discovery, provisioning, artifact fetch, grant
-acquisition, loading, or execution. Production run consumes that authored
-exact plan and its explicit hosted adapter bindings. `--compatibility-demo`
-selects the separately named finite batch demonstration path.
+acquisition, loading, or execution. A canonical run observes the installed
+hosted providers, compiles an exact plan, and binds only those independently
+registered implementations and artifacts. An explicit compile input remains
+reproducible input, but cannot claim executable installation.
+`--compatibility-demo` selects the separately named finite batch demonstration
+path.
 `conduct package create` builds a
 deterministic thick or thin content-addressed envelope from a sealed manifest
 and explicit `--blob SHA256=PATH` arguments. `conduct package verify` applies

@@ -634,7 +634,7 @@ fn check_and_explain_validate_the_explicit_compile_snapshot() {
 }
 
 #[test]
-fn run_consumes_the_authored_exact_plan_and_explicit_hosted_bindings() {
+fn canonical_run_observes_installed_bindings_and_rejects_candidate_claims() {
     let root = temporary_directory();
     let source = include_str!("../../../examples/hello.panel");
     let panel = root.join("hello.panel");
@@ -646,13 +646,7 @@ fn run_consumes_the_authored_exact_plan_and_explicit_hosted_bindings() {
     )
     .unwrap();
 
-    let executed = command()
-        .arg("--run")
-        .arg("--compile-input")
-        .arg(&input_path)
-        .arg(&panel)
-        .output()
-        .unwrap();
+    let executed = command().arg(&panel).output().unwrap();
     assert!(
         executed.status.success(),
         "{}",
@@ -661,16 +655,6 @@ fn run_consumes_the_authored_exact_plan_and_explicit_hosted_bindings() {
     assert_eq!(executed.stdout, b"HELLO FROM CONDUIT.\n");
     assert!(executed.stderr.is_empty());
 
-    let mut unavailable_adapter = input(source);
-    unavailable_adapter.candidates[0]
-        .implementation
-        .entrypoint_adapter = "fixture/unavailable-adapter".to_owned();
-    unavailable_adapter.seal().unwrap();
-    std::fs::write(
-        &input_path,
-        serde_json::to_vec_pretty(&unavailable_adapter).unwrap(),
-    )
-    .unwrap();
     let rejected = command()
         .arg("--run")
         .arg("--compile-input")
@@ -681,6 +665,27 @@ fn run_consumes_the_authored_exact_plan_and_explicit_hosted_bindings() {
     assert_eq!(rejected.status.code(), Some(2));
     assert!(rejected.stdout.is_empty());
     assert!(String::from_utf8_lossy(&rejected.stderr).contains("CND-RUN-007"));
+
+    let mut forged_entrypoint = input(source);
+    forged_entrypoint.candidates[0]
+        .implementation
+        .entrypoint_name = "uppercase".to_owned();
+    forged_entrypoint.seal().unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&forged_entrypoint).unwrap(),
+    )
+    .unwrap();
+    let forged = command()
+        .arg("--run")
+        .arg("--compile-input")
+        .arg(&input_path)
+        .arg(&panel)
+        .output()
+        .unwrap();
+    assert_eq!(forged.status.code(), Some(2));
+    assert!(forged.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&forged.stderr).contains("CND-RUN-007"));
     std::fs::remove_dir_all(root).unwrap();
 }
 

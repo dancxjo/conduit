@@ -73,12 +73,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
     assert_eq!(explain["result"]["cords"].as_array().unwrap().len(), 2);
     assert_eq!(explain["result"]["cords"][0]["pressure"], "block(fifo)");
 
-    let run = execute(&[
-        "--run".into(),
-        "--compatibility-demo".into(),
-        "--format=ndjson".into(),
-        example,
-    ]);
+    let run = execute(&["--run".into(), "--format=ndjson".into(), example]);
     assert!(run.status.success());
     assert!(run.stderr.is_empty());
     assert_clean_machine_stdout(&run.stdout);
@@ -119,7 +114,8 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .unwrap()
         .write_all(
             b"panel 1\nnode message : conduit.std/literal { value = \"semantic error\\n\" }\n\
-              node sink : conduit.std/stderr\ncord message.out -> sink.in\n",
+              node sink : conduit.std/stderr\n\
+              cord message.out -> sink.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
         )
         .unwrap();
     let output = child.wait_with_output().unwrap();
@@ -154,9 +150,6 @@ fn every_result_and_diagnostic_format_combination_keeps_streams_separate() {
                 format!("--format={format}"),
                 format!("--diagnostic-format={diagnostic_format}"),
             ];
-            if mode == "run" {
-                arguments.push("--compatibility-demo".into());
-            }
             arguments.push(example.clone());
             let output = execute(&arguments);
             assert_eq!(
@@ -295,7 +288,7 @@ fn quiet_verbosity_and_malformed_options_preserve_required_output() {
 fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
     let example = example();
     let mut child = command()
-        .args(["--run", "--compatibility-demo", "--format=ndjson"])
+        .args(["--run", "--format=ndjson"])
         .arg(&example)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -307,7 +300,7 @@ fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
     assert!(output.stderr.is_empty());
 
     let mut child = command()
-        .args(["--run", "--compatibility-demo", "--format=ndjson"])
+        .args(["--run", "--format=ndjson"])
         .arg(&example)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -327,12 +320,7 @@ fn ndjson_pipe_closure_is_success_and_other_output_failure_is_diagnostic() {
 
     let full = File::options().write(true).open("/dev/full").unwrap();
     let output = command()
-        .args([
-            "--run",
-            "--compatibility-demo",
-            "--format=ndjson",
-            "--diagnostic-format=json",
-        ])
+        .args(["--run", "--format=ndjson", "--diagnostic-format=json"])
         .arg(example)
         .stdout(Stdio::from(full))
         .stderr(Stdio::piped())

@@ -150,6 +150,25 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
 }
 
 #[test]
+fn hosted_primitive_registry_couples_callbacks_to_installed_artifacts() {
+    let registry = Registry::hosted_primitives();
+    let installed = Registry::installed_hosted_providers();
+    assert_eq!(installed.len(), 9);
+    for provider in installed {
+        let availability = registry.node_availability(provider.contract.id.as_str());
+        assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
+        assert_eq!(
+            availability.implementation_id.as_deref(),
+            Some(provider.manifest.id.as_str())
+        );
+        assert_eq!(
+            provider.manifest.artifacts[0].digest,
+            provider.artifact.digest
+        );
+    }
+}
+
+#[test]
 fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvable() {
     let fixture = support::provider(&FILE_READ_CONTRACT, "test/file-read-native");
     let mut registry = Registry::default();

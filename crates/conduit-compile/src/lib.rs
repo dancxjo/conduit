@@ -56,6 +56,10 @@ use conduit_runtime::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
+mod installed_profile;
+
+pub use installed_profile::InstalledProfile;
+
 pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input/v2";
 pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 2;
 pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";

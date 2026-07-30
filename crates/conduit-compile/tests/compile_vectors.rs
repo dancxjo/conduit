@@ -473,7 +473,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             }
         })
         .collect::<Vec<_>>();
-    let bindings = ExactHostedBindings::new(binding_documents).unwrap();
+    let bindings = ExactHostedBindings::new(binding_documents.clone()).unwrap();
     let mut rejected_input = &b""[..];
     let mut rejected_output = Vec::new();
     let mut rejected_error = Vec::new();
@@ -508,6 +508,42 @@ fn sealed_document_drives_the_exact_hosted_executor() {
         )
         .unwrap_err();
     assert_eq!(missing_binding.code, "CND-RUN-007");
+
+    let mut wrong_binding_documents = binding_documents;
+    wrong_binding_documents[0].artifact_digest = ArtifactDigest::from_bytes([0xff; 32]);
+    let wrong_bindings = ExactHostedBindings::new(wrong_binding_documents).unwrap();
+    let mut rejected_input = &b""[..];
+    let wrong_binding = resolved
+        .run_exact(
+            &plan,
+            &wrong_bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                validation: conduit_core::PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 128,
+                    max_tick: 256,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            &mut RunIo {
+                input: &mut rejected_input,
+                output: &mut rejected_output,
+                error: &mut rejected_error,
+            },
+        )
+        .unwrap_err();
+    assert_eq!(wrong_binding.code, "CND-RUN-008");
 
     let mut input = &b""[..];
     let mut output = Vec::new();

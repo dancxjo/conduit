@@ -15,11 +15,10 @@ use conduct::{
     SecondaryCommand,
 };
 use conduit_compile::{
-    CompileInput, ExactPlanDocument, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES, compile_source,
+    CompileInput, ExactPlanDocument, InstalledProfile, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES,
+    compile_source,
 };
-use conduit_core::{
-    ExecutionPlan, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
-};
+use conduit_core::{ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy};
 use conduit_diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, DiagnosticSource, OwnedDiagnostic, TerminalColor, TerminalVerbosity,
     from_parse_error, from_resolution_error, from_runtime_error, render_terminal,
@@ -34,9 +33,8 @@ use conduit_package::{
 };
 use conduit_panel::{MAXIMUM_PANEL_SOURCE_BYTES, parse, parse_with_root};
 use conduit_runtime::{
-    ExactHostedBinding, ExactHostedBindings, ExactRunContext, ExecutionSummary,
-    HostedPrimitiveImplementation, Registry, ResolvedPanel, ResolvedPanelView, RunIo, RuntimeError,
-    SchedulerReservation,
+    ExactRunContext, ExecutionSummary, Registry, ResolvedPanel, ResolvedPanelView, RunIo,
+    RuntimeError, SchedulerReservation,
 };
 use serde::Serialize;
 
@@ -326,30 +324,52 @@ fn run(
         )
     })?;
 
-    let compiled = if let Some(input_path) = &arguments.compile_input {
-        let input_bytes = read_bounded(input_path, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES)
-            .map_err(|error| inspection_error(error, presentation))?;
-        let input: CompileInput = serde_json::from_slice(&input_bytes).map_err(|_| {
-            package_error(
-                "CND-CMP-002",
-                "compile input is not valid conduit.compile-input/v2 JSON",
-                presentation,
-            )
-        })?;
-        let plan = compile_source(&source, &input).map_err(|error| {
+    let installed_profile = if arguments.mode() == Mode::Run && !arguments.compatibility_demo {
+        Some(InstalledProfile::observe(&source).map_err(|error| {
             cli_error(
-                simple_diagnostic(error.code(), &error.to_string()),
+                from_runtime_error(&error),
                 presentation,
                 vec![source_document.clone()],
             )
-        })?;
-        Some((input, plan))
+        })?)
     } else {
         None
     };
+    let explicit_input = if let Some(input_path) = &arguments.compile_input {
+        let input_bytes = read_bounded(input_path, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES)
+            .map_err(|error| inspection_error(error, presentation))?;
+        Some(
+            serde_json::from_slice::<CompileInput>(&input_bytes).map_err(|_| {
+                package_error(
+                    "CND-CMP-002",
+                    "compile input is not valid conduit.compile-input/v2 JSON",
+                    presentation,
+                )
+            })?,
+        )
+    } else {
+        None
+    };
+    let compiled = explicit_input
+        .as_ref()
+        .or_else(|| installed_profile.as_ref().map(|profile| &profile.input))
+        .map(|input| {
+            compile_source(&source, input).map_err(|error| {
+                cli_error(
+                    simple_diagnostic(error.code(), &error.to_string()),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            })
+        })
+        .transpose()?;
 
     emit_status(status_enabled, "Resolving", &document_id);
-    let registry = Registry::compatibility_demo();
+    let registry = if arguments.compatibility_demo {
+        Registry::compatibility_demo()
+    } else {
+        Registry::hosted_primitives()
+    };
     let resolved = registry.resolve(&panel).map_err(|error| {
         cli_error(
             from_resolution_error(&error),
@@ -461,6 +481,7 @@ fn run(
                         execute_run(
                             &resolved,
                             compiled.as_ref(),
+                            installed_profile.as_ref(),
                             arguments.compatibility_demo,
                             &mut RunIo {
                                 input: &mut stdin,
@@ -486,6 +507,7 @@ fn run(
                         execute_run(
                             &resolved,
                             compiled.as_ref(),
+                            installed_profile.as_ref(),
                             arguments.compatibility_demo,
                             &mut RunIo {
                                 input: &mut stdin,
@@ -536,11 +558,12 @@ fn run(
 
 fn execute_run(
     resolved: &ResolvedPanel<'_>,
-    compiled: Option<&(CompileInput, ExactPlanDocument)>,
+    compiled: Option<&ExactPlanDocument>,
+    installed_profile: Option<&InstalledProfile>,
     compatibility_demo: bool,
     io: &mut RunIo<'_>,
 ) -> Result<ExecutionSummary, RuntimeError> {
-    let Some((input, document)) = compiled else {
+    let Some(document) = compiled else {
         if compatibility_demo {
             return resolved.run_batch(io);
         }
@@ -553,7 +576,9 @@ fn execute_run(
     let plan = document
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-    let bindings = exact_hosted_bindings(input, &plan)?;
+    let bindings = installed_profile
+        .ok_or_else(|| RuntimeError::new("CND-RUN-007", "installed provider profile is absent"))?
+        .bindings(&plan)?;
     resolved.run_exact(
         &plan,
         &bindings,
@@ -578,83 +603,6 @@ fn execute_run(
         },
         io,
     )
-}
-
-fn exact_hosted_bindings(
-    input: &CompileInput,
-    plan: &ExecutionPlan<'_>,
-) -> Result<ExactHostedBindings, RuntimeError> {
-    let mut bindings = Vec::with_capacity(plan.nodes.len());
-    for node in plan.nodes {
-        let candidate = input
-            .candidates
-            .iter()
-            .find(|candidate| {
-                candidate.implementation.id == node.implementation.id.as_str()
-                    && candidate.implementation.identity
-                        == node.implementation.semantic_hash.to_string()
-                    && candidate.host_report.id == node.host_observation.as_str()
-            })
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    "CND-RUN-007",
-                    format!(
-                        "compile input does not contain exact implementation `{}`",
-                        node.implementation.id
-                    ),
-                )
-            })?;
-        if candidate.implementation.entrypoint_adapter != "conduit/hosted-primitive-step"
-            || candidate.implementation.entrypoint_abi != "conduit/hosted-primitive-v1"
-            || candidate.implementation.runtime_protocol_version != 1
-        {
-            return Err(RuntimeError::new(
-                "CND-RUN-007",
-                format!(
-                    "implementation `{}` does not use the installed hosted primitive adapter",
-                    node.implementation.id
-                ),
-            ));
-        }
-        let implementation = match candidate.implementation.entrypoint_name.as_str() {
-            "literal" => HostedPrimitiveImplementation::Literal,
-            "stdin" => HostedPrimitiveImplementation::Stdin,
-            "uppercase" => HostedPrimitiveImplementation::Uppercase,
-            "stdout" => HostedPrimitiveImplementation::Stdout,
-            "stderr" => HostedPrimitiveImplementation::Stderr,
-            "pass-through" => HostedPrimitiveImplementation::PassThrough,
-            "tee" => HostedPrimitiveImplementation::Tee,
-            "merge" => HostedPrimitiveImplementation::Merge,
-            "fallback" => HostedPrimitiveImplementation::Fallback,
-            _ => {
-                return Err(RuntimeError::new(
-                    "CND-RUN-007",
-                    format!(
-                        "implementation `{}` names an unavailable hosted entrypoint",
-                        node.implementation.id
-                    ),
-                ));
-            }
-        };
-        let artifact = plan
-            .artifacts
-            .iter()
-            .find(|artifact| artifact.id == node.artifact)
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    "CND-RUN-008",
-                    format!("exact artifact `{}` is absent from the plan", node.artifact),
-                )
-            })?;
-        bindings.push(ExactHostedBinding {
-            implementation_id: node.implementation.id.to_string(),
-            implementation_identity: node.implementation.semantic_hash,
-            artifact_id: node.artifact.to_string(),
-            artifact_digest: artifact.digest,
-            implementation,
-        });
-    }
-    ExactHostedBindings::new(bindings)
 }
 
 fn parse_arguments(

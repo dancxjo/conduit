@@ -186,18 +186,12 @@ fn every_canonical_invocation_preserves_modes_stdin_and_streams() {
     let example = example();
     let example = example.to_str().unwrap();
 
-    let default_run = command()
-        .args(["--compatibility-demo", example])
-        .output()
-        .unwrap();
+    let default_run = command().arg(example).output().unwrap();
     assert!(default_run.status.success());
     assert_eq!(default_run.stdout, b"HELLO FROM CONDUIT.\n");
     assert!(default_run.stderr.is_empty());
 
-    let explicit_run = command()
-        .args(["--run", "--compatibility-demo", example])
-        .output()
-        .unwrap();
+    let explicit_run = command().args(["--run", example]).output().unwrap();
     assert_eq!(explicit_run.stdout, default_run.stdout);
     assert!(explicit_run.stderr.is_empty());
 
@@ -215,10 +209,7 @@ fn every_canonical_invocation_preserves_modes_stdin_and_streams() {
     assert!(explained.stderr.is_empty());
 
     let source = include_bytes!("../../../examples/hello.panel");
-    for arguments in [
-        &["--compatibility-demo"][..],
-        &["--compatibility-demo", "-"][..],
-    ] {
+    for arguments in [&[][..], &["-"][..]] {
         let stdin_run = output_with_stdin(arguments, source);
         assert!(stdin_run.status.success());
         assert_eq!(stdin_run.stdout, b"HELLO FROM CONDUIT.\n");
