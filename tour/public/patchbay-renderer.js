@@ -253,6 +253,19 @@ export class PatchbayReactFlowRenderer {
           "--cord-color": presentation.color,
           "--cord-width": `${presentation.strokeWidth}px`,
         },
+        labelStyle: {
+          fill: "#f8fafc",
+          fontFamily: "var(--font-mono)",
+          fontSize: "10px",
+          fontWeight: 700,
+        },
+        labelBgStyle: {
+          fill: "#111827",
+          stroke: presentation.color,
+          strokeWidth: "1.5px",
+        },
+        labelBgPadding: [5, 7],
+        labelBgBorderRadius: 4,
         animated: false,
       };
     });

@@ -199,6 +199,7 @@ export function PatchbaySmartEdge(props) {
       labelStyle: props.labelStyle,
       labelBgStyle: props.labelBgStyle,
       labelBgPadding: props.labelBgPadding,
+      labelBgBorderRadius: props.labelBgBorderRadius,
     }) : null,
   );
 }
