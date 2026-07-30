@@ -13,6 +13,115 @@ pub const PATCHBAY_PROTOCOL_V1: u16 = 1;
 pub const DEFAULT_WORKSPACE_HISTORY_LIMIT: usize = 16;
 pub const MAXIMUM_EDIT_OPERATIONS: usize = 32;
 pub const MAXIMUM_PATCHBAY_DIAGNOSTICS: usize = 64;
+pub const MAXIMUM_LIBRARY_CATALOG_ENTRIES: usize = 512;
+
+/// Bounded presentation of the checked library catalog. Known provider
+/// bundles remain distinct from current host observations.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct LibraryCatalogProjection {
+    pub schema: String,
+    pub entries: Vec<LibraryCatalogEntryProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct LibraryCatalogEntryProjection {
+    pub semantic_identity: String,
+    pub public_source_spelling: String,
+    pub classification: String,
+    pub package_owner: String,
+    pub compiler_exported: bool,
+    pub known_provider_bundles: Vec<String>,
+    pub current_provider_observation: String,
+    pub conformance_fixture_owner: String,
+    pub standalone_lesson: LibraryLessonProjection,
+    pub composition_lesson: LibraryLessonProjection,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct LibraryLessonProjection {
+    pub artifact: String,
+    pub status: String,
+}
+
+#[derive(Deserialize)]
+struct LibraryCatalogDocument {
+    schema: String,
+    entries: Vec<LibraryCatalogDocumentEntry>,
+}
+
+#[derive(Deserialize)]
+struct LibraryCatalogDocumentEntry {
+    semantic_identity: String,
+    public_source_spelling: String,
+    classification: String,
+    package_owner: String,
+    compiler_exported: bool,
+    known_provider_bundles: Vec<LibraryProviderDocument>,
+    current_provider_observation: String,
+    conformance_fixture_owner: String,
+    standalone_lesson: LibraryLessonProjection,
+    composition_lesson: LibraryLessonProjection,
+}
+
+#[derive(Deserialize)]
+struct LibraryProviderDocument {
+    implementation: String,
+}
+
+/// Projects checked catalog data without discovering providers, reading host
+/// state, loading code, or granting authority.
+pub fn project_library_catalog(json: &str) -> Result<LibraryCatalogProjection, ProtocolError> {
+    let document: LibraryCatalogDocument = serde_json::from_str(json)
+        .map_err(|_| rejected("CND-PBY-014", "invalid library catalog document"))?;
+    if document.schema != "conduit.library-catalog/v1"
+        || document.entries.len() > MAXIMUM_LIBRARY_CATALOG_ENTRIES
+    {
+        return Err(rejected(
+            "CND-PBY-014",
+            "unsupported or oversized library catalog document",
+        ));
+    }
+    let mut identities = std::collections::BTreeSet::new();
+    let mut entries = Vec::with_capacity(document.entries.len());
+    for entry in document.entries {
+        if !identities.insert(entry.semantic_identity.clone())
+            || ![
+                "portable-standard",
+                "optional-host-boundary",
+                "reusable-domain-package",
+                "implementation-helper",
+                "provisional-removal",
+            ]
+            .contains(&entry.classification.as_str())
+            || entry.current_provider_observation != "not-recorded-in-catalog"
+        {
+            return Err(rejected(
+                "CND-PBY-014",
+                "library catalog identity, class, or observation boundary is invalid",
+            ));
+        }
+        entries.push(LibraryCatalogEntryProjection {
+            semantic_identity: entry.semantic_identity,
+            public_source_spelling: entry.public_source_spelling,
+            classification: entry.classification,
+            package_owner: entry.package_owner,
+            compiler_exported: entry.compiler_exported,
+            known_provider_bundles: entry
+                .known_provider_bundles
+                .into_iter()
+                .map(|provider| provider.implementation)
+                .collect(),
+            current_provider_observation: entry.current_provider_observation,
+            conformance_fixture_owner: entry.conformance_fixture_owner,
+            standalone_lesson: entry.standalone_lesson,
+            composition_lesson: entry.composition_lesson,
+        });
+    }
+    Ok(LibraryCatalogProjection {
+        schema: document.schema,
+        entries,
+    })
+}
 
 /// Rebuildable presentation of one exact pool generation. Source, plan, run,
 /// evidence, and presentation identities remain separate.

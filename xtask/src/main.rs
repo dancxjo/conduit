@@ -16,6 +16,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Generate or check the exact library catalog and Tour index
+    CatalogIndex {
+        #[arg(long)]
+        check: bool,
+    },
     /// Generate or check the static tour browser plan artifact
     GenerateBrowserPlan {
         #[arg(long)]
@@ -106,6 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let root = locate_workspace_root();
 
     match cli.command {
+        Commands::CatalogIndex { check } => commands::catalog_index::run(&root, check),
         Commands::GenerateBrowserPlan { check } => {
             commands::generate_browser_plan::run(&root, check)
         }

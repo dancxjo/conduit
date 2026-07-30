@@ -230,6 +230,10 @@ containment program is tracked by
   browser/WASM, constrained, deterministic, and describe-only hosts while
   retaining exact satisfaction, conformance, artifact, observation, adapter,
   and binding identities.
+- [`059-library-catalog-inventory-v1.md`](059-library-catalog-inventory-v1.md)
+  checks every published node's classification, package owner, exact
+  descriptor, provider separation, fixture, migration, and Tour ownership,
+  and generates the shared documentation/Patchbay index.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

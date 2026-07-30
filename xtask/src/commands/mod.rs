@@ -1,4 +1,5 @@
 pub mod adversarial_profile;
+pub mod catalog_index;
 pub mod check_all;
 pub mod check_python_boundary;
 pub mod embedded_gate;

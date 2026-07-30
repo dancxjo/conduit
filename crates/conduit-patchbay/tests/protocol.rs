@@ -1,7 +1,8 @@
 use conduit_patchbay::{
     EditOperation, EditRequest, HostConformanceProjectionInput, NodePosition, PATCHBAY_PROTOCOL_V1,
     PlanSnapshot, PoolProjectionInput, ProjectionLog, ProjectionUpdate, RunSnapshot, RunState,
-    SubjectPath, Workspace, project_host_conformance, project_pool, project_supervision,
+    SubjectPath, Workspace, project_host_conformance, project_library_catalog, project_pool,
+    project_supervision,
 };
 
 const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
@@ -15,6 +16,55 @@ fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest
         expected_presentation_revision: workspace.presentation().revision,
         operations,
     }
+}
+
+#[test]
+fn library_catalog_projection_keeps_provider_bundles_separate_from_observation() {
+    let projection =
+        project_library_catalog(include_str!("../../../library/catalog-v1.json")).unwrap();
+    assert_eq!(projection.schema, "conduit.library-catalog/v1");
+    assert_eq!(projection.entries.len(), 109);
+    let literal = projection
+        .entries
+        .iter()
+        .find(|entry| entry.semantic_identity == "std/literal")
+        .unwrap();
+    assert_eq!(literal.classification, "portable-standard");
+    assert_eq!(literal.package_owner, "conduit.std");
+    assert!(literal.compiler_exported);
+    assert_eq!(literal.known_provider_bundles.len(), 1);
+    assert_eq!(
+        literal.current_provider_observation,
+        "not-recorded-in-catalog"
+    );
+    assert_eq!(literal.standalone_lesson.status, "published");
+    let file = projection
+        .entries
+        .iter()
+        .find(|entry| entry.semantic_identity == "fs/read")
+        .unwrap();
+    assert_eq!(file.classification, "optional-host-boundary");
+    assert!(file.known_provider_bundles.is_empty());
+    assert_eq!(file.standalone_lesson.status, "required");
+}
+
+#[test]
+fn library_catalog_projection_rejects_duplicate_and_observation_claims() {
+    let mut document: serde_json::Value =
+        serde_json::from_str(include_str!("../../../library/catalog-v1.json")).unwrap();
+    let first = document["entries"][0]["semantic_identity"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    document["entries"][1]["semantic_identity"] = first.into();
+    let error = project_library_catalog(&document.to_string()).unwrap_err();
+    assert_eq!(error.code, "CND-PBY-014");
+
+    let mut document: serde_json::Value =
+        serde_json::from_str(include_str!("../../../library/catalog-v1.json")).unwrap();
+    document["entries"][0]["current_provider_observation"] = "available".into();
+    let error = project_library_catalog(&document.to_string()).unwrap_err();
+    assert_eq!(error.code, "CND-PBY-014");
 }
 
 #[test]
