@@ -87,7 +87,10 @@ test("retains headless editing and execution when presentation fails", async ({ 
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
   const source = page.locator("#source");
-  await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Headless proof."));
+  await source.evaluate((element) => {
+    element.value = element.value.replace("Hello from the Tour.", "Headless proof.");
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   await expect(page.locator("#result")).toContainText("Valid panel");
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
   await page.locator("#run").click();
