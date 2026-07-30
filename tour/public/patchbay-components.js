@@ -1,3 +1,5 @@
+import { attachPanelSourceHighlighting } from "./panel-highlighter.js";
+
 /**
  * Conduit Patchbay — Reusable Web Component Profile (#90, #99, #91)
  *
@@ -55,8 +57,14 @@ export class PatchbayEditorElement extends HTMLElement {
         <h3>Source Editor</h3>
         <span class="badge lang-badge">.panel v1</span>
       </div>
-      <textarea id="source" rows="20" spellcheck="false" placeholder="Authoring .panel graph..."></textarea>
+      <label for="source" class="sr-only">Real .panel source</label>
+      <div class="panel-source-editor">
+        <pre class="panel-source-highlight" aria-hidden="true"></pre>
+        <textarea id="source" rows="20" spellcheck="false" autocomplete="off"
+          placeholder="Authoring .panel graph..."></textarea>
+      </div>
     `;
+    attachPanelSourceHighlighting(this.querySelector("#source"));
   }
 }
 

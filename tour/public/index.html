@@ -86,7 +86,11 @@
             <span class="badge lang-badge">.panel v1</span>
           </div>
           <label for="source" class="sr-only">Real .panel source</label>
-          <textarea id="source" rows="20" spellcheck="false" placeholder="Authoring .panel graph..."></textarea>
+          <div class="panel-source-editor">
+            <pre class="panel-source-highlight" aria-hidden="true"></pre>
+            <textarea id="source" rows="20" spellcheck="false" autocomplete="off"
+              placeholder="Authoring .panel graph..."></textarea>
+          </div>
         </section>
       </div>
 

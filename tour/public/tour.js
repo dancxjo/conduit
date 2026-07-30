@@ -7,8 +7,10 @@ import init, {
 } from "./conduit_web.js";
 import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 import { patchbayFeatures } from "./patchbay-features.js";
+import { attachPanelSourceHighlighting } from "./panel-highlighter.js";
 
 const source = document.querySelector("#source");
+const syncSourceHighlight = attachPanelSourceHighlighting(source);
 const result = document.querySelector("#result");
 const runButton = document.querySelector("#run");
 const stopButton = document.querySelector("#stop");
@@ -297,6 +299,7 @@ function show(lesson) {
 
   const draft = localStorage.getItem(draftKey(lesson.id));
   source.value = draft ?? lesson.source;
+  syncSourceHighlight();
   const parsedDraft = JSON.parse(parse_panel(source.value));
   acceptedSource = parsedDraft.ok ? source.value : lesson.source;
   selectedNode = null;
@@ -532,6 +535,7 @@ document.querySelector("#reset").onclick = () => {
   stopActive("reset");
   localStorage.setItem(recoveryKey(current.id), source.value);
   source.value = current.source;
+  syncSourceHighlight();
   acceptedSource = source.value;
   selectedNode = null;
   positions = {};
@@ -548,6 +552,7 @@ undoResetButton.onclick = () => {
   const recovered = localStorage.getItem(recoveryKey(current.id));
   if (recovered === null) return;
   source.value = recovered;
+  syncSourceHighlight();
   localStorage.setItem(draftKey(current.id), recovered);
   localStorage.removeItem(recoveryKey(current.id));
   undoResetButton.disabled = true;

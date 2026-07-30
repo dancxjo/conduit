@@ -432,12 +432,23 @@ kbd {
 }
 
 /* Source Editor Area */
-textarea#source {
+.panel-source-editor {
+  position: relative;
   width: 100%;
   height: 380px;
+  min-height: 12rem;
   resize: vertical;
-  background: var(--bg-input);
-  color: #e2e8f0;
+  overflow: hidden;
+}
+
+.panel-source-highlight,
+textarea#source {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  resize: none;
   border: 1px solid var(--line-color);
   border-radius: 8px;
   padding: 1rem;
@@ -445,6 +456,23 @@ textarea#source {
   font-size: 0.88rem;
   line-height: 1.5;
   tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+
+.panel-source-highlight {
+  z-index: 0;
+  pointer-events: none;
+  background: var(--bg-input);
+  color: #cbd5e1;
+}
+
+textarea#source {
+  z-index: 1;
+  background: transparent;
+  color: transparent;
+  caret-color: #f8fafc;
+  -webkit-text-fill-color: transparent;
   outline: none;
 }
 
@@ -452,6 +480,23 @@ textarea#source:focus {
   border-color: var(--accent-emerald);
   box-shadow: 0 0 0 2px var(--accent-emerald-glow);
 }
+
+textarea#source::selection {
+  background: rgba(56, 189, 248, 0.35);
+}
+
+textarea#source::placeholder {
+  color: var(--text-muted);
+  -webkit-text-fill-color: var(--text-muted);
+}
+
+.panel-token-keyword { color: #c084fc; font-weight: 600; }
+.panel-token-literal { color: #fb7185; }
+.panel-token-string { color: #fbbf24; }
+.panel-token-number { color: #67e8f9; }
+.panel-token-comment { color: #64748b; font-style: italic; }
+.panel-token-operator { color: #94a3b8; }
+.panel-token-identifier { color: #e2e8f0; }
 
 /* Output Console */
 output#result {

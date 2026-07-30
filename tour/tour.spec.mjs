@@ -37,6 +37,24 @@ test("preserves a recoverable draft across reset", async ({ page }) => {
   await expect(source).toHaveValue(/Recover me\./);
 });
 
+test("highlights panel source while retaining the native editor surface", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  const highlight = page.locator(".panel-source-highlight");
+
+  await expect(source).toHaveAttribute("data-highlighting", "panel");
+  await expect(highlight.locator(".panel-token-keyword").first()).toHaveText("panel");
+  await expect(
+    highlight.locator(".panel-token-string").filter({ hasText: "Hello from the Tour." }),
+  ).toHaveCount(1);
+
+  await source.fill("panel 1\\n# note\\nnode value : fixture/source\\n");
+  await expect(highlight.locator(".panel-token-comment")).toHaveText("# note");
+  await expect(highlight).toContainText("fixture/source");
+  await expect(source).toHaveValue("panel 1\\n# note\\nnode value : fixture/source\\n");
+  await expect(highlight).toHaveAttribute("aria-hidden", "true");
+});
+
 test("covers Chapters 0-3 and exposes production topology projections", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   await expect(page.locator("#lessons > li")).toHaveCount(15);
