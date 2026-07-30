@@ -324,7 +324,8 @@ fn selection_case(id: &str) -> Value {
                 .err(),
             )
         }
-        "high-assurance-observed-stack-rejected" => {
+        "high-assurance-observed-stack-rejected"
+        | "hidden-kernel-buffering-cannot-claim-hard-bound" => {
             let mut service = service;
             service.require_complete_stack_hard_bound = true;
             service.identity = service.computed_identity();
@@ -381,6 +382,31 @@ fn routing_case(id: &str) -> Value {
                     .is_none()
             );
             json!({"route": null})
+        }
+        "unknown-route-is-deterministic" => {
+            assert!(
+                match_route(&routes, HttpMethod::Get, "/absent")
+                    .unwrap()
+                    .is_none()
+            );
+            json!({"route": null})
+        }
+        "route-conflict-rejected" => {
+            let duplicate = [
+                HttpRoute {
+                    id: Id("route/same"),
+                    order: 1,
+                    method: HttpMethod::Get,
+                    path_pattern: "/users/{id}",
+                },
+                HttpRoute {
+                    id: Id("route/same"),
+                    order: 1,
+                    method: HttpMethod::Get,
+                    path_pattern: "/users/{name}",
+                },
+            ];
+            result(match_route(&duplicate, HttpMethod::Get, "/users/42").err())
         }
         "path-parameters-are-typed-output" => {
             let matched = match_route(&routes, HttpMethod::Get, "/users/42")
@@ -610,6 +636,24 @@ fn security_case(id: &str) -> Value {
         "direct-tls-needs-secret-handles" => {
             let mut service = unsealed_service(HttpSecurityMode::DirectTls, "127.0.0.1:0");
             service.secret_scope = None;
+            service.identity = service.computed_identity();
+            result(service.validate().err())
+        }
+        "stale-or-invalid-cert-handle-rejected" => {
+            let missing = tempdir().unwrap().path().join("removed.pem");
+            result(
+                LinuxHttpServingBackend::new(
+                    capabilities(HttpSecurityMode::DirectTls),
+                    Some(DirectTlsSecretHandles {
+                        certificate_chain: SecretFileHandle::new(missing.clone()),
+                        private_key: SecretFileHandle::new(missing),
+                    }),
+                )
+                .err(),
+            )
+        }
+        "missing-listen-address-rejected" => {
+            let mut service = unsealed_service(HttpSecurityMode::Plaintext, "");
             service.identity = service.computed_identity();
             result(service.validate().err())
         }
@@ -911,6 +955,70 @@ fn drive_tls_loopback() -> Value {
     json!({"accepted": true, "encrypted": true})
 }
 
+fn drive_tls_hostname_mismatch() -> Value {
+    let directory = tempdir().unwrap();
+    let certified = generate_simple_self_signed(vec!["localhost".to_owned()]).unwrap();
+    let certificate_path = directory.path().join("certificate.pem");
+    let key_path = directory.path().join("key.pem");
+    std::fs::write(&certificate_path, certified.cert.pem()).unwrap();
+    std::fs::write(&key_path, certified.signing_key.serialize_pem()).unwrap();
+
+    let service = linux_service(HttpSecurityMode::DirectTls);
+    let mut offered = capabilities(HttpSecurityMode::DirectTls);
+    offered.complete_stack_hard_bounded = false;
+    let mut backend = LinuxHttpServingBackend::new(
+        offered,
+        Some(DirectTlsSecretHandles {
+            certificate_chain: SecretFileHandle::new(certificate_path),
+            private_key: SecretFileHandle::new(key_path),
+        }),
+    )
+    .unwrap();
+    backend.bind(&service, authority()).unwrap();
+    let address = backend.local_addr().unwrap();
+
+    let certificate = certified.cert.der().clone();
+    let client = thread::spawn(move || {
+        let mut roots = RootCertStore::empty();
+        roots.add(certificate).unwrap();
+        let config = ClientConfig::builder()
+            .with_root_certificates(roots)
+            .with_no_client_auth();
+        let connection = ClientConnection::new(
+            Arc::new(config),
+            ServerName::try_from("wrong.example").unwrap(),
+        )
+        .unwrap();
+        let socket = TcpStream::connect(address).unwrap();
+        let mut stream = StreamOwned::new(connection, socket);
+        let _ = stream.write_all(&request("/secure"));
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).is_err()
+    });
+
+    let connection = poll_until(|| backend.poll_accept()).unwrap();
+    let error = poll_until(|| backend.poll_exchange(connection)).unwrap_err();
+    backend.close(connection).unwrap();
+    assert!(
+        client.join().unwrap(),
+        "client rejects the certificate name"
+    );
+    result(Some(error))
+}
+
+fn drive_peer_disconnect() -> Value {
+    let service = linux_service(HttpSecurityMode::Plaintext);
+    let mut offered = capabilities(HttpSecurityMode::Plaintext);
+    offered.complete_stack_hard_bounded = false;
+    let mut backend = LinuxHttpServingBackend::new(offered, None).unwrap();
+    backend.bind(&service, authority()).unwrap();
+    let address = backend.local_addr().unwrap();
+    let client = TcpStream::connect(address).unwrap();
+    let connection = poll_until(|| backend.poll_accept()).unwrap();
+    drop(client);
+    result(poll_until(|| backend.poll_exchange(connection)).err())
+}
+
 fn poll_until<T>(
     mut operation: impl FnMut() -> Poll<Result<T, HttpReason>>,
 ) -> Result<T, HttpReason> {
@@ -928,6 +1036,8 @@ fn linux_case(id: &str) -> Value {
     match id {
         "real-linux-plaintext-loopback" => drive_plaintext_loopback(),
         "real-linux-tls-loopback" => drive_tls_loopback(),
+        "tls-hostname-mismatch-rejected" => drive_tls_hostname_mismatch(),
+        "peer-disconnect-is-terminal" => drive_peer_disconnect(),
         other => panic!("unknown Linux case {other}"),
     }
 }
@@ -951,10 +1061,55 @@ fn execute(case: &Case) -> Value {
 #[test]
 fn every_http_fixture_case_executes_independently() {
     let fixture: Fixture = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(fixture.cases.len(), 49);
+    assert_eq!(fixture.cases.len(), 56);
     for case in &fixture.cases {
         assert_eq!(execute(case), case.expected, "fixture {}", case.id);
     }
+}
+
+#[test]
+fn deterministic_and_linux_backends_normalize_the_same_request() {
+    let bytes = request("/same");
+    let mut memory = accepted_memory(HttpSecurityMode::Plaintext);
+    let (_, expected) = next_request(&mut memory, &bytes);
+
+    let service = linux_service(HttpSecurityMode::Plaintext);
+    let mut offered = capabilities(HttpSecurityMode::Plaintext);
+    offered.complete_stack_hard_bounded = false;
+    let mut linux = LinuxHttpServingBackend::new(offered, None).unwrap();
+    linux.bind(&service, authority()).unwrap();
+    let address = linux.local_addr().unwrap();
+    let client = thread::spawn(move || {
+        let mut stream = TcpStream::connect(address).unwrap();
+        stream.write_all(&bytes).unwrap();
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).unwrap();
+    });
+    let connection = poll_until(|| linux.poll_accept()).unwrap();
+    let observed = match poll_until(|| linux.poll_exchange(connection)).unwrap() {
+        HttpExchangeEvent::Request(request) => request,
+        other => panic!("unexpected event {other:?}"),
+    };
+
+    assert_eq!(observed.head, expected.head);
+    assert_eq!(observed.body, expected.body);
+    assert_eq!(observed.security, expected.security);
+
+    poll_until(|| {
+        linux.poll_send(
+            connection,
+            &HttpResponsePart {
+                exchange: observed.exchange,
+                status: 204,
+                headers: vec![],
+                body: vec![],
+                terminal: true,
+            },
+        )
+    })
+    .unwrap();
+    linux.close(connection).unwrap();
+    client.join().unwrap();
 }
 
 #[test]

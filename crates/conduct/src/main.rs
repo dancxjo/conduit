@@ -338,14 +338,29 @@ fn run(
         )
     })?;
 
-    let installed_profile = if arguments.mode() == Mode::Run && !arguments.compatibility_demo {
-        Some(InstalledProfile::observe(&source).map_err(|error| {
+    let registry = if arguments.compatibility_demo {
+        Registry::compatibility_demo()
+    } else {
+        let mut registry = Registry::hosted_primitives();
+        conduit_http::register_hosted_http_provider(&mut registry).map_err(|error| {
             cli_error(
-                from_runtime_error(&error),
+                simple_diagnostic(error.code, &error.message),
                 presentation,
                 vec![source_document.clone()],
             )
-        })?)
+        })?;
+        registry
+    };
+    let installed_profile = if arguments.mode() == Mode::Run && !arguments.compatibility_demo {
+        Some(
+            InstalledProfile::observe_registry(&source, &registry).map_err(|error| {
+                cli_error(
+                    from_runtime_error(&error),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            })?,
+        )
     } else {
         None
     };
@@ -379,11 +394,6 @@ fn run(
         .transpose()?;
 
     emit_status(status_enabled, "Resolving", &document_id);
-    let registry = if arguments.compatibility_demo {
-        Registry::compatibility_demo()
-    } else {
-        Registry::hosted_primitives()
-    };
     let resolved = registry.resolve(&panel).map_err(|error| {
         cli_error(
             from_resolution_error(&error),

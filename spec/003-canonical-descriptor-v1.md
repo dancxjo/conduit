@@ -68,7 +68,7 @@ Identifiers are ASCII. A complete identifier:
 
 - begins with a lowercase letter;
 - otherwise contains lowercase letters, digits, `_`, `-`, or `.`;
-- may contain at most one `/` namespace separator;
+- may contain `/` separators between non-empty path segments;
 - has a lowercase letter immediately after `.` or `/`;
 - does not end with `.` or `/`.
 

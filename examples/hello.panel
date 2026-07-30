@@ -5,8 +5,8 @@ node greeting : std/literal {
     value = "Hello from Conduit.\n"
 }
 
-node shout : std/uppercase
-node output : std/stdout
+node shout : text/uppercase
+node output : io/stdout
 
 cord greeting.out -> shout.in {
     capacity = 8

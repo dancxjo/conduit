@@ -6,8 +6,8 @@ node watcher : std/file-read {
 }
 
 node filter : conduit/passthrough
-node processor : std/uppercase
-node logger : std/log
+node processor : text/uppercase
+node logger : observe/log
 
 cord watcher.out -> filter.in {
     capacity = 16

@@ -19,6 +19,63 @@ provider, enroll a realm, activate an artifact, admit a hazardous effect, or
 clear an independent inhibit. Those decisions remain owned by the safety
 contracts. A standard node consumes the exact plan-supplied facts or fails.
 
+## Canonical library paths
+
+Standard contracts use domain-first canonical paths. The path describes the
+problem domain, not the implementation mechanism:
+
+- `std/literal`, `std/format`, and the fundamental `std/...` types;
+- `flow/identity`, `flow/merge`, and the other structural operators;
+- `time/delay`, `state/cell`, and `supervision/retry`;
+- `fs/read`, `process/run`, and `net/http/serve`.
+
+Node and type identities occupy distinct grammar and catalog positions, so
+their paths do not repeat `node` or `type`. There is no compatibility rewrite
+from the former flat `conduit.std/...` spelling. A resolved plan retains the
+same canonical path that source selected.
+
+`host` is reserved for the execution environment and its observations.
+Consequently the HTTP server operation is `net/http/serve`, not
+`net/http/host`.
+
+## Standard type universe
+
+The standard type catalog publishes meanings independently of representations:
+
+- fundamentals: `std/unit`, `std/bool`, `std/integer`, `std/natural`,
+  `std/float`, `std/decimal`, `std/text`, and `std/bytes`;
+- fixed-width integers: `std/i8` through `std/i128` and `std/u8` through
+  `std/u128`;
+- structural constructors: `std/option`, `std/result`, `std/list`, `std/map`,
+  and `std/reference`, plus `std/record` and `std/variant`;
+- time, identity, and operations: `std/duration`, `std/instant`,
+  `std/timestamp`, `std/id`, `std/error`, `std/terminal`, `std/health`, and
+  `std/progress`;
+- domain types such as `net/ip/address`, `net/http/request`, `fs/path`,
+  `process/exit-status`, and `crypto/digest`.
+
+`std/integer` is the mathematical signed integer and `std/natural` is the
+mathematical nonnegative integer. Fixed-width contracts are used when range,
+overflow, layout, serialization, registers, or FFI are semantic. A host that
+supports only 64-bit values may still discover `std/integer`; it separately
+advertises a finite representation limit such as 64 integer bits.
+
+Generic catalog entries are constructors, not usable unspecialized
+`TypeContractRef` values. A concrete specialization has an exact descriptor
+and semantic hash. The initial catalog publishes `std/list/text` as the
+concrete finite text-list specialization used by Panel configuration.
+
+For any standard contract, resolution keeps four questions separate:
+
+1. **defined**: the semantic catalog knows the contract;
+2. **provided**: a selected host advertises an exact implementation or
+   representation with sufficient finite limits;
+3. **authorized**: the plan has the required grants for its effects; and
+4. **placeable**: the resolver can assign it to an eligible realm member.
+
+A negative answer after the first question is an availability, authority, or
+placement failure. It never makes a known standard contract invalid syntax.
+
 ## Common bounded shape
 
 Every standard node declares positive per-step work and evidence bounds.
@@ -85,15 +142,29 @@ availability never converts denial or a different grant into authority.
 - STD-010: host services never double as installation or administration.
 - STD-011: host-service resolution rejects stale, unsupported, or insufficient capabilities.
 - STD-012: capability availability remains distinct from exact grant authorization.
+- STD-013: canonical library identities are domain-first paths with no legacy rewrite.
+- STD-014: type definition and host representation support remain separate facts.
+- STD-015: mathematical and fixed-width integer meanings remain distinct.
+- STD-016: generic constructors are not concrete type references without arguments.
+- STD-017: polymorphic node definitions publish type-parameter relationships and
+  are specialized to exact type-contract references before plan emission.
 
 ## Concrete catalog publication
 
-`conduit-std` publishes the concrete version-one catalog above
-`conduit-core`. Each entry contains an ordinary typed `NodeContract`, typed
+`conduit-std` publishes the version-one catalog above `conduit-core`. Each
+entry contains an ordinary typed `NodeContract`, typed
 configuration, explicit ordering/terminal/cancellation/pressure policy
 identities, finite resource ceilings, an exact reference-provider identity,
 and any narrow host-service requirement. It contains no registry, executor,
 host framework, ambient lookup, or domain concept.
+
+Polymorphic entries additionally publish an authoritative generic signature.
+The signature relates port indexes to parameters or applications such as
+`std/option<T>`; the ordinary `NodeContract` is only the bounded concrete
+specialization exercised by allocator-free reference fixtures. A compiler must
+specialize the generic signature to exact `TypeContractRef` values before it
+emits a plan. In particular, bytes in a reference specialization never mean
+"any value."
 
 The catalog currently publishes source/sink, structural, transformation,
 time, state, supervision, testing, boundary, and independently composable

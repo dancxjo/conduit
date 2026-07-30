@@ -6,10 +6,10 @@ fn tee_node_duplicates_flow_to_multiple_sinks() {
     let panel = parse(
         r#"
             panel 1
-            node source : conduit.std/literal { value = "flow data" }
-            node splitter : conduit.std/tee
-            node sink1 : conduit.std/stdout
-            node sink2 : conduit.std/stderr
+            node source : std/literal { value = "flow data" }
+            node splitter : flow/tee
+            node sink1 : io/stdout
+            node sink2 : io/stderr
             cord source.out -> splitter.in
             cord splitter.out1 -> sink1.in
             cord splitter.out2 -> sink2.in
@@ -41,10 +41,10 @@ fn fallback_node_selects_primary_or_fallback() {
     let panel = parse(
         r#"
             panel 1
-            node primary : conduit.std/literal { value = "primary data" }
-            node secondary : conduit.std/literal { value = "fallback data" }
-            node router : conduit.std/fallback
-            node sink : conduit.std/stdout
+            node primary : std/literal { value = "primary data" }
+            node secondary : std/literal { value = "fallback data" }
+            node router : flow/fallback
+            node sink : io/stdout
             cord primary.out -> router.primary
             cord secondary.out -> router.fallback
             cord router.out -> sink.in
@@ -75,11 +75,11 @@ fn pass_through_and_merge_nodes_shape_flow() {
     let panel = parse(
         r#"
             panel 1
-            node src1 : conduit.std/literal { value = "merged" }
-            node src2 : conduit.std/literal { value = "" }
-            node pass : conduit.std/pass-through
-            node combiner : conduit.std/merge
-            node sink : conduit.std/stdout
+            node src1 : std/literal { value = "merged" }
+            node src2 : std/literal { value = "" }
+            node pass : flow/identity
+            node combiner : flow/merge
+            node sink : io/stdout
             cord src1.out -> pass.in
             cord pass.out -> combiner.in1
             cord src2.out -> combiner.in2

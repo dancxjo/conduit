@@ -25,28 +25,52 @@ function escapeHtml(value) {
 export function highlightPanelSource(source) {
   let output = "";
   let cursor = 0;
+  let expectTypeName = false;
+  let inImplementsList = false;
 
   while (cursor < source.length) {
     const rest = source.slice(cursor);
     let match;
     let kind = "";
+    let isTrivia = false;
 
     if ((match = rest.match(/^[ \t\r\n]+/))) {
       // Whitespace is deliberately unwrapped so source bytes remain obvious.
+      isTrivia = true;
     } else if ((match = rest.match(/^#[^\n]*/))) {
       kind = "comment";
+      isTrivia = true;
     } else if ((match = rest.match(/^"(?:\\[\s\S]|[^"\\])*"?/))) {
       kind = "string";
     } else if ((match = rest.match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/))) {
       kind = "number";
     } else if ((match = rest.match(/^(?:->|[{}()[\],:=])/))) {
       kind = "operator";
-    } else if ((match = rest.match(/^[A-Za-z_][A-Za-z0-9_-]*/))) {
-      if (PANEL_KEYWORDS.has(match[0])) kind = "keyword";
+    } else if ((match = rest.match(/^[-./@A-Za-z_][-./@A-Za-z0-9_[\]]*/))) {
+      if (expectTypeName) kind = "type";
+      else if (PANEL_KEYWORDS.has(match[0])) kind = "keyword";
       else if (PANEL_LITERALS.has(match[0])) kind = "literal";
       else kind = "identifier";
     } else {
       match = [rest[0]];
+    }
+
+    if (!isTrivia) {
+      const text = match[0];
+      const wasExpectedType = expectTypeName && kind === "type";
+
+      if (kind === "operator" && text === ":") {
+        expectTypeName = true;
+        inImplementsList = false;
+      } else if (kind === "keyword" && text === "implements") {
+        expectTypeName = true;
+        inImplementsList = true;
+      } else if (kind === "operator" && text === "," && inImplementsList) {
+        expectTypeName = true;
+      } else {
+        expectTypeName = false;
+        if (inImplementsList && !wasExpectedType) inImplementsList = false;
+      }
     }
 
     const text = escapeHtml(match[0]);

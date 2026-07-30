@@ -57,7 +57,7 @@ namespace/local.name
 Examples:
 
 ```text
-conduit/text.utf8
+std/text
 tongues/audio.stream
 netherwick/can-host-wifi
 ```

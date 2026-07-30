@@ -14,8 +14,8 @@
     if (!condition) throw new Error(message);
   };
   const source = `panel 1
-node greeting : conduit.std/literal { value = "hello" }
-node output : conduit.std/stdout
+node greeting : std/literal { value = "hello" }
+node output : io/stdout
 cord greeting.out -> output.in {
   capacity = 1
   max_value_bytes = 64
@@ -43,7 +43,7 @@ cord greeting.out -> output.in {
     assert(view.bounds.maximum_history === 16, "history is not explicitly bounded");
     assert(view.topology.logical_nodes.length === 2, "Rust logical projection drifted");
     assert(view.topology.expanded_nodes.length === 2, "Rust expanded projection drifted");
-    assert(view.topology.cords[0].value_type === "conduit/text.utf8", "typed cord was inferred");
+    assert(view.topology.cords[0].value_type === "std/text", "typed cord was inferred");
     assert(view.topology.cords[0].compatibility.compatible, "compatibility proof missing");
     assert(view.topology.logical_nodes.every((node) => !("fake_activity" in node)),
       "browser projection invented activity");

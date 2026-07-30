@@ -6,7 +6,7 @@
       "id": "minimal",
       "mode": "parse",
       "productions": ["document", "version", "instance", "cord", "endpoint", "cord-policy"],
-      "source": "panel 1\nnode source : conduit.std/literal { value = \"hello\" }\nnode sink : conduit.std/stdout\ncord source.out -> sink.in\n",
+      "source": "panel 1\nnode source : std/literal { value = \"hello\" }\nnode sink : io/stdout\ncord source.out -> sink.in\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -24,7 +24,7 @@
       "id": "definition-parameters-constraint-export",
       "mode": "parse",
       "productions": ["definition", "parameter-list", "parameter", "constraint", "export", "binding", "comment"],
-      "source": "# retained comment\npanel 1\nnode reply(language: language_tag = \"en\") {\n  node source : conduit.std/literal using ready\n  node sink : conduit.std/stdout\n  cord source.out -> sink.in\n  export output source.out as audio\n  bind language = source.value\n}\nroot reply\n",
+      "source": "# retained comment\npanel 1\nnode reply(language: language_tag = \"en\") {\n  node source : std/literal using ready\n  node sink : io/stdout\n  cord source.out -> sink.in\n  export output source.out as audio\n  bind language = source.value\n}\nroot reply\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -33,7 +33,7 @@
       "id": "multiple-roots-selected",
       "mode": "parse",
       "productions": ["root"],
-      "source": "panel 1\nnode first { node a : conduit.std/literal }\nnode second { node b : conduit.std/literal }\nroot first\nroot second\n",
+      "source": "panel 1\nnode first { node a : std/literal }\nnode second { node b : std/literal }\nroot first\nroot second\n",
       "selected_root": "second",
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -78,8 +78,8 @@
       "id": "format-equivalence",
       "mode": "parse",
       "productions": ["trivia"],
-      "source": "panel 1\nnode value : conduit.std/literal { value = \"same\" }\n",
-      "equivalent_source": "# different trivia\npanel 1   node value:conduit.std/literal{\nvalue=\"same\"\n}\n",
+      "source": "panel 1\nnode value : std/literal { value = \"same\" }\n",
+      "equivalent_source": "# different trivia\npanel 1   node value:std/literal{\nvalue=\"same\"\n}\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"

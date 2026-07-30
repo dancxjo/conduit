@@ -1,11 +1,11 @@
 # Wi-Fi station join configuration reference panel.
 panel 1
 
-node wifi_sta : std/wifi-station {
+node wifi_sta : net/wifi/join {
     ssid = "ConduitNet"
 }
 
-node status_logger : std/log
+node status_logger : observe/log
 
 cord wifi_sta.out -> status_logger.in {
     capacity = 4

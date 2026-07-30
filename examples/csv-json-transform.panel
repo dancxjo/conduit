@@ -5,8 +5,8 @@ node input_data : std/literal {
     value = "id,name\n1,alice\n2,bob\n"
 }
 
-node transformer : std/uppercase
-node storage : std/kv-store {
+node transformer : text/uppercase
+node storage : storage/key-value {
     table = "users"
 }
 

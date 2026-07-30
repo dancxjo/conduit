@@ -10,7 +10,7 @@ node ollama_api : conduit/http-client {
     endpoint = "http://127.0.0.1:11434/api/generate"
 }
 
-node output : std/stdout
+node output : io/stdout
 
 cord prompt.out -> ollama_api.in {
     capacity = 4

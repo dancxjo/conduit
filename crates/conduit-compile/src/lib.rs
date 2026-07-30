@@ -1649,11 +1649,12 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
     let mut catalog = CompileCatalogDocument {
         identity: String::new(),
         nodes: [
-            "conduit.std/literal",
-            "conduit.std/format",
-            "conduit.std/stdout",
-            "conduit.std/uppercase",
-            "conduit.std/supervisor",
+            "std/literal",
+            "std/format",
+            "io/stdout",
+            "text/uppercase",
+            "supervision/supervisor",
+            "net/http/serve-once",
         ]
         .into_iter()
         .map(|id| {
@@ -1668,10 +1669,10 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         })
         .collect::<Result<Vec<_>, CompileError>>()?,
         types: [
-            "conduit/text.utf8",
-            "conduit/text-list",
-            "conduit/terminal-observation",
-            "conduit/supervision-decision",
+            "std/text",
+            "std/list/text",
+            "std/terminal",
+            "supervision/decision",
         ]
         .into_iter()
         .map(|id| {
@@ -1744,10 +1745,6 @@ impl<'a> PinnedCatalog<'a> {
 
 impl SourceContractCatalog for PinnedCatalog<'_> {
     fn node_schema(&self, id: &str) -> Option<OwnedNodeSchema> {
-        let canonical = id
-            .strip_prefix("std/")
-            .map(|name| format!("conduit.std/{name}"));
-        let id = canonical.as_deref().unwrap_or(id);
         let pin = self.exact_pin(&self.document.nodes, id)?;
         let schema = self.registry.node_schema(id)?;
         (pin.schema_version == 1 && pin.semantic_hash == schema.semantic_hash().to_string())
@@ -1755,10 +1752,6 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
     }
 
     fn node_contract(&self, id: &str) -> Option<OwnedNodeContract> {
-        let canonical = id
-            .strip_prefix("std/")
-            .map(|name| format!("conduit.std/{name}"));
-        let id = canonical.as_deref().unwrap_or(id);
         let pin = self.exact_pin(&self.document.nodes, id)?;
         let contract = self.registry.node_contract(id)?;
         (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash().to_string())
@@ -2574,9 +2567,9 @@ fn compile_graph(
         return Err(CompileError::new(CompileReason::InvalidInput));
     }
     let panel = executable_panel(graph, &lowered.supervisions)?;
-    let registry = Registry::compatibility_demo();
+    let registry = Registry::default();
     let resolved = registry
-        .resolve(&panel)
+        .resolve_contracts(&panel)
         .map_err(|_| CompileError::new(CompileReason::SourceInvalid))?;
     let mut topology = resolved
         .exact_topology()
@@ -2717,10 +2710,7 @@ fn rewrite_node_kind(
     module: &conduit_panel::ResolvedModule,
     modules: &BTreeMap<&str, &conduit_panel::ResolvedModule>,
 ) -> Result<String, CompileError> {
-    if let Some(name) = kind.strip_prefix("std/") {
-        return Ok(format!("conduit.std/{name}"));
-    }
-    if kind.starts_with("module.h") || kind.starts_with("conduit.std/") {
+    if kind.starts_with("module.h") {
         return Ok(kind.to_owned());
     }
     if module
@@ -7348,8 +7338,8 @@ mod tests {
             failure_mode: "fail-together".to_owned(),
             outer: None,
             policy: pin_doc("conduit/bounded-supervision", 201),
-            observation_contract: pin_doc("conduit/terminal-observation", 202),
-            decision_contract: pin_doc("conduit/supervision-decision", 203),
+            observation_contract: pin_doc("std/terminal", 202),
+            decision_contract: pin_doc("supervision/decision", 203),
             actions: vec![
                 SupervisionActionDocument {
                     kind: "propagate".to_owned(),
@@ -7472,11 +7462,11 @@ mod tests {
     #[test]
     fn typed_supervision_compiles_to_schema_15_and_round_trips_exactly() {
         let source = "panel 2\n\
-            node subject : conduit.std/literal { value = \"primary\" }\n\
-            node subject_sink : conduit.std/stdout\n\
-            node fallback : conduit.std/literal { value = \"fallback\" }\n\
-            node fallback_sink : conduit.std/stdout\n\
-            node handler : conduit.std/supervisor\n\
+            node subject : std/literal { value = \"primary\" }\n\
+            node subject_sink : io/stdout\n\
+            node fallback : std/literal { value = \"fallback\" }\n\
+            node fallback_sink : io/stdout\n\
+            node handler : supervision/supervisor\n\
             cord subject.out -> subject_sink.in\n\
             cord fallback.out -> fallback_sink.in\n\
             supervise subject with handler\n";
@@ -7608,13 +7598,13 @@ mod tests {
     fn composite_expansion_retains_logical_membership_and_exports() {
         let source = "panel 1\n\
              composite fixture/uppercase {\n\
-               node upper : conduit.std/uppercase\n\
+               node upper : text/uppercase\n\
                export input in = upper.in\n\
                export output out = upper.out\n\
              }\n\
-             node source : conduit.std/literal { value = \"hello\" }\n\
+             node source : std/literal { value = \"hello\" }\n\
              node transform : fixture/uppercase\n\
-             node sink : conduit.std/stdout\n\
+             node sink : io/stdout\n\
              cord source.out -> transform.in\n\
              cord transform.out -> sink.in\n";
         let panel = parse(source).unwrap();
@@ -7631,9 +7621,9 @@ mod tests {
     fn explicit_module_closure_and_selected_root_compile_without_io() {
         let child = "panel 1\n\
                      composite fixture/pipeline {\n\
-                       node source : conduit.std/literal { value = \"module\" }\n\
-                       node upper : conduit.std/uppercase using ready\n\
-                       node sink : conduit.std/stdout\n\
+                       node source : std/literal { value = \"module\" }\n\
+                       node upper : text/uppercase using ready\n\
+                       node sink : io/stdout\n\
                        cord source.out -> upper.in\n\
                        cord upper.out -> sink.in\n\
                      }\n";
@@ -7873,7 +7863,7 @@ mod tests {
             .iter_mut()
             .find(|candidate| {
                 let id = &candidate.implementation.semantic_contract.id;
-                id == "conduit.std/literal"
+                id == "std/literal"
             })
             .unwrap();
         let host = candidate.host_report.host.clone();
@@ -7991,7 +7981,7 @@ mod tests {
             .iter_mut()
             .find(|candidate| {
                 let id = &candidate.implementation.semantic_contract.id;
-                id == "conduit.std/literal"
+                id == "std/literal"
             })
             .unwrap();
         candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
@@ -8082,7 +8072,7 @@ mod tests {
             .iter_mut()
             .find(|candidate| {
                 let id = &candidate.implementation.semantic_contract.id;
-                id == "conduit.std/literal"
+                id == "std/literal"
             })
             .unwrap();
         candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
@@ -8172,7 +8162,7 @@ mod tests {
             .iter_mut()
             .find(|candidate| {
                 let id = &candidate.implementation.semantic_contract.id;
-                id == "conduit.std/literal"
+                id == "std/literal"
             })
             .unwrap();
         candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
@@ -8452,8 +8442,8 @@ mod tests {
         let source = format!(
             "{base}\n\
              composite fixture/worker {{\n\
-               node source : conduit.std/literal {{ value = \"pool\" }}\n\
-               node sink : conduit.std/stdout\n\
+               node source : std/literal {{ value = \"pool\" }}\n\
+               node sink : io/stdout\n\
                cord source.out -> sink.in\n\
              }}\n\
              pool workers : fixture/worker {{ maximum = 2 admission = queue_bounded admission_queue = 2 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }}\n"

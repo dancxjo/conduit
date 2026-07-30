@@ -3,6 +3,6 @@ panel 1
 node greeting : std/literal {
     value = "This endpoint does not exist."
 }
-node output : std/stdout
+node output : io/stdout
 
 cord greeting.missing -> output.in

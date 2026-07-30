@@ -322,14 +322,13 @@ impl<'a> Id<'a> {
     /// Creates an identifier after validating the bootstrap ASCII grammar.
     ///
     /// Local identifiers contain lowercase letters, digits, `_`, `-`, and `.`;
-    /// they begin with a lowercase letter. Qualified semantic identities may
-    /// additionally contain one `/`.
+    /// they begin with a lowercase letter. Qualified semantic identities are
+    /// slash-separated paths whose non-empty segments follow the same rule.
     pub fn new(value: &'a str) -> Result<Self, IdError> {
         if value.is_empty() {
             return Err(IdError::Empty);
         }
 
-        let mut slash_count = 0_u8;
         let mut segment_start = true;
         for (index, byte) in value.bytes().enumerate() {
             let valid = if segment_start {
@@ -342,11 +341,8 @@ impl<'a> Id<'a> {
             if !valid {
                 return Err(IdError::InvalidByte { index, byte });
             }
-            if byte == b'/' {
-                slash_count = slash_count.saturating_add(1);
-                if slash_count > 1 || index + 1 == value.len() {
-                    return Err(IdError::InvalidSlash);
-                }
+            if byte == b'/' && (segment_start || index + 1 == value.len()) {
+                return Err(IdError::InvalidSlash);
             }
             segment_start = matches!(byte, b'.' | b'/');
         }
@@ -393,7 +389,7 @@ impl fmt::Display for IdError {
             Self::InvalidByte { index, byte } => {
                 write!(formatter, "invalid identifier byte {byte:#04x} at {index}")
             }
-            Self::InvalidSlash => formatter.write_str("identifier has an invalid namespace slash"),
+            Self::InvalidSlash => formatter.write_str("identifier has an invalid path slash"),
         }
     }
 }
@@ -662,7 +658,7 @@ mod tests {
     use super::*;
 
     const TEXT: TypeContractRef<'static> = TypeContractRef {
-        contract_id: Id("conduit/text.utf8"),
+        contract_id: Id("std/text"),
         schema_version: 1,
         semantic_hash: SemanticHash::from_bytes([
             0x23, 0xf6, 0xb8, 0xc6, 0xd7, 0x84, 0x79, 0x9a, 0x10, 0x09, 0xbd, 0x45, 0x32, 0x26,
@@ -765,7 +761,8 @@ mod tests {
     fn identifier_validation_is_portable() {
         assert!(Id::new("tongues/audio.stream").is_ok());
         assert!(Id::new("Hello").is_err());
-        assert!(Id::new("two/slashes/here").is_err());
+        assert_eq!(Id::new("net/http/serve"), Ok(Id("net/http/serve")));
+        assert!(Id::new("two//segments").is_err());
         assert!(Id::new("namespace/1invalid").is_err());
         assert!(Id::new("namespace/trailing.").is_err());
     }

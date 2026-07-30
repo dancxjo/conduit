@@ -5,8 +5,8 @@ panel 1
 node greeting : std/literal {
     value = "Browser-local semantics stay portable.\n"
 }
-node transform : std/uppercase
-node output : std/stdout
+node transform : text/uppercase
+node output : io/stdout
 
 cord greeting.out -> transform.in {
     capacity = 2

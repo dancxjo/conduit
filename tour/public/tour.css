@@ -496,6 +496,7 @@ textarea#source::placeholder {
 .panel-token-number { color: #67e8f9; }
 .panel-token-comment { color: #64748b; font-style: italic; }
 .panel-token-operator { color: #94a3b8; }
+.panel-token-type { color: #34d399; font-weight: 600; }
 .panel-token-identifier { color: #e2e8f0; }
 
 /* Output Console */
@@ -543,10 +544,10 @@ pre {
   border: 1px solid var(--line-color);
 }
 
-}
-
 /* React Flow & Equipment Faceplates Styling (#90, #99, #91) */
 .patchbay-flow-container {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border-radius: 8px;
   position: relative;

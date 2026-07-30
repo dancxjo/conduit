@@ -422,7 +422,7 @@ mod tests {
 
     #[test]
     fn relative_imports_are_dependency_ordered_and_content_identified() {
-        let child = "panel 1\nnode worker { node value : conduit.std/literal }\nroot worker\n";
+        let child = "panel 1\nnode worker { node value : std/literal }\nroot worker\n";
         let pin = content_hash(child);
         let root = format!(
             "panel 1\nimport \"./child.panel\" as child pin \"{pin}\"\n\

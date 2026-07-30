@@ -208,9 +208,9 @@ impl ModuleLoader for MemoryLoader {
 
 fn panel_v2_source() -> &'static str {
     "panel 2\n\
-     node subject : conduit.std/literal { value = \"work\" }\n\
-     node sink : conduit.std/stdout\n\
-     node handler : conduit.std/supervisor\n\
+     node subject : std/literal { value = \"work\" }\n\
+     node sink : io/stdout\n\
+     node handler : supervision/supervisor\n\
      cord subject.out -> sink.in\n\
      supervise subject with handler\n"
 }
@@ -730,7 +730,7 @@ fn execute_case(id: &str) -> Value {
             json!({"redacted":true})
         }
         "source-self-supervision-rejected" => {
-            let source = "panel 2\nnode subject : conduit.std/literal { value = \"x\" }\nsupervise subject with subject\n";
+            let source = "panel 2\nnode subject : std/literal { value = \"x\" }\nsupervise subject with subject\n";
             let error = parse(source).unwrap_err();
             json!({"code":error.code})
         }
@@ -941,7 +941,7 @@ fn standard_supervisor_consumes_the_portable_contract() {
         limits(),
     );
     let standard = StandardNodeContract {
-        id: Id("conduit.std/supervisor"),
+        id: Id("supervision/supervisor"),
         kind: StandardNodeKind::Supervisor,
         limits: StandardNodeLimits {
             retained_values: 2,

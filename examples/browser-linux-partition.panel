@@ -5,8 +5,8 @@ panel 1
 node media : std/literal {
     value = "browser media frame\n"
 }
-node preprocess : std/uppercase
-node speech : std/stdout
+node preprocess : text/uppercase
+node speech : io/stdout
 
 cord media.out -> preprocess.in {
     capacity = 2

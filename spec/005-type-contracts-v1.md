@@ -23,10 +23,11 @@ type, byte layout, transport, or implementation.
 - the exact domain-owned contract schema revision; and
 - the canonical semantic hash of the exact contract descriptor.
 
-The identifier contains exactly one `/`. The prefix selects a hosted provider;
-neither prefix nor suffix is enumerated by `conduit-core`. The schema revision
-does not imply compatibility. A reference is immutable and does not embed a
-provider, implementation, artifact, host observation, or presentation label.
+The identifier is a slash-separated path with at least two segments. Its first
+segment selects a hosted provider; the remaining path is opaque to
+`conduit-core`. The schema revision does not imply compatibility. A reference
+is immutable and does not embed a provider, implementation, artifact, host
+observation, or presentation label.
 
 ## Hosted provider registry
 

@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 47,
+  "manifest_revision": 48,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -57,7 +57,7 @@
         {
           "id": "canonical-v1",
           "path": "../c1/canonical-v1.json",
-          "sha256": "sha256:2bf400fa905d3bbf8350f0e3b41e2c7a072fe1f1c70e4fe042e305fdbbb4d6b6",
+          "sha256": "sha256:10b00b49e9ec0ae0df3600857b16fadfe581a415d580c2cd26f023622537414e",
           "operation": "canonical-descriptor-v1",
           "requirement_ids": [
             "CAN-001",
@@ -84,7 +84,7 @@
         {
           "id": "canonical-negative-v1",
           "path": "../c1/canonical-v1.json",
-          "sha256": "sha256:2bf400fa905d3bbf8350f0e3b41e2c7a072fe1f1c70e4fe042e305fdbbb4d6b6",
+          "sha256": "sha256:10b00b49e9ec0ae0df3600857b16fadfe581a415d580c2cd26f023622537414e",
           "operation": "canonical-descriptor-rejection-v1",
           "requirement_ids": [
             "CAN-004",
@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar-v1",
           "path": "../c3/panel-grammar-v1.json",
-          "sha256": "sha256:b88ad9e4442df06eac8ddcfca1b41a44f6704920cf483f35c2788957a961395e",
+          "sha256": "sha256:1d56cc731ff30c8d3b30b615c5ac20ae4bcfa2d674522e9d2980ff573da2da91",
           "operation": "panel-source-v1",
           "requirement_ids": [
             "SRC-001",
@@ -4334,7 +4334,7 @@
       "artifacts": [{
         "id": "http-serving-v1",
         "path": "../c5/http-serving-v1.json",
-        "sha256": "sha256:a908ad201b5ec0a363d9bbbb72f721fc828835ee155d1fae938ecf01a96008a7",
+        "sha256": "sha256:f86965afc688f342835a8412de698b6d3a548ddf33197d475546c88c922bc464",
         "operation": "http-serving-v1",
         "requirement_ids": [
           "HTTP-001", "HTTP-002", "HTTP-003", "HTTP-004", "HTTP-005",
@@ -4355,6 +4355,8 @@
           "constrained-host-unsupported-before-start": "HTTP-013",
           "route-order-is-explicit": "HTTP-003",
           "route-fallthrough-is-deterministic": "HTTP-003",
+          "unknown-route-is-deterministic": "HTTP-003",
+          "route-conflict-rejected": "HTTP-003",
           "path-parameters-are-typed-output": "HTTP-003",
           "response-correlation-mismatch-rejected": "HTTP-003",
           "bounded-request-response": "HTTP-004",
@@ -4371,9 +4373,13 @@
           "plaintext-must-be-explicit": "HTTP-007",
           "required-tls-never-downgrades": "HTTP-007",
           "direct-tls-needs-secret-handles": "HTTP-006",
+          "stale-or-invalid-cert-handle-rejected": "HTTP-006",
+          "missing-listen-address-rejected": "HTTP-005",
           "expired-serving-authority-rejected": "HTTP-008",
           "real-linux-plaintext-loopback": "HTTP-012",
           "real-linux-tls-loopback": "HTTP-012",
+          "tls-hostname-mismatch-rejected": "HTTP-006",
+          "peer-disconnect-is-terminal": "HTTP-009",
           "trusted-proxy-security-accepted": "HTTP-007",
           "untrusted-forwarded-headers-rejected": "HTTP-007",
           "wrong-proxy-peer-rejected": "HTTP-007",
@@ -4389,6 +4395,7 @@
           "certificate-expiry-rejected": "HTTP-007",
           "evidence-capacity-is-bounded": "HTTP-004",
           "evidence-exhaustion-precedes-admission": "HTTP-004",
+          "hidden-kernel-buffering-cannot-claim-hard-bound": "HTTP-004",
           "graceful-shutdown-stops-admission": "HTTP-014",
           "transition-drains-and-rebinds": "HTTP-015",
           "transition-security-downgrade-rejected": "HTTP-015",
@@ -4416,10 +4423,15 @@
         ],
         "negative": [
           "http-serving-v1#artifact-drift-rejected",
+          "http-serving-v1#unknown-route-is-deterministic",
+          "http-serving-v1#route-conflict-rejected",
           "http-serving-v1#serving-grant-missing-rejected",
+          "http-serving-v1#missing-listen-address-rejected",
           "http-serving-v1#constrained-host-unsupported-before-start",
           "http-serving-v1#malformed-request-rejected",
           "http-serving-v1#required-tls-never-downgrades",
+          "http-serving-v1#stale-or-invalid-cert-handle-rejected",
+          "http-serving-v1#tls-hostname-mismatch-rejected",
           "http-serving-v1#untrusted-forwarded-headers-rejected",
           "http-serving-v1#wrong-proxy-peer-rejected",
           "http-serving-v1#expired-serving-authority-rejected",
@@ -4437,6 +4449,7 @@
           "http-serving-v1#admission-pressure-is-bounded",
           "http-serving-v1#slow-handler-times-out",
           "http-serving-v1#slow-client-times-out",
+          "http-serving-v1#peer-disconnect-is-terminal",
           "http-serving-v1#oversized-response-rejected",
           "http-serving-v1#oversized-response-headers-rejected",
           "http-serving-v1#session-capacity-rejected",
@@ -4444,6 +4457,7 @@
           "http-serving-v1#static-asset-size-rejected",
           "http-serving-v1#evidence-capacity-is-bounded",
           "http-serving-v1#evidence-exhaustion-precedes-admission",
+          "http-serving-v1#hidden-kernel-buffering-cannot-claim-hard-bound",
           "http-serving-v1#transition-overlap-must-fit"
         ],
         "migration": [

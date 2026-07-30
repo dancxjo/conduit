@@ -1,8 +1,8 @@
 panel 1
 
 composite patchbay/authoring {
-    node editor : std/uppercase
-    node parser : std/uppercase
+    node editor : text/uppercase
+    node parser : text/uppercase
     export input source_in = editor.in
     export output parsed_out = parser.out
     cord editor.out -> parser.in {
@@ -16,8 +16,8 @@ composite patchbay/authoring {
 }
 
 composite patchbay/presentation {
-    node layout : std/uppercase
-    node canvas : std/uppercase
+    node layout : text/uppercase
+    node canvas : text/uppercase
     export input positions_in = layout.in
     export output rendered_out = canvas.out
     cord layout.out -> canvas.in {
@@ -31,8 +31,8 @@ composite patchbay/presentation {
 }
 
 composite patchbay/observation {
-    node resolver : std/uppercase
-    node evidence_feed : std/uppercase
+    node resolver : text/uppercase
+    node evidence_feed : text/uppercase
     export input plan_in = resolver.in
     export output telemetry_out = evidence_feed.out
     cord resolver.out -> evidence_feed.in {
@@ -49,7 +49,7 @@ node nav_selection : std/literal { value = "tour/meta-lesson\n" }
 node authoring_surface : patchbay/authoring
 node presentation_surface : patchbay/presentation
 node observation_surface : patchbay/observation
-node console_sink : std/stdout
+node console_sink : io/stdout
 
 cord nav_selection.out -> authoring_surface.source_in {
     capacity = 4

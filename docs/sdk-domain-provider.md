@@ -111,12 +111,12 @@ Domain users author `.panel` source files referencing your domain node:
 ```panel
 panel 1
 
-node audio_source : conduit.std/literal {
+node audio_source : std/literal {
     value = "sample_audio_pcm_payload"
 }
 
 node asr : tongues/asr-recognizer
-node output_log : conduit.std/log
+node output_log : observe/log
 
 cord audio_source.out -> asr.audio {
     capacity = 8

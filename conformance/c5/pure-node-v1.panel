@@ -4,8 +4,8 @@ panel 1
 node source : std/literal {
     value = "Conduit exact slice.\n"
 }
-node transform : std/uppercase
-node sink : std/stdout
+node transform : text/uppercase
+node sink : io/stdout
 
 cord source.out -> transform.in {
     capacity = 1

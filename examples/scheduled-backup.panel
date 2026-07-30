@@ -5,7 +5,7 @@ node trigger : std/counter
 node reader : std/file-read {
     path = "data/db.sqlite"
 }
-node backup_store : std/blob-store {
+node backup_store : storage/blob/store {
     bucket = "backups"
 }
 

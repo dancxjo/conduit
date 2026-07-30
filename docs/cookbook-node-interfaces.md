@@ -8,7 +8,7 @@ Keep these identities distinct when modeling domain capability boundaries:
 
 | Layer Identity | What It Defines | When To Use It |
 |---|---|---|
-| **TypeContract** | Domain-owned value meaning, structure, and compatibility algebra. | To define valid payload values (e.g., `speech/transcript`, `conduit/text.utf8`). |
+| **TypeContract** | Domain-owned value meaning, structure, and compatibility algebra. | To define valid payload values (e.g., `speech/transcript`, `std/text`). |
 | **PortContract** | One directional live boundary, combining type, presence, cardinality, delivery, temporal, terminal, sensitivity, and flow rules. | To specify single port requirements or export definitions. |
 | **NodeInterfaceContract** | A named, required node boundary composed of finite port members and non-port facts. | To define reusable capability interfaces (e.g., `speech/recognizer`, `conduit/stream-sink`). |
 | **NodeContract** | One concrete primitive or composite semantic node contract. | To describe the actual public boundary of a concrete node or composite module. |
@@ -26,17 +26,17 @@ Declare reusable named interfaces using the `interface` keyword in `.panel` sour
 panel 2
 
 interface speech/recognizer {
-  input audio : conduit/text.utf8
-  output final : conduit/text.utf8
-  output partial : conduit/text.utf8 optional
+  input audio : std/text
+  output final : std/text
+  output partial : std/text optional
 }
 
 # Primitive node declaring interface satisfaction
-node asr_primary : conduit.std/stdout implements speech/recognizer
+node asr_primary : io/stdout implements speech/recognizer
 
 # Composite node declaring interface satisfaction via transparent exports
 node speech_pipeline implements speech/recognizer {
-  node sink : conduit.std/stdout
+  node sink : io/stdout
   export input sink.in as audio
   export output sink.in as final
 }

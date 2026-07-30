@@ -141,35 +141,39 @@ pub fn validate_hosted_execution_plan(
 }
 
 const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("conduit/text.utf8"),
+    contract_id: Id("std/text"),
     schema_version: 1,
     semantic_hash: SemanticHash::from_bytes([
-        0x23, 0xf6, 0xb8, 0xc6, 0xd7, 0x84, 0x79, 0x9a, 0x10, 0x09, 0xbd, 0x45, 0x32, 0x26, 0x67,
-        0x0d, 0xdd, 0x91, 0x80, 0xe0, 0x06, 0xd4, 0xc2, 0x32, 0x70, 0x55, 0xcb, 0xf3, 0x50, 0x77,
-        0x6e, 0x9b,
+        0xbb, 0xfe, 0x54, 0x2a, 0x0e, 0x36, 0xfd, 0x88, 0x53, 0xae, 0x24, 0x23, 0x31, 0xab, 0x4f,
+        0x1a, 0x05, 0xa7, 0xd6, 0xdf, 0xec, 0xe5, 0x67, 0x65, 0xa4, 0x3d, 0x74, 0x94, 0x71, 0x02,
+        0x8a, 0x18,
     ]),
 };
 const TEXT_LIST_TYPE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("conduit/text-list"),
-    schema_version: 1,
-    semantic_hash: SemanticHash::from_bytes([0x6f; 32]),
-};
-const TERMINAL_OBSERVATION_TYPE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("conduit/terminal-observation"),
+    contract_id: Id("std/list/text"),
     schema_version: 1,
     semantic_hash: SemanticHash::from_bytes([
-        0xd3, 0x21, 0xc6, 0xa0, 0x12, 0xe8, 0x1f, 0x84, 0xc4, 0x6a, 0x6f, 0xd6, 0x23, 0x11, 0xdc,
-        0x81, 0x37, 0x46, 0x0f, 0x92, 0x85, 0x68, 0x6b, 0x68, 0x45, 0x9d, 0xc1, 0xb6, 0x45, 0x54,
-        0x5b, 0x58,
+        0x25, 0x58, 0xf1, 0x22, 0xcc, 0xaf, 0xdb, 0xd6, 0x1a, 0xbd, 0xb3, 0xf5, 0xff, 0x38, 0x01,
+        0x8e, 0xe4, 0x79, 0x03, 0x9e, 0xd5, 0xdf, 0xb4, 0xe6, 0x78, 0xdf, 0xc2, 0xb5, 0xc8, 0x85,
+        0x5b, 0x24,
+    ]),
+};
+const TERMINAL_OBSERVATION_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/terminal"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0xfb, 0xab, 0x7e, 0x8b, 0xbc, 0x24, 0xca, 0x50, 0xa4, 0xb3, 0x73, 0x91, 0x1e, 0x8f, 0xf2,
+        0xee, 0xa9, 0xac, 0xb9, 0x23, 0x27, 0xd9, 0xa4, 0x57, 0xa2, 0x4b, 0x05, 0x20, 0x5d, 0x13,
+        0x4d, 0x1c,
     ]),
 };
 const SUPERVISION_DECISION_TYPE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("conduit/supervision-decision"),
+    contract_id: Id("supervision/decision"),
     schema_version: 1,
     semantic_hash: SemanticHash::from_bytes([
-        0x30, 0xc7, 0x67, 0x8a, 0x03, 0x31, 0xd9, 0xbb, 0x2d, 0x03, 0x38, 0x9d, 0xda, 0xe0, 0xb5,
-        0x0d, 0x62, 0xf6, 0x6e, 0x2a, 0xe3, 0x45, 0xe2, 0x32, 0x57, 0x9e, 0x2e, 0xad, 0xfd, 0xff,
-        0x7e, 0xee,
+        0x81, 0xca, 0x8b, 0xc6, 0xdd, 0x48, 0xc4, 0x68, 0x84, 0x32, 0x8a, 0x30, 0x22, 0xae, 0x41,
+        0xc0, 0xd1, 0x98, 0x2a, 0x1a, 0x04, 0x51, 0x15, 0xf2, 0xed, 0x5d, 0x89, 0xba, 0xc6, 0x7c,
+        0xb2, 0x46,
     ]),
 };
 const EMPTY_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
@@ -200,6 +204,50 @@ const FORMAT_CONFIG: ConfigContract<'static> = ConfigContract {
             sensitivity: Sensitivity::Public,
             mutability: ConfigMutability::PreStart,
             identity: ConfigIdentity::Semantic,
+        },
+    ],
+};
+const HTTP_SERVE_ONCE_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        ConfigFieldContract {
+            key: Id("listen"),
+            value_type: TEXT_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Plan,
+        },
+        ConfigFieldContract {
+            key: Id("method"),
+            value_type: TEXT_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Semantic,
+        },
+        ConfigFieldContract {
+            key: Id("path"),
+            value_type: TEXT_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Semantic,
+        },
+        ConfigFieldContract {
+            key: Id("response"),
+            value_type: TEXT_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Semantic,
+        },
+        ConfigFieldContract {
+            key: Id("deadline_ms"),
+            value_type: TEXT_TYPE,
+            requirement: ConfigRequirement::Required,
+            sensitivity: Sensitivity::Public,
+            mutability: ConfigMutability::PreStart,
+            identity: ConfigIdentity::Plan,
         },
     ],
 };
@@ -373,262 +421,273 @@ impl fmt::Display for RegistryError {
 impl std::error::Error for RegistryError {}
 
 pub const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/literal"),
+    id: Id("std/literal"),
     config: LITERAL_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 pub const STDIN_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/stdin"),
+    id: Id("io/stdin"),
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/uppercase"),
+    id: Id("text/uppercase"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/format"),
+    id: Id("std/format"),
     config: FORMAT_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 pub const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/stdout"),
+    id: Id("io/stdout"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
 pub const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/stderr"),
+    id: Id("io/stderr"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
 pub const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/supervisor"),
+    id: Id("supervision/supervisor"),
     config: EMPTY_CONFIG,
     inputs: &[TERMINAL_OBSERVATION_INPUT],
     outputs: &[SUPERVISION_DECISION_OUTPUT],
 };
 pub const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/pass-through"),
+    id: Id("flow/identity"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const TEE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/tee"),
+    id: Id("flow/tee"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT_1, OUTPUT_TEXT_2],
 };
 pub const MERGE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/merge"),
+    id: Id("flow/merge"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT_1, INPUT_TEXT_2],
     outputs: &[OUTPUT_TEXT],
 };
 pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/delay"),
+    id: Id("time/delay"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/debounce"),
+    id: Id("time/debounce"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/throttle"),
+    id: Id("time/throttle"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/take"),
+    id: Id("flow/take"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const SKIP_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/skip"),
+    id: Id("flow/skip"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const FILTER_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/filter"),
+    id: Id("flow/filter"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/fallback"),
+    id: Id("flow/fallback"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_PRIMARY, INPUT_FALLBACK],
     outputs: &[OUTPUT_TEXT],
 };
 pub const PROBE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/probe"),
+    id: Id("test/probe"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const LOG_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/log"),
+    id: Id("observe/log"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const ASSERT_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/assert"),
+    id: Id("test/assertion"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const RECORD_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/record"),
+    id: Id("test/record"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const REPLAY_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/replay"),
+    id: Id("test/replay"),
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/fault-source"),
+    id: Id("test/fault-source"),
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[OUTPUT_TEXT],
 };
 pub const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/file-read"),
+    id: Id("fs/read"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/file-write"),
+    id: Id("fs/write"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[],
 };
 pub const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/blob-store"),
+    id: Id("storage/blob/store"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/kv-store"),
+    id: Id("storage/key-value"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/process-spawn"),
+    id: Id("process/run"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/gpio-pin"),
+    id: Id("device/gpio/pin"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/serial-port"),
+    id: Id("device/serial/port"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const CELL_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/cell"),
+    id: Id("state/cell"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/counter"),
+    id: Id("state/counter"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/deduplicate"),
+    id: Id("state/deduplicate"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/cache"),
+    id: Id("state/cache"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/circuit-breaker"),
+    id: Id("supervision/circuit-breaker"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/health-gate"),
+    id: Id("supervision/health-gate"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/backoff"),
+    id: Id("supervision/backoff"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/wifi-station"),
+    id: Id("net/wifi/join"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/wifi-ap"),
+    id: Id("net/wifi/access-point"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/network-interface"),
+    id: Id("net/interface"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/tcp-socket"),
+    id: Id("net/tcp/socket"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/udp-socket"),
+    id: Id("net/udp/socket"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
 pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("conduit.std/dns-resolver"),
+    id: Id("net/dns/resolve"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
+};
+/// Minimal bounded hosted HTTP service boundary.
+///
+/// Rich HTTP request/response/route contracts remain in `conduit-http`; this
+/// source-facing node binds exactly one finite route and terminates after one
+/// exchange.
+pub const HTTP_SERVE_ONCE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("net/http/serve-once"),
+    config: HTTP_SERVE_ONCE_CONFIG,
+    inputs: &[],
+    outputs: &[],
 };
 
 /// Typed runtime value.
@@ -677,6 +736,11 @@ pub enum HostedPrimitiveImplementation {
     Tee,
     Merge,
     Fallback,
+    /// An exact, registered host-service provider with no value cords.
+    ///
+    /// The provider callback remains coupled to its registered manifest and
+    /// artifact. This marker never derives behavior from a semantic ID.
+    HostedService,
 }
 
 /// One installed hosted implementation binding available to an exact run.
@@ -798,6 +862,19 @@ pub trait Handler {
 
 pub type HandlerFactory = fn() -> Box<dyn Handler>;
 pub type ConfigValidator = fn(&Node) -> Result<(), ResolutionError>;
+
+/// Static facts and callbacks for one provider linked into the current host
+/// executable.
+pub struct CompiledInHostService {
+    pub contract: &'static NodeContract<'static>,
+    pub implementation_id: &'static str,
+    pub artifact_id: &'static str,
+    pub entrypoint: &'static str,
+    pub source_bytes: &'static [u8],
+    pub required_authorities: &'static [SemanticHash],
+    pub factory: HandlerFactory,
+    pub validate_config: ConfigValidator,
+}
 
 #[derive(Debug)]
 pub struct RegisteredExecutable {
@@ -939,6 +1016,144 @@ pub struct Registry {
 }
 
 impl Registry {
+    /// Register one linked, source-attested host-service implementation.
+    ///
+    /// The returned executable identity is derived from the exact semantic
+    /// contract and linked source bytes; callers cannot substitute a planner
+    /// candidate name for installed code.
+    pub fn register_compiled_in_host_service(
+        &mut self,
+        service: CompiledInHostService,
+    ) -> Result<(), RegistryError> {
+        let source_digest = ArtifactDigest::from_bytes(Sha256::digest(service.source_bytes).into());
+        let mut artifact = ArtifactManifest {
+            schema_version: 1,
+            identity: SemanticHash::from_bytes([0; 32]),
+            id: Id(service.artifact_id),
+            digest: source_digest,
+            media_type: "application/vnd.conduit.compiled-in-provider",
+            byte_size: u64::try_from(service.source_bytes.len()).map_err(|_| RegistryError {
+                code: "CND-REG-008",
+                message: "linked host-service artifact is too large".to_owned(),
+            })?,
+            target: Some(Id(std::env::consts::ARCH)),
+            abi: Some(Id("conduit/rust-in-process-v1")),
+            provenance: ArtifactProvenance {
+                builder: Id("conduit/rustc-workspace-build"),
+                source_digest,
+                build_recipe_digest: ArtifactDigest::from_bytes(
+                    Sha256::digest(b"cargo build --workspace").into(),
+                ),
+                reproducible: true,
+            },
+            signatures: &[],
+            license_expressions: &["MIT", "Apache-2.0"],
+            notices: &[],
+            sbom: None,
+            source: None,
+            related_artifacts: &[],
+            locations: &[],
+        };
+        let mut artifact_scratch =
+            vec![SemanticHash::from_bytes([0; 32]); artifact.identity_fact_count()];
+        artifact.identity = artifact
+            .computed_semantic_hash(&mut artifact_scratch)
+            .map_err(|_| RegistryError {
+                code: "CND-REG-008",
+                message: "linked host-service artifact identity is invalid".to_owned(),
+            })?;
+        let artifact = &*Box::leak(Box::new(artifact));
+        let artifacts: &'static [&'static ArtifactManifest<'static>] =
+            Box::leak(Box::new([artifact]));
+        let references = Box::leak(Box::new([ManifestArtifactRef {
+            id: artifact.id,
+            digest: artifact.digest,
+            role: Id("executable"),
+            required: true,
+        }]));
+        let mut manifest = ImplementationManifest {
+            schema_version: 1,
+            identity: SemanticHash::from_bytes([0; 32]),
+            id: Id(service.implementation_id),
+            implementation_version: "1",
+            semantic_contract: PinnedDescriptor {
+                id: service.contract.id,
+                schema_version: 1,
+                semantic_hash: OwnedNodeSchema::from_contract(service.contract).semantic_hash(),
+            },
+            executor: ExecutorKind::NativeInProcess,
+            entrypoint: ManifestEntrypoint {
+                name: Id(service.entrypoint),
+                adapter: Id("conduit/host-service-step"),
+                abi: Id("conduit/host-service-v1"),
+                protocol_version: 1,
+            },
+            execution_profile: PinnedDescriptor {
+                id: Id("conduit/hosted-primitive-profile-v1"),
+                schema_version: 1,
+                semantic_hash: SemanticHash::from_bytes(
+                    Sha256::digest(b"conduit/hosted-primitive-profile/v1").into(),
+                ),
+            },
+            artifacts: references,
+            required_interfaces: &[],
+            provided_interfaces: &[],
+            required_authorities: service.required_authorities,
+            required_effects: &[],
+            minimum_plan_version: 1,
+            maximum_plan_version: u32::MAX,
+            minimum_runtime_protocol: 1,
+            maximum_runtime_protocol: 1,
+            replacement: ReplacementSupport::Cold,
+            coexistence_memory_bytes: 0,
+            reproducibility: None,
+        };
+        let mut manifest_scratch =
+            vec![SemanticHash::from_bytes([0; 32]); manifest.identity_fact_count()];
+        manifest.identity = manifest
+            .computed_semantic_hash(&mut manifest_scratch)
+            .map_err(|_| RegistryError {
+                code: "CND-REG-007",
+                message: "linked host-service manifest identity is invalid".to_owned(),
+            })?;
+        let manifest = &*Box::leak(Box::new(manifest));
+        self.register_executable_provider(
+            service.contract,
+            manifest,
+            artifacts,
+            service.factory,
+            service.validate_config,
+        )
+    }
+
+    /// Returns the finite executable provider inventory registered in this
+    /// exact host registry.
+    #[must_use]
+    pub fn installed_providers(&self) -> Vec<InstalledHostedProvider> {
+        self.nodes
+            .values()
+            .filter_map(|node| {
+                let executable = node.executable.as_ref()?;
+                let artifact_ref = executable.manifest.artifacts.first()?;
+                let artifact = executable.artifacts.iter().copied().find(|artifact| {
+                    artifact.id == artifact_ref.id && artifact.digest == artifact_ref.digest
+                })?;
+                let implementation = Self::installed_hosted_providers()
+                    .iter()
+                    .find(|installed| installed.manifest.id == executable.manifest.id)
+                    .map_or(HostedPrimitiveImplementation::HostedService, |installed| {
+                        installed.implementation
+                    });
+                Some(InstalledHostedProvider {
+                    contract: node.contract,
+                    manifest: executable.manifest,
+                    artifact,
+                    implementation,
+                })
+            })
+            .collect()
+    }
+
     pub fn register_interface(&mut self, interface: OwnedInterfaceContract) {
         self.interfaces.insert(interface.id.clone(), interface);
     }
@@ -948,14 +1163,6 @@ impl Registry {
         if let Some((canonical, _)) = self.nodes.get_key_value(contract_id) {
             return Ok(canonical);
         }
-        if let Some(suffix) = contract_id.strip_prefix("std/")
-            && let Some((canonical, _)) = self
-                .nodes
-                .iter()
-                .find(|(id, _)| id.strip_prefix("conduit.std/") == Some(suffix))
-        {
-            return Ok(canonical);
-        }
         Err(RegistryError {
             code: "CND-REG-003",
             message: format!("unknown contract id `{}`", contract_id),
@@ -963,13 +1170,7 @@ impl Registry {
     }
 
     fn get_registered_node(&self, contract_id: &str) -> Option<&RegisteredNode> {
-        self.nodes.get(contract_id).or_else(|| {
-            let suffix = contract_id.strip_prefix("std/")?;
-            self.nodes
-                .iter()
-                .find(|(id, _)| id.strip_prefix("conduit.std/") == Some(suffix))
-                .map(|(_, node)| node)
-        })
+        self.nodes.get(contract_id)
     }
 
     /// Registers a concrete executable provider implementation with manifest and host resolution evidence.
@@ -1568,6 +1769,7 @@ impl Default for Registry {
             &TCP_SOCKET_CONTRACT,
             &UDP_SOCKET_CONTRACT,
             &DNS_RESOLVER_CONTRACT,
+            &HTTP_SERVE_ONCE_CONTRACT,
         ];
 
         for &contract in contract_only_list {
@@ -1580,11 +1782,22 @@ impl Default for Registry {
                 },
             );
         }
+        for entry in conduit_std::STANDARD_CATALOG {
+            nodes
+                .entry(entry.contract.id.as_str())
+                .or_insert(RegisteredNode {
+                    contract: &entry.contract,
+                    executable: None,
+                    compatibility_executable: None,
+                });
+        }
 
         let mut types = TypeRegistry::default();
-        types
-            .register(BuiltinTypeProvider)
-            .expect("built-in type namespace is unique and valid");
+        for namespace in ["std", "supervision", "net", "fs", "process", "crypto"] {
+            types
+                .register(BuiltinTypeProvider(namespace))
+                .expect("built-in type namespace is unique and valid");
+        }
 
         let mut interfaces = BTreeMap::new();
         let stream_sink_member = OwnedInterfaceMember {
@@ -1663,6 +1876,24 @@ impl Default for Registry {
 impl Registry {
     /// Resolves semantic source references to concrete hosted implementations.
     pub fn resolve<'a>(&'a self, panel: &'a Panel) -> Result<ResolvedPanel<'a>, ResolutionError> {
+        self.resolve_inner(panel, true)
+    }
+
+    /// Resolves only the semantic topology, without claiming that any
+    /// contract-only node is executable. Compilers use this after lowering;
+    /// execution must always call [`Self::resolve`].
+    pub fn resolve_contracts<'a>(
+        &'a self,
+        panel: &'a Panel,
+    ) -> Result<ResolvedPanel<'a>, ResolutionError> {
+        self.resolve_inner(panel, false)
+    }
+
+    fn resolve_inner<'a>(
+        &'a self,
+        panel: &'a Panel,
+        require_executable: bool,
+    ) -> Result<ResolvedPanel<'a>, ResolutionError> {
         let has_unlowered_source = !panel.imports.is_empty()
             || !panel.roots.is_empty()
             || !panel.port_groups.is_empty()
@@ -1716,12 +1947,13 @@ impl Registry {
                         .as_ref()
                         .map(|executable| executable.validate_config)
                 })
-                .ok_or_else(|| {
-                    ResolutionError::new(
-                        "CND-IMP-001",
-                        format!("no ready implementation for `{}`", source.kind),
-                    )
-                })?;
+                .or_else(|| (!require_executable).then_some(validate_contract_config));
+            let validate_config = validate_config.ok_or_else(|| {
+                ResolutionError::new(
+                    "CND-IMP-001",
+                    format!("no ready implementation for `{}`", source.kind),
+                )
+            })?;
             validate_config(&source)?;
             nodes.push(ResolvedNode { source, definition });
         }
@@ -1832,17 +2064,7 @@ impl SourceContractCatalog for Registry {
     }
 
     fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
-        match id {
-            value if value == TEXT_TYPE.contract_id.as_str() => Some(TEXT_TYPE.into()),
-            value if value == TEXT_LIST_TYPE.contract_id.as_str() => Some(TEXT_LIST_TYPE.into()),
-            value if value == TERMINAL_OBSERVATION_TYPE.contract_id.as_str() => {
-                Some(TERMINAL_OBSERVATION_TYPE.into())
-            }
-            value if value == SUPERVISION_DECISION_TYPE.contract_id.as_str() => {
-                Some(SUPERVISION_DECISION_TYPE.into())
-            }
-            _ => None,
-        }
+        conduit_std::standard_type_reference(id).map(Into::into)
     }
 
     fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
@@ -1869,30 +2091,12 @@ impl SourceContractCatalog for Registry {
         expected: &OwnedTypeReference,
         source: &conduit_panel::SourceValue,
     ) -> Result<OwnedSemanticValue, LiteralValidationError> {
-        if expected == &OwnedTypeReference::from(TEXT_TYPE) {
-            return match source {
-                conduit_panel::SourceValue::Text(value) => {
-                    Ok(OwnedSemanticValue::Text(value.clone()))
-                }
-                _ => Err(LiteralValidationError::WrongKind),
-            };
+        let reference = conduit_std::standard_type_reference(&expected.id)
+            .ok_or(LiteralValidationError::ProviderUnavailable)?;
+        if expected != &OwnedTypeReference::from(reference) {
+            return Err(LiteralValidationError::ProviderUnavailable);
         }
-        if expected == &OwnedTypeReference::from(TEXT_LIST_TYPE) {
-            return match source {
-                conduit_panel::SourceValue::List(values) => values
-                    .iter()
-                    .map(|value| match value {
-                        conduit_panel::SourceValue::Text(value) => {
-                            Ok(OwnedSemanticValue::Text(value.clone()))
-                        }
-                        _ => Err(LiteralValidationError::WrongKind),
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-                    .map(OwnedSemanticValue::List),
-                _ => Err(LiteralValidationError::WrongKind),
-            };
-        }
-        Err(LiteralValidationError::ProviderUnavailable)
+        validate_standard_literal(&expected.id, source)
     }
 
     fn validate_default(
@@ -1900,17 +2104,137 @@ impl SourceContractCatalog for Registry {
         expected: &OwnedTypeReference,
         value: &OwnedSemanticValue,
     ) -> Result<(), LiteralValidationError> {
-        if expected == &OwnedTypeReference::from(TEXT_TYPE)
-            && matches!(value, OwnedSemanticValue::Text(_))
-        {
-            Ok(())
-        } else {
-            Err(LiteralValidationError::WrongKind)
+        match (expected.id.as_str(), value) {
+            ("std/text", OwnedSemanticValue::Text(_))
+            | ("std/bytes", OwnedSemanticValue::Bytes(_))
+            | ("std/bool", OwnedSemanticValue::Boolean(_))
+            | (
+                "std/integer" | "std/natural" | "std/i8" | "std/i16" | "std/i32" | "std/i64"
+                | "std/i128" | "std/u8" | "std/u16" | "std/u32" | "std/u64" | "std/u128",
+                OwnedSemanticValue::Integer(_),
+            ) => Ok(()),
+            _ => Err(LiteralValidationError::WrongKind),
         }
     }
 }
 
-struct BuiltinTypeProvider;
+fn validate_standard_literal(
+    id: &str,
+    source: &conduit_panel::SourceValue,
+) -> Result<OwnedSemanticValue, LiteralValidationError> {
+    use conduit_panel::SourceValue;
+
+    match (id, source) {
+        ("std/bool", SourceValue::Boolean(value)) => Ok(OwnedSemanticValue::Boolean(*value)),
+        ("std/integer" | "std/i128", SourceValue::Integer(value)) => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/natural" | "std/u128", SourceValue::Integer(value)) if *value >= 0 => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/i8", SourceValue::Integer(value)) if i8::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/i16", SourceValue::Integer(value)) if i16::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/i32", SourceValue::Integer(value)) if i32::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/i64", SourceValue::Integer(value)) if i64::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/u8", SourceValue::Integer(value)) if u8::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/u16", SourceValue::Integer(value)) if u16::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/u32", SourceValue::Integer(value)) if u32::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/u64", SourceValue::Integer(value)) if u64::try_from(*value).is_ok() => {
+            Ok(OwnedSemanticValue::Integer(*value))
+        }
+        ("std/text", SourceValue::Text(value)) => Ok(OwnedSemanticValue::Text(value.clone())),
+        ("std/bytes", SourceValue::Bytes(value)) => Ok(OwnedSemanticValue::Bytes(value.clone())),
+        ("std/decimal" | "std/float", SourceValue::ExactDecimal(value)) => {
+            Ok(OwnedSemanticValue::Text(value.clone()))
+        }
+        ("std/list/text", SourceValue::List(values)) => values
+            .iter()
+            .map(|value| match value {
+                SourceValue::Text(value) => Ok(OwnedSemanticValue::Text(value.clone())),
+                _ => Err(LiteralValidationError::WrongKind),
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map(OwnedSemanticValue::List),
+        ("std/record", SourceValue::Record(fields)) => fields
+            .iter()
+            .map(|(key, value)| Ok((key.clone(), source_value(value)?)))
+            .collect::<Result<Vec<_>, LiteralValidationError>>()
+            .map(OwnedSemanticValue::Map),
+        ("std/id" | "std/reference/any", SourceValue::Reference(value))
+        | ("std/id" | "std/reference/any", SourceValue::ContractReference(value)) => {
+            Id::new(value).map_err(|_| LiteralValidationError::InvalidValue)?;
+            Ok(OwnedSemanticValue::Identifier(value.clone()))
+        }
+        (
+            "std/duration"
+            | "std/instant"
+            | "std/timestamp"
+            | "std/error"
+            | "std/terminal"
+            | "std/health"
+            | "std/progress"
+            | "supervision/decision"
+            | "net/ip/address"
+            | "net/socket/address"
+            | "net/http/method"
+            | "net/http/request"
+            | "net/http/response"
+            | "net/http/status"
+            | "net/http/headers"
+            | "fs/path"
+            | "process/exit-status"
+            | "crypto/digest",
+            SourceValue::Text(value),
+        ) => Ok(OwnedSemanticValue::Text(value.clone())),
+        _ => Err(LiteralValidationError::WrongKind),
+    }
+}
+
+fn source_value(
+    source: &conduit_panel::SourceValue,
+) -> Result<OwnedSemanticValue, LiteralValidationError> {
+    use conduit_panel::SourceValue;
+
+    match source {
+        SourceValue::Boolean(value) => Ok(OwnedSemanticValue::Boolean(*value)),
+        SourceValue::Integer(value) => Ok(OwnedSemanticValue::Integer(*value)),
+        SourceValue::Text(value) | SourceValue::ExactDecimal(value) => {
+            Ok(OwnedSemanticValue::Text(value.clone()))
+        }
+        SourceValue::Bytes(value) => Ok(OwnedSemanticValue::Bytes(value.clone())),
+        SourceValue::Reference(value) | SourceValue::ContractReference(value) => {
+            Id::new(value).map_err(|_| LiteralValidationError::InvalidValue)?;
+            Ok(OwnedSemanticValue::Identifier(value.clone()))
+        }
+        SourceValue::List(values) => values
+            .iter()
+            .map(source_value)
+            .collect::<Result<Vec<_>, _>>()
+            .map(OwnedSemanticValue::List),
+        SourceValue::Record(fields) => fields
+            .iter()
+            .map(|(key, value)| Ok((key.clone(), source_value(value)?)))
+            .collect::<Result<Vec<_>, LiteralValidationError>>()
+            .map(OwnedSemanticValue::Map),
+        SourceValue::SecretReference(_) => Err(LiteralValidationError::InvalidValue),
+    }
+}
+
+struct BuiltinTypeProvider(&'static str);
 
 impl TypeContractProvider for BuiltinTypeProvider {
     fn provider_descriptor(&self) -> DescriptorRef<'static> {
@@ -1922,29 +2246,23 @@ impl TypeContractProvider for BuiltinTypeProvider {
     }
 
     fn namespace(&self) -> &str {
-        "conduit"
+        self.0
     }
 
     fn describe<'a>(
         &'a self,
         reference: TypeContractRef<'a>,
     ) -> Option<TypeContractDescription<'a>> {
-        let (reference, human_name) = if reference == TEXT_TYPE {
-            (TEXT_TYPE, "UTF-8 text")
-        } else if reference == TEXT_LIST_TYPE {
-            (TEXT_LIST_TYPE, "finite list of UTF-8 text")
-        } else if reference == TERMINAL_OBSERVATION_TYPE {
-            (TERMINAL_OBSERVATION_TYPE, "terminal observation")
-        } else if reference == SUPERVISION_DECISION_TYPE {
-            (SUPERVISION_DECISION_TYPE, "supervision decision")
-        } else {
+        let exact = conduit_std::standard_type_reference(reference.contract_id.as_str())?;
+        if reference != exact {
             return None;
-        };
+        }
+        let definition = conduit_std::standard_type(reference.contract_id.as_str())?;
         Some(TypeContractDescription {
-            human_name,
+            human_name: definition.human_name,
             descriptor: CanonicalDescriptor {
-                kind: reference.contract_id,
-                schema_version: reference.schema_version,
+                kind: exact.contract_id,
+                schema_version: exact.schema_version,
                 body: CanonicalValue::Null,
             },
             strategy: TypeComparisonStrategy::Nominal,
@@ -3335,20 +3653,22 @@ impl ResolvedPanel<'_> {
             maximum_value_store_bytes,
         )));
         let io_cell = Rc::new(RefCell::new(io));
+        let host_failure = Rc::new(RefCell::new(None));
         let mut scheduled_nodes = Vec::with_capacity(plan.nodes.len());
         for (node_index, planned) in plan.nodes.iter().enumerate() {
             let implementation = bindings.resolve(planned, plan.artifacts)?;
             let expected_contract = match implementation {
-                HostedPrimitiveImplementation::Literal => "conduit.std/literal",
-                HostedPrimitiveImplementation::Format => "conduit.std/format",
-                HostedPrimitiveImplementation::Stdin => "conduit.std/stdin",
-                HostedPrimitiveImplementation::Uppercase => "conduit.std/uppercase",
-                HostedPrimitiveImplementation::Stdout => "conduit.std/stdout",
-                HostedPrimitiveImplementation::Stderr => "conduit.std/stderr",
-                HostedPrimitiveImplementation::PassThrough => "conduit.std/pass-through",
-                HostedPrimitiveImplementation::Tee => "conduit.std/tee",
-                HostedPrimitiveImplementation::Merge => "conduit.std/merge",
-                HostedPrimitiveImplementation::Fallback => "conduit.std/fallback",
+                HostedPrimitiveImplementation::Literal => "std/literal",
+                HostedPrimitiveImplementation::Format => "std/format",
+                HostedPrimitiveImplementation::Stdin => "io/stdin",
+                HostedPrimitiveImplementation::Uppercase => "text/uppercase",
+                HostedPrimitiveImplementation::Stdout => "io/stdout",
+                HostedPrimitiveImplementation::Stderr => "io/stderr",
+                HostedPrimitiveImplementation::PassThrough => "flow/identity",
+                HostedPrimitiveImplementation::Tee => "flow/tee",
+                HostedPrimitiveImplementation::Merge => "flow/merge",
+                HostedPrimitiveImplementation::Fallback => "flow/fallback",
+                HostedPrimitiveImplementation::HostedService => planned.contract.id.as_str(),
             };
             if planned.contract.id.as_str() != expected_contract {
                 return Err(RuntimeError::new(
@@ -3378,6 +3698,20 @@ impl ResolvedPanel<'_> {
                         ),
                     )
                 })?;
+            let in_cords = plan
+                .cords
+                .iter()
+                .enumerate()
+                .filter(|(_, cord)| cord.to.node == planned.instance)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            let out_cords = plan
+                .cords
+                .iter()
+                .enumerate()
+                .filter(|(_, cord)| cord.from.node == planned.instance)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
             let kind = match implementation {
                 HostedPrimitiveImplementation::Literal => {
                     let value = resolved
@@ -3406,21 +3740,20 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Fallback => {
                     HostedNodeKind::Fallback { emitted: false }
                 }
+                HostedPrimitiveImplementation::HostedService => {
+                    if !in_cords.is_empty() || !out_cords.is_empty() {
+                        return Err(RuntimeError::new(
+                            "CND-RUN-007",
+                            "host-service bindings cannot hide value cords",
+                        ));
+                    }
+                    HostedNodeKind::HostedService {
+                        handler: (resolved.definition.factory())(),
+                        node: resolved.source.clone(),
+                        completed: false,
+                    }
+                }
             };
-            let in_cords = plan
-                .cords
-                .iter()
-                .enumerate()
-                .filter(|(_, cord)| cord.to.node == planned.instance)
-                .map(|(index, _)| index)
-                .collect();
-            let out_cords = plan
-                .cords
-                .iter()
-                .enumerate()
-                .filter(|(_, cord)| cord.from.node == planned.instance)
-                .map(|(index, _)| index)
-                .collect::<Vec<_>>();
             let maximum_input_bytes = out_cords
                 .iter()
                 .map(|index| plan.cords[*index].flow.capacity.max_value_bytes())
@@ -3485,6 +3818,7 @@ impl ResolvedPanel<'_> {
                     in_cords,
                     out_cords,
                     maximum_input_bytes,
+                    host_failure: Rc::clone(&host_failure),
                 },
                 machine,
             });
@@ -3503,9 +3837,15 @@ impl ResolvedPanel<'_> {
                 .cancel(stop)
                 .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         }
-        let status = executor
-            .run_until_stalled()
-            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        let status = match executor.run_until_stalled() {
+            Ok(status) => status,
+            Err(error) => {
+                return Err(host_failure
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string())));
+            }
+        };
         let allocation = executor.allocation();
         let high_water = executor.high_water();
         let scheduler_events: Vec<SchedulerEvent> = executor.events().copied().collect();
@@ -3536,10 +3876,10 @@ impl ResolvedPanel<'_> {
                 evidence,
                 evidence_bytes,
             }),
-            SchedulerStatus::Failed(_) => Err(RuntimeError::new(
-                "CND-RUN-005",
-                "exact executor run failed",
-            )),
+            SchedulerStatus::Failed(_) => Err(host_failure
+                .borrow_mut()
+                .take()
+                .unwrap_or_else(|| RuntimeError::new("CND-RUN-005", "exact executor run failed"))),
             SchedulerStatus::Cancelled if initial_stop.is_some() => Ok(ExactExecutionReport {
                 summary: ExecutionSummary {
                     nodes_completed: 0,
@@ -3691,15 +4031,27 @@ impl HostValueStore {
 }
 
 enum HostedNodeKind {
-    Literal { value: Vec<u8>, emitted: bool },
-    Stdin { emitted: bool },
+    Literal {
+        value: Vec<u8>,
+        emitted: bool,
+    },
+    Stdin {
+        emitted: bool,
+    },
     Uppercase,
     Stdout,
     Stderr,
     PassThrough,
     Tee,
     Merge,
-    Fallback { emitted: bool },
+    Fallback {
+        emitted: bool,
+    },
+    HostedService {
+        handler: Box<dyn Handler>,
+        node: Node,
+        completed: bool,
+    },
 }
 
 struct HostedSchedulerDriver<'r, 'i> {
@@ -3709,6 +4061,7 @@ struct HostedSchedulerDriver<'r, 'i> {
     in_cords: Vec<usize>,
     out_cords: Vec<usize>,
     maximum_input_bytes: u32,
+    host_failure: Rc<RefCell<Option<RuntimeError>>>,
 }
 
 impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
@@ -3774,12 +4127,12 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                             Ok(0) => break,
                             Ok(_) => {
                                 return SchedulerStep::Failed {
-                                    code: Id("conduit.std/stdin-bound-exceeded"),
+                                    code: Id("io/stdin-bound-exceeded"),
                                 };
                             }
                             Err(_) => {
                                 return SchedulerStep::Failed {
-                                    code: Id("conduit.std/stdin-read-error"),
+                                    code: Id("io/stdin-read-error"),
                                 };
                             }
                         }
@@ -3790,7 +4143,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         Ok(read) => bytes.extend_from_slice(&chunk[..read]),
                         Err(_) => {
                             return SchedulerStep::Failed {
-                                code: Id("conduit.std/stdin-read-error"),
+                                code: Id("io/stdin-read-error"),
                             };
                         }
                     }
@@ -3819,6 +4172,30 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     SchedulerStep::Progress
                 } else {
                     SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::HostedService {
+                handler,
+                node,
+                completed,
+            } => {
+                if *completed {
+                    return SchedulerStep::Completed;
+                }
+                match handler.run(node, &[], &mut self.io.borrow_mut()) {
+                    Ok(outputs) if outputs.is_empty() => {
+                        *completed = true;
+                        SchedulerStep::Completed
+                    }
+                    Ok(_) => SchedulerStep::Failed {
+                        code: Id("conduit/host-service-hidden-output"),
+                    },
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(error);
+                        SchedulerStep::Failed {
+                            code: Id("conduit/host-service-failed"),
+                        }
+                    }
                 }
             }
             HostedNodeKind::Uppercase => {
@@ -3876,7 +4253,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let bytes = store.get(val.handle).unwrap_or(&[]);
                     if self.io.borrow_mut().output.write_all(bytes).is_err() {
                         return SchedulerStep::Failed {
-                            code: Id("conduit.std/stdout-write-error"),
+                            code: Id("io/stdout-write-error"),
                         };
                     }
                     SchedulerStep::Progress
@@ -3897,7 +4274,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let bytes = store.get(val.handle).unwrap_or(&[]);
                     if self.io.borrow_mut().error.write_all(bytes).is_err() {
                         return SchedulerStep::Failed {
-                            code: Id("conduit.std/stderr-write-error"),
+                            code: Id("io/stderr-write-error"),
                         };
                     }
                     SchedulerStep::Progress
@@ -4260,6 +4637,10 @@ fn validate_empty_config(node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
 
+fn validate_contract_config(_node: &Node) -> Result<(), ResolutionError> {
+    Ok(())
+}
+
 fn validate_literal(node: &Node) -> Result<(), ResolutionError> {
     if node.config("value").is_none() {
         return Err(ResolutionError::new(
@@ -4583,7 +4964,7 @@ mod tests {
                     template = "{} = {{status: {}}}"
                     parameters = list("worker", "ready")
                 }
-                node output : std/stdout
+                node output : io/stdout
                 cord message.out -> output.in
             "#,
         )
@@ -4625,11 +5006,11 @@ mod tests {
         let panel = parse(
             r#"
                 panel 1
-                node greeting : conduit.std/literal {
+                node greeting : std/literal {
                     value = "Hello from Conduit.\n"
                 }
-                node shout : conduit.std/uppercase
-                node output : conduit.std/stdout
+                node shout : text/uppercase
+                node output : io/stdout
                 cord greeting.out -> shout.in
                 cord shout.out -> output.in
             "#,
@@ -4675,8 +5056,8 @@ mod tests {
             "panel 1\nimport \"./child.panel\" as child",
             "panel 1\nport-group routes input : fixture/request indexed max 8",
             "panel 1\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
-            "panel 1\nnode app { node child : conduit.std/literal }\nroot app",
-            "panel 1\nnode source : conduit.std/literal using ready",
+            "panel 1\nnode app { node child : std/literal }\nroot app",
+            "panel 1\nnode source : std/literal using ready",
         ] {
             let panel = parse(source).expect("source form parses");
             let error = Registry::compatibility_demo()
@@ -4689,7 +5070,7 @@ mod tests {
     #[test]
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
-            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
+            "panel 1\nnode a : io/stdin\nnode b : io/stdout\n\
              cord a.out -> b.in {\n\
                pressure = sample\n\
                sample_every = 2\n\
@@ -4702,7 +5083,7 @@ mod tests {
         assert_eq!(error.code, "CND-FLW-002");
 
         let coalesce = parse(
-            "panel 1\nnode a : conduit.std/stdin\nnode b : conduit.std/stdout\n\
+            "panel 1\nnode a : io/stdin\nnode b : io/stdout\n\
              cord a.out -> b.in {\n\
                pressure = coalesce\n\
                coalescer = conduit/replace-latest\n\
@@ -4721,8 +5102,8 @@ mod tests {
         let panel = parse(
             r#"
                 panel 1
-                node input : conduit.std/stdin
-                node output : conduit.std/stdout
+                node input : io/stdin
+                node output : io/stdout
                 cord input.out -> output.in
             "#,
         )
@@ -4750,20 +5131,20 @@ mod tests {
             r#"
                 panel 1
                 composite example/literal-line {
-                    node source : conduit.std/literal
+                    node source : std/literal
                     export output text = source.out
                     bind value = source.value
                 }
                 composite example/upper-line {
                     node source : example/literal-line
-                    node upper : conduit.std/uppercase
+                    node upper : text/uppercase
                     cord source.text -> upper.in
                     export output text = upper.out
                     bind value = source.value
                 }
                 node line : example/upper-line { value = "mixed Case" }
-                node stdout : conduit.std/stdout
-                node stderr : conduit.std/stderr
+                node stdout : io/stdout
+                node stderr : io/stderr
                 cord line.text -> stdout.in
                 cord line.text -> stderr.in
             "#,
@@ -4775,11 +5156,11 @@ mod tests {
         let expanded = resolved.explain_expanded();
         assert!(logical.contains("composite line : example/upper-line"));
         assert!(logical.contains("composite line/source : example/literal-line"));
-        assert!(logical.contains("child line/upper : conduit.std/uppercase"));
+        assert!(logical.contains("child line/upper : text/uppercase"));
         assert!(logical.contains("export output text -> line.upper.out"));
         assert!(logical.contains("bind value -> line/source.value"));
-        assert!(expanded.contains("line.source.source : conduit.std/literal"));
-        assert!(expanded.contains("line.upper : conduit.std/uppercase"));
+        assert!(expanded.contains("line.source.source : std/literal"));
+        assert!(expanded.contains("line.upper : text/uppercase"));
         assert!(!expanded.contains("example/upper-line -> hosted builtin"));
 
         let mut input = &b""[..];
@@ -4803,13 +5184,13 @@ mod tests {
             r#"
                 panel 1
                 composite example/uppercase {
-                    node worker : conduit.std/uppercase
+                    node worker : text/uppercase
                     export input in = worker.in
                     export output out = worker.out
                 }
-                node source : conduit.std/literal { value = "boundary" }
+                node source : std/literal { value = "boundary" }
                 node transform : example/uppercase
-                node sink : conduit.std/stdout
+                node sink : io/stdout
                 cord source.out -> transform.in
                 cord transform.out -> sink.in
             "#,
@@ -4833,6 +5214,30 @@ mod tests {
     }
 
     #[test]
+    fn contract_only_http_service_is_not_executable() {
+        let panel = parse(
+            "panel 1\n\
+             node server : net/http/serve-once {\n\
+               listen = \"127.0.0.1:0\"\n\
+               method = \"GET\"\n\
+               path = \"/health\"\n\
+               response = \"ok\"\n\
+               deadline_ms = \"1000\"\n\
+             }",
+        )
+        .expect("HTTP contract source parses");
+        let registry = Registry::hosted_primitives();
+
+        registry
+            .resolve_contracts(&panel)
+            .expect("compiler may inspect contract-only topology");
+        let error = registry
+            .resolve(&panel)
+            .expect_err("execution must require an installed provider");
+        assert_eq!(error.code, "CND-IMP-001");
+    }
+
+    #[test]
     fn rejects_recursive_duplicate_dangling_and_boundary_bypass() {
         let registry = Registry::compatibility_demo();
         for (source, source_code, runtime_code) in [
@@ -4845,7 +5250,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit.std/stdin\n\
+                   node source : io/stdin\n\
                    export output out = source.out\n\
                    export output out = source.out\n\
                  }\nnode root : example/a",
@@ -4854,7 +5259,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit.std/stdin\n\
+                   node source : io/stdin\n\
                    export output out = missing.out\n\
                  }\nnode root : example/a",
                 Some("CND-SRC-009"),
@@ -4862,7 +5267,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit.std/stdin\n\
+                   node source : io/stdin\n\
                    export input in = source.out\n\
                  }\nnode root : example/a",
                 None,
@@ -4870,7 +5275,7 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit.std/literal\n\
+                   node source : std/literal\n\
                    export output out = source.out\n\
                    bind value = source.missing\n\
                  }\nnode root : example/a { value = x }",
@@ -4879,9 +5284,9 @@ mod tests {
             ),
             (
                 "panel 1\ncomposite example/a {\n\
-                   node source : conduit.std/stdin\n\
+                   node source : io/stdin\n\
                    export output out = source.out\n\
-                 }\nnode root : example/a\nnode sink : conduit.std/stdout\n\
+                 }\nnode root : example/a\nnode sink : io/stdout\n\
                  cord root.source.out -> sink.in",
                 Some("CND-SRC-009"),
                 None,

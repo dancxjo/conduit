@@ -1,8 +1,10 @@
 use std::{
     collections::BTreeSet,
     fs,
+    io::{BufRead, BufReader, Read, Write},
+    net::TcpStream,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 use serde::Deserialize;
@@ -62,6 +64,59 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
     command.arg(&entry.path).output().expect("conduct executes")
 }
 
+fn invoke_http(root: &Path, entry: &Entry, request_path: &str) -> (std::process::Output, Vec<u8>) {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .current_dir(root)
+        .arg(&entry.path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("HTTP conduct run starts");
+    let mut stderr = BufReader::new(child.stderr.take().expect("HTTP stderr"));
+    let mut diagnostics = String::new();
+    let address = loop {
+        let mut line = String::new();
+        assert_ne!(
+            stderr.read_line(&mut line).expect("HTTP status line"),
+            0,
+            "HTTP run exited before binding: {diagnostics}"
+        );
+        diagnostics.push_str(&line);
+        if let Some(address) = line.trim().strip_prefix("CND-HTTP-BOUND ") {
+            break address.to_owned();
+        }
+    };
+    let mut stream = TcpStream::connect(address).expect("checked HTTP listener accepts");
+    let request =
+        format!("GET {request_path} HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n");
+    stream
+        .write_all(request.as_bytes())
+        .expect("HTTP request writes");
+    let mut response = Vec::new();
+    stream
+        .read_to_end(&mut response)
+        .expect("HTTP response reads");
+    let status = child.wait().expect("HTTP conduct run exits");
+    stderr
+        .read_to_string(&mut diagnostics)
+        .expect("remaining HTTP diagnostics");
+    let mut stdout = Vec::new();
+    child
+        .stdout
+        .take()
+        .expect("HTTP stdout")
+        .read_to_end(&mut stdout)
+        .expect("HTTP stdout reads");
+    (
+        std::process::Output {
+            status,
+            stdout,
+            stderr: diagnostics.into_bytes(),
+        },
+        response,
+    )
+}
+
 #[test]
 fn every_checked_panel_has_one_verified_runnability_state() {
     let root = root();
@@ -92,6 +147,39 @@ fn every_checked_panel_has_one_verified_runnability_state() {
     );
     assert_eq!(declared, checked_in, "panel inventory has no gaps or drift");
 
+    let http_source =
+        fs::read_to_string(root.join("examples/http-loopback-once.panel")).expect("HTTP source");
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_http::register_hosted_http_provider(&mut registry).expect("HTTP provider links");
+    let installed = conduit_compile::InstalledProfile::observe_registry(&http_source, &registry)
+        .expect("HTTP installed profile resolves");
+    let candidate = installed
+        .input
+        .candidates
+        .iter()
+        .find(|candidate| candidate.implementation.semantic_contract.id == "net/http/serve-once")
+        .expect("HTTP provider candidate");
+    assert_eq!(
+        candidate.implementation.required_authorities,
+        ["sha256:4848484848484848484848484848484848484848484848484848484848484848"],
+        "the installed provider requires the exact loopback-listen authority"
+    );
+    assert_eq!(candidate.authorities.len(), 1);
+    assert_eq!(candidate.authorities[0].status, "active");
+    assert_eq!(
+        candidate.authorities[0].grant.id,
+        "conduit.grant/http-loopback-listen"
+    );
+    let document = conduit_compile::compile_source(&http_source, &installed.input)
+        .expect("HTTP exact plan compiles");
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).expect("HTTP exact plan loads");
+    assert_eq!(plan.authorities.len(), 1);
+    assert_eq!(
+        plan.authorities[0].grant.id.as_str(),
+        "conduit.grant/http-loopback-listen"
+    );
+
     for entry in &inventory.entries {
         assert!(
             ["deterministic", "browser", "hosted", "embedded", "device"]
@@ -99,6 +187,40 @@ fn every_checked_panel_has_one_verified_runnability_state() {
             "{} has an explicit host profile",
             entry.path
         );
+        if entry.proof == "canonical-http-loopback" {
+            let (output, response) = invoke_http(&root, entry, "/health");
+            assert!(output.status.success(), "{} must run", entry.path);
+            assert!(output.stdout.is_empty(), "{} has clean stdout", entry.path);
+            assert!(
+                response.starts_with(b"HTTP/1.1 200 OK\r\n"),
+                "{} returns HTTP success",
+                entry.path
+            );
+            assert!(
+                response.ends_with(b"conduit http ready\n"),
+                "{} returns the exact checked response",
+                entry.path
+            );
+            assert!(
+                String::from_utf8(output.stderr)
+                    .expect("HTTP diagnostics are UTF-8")
+                    .starts_with("CND-HTTP-BOUND 127.0.0.1:"),
+                "{} publishes only its loopback binding",
+                entry.path
+            );
+            let (missing_output, missing_response) = invoke_http(&root, entry, "/missing");
+            assert!(
+                missing_output.status.success(),
+                "{} terminates cleanly after an unknown route",
+                entry.path
+            );
+            assert!(
+                missing_response.starts_with(b"HTTP/1.1 404 Not Found\r\n"),
+                "{} rejects an unknown route deterministically",
+                entry.path
+            );
+            continue;
+        }
         let output = invoke(&root, entry);
         let stdout = String::from_utf8(output.stdout).expect("stdout is UTF-8");
         let stderr = String::from_utf8(output.stderr).expect("stderr is UTF-8");
@@ -165,4 +287,30 @@ fn every_checked_panel_has_one_verified_runnability_state() {
             "{id} exported source has clean stderr"
         );
     }
+}
+
+#[test]
+fn canonical_http_timeout_is_a_structured_terminal_failure() {
+    let root = root();
+    let source = fs::read_to_string(root.join("examples/http-loopback-once.panel"))
+        .expect("HTTP example source")
+        .replace("deadline_ms = \"5000\"", "deadline_ms = \"1\"");
+    let panel =
+        std::env::temp_dir().join(format!("conduit-http-timeout-{}.panel", std::process::id()));
+    fs::write(&panel, source).expect("temporary HTTP panel writes");
+    let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .current_dir(root)
+        .arg(&panel)
+        .output()
+        .expect("HTTP timeout run executes");
+    fs::remove_file(&panel).expect("temporary HTTP panel is removed");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    let diagnostics = String::from_utf8(output.stderr).expect("HTTP diagnostics are UTF-8");
+    assert!(diagnostics.starts_with("CND-HTTP-BOUND 127.0.0.1:"));
+    assert!(
+        diagnostics.contains("CND-HTTP-017"),
+        "provider timeout remains a structured terminal reason: {diagnostics}"
+    );
 }

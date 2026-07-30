@@ -144,7 +144,7 @@ fn panel_result(id: &str) -> Value {
         "recursive-source-value" => {
             let depth = usize::from(MAXIMUM_SOURCE_VALUE_DEPTH);
             format!(
-                "panel 1\nnode n : conduit.std/literal {{ value = {}0{} }}",
+                "panel 1\nnode n : std/literal {{ value = {}0{} }}",
                 "list(".repeat(depth),
                 ")".repeat(depth)
             )

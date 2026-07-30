@@ -21,6 +21,14 @@ fn checked_pure_node_plan_and_browser_run_are_exact_and_bounded() {
     let document = compile_source(SOURCE, &installed.input).unwrap();
     let actual_plan = serde_json::to_value(&document).unwrap();
 
+    if std::env::var_os("CONDUIT_UPDATE_PURE_NODE_PLAN").is_some() {
+        fs::write(
+            workspace_file("conformance/c5/pure-node-v1-plan.json"),
+            serde_json::to_string(&actual_plan).unwrap(),
+        )
+        .unwrap();
+        return;
+    }
     if std::env::var_os("CONDUIT_PRINT_PURE_NODE_PLAN").is_some() {
         println!("{}", serde_json::to_string(&actual_plan).unwrap());
         return;

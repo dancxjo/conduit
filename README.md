@@ -86,6 +86,12 @@ concepts to `conduit-core`. Its catalog-level conformance runner distinguishes
 required provider profiles from installed implementations and treats
 constrained-host unsupported results explicitly.
 
+Standard library identities are canonical domain paths such as `flow/merge`,
+`time/delay`, `fs/read`, and `net/http/serve`. Fundamental types live under
+`std/...`, including mathematical `std/integer`, fixed-width integer types,
+structural constructors, and `std/text`. Catalog definition, installed host
+support, authority, and placement remain separate facts.
+
 Replicated composite pools are finite schema-16 plan populations rather than
 dynamic graph mutation. See the
 [replicated pool cookbook](docs/cookbook-replicated-pools.md) for exact
@@ -257,6 +263,25 @@ The initial runtime includes intentionally small proof handlers for literal
 UTF-8 text, stdin, uppercase transformation, stdout, and stderr. They establish
 the complete parse → check/explain → resolve → run path without pretending to
 be the final standard library.
+
+`examples/http-loopback-once.panel` is the canonical hosted HTTP vertical. A
+normal `conduct examples/http-loopback-once.panel` run compiles against the
+provider inventory linked into that exact `conduct` binary, validates its
+loopback-listen grant and finite execution budget, binds an ephemeral
+`127.0.0.1` port, serves one bounded request, and terminates. The example is
+deliberately narrower than the complete `conduit-http` contracts: it supports
+one explicit `GET` route, plaintext loopback only, a 4 KiB response ceiling,
+and a finite deadline. TLS remains in the Linux/rustls backend, where
+certificate and key material cross the runtime boundary only as opaque host
+handles; TLS is never silently downgraded.
+
+The deterministic backend and Linux backend share the normalized HTTP domain
+contracts and conformance fixtures. Their claim boundary does not include
+certificate provisioning, DNS, firewall configuration, reverse-proxy
+installation, public-Internet deployment, or a hard bound on operating-system
+kernel buffers. Resolver and compiler paths validate and select only; network
+effects begin in the exact production executor after artifact, placement,
+authority, and budget validation.
 
 Python is used as an independent conformance oracle, not as a privileged
 runtime path. Tongues and Netherwick may supply domain contracts; Conduit does

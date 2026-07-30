@@ -3,7 +3,7 @@ panel 1
 node greeting : std/literal {
     value = "This panel must not resolve."
 }
-node output : std/stdout
+node output : io/stdout
 
 cord greeting.out -> output.in {
     capacity = 0

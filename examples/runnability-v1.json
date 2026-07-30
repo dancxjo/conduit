@@ -13,6 +13,7 @@
     {"path":"examples/formatted-greeting.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"Hello, operator. Payload: {status = ready}\n"},
     {"path":"examples/hello.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"HELLO FROM CONDUIT.\n"},
     {"path":"examples/http-webhook-relay.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
+    {"path":"examples/http-loopback-once.panel","state":"runnable","profile":"hosted","proof":"canonical-http-loopback","expected_stdout":""},
     {"path":"examples/interface-adapter-bridge.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-CMP-004"},
     {"path":"examples/interface-composite-satisfaction.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-CMP-004"},
     {"path":"examples/interface-consumer.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-CMP-004"},

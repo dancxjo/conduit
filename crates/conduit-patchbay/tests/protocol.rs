@@ -4,7 +4,7 @@ use conduit_patchbay::{
     Workspace, project_pool, project_supervision,
 };
 
-const SOURCE: &str = "panel 1\nnode greeting : conduit.std/literal { value = \"hello\\n\" }\nnode output : conduit.std/stdout\ncord greeting.out -> output.in\n";
+const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
 const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol-v1.json");
 
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
@@ -196,12 +196,12 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
     let nodes = [ResolvedPlanNode {
         instance: InstancePath::new("greeting").unwrap(),
         contract: PinnedDescriptor {
-            id: Id("conduit.std/literal"),
+            id: Id("std/literal"),
             schema_version: 1,
             semantic_hash: hash(2),
         },
         implementation: PinnedDescriptor {
-            id: Id("conduit.std/literal.native"),
+            id: Id("std/literal.native"),
             schema_version: 1,
             semantic_hash: hash(3),
         },
@@ -258,8 +258,8 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
     let binding = &projection.bindings[0];
     assert_eq!(binding.availability_state, "bound-in-this-plan");
     assert_eq!(binding.reason_code, "CND-AVL-004");
-    assert_eq!(binding.contract_id, "conduit.std/literal");
-    assert_eq!(binding.implementation_id, "conduit.std/literal.native");
+    assert_eq!(binding.contract_id, "std/literal");
+    assert_eq!(binding.implementation_id, "std/literal.native");
     assert_eq!(binding.host_id, "host/browser");
     assert_eq!(binding.host_observation_id, "report/browser");
     assert_eq!(binding.host_observation_identity, hash(9).to_string());
@@ -286,10 +286,10 @@ fn workspace_semantic_does_not_emit_contract_only_by_default() {
 #[test]
 fn typed_source_edits_are_atomic_and_history_is_finite() {
     let source = "panel 1\n\
-node greeting : conduit.std/literal {\n\
+node greeting : std/literal {\n\
   value = \"hello\"\n\
 }\n\
-node output : conduit.std/stdout\n";
+node output : io/stdout\n";
     let mut workspace =
         Workspace::new_with_history("tour/typed", source, 3).expect("source parses");
     let configured = workspace

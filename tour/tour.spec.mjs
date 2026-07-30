@@ -26,6 +26,33 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
   expect(failures).toEqual([]);
 });
 
+test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  const result = page.locator("#result");
+
+  await expect(page.locator("#run")).toHaveAttribute(
+    "aria-keyshortcuts",
+    "Shift+Enter",
+  );
+  await expect(page.locator("#run")).toBeEnabled();
+  await source.focus();
+  await page.keyboard.press("Shift+Enter");
+  await expect(result).toContainText("Hello from the Tour.", {
+    timeout: 20_000,
+  });
+
+  await source.fill(
+    (await source.inputValue()).replace("Hello from the Tour.", "Workspace shortcut."),
+  );
+  await expect(result).toContainText("Valid runnable panel");
+  await page.locator("#check").focus();
+  await page.keyboard.press("Shift+Enter");
+  await expect(result).toContainText("Workspace shortcut.", {
+    timeout: 20_000,
+  });
+});
+
 test("preserves a recoverable draft across reset", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");
@@ -44,14 +71,37 @@ test("highlights panel source while retaining the native editor surface", async 
 
   await expect(source).toHaveAttribute("data-highlighting", "panel");
   await expect(highlight.locator(".panel-token-keyword").first()).toHaveText("panel");
+  await expect(highlight.locator(".panel-token-type").first()).toHaveText("std/literal");
   await expect(
     highlight.locator(".panel-token-string").filter({ hasText: "Hello from the Tour." }),
   ).toHaveCount(1);
 
-  await source.fill("panel 1\n# note\nnode value : fixture/source\n");
+  await source.fill(
+    "panel 2\n# note\ninterface speech/recognizer {\n" +
+      "  input audio : audio/pcm-stream\n" +
+      "}\nnode value : fixture/source implements speech/recognizer\n",
+  );
   await expect(highlight.locator(".panel-token-comment")).toHaveText("# note");
-  await expect(highlight).toContainText("fixture/source");
-  await expect(source).toHaveValue("panel 1\n# note\nnode value : fixture/source\n");
+  await expect(highlight.locator(".panel-token-type")).toHaveText([
+    "audio/pcm-stream",
+    "fixture/source",
+    "speech/recognizer",
+  ]);
+  await expect(highlight.locator(".panel-token-identifier").filter({
+    hasText: "speech/recognizer",
+  })).toHaveCount(1);
+  const typeColor = await highlight.locator(".panel-token-type").first().evaluate(
+    (element) => getComputedStyle(element).color,
+  );
+  const identifierColor = await highlight.locator(".panel-token-identifier").first().evaluate(
+    (element) => getComputedStyle(element).color,
+  );
+  expect(typeColor).not.toBe(identifierColor);
+  await expect(source).toHaveValue(
+    "panel 2\n# note\ninterface speech/recognizer {\n" +
+      "  input audio : audio/pcm-stream\n" +
+      "}\nnode value : fixture/source implements speech/recognizer\n",
+  );
   await expect(highlight).toHaveAttribute("aria-hidden", "true");
 });
 
@@ -62,7 +112,7 @@ test("covers Chapters 0-3 and exposes production topology projections", async ({
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await page.locator("#expanded-view").click();
   await expect(page.locator("#topology")).toContainText(
-    "box.worker : conduit.std/uppercase",
+    "box.worker : text/uppercase",
   );
   await page.locator("#logical-view").click();
   await expect(page.locator("#topology")).toContainText(
@@ -97,6 +147,11 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(page.locator(".conduit-faceplate-card")).toHaveCount(2, {
     timeout: 20_000,
   });
+  const canvasBox = await canvas.boundingBox();
+  const firstNodeBox = await page.locator(".react-flow__node").first().boundingBox();
+  expect(canvasBox?.height).toBeGreaterThan(0);
+  expect(firstNodeBox?.y).toBeGreaterThanOrEqual(canvasBox?.y ?? Infinity);
+  expect(firstNodeBox?.y).toBeLessThan((canvasBox?.y ?? 0) + (canvasBox?.height ?? 0));
   await expect(page.locator(".availability-tag")).toHaveCount(2);
 });
 

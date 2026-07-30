@@ -315,6 +315,7 @@ dependencies = [
  "conduit-compile",
  "conduit-core",
  "conduit-diagnostics",
+ "conduit-http",
  "conduit-inspect",
  "conduit-package",
  "conduit-panel",
@@ -379,6 +380,7 @@ name = "conduit-http"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-panel",
  "conduit-runtime",
  "rcgen",
  "rustls",
@@ -463,6 +465,7 @@ dependencies = [
  "conduit-panel",
  "conduit-patchbay",
  "conduit-rp2040-hil",
+ "conduit-std",
  "serde",
  "serde_json",
  "sha2",

@@ -54,48 +54,49 @@ fn registry_availability_fixture_names_every_required_boundary() {
 fn default_registry_publishes_contracts_without_installing_callbacks() {
     let registry = Registry::default();
     for kind in [
-        "conduit.std/literal",
-        "conduit.std/stdin",
-        "conduit.std/uppercase",
-        "conduit.std/stdout",
-        "conduit.std/stderr",
-        "conduit.std/supervisor",
-        "conduit.std/pass-through",
-        "conduit.std/tee",
-        "conduit.std/merge",
-        "conduit.std/fallback",
-        "conduit.std/delay",
-        "conduit.std/debounce",
-        "conduit.std/throttle",
-        "conduit.std/take",
-        "conduit.std/skip",
-        "conduit.std/filter",
-        "conduit.std/probe",
-        "conduit.std/log",
-        "conduit.std/assert",
-        "conduit.std/record",
-        "conduit.std/replay",
-        "conduit.std/fault-source",
-        "conduit.std/file-read",
-        "conduit.std/file-write",
-        "conduit.std/blob-store",
-        "conduit.std/kv-store",
-        "conduit.std/process-spawn",
-        "conduit.std/gpio-pin",
-        "conduit.std/serial-port",
-        "conduit.std/cell",
-        "conduit.std/counter",
-        "conduit.std/deduplicate",
-        "conduit.std/cache",
-        "conduit.std/circuit-breaker",
-        "conduit.std/health-gate",
-        "conduit.std/backoff",
-        "conduit.std/wifi-station",
-        "conduit.std/wifi-ap",
-        "conduit.std/network-interface",
-        "conduit.std/tcp-socket",
-        "conduit.std/udp-socket",
-        "conduit.std/dns-resolver",
+        "std/literal",
+        "io/stdin",
+        "text/uppercase",
+        "io/stdout",
+        "io/stderr",
+        "supervision/supervisor",
+        "flow/identity",
+        "flow/tee",
+        "flow/merge",
+        "flow/fallback",
+        "time/delay",
+        "time/debounce",
+        "time/throttle",
+        "flow/take",
+        "flow/skip",
+        "flow/filter",
+        "test/probe",
+        "observe/log",
+        "test/assertion",
+        "test/record",
+        "test/replay",
+        "test/fault-source",
+        "fs/read",
+        "fs/write",
+        "storage/blob/store",
+        "storage/key-value",
+        "process/run",
+        "device/gpio/pin",
+        "device/serial/port",
+        "state/cell",
+        "state/counter",
+        "state/deduplicate",
+        "state/cache",
+        "supervision/circuit-breaker",
+        "supervision/health-gate",
+        "supervision/backoff",
+        "net/wifi/join",
+        "net/wifi/access-point",
+        "net/interface",
+        "net/tcp/socket",
+        "net/udp/socket",
+        "net/dns/resolve",
+        "net/http/serve",
     ] {
         let availability = registry.node_availability(kind);
         assert_eq!(
@@ -116,19 +117,49 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
 }
 
 #[test]
+fn definitions_do_not_claim_host_support_and_legacy_names_are_absent() {
+    let registry = Registry::default();
+
+    let http = registry.node_availability("net/http/serve");
+    assert_eq!(http.contract_id, "net/http/serve");
+    assert_eq!(http.state, AvailabilityState::ContractOnly);
+    let http_contract = registry
+        .node_contract("net/http/serve")
+        .expect("HTTP serving meaning is defined");
+    assert_eq!(http_contract.inputs[0].value_type.id, "net/http/response");
+    assert_eq!(http_contract.outputs[0].value_type.id, "net/http/request");
+    assert_eq!(
+        registry.node_availability("conduit.std/http-server").state,
+        AvailabilityState::Unsupported
+    );
+
+    let integer = registry
+        .type_reference("std/integer")
+        .expect("mathematical integer is defined");
+    assert_eq!(integer.id, "std/integer");
+    assert!(
+        registry
+            .type_registry()
+            .describe(conduit_std::standard_type_reference("std/integer").unwrap())
+            .is_some()
+    );
+    assert!(registry.type_reference("conduit/integer").is_none());
+}
+
+#[test]
 fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availability() {
     let registry = Registry::compatibility_demo();
     for kind in [
-        "conduit.std/literal",
-        "conduit.std/stdin",
-        "conduit.std/uppercase",
-        "conduit.std/stdout",
-        "conduit.std/stderr",
-        "conduit.std/supervisor",
-        "conduit.std/pass-through",
-        "conduit.std/tee",
-        "conduit.std/merge",
-        "conduit.std/fallback",
+        "std/literal",
+        "io/stdin",
+        "text/uppercase",
+        "io/stdout",
+        "io/stderr",
+        "supervision/supervisor",
+        "flow/identity",
+        "flow/tee",
+        "flow/merge",
+        "flow/fallback",
     ] {
         assert_eq!(
             registry.node_availability(kind).state,
@@ -137,9 +168,9 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
     }
     let panel = parse(
         "panel 1\n\
-         node source : conduit.std/literal { value = \"fixture\" }\n\
-         node upper : conduit.std/uppercase\n\
-         node sink : conduit.std/stdout\n\
+         node source : std/literal { value = \"fixture\" }\n\
+         node upper : text/uppercase\n\
+         node sink : io/stdout\n\
          cord source.out -> upper.in\n\
          cord upper.out -> sink.in\n",
     )
@@ -181,7 +212,7 @@ fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvabl
             |_| Ok(()),
         )
         .unwrap();
-    let availability = registry.node_availability("conduit.std/file-read");
+    let availability = registry.node_availability("fs/read");
     assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
     assert_eq!(availability.reason_code, "CND-AVL-002");
     assert_eq!(
@@ -191,7 +222,7 @@ fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvabl
     assert_eq!(availability.host_id, None);
     assert_eq!(availability.rejection_reasons, vec!["CND-RES-025"]);
 
-    let panel = parse("panel 1\nnode file : conduit.std/file-read\n").unwrap();
+    let panel = parse("panel 1\nnode file : fs/read\n").unwrap();
     assert_eq!(
         registry
             .resolve(&panel)
@@ -204,12 +235,12 @@ fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvabl
 #[test]
 fn cross_contract_semantic_impersonation_is_rejected() {
     let literal = Registry::default()
-        .node_schema("conduit.std/literal")
+        .node_schema("std/literal")
         .expect("literal schema");
     let fixture = support::provider_with_contract(
         &FILE_READ_CONTRACT,
         PinnedDescriptor {
-            id: conduit_core::Id("conduit.std/literal"),
+            id: conduit_core::Id("std/literal"),
             schema_version: 1,
             semantic_hash: literal.semantic_hash(),
         },
@@ -280,11 +311,11 @@ fn missing_exact_artifact_is_rejected() {
 #[test]
 fn discarded_standard_id_is_unsupported_and_never_aliased() {
     let registry = Registry::default();
-    let availability = registry.node_availability("conduit/literal");
+    let availability = registry.node_availability("conduit.std/literal");
     assert_eq!(availability.state, AvailabilityState::Unsupported);
     assert_eq!(availability.reason_code, "CND-AVL-006");
     assert_eq!(availability.rejection_reasons, vec!["CND-RES-001"]);
-    let panel = parse("panel 1\nnode legacy : conduit/literal\n").unwrap();
+    let panel = parse("panel 1\nnode legacy : conduit.std/literal\n").unwrap();
     assert_eq!(
         registry
             .resolve(&panel)
@@ -298,7 +329,7 @@ fn discarded_standard_id_is_unsupported_and_never_aliased() {
 fn patchbay_receives_registry_facts_without_node_name_inference() {
     let workspace = conduit_patchbay::Workspace::new(
         "doc-1",
-        "panel 1\nnode greeting : conduit.std/literal { value = \"hello\" }\n",
+        "panel 1\nnode greeting : std/literal { value = \"hello\" }\n",
     )
     .unwrap();
     let registry = Registry::default();

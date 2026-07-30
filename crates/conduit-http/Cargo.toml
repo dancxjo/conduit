@@ -9,6 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-panel = { path = "../conduit-panel" }
 conduit-runtime = { path = "../conduit-runtime" }
 rustls = { version = "0.23.35", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-pemfile = "2.2.0"

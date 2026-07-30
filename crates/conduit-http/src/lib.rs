@@ -15,13 +15,15 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::task::Poll;
+use std::time::{Duration, Instant};
 
 use conduit_core::{
     Id, PinnedDescriptor, PlanArtifact, ReplacementSupport, SemanticHash, TransitionStateContract,
 };
 use conduit_runtime::{
-    HostedDrainObservation, HostedGenerationBinding, HostedTransitionGeneration,
-    ResolvedPlacementBinding,
+    CompiledInHostService, HTTP_SERVE_ONCE_CONTRACT, Handler, HostedDrainObservation,
+    HostedGenerationBinding, HostedTransitionGeneration, Registry, RegistryError, ResolutionError,
+    ResolvedPlacementBinding, RunIo, RuntimeError, Value,
 };
 use rustls::pki_types::CertificateDer;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -2142,6 +2144,268 @@ impl HttpServingBackend for LinuxHttpServingBackend {
     fn take_evidence(&mut self) -> Option<Self::Evidence> {
         self.evidence.pop_front()
     }
+}
+
+/// Link the bounded Linux HTTP provider into an explicitly assembled hosted
+/// registry. Merely publishing the semantic contract does not install it.
+pub fn register_hosted_http_provider(registry: &mut Registry) -> Result<(), RegistryError> {
+    static REQUIRED_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x48; 32])];
+    registry.register_compiled_in_host_service(CompiledInHostService {
+        contract: &HTTP_SERVE_ONCE_CONTRACT,
+        implementation_id: "conduit/http-linux-serve-once-v1",
+        artifact_id: "conduit/http-linux-serve-once-artifact",
+        entrypoint: "http-linux-serve-once",
+        source_bytes: include_bytes!("lib.rs"),
+        required_authorities: &REQUIRED_AUTHORITIES,
+        factory: || Box::new(ServeOnceHandler),
+        validate_config: validate_serve_once_config,
+    })
+}
+
+struct ServeOnceHandler;
+
+impl Handler for ServeOnceHandler {
+    fn run(
+        &mut self,
+        node: &conduit_panel::Node,
+        inputs: &[Value],
+        io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-HTTP-004",
+                "serve-once does not accept hidden value inputs",
+            ));
+        }
+        validate_serve_once_config(node)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        let listen = required_config(node, "listen")?;
+        let path = required_config(node, "path")?;
+        let response_body = required_config(node, "response")?.as_bytes().to_vec();
+        let deadline_ms = required_config(node, "deadline_ms")?
+            .parse::<u64>()
+            .map_err(|_| RuntimeError::new("CND-HTTP-008", "invalid HTTP deadline"))?;
+
+        let limits = HttpServiceLimits {
+            maximum_request_head_bytes: 4096,
+            maximum_request_body_bytes: 4096,
+            maximum_response_bytes: 4096,
+            maximum_header_count: 32,
+            maximum_header_bytes: 2048,
+            maximum_connections: 1,
+            maximum_queued_admissions: 1,
+            maximum_live_handlers: 1,
+            maximum_sessions: 0,
+            maximum_session_queue_items: 0,
+            maximum_session_queue_bytes: 0,
+            maximum_evidence_events: 16,
+            header_deadline_ticks: deadline_ms,
+            body_deadline_ticks: deadline_ms,
+            handler_deadline_ticks: deadline_ms,
+            drain_deadline_ticks: deadline_ms,
+            reserved_memory_bytes: 32 * 1024,
+        };
+        let descriptor = |id, byte| PinnedDescriptor {
+            id: Id(id),
+            schema_version: 1,
+            semantic_hash: SemanticHash::from_bytes([byte; 32]),
+        };
+        let mut service = ResolvedHttpService {
+            identity: SemanticHash::from_bytes([0; 32]),
+            service: descriptor("conduit.http/service", 1),
+            backend: descriptor(HTTP_LINUX_IMPLEMENTATION_ID, 2),
+            artifact: PlanArtifact {
+                id: Id("conduit/http-linked-artifact"),
+                digest: conduit_core::ArtifactDigest::from_bytes(
+                    Sha256::digest(include_bytes!("lib.rs")).into(),
+                ),
+            },
+            execution_profile: descriptor("conduit/http-bounded-once", 3),
+            listen,
+            protocol: HttpProtocol::Http11,
+            security: descriptor("conduit.http/plaintext-explicit", 4),
+            security_mode: HttpSecurityMode::Plaintext,
+            certificate_identity: None,
+            trusted_proxy: None,
+            grant: Id("conduit.grant/http-loopback-listen"),
+            secret_scope: None,
+            require_complete_stack_hard_bound: false,
+            limits,
+        };
+        service.identity = service.computed_identity();
+        let capabilities = HttpServingCapabilities {
+            profile_version: HTTP_PROFILE_VERSION,
+            plaintext: true,
+            direct_tls: false,
+            trusted_proxy_tls: false,
+            http11: true,
+            http2: false,
+            websocket: false,
+            sse: false,
+            maximum_request_head_bytes: limits.maximum_request_head_bytes,
+            maximum_request_body_bytes: limits.maximum_request_body_bytes,
+            maximum_response_bytes: limits.maximum_response_bytes,
+            maximum_connections: limits.maximum_connections,
+            maximum_sessions: 0,
+            adapter_buffer_bytes: limits.reserved_memory_bytes,
+            backend_buffer_bytes: 0,
+            kernel_buffer_bytes: 0,
+            complete_stack_hard_bounded: false,
+        };
+        let mut backend =
+            LinuxHttpServingBackend::new(capabilities, None).map_err(http_runtime_error)?;
+        // The exact executor has already validated the plan-pinned grant before
+        // constructing this handler. This domain authority mirrors that
+        // admitted decision at the backend boundary; it is not planner input.
+        backend
+            .bind(
+                &service,
+                HttpServingAuthority {
+                    grant: service.grant,
+                    allowed: true,
+                    current_tick: 1,
+                    valid_until_tick: 2,
+                },
+            )
+            .map_err(http_runtime_error)?;
+        let address = backend.local_addr().map_err(http_runtime_error)?;
+        writeln!(io.error, "CND-HTTP-BOUND {address}")
+            .and_then(|_| io.error.flush())
+            .map_err(|_| RuntimeError::new("CND-HTTP-009", "cannot publish bound address"))?;
+
+        let deadline = Instant::now() + Duration::from_millis(deadline_ms);
+        let connection = poll_http_until(deadline, || backend.poll_accept())?;
+        let request = match poll_http_until(deadline, || backend.poll_exchange(connection))? {
+            HttpExchangeEvent::Request(request) => request,
+            _ => {
+                return Err(RuntimeError::new(
+                    "CND-HTTP-010",
+                    "HTTP exchange ended without a request",
+                ));
+            }
+        };
+        let route = HttpRoute {
+            id: Id("route/checked-in"),
+            order: 0,
+            method: HttpMethod::Get,
+            path_pattern: path,
+        };
+        let matched = match_route(&[route], request.head.method, &request.head.target)
+            .map_err(http_runtime_error)?
+            .is_some();
+        let response = HttpResponsePart {
+            exchange: request.exchange,
+            status: if matched { 200 } else { 404 },
+            headers: vec![HttpHeader {
+                name: "content-type".to_owned(),
+                value: "text/plain; charset=utf-8".to_owned(),
+            }],
+            body: if matched {
+                response_body
+            } else {
+                b"not found\n".to_vec()
+            },
+            terminal: true,
+        };
+        poll_http_until(deadline, || backend.poll_send(connection, &response))?;
+        backend.close(connection).map_err(http_runtime_error)?;
+        Ok(Vec::new())
+    }
+}
+
+fn poll_http_until<T>(
+    deadline: Instant,
+    mut operation: impl FnMut() -> Poll<Result<T, HttpReason>>,
+) -> Result<T, RuntimeError> {
+    loop {
+        match operation() {
+            Poll::Ready(result) => return result.map_err(http_runtime_error),
+            Poll::Pending if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            Poll::Pending => {
+                return Err(RuntimeError::new(
+                    HttpReason::Timeout.code(),
+                    "bounded HTTP operation timed out",
+                ));
+            }
+        }
+    }
+}
+
+fn http_runtime_error(reason: HttpReason) -> RuntimeError {
+    RuntimeError::new(reason.code(), reason.to_string())
+}
+
+fn required_config<'a>(node: &'a conduit_panel::Node, key: &str) -> Result<&'a str, RuntimeError> {
+    node.config(key).ok_or_else(|| {
+        RuntimeError::new(
+            "CND-SRC-002",
+            format!("HTTP service `{}` requires `{key}`", node.id),
+        )
+    })
+}
+
+fn validate_serve_once_config(node: &conduit_panel::Node) -> Result<(), ResolutionError> {
+    let allowed = ["listen", "method", "path", "response", "deadline_ms"];
+    if let Some(entry) = node
+        .config
+        .iter()
+        .find(|entry| !allowed.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError {
+            code: "CND-SRC-002",
+            message: format!("HTTP service has unknown field `{}`", entry.key),
+        });
+    }
+    let value = |key| {
+        node.config(key).ok_or_else(|| ResolutionError {
+            code: "CND-SRC-002",
+            message: format!("HTTP service requires `{key}`"),
+        })
+    };
+    let listen = value("listen")?;
+    let address = listen.parse::<SocketAddr>().map_err(|_| ResolutionError {
+        code: "CND-HTTP-027",
+        message: "HTTP listen address is invalid".to_owned(),
+    })?;
+    if !address.ip().is_loopback() || address.port() != 0 {
+        return Err(ResolutionError {
+            code: "CND-HTTP-027",
+            message: "checked-in HTTP provider requires an ephemeral loopback address".to_owned(),
+        });
+    }
+    if value("method")? != "GET" {
+        return Err(ResolutionError {
+            code: "CND-HTTP-010",
+            message: "serve-once currently admits only GET".to_owned(),
+        });
+    }
+    if !value("path")?.starts_with('/') {
+        return Err(ResolutionError {
+            code: "CND-HTTP-010",
+            message: "HTTP route must be absolute".to_owned(),
+        });
+    }
+    if value("response")?.len() > 4096 {
+        return Err(ResolutionError {
+            code: "CND-HTTP-013",
+            message: "HTTP response exceeds the exact bound".to_owned(),
+        });
+    }
+    let deadline = value("deadline_ms")?
+        .parse::<u64>()
+        .map_err(|_| ResolutionError {
+            code: "CND-HTTP-008",
+            message: "HTTP deadline is invalid".to_owned(),
+        })?;
+    if !(1..=30_000).contains(&deadline) {
+        return Err(ResolutionError {
+            code: "CND-HTTP-008",
+            message: "HTTP deadline is outside the supported bound".to_owned(),
+        });
+    }
+    Ok(())
 }
 
 fn encode_response(response: &HttpResponsePart) -> Vec<u8> {

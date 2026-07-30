@@ -524,11 +524,16 @@ stopButton.onclick = () => stopActive(
   "Run cancelled; exact worker placement is terminal.",
 );
 
-source.addEventListener("keydown", (event) => {
-  if (event.shiftKey && event.key === "Enter") {
-    event.preventDefault();
-    run();
-  }
+document.addEventListener("keydown", (event) => {
+  const isRunShortcut = event.shiftKey
+    && event.key === "Enter"
+    && !event.altKey
+    && !event.ctrlKey
+    && !event.metaKey;
+  if (!isRunShortcut || event.repeat || event.isComposing) return;
+
+  event.preventDefault();
+  if (!runButton.disabled) void run();
 });
 
 document.querySelector("#reset").onclick = () => {

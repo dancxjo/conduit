@@ -12,11 +12,11 @@ timer, and allocation bindings are deliberately absent from this snippet.
 ```panel
 panel 2
 
-node request : conduit.std/literal {
+node request : std/literal {
     value = "work"
 }
-node output : conduit.std/stdout
-node request_policy : conduit.std/supervisor
+node output : io/stdout
+node request_policy : supervision/supervisor
 
 cord request.out -> output.in
 supervise request with request_policy

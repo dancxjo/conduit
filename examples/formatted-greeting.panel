@@ -6,7 +6,7 @@ node greeting : std/format {
     parameters = list("operator", "ready")
 }
 
-node output : std/stdout
+node output : io/stdout
 
 cord greeting.out -> output.in {
     capacity = 1

@@ -13,12 +13,14 @@ use conduit_core::{
 };
 use conduit_panel::parse;
 use conduit_runtime::{
-    ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation, Registry, RuntimeError,
+    ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation,
+    InstalledHostedProvider, Registry, RuntimeError,
 };
 
 pub struct InstalledProfile {
     pub input: CompileInput,
     implementations: BTreeMap<String, HostedPrimitiveImplementation>,
+    providers: Vec<InstalledHostedProvider>,
 }
 
 impl InstalledProfile {
@@ -32,9 +34,26 @@ impl InstalledProfile {
         source: &str,
         stdout_granted: bool,
     ) -> Result<Self, RuntimeError> {
+        Self::observe_registry_with_stdout_grant(
+            source,
+            &Registry::hosted_primitives(),
+            stdout_granted,
+        )
+    }
+
+    /// Observe an explicitly assembled host registry. This is the production
+    /// extension point for linked host-service providers.
+    pub fn observe_registry(source: &str, registry: &Registry) -> Result<Self, RuntimeError> {
+        Self::observe_registry_with_stdout_grant(source, registry, true)
+    }
+
+    fn observe_registry_with_stdout_grant(
+        source: &str,
+        registry: &Registry,
+        stdout_granted: bool,
+    ) -> Result<Self, RuntimeError> {
         let panel =
             parse(source).map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
-        let registry = Registry::hosted_primitives();
         let topology = registry
             .resolve(&panel)
             .and_then(|resolved| resolved.exact_topology())
@@ -47,10 +66,11 @@ impl InstalledProfile {
                 .1
                 .push(node.instance.clone());
         }
+        let providers = registry.installed_providers();
         let mut implementations = BTreeMap::new();
         let mut candidates = Vec::with_capacity(required.len());
         for (contract_id, (contract_hash, instances)) in required {
-            let installed = Registry::installed_hosted_providers()
+            let installed = providers
                 .iter()
                 .find(|provider| {
                     provider.contract.id.as_str() == contract_id
@@ -62,12 +82,17 @@ impl InstalledProfile {
                         format!("no installed provider implements `{contract_id}`"),
                     )
                 })?;
-            let stdout_instance = (contract_id == "conduit.std/stdout")
+            let stdout_instance = (contract_id == "io/stdout")
+                .then(|| instances.first().cloned())
+                .flatten();
+            let host_service_instance = (installed.implementation
+                == HostedPrimitiveImplementation::HostedService)
                 .then(|| instances.first().cloned())
                 .flatten();
             candidates.push(candidate(
                 installed,
                 stdout_instance.as_deref(),
+                host_service_instance.as_deref(),
                 stdout_granted,
             ));
         }
@@ -118,7 +143,7 @@ impl InstalledProfile {
             .seal()
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         for candidate in &input.candidates {
-            let installed = Registry::installed_hosted_providers()
+            let installed = providers
                 .iter()
                 .find(|provider| provider.manifest.id.as_str() == candidate.implementation.id)
                 .expect("candidate came from installed provider inventory");
@@ -130,6 +155,7 @@ impl InstalledProfile {
         Ok(Self {
             input,
             implementations,
+            providers,
         })
     }
 
@@ -177,7 +203,8 @@ impl InstalledProfile {
                     "planned host observation does not match the installed profile",
                 ));
             }
-            let installed = Registry::installed_hosted_providers()
+            let installed = self
+                .providers
                 .iter()
                 .find(|provider| provider.manifest.id.as_str() == candidate.implementation.id)
                 .ok_or_else(|| RuntimeError::new("CND-RUN-007", "provider is not installed"))?;
@@ -207,13 +234,17 @@ impl InstalledProfile {
 fn candidate(
     installed: &conduit_runtime::InstalledHostedProvider,
     stdout_instance: Option<&str>,
+    host_service_instance: Option<&str>,
     stdout_granted: bool,
 ) -> CandidateDocument {
     let manifest = installed.manifest;
     let artifact = installed.artifact;
-    let authorities = stdout_instance
+    let mut authorities = stdout_instance
         .map(|instance| vec![stdout_authority(instance, stdout_granted)])
         .unwrap_or_default();
+    if let Some(instance) = host_service_instance {
+        authorities.push(host_service_authority(instance));
+    }
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -237,7 +268,11 @@ fn candidate(
                 role: "implementation".to_owned(),
                 required: true,
             }],
-            required_authorities: Vec::new(),
+            required_authorities: manifest
+                .required_authorities
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
             required_effects: Vec::new(),
             minimum_plan_version: manifest.minimum_plan_version,
             maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
@@ -245,7 +280,11 @@ fn candidate(
             maximum_runtime_protocol: manifest.maximum_runtime_protocol,
             coexistence_memory_bytes: manifest.coexistence_memory_bytes,
         },
-        execution_profile: execution_profile(),
+        execution_profile: if host_service_instance.is_some() {
+            host_service_execution_profile()
+        } else {
+            execution_profile()
+        },
         artifacts: vec![ArtifactDocument {
             schema_version: ARTIFACT_MANIFEST_SCHEMA_VERSION,
             identity: String::new(),
@@ -296,9 +335,15 @@ fn candidate(
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
-            memory_bytes: 2048,
+            memory_bytes: if host_service_instance.is_some() {
+                64 * 1024
+            } else {
+                2048
+            },
             cpu_units: 1,
             evidence_bytes: 256,
+            transports: u16::from(host_service_instance.is_some()),
+            timers: u16::from(host_service_instance.is_some()),
             ..BudgetDocument::default()
         },
         lifecycle_policy: pin("conduit/finite-lifecycle", 60),
@@ -363,6 +408,59 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
     }
 }
 
+fn host_service_authority(instance: &str) -> AuthorityDecisionDocument {
+    let host = "conduit/conduct-host";
+    AuthorityDecisionDocument {
+        requirement: "sha256:4848484848484848484848484848484848484848484848484848484848484848"
+            .to_owned(),
+        effect_hash: String::new(),
+        grant_hash: String::new(),
+        effect: EffectRequirementDocument {
+            id: "conduit.effect/http-loopback-listen".to_owned(),
+            administrative_class: None,
+            policy_budget_class: None,
+            action: "conduit.action/listen".to_owned(),
+            resource_kind: "conduit.resource/tcp-loopback".to_owned(),
+            resource_id: Some("conduit.resource/ephemeral-loopback-port".to_owned()),
+            requester: instance.to_owned(),
+            audience: "conduit/conduct-run".to_owned(),
+            constraints: Vec::new(),
+            check_at_use: true,
+        },
+        capability: HostCapabilityDocument {
+            id: "conduit.capability/http-loopback-listen".to_owned(),
+            action: "conduit.action/listen".to_owned(),
+            resource_kind: "conduit.resource/tcp-loopback".to_owned(),
+            resource_id: "conduit.resource/ephemeral-loopback-port".to_owned(),
+            host: host.to_owned(),
+            time_basis: "clock/conduct-host".to_owned(),
+            observed_at_tick: 10,
+            valid_until_tick: 20,
+        },
+        grant: AuthorityGrantDocument {
+            id: "conduit.grant/http-loopback-listen".to_owned(),
+            action: "conduit.action/listen".to_owned(),
+            resource_kind: "conduit.resource/tcp-loopback".to_owned(),
+            resource_id: "conduit.resource/ephemeral-loopback-port".to_owned(),
+            scope_root: instance.to_owned(),
+            scope_descendants: false,
+            audience: "conduit/conduct-run".to_owned(),
+            constraints: Vec::new(),
+            time_basis: "clock/conduct-host".to_owned(),
+            not_before_tick: 10,
+            expires_at_tick: 20,
+            issued_for_host: host.to_owned(),
+            delegation: "none".to_owned(),
+            audit_id: "conduit.audit/http-loopback-listen".to_owned(),
+            terminal_policy: "abort".to_owned(),
+        },
+        status: "active".to_owned(),
+        administrative_subject: None,
+        containment: None,
+        policy_budgets: Vec::new(),
+    }
+}
+
 fn execution_profile() -> ExecutionProfileDocument {
     ExecutionProfileDocument {
         id: "conduit/hosted-primitive-profile-v1".to_owned(),
@@ -389,6 +487,41 @@ fn execution_profile() -> ExecutionProfileDocument {
             accounting: "executor-allocated".to_owned(),
             bytes: 2048,
         }],
+        checkpoint: None,
+    }
+}
+
+fn host_service_execution_profile() -> ExecutionProfileDocument {
+    ExecutionProfileDocument {
+        id: "conduit/hosted-primitive-profile-v1".to_owned(),
+        schema_version: 1,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 30_000,
+            max_transactions: 1,
+            max_pending_operations: 1,
+            max_timers: 1,
+            max_host_buffer_bytes: 32 * 1024,
+            implementation_memory_bytes: 64 * 1024,
+            cancellation_ticks: 30_000,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "host-services".to_owned(),
+                accounting: "backend-bounded".to_owned(),
+                bytes: 60 * 1024,
+            },
+            MemoryClaimDocument {
+                category: "pending-operations".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 4 * 1024,
+            },
+        ],
         checkpoint: None,
     }
 }

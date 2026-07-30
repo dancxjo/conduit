@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-panel = { path = "../conduit-panel" }
+conduit-std = { path = "../conduit-std" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sha2 = "0.10.9"

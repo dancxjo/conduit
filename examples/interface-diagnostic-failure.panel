@@ -1,10 +1,10 @@
 panel 2
 
 interface speech/recognizer {
-  input audio : conduit/text.utf8
-  output final : conduit/text.utf8
-  output error_channel : conduit/text.utf8
+  input audio : std/text
+  output final : std/text
+  output error_channel : std/text
 }
 
-# Fails because std/stdout lacks output port `final` and `error_channel`
-node invalid_worker : std/stdout implements speech/recognizer
+# Fails because io/stdout lacks output port `final` and `error_channel`
+node invalid_worker : io/stdout implements speech/recognizer

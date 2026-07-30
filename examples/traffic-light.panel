@@ -5,7 +5,7 @@ node clock_ticks : std/counter
 node state_selector : std/cell {
     initial = "RED"
 }
-node light_controller : std/gpio-pin {
+node light_controller : device/gpio/pin {
     pin = 16
     mode = "write"
 }

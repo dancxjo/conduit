@@ -14,10 +14,15 @@ use conduit_core::{
 };
 
 mod conformance;
+mod types;
 
 pub use conformance::{
     ConformanceError, DeterministicProvider, FixtureClass, FixtureOutcome, HostedProvider,
     NormalizedEvidence, ProviderProfile, ReferenceProvider, run_catalog_fixture,
+};
+pub use types::{
+    STANDARD_TYPE_CATALOG, StandardRepresentation, StandardTypeDefinition, StandardTypeFamily,
+    TypeRepresentationSupport, standard_type, standard_type_reference,
 };
 
 /// Catalog schema consumed by manifests and conformance tooling.
@@ -44,6 +49,41 @@ pub enum TypeBehavior {
     Preserving,
     ExplicitAdapter,
     ProducesDeclaredType,
+}
+
+/// A value type in a generic standard-node definition.
+///
+/// Generic expressions describe stable relationships between ports. They are
+/// not concrete [`TypeContractRef`] values and must be specialized before an
+/// exact plan is emitted.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CatalogTypeExpression {
+    /// One parameter declared by the enclosing signature.
+    Parameter(Id<'static>),
+    /// One concrete standard type.
+    Named(Id<'static>),
+    /// An application of a standard generic type constructor.
+    Apply {
+        constructor: Id<'static>,
+        arguments: &'static [CatalogTypeExpression],
+    },
+}
+
+/// The generic value type assigned to one node port.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GenericPortType {
+    pub direction: Direction,
+    pub port_index: u16,
+    pub value_type: CatalogTypeExpression,
+}
+
+/// Type parameters and port relationships for a polymorphic node definition.
+///
+/// Ports omitted from `ports` retain the concrete type in [`NodeContract`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GenericNodeSignature {
+    pub parameters: &'static [Id<'static>],
+    pub ports: &'static [GenericPortType],
 }
 
 /// Time basis required by the semantic contract.
@@ -83,6 +123,11 @@ pub struct CatalogEntry {
     pub contract: NodeContract<'static>,
     pub family: StandardFamily,
     pub type_behavior: TypeBehavior,
+    /// Authoritative polymorphic relationships, when this is a generic node.
+    ///
+    /// The ordinary `NodeContract` remains the concrete reference-provider
+    /// specialization used by allocator-free conformance fixtures.
+    pub generic_signature: Option<&'static GenericNodeSignature>,
     pub time_basis: TimeBasis,
     pub ordering_policy: Id<'static>,
     pub terminal_policy: Id<'static>,
@@ -106,21 +151,202 @@ pub enum CatalogError {
     MissingHostService,
     ImplicitTypeChange,
     MissingReferenceProvider,
+    InvalidGenericSignature,
 }
 
-const BYTES: TypeContractRef<'static> = type_ref("conduit.std/bytes", 1);
-const BOOL: TypeContractRef<'static> = type_ref("conduit.std/bool", 2);
-const U64: TypeContractRef<'static> = type_ref("conduit.std/u64", 3);
-const RECORD: TypeContractRef<'static> = type_ref("conduit.std/record", 4);
-const REFERENCE: TypeContractRef<'static> = type_ref("conduit.std/reference", 5);
+const BYTES: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/bytes"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x7b, 0xe7, 0xdf, 0x9a, 0x17, 0xc7, 0x5a, 0x28, 0xc8, 0xb5, 0xdf, 0x5f, 0xa6, 0xea, 0x6a,
+        0x85, 0x9d, 0x88, 0x86, 0x69, 0x91, 0x3d, 0x83, 0x6d, 0xe2, 0xc6, 0x14, 0x1c, 0x8d, 0x19,
+        0xd4, 0x53,
+    ]),
+};
+const BOOL: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/bool"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x41, 0x8e, 0x7f, 0xb1, 0xd8, 0xcb, 0x6e, 0xae, 0x61, 0x55, 0xa9, 0xcb, 0x77, 0xcd, 0xb1,
+        0xc1, 0x19, 0x3b, 0x92, 0xcc, 0xf7, 0x6c, 0xb3, 0x33, 0x26, 0x0f, 0x8c, 0xf3, 0x24, 0x9a,
+        0x08, 0xd7,
+    ]),
+};
+const U64: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/u64"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x9c, 0x2d, 0x1b, 0xb3, 0xea, 0xde, 0xb8, 0x27, 0x7a, 0x32, 0x90, 0xcd, 0x0a, 0xa9, 0x8c,
+        0x5f, 0x8b, 0x90, 0x14, 0x73, 0x84, 0x89, 0xcb, 0x21, 0x02, 0x94, 0x0d, 0x42, 0xc1, 0x7c,
+        0xf8, 0xb4,
+    ]),
+};
+const RECORD: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/record"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0xe4, 0x71, 0x29, 0xd8, 0x32, 0x3d, 0xd8, 0x17, 0x1d, 0x5d, 0x28, 0x6d, 0xbb, 0x1b, 0xbc,
+        0x83, 0x79, 0x92, 0x3c, 0xb1, 0x87, 0x8a, 0x9b, 0x97, 0x6c, 0x4c, 0x8b, 0xbf, 0x75, 0x64,
+        0x3f, 0xe7,
+    ]),
+};
+const REFERENCE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/reference/any"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0xb9, 0xbb, 0x20, 0x9f, 0x2c, 0xec, 0x4e, 0xaa, 0x98, 0x5d, 0x81, 0xcc, 0x69, 0xf5, 0x23,
+        0x7e, 0x40, 0x35, 0x6f, 0x88, 0x33, 0x36, 0x00, 0xb8, 0x33, 0x04, 0x86, 0x9b, 0x93, 0x57,
+        0x1b, 0xc7,
+    ]),
+};
+const SOCKET_ADDRESS: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/socket/address"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x9e, 0xef, 0x61, 0xf8, 0x0f, 0x02, 0x36, 0x17, 0xe4, 0x68, 0x8d, 0x0c, 0xca, 0xf9, 0x54,
+        0xec, 0x2a, 0x12, 0xfb, 0xe8, 0xca, 0x25, 0xec, 0xc5, 0x40, 0xee, 0x35, 0x2a, 0xea, 0xa1,
+        0x3a, 0x1f,
+    ]),
+};
+const HTTP_REQUEST: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/http/request"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x4e, 0x14, 0x8f, 0x04, 0x64, 0xf1, 0x66, 0xd3, 0x6a, 0x8c, 0x1e, 0x11, 0x54, 0x89, 0xc3,
+        0x9f, 0x84, 0xa2, 0x65, 0x90, 0x33, 0x25, 0xd2, 0xa7, 0x2e, 0x03, 0xe9, 0x1b, 0x6b, 0x95,
+        0x9a, 0x8e,
+    ]),
+};
+const HTTP_RESPONSE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/http/response"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x3d, 0x9f, 0xab, 0x2d, 0x18, 0x99, 0x4c, 0xc7, 0x76, 0xdb, 0x7a, 0xe7, 0x64, 0x2e, 0x8c,
+        0xef, 0x84, 0xc9, 0xf6, 0xf4, 0x59, 0x53, 0x45, 0x07, 0x69, 0x7c, 0xc0, 0x27, 0x4f, 0x89,
+        0x20, 0xd6,
+    ]),
+};
 
-const fn type_ref(id: &'static str, seed: u8) -> TypeContractRef<'static> {
-    TypeContractRef {
-        contract_id: Id(id),
-        schema_version: 1,
-        semantic_hash: SemanticHash::from_bytes([seed; 32]),
-    }
-}
+const VALUE_PARAMETER: CatalogTypeExpression = CatalogTypeExpression::Parameter(Id("value"));
+const NATURAL_EXPRESSION: CatalogTypeExpression = CatalogTypeExpression::Named(Id("std/natural"));
+static VALUE_PARAMETERS: &[Id<'static>] = &[Id("value")];
+static OPTION_VALUE_ARGUMENTS: &[CatalogTypeExpression] = &[VALUE_PARAMETER];
+const OPTION_VALUE: CatalogTypeExpression = CatalogTypeExpression::Apply {
+    constructor: Id("std/option"),
+    arguments: OPTION_VALUE_ARGUMENTS,
+};
+
+static IDENTITY_GENERIC_PORTS: &[GenericPortType] = &[
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+];
+static IDENTITY_GENERIC: GenericNodeSignature = GenericNodeSignature {
+    parameters: VALUE_PARAMETERS,
+    ports: IDENTITY_GENERIC_PORTS,
+};
+
+static TEE_GENERIC_PORTS: &[GenericPortType] = &[
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 1,
+        value_type: VALUE_PARAMETER,
+    },
+];
+static TEE_GENERIC: GenericNodeSignature = GenericNodeSignature {
+    parameters: VALUE_PARAMETERS,
+    ports: TEE_GENERIC_PORTS,
+};
+
+static MERGE_GENERIC_PORTS: &[GenericPortType] = &[
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 1,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+];
+static MERGE_GENERIC: GenericNodeSignature = GenericNodeSignature {
+    parameters: VALUE_PARAMETERS,
+    ports: MERGE_GENERIC_PORTS,
+};
+
+static FIRST_GENERIC_PORTS: &[GenericPortType] = &[
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 0,
+        value_type: OPTION_VALUE,
+    },
+];
+static FIRST_GENERIC: GenericNodeSignature = GenericNodeSignature {
+    parameters: VALUE_PARAMETERS,
+    ports: FIRST_GENERIC_PORTS,
+};
+
+static COUNT_GENERIC_PORTS: &[GenericPortType] = &[
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 0,
+        value_type: NATURAL_EXPRESSION,
+    },
+];
+static COUNT_GENERIC: GenericNodeSignature = GenericNodeSignature {
+    parameters: VALUE_PARAMETERS,
+    ports: COUNT_GENERIC_PORTS,
+};
+
+static CELL_GENERIC_PORTS: &[GenericPortType] = &[
+    GenericPortType {
+        direction: Direction::Input,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+    GenericPortType {
+        direction: Direction::Output,
+        port_index: 0,
+        value_type: VALUE_PARAMETER,
+    },
+];
+static CELL_GENERIC: GenericNodeSignature = GenericNodeSignature {
+    parameters: VALUE_PARAMETERS,
+    ports: CELL_GENERIC_PORTS,
+};
 
 const fn port(
     id: &'static str,
@@ -202,6 +428,34 @@ const CONTROL: PortContract<'static> = port(
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
+const IN_HTTP_REQUEST: PortContract<'static> = port(
+    "request",
+    Direction::Input,
+    HTTP_REQUEST,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const OUT_HTTP_REQUEST: PortContract<'static> = port(
+    "request",
+    Direction::Output,
+    HTTP_REQUEST,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const IN_HTTP_RESPONSE: PortContract<'static> = port(
+    "response",
+    Direction::Input,
+    HTTP_RESPONSE,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const OUT_HTTP_RESPONSE: PortContract<'static> = port(
+    "response",
+    Direction::Output,
+    HTTP_RESPONSE,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
 
 const EMPTY: ConfigContract<'static> = ConfigContract { fields: &[] };
 const BOUNDED: ConfigContract<'static> = ConfigContract {
@@ -233,7 +487,24 @@ const STATEFUL: ConfigContract<'static> = ConfigContract {
 const HOSTED: ConfigContract<'static> = ConfigContract {
     fields: &[
         field("resource", REFERENCE),
-        field("grant", REFERENCE),
+        protected_field("grant", REFERENCE),
+        field("maximum_request_bytes", U64),
+        field("maximum_response_bytes", U64),
+        field("maximum_pending", U64),
+    ],
+};
+const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("grant", REFERENCE),
+        field("maximum_request_bytes", U64),
+        field("maximum_response_bytes", U64),
+        field("maximum_pending", U64),
+    ],
+};
+const HTTP_SERVE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("listen", SOCKET_ADDRESS),
+        protected_field("grant", REFERENCE),
         field("maximum_request_bytes", U64),
         field("maximum_response_bytes", U64),
         field("maximum_pending", U64),
@@ -241,6 +512,20 @@ const HOSTED: ConfigContract<'static> = ConfigContract {
 };
 
 const fn field(
+    key: &'static str,
+    value_type: TypeContractRef<'static>,
+) -> ConfigFieldContract<'static> {
+    ConfigFieldContract {
+        key: Id(key),
+        value_type,
+        requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Public,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Plan,
+    }
+}
+
+const fn protected_field(
     key: &'static str,
     value_type: TypeContractRef<'static>,
 ) -> ConfigFieldContract<'static> {
@@ -331,6 +616,7 @@ macro_rules! entry {
             contract: node($id, $config, $inputs, $outputs),
             family: StandardFamily::$family,
             type_behavior: TypeBehavior::$type_behavior,
+            generic_signature: None,
             time_basis: TimeBasis::$time,
             ordering_policy: Id("ordering/input-sequence"),
             terminal_policy: Id("terminal/explicit"),
@@ -340,6 +626,26 @@ macro_rules! entry {
             host_service: None,
             limits: $limits,
             required_support: $support,
+        }
+    };
+}
+
+macro_rules! generic_entry {
+    ($id:literal, $family:ident, $config:ident, $inputs:expr, $outputs:expr,
+     $type_behavior:ident, $time:ident, $limits:ident, $support:ident, $signature:ident) => {
+        CatalogEntry {
+            generic_signature: Some(&$signature),
+            ..entry!(
+                $id,
+                $family,
+                $config,
+                $inputs,
+                $outputs,
+                $type_behavior,
+                $time,
+                $limits,
+                $support
+            )
         }
     };
 }
@@ -362,11 +668,29 @@ macro_rules! host_entry {
     }};
 }
 
+macro_rules! typed_host_entry {
+    ($id:literal, $config:ident, $inputs:expr, $outputs:expr, $service:literal) => {{
+        let mut value = entry!(
+            $id,
+            Boundary,
+            $config,
+            $inputs,
+            $outputs,
+            ExplicitAdapter,
+            None,
+            HOST_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id($service));
+        value
+    }};
+}
+
 /// Version-one concrete catalog. Port/config arrays and entries are all
 /// borrowed static data and require no allocator.
 pub static STANDARD_CATALOG: &[CatalogEntry] = &[
     entry!(
-        "conduit.std/literal",
+        "std/literal",
         Source,
         BOUNDED,
         &[],
@@ -377,7 +701,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/format",
+        "std/format",
         Transform,
         FORMAT,
         &[],
@@ -388,7 +712,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/empty",
+        "std/empty",
         Source,
         EMPTY,
         &[],
@@ -399,7 +723,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/never",
+        "std/never",
         Source,
         EMPTY,
         &[],
@@ -410,7 +734,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/finite-sequence",
+        "std/finite-sequence",
         Source,
         BOUNDED,
         &[],
@@ -420,8 +744,8 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         BUFFERED,
         PURE
     ),
-    entry!(
-        "conduit.std/identity",
+    generic_entry!(
+        "flow/identity",
         Structural,
         EMPTY,
         &[IN_BYTES],
@@ -429,10 +753,11 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Preserving,
         None,
         FINITE,
-        PURE
+        PURE,
+        IDENTITY_GENERIC
     ),
-    entry!(
-        "conduit.std/tee",
+    generic_entry!(
+        "flow/tee",
         Structural,
         BOUNDED,
         &[IN_BYTES],
@@ -440,10 +765,11 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Preserving,
         None,
         BUFFERED,
-        PURE
+        PURE,
+        TEE_GENERIC
     ),
-    entry!(
-        "conduit.std/merge",
+    generic_entry!(
+        "flow/merge",
         Structural,
         BOUNDED,
         &[IN_BYTES, IN_BYTES],
@@ -451,10 +777,11 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Preserving,
         None,
         BUFFERED,
-        PURE
+        PURE,
+        MERGE_GENERIC
     ),
     entry!(
-        "conduit.std/zip",
+        "flow/zip",
         Structural,
         BOUNDED,
         &[IN_BYTES, IN_BYTES],
@@ -465,7 +792,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/combine-latest",
+        "flow/combine-latest",
         Structural,
         BOUNDED,
         &[IN_BYTES, IN_BYTES],
@@ -476,7 +803,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/mux",
+        "flow/mux",
         Structural,
         BOUNDED,
         &[IN_BYTES, CONTROL],
@@ -487,7 +814,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/demux",
+        "flow/demux",
         Structural,
         BOUNDED,
         &[IN_BYTES, CONTROL],
@@ -498,7 +825,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/keyed-dispatch",
+        "flow/keyed-dispatch",
         Structural,
         BOUNDED,
         &[IN_BYTES, CONTROL],
@@ -509,7 +836,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/select",
+        "flow/select",
         Structural,
         BOUNDED,
         &[IN_BYTES, IN_BYTES, CONTROL],
@@ -520,7 +847,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/gate",
+        "flow/gate",
         Structural,
         EMPTY,
         &[IN_BYTES, CONTROL],
@@ -531,7 +858,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/switch",
+        "flow/switch",
         Structural,
         BOUNDED,
         &[IN_BYTES, IN_BYTES, CONTROL],
@@ -542,7 +869,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/fallback",
+        "flow/fallback",
         Structural,
         BOUNDED,
         &[IN_BYTES, IN_BYTES, CONTROL],
@@ -553,7 +880,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/feedback-delay",
+        "flow/feedback-delay",
         Structural,
         BOUNDED,
         &[IN_BYTES],
@@ -564,7 +891,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/discard",
+        "flow/discard",
         Sink,
         EMPTY,
         &[IN_BYTES],
@@ -575,7 +902,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/collect",
+        "flow/collect",
         Sink,
         BOUNDED,
         &[IN_BYTES],
@@ -585,8 +912,20 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         BUFFERED,
         PURE
     ),
+    generic_entry!(
+        "flow/first",
+        Sink,
+        BOUNDED,
+        &[IN_BYTES],
+        &[OUT_FINITE],
+        ExplicitAdapter,
+        None,
+        BUFFERED,
+        PURE,
+        FIRST_GENERIC
+    ),
     entry!(
-        "conduit.std/first",
+        "flow/last",
         Sink,
         BOUNDED,
         &[IN_BYTES],
@@ -596,19 +935,8 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         BUFFERED,
         PURE
     ),
-    entry!(
-        "conduit.std/last",
-        Sink,
-        BOUNDED,
-        &[IN_BYTES],
-        &[OUT_FINITE],
-        Preserving,
-        None,
-        BUFFERED,
-        PURE
-    ),
-    entry!(
-        "conduit.std/count",
+    generic_entry!(
+        "flow/count",
         Sink,
         BOUNDED,
         &[IN_BYTES],
@@ -616,10 +944,11 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         ExplicitAdapter,
         None,
         BUFFERED,
-        PURE
+        PURE,
+        COUNT_GENERIC
     ),
     entry!(
-        "conduit.std/map",
+        "flow/map",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -630,7 +959,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/filter",
+        "flow/filter",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -641,7 +970,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/filter-map",
+        "flow/filter-map",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -652,7 +981,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/flat-map",
+        "flow/flat-map",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -663,7 +992,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/fold",
+        "flow/fold",
         Transform,
         STATEFUL,
         &[IN_BYTES],
@@ -674,7 +1003,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/validate",
+        "flow/validate",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -685,7 +1014,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/adapter",
+        "flow/adapter",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -696,7 +1025,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/encode",
+        "flow/encode",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -707,7 +1036,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/decode",
+        "flow/decode",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -718,7 +1047,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/frame",
+        "flow/frame",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -729,7 +1058,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/deframe",
+        "flow/deframe",
         Transform,
         TRANSFORM,
         &[IN_BYTES],
@@ -740,7 +1069,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/timer",
+        "time/timer",
         Time,
         TIMED,
         &[],
@@ -751,7 +1080,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/ticker",
+        "time/ticker",
         Time,
         TIMED,
         &[],
@@ -761,8 +1090,20 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TIMERS,
         PURE
     ),
+    generic_entry!(
+        "time/delay",
+        Time,
+        TIMED,
+        &[IN_BYTES],
+        &[OUT_BYTES],
+        Preserving,
+        Monotonic,
+        TIMERS,
+        PURE,
+        IDENTITY_GENERIC
+    ),
     entry!(
-        "conduit.std/delay",
+        "time/deadline",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -773,7 +1114,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/deadline",
+        "time/timeout",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -784,7 +1125,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/timeout",
+        "time/debounce",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -795,7 +1136,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/debounce",
+        "time/throttle",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -806,7 +1147,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/throttle",
+        "time/sample",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -817,7 +1158,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/sample",
+        "time/rate-limit",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -828,18 +1169,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/rate-limit",
-        Time,
-        TIMED,
-        &[IN_BYTES],
-        &[OUT_BYTES],
-        Preserving,
-        Monotonic,
-        TIMERS,
-        PURE
-    ),
-    entry!(
-        "conduit.std/window",
+        "time/window",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -850,7 +1180,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/batch",
+        "time/batch",
         Time,
         TIMED,
         &[IN_BYTES],
@@ -860,8 +1190,8 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TIMERS,
         PURE
     ),
-    entry!(
-        "conduit.std/cell",
+    generic_entry!(
+        "state/cell",
         State,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -869,10 +1199,11 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Preserving,
         None,
         BUFFERED,
-        PURE
+        PURE,
+        CELL_GENERIC
     ),
     entry!(
-        "conduit.std/counter",
+        "state/counter",
         State,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -883,7 +1214,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/state-machine",
+        "state/machine",
         State,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -894,7 +1225,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/deduplicate",
+        "state/deduplicate",
         State,
         STATEFUL,
         &[IN_BYTES],
@@ -905,7 +1236,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/cache",
+        "state/cache",
         State,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -916,7 +1247,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/history",
+        "state/history",
         State,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -927,7 +1258,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/checkpoint",
+        "state/checkpoint",
         State,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -938,7 +1269,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/retry",
+        "supervision/retry",
         Supervision,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -949,7 +1280,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/backoff",
+        "supervision/backoff",
         Supervision,
         TIMED,
         &[IN_BYTES, CONTROL],
@@ -960,7 +1291,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/circuit-breaker",
+        "supervision/circuit-breaker",
         Supervision,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -971,7 +1302,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/supervisor",
+        "supervision/supervisor",
         Supervision,
         STATEFUL,
         &[CONTROL],
@@ -982,7 +1313,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/health-gate",
+        "supervision/health-gate",
         Supervision,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -993,7 +1324,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/terminal-projection",
+        "supervision/terminal-projection",
         Supervision,
         BOUNDED,
         &[CONTROL],
@@ -1004,7 +1335,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/operator-action",
+        "supervision/operator-action",
         Supervision,
         BOUNDED,
         &[CONTROL],
@@ -1015,7 +1346,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/worker-pool",
+        "supervision/worker-pool",
         Supervision,
         STATEFUL,
         &[IN_BYTES, CONTROL],
@@ -1026,7 +1357,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/probe",
+        "test/probe",
         Testing,
         BOUNDED,
         &[IN_BYTES],
@@ -1037,7 +1368,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/assertion",
+        "test/assertion",
         Testing,
         TRANSFORM,
         &[IN_BYTES],
@@ -1048,7 +1379,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/fault-source",
+        "test/fault-source",
         Testing,
         BOUNDED,
         &[],
@@ -1059,7 +1390,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/record",
+        "test/record",
         Testing,
         STATEFUL,
         &[IN_BYTES],
@@ -1070,7 +1401,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "conduit.std/replay",
+        "test/replay",
         Testing,
         STATEFUL,
         &[CONTROL],
@@ -1080,57 +1411,49 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TIMERS,
         PURE
     ),
-    host_entry!("conduit.std/file-read", Boundary, "host/filesystem-read"),
-    host_entry!("conduit.std/file-write", Boundary, "host/filesystem-write"),
-    host_entry!("conduit.std/file-watch", Boundary, "host/filesystem-watch"),
-    host_entry!("conduit.std/blob-read", Boundary, "host/blob-read"),
-    host_entry!("conduit.std/blob-write", Boundary, "host/blob-write"),
-    host_entry!("conduit.std/key-value", Boundary, "host/key-value"),
-    host_entry!("conduit.std/process", Boundary, "host/process"),
-    host_entry!(
-        "conduit.std/process-stream",
-        Boundary,
-        "host/process-stream"
+    host_entry!("fs/read", Boundary, "host/filesystem-read"),
+    host_entry!("fs/write", Boundary, "host/filesystem-write"),
+    host_entry!("fs/watch", Boundary, "host/filesystem-watch"),
+    host_entry!("storage/blob/read", Boundary, "host/blob-read"),
+    host_entry!("storage/blob/write", Boundary, "host/blob-write"),
+    host_entry!("storage/key-value", Boundary, "host/key-value"),
+    host_entry!("process/run", Boundary, "host/process"),
+    host_entry!("process/stream", Boundary, "host/process-stream"),
+    host_entry!("secret/reference", Boundary, "host/secret-resolution"),
+    host_entry!("crypto/operation", Boundary, "host/cryptography"),
+    host_entry!("data/compress", Boundary, "host/compression"),
+    typed_host_entry!(
+        "net/http/fetch",
+        HTTP_FETCH,
+        &[IN_HTTP_REQUEST],
+        &[OUT_HTTP_RESPONSE],
+        "host/http-client"
     ),
-    host_entry!(
-        "conduit.std/secret-reference",
-        Boundary,
-        "host/secret-resolution"
+    typed_host_entry!(
+        "net/http/serve",
+        HTTP_SERVE,
+        &[IN_HTTP_RESPONSE],
+        &[OUT_HTTP_REQUEST],
+        "host/http-server"
     ),
-    host_entry!("conduit.std/crypto", Boundary, "host/cryptography"),
-    host_entry!("conduit.std/compression", Boundary, "host/compression"),
-    host_entry!("conduit.std/http-client", Boundary, "host/http-client"),
-    host_entry!("conduit.std/http-server", Boundary, "host/http-server"),
-    host_entry!("conduit.std/websocket", Boundary, "host/websocket"),
-    host_entry!("conduit.std/sse", Boundary, "host/sse"),
-    host_entry!("conduit.std/zenoh", Boundary, "host/distributed-transport"),
-    host_entry!(
-        "conduit.std/evidence-export",
-        Boundary,
-        "host/evidence-export"
-    ),
-    host_entry!(
-        "conduit.std/network-observe",
-        Network,
-        "host/network-observe"
-    ),
-    host_entry!("conduit.std/wifi-scan", Network, "host/wifi-scan"),
-    host_entry!("conduit.std/wifi-join", Network, "host/wifi-station"),
-    host_entry!(
-        "conduit.std/wifi-access-point",
-        Network,
-        "host/wifi-access-point"
-    ),
-    host_entry!("conduit.std/static-address", Network, "host/address-config"),
-    host_entry!("conduit.std/dhcp-client", Network, "host/dhcp-client"),
-    host_entry!("conduit.std/dhcp-server", Network, "host/dhcp-server"),
-    host_entry!("conduit.std/dns", Network, "host/dns"),
-    host_entry!("conduit.std/route", Network, "host/route"),
-    host_entry!("conduit.std/bridge", Network, "host/bridge"),
-    host_entry!("conduit.std/nat", Network, "host/nat"),
-    host_entry!("conduit.std/reachability", Network, "host/reachability"),
-    host_entry!("conduit.std/tcp", Network, "host/tcp"),
-    host_entry!("conduit.std/udp", Network, "host/udp"),
+    host_entry!("net/websocket", Boundary, "host/websocket"),
+    host_entry!("net/sse", Boundary, "host/sse"),
+    host_entry!("transport/zenoh", Boundary, "host/distributed-transport"),
+    host_entry!("evidence/export", Boundary, "host/evidence-export"),
+    host_entry!("net/observe", Network, "host/network-observe"),
+    host_entry!("net/wifi/scan", Network, "host/wifi-scan"),
+    host_entry!("net/wifi/join", Network, "host/wifi-station"),
+    host_entry!("net/wifi/access-point", Network, "host/wifi-access-point"),
+    host_entry!("net/ip/configure-static", Network, "host/address-config"),
+    host_entry!("net/dhcp/client", Network, "host/dhcp-client"),
+    host_entry!("net/dhcp/server", Network, "host/dhcp-server"),
+    host_entry!("net/dns/resolve", Network, "host/dns"),
+    host_entry!("net/route", Network, "host/route"),
+    host_entry!("net/bridge", Network, "host/bridge"),
+    host_entry!("net/nat", Network, "host/nat"),
+    host_entry!("net/reachability", Network, "host/reachability"),
+    host_entry!("net/tcp/socket", Network, "host/tcp"),
+    host_entry!("net/udp/socket", Network, "host/udp"),
 ];
 
 /// Validate the complete catalog without allocating or consulting a registry.
@@ -1170,6 +1493,9 @@ pub fn validate_entry(entry: &CatalogEntry) -> Result<(), CatalogError> {
             .any(|port| port.direction != Direction::Output)
     {
         return Err(CatalogError::InvalidPort);
+    }
+    if let Some(signature) = entry.generic_signature {
+        validate_generic_signature(entry, signature)?;
     }
     if entry.limits.work_per_step == 0 || entry.limits.evidence_events == 0 {
         return Err(CatalogError::UnboundedWork);
@@ -1211,4 +1537,71 @@ pub fn validate_entry(entry: &CatalogEntry) -> Result<(), CatalogError> {
         return Err(CatalogError::MissingReferenceProvider);
     }
     Ok(())
+}
+
+fn validate_generic_signature(
+    entry: &CatalogEntry,
+    signature: &GenericNodeSignature,
+) -> Result<(), CatalogError> {
+    if signature.parameters.is_empty() || signature.ports.is_empty() {
+        return Err(CatalogError::InvalidGenericSignature);
+    }
+    for (index, parameter) in signature.parameters.iter().enumerate() {
+        Id::new(parameter.as_str()).map_err(|_| CatalogError::InvalidGenericSignature)?;
+        if signature.parameters[..index].contains(parameter)
+            || !signature
+                .ports
+                .iter()
+                .any(|port| expression_contains_parameter(port.value_type, *parameter))
+        {
+            return Err(CatalogError::InvalidGenericSignature);
+        }
+    }
+    for (index, port_type) in signature.ports.iter().enumerate() {
+        let ports = match port_type.direction {
+            Direction::Input => entry.contract.inputs,
+            Direction::Output => entry.contract.outputs,
+        };
+        if usize::from(port_type.port_index) >= ports.len()
+            || signature.ports[..index].iter().any(|prior| {
+                prior.direction == port_type.direction && prior.port_index == port_type.port_index
+            })
+            || !valid_type_expression(port_type.value_type, signature.parameters)
+        {
+            return Err(CatalogError::InvalidGenericSignature);
+        }
+    }
+    Ok(())
+}
+
+fn valid_type_expression(expression: CatalogTypeExpression, parameters: &[Id<'static>]) -> bool {
+    match expression {
+        CatalogTypeExpression::Parameter(parameter) => parameters.contains(&parameter),
+        CatalogTypeExpression::Named(id) => {
+            standard_type(id.as_str()).is_some_and(|definition| definition.parameters == 0)
+        }
+        CatalogTypeExpression::Apply {
+            constructor,
+            arguments,
+        } => standard_type(constructor.as_str()).is_some_and(|definition| {
+            usize::from(definition.parameters) == arguments.len()
+                && definition.parameters != 0
+                && arguments
+                    .iter()
+                    .all(|argument| valid_type_expression(*argument, parameters))
+        }),
+    }
+}
+
+fn expression_contains_parameter(
+    expression: CatalogTypeExpression,
+    parameter: Id<'static>,
+) -> bool {
+    match expression {
+        CatalogTypeExpression::Parameter(candidate) => candidate == parameter,
+        CatalogTypeExpression::Named(_) => false,
+        CatalogTypeExpression::Apply { arguments, .. } => arguments
+            .iter()
+            .any(|argument| expression_contains_parameter(*argument, parameter)),
+    }
 }

@@ -121,8 +121,8 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .take()
         .unwrap()
         .write_all(
-            b"panel 1\nnode message : conduit.std/literal { value = \"semantic error\\n\" }\n\
-              node sink : conduit.std/stderr\n\
+            b"panel 1\nnode message : std/literal { value = \"semantic error\\n\" }\n\
+              node sink : io/stderr\n\
               cord message.out -> sink.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
         )
         .unwrap();

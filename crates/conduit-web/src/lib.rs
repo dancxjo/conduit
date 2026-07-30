@@ -961,7 +961,7 @@ mod tests {
         patchbay_replace_source, patchbay_session_view,
     };
 
-    const SOURCE: &str = "panel 1\nnode greeting : conduit.std/literal { value = \"hello\\n\" }\nnode output : conduit.std/stdout\ncord greeting.out -> output.in\n";
+    const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
 
     #[test]
     fn wasm_bridge_keeps_source_and_presentation_identities_separate() {
@@ -990,13 +990,13 @@ mod tests {
         let explained: Value = serde_json::from_str(&explain_panel(
             "panel 1\n\
              composite example/upper {\n\
-               node worker : conduit.std/uppercase\n\
+               node worker : text/uppercase\n\
                export input in = worker.in\n\
                export output out = worker.out\n\
              }\n\
-             node source : conduit.std/literal { value = \"hello\" }\n\
+             node source : std/literal { value = \"hello\" }\n\
              node transform : example/upper\n\
-             node sink : conduit.std/stdout\n\
+             node sink : io/stdout\n\
              cord source.out -> transform.in\n\
              cord transform.out -> sink.in\n"
                 .to_owned(),
@@ -1009,8 +1009,8 @@ mod tests {
                 .is_some_and(|value| value.contains("composite transform : example/upper"))
         );
         assert!(explained["expanded"].as_str().is_some_and(|value| {
-            value.contains("transform.worker : conduit.std/uppercase")
-                || value.contains("transform.worker : conduit.std/uppercase")
+            value.contains("transform.worker : text/uppercase")
+                || value.contains("transform.worker : text/uppercase")
         }));
     }
 
@@ -1047,7 +1047,7 @@ mod tests {
         assert_eq!(opened["view"]["protocol_version"], 1);
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["type_id"],
-            "conduit/text.utf8"
+            "std/text"
         );
         assert_eq!(
             opened["view"]["topology"]["cords"][0]["compatibility"]["compatible"],
@@ -1136,13 +1136,13 @@ mod tests {
     fn candidate_connection_rejects_hidden_composite_members() {
         let composite = "panel 1\n\
 composite example/box {\n\
-  node worker : conduit.std/uppercase\n\
+  node worker : text/uppercase\n\
   export input in = worker.in\n\
   export output out = worker.out\n\
 }\n\
-node source : conduit.std/literal { value = \"hello\" }\n\
+node source : std/literal { value = \"hello\" }\n\
 node box : example/box\n\
-node sink : conduit.std/stdout\n\
+node sink : io/stdout\n\
 cord source.out -> box.in\n\
 cord box.out -> sink.in\n";
         let opened: Value = serde_json::from_str(&patchbay_open_session(
@@ -1212,8 +1212,8 @@ cord box.out -> sink.in\n";
         let mut source = String::from("panel 1\n");
         for index in 0..513 {
             source.push_str(&format!(
-                "node literal_{index} : conduit.std/literal {{ value = \"{index}\" }}\n\
-                 node output_{index} : conduit.std/stdout\n\
+                "node literal_{index} : std/literal {{ value = \"{index}\" }}\n\
+                 node output_{index} : io/stdout\n\
                  cord literal_{index}.out -> output_{index}.in\n"
             ));
         }

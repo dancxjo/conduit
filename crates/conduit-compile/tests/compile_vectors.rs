@@ -23,9 +23,9 @@ const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.j
 const SOURCE_LIMIT_FIXTURE: &str =
     include_str!("../../../conformance/c5/compile-source-limits-v1.json");
 const SOURCE: &str = "panel 1\n\
-node source : conduit.std/literal { value = \"hello\" }\n\
-node upper : conduit.std/uppercase using ready\n\
-node sink : conduit.std/stdout\n\
+node source : std/literal { value = \"hello\" }\n\
+node upper : text/uppercase using ready\n\
+node sink : io/stdout\n\
 cord source.out -> upper.in\n\
 cord upper.out -> sink.in\n";
 
@@ -459,9 +459,9 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 .find(|artifact| artifact.id == node.artifact)
                 .unwrap();
             let implementation = match node.contract.id.as_str() {
-                "conduit.std/literal" => HostedPrimitiveImplementation::Literal,
-                "conduit.std/uppercase" => HostedPrimitiveImplementation::Uppercase,
-                "conduit.std/stdout" => HostedPrimitiveImplementation::Stdout,
+                "std/literal" => HostedPrimitiveImplementation::Literal,
+                "text/uppercase" => HostedPrimitiveImplementation::Uppercase,
+                "io/stdout" => HostedPrimitiveImplementation::Stdout,
                 other => panic!("unexpected exact test contract `{other}`"),
             };
             ExactHostedBinding {

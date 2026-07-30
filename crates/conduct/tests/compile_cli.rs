@@ -107,7 +107,11 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
                 semantic_hash: contract_hash.to_string(),
             },
             executor: "native-in-process".to_owned(),
-            entrypoint_name: contract_id.strip_prefix("conduit.std/").unwrap().to_owned(),
+            entrypoint_name: contract_id
+                .rsplit('/')
+                .next()
+                .expect("contract identity has a final path segment")
+                .to_owned(),
             entrypoint_adapter: "conduit/hosted-primitive-step".to_owned(),
             entrypoint_abi: "conduit/hosted-primitive-v1".to_owned(),
             runtime_protocol_version: 1,
@@ -294,7 +298,7 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
         .iter_mut()
         .find(|candidate| {
             let id = &candidate["implementation"]["semantic_contract"]["id"];
-            id == "conduit.std/literal"
+            id == "std/literal"
         })
         .unwrap();
     candidate["implementation"]["maximum_plan_version"] =
@@ -413,7 +417,7 @@ fn toxic_hazard_input(source: &str) -> CompileInput {
         .iter_mut()
         .find(|candidate| {
             let id = &candidate["implementation"]["semantic_contract"]["id"];
-            id == "conduit.std/literal"
+            id == "std/literal"
         })
         .unwrap();
     candidate["implementation"]["maximum_plan_version"] =

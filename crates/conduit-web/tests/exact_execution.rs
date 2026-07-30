@@ -3,9 +3,9 @@ mod support;
 use conduit_web::{run_panel, run_panel_exact};
 
 const SOURCE: &str = "panel 1\n\
-node greeting : conduit.std/literal { value = \"Hello from Conduit.\\n\" }\n\
-node shout : conduit.std/uppercase\n\
-node output : conduit.std/stdout\n\
+node greeting : std/literal { value = \"Hello from Conduit.\\n\" }\n\
+node shout : text/uppercase\n\
+node output : io/stdout\n\
 cord greeting.out -> shout.in {\n\
   capacity = 2\n\
   max_value_bytes = 64\n\

@@ -4,6 +4,6 @@ node source : std/literal {
   value = "hello interface"
 }
 
-node target : std/stdout implements conduit/stream-sink
+node target : io/stdout implements conduit/stream-sink
 
 cord source.out -> target.in

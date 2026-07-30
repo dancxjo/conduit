@@ -57,8 +57,9 @@ fn profile(ordinal: u8) -> ExecutionProfileDocument {
 
 fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> CandidateDocument {
     let name = contract_id
-        .strip_prefix("conduit.std/")
-        .expect("reference slice uses standard primitives");
+        .rsplit('/')
+        .next()
+        .expect("reference contract has a final path segment");
     let artifact_id = format!("fixture/browser-artifact-{ordinal}");
     let artifact_digest = ArtifactDigest::from_bytes([ordinal; 32]).to_string();
     CandidateDocument {

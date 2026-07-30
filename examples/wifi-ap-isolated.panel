@@ -1,11 +1,11 @@
 # Isolated Wi-Fi access point configuration panel.
 panel 1
 
-node wifi_ap : std/wifi-ap {
+node wifi_ap : net/wifi/access-point {
     ssid = "Conduit-AP"
 }
 
-node status_logger : std/log
+node status_logger : observe/log
 
 cord wifi_ap.out -> status_logger.in {
     capacity = 4
