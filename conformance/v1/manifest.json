@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 52,
+  "manifest_revision": 53,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar-v1",
           "path": "../c3/panel-grammar-v1.json",
-          "sha256": "sha256:1d56cc731ff30c8d3b30b615c5ac20ae4bcfa2d674522e9d2980ff573da2da91",
+          "sha256": "sha256:ee2f8977eeabbc57ed7c6525a0d0f797f5a69516b5467b7dd21b650755b497c7",
           "operation": "panel-source-v1",
           "requirement_ids": [
             "SRC-001",
@@ -1011,31 +1011,72 @@
             "outcome",
             "code"
           ]
+        },
+        {
+          "id": "panel-directional-syntax-v1",
+          "path": "../c3/panel-directional-syntax-v1.json",
+          "sha256": "sha256:efe9cf4ad284e119477d8e856baf0138497f8982133b1214bd8d358a39770793",
+          "operation": "panel-directional-syntax-v1",
+          "requirement_ids": [
+            "SRC-001",
+            "SRC-002",
+            "SRC-007",
+            "SRC-009",
+            "SRC-010",
+            "SRC-011"
+          ],
+          "default_rule": "SRC-001",
+          "case_rules": {
+            "canonical-interface-action-shape": "SRC-001",
+            "equivalent-sigils-and-reverse-cord": "SRC-010",
+            "zero-sided-source-and-sink": "SRC-009",
+            "endpoint-elision-rejected": "SRC-009",
+            "english-direction-rejected": "SRC-007",
+            "doubled-sigil-rejected": "SRC-001",
+            "old-version-reverse-arrow-rejected": "SRC-007"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "outcome",
+            "code"
+          ]
         }
       ],
       "coverage": {
         "positive": [
           "panel-grammar-v1#minimal",
-          "panel-grammar-v1#resolved-import"
+          "panel-grammar-v1#resolved-import",
+          "panel-directional-syntax-v1#canonical-interface-action-shape"
         ],
         "negative": [
           "panel-grammar-v1#malformed-cord",
-          "panel-grammar-v1#import-cycle"
+          "panel-grammar-v1#import-cycle",
+          "panel-directional-syntax-v1#endpoint-elision-rejected"
         ],
         "boundary": [
           "panel-grammar-v1#port-groups",
           "panel-grammar-v1#bounded-pools",
-          "panel-grammar-v1#typed-literal-forms"
+          "panel-grammar-v1#typed-literal-forms",
+          "panel-directional-syntax-v1#zero-sided-source-and-sink"
         ],
         "migration": [
           "panel-grammar-v1#format-equivalence",
-          "panel-grammar-v1#definition-parameters-constraint-export"
+          "panel-grammar-v1#definition-parameters-constraint-export",
+          "panel-directional-syntax-v1#equivalent-sigils-and-reverse-cord"
         ]
       },
       "reference_tests": [
         {
           "package": "conduit-panel",
           "test": "panel_grammar_vectors"
+        },
+        {
+          "package": "conduit-panel",
+          "test": "panel_directional_vectors"
         }
       ]
     },

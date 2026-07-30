@@ -1,5 +1,13 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 53 — 2026-07-30
+
+- Added grammar-v3 logographic directional declarations, accepted equivalent
+  sigils and reverse cords, explicit endpoint rejection, and zero-sided
+  interface fixtures.
+- Preserved grammar-v1 and grammar-v2 parsing while assigning grammar v3 a
+  distinct source-AST schema-5 identity.
+
 ## Manifest revision 52 — 2026-07-30
 
 - Added the shared Linux, browser/WASM, constrained-firmware,

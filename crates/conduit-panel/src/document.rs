@@ -11,6 +11,7 @@ pub const SOURCE_AST_SCHEMA_V1: u16 = 1;
 pub const SOURCE_AST_SCHEMA_V2: u16 = 2;
 pub const SOURCE_AST_SCHEMA_V3: u16 = 3;
 pub const SOURCE_AST_SCHEMA_V4: u16 = 4;
+pub const SOURCE_AST_SCHEMA_V5: u16 = 5;
 
 /// Explicit persisted source-AST schema selection failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -99,6 +100,12 @@ impl SourceDocument {
     #[must_use]
     pub fn semantic_hash_v4(&self) -> Option<String> {
         self.ast.as_ref().map(semantic_source_hash_v4)
+    }
+
+    /// Hashes grammar-v3 directional declarations under source-AST schema 5.
+    #[must_use]
+    pub fn semantic_hash_v5(&self) -> Option<String> {
+        self.ast.as_ref().map(semantic_source_hash_v5)
     }
 }
 
@@ -216,6 +223,26 @@ pub fn semantic_source_hash_v4(panel: &Panel) -> String {
     )
 }
 
+/// Version 5 authored-source hash for grammar-v3 directional declarations.
+///
+/// Direction remains an explicit AST field. The new domain ensures persisted
+/// grammar-v2 identities are never reinterpreted as the logographic syntax.
+#[must_use]
+pub fn semantic_source_hash_v5(panel: &Panel) -> String {
+    let mut normalized = String::new();
+    write_panel(panel, &mut normalized, false);
+    format!(
+        "sha256:{:x}",
+        Sha256::digest(
+            [
+                b"conduit.panel-source/v5\0".as_slice(),
+                normalized.as_bytes()
+            ]
+            .concat()
+        )
+    )
+}
+
 /// Hashes one explicitly selected source-AST schema.
 pub fn semantic_source_hash_version(
     panel: &Panel,
@@ -226,6 +253,7 @@ pub fn semantic_source_hash_version(
         SOURCE_AST_SCHEMA_V2 => Ok(semantic_source_hash_v2(panel)),
         SOURCE_AST_SCHEMA_V3 => Ok(semantic_source_hash_v3(panel)),
         SOURCE_AST_SCHEMA_V4 => Ok(semantic_source_hash_v4(panel)),
+        SOURCE_AST_SCHEMA_V5 => Ok(semantic_source_hash_v5(panel)),
         _ => Err(SourceSchemaError {
             code: "CND-SRC-011",
             schema_version,
@@ -234,7 +262,7 @@ pub fn semantic_source_hash_version(
     }
 }
 
-fn lossless_tokens(source: &str) -> Vec<CstToken> {
+pub(crate) fn lossless_tokens(source: &str) -> Vec<CstToken> {
     let mut tokens = Vec::new();
     let mut index = 0;
     let mut line = 1;

@@ -12,7 +12,7 @@ use conduit_runtime::{
     ConfigProvenance, LiteralValidationError, LoweredConfigValue, OwnedConfigFieldSchema,
     OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference, OwnedSemanticValue,
     OwnedTypeReference, SourceContractCatalog, VersionedLoweredSource, lower_source,
-    lower_source_v2, lower_source_version, migrate_lowered_source_v1,
+    lower_source_v2, lower_source_v4, lower_source_version, migrate_lowered_source_v1,
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest as _, Sha256};
@@ -271,6 +271,30 @@ impl SourceContractCatalog for Catalog {
             _ => Err(LiteralValidationError::WrongKind),
         }
     }
+}
+
+#[test]
+fn grammar_three_uses_source_ast_schema_five_without_reinterpreting_older_source() {
+    let directional = lower_source_v4(
+        &graph("panel 3\ninterface fixture/ports { > value : fixture/text }\n"),
+        &Catalog,
+    )
+    .unwrap();
+    assert_eq!(
+        directional.source_ast_schema_version,
+        conduit_runtime::SOURCE_AST_SCHEMA_V5
+    );
+
+    let frozen = lower_source_v4(
+        &graph("panel 2\ninterface fixture/ports { input value : fixture/text }\n"),
+        &Catalog,
+    )
+    .unwrap();
+    assert_eq!(
+        frozen.source_ast_schema_version,
+        conduit_runtime::SOURCE_AST_SCHEMA_V4
+    );
+    assert_ne!(directional.semantic_hash, frozen.semantic_hash);
 }
 
 struct OrderedPortCatalog(Vec<String>);

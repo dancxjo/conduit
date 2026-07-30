@@ -237,6 +237,10 @@ containment program is tracked by
 - [`060-text-lines-join-v1.md`](060-text-lines-join-v1.md) freezes bounded,
   chunk-independent logical line splitting and finite ordered text joining,
   including exact state, overflow, cancellation, and provider boundaries.
+- [`061-panel-directional-syntax-v1.md`](061-panel-directional-syntax-v1.md)
+  freezes grammar-v3 logographic directional declarations, equivalent input
+  spellings, canonical migration, explicit cord endpoints, and source-AST
+  schema-5 identity.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

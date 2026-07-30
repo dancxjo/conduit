@@ -886,7 +886,7 @@
         {
           "implementation": "conduit/hosted-fallback-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1388,7 +1388,7 @@
         {
           "implementation": "conduit/hosted-pass-through-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1627,7 +1627,7 @@
         {
           "implementation": "conduit/hosted-merge-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1984,7 +1984,7 @@
         {
           "implementation": "conduit/hosted-tee-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2310,7 +2310,7 @@
         {
           "implementation": "conduit/hosted-stderr-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2354,7 +2354,7 @@
         {
           "implementation": "conduit/hosted-stdin-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2398,7 +2398,7 @@
         {
           "implementation": "conduit/hosted-stdout-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4486,7 +4486,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4537,7 +4537,7 @@
         {
           "implementation": "conduit/hosted-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4633,7 +4633,7 @@
         {
           "implementation": "conduit/hosted-format-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4715,7 +4715,7 @@
         {
           "implementation": "conduit/hosted-text-join-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4779,7 +4779,7 @@
         {
           "implementation": "conduit/hosted-text-lines-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5721,7 +5721,7 @@
         {
           "implementation": "conduit/hosted-uppercase-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+          "artifact_digest": "sha256:e2525380d2dfb03852014fef9e165574cb291b5b4e11b33c2ab7e7e244d15381"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

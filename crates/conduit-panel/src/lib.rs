@@ -11,10 +11,10 @@ mod modules;
 
 pub use document::{
     CstToken, CstTokenKind, SOURCE_AST_SCHEMA_V1, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3,
-    SOURCE_AST_SCHEMA_V4, SourceDocument, SourceSchemaError, Span, parse_document,
-    parse_document_with_root, semantic_source_hash, semantic_source_hash_v1,
+    SOURCE_AST_SCHEMA_V4, SOURCE_AST_SCHEMA_V5, SourceDocument, SourceSchemaError, Span,
+    parse_document, parse_document_with_root, semantic_source_hash, semantic_source_hash_v1,
     semantic_source_hash_v2, semantic_source_hash_v3, semantic_source_hash_v4,
-    semantic_source_hash_version,
+    semantic_source_hash_v5, semantic_source_hash_version,
 };
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
@@ -550,6 +550,9 @@ enum TokenKind {
     LeftParen,
     RightParen,
     Arrow,
+    LeftArrow,
+    Greater,
+    Less,
     Eof,
 }
 
@@ -562,7 +565,7 @@ struct Token {
     end_column: usize,
 }
 
-/// Parses normative `.panel` grammar version 1.
+/// Parses supported `.panel` grammar versions with their frozen semantics.
 ///
 /// ```text
 /// panel 1
@@ -584,6 +587,247 @@ pub fn parse(source: &str) -> Result<Panel, ParseError> {
 /// Parses a document and explicitly selects one of its declared roots.
 pub fn parse_with_root(source: &str, selected_root: Option<&str>) -> Result<Panel, ParseError> {
     Parser::new(lex(source)?).parse(selected_root, true)
+}
+
+/// Migrates any readable source version to canonical grammar-v3 directional
+/// spelling while preserving unrelated bytes, comments, and configuration.
+///
+/// The accepted `<` declaration spellings and reverse cord arrow are input
+/// conveniences only. Output always uses `> receiving`, `outgoing >`, and
+/// `producer.port -> consumer.port`.
+pub fn migrate_directional_syntax_v3(source: &str) -> Result<String, ParseError> {
+    let panel = parse(source)?;
+    let tokens = document::lossless_tokens(source);
+    let mut edits = Vec::new();
+
+    let panel_keyword = tokens
+        .iter()
+        .position(|token| token.kind == CstTokenKind::Lexeme && token.text == "panel")
+        .ok_or_else(|| ParseError {
+            code: "CND-SRC-001",
+            line: 1,
+            column: 1,
+            message: "missing panel declaration".to_owned(),
+        })?;
+    let version = tokens
+        .iter()
+        .skip(panel_keyword + 1)
+        .find(|token| token.kind == CstTokenKind::Lexeme)
+        .ok_or_else(|| ParseError {
+            code: "CND-SRC-001",
+            line: 1,
+            column: 1,
+            message: "missing panel version".to_owned(),
+        })?;
+    edits.push(SourceEdit {
+        start: version.span.start,
+        end: version.span.end,
+        replacement: "3".to_owned(),
+    });
+
+    for interface in &panel.interfaces {
+        for member in &interface.members {
+            replace_directional_prefix(
+                source,
+                &tokens,
+                member.source_span,
+                member.direction,
+                &member.id,
+                ":",
+                &mut edits,
+            )?;
+        }
+    }
+    collect_directional_edits(
+        source,
+        &tokens,
+        &panel.cords,
+        &panel.port_groups,
+        &[],
+        &mut edits,
+    )?;
+    for definition in &panel.definitions {
+        collect_directional_edits(
+            source,
+            &tokens,
+            &definition.cords,
+            &definition.port_groups,
+            &definition.exports,
+            &mut edits,
+        )?;
+    }
+
+    edits.sort_by_key(|edit| edit.start);
+    for pair in edits.windows(2) {
+        if pair[0].end > pair[1].start {
+            return Err(ParseError {
+                code: "CND-SRC-012",
+                line: 1,
+                column: 1,
+                message: "directional migration edits overlap".to_owned(),
+            });
+        }
+    }
+    let mut migrated = source.to_owned();
+    for edit in edits.into_iter().rev() {
+        migrated.replace_range(edit.start..edit.end, &edit.replacement);
+    }
+    let migrated_panel = parse(&migrated)?;
+    if migrated_panel.version != 3 {
+        return Err(ParseError {
+            code: "CND-SRC-012",
+            line: 1,
+            column: 1,
+            message: "directional migration did not produce panel 3".to_owned(),
+        });
+    }
+    Ok(migrated)
+}
+
+#[derive(Debug)]
+struct SourceEdit {
+    start: usize,
+    end: usize,
+    replacement: String,
+}
+
+fn collect_directional_edits(
+    source: &str,
+    tokens: &[CstToken],
+    cords: &[Cord],
+    groups: &[PortGroup],
+    exports: &[PortExport],
+    edits: &mut Vec<SourceEdit>,
+) -> Result<(), ParseError> {
+    for group in groups {
+        replace_directional_prefix(
+            source,
+            tokens,
+            group.source_span,
+            group.direction,
+            &group.id,
+            ":",
+            edits,
+        )?;
+    }
+    for export in exports {
+        let (start, end) = span_offsets(source, export.source_span)?;
+        let comments = comments_in_range(tokens, start, end);
+        edits.push(SourceEdit {
+            start,
+            end,
+            replacement: format!(
+                "{} = {}.{}{}",
+                directional_name(export.direction, &export.id),
+                export.target.node,
+                export.target.port,
+                comments
+            ),
+        });
+    }
+    for cord in cords {
+        let (start, end) = span_offsets(source, cord.source_span)?;
+        let prefix_end = tokens
+            .iter()
+            .find(|token| token.span.start >= start && token.span.end <= end && token.text == "{")
+            .map_or(end, |token| token.span.start);
+        let comments = comments_in_range(tokens, start, prefix_end);
+        edits.push(SourceEdit {
+            start,
+            end: prefix_end,
+            replacement: format!(
+                "{}.{} -> {}.{}{}{}",
+                cord.from.node,
+                cord.from.port,
+                cord.to.node,
+                cord.to.port,
+                comments,
+                if prefix_end < end { " " } else { "" }
+            ),
+        });
+    }
+    Ok(())
+}
+
+fn replace_directional_prefix(
+    source: &str,
+    tokens: &[CstToken],
+    span: SourceSpan,
+    direction: ExportDirection,
+    id: &str,
+    terminator: &str,
+    edits: &mut Vec<SourceEdit>,
+) -> Result<(), ParseError> {
+    let (start, end) = span_offsets(source, span)?;
+    let terminator_start = tokens
+        .iter()
+        .find(|token| {
+            token.span.start >= start && token.span.end <= end && token.text == terminator
+        })
+        .map(|token| token.span.start)
+        .ok_or_else(|| ParseError {
+            code: "CND-SRC-012",
+            line: span.line,
+            column: span.column,
+            message: format!("directional declaration `{id}` has no `{terminator}`"),
+        })?;
+    let comments = comments_in_range(tokens, start, terminator_start);
+    edits.push(SourceEdit {
+        start,
+        end: terminator_start,
+        replacement: format!("{}{} ", directional_name(direction, id), comments),
+    });
+    Ok(())
+}
+
+fn comments_in_range(tokens: &[CstToken], start: usize, end: usize) -> String {
+    tokens
+        .iter()
+        .filter(|token| {
+            token.kind == CstTokenKind::Comment
+                && token.span.start >= start
+                && token.span.end <= end
+        })
+        .fold(String::new(), |mut comments, token| {
+            comments.push(' ');
+            comments.push_str(&token.text);
+            comments.push('\n');
+            comments
+        })
+}
+
+fn directional_name(direction: ExportDirection, id: &str) -> String {
+    match direction {
+        ExportDirection::Input => format!("> {id}"),
+        ExportDirection::Output => format!("{id} >"),
+    }
+}
+
+fn span_offsets(source: &str, span: SourceSpan) -> Result<(usize, usize), ParseError> {
+    fn offset(source: &str, line: usize, column: usize) -> Option<usize> {
+        let mut current_line = 1;
+        let mut current_column = 1;
+        for (index, character) in source.char_indices() {
+            if current_line == line && current_column == column {
+                return Some(index);
+            }
+            if character == '\n' {
+                current_line += 1;
+                current_column = 1;
+            } else {
+                current_column += 1;
+            }
+        }
+        (current_line == line && current_column == column).then_some(source.len())
+    }
+    let start = offset(source, span.line, span.column);
+    let end = offset(source, span.end_line, span.end_column);
+    start.zip(end).ok_or_else(|| ParseError {
+        code: "CND-SRC-012",
+        line: span.line,
+        column: span.column,
+        message: "directional migration span is outside the source".to_owned(),
+    })
 }
 
 fn parse_module(source: &str) -> Result<Panel, ParseError> {
@@ -718,6 +962,39 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                 });
                 index += 2;
                 column += 2;
+            }
+            b'<' if bytes.get(index + 1) == Some(&b'-') => {
+                tokens.push(Token {
+                    kind: TokenKind::LeftArrow,
+                    line,
+                    column,
+                    end_line: line,
+                    end_column: column + 2,
+                });
+                index += 2;
+                column += 2;
+            }
+            b'>' => {
+                tokens.push(Token {
+                    kind: TokenKind::Greater,
+                    line,
+                    column,
+                    end_line: line,
+                    end_column: column + 1,
+                });
+                index += 1;
+                column += 1;
+            }
+            b'<' => {
+                tokens.push(Token {
+                    kind: TokenKind::Less,
+                    line,
+                    column,
+                    end_line: line,
+                    end_column: column + 1,
+                });
+                index += 1;
+                column += 1;
             }
             b'-' if bytes.get(index + 1).is_some_and(u8::is_ascii_digit) => {
                 let start = index;
@@ -918,7 +1195,7 @@ impl Parser {
         let version = self.expect_number()?;
         let version =
             u16::try_from(version).map_err(|_| self.error("panel version does not fit in u16"))?;
-        if !matches!(version, 1 | 2) {
+        if !matches!(version, 1..=3) {
             return Err(self.error_code(
                 "CND-SRC-007",
                 format!("unsupported panel version {version}"),
@@ -1100,19 +1377,30 @@ impl Parser {
                 "export" => {
                     let start_line = self.current().line;
                     let start_column = self.current().column;
-                    let direction = match self.expect_any_word()?.as_str() {
-                        "input" => ExportDirection::Input,
-                        "output" => ExportDirection::Output,
-                        _ => return Err(self.error("export direction must be `input` or `output`")),
-                    };
-                    let first = self.expect_any_word()?;
-                    let (export_id, target) = if self.current_word_is("as") {
-                        self.advance();
-                        let export_id = self.expect_any_word()?;
-                        (export_id, self.endpoint_from_word(first)?)
-                    } else {
+                    let (direction, export_id, target) = if self.panel_version >= 3 {
+                        let (direction, export_id) = self.parse_directional_name("export")?;
                         self.expect_simple(TokenKind::Equals, "`=`")?;
-                        (first, self.expect_endpoint()?)
+                        (direction, export_id, self.expect_endpoint()?)
+                    } else {
+                        let direction = match self.expect_any_word()?.as_str() {
+                            "input" => ExportDirection::Input,
+                            "output" => ExportDirection::Output,
+                            _ => {
+                                return Err(
+                                    self.error("export direction must be `input` or `output`")
+                                );
+                            }
+                        };
+                        let first = self.expect_any_word()?;
+                        let (export_id, target) = if self.current_word_is("as") {
+                            self.advance();
+                            let export_id = self.expect_any_word()?;
+                            (export_id, self.endpoint_from_word(first)?)
+                        } else {
+                            self.expect_simple(TokenKind::Equals, "`=`")?;
+                            (first, self.expect_endpoint()?)
+                        };
+                        (direction, export_id, target)
                     };
                     let (end_line, end_column) = self.previous_end();
                     exports.push(PortExport {
@@ -1196,17 +1484,21 @@ impl Parser {
             }
             let member_start_line = self.current().line;
             let member_start_column = self.current().column;
-            let direction_word = self.expect_any_word()?;
-            let direction = match direction_word.as_str() {
-                "input" => ExportDirection::Input,
-                "output" => ExportDirection::Output,
-                _ => {
-                    return Err(self.error(format!(
-                        "interface member direction must be `input` or `output`; found `{direction_word}`"
-                    )));
-                }
+            let (direction, member_id) = if self.panel_version >= 3 {
+                self.parse_directional_name("interface member")?
+            } else {
+                let direction_word = self.expect_any_word()?;
+                let direction = match direction_word.as_str() {
+                    "input" => ExportDirection::Input,
+                    "output" => ExportDirection::Output,
+                    _ => {
+                        return Err(self.error(format!(
+                            "interface member direction must be `input` or `output`; found `{direction_word}`"
+                        )));
+                    }
+                };
+                (direction, self.expect_any_word()?)
             };
-            let member_id = self.expect_any_word()?;
             self.expect_simple(TokenKind::Colon, "`:`")?;
             let contract_start_line = self.current().line;
             let contract_start_column = self.current().column;
@@ -1425,11 +1717,16 @@ impl Parser {
     fn parse_port_group(&mut self) -> Result<PortGroup, ParseError> {
         let start_line = self.current().line;
         let start_column = self.current().column;
-        let id = self.expect_any_word()?;
-        let direction = match self.expect_any_word()?.as_str() {
-            "input" => ExportDirection::Input,
-            "output" => ExportDirection::Output,
-            _ => return Err(self.error("port-group direction must be `input` or `output`")),
+        let (direction, id) = if self.panel_version >= 3 {
+            self.parse_directional_name("port-group")?
+        } else {
+            let id = self.expect_any_word()?;
+            let direction = match self.expect_any_word()?.as_str() {
+                "input" => ExportDirection::Input,
+                "output" => ExportDirection::Output,
+                _ => return Err(self.error("port-group direction must be `input` or `output`")),
+            };
+            (direction, id)
         };
         self.expect_simple(TokenKind::Colon, "`:`")?;
         let port_contract = self.expect_any_word()?;
@@ -1668,9 +1965,24 @@ impl Parser {
     fn parse_cord(&mut self, ordinal: usize) -> Result<Cord, ParseError> {
         let start_line = self.current().line;
         let start_column = self.current().column;
-        let from = self.expect_endpoint()?;
-        self.expect_simple(TokenKind::Arrow, "`->`")?;
-        let to = self.expect_endpoint()?;
+        let first = self.expect_endpoint()?;
+        let (from, to) = match self.current().kind {
+            TokenKind::Arrow => {
+                self.advance();
+                (first, self.expect_endpoint()?)
+            }
+            TokenKind::LeftArrow if self.panel_version >= 3 => {
+                self.advance();
+                (self.expect_endpoint()?, first)
+            }
+            TokenKind::LeftArrow => {
+                return Err(self.error_code(
+                    "CND-SRC-007",
+                    "`<-` requires `panel 3`; older grammar versions are frozen",
+                ));
+            }
+            _ => return Err(self.error("expected `->` or `<-`")),
+        };
         let mut capacity_items = 8_u16;
         let mut pressure_name = "block".to_owned();
         let mut max_value_bytes = None;
@@ -1814,6 +2126,39 @@ impl Parser {
     fn expect_endpoint(&mut self) -> Result<Endpoint, ParseError> {
         let value = self.expect_any_word()?;
         self.endpoint_from_word(value)
+    }
+
+    fn parse_directional_name(
+        &mut self,
+        declaration: &str,
+    ) -> Result<(ExportDirection, String), ParseError> {
+        match self.current().kind {
+            TokenKind::Greater => {
+                self.advance();
+                Ok((ExportDirection::Input, self.expect_any_word()?))
+            }
+            TokenKind::Less => {
+                self.advance();
+                Ok((ExportDirection::Output, self.expect_any_word()?))
+            }
+            TokenKind::Word(_) => {
+                let id = self.expect_any_word()?;
+                let direction = match self.current().kind {
+                    TokenKind::Less => ExportDirection::Input,
+                    TokenKind::Greater => ExportDirection::Output,
+                    _ => {
+                        return Err(self.error(format!(
+                            "{declaration} `{id}` requires a leading or trailing flow sigil"
+                        )));
+                    }
+                };
+                self.advance();
+                Ok((direction, id))
+            }
+            _ => Err(self.error(format!(
+                "{declaration} requires `> receiving` or `outgoing >`"
+            ))),
+        }
     }
 
     fn endpoint_from_word(&self, value: String) -> Result<Endpoint, ParseError> {
@@ -2438,5 +2783,115 @@ mod tests {
         assert_eq!(definition.exports[0].target.node, "upper");
         assert_eq!(definition.bindings[0].target.port, "value");
         assert_eq!(panel.nodes[0].kind, "example/upper-line");
+    }
+
+    #[test]
+    fn panel_three_parses_all_directional_sigil_equivalences() {
+        let panel = parse(
+            r#"
+                panel 3
+                interface fixture/ports {
+                    > receiving : fixture/text
+                    receiving_alt < : fixture/text
+                    < outgoing_alt : fixture/text
+                    outgoing > : fixture/text
+                }
+                composite fixture/box {
+                    node child : fixture/node
+                    export > receiving = child.receiving
+                    export outgoing > = child.outgoing
+                    port-group > requests : fixture/request indexed max 2
+                    port-group responses > : fixture/response indexed max 2
+                    cord child.receiving <- child.outgoing
+                }
+                port-group > input : fixture/request indexed max 1
+                port-group output > : fixture/response indexed max 1
+                root fixture/box
+            "#,
+        )
+        .expect("logographic declarations parse");
+
+        let members = &panel.interfaces[0].members;
+        assert_eq!(members[0].direction, ExportDirection::Input);
+        assert_eq!(members[1].direction, ExportDirection::Input);
+        assert_eq!(members[2].direction, ExportDirection::Output);
+        assert_eq!(members[3].direction, ExportDirection::Output);
+        assert_eq!(
+            panel.definitions[0].exports[0].direction,
+            ExportDirection::Input
+        );
+        assert_eq!(
+            panel.definitions[0].exports[1].direction,
+            ExportDirection::Output
+        );
+        assert_eq!(panel.definitions[0].cords[0].from.port, "outgoing");
+        assert_eq!(panel.definitions[0].cords[0].to.port, "receiving");
+        assert_eq!(panel.port_groups[0].id, "input");
+        assert_eq!(panel.port_groups[1].id, "output");
+    }
+
+    #[test]
+    fn panel_three_rejects_english_direction_positions_and_elided_endpoints() {
+        let english = parse("panel 3\ninterface fixture/ports { input audio : fixture/text }\n")
+            .expect_err("English direction keyword is not canonical grammar v3");
+        assert!(english.message.contains("flow sigil"));
+
+        let elided = parse(
+            "panel 3\nnode source : fixture/source\nnode sink : fixture/sink\n\
+             cord source -> sink\n",
+        )
+        .expect_err("cord endpoints remain explicit");
+        assert!(elided.message.contains("node.port"));
+
+        let old_reverse = parse(
+            "panel 2\nnode source : fixture/source\nnode sink : fixture/sink\n\
+             cord sink.value <- source.value\n",
+        )
+        .expect_err("old grammar remains frozen");
+        assert_eq!(old_reverse.code, "CND-SRC-007");
+    }
+
+    #[test]
+    fn directional_migrator_preserves_unrelated_source_and_is_canonical() {
+        let source = r#"panel 2
+# Keep >, <, ->, .in, and .out in this comment.
+interface fixture/ports {
+  input # member direction comment
+  receiving : fixture/text
+  output outgoing : fixture/text optional
+}
+composite fixture/box {
+  node child : fixture/node { note = "> input : type" }
+  export input # export direction comment
+  child.receiving as receiving
+  export output child.outgoing as outgoing
+  port-group requests input : fixture/request indexed max 2
+  port-group responses output : fixture/response indexed max 2
+  cord child.outgoing # producer comment
+  -> child.receiving { capacity = 1 pressure = block }
+}
+root fixture/box
+"#;
+        let migrated = migrate_directional_syntax_v3(source).expect("source migrates");
+        assert!(migrated.starts_with("panel 3"));
+        assert!(migrated.contains("> receiving"));
+        assert!(migrated.contains(": fixture/text"));
+        assert!(migrated.contains("outgoing > : fixture/text optional"));
+        assert!(migrated.contains("export > receiving = child.receiving"));
+        assert!(migrated.contains("export outgoing > = child.outgoing"));
+        assert!(migrated.contains("port-group > requests : fixture/request"));
+        assert!(migrated.contains("port-group responses > : fixture/response"));
+        assert!(migrated.contains("child.outgoing -> child.receiving"));
+        assert!(migrated.contains("# Keep >, <, ->, .in, and .out in this comment."));
+        assert!(migrated.contains("# member direction comment"));
+        assert!(migrated.contains("# export direction comment"));
+        assert!(migrated.contains("# producer comment"));
+        assert!(migrated.contains("note = \"> input : type\""));
+        assert_eq!(parse(&migrated).unwrap().version, 3);
+        assert_eq!(
+            migrate_directional_syntax_v3(&migrated).unwrap(),
+            migrated,
+            "migration is idempotent"
+        );
     }
 }

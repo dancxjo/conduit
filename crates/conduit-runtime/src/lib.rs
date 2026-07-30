@@ -117,9 +117,9 @@ pub use source_lowering::{
     OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract, OwnedInterfaceMember,
     OwnedNodeContract, OwnedNodeSchema, OwnedPortContract, OwnedPortReference, OwnedSemanticValue,
     OwnedTypeReference, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3, SOURCE_AST_SCHEMA_V4,
-    SourceContractCatalog, SourceMapEntry, SourceOrigin, VersionedLoweredSource, lower_source,
-    lower_source_v2, lower_source_v3, lower_source_v4, lower_source_version,
-    migrate_lowered_source_v1,
+    SOURCE_AST_SCHEMA_V5, SourceContractCatalog, SourceMapEntry, SourceOrigin,
+    VersionedLoweredSource, lower_source, lower_source_v2, lower_source_v3, lower_source_v4,
+    lower_source_version, migrate_lowered_source_v1,
 };
 pub use supervision::BoundedSupervisionRuntime;
 pub use transition::{

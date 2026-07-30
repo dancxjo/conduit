@@ -115,7 +115,7 @@
       "id": "unsupported-version",
       "mode": "parse",
       "productions": ["version"],
-      "source": "panel 3\n",
+      "source": "panel 4\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-007"

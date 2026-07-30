@@ -207,12 +207,12 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
     assert_eq!(arrow.fixes[0].id, "insert-cord-arrow");
 
     let version_source =
-        DiagnosticSource::new("mem://fixture/version.panel", b"panel 3\n".as_slice());
+        DiagnosticSource::new("mem://fixture/version.panel", b"panel 4\n".as_slice());
     let version = from_parse_error(
         &parse(std::str::from_utf8(&version_source.bytes).unwrap()).unwrap_err(),
         &version_source,
     );
-    assert_eq!(version.fixes[0].id, "use-panel-version-2");
+    assert_eq!(version.fixes[0].id, "use-panel-version-3");
 
     let comma_source = DiagnosticSource::new(
         "mem://fixture/comma.panel",

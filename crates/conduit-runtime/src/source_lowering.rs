@@ -527,6 +527,7 @@ pub const LOWERED_SOURCE_SCHEMA_V4: u16 = 4;
 pub const SOURCE_AST_SCHEMA_V2: u16 = conduit_panel::SOURCE_AST_SCHEMA_V2;
 pub const SOURCE_AST_SCHEMA_V3: u16 = conduit_panel::SOURCE_AST_SCHEMA_V3;
 pub const SOURCE_AST_SCHEMA_V4: u16 = conduit_panel::SOURCE_AST_SCHEMA_V4;
+pub const SOURCE_AST_SCHEMA_V5: u16 = conduit_panel::SOURCE_AST_SCHEMA_V5;
 
 /// Corrected root-selection input to lowering. Selection mode is explanatory;
 /// equivalent explicit and sole-root selections share semantic identity.
@@ -1027,7 +1028,19 @@ pub fn lower_source_v3(
     graph: &ModuleGraph,
     catalog: &impl SourceContractCatalog,
 ) -> Result<LoweredSourceV3, LoweringDiagnostic> {
-    if graph.modules.iter().any(|module| module.panel.version > 2) {
+    lower_source_v3_through_grammar(graph, catalog, 2)
+}
+
+fn lower_source_v3_through_grammar(
+    graph: &ModuleGraph,
+    catalog: &impl SourceContractCatalog,
+    maximum_grammar_version: u16,
+) -> Result<LoweredSourceV3, LoweringDiagnostic> {
+    if graph
+        .modules
+        .iter()
+        .any(|module| module.panel.version > maximum_grammar_version)
+    {
         return Err(diagnostic(
             "CND-LWR-011",
             &graph.entry_uri,
@@ -1115,7 +1128,7 @@ pub fn lower_source_v4(
     graph: &ModuleGraph,
     catalog: &impl SourceContractCatalog,
 ) -> Result<LoweredSourceV4, LoweringDiagnostic> {
-    if graph.modules.iter().any(|module| module.panel.version > 2) {
+    if graph.modules.iter().any(|module| module.panel.version > 3) {
         return Err(diagnostic(
             "CND-LWR-011",
             &graph.entry_uri,
@@ -1124,7 +1137,7 @@ pub fn lower_source_v4(
             "source grammar is newer than lowered-source schema 4",
         ));
     }
-    let v3 = lower_source_v3(graph, catalog)?;
+    let v3 = lower_source_v3_through_grammar(graph, catalog, 3)?;
     let mut source_map = v3.source_map.clone();
     let mut interface_proofs = Vec::new();
 
@@ -1183,19 +1196,31 @@ pub fn lower_source_v4(
     let mut facts = Vec::with_capacity(1 + interface_proofs.len());
     facts.push(v3.semantic_hash);
     facts.extend(interface_proofs.iter().map(|proof| proof.semantic_hash));
+    let uses_directional_grammar = graph.modules.iter().any(|module| module.panel.version == 3);
     facts.extend(graph.modules.iter().map(|module| {
-        let source_hash = conduit_panel::semantic_source_hash_v4(&module.panel);
-        hash_parts(
-            "conduit/source-ast-reference/v4",
-            &[&module.canonical_uri, &source_hash],
-        )
+        let (domain, source_hash) = if module.panel.version == 3 {
+            (
+                "conduit/source-ast-reference/v5",
+                conduit_panel::semantic_source_hash_v5(&module.panel),
+            )
+        } else {
+            (
+                "conduit/source-ast-reference/v4",
+                conduit_panel::semantic_source_hash_v4(&module.panel),
+            )
+        };
+        hash_parts(domain, &[&module.canonical_uri, &source_hash])
     }));
     facts.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
     let semantic_hash = hash_facts_v4(&facts);
 
     Ok(LoweredSourceV4 {
         schema_version: LOWERED_SOURCE_SCHEMA_V4,
-        source_ast_schema_version: SOURCE_AST_SCHEMA_V4,
+        source_ast_schema_version: if uses_directional_grammar {
+            SOURCE_AST_SCHEMA_V5
+        } else {
+            SOURCE_AST_SCHEMA_V4
+        },
         v3: Box::new(v3),
         interface_proofs,
         source_map,
