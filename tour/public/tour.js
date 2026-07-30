@@ -1,13 +1,17 @@
 import "./patchbay-components.js";
 import init, {
   explain_panel,
+  panel_language_metadata,
   parse_panel,
   patchbay_apply_transaction,
   patchbay_open_session,
 } from "./conduit_web.js";
 import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 import { patchbayFeatures } from "./patchbay-features.js";
-import { attachPanelSourceHighlighting } from "./panel-highlighter.js";
+import {
+  attachPanelSourceHighlighting,
+  configurePanelLanguage,
+} from "./panel-highlighter.js";
 
 const source = document.querySelector("#source");
 const syncSourceHighlight = attachPanelSourceHighlighting(source);
@@ -96,6 +100,8 @@ for (const artifact of browserPlan.artifacts) {
 await init({
   module_or_path: loadedArtifacts.get("conduit-web-wasm").bytes,
 });
+configurePanelLanguage(JSON.parse(panel_language_metadata()));
+syncSourceHighlight();
 
 const placementFact = (id, available, lifetime, scheduling, transfer, terminalRisks) => ({
   id,
@@ -163,6 +169,7 @@ if (hostReport.ok === false) {
 let current = lessons.lessons[0];
 let acceptedSource = "";
 let selectedNode = null;
+let selectedCord = null;
 let positions = {};
 let patchbaySessionId = "";
 let patchbaySourceRevision = 0;
@@ -248,6 +255,12 @@ if (cyContainer) {
     onTransaction: (operation, options) => applyPatchbayOperations([operation], options),
     onNodeSelect: (nodeId) => {
       selectNode(nodeId);
+    },
+    onCordSelect: (cordId) => {
+      selectCord(cordId);
+    },
+    onSelectionClear: () => {
+      clearTopologySelection();
     },
     onNotification: (msg) => {
       result.textContent = msg;
@@ -567,8 +580,42 @@ function renderRustProjection(projection) {
       !projection.presentation || !projection.run || !Array.isArray(projection.evidence)) {
     throw new Error("CND-PBY-009: incomplete Rust Patchbay projection");
   }
+  if (!patchbayView ||
+      projection.source.semantic_hash !== patchbayView.source.semantic_hash) {
+    throw new Error("CND-PBY-009: run projection does not match the editor source");
+  }
+  const sourceRevision = patchbayView.source.revision;
+  const rebaseRange = (item) => ({
+    ...item,
+    source_range: item.source_range
+      ? { ...item.source_range, source_revision: sourceRevision }
+      : null,
+  });
+  const topology = {
+    ...projection.topology,
+    logical_nodes: projection.topology.logical_nodes.map(rebaseRange),
+    expanded_nodes: projection.topology.expanded_nodes.map(rebaseRange),
+    cords: projection.topology.cords.map(rebaseRange),
+  };
+  const survivingNodes = new Set(
+    topology.expanded_nodes.map((node) => node.id),
+  );
+  const retainedPositions = Object.fromEntries(
+    Object.entries(patchbayView.presentation.node_positions)
+      .filter(([nodeId]) => survivingNodes.has(nodeId)),
+  );
   renderPlan(projection);
-  patchbayView = projection;
+  patchbayView = {
+    ...projection,
+    source: patchbayView.source,
+    semantic: patchbayView.semantic,
+    presentation: {
+      ...patchbayView.presentation,
+      node_positions: retainedPositions,
+    },
+    topology,
+  };
+  positions = retainedPositions;
   updateCytoscapeGraph();
   evidence.splice(0, evidence.length, ...projection.evidence);
   document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
@@ -618,6 +665,7 @@ function show(lesson) {
   const parsedDraft = JSON.parse(parse_panel(source.value));
   acceptedSource = parsedDraft.ok ? source.value : lesson.source;
   selectedNode = null;
+  selectedCord = null;
   positions = {};
   topologyView = "logical";
   undoResetButton.disabled = localStorage.getItem(recoveryKey(lesson.id)) === null;
@@ -633,18 +681,66 @@ function show(lesson) {
 }
 
 function selectNode(node) {
+  const projection = [
+    ...(patchbayView?.topology?.logical_nodes || []),
+    ...(patchbayView?.topology?.expanded_nodes || []),
+  ].find((candidate) => candidate.id === node);
+  if (!selectSourceRange("node", node, projection?.source_range)) return;
   selectedNode = node;
-  selectedNodeLabel.textContent = `Selected: ${node}`;
+  selectedCord = null;
+  selectedNodeLabel.textContent = `Selected node: ${node}`;
   moveLeftBtn.disabled = false;
   moveRightBtn.disabled = false;
-
-  const start = source.value.indexOf(`node ${node} `);
-  if (start >= 0) {
-    source.setSourceHighlightRange?.(start, start + node.length + 5);
-  }
   if (patchbayRenderer) {
     patchbayRenderer.selectNode(node);
   }
+}
+
+function selectCord(cordId) {
+  const projection = (patchbayView?.topology?.cords || [])
+    .find((candidate) => candidate.id === cordId);
+  if (!selectSourceRange("cord", cordId, projection?.source_range)) return;
+  selectedNode = null;
+  selectedCord = cordId;
+  moveLeftBtn.disabled = true;
+  moveRightBtn.disabled = true;
+  const provenance = projection.source_range.provenance === "authored"
+    ? ""
+    : " (derived edge; revealing authored owner)";
+  selectedNodeLabel.textContent = `Selected cord: ${cordId}${provenance}`;
+  patchbayRenderer?.selectCord(cordId);
+}
+
+function selectSourceRange(kind, id, range) {
+  if (!range) {
+    result.textContent =
+      `Selected ${kind} ${id} has no direct authored source range.`;
+    return false;
+  }
+  if (!patchbayView || range.source_revision !== patchbaySourceRevision ||
+      patchbayView.source.revision !== patchbaySourceRevision ||
+      patchbayView.source.source !== source.value) {
+    result.textContent =
+      `CND-PBY-STALE: ${kind} selection was rejected because the source projection is stale.`;
+    return false;
+  }
+  source.setSourceHighlightRange?.(range.start_utf16, range.end_utf16);
+  source.setSelectionRange(range.start_utf16, range.end_utf16);
+  const line = source.value.slice(0, range.start_utf16).split("\n").length - 1;
+  const computedLineHeight = Number.parseFloat(getComputedStyle(source).lineHeight);
+  const lineHeight = Number.isFinite(computedLineHeight) ? computedLineHeight : 20;
+  source.scrollTop = Math.max(0, line * lineHeight - source.clientHeight / 3);
+  source.syncHighlight?.();
+  return true;
+}
+
+function clearTopologySelection() {
+  selectedNode = null;
+  selectedCord = null;
+  selectedNodeLabel.textContent = "No topology item selected";
+  moveLeftBtn.disabled = true;
+  moveRightBtn.disabled = true;
+  source.setSourceHighlightRange?.(null, null);
 }
 
 function check() {
@@ -723,6 +819,7 @@ scenarioSelect.addEventListener("change", () => {
   localStorage.removeItem(draftKey(current.id));
   acceptedSource = scenario.source;
   selectedNode = null;
+  selectedCord = null;
   positions = {};
   evidence.length = 0;
   recordEvidence({ kind: "scenario-selected", scenario: scenario.id });
@@ -890,8 +987,9 @@ document.querySelector("#reset").onclick = () => {
   syncSourceHighlight();
   acceptedSource = source.value;
   selectedNode = null;
+  selectedCord = null;
   positions = {};
-  selectedNodeLabel.textContent = "No node selected";
+  selectedNodeLabel.textContent = "No topology item selected";
   moveLeftBtn.disabled = true;
   moveRightBtn.disabled = true;
   localStorage.removeItem(draftKey(current.id));

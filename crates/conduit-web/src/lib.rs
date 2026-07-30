@@ -324,6 +324,8 @@ fn authoritative_patchbay_view(
     let plan = exact_plan.or_else(|| exact_plan_snapshot(&workspace.source().source));
     let semantic = workspace.semantic_with_lookup(|id| availability_projection(&registry, id));
     let bounds = conduit_patchbay::PatchbayProjectionBounds::default();
+    let source_text = workspace.source().source.as_str();
+    let source_revision = workspace.source().revision;
     let mut expanded_nodes = resolved_view
         .nodes
         .iter()
@@ -354,6 +356,13 @@ fn authoritative_patchbay_view(
                 let mut node = node.clone();
                 node.contract_id.clone_from(&source_node.kind);
                 node.config = config;
+                node.source_range = declaration_source_range(
+                    source_text,
+                    source_node.source_span,
+                    "node",
+                    source_revision,
+                    "authored",
+                );
                 node
             } else {
                 let composite = resolved_view
@@ -407,6 +416,13 @@ fn authoritative_patchbay_view(
                     id: source_node.id.clone(),
                     semantic_id: format!("root/{}", source_node.id),
                     contract_id: source_node.kind.clone(),
+                    source_range: declaration_source_range(
+                        source_text,
+                        source_node.source_span,
+                        "node",
+                        source_revision,
+                        "authored",
+                    ),
                     inputs,
                     outputs,
                     config,
@@ -444,6 +460,19 @@ fn authoritative_patchbay_view(
                 .and_then(|node| node.inputs.iter().find(|port| port.id == cord.to_port))
                 .map(|port| port.type_id.clone())
                 .unwrap_or_else(|| "unknown".to_owned());
+            let source_range = panel
+                .cords
+                .iter()
+                .find(|source_cord| source_cord.id == cord.id)
+                .and_then(|source_cord| {
+                    declaration_source_range(
+                        source_text,
+                        source_cord.source_span,
+                        "cord",
+                        source_revision,
+                        "authored",
+                    )
+                });
             conduit_patchbay::PatchbayCordProjection {
                 id: cord.id.clone(),
                 from_node: cord.from_node.clone(),
@@ -465,6 +494,7 @@ fn authoritative_patchbay_view(
                 low_watermark_items: cord.low_watermark_items,
                 high_watermark_items: cord.high_watermark_items,
                 pressure: cord.pressure.clone(),
+                source_range,
                 high_water_items: None,
             }
         })
@@ -591,6 +621,7 @@ fn project_resolved_node(
         id: node.id.clone(),
         semantic_id: format!("root/{}", node.id),
         contract_id: node.contract_id.clone(),
+        source_range: None,
         inputs: node
             .inputs
             .iter()
@@ -620,6 +651,60 @@ fn project_resolved_node(
         placement: None,
         activity: None,
     }
+}
+
+fn declaration_source_range(
+    source: &str,
+    span: conduit_panel::SourceSpan,
+    declaration: &str,
+    source_revision: u64,
+    provenance: &str,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    fn offset(source: &str, line: usize, column: usize) -> Option<usize> {
+        if line == 0 || column == 0 {
+            return None;
+        }
+        let mut byte = 0;
+        for _ in 1..line {
+            byte += source.get(byte..)?.find('\n')? + 1;
+        }
+        let line_end = source[byte..]
+            .find('\n')
+            .map_or(source.len(), |relative| byte + relative);
+        let relative = source[byte..line_end]
+            .char_indices()
+            .nth(column - 1)
+            .map_or(line_end - byte, |(relative, _)| relative);
+        Some(byte + relative)
+    }
+
+    let span_start = offset(source, span.line, span.column)?;
+    let end_byte = offset(source, span.end_line, span.end_column)?;
+    if span_start > end_byte || end_byte > source.len() {
+        return None;
+    }
+    let line_start = source[..span_start]
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let prefix = &source[line_start..span_start];
+    let declaration_offset = prefix.find(declaration)?;
+    let start_byte = line_start + declaration_offset;
+    let keyword_end = start_byte + declaration.len();
+    if source
+        .as_bytes()
+        .get(keyword_end)
+        .is_some_and(|byte| *byte != b' ')
+    {
+        return None;
+    }
+    Some(conduit_patchbay::SourceRangeProjection {
+        start_byte,
+        end_byte,
+        start_utf16: source[..start_byte].encode_utf16().count(),
+        end_utf16: source[..end_byte].encode_utf16().count(),
+        source_revision,
+        provenance: provenance.to_owned(),
+    })
 }
 
 fn project_config_value(
@@ -717,6 +802,19 @@ pub fn parse_panel(source: String) -> String {
         ),
         Err(error) => format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
     }
+}
+
+/// Returns parser-owned lexical metadata for browser source presentation.
+#[wasm_bindgen]
+pub fn panel_language_metadata() -> String {
+    serde_json::json!({
+        "schema": "conduit.panel-language/v1",
+        "reserved_words": conduit_panel::RESERVED_WORDS,
+        "syntax_words": conduit_panel::SYNTAX_WORDS,
+        "identifier_compatible_syntax_words":
+            conduit_panel::IDENTIFIER_COMPATIBLE_SYNTAX_WORDS,
+    })
+    .to_string()
 }
 
 /// Returns the production resolver's logical and expanded projections.
@@ -957,11 +1055,53 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        explain_panel, patchbay_apply_transaction, patchbay_move_node, patchbay_open_session,
-        patchbay_replace_source, patchbay_session_view,
+        explain_panel, panel_language_metadata, patchbay_apply_transaction, patchbay_move_node,
+        patchbay_open_session, patchbay_replace_source, patchbay_session_view,
     };
 
     const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
+
+    #[test]
+    fn parser_metadata_and_patchbay_ranges_are_authoritative() {
+        let metadata: Value =
+            serde_json::from_str(&panel_language_metadata()).expect("language metadata JSON");
+        assert_eq!(metadata["schema"], "conduit.panel-language/v1");
+        assert_eq!(metadata["reserved_words"], serde_json::json!([]));
+        assert_eq!(
+            metadata["identifier_compatible_syntax_words"],
+            serde_json::json!(["input", "output"])
+        );
+        assert!(
+            metadata["syntax_words"]
+                .as_array()
+                .is_some_and(|words| words.contains(&Value::String("output".to_owned())))
+        );
+
+        let source = SOURCE.replace("hello", "héllo");
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "source-ranges".to_owned(),
+            source.clone(),
+        ))
+        .expect("session JSON");
+        assert_eq!(opened["ok"], true);
+        let cord = &opened["view"]["topology"]["cords"][0];
+        let range = &cord["source_range"];
+        let start_byte = range["start_byte"].as_u64().expect("start byte") as usize;
+        let end_byte = range["end_byte"].as_u64().expect("end byte") as usize;
+        assert_eq!(
+            &source[start_byte..end_byte],
+            "cord greeting.out -> output.in"
+        );
+        assert_eq!(range["source_revision"], 0);
+        assert_eq!(range["provenance"], "authored");
+        assert!(
+            start_byte
+                > range["start_utf16"]
+                    .as_u64()
+                    .expect("browser source offset") as usize,
+            "UTF-8 and browser UTF-16 offsets must remain distinct"
+        );
+    }
 
     #[test]
     fn wasm_bridge_keeps_source_and_presentation_identities_separate() {

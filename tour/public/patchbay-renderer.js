@@ -104,8 +104,11 @@ export class PatchbayReactFlowRenderer {
     this.reactRoot = null;
     this.viewModel = null;
     this.selectedNodeId = null;
+    this.selectedCordId = null;
     this.onTransaction = options.onTransaction || null;
     this.onNodeSelect = options.onNodeSelect || null;
+    this.onCordSelect = options.onCordSelect || null;
+    this.onSelectionClear = options.onSelectionClear || null;
     this.onOpenNested = options.onOpenNested || null;
     this.legacySmartEdge = null;
   }
@@ -133,9 +136,19 @@ export class PatchbayReactFlowRenderer {
 
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
+    this.selectedCordId = null;
     this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
       const shell = card.closest(".react-flow__node");
       card.classList.toggle("selected-faceplate", shell?.dataset.id === nodeId);
+    });
+  }
+
+  selectCord(cordId) {
+    this.selectedNodeId = null;
+    this.selectedCordId = cordId;
+    const projectedEdges = this.viewModel?.topology?.cords || [];
+    this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
+      edge.classList.toggle("selected", projectedEdges[index]?.id === cordId);
     });
   }
 
@@ -270,6 +283,7 @@ export class PatchbayReactFlowRenderer {
         labelBgPadding: [5, 7],
         labelBgBorderRadius: 4,
         animated: false,
+        selected: edge.id === this.selectedCordId,
       };
     });
 
@@ -293,9 +307,14 @@ export class PatchbayReactFlowRenderer {
         });
     }
 
-    const FlowApp = () => e(
+    const topologyIdentity = [
+      ...nodes.map((node) => `node:${node.id}`),
+      ...edges.map((edge) => `cord:${edge.id}`),
+    ].join("\0");
+    const flow = e(
       ReactFlowRenderer,
       {
+        key: topologyIdentity,
         defaultNodes: nodes,
         edges,
         nodeTypes,
@@ -306,9 +325,44 @@ export class PatchbayReactFlowRenderer {
         elementsSelectable: true,
         onNodeClick: (_event, node) => {
           this.selectedNodeId = node.id;
+          this.selectedCordId = null;
           if (this.onNodeSelect) {
             this.onNodeSelect(node.id);
           }
+        },
+        onEdgeClick: (_event, edge) => {
+          this.selectedNodeId = null;
+          this.selectedCordId = edge.id;
+          if (this.onCordSelect) {
+            this.onCordSelect(edge.id);
+          }
+        },
+        onSelectionChange: ({ nodes: selectedNodes, edges: selectedEdges }) => {
+          if (selectedEdges.length > 0) {
+            const cordId = selectedEdges[0].id;
+            if (cordId !== this.selectedCordId && this.onCordSelect) {
+              this.selectedNodeId = null;
+              this.selectedCordId = cordId;
+              this.onCordSelect(cordId);
+            }
+          } else if (selectedNodes.length > 0) {
+            const nodeId = selectedNodes[0].id;
+            if (nodeId !== this.selectedNodeId && this.onNodeSelect) {
+              this.selectedNodeId = nodeId;
+              this.selectedCordId = null;
+              this.onNodeSelect(nodeId);
+            }
+          } else if ((this.selectedNodeId || this.selectedCordId) &&
+              this.onSelectionClear) {
+            this.selectedNodeId = null;
+            this.selectedCordId = null;
+            this.onSelectionClear();
+          }
+        },
+        onPaneClick: () => {
+          this.selectedNodeId = null;
+          this.selectedCordId = null;
+          if (this.onSelectionClear) this.onSelectionClear();
         },
         onNodeDragStop: (_event, node) => {
           if (!this.onTransaction) return;
@@ -350,6 +404,6 @@ export class PatchbayReactFlowRenderer {
             render: (tree) => window.ReactDOM.render(tree, this.flowWrapper),
           };
     }
-    this.reactRoot.render(e(FlowApp));
+    this.reactRoot.render(flow);
   }
 }
