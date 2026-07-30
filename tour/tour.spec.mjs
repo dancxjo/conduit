@@ -155,6 +155,71 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(page.locator(".availability-tag")).toHaveCount(2);
 });
 
+test("shows node movement while a topology box is being dragged", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const node = page.locator(".react-flow__node").first();
+  await node.scrollIntoViewIfNeeded();
+  const before = await node.boundingBox();
+  expect(before).not.toBeNull();
+  const beforeTransform = await node.evaluate((element) => element.style.transform);
+
+  const startX = before.x + before.width / 2;
+  const startY = before.y + 20;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 80, startY + 32, { steps: 4 });
+
+  const during = await node.boundingBox();
+  expect(during.x).toBeGreaterThan(before.x + 40);
+  expect(during.y).toBeGreaterThan(before.y + 15);
+
+  await page.mouse.up();
+  await expect.poll(
+    async () => node.evaluate((element) => element.style.transform),
+  ).not.toBe(
+    beforeTransform,
+  );
+});
+
+test("retains committed topology positions across renders and visits", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const greeting = page.locator('[data-id="greeting"]');
+  await greeting.scrollIntoViewIfNeeded();
+  const before = await greeting.boundingBox();
+  expect(before).not.toBeNull();
+  const beforeTransform = await greeting.evaluate((element) => element.style.transform);
+
+  const startX = before.x + before.width / 2;
+  const startY = before.y + 20;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 96, startY + 48, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(
+    async () => greeting.evaluate((element) => element.style.transform),
+  ).not.toBe(beforeTransform);
+  const committedTransform = await greeting.evaluate(
+    (element) => element.style.transform,
+  );
+
+  await page.locator("#check").click();
+  await expect(greeting).toHaveCSS("transform", /matrix/);
+  await expect.poll(
+    async () => greeting.evaluate((element) => element.style.transform),
+  ).toBe(committedTransform);
+
+  await page.getByRole("button", { name: "Inside / outside" }).click();
+  await page.getByRole("button", { name: "Hello, panel" }).click();
+  await expect.poll(
+    async () => greeting.evaluate((element) => element.style.transform),
+  ).toBe(committedTransform);
+
+  await page.reload();
+  await expect.poll(
+    async () => greeting.evaluate((element) => element.style.transform),
+  ).toBe(committedTransform);
+});
+
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   await page.evaluate(() => {
@@ -178,8 +243,19 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await page.goto("/tour/public/index.html");
   const edge = page.locator(".patchbay-smart-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
+  await expect(edge).toHaveClass(/pressure-lossless/);
   await expect(edge).toHaveClass(/value-type-std-text/);
-  await expect(edge.locator(".react-flow__edge-path")).toHaveAttribute("d", /^M/);
+  await expect(edge).toHaveClass(/type-family-text/);
+  await expect(edge).toHaveClass(/capacity-single/);
+  await expect(edge).toHaveClass(/compatibility-compatible/);
+  const path = edge.locator(".react-flow__edge-path");
+  await expect(path).toHaveAttribute("d", /^M/);
+  await expect(path).toHaveCSS("stroke", "rgb(52, 211, 153)");
+  await expect(path).toHaveCSS("animation-name", "patchbay-cord-block");
+  await expect(edge.locator(".react-flow__edge-text")).toContainText(
+    "1 slots · 0↗1 · block(fifo)",
+  );
+  await expect(page.locator(".cord-legend-item")).toHaveCount(4);
 });
 
 test("reference panels expose canonical contract-only status and disable Run", async ({ page }) => {

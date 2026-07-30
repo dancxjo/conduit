@@ -167,6 +167,66 @@ let topologyView = "logical";
 const evidence = [];
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
+const layoutKey = (id) => `conduit-tour-layout/${id}`;
+const MIN_I32 = -2_147_483_648;
+const MAX_I32 = 2_147_483_647;
+const MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION = 32;
+
+function validPosition(position) {
+  return position &&
+    Number.isInteger(position.x) &&
+    Number.isInteger(position.y) &&
+    position.x >= MIN_I32 &&
+    position.x <= MAX_I32 &&
+    position.y >= MIN_I32 &&
+    position.y <= MAX_I32;
+}
+
+function rememberLayout(lessonId, nodePositions, view) {
+  const movableNodeIds = new Set(
+    (view.topology?.logical_nodes || []).map((node) => node.id),
+  );
+  const boundedPositions = {};
+  for (const nodeId of movableNodeIds) {
+    const position = nodePositions[nodeId];
+    if (validPosition(position)) boundedPositions[nodeId] = position;
+  }
+  localStorage.setItem(layoutKey(lessonId), JSON.stringify(boundedPositions));
+}
+
+function rememberedLayoutOperations(lessonId, view) {
+  let storedPositions;
+  try {
+    storedPositions = JSON.parse(localStorage.getItem(layoutKey(lessonId)) || "{}");
+  } catch {
+    localStorage.removeItem(layoutKey(lessonId));
+    return [];
+  }
+  if (!storedPositions || typeof storedPositions !== "object" ||
+      Array.isArray(storedPositions)) {
+    localStorage.removeItem(layoutKey(lessonId));
+    return [];
+  }
+
+  const movableNodeIds = new Set(
+    (view.topology?.logical_nodes || []).map((node) => node.id),
+  );
+  const maximumNodes = Math.min(
+    view.bounds?.maximum_nodes || 0,
+    movableNodeIds.size,
+  );
+  return Object.entries(storedPositions)
+    .filter(([nodeId, position]) =>
+      movableNodeIds.has(nodeId) && validPosition(position)
+    )
+    .slice(0, maximumNodes)
+    .map(([nodeId, position]) => ({
+      MoveNode: {
+        node_id: nodeId,
+        position,
+      },
+    }));
+}
 
 // Initialize React Flow Patchbay Renderer
 let patchbayRenderer = null;
@@ -203,6 +263,25 @@ function openPatchbaySession() {
   patchbayView = opened.view;
   patchbaySourceRevision = opened.view.source.revision;
   patchbayPresentationRevision = opened.view.presentation.revision;
+  positions = opened.view.presentation.node_positions;
+  const rememberedOperations = rememberedLayoutOperations(current.id, opened.view);
+  if (rememberedOperations.length > 0) {
+    for (let offset = 0; offset < rememberedOperations.length;
+      offset += MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION) {
+      const restored = applyPatchbayOperations(
+        rememberedOperations.slice(
+          offset,
+          offset + MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION,
+        ),
+      );
+      if (!restored.ok) {
+        localStorage.removeItem(layoutKey(current.id));
+        updateCytoscapeGraph();
+        break;
+      }
+    }
+    return true;
+  }
   updateCytoscapeGraph();
   return true;
 }
@@ -227,6 +306,7 @@ function applyPatchbayOperations(operations) {
   patchbayPresentationRevision = transaction.result.presentation.revision;
   acceptedSource = transaction.result.source.source;
   positions = transaction.result.presentation.node_positions;
+  rememberLayout(current.id, positions, patchbayView);
   updateCytoscapeGraph();
   return transaction;
 }

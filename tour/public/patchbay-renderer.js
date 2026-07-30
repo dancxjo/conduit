@@ -10,29 +10,90 @@ import { patchbayFeatures } from "./patchbay-features.js";
 
 const e = window.React.createElement;
 
-function edgePresentation(edge) {
-  const pressure = edge.pressure
+function classToken(value) {
+  return value
     .replace(/[^a-z0-9]+/gi, "-")
     .replace(/^-|-$/g, "")
     .toLowerCase();
-  const type = edge.value_type
-    .replace(/^conduit\//, "")
-    .replace(/[^a-z0-9-]/gi, "-")
-    .toLowerCase();
-  const colors = {
-    any: "#38bdf8",
-    bytes: "#22d3ee",
-    text: "#34d399",
-    utf8: "#34d399",
-    json: "#c084fc",
-    "http-req": "#f59e0b",
-    "http-res": "#fb7185",
-  };
+}
+
+function pressureFamily(pressure) {
+  const normalized = pressure.toLowerCase();
+  for (const policy of [
+    "drop-disposable",
+    "disconnect",
+    "coalesce",
+    "reject",
+    "sample",
+    "block",
+    "fail",
+  ]) {
+    if (normalized.startsWith(policy)) return policy;
+  }
+  return "unknown";
+}
+
+function typePresentation(valueType) {
+  const normalized = valueType.toLowerCase();
+  if (normalized.includes("text") || normalized.includes("utf")) {
+    return { color: "#34d399", family: "text" };
+  }
+  if (normalized.includes("bytes") || normalized.includes("binary") ||
+      normalized.includes("audio")) {
+    return { color: "#22d3ee", family: "bytes" };
+  }
+  if (normalized.includes("json") || normalized.includes("record") ||
+      normalized.includes("data")) {
+    return { color: "#c084fc", family: "structured" };
+  }
+  if (normalized.includes("http") || normalized.includes("request") ||
+      normalized.includes("response") || normalized.includes("network")) {
+    return { color: "#f59e0b", family: "network" };
+  }
+  if (normalized.includes("bool") || normalized.includes("number") ||
+      normalized.includes("integer") || normalized.includes("float")) {
+    return { color: "#facc15", family: "numeric" };
+  }
+  return { color: "#60a5fa", family: "other" };
+}
+
+function edgePresentation(edge) {
+  const policy = pressureFamily(edge.pressure);
+  const valueType = typePresentation(edge.value_type);
+  const compatible = edge.compatibility?.compatible === true;
+  const capacityTier = edge.capacity_items <= 1
+    ? "single"
+    : edge.capacity_items <= 4
+      ? "small"
+      : edge.capacity_items <= 16
+        ? "medium"
+        : "large";
+  const lossClass = ["coalesce", "sample", "drop-disposable"].includes(policy)
+    ? "lossy"
+    : "lossless";
+  const thresholdRatio = edge.high_watermark_items / edge.capacity_items;
+  const thresholdClass = thresholdRatio <= 0.5
+    ? "early"
+    : thresholdRatio < 1
+      ? "graduated"
+      : "full";
+  const strokeWidth = 2 + Math.min(2.5, Math.log2(edge.capacity_items + 1) * 0.45);
+  const color = compatible ? valueType.color : "#fb7185";
 
   return {
-    color: colors[type] || "#60a5fa",
-    className: `pressure-${pressure} value-type-${type}`,
-    label: `${edge.value_type} · ${edge.capacity_items} cap · ${edge.pressure}`,
+    color,
+    strokeWidth,
+    className: [
+      `pressure-${policy}`,
+      `pressure-${lossClass}`,
+      `value-type-${classToken(edge.value_type)}`,
+      `type-family-${valueType.family}`,
+      `capacity-${capacityTier}`,
+      `threshold-${thresholdClass}`,
+      compatible ? "compatibility-compatible" : "compatibility-incompatible",
+    ].join(" "),
+    label: `${edge.value_type} · ${edge.capacity_items} slots · ` +
+      `${edge.low_watermark_items}↗${edge.high_watermark_items} · ${edge.pressure}`,
   };
 }
 
@@ -188,7 +249,9 @@ export class PatchbayReactFlowRenderer {
         },
         style: {
           stroke: presentation.color,
-          strokeWidth: 2,
+          strokeWidth: presentation.strokeWidth,
+          "--cord-color": presentation.color,
+          "--cord-width": `${presentation.strokeWidth}px`,
         },
         animated: false,
       };
@@ -201,6 +264,7 @@ export class PatchbayReactFlowRenderer {
       { className: "react-flow-node-shell" },
       e(FaceplateNodeComponent, { id: data.id, data }),
     );
+    const nodeTypes = { faceplate: FaceplateNode };
 
     const edgeTypes = {};
     if (patchbayFeatures.legacyLinePlacement && this.legacySmartEdge) {
@@ -216,9 +280,9 @@ export class PatchbayReactFlowRenderer {
     const FlowApp = () => e(
       ReactFlowRenderer,
       {
-        nodes,
+        defaultNodes: nodes,
         edges,
-        nodeTypes: { faceplate: FaceplateNode },
+        nodeTypes,
         edgeTypes,
         edgesSelectable: true,
         nodesDraggable: true,

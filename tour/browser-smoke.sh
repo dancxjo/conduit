@@ -38,7 +38,8 @@ curl --fail --silent "http://127.0.0.1:${port}/tour/public/index.html" >/dev/nul
 for attempt in $(seq 1 3); do
   google-chrome --headless --no-sandbox --disable-gpu --virtual-time-budget=25000 --dump-dom \
     "http://127.0.0.1:${port}/tour/public/index.html?autorun" >"${browser_log}"
-  if grep --quiet --fixed-strings "exact dedicated-worker placement" "${browser_log}"; then
+  if grep --quiet --fixed-strings "exact dedicated-worker placement" "${browser_log}" &&
+      grep --quiet --fixed-strings 'class="react-flow__edge-path"' "${browser_log}"; then
     break
   fi
 done
