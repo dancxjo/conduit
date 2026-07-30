@@ -683,7 +683,7 @@
       "expected_stdout": "TOUR/META-LESSON\n",
       "profile": "browser-dedicated-worker",
       "budgets": {
-        "runtime_ticks": 32,
+        "runtime_ticks": 96,
         "queue_bytes": 8192,
         "evidence_events": 32
       },
@@ -710,6 +710,161 @@
         "proof": "canonical-run-rejection",
         "code": "CND-RUN-007",
         "reason": "the current exact binding set rejects duplicate hosted implementation bindings"
+      }
+    },
+    {
+      "id": "library.typed-text-format",
+      "chapter": 4,
+      "title": "Typed text formatting",
+      "prerequisites": [
+        "welcome.change-message",
+        "nodes.types-mean-promises"
+      ],
+      "objective": "Combine a typed template and bounded values into text, then inspect the exact run as a graph and ordered evidence story.",
+      "prose": "The formatter waits for one std/text template and one std/format-values value. Its checked scenarios show standalone use, composition, an exact format error, and deterministic cancellation.",
+      "vocabulary": [
+        "template",
+        "format values",
+        "placeholder",
+        "ordered evidence",
+        "terminal cause"
+      ],
+      "source": "panel 1\n\nnode template : std/literal {\n    value = \"Hello, {name}.\\n\"\n}\nnode values : std/format-values/literal {\n    values = list(record(name=\"name\", value=\"operator\"))\n}\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run lesson.panel",
+      "commands": [
+        "conduct --check lesson.panel",
+        "conduct --run lesson.panel"
+      ],
+      "expected_stdout": "Hello, operator.\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 16384,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "library-execution-story",
+        "show_plan": true,
+        "timeline": "exact-evidence"
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "Hello, operator.\n"
+      },
+      "hints": [
+        "The template and values inputs have different exact value types.",
+        "Select a scenario, edit its typed node configuration, and rerun.",
+        "Timeline controls reveal existing evidence; they do not execute the graph."
+      ],
+      "solution": "Connect std/text and std/format-values producers to the formatter's exact inputs, then connect its std/text output to a consumer.",
+      "accessibility": {
+        "non_audio": "Every graph event is also an ordered table row with sequence, tick, subject, event, pressure, occupancy, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the execution story has focus.",
+        "color_independent": "Event labels, lane names, marker shapes, table text, and graph selection duplicate every color cue."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson/v1",
+        "summary": "std/text/format is a finite two-input filter; std/format-values/literal authors its bounded typed value collection.",
+        "what": "It substitutes automatic, indexed, or named placeholders and emits one std/text value. Double braces emit literal braces.",
+        "when": "Use it when panel data must become bounded display, prompt, log, or request text without provider-specific interpolation.",
+        "wrong": "Malformed placeholders, missing or unused values, duplicate names, unsupported scalar kinds, invalid encodings, and size overflow terminate with exact format/* codes.",
+        "contracts": [
+          {
+            "id": "std/text/format",
+            "kind": "node",
+            "instance": "message",
+            "inputs": [
+              "template:std/text",
+              "values:std/format-values"
+            ],
+            "outputs": [
+              "out:std/text"
+            ],
+            "descriptor_hash": "sha256:79dd54bc0f880b0ac30a49ebbdbe12ef93c9ec89e282912eb9e623d3bccdb5ab"
+          },
+          {
+            "id": "std/format-values/literal",
+            "kind": "node",
+            "instance": "values",
+            "configuration": [
+              "values:list(record(name?, value))"
+            ],
+            "outputs": [
+              "out:std/format-values"
+            ],
+            "descriptor_hash": "sha256:ba23a9d90589f88599912932d3ed10d8c1a5eebbe2c401e9e163454884ea5cc0"
+          }
+        ],
+        "editable": [
+          "template.value:std/text",
+          "values.values:std/format-values"
+        ],
+        "provider": "hosted exact-plan deterministic executor",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "node preparation and value derivation",
+          "ordered cord acceptance and consumption",
+          "block pressure policy and occupancy",
+          "one exact terminal cause"
+        ],
+        "docs": [
+          "../../spec/054-text-format-v1.md",
+          "../../docs/cookbook-standard-library.md#1-text-formatting",
+          "../../examples/formatted-greeting.panel",
+          "../../conformance/c4/text-format-v1.json"
+        ],
+        "scenarios": [
+          {
+            "id": "standalone",
+            "title": "Standalone success",
+            "explanation": "Format one named value and send the resulting text directly to stdout.",
+            "source": "panel 1\n\nnode template : std/literal {\n    value = \"Hello, {name}.\\n\"\n}\nnode values : std/format-values/literal {\n    values = list(record(name=\"name\", value=\"operator\"))\n}\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {
+              "kind": "stdout",
+              "value": "Hello, operator.\n"
+            }
+          },
+          {
+            "id": "composition",
+            "title": "Composed with uppercase",
+            "explanation": "Feed the formatter's typed text output into another standard text node before stdout.",
+            "source": "panel 1\n\nnode template : std/literal { value = \"Hello, {name}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode shout : text/uppercase\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> shout.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord shout.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {
+              "kind": "stdout",
+              "value": "HELLO, OPERATOR.\n"
+            }
+          },
+          {
+            "id": "missing-value",
+            "title": "Missing named value",
+            "explanation": "The authored template requests a name that the typed values collection does not contain.",
+            "source": "panel 1\n\nnode template : std/literal { value = \"Hello, {missing}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {
+              "kind": "diagnostic",
+              "value": "format/missing-value"
+            }
+          },
+          {
+            "id": "cancelled",
+            "title": "Cancelled before first step",
+            "explanation": "Ask the exact runtime to apply deterministic abort cancellation before any node step.",
+            "source": "panel 1\n\nnode template : std/literal { value = \"Hello, {name}.\\n\" }\nnode values : std/format-values/literal { values = list(record(name=\"name\", value=\"operator\")) }\nnode message : std/text/format\nnode output : io/stdout\n\ncord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ncord message.out -> output.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "cancel-before-first-step",
+            "validation": {
+              "kind": "terminal",
+              "value": "cancelled"
+            }
+          }
+        ]
       }
     }
   ]

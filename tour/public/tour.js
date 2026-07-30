@@ -20,6 +20,13 @@ const selectedNodeLabel = document.querySelector("#selected-node-label");
 const moveLeftBtn = document.querySelector("#move-left");
 const moveRightBtn = document.querySelector("#move-right");
 const runnabilityState = document.querySelector("#runnability-state");
+const executionStory = document.querySelector("#execution-story");
+const scenarioSelect = document.querySelector("#scenario");
+const timelinePosition = document.querySelector("#timeline-position");
+const timelinePositionLabel = document.querySelector("#timeline-position-label");
+const timelineLanes = document.querySelector("#timeline-lanes");
+const timelineExplanation = document.querySelector("#timeline-explanation");
+const timelineTableBody = document.querySelector("#timeline-table tbody");
 
 const lessons = await (await fetch("../lessons/v1.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
@@ -165,6 +172,9 @@ let activeAdapter = null;
 let runEpoch = 0;
 let topologyView = "logical";
 const evidence = [];
+let timelineRecords = [];
+let timelineCursor = -1;
+let timelineTimer = null;
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
 const layoutKey = (id) => `conduit-tour-layout/${id}`;
@@ -322,6 +332,226 @@ function recordEvidence(event) {
     evidence.length === 0 ? "No run evidence yet." : JSON.stringify(evidence, null, 2);
 }
 
+function activeScenario() {
+  return current.library?.scenarios?.find(
+    (scenario) => scenario.id === scenarioSelect.value,
+  ) || null;
+}
+
+function authoredSource() {
+  return activeScenario()?.source || current.source;
+}
+
+function stopTimelinePlayback() {
+  if (timelineTimer !== null) {
+    clearInterval(timelineTimer);
+    timelineTimer = null;
+  }
+}
+
+function explainTimelineRecord(record) {
+  if (record.source === "exact-run-result") {
+    return `The exact browser run was rejected before evidence could be emitted: ${record.event_detail}`;
+  }
+  const time = `At deterministic tick ${record.tick}, event ${record.sequence}`;
+  const subject = `${record.subject_kind} ${record.subject_id}`;
+  const action = record.event_detail
+    ? `${record.event_kind} (${record.event_detail})`
+    : record.event_kind;
+  const pressure = record.subject_kind === "cord"
+    ? ` The cord used ${record.pressure} pressure with occupancy ${record.occupancy_items} items / ${record.occupancy_bytes} bytes.`
+    : "";
+  const terminal = record.terminal_cause
+    ? ` The run became terminal: ${record.terminal_cause}.`
+    : "";
+  return `${time} records ${action} for ${subject}.${pressure}${terminal}`;
+}
+
+function highlightTimelineSubject(record) {
+  document.querySelectorAll(".timeline-linked").forEach(
+    (element) => element.classList.remove("timeline-linked"),
+  );
+  const targetId = record?.node_id || record?.cord_id;
+  if (!targetId) return;
+  if (record.node_id && patchbayRenderer) {
+    patchbayRenderer.selectNode(record.node_id);
+  }
+  requestAnimationFrame(() => {
+    document.querySelectorAll("[data-id]").forEach((element) => {
+      if (element.dataset.id === targetId) element.classList.add("timeline-linked");
+    });
+  });
+}
+
+function selectTimelineRecord(index) {
+  if (timelineRecords.length === 0) {
+    timelineCursor = -1;
+    timelinePosition.disabled = true;
+    timelinePositionLabel.textContent = "No exact run evidence yet.";
+    timelineExplanation.textContent =
+      "Run a scenario to inspect its exact ordered evidence.";
+    highlightTimelineSubject(null);
+    return;
+  }
+  timelineCursor = Math.max(0, Math.min(index, timelineRecords.length - 1));
+  timelinePosition.disabled = false;
+  timelinePosition.max = String(timelineRecords.length - 1);
+  timelinePosition.value = String(timelineCursor);
+  const record = timelineRecords[timelineCursor];
+  timelinePositionLabel.textContent =
+    `${timelineCursor + 1} of ${timelineRecords.length}: ${record.event_kind}`;
+  timelineExplanation.textContent = explainTimelineRecord(record);
+  timelineLanes.querySelectorAll(".timeline-event").forEach((marker) => {
+    const markerIndex = Number(marker.dataset.index);
+    marker.classList.toggle("current", markerIndex === timelineCursor);
+    marker.classList.toggle("future", markerIndex > timelineCursor);
+    marker.setAttribute("aria-current", markerIndex === timelineCursor ? "true" : "false");
+  });
+  timelineTableBody.querySelectorAll("tr").forEach((row) => {
+    row.classList.toggle("selected", Number(row.dataset.index) === timelineCursor);
+  });
+  highlightTimelineSubject(record);
+}
+
+function renderTimeline(records) {
+  stopTimelinePlayback();
+  timelineRecords = records;
+  timelineLanes.replaceChildren();
+  timelineTableBody.replaceChildren();
+  const lanes = [...new Set(records.map((record) => record.subject_id))];
+  for (const subjectId of lanes) {
+    const lane = document.createElement("div");
+    lane.className = "timeline-lane";
+    const label = document.createElement("span");
+    label.className = "timeline-lane-label";
+    label.textContent = subjectId;
+    label.title = subjectId;
+    const track = document.createElement("div");
+    track.className = "timeline-track";
+    records.forEach((record, index) => {
+      const slot = document.createElement("span");
+      if (record.subject_id === subjectId) {
+        const marker = document.createElement("button");
+        marker.type = "button";
+        marker.className = "timeline-event";
+        marker.dataset.index = String(index);
+        marker.dataset.subjectKind = record.subject_kind;
+        marker.dataset.terminal = String(Boolean(record.terminal_cause));
+        marker.textContent = String(record.sequence ?? index);
+        marker.title = explainTimelineRecord(record);
+        marker.setAttribute(
+          "aria-label",
+          `Select event ${record.sequence ?? index}: ${record.event_kind} for ${record.subject_id}`,
+        );
+        marker.onclick = () => selectTimelineRecord(index);
+        slot.append(marker);
+      }
+      track.append(slot);
+    });
+    lane.append(label, track);
+    timelineLanes.append(lane);
+  }
+  records.forEach((record, index) => {
+    const row = document.createElement("tr");
+    row.dataset.index = String(index);
+    const pressure = record.pressure
+      ? `${record.pressure}; ${record.occupancy_items} items / ${record.occupancy_bytes} bytes`
+      : "—";
+    for (const value of [
+      record.sequence ?? "—",
+      record.tick ?? "before execution",
+      `${record.subject_kind}: ${record.subject_id}`,
+      record.event_detail
+        ? `${record.event_kind}: ${record.event_detail}`
+        : record.event_kind,
+      pressure,
+      record.terminal_cause || "—",
+    ]) {
+      const cell = document.createElement("td");
+      cell.textContent = String(value);
+      row.append(cell);
+    }
+    timelineTableBody.append(row);
+  });
+  selectTimelineRecord(records.length - 1);
+}
+
+function renderExactResultTimeline(value) {
+  const values = document.querySelector("#timeline-values");
+  if (value.ok) {
+    values.textContent =
+      `Exact terminal state: ${value.terminal}\n` +
+      `Exact stdout: ${JSON.stringify(value.stdout || "")}\n` +
+      `Exact stderr: ${JSON.stringify(value.stderr || "")}`;
+  } else {
+    values.textContent =
+      `Exact run rejection: ${value.code || "unknown"}\n${value.diagnostic || ""}`;
+  }
+  if (Array.isArray(value.evidence) && value.evidence.length > 0) {
+    renderTimeline(value.evidence);
+    return;
+  }
+  if (!value.ok) {
+    renderTimeline([{
+      source: "exact-run-result",
+      sequence: "—",
+      tick: null,
+      subject_kind: "run-result",
+      subject_id: value.code || "rejected",
+      event_kind: "run-rejected",
+      event_detail: value.diagnostic || value.code || "unknown rejection",
+      terminal_cause: "rejected",
+    }]);
+    return;
+  }
+  renderTimeline([]);
+}
+
+function configureExecutionStory() {
+  stopTimelinePlayback();
+  renderTimeline([]);
+  document.querySelector("#timeline-values").textContent =
+    "No exact run values yet.";
+  const library = current.library;
+  executionStory.hidden = !library;
+  if (!library) return;
+  document.querySelector("#library-summary").textContent = library.summary;
+  document.querySelector("#library-what").textContent = library.what;
+  document.querySelector("#library-when").textContent = library.when;
+  document.querySelector("#library-wrong").textContent = library.wrong;
+  const contractList = document.querySelector("#library-contracts");
+  contractList.replaceChildren();
+  for (const contract of library.contracts) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn small";
+    button.textContent = contract.id;
+    button.onclick = () => {
+      selectNode(contract.instance);
+      result.textContent =
+        `${contract.id}: selected ${contract.instance} in the authoritative Patchbay projection.`;
+    };
+    contractList.append(button);
+  }
+  const docs = document.querySelector("#library-docs");
+  docs.replaceChildren();
+  for (const path of library.docs) {
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = path;
+    link.textContent = path.split("/").at(-1);
+    item.append(link);
+    docs.append(item);
+  }
+  scenarioSelect.replaceChildren();
+  for (const scenario of library.scenarios) {
+    const option = document.createElement("option");
+    option.value = scenario.id;
+    option.textContent = scenario.title;
+    scenarioSelect.append(option);
+  }
+}
+
 function renderPlan(projection = null) {
   document.querySelector("#plan").textContent = projection
     ? JSON.stringify(projection, null, 2)
@@ -342,6 +572,7 @@ function renderRustProjection(projection) {
 
 function stopActive(cause, message) {
   runEpoch += 1;
+  stopTimelinePlayback();
   if (activeAdapter) {
     activeAdapter.terminate(cause);
     activeAdapter = null;
@@ -390,6 +621,7 @@ function show(lesson) {
     lesson.presentation?.layout === "logical-expanded";
   evidence.length = 0;
   recordEvidence({ kind: "lesson-selected", lesson: lesson.id });
+  configureExecutionStory();
   renderPlan();
   openPatchbaySession();
   check();
@@ -479,6 +711,25 @@ source.addEventListener("input", () => {
   check();
 });
 
+scenarioSelect.addEventListener("change", () => {
+  stopActive("scenario-changed");
+  const scenario = activeScenario();
+  if (!scenario) return;
+  source.value = scenario.source;
+  syncSourceHighlight();
+  localStorage.removeItem(draftKey(current.id));
+  acceptedSource = scenario.source;
+  selectedNode = null;
+  positions = {};
+  evidence.length = 0;
+  recordEvidence({ kind: "scenario-selected", scenario: scenario.id });
+  renderPlan();
+  renderTimeline([]);
+  openPatchbaySession();
+  check();
+  result.textContent = `${scenario.explanation}\nReady for an exact deterministic run.`;
+});
+
 document.querySelector("#check").onclick = check;
 document.querySelector("#logical-view").onclick = () => {
   topologyView = "logical";
@@ -561,18 +812,31 @@ async function run() {
       wasmSha256: wasmArtifact.artifact.sha256,
     });
     if (!configured.ok) throw new Error(configured.code);
-    const executed = await adapter.request("run", { source: source.value });
+    const operation = activeScenario()?.execution === "cancel-before-first-step"
+      ? "cancel"
+      : "run";
+    const executed = await adapter.request(operation, { source: source.value });
     if (epoch !== runEpoch) return;
     if (!executed.ok) throw new Error(executed.code);
     const value = executed.value;
     if (value.ok) renderRustProjection(value.patchbay);
+    renderExactResultTimeline(value);
+    const counts = Number.isInteger(value.completed_nodes)
+      ? `\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
+      : "";
     const visibleResult = value.ok
-      ? `${value.stdout || "Run completed successfully."}\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
+      ? `${value.stdout || `Run completed: ${value.terminal}.`}${counts}`
       : value.diagnostic;
 
-    const lessonComplete = current.validation?.kind === "stdout"
-      ? value.ok && value.stdout === current.validation.value
-      : (current.validation?.value ? !value.ok && value.diagnostic.includes(current.validation.value) : value.ok);
+    const validation = activeScenario()?.validation || current.validation;
+    const lessonComplete = validation?.kind === "stdout"
+      ? value.ok && value.stdout === validation.value
+      : validation?.kind === "terminal"
+        ? value.ok && value.terminal === validation.value
+        : validation?.kind === "diagnostic"
+          ? (!value.ok && value.diagnostic.includes(validation.value))
+            || (value.stderr || "").includes(validation.value)
+          : value.ok;
 
     result.textContent = lessonComplete
       ? `✓ Lesson complete!\n${visibleResult}`
@@ -619,7 +883,7 @@ document.addEventListener("keydown", (event) => {
 document.querySelector("#reset").onclick = () => {
   stopActive("reset");
   localStorage.setItem(recoveryKey(current.id), source.value);
-  source.value = current.source;
+  source.value = authoredSource();
   syncSourceHighlight();
   acceptedSource = source.value;
   selectedNode = null;
@@ -632,6 +896,48 @@ document.querySelector("#reset").onclick = () => {
   openPatchbaySession();
   check();
 };
+
+timelinePosition.addEventListener("input", () => {
+  stopTimelinePlayback();
+  selectTimelineRecord(Number(timelinePosition.value));
+});
+
+document.querySelector("#timeline-play").onclick = () => {
+  if (timelineRecords.length === 0 || timelineTimer !== null) return;
+  if (timelineCursor >= timelineRecords.length - 1) selectTimelineRecord(0);
+  timelineTimer = setInterval(() => {
+    if (timelineCursor >= timelineRecords.length - 1) {
+      stopTimelinePlayback();
+      return;
+    }
+    selectTimelineRecord(timelineCursor + 1);
+  }, 650);
+};
+document.querySelector("#timeline-pause").onclick = stopTimelinePlayback;
+document.querySelector("#timeline-step").onclick = () => {
+  stopTimelinePlayback();
+  if (timelineRecords.length > 0) selectTimelineRecord(timelineCursor + 1);
+};
+document.querySelector("#timeline-reset").onclick = () => {
+  stopTimelinePlayback();
+  if (timelineRecords.length > 0) selectTimelineRecord(0);
+};
+document.querySelector("#timeline-replay").onclick = () => {
+  stopTimelinePlayback();
+  if (timelineRecords.length === 0) return;
+  selectTimelineRecord(0);
+  document.querySelector("#timeline-play").click();
+};
+executionStory.addEventListener("keydown", (event) => {
+  if (["INPUT", "SELECT", "BUTTON"].includes(event.target.tagName)) return;
+  if (event.key === " ") {
+    event.preventDefault();
+    document.querySelector("#timeline-play").click();
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    document.querySelector("#timeline-step").click();
+  }
+});
 
 undoResetButton.onclick = () => {
   const recovered = localStorage.getItem(recoveryKey(current.id));
@@ -655,5 +961,18 @@ document.querySelector("#download").onclick = () => {
   URL.revokeObjectURL(link.href);
 };
 
+const pageParameters = new URLSearchParams(location.search);
+const requestedLesson = pageParameters.get("lesson");
+if (requestedLesson) {
+  current = lessons.lessons.find((lesson) => lesson.id === requestedLesson)
+    || referencePanels.find((panel) => panel.id === requestedLesson)
+    || current;
+}
 show(current);
-if (new URLSearchParams(location.search).has("autorun")) await run();
+const requestedScenario = pageParameters.get("scenario");
+if (requestedScenario && current.library &&
+    current.library.scenarios.some((scenario) => scenario.id === requestedScenario)) {
+  scenarioSelect.value = requestedScenario;
+  scenarioSelect.dispatchEvent(new Event("change"));
+}
+if (pageParameters.has("autorun")) await run();

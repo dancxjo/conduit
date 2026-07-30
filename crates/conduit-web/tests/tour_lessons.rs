@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
 use conduit_runtime::Registry;
+use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_FOUNDATION_LESSONS: [&str; 15] = [
+const REQUIRED_TOUR_LESSONS: [&str; 16] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -19,6 +20,7 @@ const REQUIRED_FOUNDATION_LESSONS: [&str; 15] = [
     "panels.reuse-without-copying",
     "panels.tiny-instrument",
     "patchbay.observes-patchbay",
+    "library.typed-text-format",
 ];
 
 #[test]
@@ -34,12 +36,10 @@ fn tour_lessons_declare_verified_browser_runnability() {
         .iter()
         .map(|lesson| lesson["id"].as_str().expect("lesson has an id"))
         .collect::<BTreeSet<_>>();
-    let required_ids = REQUIRED_FOUNDATION_LESSONS
-        .into_iter()
-        .collect::<BTreeSet<_>>();
+    let required_ids = REQUIRED_TOUR_LESSONS.into_iter().collect::<BTreeSet<_>>();
     assert_eq!(
         actual_ids, required_ids,
-        "Tour foundation contains every Chapter 0-2 lesson exactly once"
+        "Tour contains every checked lesson exactly once"
     );
     let browser_plan: Value =
         serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
@@ -163,6 +163,152 @@ fn tour_lessons_declare_verified_browser_runnability() {
             assert_eq!(error.code, expected, "{id} diagnostic stays in sync");
             assert_eq!(lesson["validation"]["kind"], "diagnostic");
             assert_eq!(lesson["validation"]["value"], expected);
+        }
+    }
+}
+
+#[test]
+fn typed_text_format_library_lesson_runs_every_checked_scenario() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let browser_plan: Value =
+        serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
+            .expect("Tour browser plan is valid JSON");
+    let maximum_evidence = browser_plan["bounds"]["maximum_evidence_events"]
+        .as_u64()
+        .unwrap();
+    let maximum_scheduler_events = browser_plan["bounds"]["maximum_scheduler_events"]
+        .as_u64()
+        .unwrap();
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.typed-text-format")
+        .expect("typed text format is selectable");
+    let lesson_tick_budget = lesson["budgets"]["runtime_ticks"].as_u64().unwrap();
+    let library = &lesson["library"];
+    assert_eq!(library["schema"], "conduit.tour-library-lesson/v1");
+    assert_eq!(library["profile"], "browser-dedicated-worker");
+    for field in ["summary", "what", "when", "wrong", "provider"] {
+        assert!(
+            library[field]
+                .as_str()
+                .is_some_and(|value| !value.is_empty()),
+            "library lesson has {field}"
+        );
+    }
+    let contracts = library["contracts"]
+        .as_array()
+        .expect("library contracts are selectable")
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        ["std/format-values/literal", "std/text/format"]
+            .into_iter()
+            .collect()
+    );
+    assert!(
+        library["contracts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|contract| {
+                contract["instance"]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty())
+            }),
+        "each exported contract selects a concrete standalone instance"
+    );
+    assert!(
+        library["docs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|link| link.as_str().is_some_and(|link| !link.is_empty()))
+    );
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for link in library["docs"].as_array().unwrap() {
+        let path = link.as_str().unwrap().split('#').next().unwrap();
+        let path = path
+            .strip_prefix("../../")
+            .expect("library documentation is repository-relative");
+        assert!(
+            root.join(path).is_file(),
+            "library documentation {path} exists"
+        );
+    }
+
+    let scenarios = library["scenarios"].as_array().expect("library scenarios");
+    assert_eq!(scenarios.len(), 4);
+    assert_eq!(lesson["source"], scenarios[0]["source"]);
+    assert!(
+        scenarios[1]["source"]
+            .as_str()
+            .unwrap()
+            .contains("text/uppercase"),
+        "composition scenario uses another node"
+    );
+
+    for scenario in scenarios {
+        let id = scenario["id"].as_str().unwrap();
+        let source = scenario["source"].as_str().unwrap();
+        conduit_panel::parse(source)
+            .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
+        let raw = if scenario["execution"] == "cancel-before-first-step" {
+            cancel_panel(source.to_owned())
+        } else {
+            run_panel(source.to_owned())
+        };
+        let result: Value =
+            serde_json::from_str(&raw).unwrap_or_else(|error| panic!("{id}: {error}: {raw}"));
+        let validation = &scenario["validation"];
+        let expected = validation["value"].as_str().unwrap();
+        match validation["kind"].as_str().unwrap() {
+            "stdout" => {
+                assert_eq!(result["ok"], true, "{id}: {result}");
+                assert_eq!(result["stdout"], expected, "{id}: {result}");
+            }
+            "terminal" => {
+                assert_eq!(result["ok"], true, "{id}: {result}");
+                assert_eq!(result["terminal"], expected, "{id}: {result}");
+            }
+            "diagnostic" => {
+                let diagnostic = result["diagnostic"]
+                    .as_str()
+                    .or_else(|| result["stderr"].as_str())
+                    .unwrap_or_default();
+                assert!(diagnostic.contains(expected), "{id}: {result}");
+            }
+            kind => panic!("unknown validation kind {kind}"),
+        }
+        if let Some(evidence) = result["evidence"].as_array() {
+            assert!(!evidence.is_empty(), "{id} has exact ordered evidence");
+            assert!(
+                evidence.len() as u64 <= maximum_evidence,
+                "{id} evidence stays inside its browser-plan bound"
+            );
+            assert!(
+                evidence
+                    .iter()
+                    .all(|event| event["tick"].as_u64().unwrap() <= lesson_tick_budget),
+                "{id} evidence stays inside its lesson tick budget"
+            );
+            assert!(
+                evidence
+                    .iter()
+                    .any(|event| event["event_kind"] == "terminal"),
+                "{id} has one visible terminal event"
+            );
+            assert_eq!(result["patchbay"]["evidence"], result["evidence"]);
+        }
+        if let Some(scheduler_events) = result["scheduler_event_count"].as_u64() {
+            assert!(
+                scheduler_events <= maximum_scheduler_events,
+                "{id} scheduler observations stay inside the browser-plan bound"
+            );
         }
     }
 }

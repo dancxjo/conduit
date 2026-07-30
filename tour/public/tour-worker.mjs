@@ -1,4 +1,5 @@
 import init, {
+  cancel_panel,
   run_panel,
   run_panel_exact,
 } from "./conduit_web.js";
@@ -37,6 +38,14 @@ globalThis.onmessage = async (event) => {
         id,
         ok: true,
         value: JSON.parse(run_panel(value.source)),
+      });
+      return;
+    }
+    if (operation === "cancel" && configured) {
+      globalThis.postMessage({
+        id,
+        ok: true,
+        value: JSON.parse(cancel_panel(value.source)),
       });
       return;
     }

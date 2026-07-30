@@ -107,7 +107,7 @@ test("highlights panel source while retaining the native editor surface", async 
 
 test("covers Chapters 0-3 and exposes production topology projections", async ({ page }) => {
   await page.goto("/tour/public/index.html");
-  await expect(page.locator("#lessons > li")).toHaveCount(15);
+  await expect(page.locator("#lessons > li")).toHaveCount(16);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await page.locator("#expanded-view").click();
@@ -289,4 +289,65 @@ test("illustrative lessons cannot run their pedagogical target", async ({ page }
   await expect(page.locator("#run")).toBeDisabled();
   await expect(page.locator("#result")).toContainText("CND-CMP-006");
   await expect(page.locator("#evidence")).not.toContainText('"event_kind": "terminal"');
+});
+
+test("typed formatter lesson shares exact graph and ordered evidence scenarios", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=library.typed-text-format",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+  const source = page.locator("#source");
+
+  await expect(story).toBeVisible();
+  await expect(story).toContainText("std/text/format");
+  await expect(story).toContainText("std/format-values/literal");
+  await story.getByRole("button", { name: "std/text/format" }).click();
+  await expect(page.locator("#selected-node-label")).toContainText("message");
+  await expect(story.locator("#library-docs a")).toHaveCount(4);
+  await expect(page.locator("#scenario option")).toHaveCount(4);
+  await expect(page.locator('[data-id="message"]')).toContainText("std/text/format");
+  await expect(page.locator('[data-id="message"]')).toContainText("template");
+  await expect(page.locator('[data-id="message"]')).toContainText("values");
+
+  await page.locator("#run").click();
+  await expect(result).toContainText("Hello, operator.", { timeout: 20_000 });
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+  await expect(page.locator("#timeline-table")).toContainText("succeeded");
+  await expect(page.locator("#timeline-table")).toContainText("block");
+  await expect(page.locator("#timeline-values")).toContainText(
+    'Exact stdout: "Hello, operator.\\n"',
+  );
+  await expect(page.locator("#timeline-position-label")).toContainText(/of \d+: terminal/);
+
+  await page.locator("#timeline-reset").click();
+  await expect(page.locator("#timeline-position-label")).toContainText("1 of");
+  await page.locator("#timeline-step").click();
+  await expect(page.locator("#timeline-position-label")).toContainText("2 of");
+  await story.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#timeline-position-label")).toContainText("3 of");
+
+  await page.locator("#scenario").selectOption("composition");
+  await page.locator("#run").click();
+  await expect(result).toContainText("HELLO, OPERATOR.", { timeout: 20_000 });
+  await expect(page.locator('[data-id="shout"]')).toContainText("text/uppercase");
+
+  await page.locator("#scenario").selectOption("missing-value");
+  await page.locator("#run").click();
+  await expect(result).toContainText("format/missing-value", { timeout: 20_000 });
+  await expect(page.locator("#timeline-table")).toContainText(/failed|rejected/);
+  await expect(page.locator("#timeline-values")).toContainText(
+    "Exact run rejection: format/missing-value",
+  );
+
+  await page.locator("#scenario").selectOption("cancelled");
+  await page.locator("#run").click();
+  await expect(result).toContainText("cancelled", { timeout: 20_000 });
+  await expect(page.locator("#timeline-table")).toContainText("cancelled");
+
+  await page.locator("#scenario").selectOption("standalone");
+  await source.fill((await source.inputValue()).replace("operator", "robot"));
+  await page.locator("#run").click();
+  await expect(result).toContainText("Hello, robot.", { timeout: 20_000 });
 });

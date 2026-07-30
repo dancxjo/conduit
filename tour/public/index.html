@@ -110,6 +110,70 @@
         <output id="result" aria-live="polite">Initializing production runtime parser...</output>
       </section>
 
+      <section id="execution-story" class="card timeline-card" aria-labelledby="timeline-title" tabindex="0" hidden>
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Library lesson</p>
+            <h3 id="timeline-title">Execution story</h3>
+          </div>
+          <label class="scenario-picker" for="scenario">
+            Scenario
+            <select id="scenario"></select>
+          </label>
+        </div>
+        <p id="library-summary" class="card-subtitle"></p>
+        <dl class="lesson-questions">
+          <div><dt>What does it do?</dt><dd id="library-what"></dd></div>
+          <div><dt>When should I use it?</dt><dd id="library-when"></dd></div>
+          <div><dt>What can go wrong?</dt><dd id="library-wrong"></dd></div>
+        </dl>
+        <div class="library-resources">
+          <div>
+            <h4>Selectable contracts</h4>
+            <div id="library-contracts" class="button-row"></div>
+          </div>
+          <div>
+            <h4>Specifications and fixtures</h4>
+            <ul id="library-docs"></ul>
+          </div>
+        </div>
+        <div class="button-row timeline-controls" role="group" aria-label="Evidence timeline controls">
+          <button id="timeline-play" class="btn small" aria-keyshortcuts="Space">▶ Play</button>
+          <button id="timeline-pause" class="btn small">⏸ Pause</button>
+          <button id="timeline-step" class="btn small" aria-keyshortcuts="ArrowRight">Step ▶</button>
+          <button id="timeline-reset" class="btn small">↤ Reset</button>
+          <button id="timeline-replay" class="btn small">↻ Replay</button>
+        </div>
+        <label class="timeline-scrubber" for="timeline-position">
+          Selected evidence event
+          <input id="timeline-position" type="range" min="0" max="0" value="0" disabled>
+          <span id="timeline-position-label">No exact run evidence yet.</span>
+        </label>
+        <div id="timeline-lanes" class="timeline-lanes" aria-label="Evidence lanes"></div>
+        <output id="timeline-values" class="timeline-values">
+          No exact run values yet.
+        </output>
+        <p id="timeline-explanation" class="timeline-explanation" aria-live="polite">
+          Run a scenario to inspect its exact ordered evidence.
+        </p>
+        <div class="table-scroll">
+          <table id="timeline-table">
+            <caption>Equivalent textual view of all ordered exact-run events</caption>
+            <thead>
+              <tr>
+                <th scope="col">Seq.</th>
+                <th scope="col">Tick</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Event</th>
+                <th scope="col">Pressure / occupancy</th>
+                <th scope="col">Terminal</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Detailed Inspectors -->
       <div class="inspectors">
         <details class="card inspector-card" open>
