@@ -11,9 +11,10 @@ mod modules;
 
 pub use document::{
     CstToken, CstTokenKind, SOURCE_AST_SCHEMA_V1, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3,
-    SourceDocument, SourceSchemaError, Span, parse_document, parse_document_with_root,
-    semantic_source_hash, semantic_source_hash_v1, semantic_source_hash_v2,
-    semantic_source_hash_v3, semantic_source_hash_version,
+    SOURCE_AST_SCHEMA_V4, SourceDocument, SourceSchemaError, Span, parse_document,
+    parse_document_with_root, semantic_source_hash, semantic_source_hash_v1,
+    semantic_source_hash_v2, semantic_source_hash_v3, semantic_source_hash_v4,
+    semantic_source_hash_version,
 };
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
@@ -27,6 +28,12 @@ pub const MAXIMUM_PANEL_SOURCE_BYTES: usize = 4 * 1024 * 1024;
 pub const MAXIMUM_PANEL_TOKENS: usize = 262_144;
 /// Maximum nesting of source value constructors such as `list(record(...))`.
 pub const MAXIMUM_SOURCE_VALUE_DEPTH: u8 = 64;
+/// Maximum named interfaces declared by one source module.
+pub const MAXIMUM_INTERFACE_DECLARATIONS: usize = 256;
+/// Maximum complete directional port members in one interface declaration.
+pub const MAXIMUM_INTERFACE_MEMBERS: usize = 64;
+/// Maximum explicit interface claims on one node boundary.
+pub const MAXIMUM_INTERFACE_CLAIMS: usize = 32;
 
 /// Parsed editable panel source.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -35,6 +42,8 @@ pub struct Panel {
     pub version: u16,
     /// Explicit module imports in source order.
     pub imports: Vec<Import>,
+    /// Named node-interface declarations in source order.
+    pub interfaces: Vec<InterfaceDeclaration>,
     /// Reusable composite node definitions in source order.
     pub definitions: Vec<CompositeDefinition>,
     /// Node instances.
@@ -76,6 +85,41 @@ pub struct Root {
     pub source_span: SourceSpan,
 }
 
+/// One named source declaration of a finite node-interface boundary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InterfaceDeclaration {
+    /// Stable namespaced interface identity.
+    pub id: String,
+    /// Complete directional port-contract members in authored order.
+    pub members: Vec<InterfaceMemberDeclaration>,
+    /// Exact authored declaration extent.
+    pub source_span: SourceSpan,
+}
+
+/// One complete directional interface member.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InterfaceMemberDeclaration {
+    pub direction: ExportDirection,
+    pub id: String,
+    /// Exact complete PortContract reference; this is not a value-type alias.
+    pub port_contract: String,
+    /// Optional means absence is permitted. A present member remains complete.
+    pub optional: bool,
+    /// Exact authored member extent.
+    pub source_span: SourceSpan,
+    /// Exact authored PortContract reference extent.
+    pub contract_span: SourceSpan,
+}
+
+/// One explicit claim that a concrete node boundary implements an interface.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InterfaceClaim {
+    /// Local namespaced interface ID or `import-alias.interface/id`.
+    pub interface: String,
+    /// Exact authored reference extent.
+    pub source_span: SourceSpan,
+}
+
 /// One reusable assemblage that remains an ordinary node at its boundary.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompositeDefinition {
@@ -83,6 +127,8 @@ pub struct CompositeDefinition {
     pub id: String,
     /// Typed source parameters. They are not live ports.
     pub parameters: Vec<Parameter>,
+    /// Explicit named-interface claims on this composite-derived boundary.
+    pub implements: Vec<InterfaceClaim>,
     /// Child instances.
     pub nodes: Vec<Node>,
     /// Internal cords.
@@ -148,6 +194,8 @@ pub struct Node {
     pub constraint: Option<String>,
     /// Exact constraint token extent, when authored.
     pub constraint_span: Option<SourceSpan>,
+    /// Explicit claims on the exact referenced primitive or composite contract.
+    pub implements: Vec<InterfaceClaim>,
     /// Source configuration entries.
     pub config: Vec<ConfigEntry>,
     /// Exact authored instance extent.
@@ -824,6 +872,7 @@ impl Parser {
         self.panel_version = version;
 
         let mut imports = Vec::new();
+        let mut interfaces = Vec::new();
         let mut definitions = Vec::new();
         let mut nodes = Vec::new();
         let mut cords = Vec::new();
@@ -835,21 +884,19 @@ impl Parser {
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
                 "import" => imports.push(self.parse_import()?),
+                "interface" => interfaces.push(self.parse_interface()?),
                 "node" => {
                     let start_line = self.current().line;
                     let start_column = self.current().column;
                     let id = self.expect_any_word()?;
-                    if matches!(
-                        self.current().kind,
-                        TokenKind::LeftParen | TokenKind::LeftBrace
-                    ) {
+                    if matches!(self.current().kind, TokenKind::Colon) {
+                        nodes.push(self.parse_node_after_id(id, start_line, start_column)?);
+                    } else {
                         definitions.push(self.parse_definition_after_id(
                             id,
                             start_line,
                             start_column,
                         )?);
-                    } else {
-                        nodes.push(self.parse_node_after_id(id, start_line, start_column)?);
                     }
                 }
                 "composite" => {
@@ -886,7 +933,7 @@ impl Parser {
                 "supervise" => supervisions.push(self.parse_supervision()?),
                 _ => {
                     return Err(self.error(format!(
-                        "expected import, node, composite, cord, root, port-group, pool, or supervise; found `{declaration}`"
+                        "expected import, interface, node, composite, cord, root, port-group, pool, or supervise; found `{declaration}`"
                     )));
                 }
             }
@@ -921,6 +968,7 @@ impl Parser {
         let panel = Panel {
             version,
             imports,
+            interfaces,
             definitions,
             nodes,
             cords,
@@ -967,6 +1015,11 @@ impl Parser {
     ) -> Result<CompositeDefinition, ParseError> {
         let parameters = if matches!(self.current().kind, TokenKind::LeftParen) {
             self.parse_parameters()?
+        } else {
+            Vec::new()
+        };
+        let implements = if self.current_word_is("implements") {
+            self.parse_implements()?
         } else {
             Vec::new()
         };
@@ -1052,6 +1105,7 @@ impl Parser {
         Ok(CompositeDefinition {
             id,
             parameters,
+            implements,
             nodes,
             cords,
             exports,
@@ -1066,6 +1120,140 @@ impl Parser {
                 end_column,
             },
         })
+    }
+
+    fn parse_interface(&mut self) -> Result<InterfaceDeclaration, ParseError> {
+        if self.panel_version < 2 {
+            return Err(self.error_code(
+                "CND-SRC-007",
+                "`interface` requires `panel 2`; grammar version 1 is frozen",
+            ));
+        }
+        let start_line = self.current().line;
+        let start_column = self.current().column;
+        let id = self.expect_any_word()?;
+        self.expect_simple(TokenKind::LeftBrace, "`{`")?;
+        let mut members = Vec::new();
+        let mut member_keys = BTreeSet::new();
+        while !matches!(self.current().kind, TokenKind::RightBrace) {
+            if matches!(self.current().kind, TokenKind::Eof) {
+                return Err(self.error("unterminated interface declaration"));
+            }
+            let member_start_line = self.current().line;
+            let member_start_column = self.current().column;
+            let direction_word = self.expect_any_word()?;
+            let direction = match direction_word.as_str() {
+                "input" => ExportDirection::Input,
+                "output" => ExportDirection::Output,
+                _ => {
+                    return Err(self.error(format!(
+                        "interface member direction must be `input` or `output`; found `{direction_word}`"
+                    )));
+                }
+            };
+            let member_id = self.expect_any_word()?;
+            self.expect_simple(TokenKind::Colon, "`:`")?;
+            let contract_start_line = self.current().line;
+            let contract_start_column = self.current().column;
+            let port_contract = self.expect_any_word()?;
+            let (contract_end_line, contract_end_column) = self.previous_end();
+            let contract_span = SourceSpan {
+                line: contract_start_line,
+                column: contract_start_column,
+                end_line: contract_end_line,
+                end_column: contract_end_column,
+            };
+            let optional = if self.current_word_is("optional") {
+                self.advance();
+                true
+            } else {
+                false
+            };
+            let (member_end_line, member_end_column) = self.previous_end();
+            let key = (
+                match direction {
+                    ExportDirection::Input => 0_u8,
+                    ExportDirection::Output => 1_u8,
+                },
+                member_id.clone(),
+            );
+            if !member_keys.insert(key) {
+                return Err(self.error_code(
+                    "CND-SRC-002",
+                    format!("duplicate interface member `{member_id}`"),
+                ));
+            }
+            members.push(InterfaceMemberDeclaration {
+                direction,
+                id: member_id,
+                port_contract,
+                optional,
+                source_span: SourceSpan {
+                    line: member_start_line,
+                    column: member_start_column,
+                    end_line: member_end_line,
+                    end_column: member_end_column,
+                },
+                contract_span,
+            });
+            if members.len() > MAXIMUM_INTERFACE_MEMBERS {
+                return Err(self.error_code("CND-SEC-001", "interface member limit exceeded"));
+            }
+        }
+        self.advance();
+        let (end_line, end_column) = self.previous_end();
+        Ok(InterfaceDeclaration {
+            id,
+            members,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
+        })
+    }
+
+    fn parse_implements(&mut self) -> Result<Vec<InterfaceClaim>, ParseError> {
+        if self.panel_version < 2 {
+            return Err(self.error_code(
+                "CND-SRC-007",
+                "`implements` requires `panel 2`; grammar version 1 is frozen",
+            ));
+        }
+        self.advance();
+        let mut claims = Vec::new();
+        let mut seen = BTreeSet::new();
+        loop {
+            let start_line = self.current().line;
+            let start_column = self.current().column;
+            let interface = self.expect_any_word()?;
+            let (end_line, end_column) = self.previous_end();
+            if !seen.insert(interface.clone()) {
+                return Err(self.error_code(
+                    "CND-SRC-002",
+                    format!("duplicate interface claim `{interface}`"),
+                ));
+            }
+            claims.push(InterfaceClaim {
+                interface,
+                source_span: SourceSpan {
+                    line: start_line,
+                    column: start_column,
+                    end_line,
+                    end_column,
+                },
+            });
+            if claims.len() > MAXIMUM_INTERFACE_CLAIMS {
+                return Err(self.error_code("CND-SEC-001", "interface claim limit exceeded"));
+            }
+            if matches!(self.current().kind, TokenKind::Comma) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        Ok(claims)
     }
 
     fn parse_parameters(&mut self) -> Result<Vec<Parameter>, ParseError> {
@@ -1151,6 +1339,11 @@ impl Parser {
         } else {
             None
         };
+        let implements = if self.current_word_is("implements") {
+            self.parse_implements()?
+        } else {
+            Vec::new()
+        };
         let config = if matches!(self.current().kind, TokenKind::LeftBrace) {
             self.advance();
             self.parse_config_block()?
@@ -1163,6 +1356,7 @@ impl Parser {
             kind,
             constraint: constraint.as_ref().map(|(value, _)| value.clone()),
             constraint_span: constraint.map(|(_, span)| span),
+            implements,
             config,
             source_span: SourceSpan {
                 line: start_line,
@@ -1828,6 +2022,12 @@ fn validate_source_symbols(
     for import in &panel.imports {
         if !aliases.insert(import.alias.as_str()) {
             return Err(duplicate("import alias", &import.alias));
+        }
+    }
+    let mut interfaces = BTreeSet::new();
+    for interface in &panel.interfaces {
+        if !interfaces.insert(interface.id.as_str()) {
+            return Err(duplicate("interface", &interface.id));
         }
     }
     let mut definitions = BTreeSet::new();

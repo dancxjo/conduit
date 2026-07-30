@@ -2599,6 +2599,7 @@ fn executable_panel(
                         kind: compiled_definition_id(entry, &definition.id)?,
                         constraint: None,
                         constraint_span: None,
+                        implements: Vec::new(),
                         config: Vec::new(),
                         source_span: root.source_span,
                     }],
@@ -2616,6 +2617,7 @@ fn executable_panel(
     Ok(conduit_panel::Panel {
         version: entry.panel.version,
         imports: Vec::new(),
+        interfaces: Vec::new(),
         definitions,
         nodes,
         cords,

@@ -10,6 +10,7 @@ use crate::{
 pub const SOURCE_AST_SCHEMA_V1: u16 = 1;
 pub const SOURCE_AST_SCHEMA_V2: u16 = 2;
 pub const SOURCE_AST_SCHEMA_V3: u16 = 3;
+pub const SOURCE_AST_SCHEMA_V4: u16 = 4;
 
 /// Explicit persisted source-AST schema selection failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -92,6 +93,12 @@ impl SourceDocument {
     #[must_use]
     pub fn semantic_hash_v3(&self) -> Option<String> {
         self.ast.as_ref().map(semantic_source_hash_v3)
+    }
+
+    /// Hashes grammar-v2 named interface declarations and claims under source-AST schema 4.
+    #[must_use]
+    pub fn semantic_hash_v4(&self) -> Option<String> {
+        self.ast.as_ref().map(semantic_source_hash_v4)
     }
 }
 
@@ -192,6 +199,23 @@ pub fn semantic_source_hash_v3(panel: &Panel) -> String {
     )
 }
 
+/// Version 4 authored-source hash including named interface declarations and claims.
+#[must_use]
+pub fn semantic_source_hash_v4(panel: &Panel) -> String {
+    let mut normalized = String::new();
+    write_panel(panel, &mut normalized, false);
+    format!(
+        "sha256:{:x}",
+        Sha256::digest(
+            [
+                b"conduit.panel-source/v4\0".as_slice(),
+                normalized.as_bytes()
+            ]
+            .concat()
+        )
+    )
+}
+
 /// Hashes one explicitly selected source-AST schema.
 pub fn semantic_source_hash_version(
     panel: &Panel,
@@ -201,6 +225,7 @@ pub fn semantic_source_hash_version(
         SOURCE_AST_SCHEMA_V1 => Ok(semantic_source_hash_v1(panel)),
         SOURCE_AST_SCHEMA_V2 => Ok(semantic_source_hash_v2(panel)),
         SOURCE_AST_SCHEMA_V3 => Ok(semantic_source_hash_v3(panel)),
+        SOURCE_AST_SCHEMA_V4 => Ok(semantic_source_hash_v4(panel)),
         _ => Err(SourceSchemaError {
             code: "CND-SRC-011",
             schema_version,
@@ -297,6 +322,9 @@ fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) 
         optional_text(output, import.content_hash.as_deref());
         output.push('}');
     }
+    for interface in &panel.interfaces {
+        write_interface(interface, output);
+    }
     for definition in &panel.definitions {
         output.push_str("definition{");
         text(output, &definition.id);
@@ -311,6 +339,11 @@ fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) 
                 }
                 None => output.push_str("none;"),
             }
+            output.push('}');
+        }
+        for claim in &definition.implements {
+            output.push_str("implements{");
+            text(output, &claim.interface);
             output.push('}');
         }
         for node in &definition.nodes {
@@ -368,11 +401,30 @@ fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) 
     }
 }
 
+fn write_interface(interface: &crate::InterfaceDeclaration, output: &mut String) {
+    output.push_str("interface{");
+    text(output, &interface.id);
+    for member in &interface.members {
+        output.push_str("member{");
+        direction(output, member.direction);
+        text(output, &member.id);
+        text(output, &member.port_contract);
+        field(output, "optional", member.optional);
+        output.push('}');
+    }
+    output.push('}');
+}
+
 fn write_node(node: &crate::Node, output: &mut String) {
     output.push_str("node{");
     text(output, &node.id);
     text(output, &node.kind);
     optional_text(output, node.constraint.as_deref());
+    for claim in &node.implements {
+        output.push_str("implements{");
+        text(output, &claim.interface);
+        output.push('}');
+    }
     for config in &node.config {
         output.push_str("config{");
         text(output, &config.key);

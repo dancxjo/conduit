@@ -322,6 +322,36 @@ fn validate_qualified_symbols(
             });
         }
     }
+    for claim in panel.nodes.iter().flat_map(|node| &node.implements).chain(
+        panel
+            .definitions
+            .iter()
+            .flat_map(|definition| &definition.implements),
+    ) {
+        let Some((alias, symbol)) = claim.interface.split_once('.') else {
+            continue;
+        };
+        let Some((_, imported_uri)) = imports.get(alias) else {
+            continue;
+        };
+        let imported = &resolved[imported_uri];
+        if !imported
+            .panel
+            .interfaces
+            .iter()
+            .any(|interface| interface.id == symbol)
+        {
+            return Err(ModuleResolutionError {
+                code: "CND-SRC-003",
+                uri: uri.to_owned(),
+                import_chain: chain.to_vec(),
+                message: format!(
+                    "qualified interface `{}` is absent from import `{alias}`",
+                    claim.interface
+                ),
+            });
+        }
+    }
     Ok(())
 }
 
