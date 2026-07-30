@@ -1,10 +1,10 @@
-panel 1
+panel 3
 
 composite example/upper-line {
     node source : std/literal
     node upper : text/uppercase
 
-    cord source.out -> upper.in {
+    cord source.value -> upper.text {
         capacity = 2
         max_value_bytes = 1024
         max_queued_bytes = 2048
@@ -13,16 +13,16 @@ composite example/upper-line {
         pressure = block
     }
 
-    export output text = upper.out
+    export text > = upper.text
     bind value = source.value
 }
 
 node line : example/upper-line {
     value = "Composite nodes stay ordinary."
 }
-node output : io/stdout
+node output : display/text
 
-cord line.text -> output.in {
+cord line.text -> output.text {
     capacity = 2
     max_value_bytes = 1024
     max_queued_bytes = 2048

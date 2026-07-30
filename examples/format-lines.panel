@@ -21,10 +21,10 @@ node joined : std/text/join {
     maximum_separator_bytes = 64
     maximum_output_bytes = 4096
 }
-node output : io/stdout
+node output : display/text
 
-cord template.out -> formatted.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord values.out -> formatted.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
-cord formatted.out -> lines.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord template.value -> formatted.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord values.values -> formatted.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
+cord formatted.text -> lines.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
 cord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }
-cord joined.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord joined.text -> output.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

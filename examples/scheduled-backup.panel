@@ -1,5 +1,5 @@
 # Scheduled bounded backup pipeline panel.
-panel 1
+panel 3
 
 node trigger : std/counter
 node reader : std/file-read {
@@ -9,7 +9,7 @@ node backup_store : storage/blob/store {
     bucket = "backups"
 }
 
-cord trigger.out -> reader.in {
+cord trigger.count -> reader.path {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096
@@ -18,7 +18,7 @@ cord trigger.out -> reader.in {
     pressure = drop_disposable
 }
 
-cord reader.out -> backup_store.in {
+cord reader.contents -> backup_store.blob {
     capacity = 4
     max_value_bytes = 1048576
     max_queued_bytes = 4194304

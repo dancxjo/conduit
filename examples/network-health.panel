@@ -9,7 +9,7 @@ node health_check : std/health-gate
 node breaker : std/circuit-breaker
 node backoff_retry : std/backoff
 
-cord probe_ping.out -> health_check.in {
+cord probe_ping.datagram -> health_check.observation {
     capacity = 8
     max_value_bytes = 2048
     max_queued_bytes = 16384
@@ -18,7 +18,7 @@ cord probe_ping.out -> health_check.in {
     pressure = block
 }
 
-cord health_check.out -> breaker.in {
+cord health_check.healthy -> breaker.request {
     capacity = 8
     max_value_bytes = 2048
     max_queued_bytes = 16384
@@ -27,7 +27,7 @@ cord health_check.out -> breaker.in {
     pressure = block
 }
 
-cord breaker.out -> backoff_retry.in {
+cord breaker.admitted -> backoff_retry.request {
     capacity = 8
     max_value_bytes = 2048
     max_queued_bytes = 16384

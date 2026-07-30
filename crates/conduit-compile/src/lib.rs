@@ -1664,6 +1664,9 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "std/text/lines",
             "std/text/join",
             "io/stdout",
+            "display/text",
+            "text/encode-utf8",
+            "text/decode-utf8",
             "text/uppercase",
             "supervision/supervisor",
             "net/http/serve-once",
@@ -1682,6 +1685,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         .collect::<Result<Vec<_>, CompileError>>()?,
         types: [
             "std/text",
+            "std/bytes",
             "std/format-values",
             "std/list/text",
             "std/u64",
@@ -8328,14 +8332,14 @@ mod tests {
 
     #[test]
     fn typed_supervision_compiles_to_schema_15_and_round_trips_exactly() {
-        let source = "panel 2\n\
+        let source = "panel 3\n\
             node subject : std/literal { value = \"primary\" }\n\
-            node subject_sink : io/stdout\n\
+            node subject_sink : display/text\n\
             node fallback : std/literal { value = \"fallback\" }\n\
-            node fallback_sink : io/stdout\n\
+            node fallback_sink : display/text\n\
             node handler : supervision/supervisor\n\
-            cord subject.out -> subject_sink.in\n\
-            cord fallback.out -> fallback_sink.in\n\
+            cord subject.value -> subject_sink.text\n\
+            cord fallback.value -> fallback_sink.text\n\
             supervise subject with handler\n";
         let panel = parse(source).unwrap();
         let mut topology_panel = panel.clone();
@@ -8463,17 +8467,17 @@ mod tests {
 
     #[test]
     fn composite_expansion_retains_logical_membership_and_exports() {
-        let source = "panel 1\n\
+        let source = "panel 3\n\
              composite fixture/uppercase {\n\
                node upper : text/uppercase\n\
-               export input in = upper.in\n\
-               export output out = upper.out\n\
+               export > text = upper.text\n\
+               export uppercased > = upper.text\n\
              }\n\
              node source : std/literal { value = \"hello\" }\n\
              node transform : fixture/uppercase\n\
-             node sink : io/stdout\n\
-             cord source.out -> transform.in\n\
-             cord transform.out -> sink.in\n";
+             node sink : display/text\n\
+             cord source.value -> transform.text\n\
+             cord transform.uppercased -> sink.text\n";
         let panel = parse(source).unwrap();
         let input = compile_input(source, &panel);
         let plan = compile_panel(&panel, &input).unwrap();
@@ -8486,15 +8490,15 @@ mod tests {
 
     #[test]
     fn explicit_module_closure_and_selected_root_compile_without_io() {
-        let child = "panel 1\n\
+        let child = "panel 3\n\
                      composite fixture/pipeline {\n\
                        node source : std/literal { value = \"module\" }\n\
                        node upper : text/uppercase using ready\n\
-                       node sink : io/stdout\n\
-                       cord source.out -> upper.in\n\
-                       cord upper.out -> sink.in\n\
+                       node sink : display/text\n\
+                       cord source.value -> upper.text\n\
+                       cord upper.text -> sink.text\n\
                      }\n";
-        let entry = "panel 1\n\
+        let entry = "panel 3\n\
                      import \"./child.panel\" as child\n\
                      composite fixture/app {\n\
                        node pipeline : child.fixture/pipeline\n\
@@ -9434,8 +9438,7 @@ mod tests {
     #[test]
     fn finite_port_groups_are_retained_as_plan_visible_expansions() {
         let base = include_str!("../../../examples/hello.panel");
-        let source =
-            format!("{base}\nport-group lanes output : conduit/output-text indexed max 2\n");
+        let source = format!("{base}\nport-group lanes > : conduit/output-text indexed max 2\n");
         let panel = parse(&source).unwrap();
         let base_panel = parse(base).unwrap();
         let mut input = compile_input(base, &base_panel);
@@ -9459,8 +9462,8 @@ mod tests {
             "{base}\n\
              composite fixture/worker {{\n\
                node source : std/literal {{ value = \"pool\" }}\n\
-               node sink : io/stdout\n\
-               cord source.out -> sink.in\n\
+               node sink : display/text\n\
+               cord source.value -> sink.text\n\
              }}\n\
              pool workers : fixture/worker {{ maximum = 2 admission = queue_bounded admission_queue = 2 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }}\n"
         );

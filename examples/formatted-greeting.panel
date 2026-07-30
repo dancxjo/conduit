@@ -13,9 +13,9 @@ node values : std/format-values/literal {
 }
 
 node greeting : std/text/format
-node output : io/stdout
+node output : display/text
 
-cord template.out -> greeting.template {
+cord template.value -> greeting.template {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -24,7 +24,7 @@ cord template.out -> greeting.template {
     pressure = block
 }
 
-cord values.out -> greeting.values {
+cord values.values -> greeting.values {
     capacity = 1
     max_value_bytes = 16384
     max_queued_bytes = 16384
@@ -33,7 +33,7 @@ cord values.out -> greeting.values {
     pressure = block
 }
 
-cord greeting.out -> output.in {
+cord greeting.text -> output.text {
     capacity = 1
     max_value_bytes = 16384
     max_queued_bytes = 16384

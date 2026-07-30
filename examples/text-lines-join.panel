@@ -14,9 +14,10 @@ node joined : std/text/join {
     maximum_separator_bytes = 64
     maximum_output_bytes = 4096
 }
+node encoded : text/encode-utf8
 node output : io/stdout
 
-cord chunks.out -> lines.in {
+cord chunks.value -> lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -32,7 +33,16 @@ cord lines.line -> joined.item {
     high_watermark = 8
     pressure = block
 }
-cord joined.out -> output.in {
+cord joined.text -> encoded.text {
+    capacity = 1
+    max_value_bytes = 4096
+    max_queued_bytes = 4096
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+
+cord encoded.bytes -> output.bytes {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096

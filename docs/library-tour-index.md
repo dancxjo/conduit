@@ -103,6 +103,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `test/probe` | implementation-helper | `conduit.testing` | 0 | tour/lessons/v1.json#library.test.probe.standalone (required) | tour/lessons/v1.json#library.test.probe.composition (required) |
 | `test/record` | implementation-helper | `conduit.testing` | 0 | tour/lessons/v1.json#library.test.record.standalone (required) | tour/lessons/v1.json#library.test.record.composition (required) |
 | `test/replay` | implementation-helper | `conduit.testing` | 0 | tour/lessons/v1.json#library.test.replay.standalone (required) | tour/lessons/v1.json#library.test.replay.composition (required) |
+| `text/decode-utf8` | portable-standard | `conduit.std.text` | 1 | tour/lessons/v1.json#library.text.decode-utf8.standalone (required) | tour/lessons/v1.json#library.text.decode-utf8.composition (required) |
 | `text/encode-utf8` | portable-standard | `conduit.std.text` | 1 | tour/lessons/v1.json#library.text.encode-utf8.standalone (required) | tour/lessons/v1.json#panels.put-a-panel-in-a-panel (published) |
 | `text/uppercase` | portable-standard | `conduit.std.text` | 1 | tour/lessons/v1.json#library.text.uppercase.standalone (required) | tour/lessons/v1.json#panels.put-a-panel-in-a-panel (published) |
 | `time/batch` | portable-standard | `conduit.std.time` | 0 | tour/lessons/v1.json#library.time.batch.standalone (required) | tour/lessons/v1.json#library.time.batch.composition (required) |

@@ -9,7 +9,7 @@ node writer : std/file-write {
     path = "destination.txt"
 }
 
-cord reader.out -> writer.in {
+cord reader.contents -> writer.contents {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288

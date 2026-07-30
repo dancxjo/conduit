@@ -1,11 +1,11 @@
-panel 1
+panel 3
 
 composite patchbay/authoring {
     node editor : text/uppercase
     node parser : text/uppercase
-    export input source_in = editor.in
-    export output parsed_out = parser.out
-    cord editor.out -> parser.in {
+    export > source = editor.text
+    export parsed > = parser.text
+    cord editor.text -> parser.text {
         capacity = 1
         max_value_bytes = 1024
         max_queued_bytes = 1024
@@ -18,9 +18,9 @@ composite patchbay/authoring {
 composite patchbay/presentation {
     node layout : text/uppercase
     node canvas : text/uppercase
-    export input positions_in = layout.in
-    export output rendered_out = canvas.out
-    cord layout.out -> canvas.in {
+    export > positions = layout.text
+    export rendered > = canvas.text
+    cord layout.text -> canvas.text {
         capacity = 1
         max_value_bytes = 1024
         max_queued_bytes = 1024
@@ -33,9 +33,9 @@ composite patchbay/presentation {
 composite patchbay/observation {
     node resolver : text/uppercase
     node evidence_feed : text/uppercase
-    export input plan_in = resolver.in
-    export output telemetry_out = evidence_feed.out
-    cord resolver.out -> evidence_feed.in {
+    export > plan = resolver.text
+    export telemetry > = evidence_feed.text
+    cord resolver.text -> evidence_feed.text {
         capacity = 1
         max_value_bytes = 1024
         max_queued_bytes = 1024
@@ -49,9 +49,9 @@ node nav_selection : std/literal { value = "tour/meta-lesson\n" }
 node authoring_surface : patchbay/authoring
 node presentation_surface : patchbay/presentation
 node observation_surface : patchbay/observation
-node console_sink : io/stdout
+node console_sink : display/text
 
-cord nav_selection.out -> authoring_surface.source_in {
+cord nav_selection.value -> authoring_surface.source {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096
@@ -60,7 +60,7 @@ cord nav_selection.out -> authoring_surface.source_in {
     pressure = block
 }
 
-cord authoring_surface.parsed_out -> presentation_surface.positions_in {
+cord authoring_surface.parsed -> presentation_surface.positions {
     capacity = 4
     max_value_bytes = 4096
     max_queued_bytes = 16384
@@ -69,7 +69,7 @@ cord authoring_surface.parsed_out -> presentation_surface.positions_in {
     pressure = block
 }
 
-cord presentation_surface.rendered_out -> observation_surface.plan_in {
+cord presentation_surface.rendered -> observation_surface.plan {
     capacity = 4
     max_value_bytes = 4096
     max_queued_bytes = 16384
@@ -78,7 +78,7 @@ cord presentation_surface.rendered_out -> observation_surface.plan_in {
     pressure = block
 }
 
-cord observation_surface.telemetry_out -> console_sink.in {
+cord observation_surface.telemetry -> console_sink.text {
     capacity = 8
     max_value_bytes = 8192
     max_queued_bytes = 65536

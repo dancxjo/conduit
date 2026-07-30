@@ -9,7 +9,7 @@ node filter : conduit/passthrough
 node processor : text/uppercase
 node logger : observe/log
 
-cord watcher.out -> filter.in {
+cord watcher.contents -> filter.value {
     capacity = 16
     max_value_bytes = 4096
     max_queued_bytes = 65536
@@ -18,7 +18,7 @@ cord watcher.out -> filter.in {
     pressure = block
 }
 
-cord filter.out -> processor.in {
+cord filter.value -> processor.text {
     capacity = 16
     max_value_bytes = 4096
     max_queued_bytes = 65536
@@ -27,7 +27,7 @@ cord filter.out -> processor.in {
     pressure = block
 }
 
-cord processor.out -> logger.in {
+cord processor.text -> logger.message {
     capacity = 16
     max_value_bytes = 4096
     max_queued_bytes = 65536

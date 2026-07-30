@@ -18,9 +18,9 @@ node ollama_api : conduit/http-client {
     endpoint = "http://127.0.0.1:11434/api/generate"
 }
 
-node output : io/stdout
+node output : display/text
 
-cord prompt_template.out -> prompt.template {
+cord prompt_template.value -> prompt.template {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -29,7 +29,7 @@ cord prompt_template.out -> prompt.template {
     pressure = block
 }
 
-cord prompt_values.out -> prompt.values {
+cord prompt_values.values -> prompt.values {
     capacity = 1
     max_value_bytes = 16384
     max_queued_bytes = 16384
@@ -38,7 +38,7 @@ cord prompt_values.out -> prompt.values {
     pressure = block
 }
 
-cord prompt.out -> ollama_api.in {
+cord prompt.text -> ollama_api.request {
     capacity = 4
     max_value_bytes = 8192
     max_queued_bytes = 32768
@@ -47,7 +47,7 @@ cord prompt.out -> ollama_api.in {
     pressure = block
 }
 
-cord ollama_api.out -> output.in {
+cord ollama_api.response -> output.text {
     capacity = 4
     max_value_bytes = 65536
     max_queued_bytes = 262144

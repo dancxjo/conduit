@@ -1,6 +1,6 @@
 # One exact bounded loopback HTTP route. The production provider binds an
 # ephemeral port, serves one request, records terminal evidence, and exits.
-panel 1
+panel 3
 
 node server : net/http/serve-once {
     listen = "127.0.0.1:0"

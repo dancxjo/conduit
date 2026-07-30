@@ -4,9 +4,9 @@ node message : std/literal {
     value = "Leased effect boundaries stay explicit.\n"
 }
 node emphasize : text/uppercase
-node output : io/stdout
+node output : display/text
 
-cord message.out -> emphasize.in {
+cord message.value -> emphasize.text {
     capacity = 1
     max_value_bytes = 128
     max_queued_bytes = 128
@@ -14,7 +14,7 @@ cord message.out -> emphasize.in {
     high_watermark = 1
     pressure = block
 }
-cord emphasize.out -> output.in {
+cord emphasize.text -> output.text {
     capacity = 1
     max_value_bytes = 128
     max_queued_bytes = 128

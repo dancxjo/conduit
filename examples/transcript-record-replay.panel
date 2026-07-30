@@ -1,7 +1,8 @@
 # Chat transcript recording and replay pipeline.
-panel 1
+panel 3
 
 node input_stream : io/stdin
+node decoder : text/decode-utf8
 node recorder : std/record {
     session = "transcript-001"
 }
@@ -9,7 +10,7 @@ node store : storage/blob/store {
     bucket = "transcripts"
 }
 
-cord input_stream.out -> recorder.in {
+cord input_stream.bytes -> decoder.bytes {
     capacity = 16
     max_value_bytes = 4096
     max_queued_bytes = 65536
@@ -18,7 +19,16 @@ cord input_stream.out -> recorder.in {
     pressure = block
 }
 
-cord recorder.out -> store.in {
+cord decoder.text -> recorder.observed {
+    capacity = 16
+    max_value_bytes = 8192
+    max_queued_bytes = 131072
+    low_watermark = 4
+    high_watermark = 16
+    pressure = block
+}
+
+cord recorder.recorded -> store.blob {
     capacity = 16
     max_value_bytes = 4096
     max_queued_bytes = 65536

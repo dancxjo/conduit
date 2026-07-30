@@ -17,7 +17,7 @@
       "semantic_hash": "sha256:0c8aecace055266ecf4475b53036f98886d17279b22d2a9ef6643fa8cee4244c",
       "ports": [
         {
-          "id": "value",
+          "id": "candidate",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -47,10 +47,10 @@
               "sensitivity": "restricted",
               "loss": "lossless-only"
             },
-            "reason": "`conduit.std/gate` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity.",
+            "reason": "`conduit.std/gate` names this input port for its contract-specific `candidate` payload or role.",
             "affected_bindings": [
               "runtime-contract:conduit.std/gate",
-              "exact-plan-cord:conduit.std/gate.in->conduit.std/gate.value",
+              "exact-plan-cord:conduit.std/gate.in->conduit.std/gate.candidate",
               "conformance-fixture:conformance/c4/standard-node-library-v1.json",
               "provider:conduit/hosted-gate-v1"
             ],
@@ -59,7 +59,7 @@
           }
         },
         {
-          "id": "command",
+          "id": "permit",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -89,10 +89,10 @@
               "sensitivity": "restricted",
               "loss": "lossless-only"
             },
-            "reason": "`conduit.std/gate` receives explicit typed control commands separately from its data ports.",
+            "reason": "`conduit.std/gate` names this input port for its contract-specific `permit` payload or role.",
             "affected_bindings": [
               "runtime-contract:conduit.std/gate",
-              "exact-plan-cord:conduit.std/gate.control->conduit.std/gate.command",
+              "exact-plan-cord:conduit.std/gate.control->conduit.std/gate.permit",
               "conformance-fixture:conformance/c4/standard-node-library-v1.json",
               "provider:conduit/hosted-gate-v1"
             ],
@@ -101,7 +101,7 @@
           }
         },
         {
-          "id": "value",
+          "id": "admitted",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -131,10 +131,10 @@
               "sensitivity": "restricted",
               "loss": "lossless-only"
             },
-            "reason": "`conduit.std/gate` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity.",
+            "reason": "`conduit.std/gate` names this output port for its contract-specific `admitted` payload or role.",
             "affected_bindings": [
               "runtime-contract:conduit.std/gate",
-              "exact-plan-cord:conduit.std/gate.out->conduit.std/gate.value",
+              "exact-plan-cord:conduit.std/gate.out->conduit.std/gate.admitted",
               "conformance-fixture:conformance/c4/standard-node-library-v1.json",
               "provider:conduit/hosted-gate-v1"
             ],
@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -447,7 +447,7 @@
           }
         },
         {
-          "id": "command",
+          "id": "selector",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -477,10 +477,10 @@
               "sensitivity": "restricted",
               "loss": "lossless-only"
             },
-            "reason": "`conduit.std/select` receives explicit typed control commands separately from its data ports.",
+            "reason": "`conduit.std/select` names this input port for its contract-specific `selector` payload or role.",
             "affected_bindings": [
               "runtime-contract:conduit.std/select",
-              "exact-plan-cord:conduit.std/select.control->conduit.std/select.command",
+              "exact-plan-cord:conduit.std/select.control->conduit.std/select.selector",
               "conformance-fixture:conformance/c4/standard-node-library-v1.json",
               "provider:conduit/hosted-select-v1"
             ],
@@ -489,7 +489,7 @@
           }
         },
         {
-          "id": "value",
+          "id": "selected",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -519,10 +519,10 @@
               "sensitivity": "restricted",
               "loss": "lossless-only"
             },
-            "reason": "`conduit.std/select` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity.",
+            "reason": "`conduit.std/select` names this output port for its contract-specific `selected` payload or role.",
             "affected_bindings": [
               "runtime-contract:conduit.std/select",
-              "exact-plan-cord:conduit.std/select.out->conduit.std/select.value",
+              "exact-plan-cord:conduit.std/select.out->conduit.std/select.selected",
               "conformance-fixture:conformance/c4/standard-node-library-v1.json",
               "provider:conduit/hosted-select-v1"
             ],
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1440,12 +1440,12 @@
       ],
       "config": [],
       "catalog_membership": "host-registry",
-      "compiler_exported": false,
+      "compiler_exported": true,
       "known_provider_bundles": [
         {
           "implementation": "conduit/hosted-display-text-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2884,7 +2884,7 @@
         {
           "implementation": "conduit/hosted-fallback-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3880,7 +3880,7 @@
         {
           "implementation": "conduit/hosted-pass-through-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5408,7 +5408,7 @@
         {
           "implementation": "conduit/hosted-stderr-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5487,7 +5487,7 @@
         {
           "implementation": "conduit/hosted-stdin-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5566,7 +5566,7 @@
         {
           "implementation": "conduit/hosted-stdout-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9795,7 +9795,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9881,7 +9881,7 @@
         {
           "implementation": "conduit/hosted-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10062,7 +10062,7 @@
         {
           "implementation": "conduit/hosted-format-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10187,7 +10187,7 @@
         {
           "implementation": "conduit/hosted-text-join-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10294,7 +10294,7 @@
         {
           "implementation": "conduit/hosted-text-lines-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12309,6 +12309,83 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "text/decode-utf8",
+      "public_source_spelling": "text/decode-utf8",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.text",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.text/v1",
+      "export_path": "conduit.std.text/text/decode-utf8",
+      "schema_version": 1,
+      "semantic_hash": "sha256:ace89bff698bce8a503d9efa95ae590843e2f284843fc2e27618fc723128ffe2",
+      "ports": [
+        {
+          "id": "bytes",
+          "direction": "input",
+          "value_type": "std/bytes",
+          "type_schema_version": 1,
+          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "text",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-decode-utf8-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.text/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.text.decode-utf8.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.text.decode-utf8.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": [],
+      "introduction": {
+        "reason": "Introduces an explicit checked UTF-8-to-text boundary after byte sources.",
+        "affected_bindings": [
+          "runtime-contract:text/decode-utf8",
+          "conformance-fixture:conformance/c4/standard-node-library-v1.json",
+          "provider:conduit/hosted-decode-utf8-v1"
+        ],
+        "repository_migration": "pending explicit stdin byte-to-text pipeline rewrites under issue 185",
+        "compatibility_disposition": "new semantic contract; no hidden codec or compatibility alias exists"
+      }
+    },
+    {
       "semantic_identity": "text/encode-utf8",
       "public_source_spelling": "text/encode-utf8",
       "classification": "portable-standard",
@@ -12351,12 +12428,12 @@
       ],
       "config": [],
       "catalog_membership": "host-registry",
-      "compiler_exported": false,
+      "compiler_exported": true,
       "known_provider_bundles": [
         {
           "implementation": "conduit/hosted-encode-utf8-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12487,7 +12564,7 @@
         {
           "implementation": "conduit/hosted-uppercase-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+          "artifact_digest": "sha256:7c16d9b5d6206c4d2a1769eca3fb9ab51b0929e7b7cf0126e6a5cf7d38dd165c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

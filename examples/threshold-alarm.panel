@@ -1,5 +1,5 @@
 # Sensor threshold alarm and LED control panel.
-panel 1
+panel 3
 
 node sensor_pin : device/gpio/pin {
     pin = 14
@@ -13,7 +13,7 @@ node led_pin : device/gpio/pin {
     mode = "write"
 }
 
-cord sensor_pin.out -> filter.in {
+cord sensor_pin.state -> filter.candidate {
     capacity = 8
     max_value_bytes = 1024
     max_queued_bytes = 8192
@@ -22,7 +22,7 @@ cord sensor_pin.out -> filter.in {
     pressure = drop_disposable
 }
 
-cord filter.out -> alarm_counter.in {
+cord filter.unique -> alarm_counter.event {
     capacity = 8
     max_value_bytes = 1024
     max_queued_bytes = 8192
@@ -31,7 +31,7 @@ cord filter.out -> alarm_counter.in {
     pressure = block
 }
 
-cord alarm_counter.out -> led_pin.in {
+cord alarm_counter.count -> led_pin.command {
     capacity = 8
     max_value_bytes = 1024
     max_queued_bytes = 8192

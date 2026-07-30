@@ -7,7 +7,7 @@ node wifi_sta : net/wifi/join {
 
 node status_logger : observe/log
 
-cord wifi_sta.out -> status_logger.in {
+cord wifi_sta.state -> status_logger.message {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096

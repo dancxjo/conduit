@@ -10,7 +10,7 @@ node forwarding_client : conduit/http-client {
     endpoint = "https://hooks.example.com/relay"
 }
 
-cord receiver.out -> filter.in {
+cord receiver.request -> filter.value {
     capacity = 16
     max_value_bytes = 32768
     max_queued_bytes = 524288
@@ -19,7 +19,7 @@ cord receiver.out -> filter.in {
     pressure = block
 }
 
-cord filter.out -> forwarding_client.in {
+cord filter.value -> forwarding_client.request {
     capacity = 16
     max_value_bytes = 32768
     max_queued_bytes = 524288

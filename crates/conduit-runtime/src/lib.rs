@@ -505,10 +505,6 @@ const STREAM_INPUT_TEXT_2: PortContract<'static> = PortContract {
     id: Id("right"),
     ..STREAM_INPUT_TEXT
 };
-const STREAM_CONTROL_TEXT: PortContract<'static> = PortContract {
-    id: Id("command"),
-    ..STREAM_INPUT_TEXT
-};
 const STREAM_OUTPUT_TEXT: PortContract<'static> = PortContract {
     values: ValueCardinality::ZeroOrMore,
     delivery: Delivery::Stream,
@@ -534,6 +530,18 @@ const STREAM_OUTPUT_TEXT_RIGHT: PortContract<'static> = PortContract {
     id: Id("right"),
     ..STREAM_OUTPUT_TEXT
 };
+const fn named_stream_input(id: &'static str) -> PortContract<'static> {
+    PortContract {
+        id: Id(id),
+        ..STREAM_INPUT_TEXT
+    }
+}
+const fn named_stream_output(id: &'static str) -> PortContract<'static> {
+    PortContract {
+        id: Id(id),
+        ..STREAM_OUTPUT_TEXT
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RegistryError {
@@ -572,6 +580,12 @@ pub const ENCODE_UTF8_CONTRACT: NodeContract<'static> = NodeContract {
     config: EMPTY_CONFIG,
     inputs: &[TEXT_INPUT],
     outputs: &[BYTES_OUTPUT],
+};
+pub const DECODE_UTF8_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("text/decode-utf8"),
+    config: EMPTY_CONFIG,
+    inputs: &[BYTES_INPUT],
+    outputs: &[TEXT_OUTPUT],
 };
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
@@ -636,8 +650,11 @@ pub const ZIP_CONTRACT: NodeContract<'static> = NodeContract {
 pub const GATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.std/gate"),
     config: GATE_CONFIG,
-    inputs: &[STREAM_INPUT_TEXT, STREAM_CONTROL_TEXT],
-    outputs: &[STREAM_OUTPUT_TEXT],
+    inputs: &[
+        named_stream_input("candidate"),
+        named_stream_input("permit"),
+    ],
+    outputs: &[named_stream_output("admitted")],
 };
 pub const SELECT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.std/select"),
@@ -645,9 +662,9 @@ pub const SELECT_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[
         STREAM_INPUT_TEXT_1,
         STREAM_INPUT_TEXT_2,
-        STREAM_CONTROL_TEXT,
+        named_stream_input("selector"),
     ],
-    outputs: &[STREAM_OUTPUT_TEXT],
+    outputs: &[named_stream_output("selected")],
 };
 pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/delay"),
@@ -916,6 +933,7 @@ pub enum HostedPrimitiveImplementation {
     Stdin,
     Uppercase,
     EncodeUtf8,
+    DecodeUtf8,
     Stdout,
     Stderr,
     DisplayText,
@@ -1588,6 +1606,11 @@ impl Registry {
             || Box::new(EncodeUtf8),
             validate_empty_config,
         );
+        install(
+            &DECODE_UTF8_CONTRACT,
+            || Box::new(DecodeUtf8),
+            validate_empty_config,
+        );
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
@@ -1769,6 +1792,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 "encode-utf8",
                 HostedPrimitiveImplementation::EncodeUtf8,
                 || Box::new(EncodeUtf8),
+                validate_empty_config,
+            ),
+            (
+                &DECODE_UTF8_CONTRACT,
+                "decode-utf8",
+                HostedPrimitiveImplementation::DecodeUtf8,
+                || Box::new(DecodeUtf8),
                 validate_empty_config,
             ),
             (
@@ -1963,6 +1993,14 @@ impl Default for Registry {
             honest_primitive(
                 &ENCODE_UTF8_CONTRACT,
                 || Box::new(EncodeUtf8),
+                validate_empty_config,
+            ),
+        );
+        nodes.insert(
+            DECODE_UTF8_CONTRACT.id.as_str(),
+            honest_primitive(
+                &DECODE_UTF8_CONTRACT,
+                || Box::new(DecodeUtf8),
                 validate_empty_config,
             ),
         );
@@ -3969,6 +4007,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Stdin => "io/stdin",
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
                 HostedPrimitiveImplementation::EncodeUtf8 => "text/encode-utf8",
+                HostedPrimitiveImplementation::DecodeUtf8 => "text/decode-utf8",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
@@ -4104,6 +4143,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Stdin => HostedNodeKind::Stdin { emitted: false },
                 HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
                 HostedPrimitiveImplementation::EncodeUtf8 => HostedNodeKind::PassThrough,
+                HostedPrimitiveImplementation::DecodeUtf8 => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
@@ -4130,8 +4170,8 @@ impl ResolvedPanel<'_> {
                     drop_unpaired: resolved.source.config("unpaired") == Some("drop"),
                 },
                 HostedPrimitiveImplementation::Gate => HostedNodeKind::Gate {
-                    input: planned_input_cord(plan, planned.instance, "value")?,
-                    control: planned_input_cord(plan, planned.instance, "command")?,
+                    input: planned_input_cord(plan, planned.instance, "candidate")?,
+                    control: planned_input_cord(plan, planned.instance, "permit")?,
                     open: resolved.source.config("initial") == Some("open"),
                 },
                 HostedPrimitiveImplementation::Select => HostedNodeKind::Select {
@@ -4139,7 +4179,7 @@ impl ResolvedPanel<'_> {
                         planned_input_cord(plan, planned.instance, "left")?,
                         planned_input_cord(plan, planned.instance, "right")?,
                     ],
-                    control: planned_input_cord(plan, planned.instance, "command")?,
+                    control: planned_input_cord(plan, planned.instance, "selector")?,
                     selected: usize::from(resolved.source.config("initial") == Some("right")),
                 },
                 HostedPrimitiveImplementation::Fallback => {
@@ -6570,6 +6610,25 @@ impl Handler for EncodeUtf8 {
         std::str::from_utf8(&input.bytes)
             .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
         Ok(vec![Value::bytes(input.bytes.clone())])
+    }
+}
+
+struct DecodeUtf8;
+
+impl Handler for DecodeUtf8 {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == BYTES_TYPE)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "UTF-8 decoder byte input missing"))?;
+        std::str::from_utf8(&input.bytes)
+            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
+        Ok(vec![Value::text(input.bytes.clone())])
     }
 }
 

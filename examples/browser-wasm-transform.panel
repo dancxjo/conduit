@@ -1,14 +1,14 @@
 # This source contains no browser-specific node kind. A browser report and
 # exact implementation manifest select the WASM placement outside the panel.
-panel 1
+panel 3
 
 node greeting : std/literal {
     value = "Browser-local semantics stay portable.\n"
 }
 node transform : text/uppercase
-node output : io/stdout
+node output : display/text
 
-cord greeting.out -> transform.in {
+cord greeting.value -> transform.text {
     capacity = 2
     max_value_bytes = 1024
     max_queued_bytes = 2048
@@ -16,7 +16,7 @@ cord greeting.out -> transform.in {
     high_watermark = 2
     pressure = block
 }
-cord transform.out -> output.in {
+cord transform.text -> output.text {
     capacity = 2
     max_value_bytes = 1024
     max_queued_bytes = 2048

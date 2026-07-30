@@ -1,11 +1,13 @@
 # Single-port CLI pipe bridge panel.
-panel 1
+panel 3
 
 node input_pipe : io/stdin
+node decoder : text/decode-utf8
 node processor : text/uppercase
+node encoder : text/encode-utf8
 node output_pipe : io/stdout
 
-cord input_pipe.out -> processor.in {
+cord input_pipe.bytes -> decoder.bytes {
     capacity = 16
     max_value_bytes = 65536
     max_queued_bytes = 1048576
@@ -14,7 +16,25 @@ cord input_pipe.out -> processor.in {
     pressure = block
 }
 
-cord processor.out -> output_pipe.in {
+cord decoder.text -> processor.text {
+    capacity = 4
+    max_value_bytes = 65536
+    max_queued_bytes = 262144
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord processor.text -> encoder.text {
+    capacity = 4
+    max_value_bytes = 65536
+    max_queued_bytes = 262144
+    low_watermark = 1
+    high_watermark = 4
+    pressure = block
+}
+
+cord encoder.bytes -> output_pipe.bytes {
     capacity = 16
     max_value_bytes = 65536
     max_queued_bytes = 1048576

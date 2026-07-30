@@ -22,12 +22,12 @@ use conduit_runtime::{
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
 const SOURCE_LIMIT_FIXTURE: &str =
     include_str!("../../../conformance/c5/compile-source-limits-v1.json");
-const SOURCE: &str = "panel 1\n\
+const SOURCE: &str = "panel 3\n\
 node source : std/literal { value = \"hello\" }\n\
 node upper : text/uppercase using ready\n\
-node sink : io/stdout\n\
-cord source.out -> upper.in\n\
-cord upper.out -> sink.in\n";
+node sink : display/text\n\
+cord source.value -> upper.text\n\
+cord upper.text -> sink.text\n";
 
 fn hash(byte: u8) -> String {
     SemanticHash::from_bytes([byte; 32]).to_string()
@@ -461,7 +461,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             let implementation = match node.contract.id.as_str() {
                 "std/literal" => HostedPrimitiveImplementation::Literal,
                 "text/uppercase" => HostedPrimitiveImplementation::Uppercase,
-                "io/stdout" => HostedPrimitiveImplementation::Stdout,
+                "display/text" => HostedPrimitiveImplementation::DisplayText,
                 other => panic!("unexpected exact test contract `{other}`"),
             };
             ExactHostedBinding {
@@ -554,6 +554,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
     let summary = resolved
         .run_exact(
             &plan,
@@ -583,14 +584,15 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
-                display: &mut Vec::new(),
+                display: &mut display,
             },
         )
         .unwrap();
 
     assert_eq!(summary.nodes_completed, 3);
     assert_eq!(summary.cords_conducted, 2);
-    assert_eq!(output, b"HELLO");
+    assert!(output.is_empty());
+    assert_eq!(display, b"HELLO");
     assert!(error.is_empty());
 }
 
@@ -657,6 +659,7 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
     let report = resolved
         .run_exact_report(
             &plan,
@@ -666,11 +669,12 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
-                display: &mut Vec::new(),
+                display: &mut display,
             },
         )
         .unwrap();
-    assert_eq!(output, b"Hello, operator. Payload: {status = ready}\n");
+    assert!(output.is_empty());
+    assert_eq!(display, b"Hello, operator. Payload: {status = ready}\n");
     assert!(error.is_empty());
     assert_eq!(report.terminal, conduit_core::TerminalClass::Succeeded);
     assert!(

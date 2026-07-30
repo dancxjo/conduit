@@ -1,5 +1,5 @@
 # CSV to JSON transformation pipeline panel.
-panel 1
+panel 3
 
 node input_data : std/literal {
     value = "id,name\n1,alice\n2,bob\n"
@@ -10,7 +10,7 @@ node storage : storage/key-value {
     table = "users"
 }
 
-cord input_data.out -> transformer.in {
+cord input_data.value -> transformer.text {
     capacity = 8
     max_value_bytes = 16384
     max_queued_bytes = 131072
@@ -19,7 +19,7 @@ cord input_data.out -> transformer.in {
     pressure = block
 }
 
-cord transformer.out -> storage.in {
+cord transformer.text -> storage.operation {
     capacity = 8
     max_value_bytes = 16384
     max_queued_bytes = 131072

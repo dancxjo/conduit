@@ -339,7 +339,10 @@ fn lesson(id: &str, composition: bool) -> Lesson {
 }
 
 fn former_port_id(contract: &str, direction: &str, current: &str) -> Option<&'static str> {
-    if matches!(contract, "display/text" | "text/encode-utf8") {
+    if matches!(
+        contract,
+        "display/text" | "text/encode-utf8" | "text/decode-utf8"
+    ) {
         return None;
     }
     if matches!(
@@ -365,6 +368,8 @@ fn former_port_id(contract: &str, direction: &str, current: &str) -> Option<&'st
         ("output", "elapsed" | "tick") if matches!(contract, "time/timer" | "time/ticker") => {
             Some("count")
         }
+        ("input", "permit") if contract == "conduit.std/gate" => Some("control"),
+        ("input", "selector") if contract == "conduit.std/select" => Some("control"),
         ("input", "left") => Some("in1"),
         ("input", "right") => Some("in2"),
         ("input", "command") => Some("control"),
@@ -691,6 +696,22 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
                         affected_bindings,
                         repository_migration:
                             "pending explicit text-to-stdout pipeline rewrites under issue 185",
+                        compatibility_disposition:
+                            "new semantic contract; no hidden codec or compatibility alias exists",
+                    })
+                }
+                "text/decode-utf8" => {
+                    let mut affected_bindings = vec![
+                        "runtime-contract:text/decode-utf8".to_owned(),
+                        format!("conformance-fixture:{}", fixture(id, owner.classification)),
+                    ];
+                    affected_bindings.extend(provider_binding_ids.iter().cloned());
+                    Some(ContractIntroduction {
+                        reason:
+                            "Introduces an explicit checked UTF-8-to-text boundary after byte sources.",
+                        affected_bindings,
+                        repository_migration:
+                            "pending explicit stdin byte-to-text pipeline rewrites under issue 185",
                         compatibility_disposition:
                             "new semantic contract; no hidden codec or compatibility alias exists",
                     })

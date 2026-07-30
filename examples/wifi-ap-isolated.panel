@@ -1,5 +1,5 @@
 # Isolated Wi-Fi access point configuration panel.
-panel 1
+panel 3
 
 node wifi_ap : net/wifi/access-point {
     ssid = "Conduit-AP"
@@ -7,7 +7,7 @@ node wifi_ap : net/wifi/access-point {
 
 node status_logger : observe/log
 
-cord wifi_ap.out -> status_logger.in {
+cord wifi_ap.state -> status_logger.message {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096

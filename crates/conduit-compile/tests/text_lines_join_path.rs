@@ -29,7 +29,7 @@ node joined_{name} : std/text/join {{
     maximum_output_bytes = 4096
 }}
 
-cord chunks_{name}.out -> lines_{name}.in {{
+cord chunks_{name}.value -> lines_{name}.text {{
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -50,8 +50,17 @@ cord lines_{name}.line -> joined_{name}.item {{
 }
 
 const MAXIMUM_OUTPUT: &str = r#"
+node encoded : text/encode-utf8
 node output : io/stdout
-cord joined_a.out -> output.in {
+cord joined_a.text -> encoded.text {
+    capacity = 1
+    max_value_bytes = 4096
+    max_queued_bytes = 4096
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord encoded.bytes -> output.bytes {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -206,7 +215,7 @@ fn maximum_join_requeues_fairly_with_lines_under_tiny_steps() {
     assert_eq!(value.replace("\\n", "\n").len(), 1024);
     let separator = "|";
     let source = format!(
-        "panel 1\n{}\n{MAXIMUM_OUTPUT}",
+        "panel 3\n{}\n{MAXIMUM_OUTPUT}",
         maximum_branch("a", &value, separator)
     );
     let mut installed = InstalledProfile::observe(&source).unwrap();
@@ -322,7 +331,7 @@ fn maximum_join_requeues_fairly_with_lines_under_tiny_steps() {
 fn maximum_line_scanning_and_copying_span_bounded_steps() {
     let value = "x".repeat(conduit_std::LINES_MAX_LINE_BYTES);
     let source = format!(
-        "panel 1\n{}\n{MAXIMUM_OUTPUT}",
+        "panel 3\n{}\n{MAXIMUM_OUTPUT}",
         maximum_branch("a", &value, "|")
     );
     let mut installed = InstalledProfile::observe(&source).unwrap();

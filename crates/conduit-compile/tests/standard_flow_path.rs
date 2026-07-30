@@ -60,10 +60,10 @@ fn exact_report(
                 scheduler_policy: SchedulerPolicy {
                     schema_version: SCHEDULER_CONTRACT_VERSION,
                     ready_queue: ReadyQueueDiscipline::RoundRobin,
-                    max_decisions: 256,
-                    max_tick: 512,
+                    max_decisions: 512,
+                    max_tick: 1024,
                     max_consecutive_yields: 8,
-                    max_events: 256,
+                    max_events: 512,
                 },
                 reservation: SchedulerReservation {
                     available_runtime_memory_bytes: plan.budget.memory_bytes,
@@ -295,20 +295,22 @@ fn every_standard_flow_node_cancels_before_work_with_bounded_evidence() {
 #[test]
 fn merge_round_robin_survives_capacity_one_pressure_and_repeats_deterministically() {
     let source = r#"
-panel 1
+panel 3
 node left_chunks : std/literal { value = "a1\na2\n" }
 node right_chunks : std/literal { value = "b1\nb2\n" }
 node left_lines : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node right_lines : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node merged : conduit.std/merge { ordering = "round-robin" }
 node joined : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
+node encoded : text/encode-utf8
 node sink : io/stdout
-cord left_chunks.out -> left_lines.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_chunks.out -> right_lines.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord left_lines.line -> merged.in1 { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_lines.line -> merged.in2 { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord merged.out -> joined.item { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord joined.out -> sink.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left_chunks.value -> left_lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_chunks.value -> right_lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left_lines.line -> merged.left { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_lines.line -> merged.right { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord merged.value -> joined.item { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord joined.text -> encoded.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord encoded.bytes -> sink.bytes { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
 "#;
     let first = exact_report(source, "run/conduit.std/merge/pressure");
     let second = exact_report(source, "run/conduit.std/merge/pressure");
@@ -325,20 +327,24 @@ fn tee_modes_preserve_all_values_across_uneven_capacity_one_branches() {
     for mode in ["coupled", "isolated"] {
         let source = format!(
             r#"
-panel 1
+panel 3
 node chunks : std/literal {{ value = "a\nb\nc\n" }}
 node lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }}
 node split : conduit.std/tee {{ mode = "{mode}" }}
 node left_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
 node right_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
+node left_encoded : text/encode-utf8
+node right_encoded : text/encode-utf8
 node left_sink : io/stdout
 node right_sink : io/stderr
-cord chunks.out -> lines.in {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord lines.line -> split.in {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord split.out1 -> left_joined.item {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord split.out2 -> right_joined.item {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord left_joined.out -> left_sink.in {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord right_joined.out -> right_sink.in {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord chunks.value -> lines.text {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord lines.line -> split.value {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord split.left -> left_joined.item {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord split.right -> right_joined.item {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord left_joined.text -> left_encoded.text {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord right_joined.text -> right_encoded.text {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord left_encoded.bytes -> left_sink.bytes {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord right_encoded.bytes -> right_sink.bytes {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
 "#
         );
         assert_eq!(
@@ -359,20 +365,22 @@ cord right_joined.out -> right_sink.in {{ capacity = 1 max_value_bytes = 128 max
 #[test]
 fn gate_and_select_apply_control_before_data_without_hidden_loss() {
     let gate = r#"
-panel 1
+panel 3
 node data_chunks : std/literal { value = "d1\nd2\n" }
 node command_chunks : std/literal { value = "open\nclosed\nopen\n" }
 node data : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node commands : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node gated : conduit.std/gate { initial = "closed" retained = "block" }
 node joined : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
+node encoded : text/encode-utf8
 node sink : io/stdout
-cord data_chunks.out -> data.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord command_chunks.out -> commands.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord data.line -> gated.in { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord commands.line -> gated.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord gated.out -> joined.item { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord joined.out -> sink.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord data_chunks.value -> data.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord command_chunks.value -> commands.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord data.line -> gated.candidate { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord commands.line -> gated.permit { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord gated.admitted -> joined.item { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord joined.text -> encoded.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord encoded.bytes -> sink.bytes { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
 "#;
     assert_eq!(
         exact_run(gate, "run/conduit.std/gate/toggle-race"),
@@ -380,24 +388,26 @@ cord joined.out -> sink.in { capacity = 1 max_value_bytes = 128 max_queued_bytes
     );
 
     let select = r#"
-panel 1
+panel 3
 node left_chunks : std/literal { value = "l1\nl2\n" }
 node right_chunks : std/literal { value = "r1\n" }
-node command_chunks : std/literal { value = "in2\nin1\n" }
+node command_chunks : std/literal { value = "right\nleft\n" }
 node left : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node right : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node commands : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
-node selected : conduit.std/select { initial = "in1" inactive = "block" }
+node selected : conduit.std/select { initial = "left" inactive = "block" }
 node joined : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
+node encoded : text/encode-utf8
 node sink : io/stdout
-cord left_chunks.out -> left.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_chunks.out -> right.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord command_chunks.out -> commands.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord left.line -> selected.in1 { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right.line -> selected.in2 { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord commands.line -> selected.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord selected.out -> joined.item { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord joined.out -> sink.in { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left_chunks.value -> left.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_chunks.value -> right.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord command_chunks.value -> commands.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left.line -> selected.left { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right.line -> selected.right { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord commands.line -> selected.selector { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord selected.selected -> joined.item { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord joined.text -> encoded.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord encoded.bytes -> sink.bytes { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
 "#;
     assert_eq!(
         exact_run(select, "run/conduit.std/select/toggle-race"),
@@ -410,7 +420,7 @@ fn zip_has_explicit_uneven_terminal_policies() {
     let source = |policy: &str| {
         format!(
             r#"
-panel 1
+panel 3
 node left_chunks : std/literal {{ value = "l1\nl2\nl3\n" }}
 node right_chunks : std/literal {{ value = "r1\nr2\n" }}
 node left_lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }}
@@ -418,16 +428,20 @@ node right_lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_pr
 node paired : conduit.std/zip {{ unpaired = "{policy}" }}
 node left_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
 node right_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
+node left_encoded : text/encode-utf8
+node right_encoded : text/encode-utf8
 node left_sink : io/stdout
 node right_sink : io/stderr
-cord left_chunks.out -> left_lines.in {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord right_chunks.out -> right_lines.in {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord left_lines.line -> paired.in1 {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord right_lines.line -> paired.in2 {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord left_chunks.value -> left_lines.text {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord right_chunks.value -> right_lines.text {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord left_lines.line -> paired.left {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord right_lines.line -> paired.right {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
 cord paired.left -> left_joined.item {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
 cord paired.right -> right_joined.item {{ capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord left_joined.out -> left_sink.in {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
-cord right_joined.out -> right_sink.in {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord left_joined.text -> left_encoded.text {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord right_joined.text -> right_encoded.text {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord left_encoded.bytes -> left_sink.bytes {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
+cord right_encoded.bytes -> right_sink.bytes {{ capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }}
 "#
         )
     };
