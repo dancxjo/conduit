@@ -9,6 +9,7 @@
 
 import { parsePanelToViewModel } from "./patchbay-view-adapter.js";
 import { FaceplateNodeComponent } from "./patchbay-faceplate.js";
+import { PatchbaySmartEdge } from "./patchbay-smart-edge.js";
 
 const e = window.React.createElement;
 
@@ -19,6 +20,9 @@ export class PatchbayReactFlowRenderer {
     this.savedPositions = {};
     this.nodeTypes = {
       conduitFaceplate: FaceplateNodeComponent
+    };
+    this.edgeTypes = {
+      smartCord: PatchbaySmartEdge
     };
     this.reactRoot = null;
     this.currentSource = "";
@@ -149,6 +153,7 @@ export class PatchbayReactFlowRenderer {
 
     const flowEdges = viewModel.edges.map((edge) => ({
       id: edge.id,
+      type: "smartCord",
       source: edge.sourceNodeId,
       sourceHandle: edge.sourcePortId,
       target: edge.targetNodeId,
@@ -174,6 +179,7 @@ export class PatchbayReactFlowRenderer {
         nodes,
         edges,
         nodeTypes: this.nodeTypes,
+        edgeTypes: this.edgeTypes,
         onNodesChange,
         onEdgesChange,
         onConnect: (params) => this.handleConnect(params),

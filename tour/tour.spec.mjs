@@ -65,3 +65,27 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
   });
   await expect(source).toHaveValue(/node salutation/);
 });
+
+test("routes projected cords around intervening faceplates", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const route = await page.evaluate(async () => {
+    const { routeAroundNodes } = await import("./patchbay-smart-edge.js");
+    return routeAroundNodes(
+      { x: 0, y: 80 },
+      { x: 320, y: 80 },
+      [{
+        id: "middle",
+        positionAbsolute: { x: 120, y: 32 },
+        width: 80,
+        height: 96,
+      }],
+    );
+  });
+
+  expect(route).not.toBeNull();
+  expect(route.path).toMatch(/^M /);
+  expect(route.points.some((point) => point.y < 16 || point.y > 144)).toBe(true);
+  expect(route.points.every((point) =>
+    point.x < 104 || point.x > 216 || point.y < 16 || point.y > 144
+  )).toBe(true);
+});
