@@ -389,6 +389,50 @@ fn node_contract_outcome(id: &str) -> &'static str {
                 evidence_events: 10,
             },
         ),
+        "wifi-sta-without-timer" => (
+            StandardNodeKind::WifiStation,
+            StandardNodeLimits {
+                retained_values: 8,
+                retained_bytes: 512,
+                pending_operations: 1,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 8,
+            },
+        ),
+        "finite-wifi-sta" => (
+            StandardNodeKind::WifiStation,
+            StandardNodeLimits {
+                retained_values: 8,
+                retained_bytes: 512,
+                pending_operations: 1,
+                timers: 1,
+                work_per_step: 1,
+                evidence_events: 8,
+            },
+        ),
+        "tcp-socket-without-state" => (
+            StandardNodeKind::TcpSocket,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-tcp-socket" => (
+            StandardNodeKind::TcpSocket,
+            StandardNodeLimits {
+                retained_values: 64,
+                retained_bytes: 16384,
+                pending_operations: 1,
+                timers: 1,
+                work_per_step: 1,
+                evidence_events: 64,
+            },
+        ),
         _ => panic!("unknown node fixture {id}"),
     };
 
@@ -420,7 +464,7 @@ fn every_standard_node_contract_fixture_executes_independently() {
         .iter()
         .filter(|case| case["contract"] == "node")
         .collect::<Vec<_>>();
-    assert_eq!(cases.len(), 24);
+    assert_eq!(cases.len(), 28);
     for case in cases {
         let id = case["id"].as_str().unwrap();
         assert_eq!(node_contract_outcome(id), case["expected"], "{id}");

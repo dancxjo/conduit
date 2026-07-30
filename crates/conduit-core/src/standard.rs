@@ -87,6 +87,13 @@ pub enum StandardNodeKind {
     Backoff,
     StateSnapshot,
     StateRestore,
+    WifiStation,
+    WifiAccessPoint,
+    NetworkInterface,
+    IpAddressLease,
+    TcpSocket,
+    UdpSocket,
+    DnsResolver,
 }
 
 /// Finite resources that are part of a standard node's semantic contract.
@@ -276,6 +283,10 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::CircuitBreaker
             | StandardNodeKind::Backoff
             | StandardNodeKind::HealthGate
+            | StandardNodeKind::WifiStation
+            | StandardNodeKind::WifiAccessPoint
+            | StandardNodeKind::TcpSocket
+            | StandardNodeKind::UdpSocket
     );
     if needs_timer && limits.timers == 0 {
         return Err(StandardContractError::IncompatibleLimits);
@@ -317,6 +328,13 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::Backoff
             | StandardNodeKind::StateSnapshot
             | StandardNodeKind::StateRestore
+            | StandardNodeKind::WifiStation
+            | StandardNodeKind::WifiAccessPoint
+            | StandardNodeKind::NetworkInterface
+            | StandardNodeKind::IpAddressLease
+            | StandardNodeKind::TcpSocket
+            | StandardNodeKind::UdpSocket
+            | StandardNodeKind::DnsResolver
     );
     if needs_state && (limits.retained_values == 0 || limits.retained_bytes == 0) {
         return Err(StandardContractError::IncompatibleLimits);

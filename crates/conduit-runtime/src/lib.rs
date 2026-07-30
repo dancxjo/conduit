@@ -538,6 +538,42 @@ const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[INPUT_TEXT],
     outputs: &[OUTPUT_TEXT],
 };
+const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/wifi-station"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/wifi-ap"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/network-interface"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/tcp-socket"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/udp-socket"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/dns-resolver"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
 
 /// Typed runtime value.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -888,6 +924,54 @@ impl Default for Registry {
             BACKOFF_CONTRACT.id.as_str(),
             RegisteredNode {
                 contract: &BACKOFF_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            WIFI_STATION_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &WIFI_STATION_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            WIFI_AP_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &WIFI_AP_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            NETWORK_INTERFACE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &NETWORK_INTERFACE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            TCP_SOCKET_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &TCP_SOCKET_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            UDP_SOCKET_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &UDP_SOCKET_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            DNS_RESOLVER_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &DNS_RESOLVER_CONTRACT,
                 factory: || Box::new(PassThroughHandler),
                 validate_config: validate_empty_config,
             },
