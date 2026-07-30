@@ -1220,6 +1220,56 @@ pub struct Registry {
 }
 
 impl Registry {
+    /// Validates package-resolved semantic bindings against the exact
+    /// descriptors known to this checker, then resolves contract topology.
+    ///
+    /// Package import success remains independent of installed providers,
+    /// host observations, artifact acquisition, grants, and authority.
+    pub fn resolve_package_contracts<'a>(
+        &'a self,
+        imports: &'a conduit_panel::PackageImportResolution,
+    ) -> Result<ResolvedPanel<'a>, ResolutionError> {
+        for binding in imports.bindings() {
+            let expected = match binding.kind {
+                conduit_panel::ContractExportKind::Node
+                | conduit_panel::ContractExportKind::Composite
+                | conduit_panel::ContractExportKind::Adapter => self
+                    .get_registered_node(&binding.canonical_id)
+                    .map(|registered| {
+                        OwnedNodeSchema::from_contract(registered.contract)
+                            .semantic_hash()
+                            .to_string()
+                    }),
+                conduit_panel::ContractExportKind::Interface => self
+                    .interfaces
+                    .get(&binding.canonical_id)
+                    .map(|interface| interface.semantic_hash.to_string()),
+                conduit_panel::ContractExportKind::Type => self
+                    .type_reference(&binding.canonical_id)
+                    .map(|reference| reference.semantic_hash.to_string()),
+            }
+            .ok_or_else(|| {
+                ResolutionError::new(
+                    "CND-PKG-004",
+                    format!(
+                        "imported canonical contract `{}` is not known to the supplied checker catalog",
+                        binding.canonical_id
+                    ),
+                )
+            })?;
+            if expected != binding.descriptor_hash {
+                return Err(ResolutionError::new(
+                    "CND-PKG-005",
+                    format!(
+                        "imported canonical contract `{}` descriptor differs: package `{}`, checker `{expected}`",
+                        binding.canonical_id, binding.descriptor_hash
+                    ),
+                ));
+            }
+        }
+        self.resolve_contracts(imports.panel())
+    }
+
     /// Register one linked, source-attested host-service implementation.
     ///
     /// The returned executable identity is derived from the exact semantic

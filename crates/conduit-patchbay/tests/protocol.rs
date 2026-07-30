@@ -19,6 +19,35 @@ fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest
 }
 
 #[test]
+fn checked_contract_import_projection_keeps_alias_identity_and_hash_distinct() {
+    let panel = conduit_panel::parse(include_str!(
+        "../../../fixtures/contract-package-imports/alias.panel"
+    ))
+    .unwrap();
+    let lock: conduit_panel::ContractPackageLock = serde_json::from_str(include_str!(
+        "../../../fixtures/contract-package-imports/contract-package-lock.json"
+    ))
+    .unwrap();
+    let bytes = include_bytes!("../../../fixtures/contract-package-imports/conduit-dev-std.json");
+    let resolution = conduit_panel::resolve_package_imports(
+        &panel,
+        &lock,
+        &[conduit_panel::ContractPackageArtifact {
+            bytes,
+            mirror: Some("repository"),
+        }],
+    )
+    .unwrap();
+    let projection = conduit_patchbay::project_contract_imports(&resolution);
+    assert_eq!(projection[0].local_name, "split");
+    assert_eq!(projection[0].canonical_id, "conduit.dev/std/tee");
+    assert_eq!(
+        projection[0].descriptor_hash,
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    );
+}
+
+#[test]
 fn library_catalog_projection_keeps_provider_bundles_separate_from_observation() {
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();

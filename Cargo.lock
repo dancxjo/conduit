@@ -423,6 +423,7 @@ name = "conduit-panel"
 version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
+ "serde",
  "serde_json",
  "sha2",
 ]

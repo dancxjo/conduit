@@ -408,6 +408,8 @@ mod tests {
             subject_kind: "cord",
             subject_id: "root/source.value->root/sink.text".to_owned(),
             node_id: None,
+            semantic_contract_id: None,
+            semantic_contract_descriptor_hash: None,
             cord_id: Some("root/source.value->root/sink.text".to_owned()),
             from_port: Some("root/source.value".to_owned()),
             to_port: Some("root/sink.text".to_owned()),

@@ -638,6 +638,7 @@ fn authoritative_patchbay_view(
             .cloned()
             .collect(),
         topology: conduit_patchbay::PatchbayTopologyProjection {
+            contract_imports: Vec::new(),
             logical_nodes,
             expanded_nodes,
             cords,

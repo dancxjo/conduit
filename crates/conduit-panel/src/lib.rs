@@ -8,6 +8,7 @@ use std::{collections::BTreeSet, fmt};
 
 mod document;
 mod modules;
+mod packages;
 
 pub use document::{
     CstToken, CstTokenKind, SOURCE_AST_SCHEMA_VERSION, SourceDocument, Span, parse_document,
@@ -16,6 +17,13 @@ pub use document::{
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
     ResolvedRootSelection, RootSelectionMode, resolve_modules,
+};
+pub use packages::{
+    ContractExportKind, ContractPackageArtifact, ContractPackageDependency, ContractPackageExport,
+    ContractPackageLock, ContractPackageManifest, ContractPackageResolver, LockedContractPackage,
+    LockedExport, ModulePackageImportBinding, PackageImportBinding, PackageImportResolution,
+    PackageResolutionError, PackageResolvedModuleGraph, ResolvedContractPackage,
+    resolve_module_package_imports, resolve_package_imports,
 };
 
 /// Portable ceiling applied before the parser retains attacker-controlled
@@ -94,6 +102,9 @@ pub struct Panel {
     pub version: u16,
     /// Explicit module imports in source order.
     pub imports: Vec<Import>,
+    /// Public semantic-contract imports. Resolution consumes only explicitly
+    /// supplied immutable package artifacts and lock data.
+    pub package_imports: Vec<PackageImport>,
     /// Named node-interface declarations in source order.
     pub interfaces: Vec<InterfaceDeclaration>,
     /// Reusable composite node definitions in source order.
@@ -113,6 +124,41 @@ pub struct Panel {
     /// Explicit terminal-supervision bindings. Only grammar version 2 may
     /// author these; version 1 remains frozen.
     pub supervisions: Vec<SupervisionBinding>,
+}
+
+/// One source-level import of public contract-package exports.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackageImport {
+    /// Authored package/export target.
+    pub target: String,
+    /// Named export selection or one aliased package/export target.
+    pub selection: PackageImportSelection,
+    /// Exact authored declaration extent.
+    pub source_span: SourceSpan,
+}
+
+/// Source spelling for one contract-package import.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackageImportSelection {
+    /// `import package/{export, export as local}`.
+    Named(Vec<PackageImportName>),
+    /// `import package-or-export as local`.
+    ///
+    /// Resolution treats this as a package namespace only when the exact
+    /// target names a supplied locked package. Otherwise the final path member
+    /// is the selected export.
+    Alias {
+        local: String,
+        source_span: SourceSpan,
+    },
+}
+
+/// One explicitly selected public export and its local source name.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackageImportName {
+    pub export: String,
+    pub local: String,
+    pub source_span: SourceSpan,
 }
 
 /// One deterministic source import. Parsing never fetches it.
@@ -956,6 +1002,7 @@ impl Parser {
             ));
         }
         let mut imports = Vec::new();
+        let mut package_imports = Vec::new();
         let mut interfaces = Vec::new();
         let mut definitions = Vec::new();
         let mut nodes = Vec::new();
@@ -967,7 +1014,13 @@ impl Parser {
         while !matches!(self.current().kind, TokenKind::Eof) {
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
-                "import" => imports.push(self.parse_import()?),
+                "import" => {
+                    if matches!(self.current().kind, TokenKind::String(_)) {
+                        imports.push(self.parse_import()?);
+                    } else {
+                        package_imports.push(self.parse_package_import()?);
+                    }
+                }
                 "interface" => interfaces.push(self.parse_interface()?),
                 "node" => {
                     let start_line = self.current().line;
@@ -1052,6 +1105,7 @@ impl Parser {
         let panel = Panel {
             version,
             imports,
+            package_imports,
             interfaces,
             definitions,
             nodes,
@@ -1082,6 +1136,80 @@ impl Parser {
             target,
             alias,
             content_hash,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
+        })
+    }
+
+    fn parse_package_import(&mut self) -> Result<PackageImport, ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
+        let mut target = self.expect_any_word()?;
+        let selection = if matches!(self.current().kind, TokenKind::LeftBrace) {
+            if target.ends_with('/') {
+                target.pop();
+            }
+            self.advance();
+            let mut names = Vec::new();
+            while !matches!(self.current().kind, TokenKind::RightBrace) {
+                let name_start_line = self.current().line;
+                let name_start_column = self.current().column;
+                let export = self.expect_any_word()?;
+                let local = if self.current_word_is("as") {
+                    self.advance();
+                    self.expect_any_word()?
+                } else {
+                    export.clone()
+                };
+                let (name_end_line, name_end_column) = self.previous_end();
+                names.push(PackageImportName {
+                    export,
+                    local,
+                    source_span: SourceSpan {
+                        line: name_start_line,
+                        column: name_start_column,
+                        end_line: name_end_line,
+                        end_column: name_end_column,
+                    },
+                });
+                if matches!(self.current().kind, TokenKind::Comma) {
+                    self.advance();
+                } else if !matches!(self.current().kind, TokenKind::RightBrace) {
+                    return Err(self.error("expected `,` or `}` in package import"));
+                }
+            }
+            if names.is_empty() {
+                return Err(self.error_code(
+                    "CND-PKG-001",
+                    "package import must name at least one public export",
+                ));
+            }
+            self.advance();
+            PackageImportSelection::Named(names)
+        } else {
+            self.expect_word("as")?;
+            let alias_start_line = self.current().line;
+            let alias_start_column = self.current().column;
+            let local = self.expect_any_word()?;
+            let (alias_end_line, alias_end_column) = self.previous_end();
+            PackageImportSelection::Alias {
+                local,
+                source_span: SourceSpan {
+                    line: alias_start_line,
+                    column: alias_start_column,
+                    end_line: alias_end_line,
+                    end_column: alias_end_column,
+                },
+            }
+        };
+        let (end_line, end_column) = self.previous_end();
+        Ok(PackageImport {
+            target,
+            selection,
             source_span: SourceSpan {
                 line: start_line,
                 column: start_column,
@@ -2104,6 +2232,22 @@ fn validate_source_symbols(
     for import in &panel.imports {
         if !aliases.insert(import.alias.as_str()) {
             return Err(duplicate("import alias", &import.alias));
+        }
+    }
+    for import in &panel.package_imports {
+        match &import.selection {
+            PackageImportSelection::Named(names) => {
+                for name in names {
+                    if !aliases.insert(name.local.as_str()) {
+                        return Err(duplicate("import alias", &name.local));
+                    }
+                }
+            }
+            PackageImportSelection::Alias { local, .. } => {
+                if !aliases.insert(local.as_str()) {
+                    return Err(duplicate("import alias", local));
+                }
+            }
         }
     }
     let mut interfaces = BTreeSet::new();

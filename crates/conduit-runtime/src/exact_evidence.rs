@@ -21,6 +21,8 @@ pub struct ExactEvidenceRecord {
     pub subject_kind: &'static str,
     pub subject_id: String,
     pub node_id: Option<String>,
+    pub semantic_contract_id: Option<String>,
+    pub semantic_contract_descriptor_hash: Option<String>,
     pub cord_id: Option<String>,
     pub from_port: Option<String>,
     pub to_port: Option<String>,
@@ -60,6 +62,8 @@ pub(crate) fn project_exact_evidence(
                 subject_kind: "run",
                 subject_id: run_id.to_owned(),
                 node_id: None,
+                semantic_contract_id: None,
+                semantic_contract_descriptor_hash: None,
                 cord_id: None,
                 from_port: None,
                 to_port: None,
@@ -84,6 +88,9 @@ pub(crate) fn project_exact_evidence(
                     if let Some(node) = plan.nodes.get(usize::from(index)) {
                         record.subject_id = node.instance.as_str().to_owned();
                         record.node_id = Some(node.instance.as_str().to_owned());
+                        record.semantic_contract_id = Some(node.contract.id.to_string());
+                        record.semantic_contract_descriptor_hash =
+                            Some(node.contract.semantic_hash.to_string());
                         record.implementation_id = Some(node.implementation.id.to_string());
                         record.implementation_identity =
                             Some(node.implementation.semantic_hash.to_string());

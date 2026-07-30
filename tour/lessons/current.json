@@ -1486,6 +1486,89 @@
           "exact binding and ordered terminal evidence preserve every identity without granting authority during discovery"
         ]
       }
+    },
+    {
+      "id": "library.contract-package-imports",
+      "chapter": 4,
+      "title": "Imports name meaning; plans provide machines",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "library.standard-flow-control"
+      ],
+      "objective": "Compare a friendly source alias with its exact canonical contract identity, then distinguish successful offline import checking from provider availability.",
+      "prose": "The alias split is source-local; conduit.dev/std/tee is the package-owned semantic identity and its descriptor hash pins the exact contract: imports name the part; the plan determines whether a particular machine can provide it. Import resolution reads only the supplied contract-package bytes and lock, never a URL, package registry, installer, grant, or provider selector.",
+      "vocabulary": [
+        "contract package",
+        "local alias",
+        "canonical identity",
+        "descriptor hash",
+        "contract-only"
+      ],
+      "source": "panel 3\n\nimport conduit.dev/std/{tee as split}\n\n# The import can check offline while this selected host has no provider.\nnode branch : split\n",
+      "command": "conduct --check contract-package-import.panel",
+      "commands": [
+        "conduct inspect --type panel alias.panel",
+        "conduct --check contract-package-import.panel"
+      ],
+      "expected_diagnostic": "CND-IMP-001",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 1,
+        "queue_bytes": 0,
+        "evidence_events": 4
+      },
+      "presentation": {
+        "layout": "import-identity-story",
+        "show_plan": true,
+        "timeline": "diagnostic-only",
+        "patchbay_fields": [
+          "local_name",
+          "canonical_id",
+          "descriptor_hash",
+          "availability"
+        ]
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-IMP-001"
+      },
+      "hints": [
+        "Select split to reveal conduit.dev/std/tee and its pinned descriptor hash.",
+        "Switch to the missing-export scenario to see deterministic CND-PKG-004 source-span evidence.",
+        "Notice that successful import checking adds no installed provider, host grant, or authority."
+      ],
+      "solution": "Supply the immutable package artifact and exact lock to the checker, retain the alias only for presentation, and let later exact planning decide whether current host facts permit a provider binding.",
+      "accessibility": {
+        "non_audio": "An ordered table states alias, canonical identity, descriptor hash, package digest, contract-only availability, and the missing-export diagnostic.",
+        "reduced_motion": true,
+        "keyboard": "Tab moves through source alias, resolved identity, availability, and error scenarios.",
+        "color_independent": "Every state is written as text with an exact identity or diagnostic code."
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection"
+      },
+      "imports": {
+        "schema": "conduit.tour-contract-import-lesson",
+        "draft": 0,
+        "alias": "split",
+        "canonical_id": "conduit.dev/std/tee",
+        "descriptor_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "package_id": "conduit.dev/std",
+        "package_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "availability": "contract-only",
+        "error": {
+          "scenario": "missing export",
+          "code": "CND-PKG-004",
+          "message": "the supplied locked package has no requested public export"
+        },
+        "offline_proof": [
+          "resolver input is immutable bytes plus exact lock data",
+          "no loader, network, filesystem, process, prompt, grant, enrollment, installer, or provider registry is available",
+          "provider availability remains a later host observation and exact-plan decision"
+        ]
+      }
     }
   ]
 }

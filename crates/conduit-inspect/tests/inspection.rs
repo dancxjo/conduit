@@ -467,6 +467,26 @@ node value : std/literal { value = secret("credential/material") }
 }
 
 #[test]
+fn panel_inspection_reports_contract_package_targets_and_local_names_without_resolving() {
+    let source = include_bytes!("../../../fixtures/contract-package-imports/alias.panel");
+    let report = inspect_bytes(
+        source,
+        RequestedKind::Panel,
+        Some("panel"),
+        InspectLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(report.counts["contract_package_imports"], 1);
+    assert!(report.references.iter().any(|reference| {
+        reference.category == "contract-package-import" && reference.value == "conduit.dev/std"
+    }));
+    assert!(report.references.iter().any(|reference| {
+        reference.category == "contract-package-local-name"
+            && reference.value.contains("tee as split")
+    }));
+}
+
+#[test]
 fn evidence_and_diagnostics_validate_without_reproducing_payloads() {
     let evidence = include_bytes!("../../../conformance/c2/execution-event.ndjson");
     let report = inspect_bytes(

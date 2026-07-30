@@ -109,6 +109,20 @@ fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() 
         .unwrap();
     assert_eq!(report.summary.nodes_completed, 1);
     assert_eq!(report.terminal, conduit_core::TerminalClass::Succeeded);
+    let node_evidence = report
+        .evidence
+        .iter()
+        .find(|record| record.node_id.is_some())
+        .expect("exact node evidence is retained");
+    assert_eq!(
+        node_evidence.semantic_contract_id.as_deref(),
+        Some(CUSTOM_CONTRACT.id.as_str())
+    );
+    let contract_hash = plan.nodes[0].contract.semantic_hash.to_string();
+    assert_eq!(
+        node_evidence.semantic_contract_descriptor_hash.as_deref(),
+        Some(contract_hash.as_str())
+    );
     assert!(!report.evidence.is_empty());
     assert!(output.is_empty());
     assert!(error.is_empty());

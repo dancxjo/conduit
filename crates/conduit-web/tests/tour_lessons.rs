@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 21] = [
+const REQUIRED_TOUR_LESSONS: [&str; 22] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -22,6 +22,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 21] = [
     "patchbay.observes-patchbay",
     "library.typed-text-format",
     "library.standard-flow-control",
+    "library.contract-package-imports",
     "platform.value-envelope-clock-feedback",
     "platform.resource-lease-effect-commit",
     "platform.workload-admission-deadline",
@@ -264,6 +265,34 @@ fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
     assert_eq!(result["display"], "rightright");
     assert_eq!(result["stdout"], "");
     assert_eq!(result["stderr"], "");
+}
+
+#[test]
+fn contract_package_import_lesson_separates_names_meaning_and_availability() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.contract-package-imports")
+        .expect("contract-package import lesson is selectable");
+    assert_eq!(lesson["runnability"]["state"], "contract-only");
+    assert_eq!(lesson["expected_diagnostic"], "CND-IMP-001");
+    assert!(lesson["prose"].as_str().unwrap().contains(
+        "imports name the part; the plan determines whether a particular machine can provide it"
+    ));
+    let imports = &lesson["imports"];
+    assert_eq!(imports["alias"], "split");
+    assert_eq!(imports["canonical_id"], "conduit.dev/std/tee");
+    assert!(
+        imports["descriptor_hash"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:")
+    );
+    assert_eq!(imports["availability"], "contract-only");
+    assert_eq!(imports["error"]["code"], "CND-PKG-004");
 }
 
 #[test]

@@ -1,0 +1,64 @@
+{
+  "schema": "conduit.contract-package",
+  "draft": 0,
+  "package_id": "conduit.dev/std",
+  "owner": "Conduit project",
+  "provenance": "repository:fixtures/contract-package-imports",
+  "license": "MIT OR Apache-2.0",
+  "dependencies": [],
+  "exports": [
+    {
+      "name": "tee",
+      "canonical_id": "conduit.dev/std/tee",
+      "kind": "node",
+      "descriptor_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "descriptor": {
+        "id": "conduit.dev/std/tee",
+        "kind": "node",
+        "inputs": [
+          "value"
+        ],
+        "outputs": [
+          "first",
+          "second"
+        ],
+        "config": []
+      },
+      "public": true,
+      "structural_facets": [
+        "conduit.dev/facets/stream"
+      ],
+      "directional_obligations": [
+        "input:value -> output:first,output:second"
+      ],
+      "conformance_fixtures": [
+        "conformance/standard-flow.json"
+      ],
+      "lessons": [
+        "library.contract-package-imports"
+      ],
+      "successor": null,
+      "deprecated": false
+    },
+    {
+      "name": "private-helper",
+      "canonical_id": "conduit.dev/std/private-helper",
+      "kind": "node",
+      "descriptor_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "descriptor": {
+        "id": "conduit.dev/std/private-helper",
+        "kind": "node",
+        "inputs": [],
+        "outputs": [],
+        "config": []
+      },
+      "public": false,
+      "structural_facets": [],
+      "directional_obligations": [],
+      "conformance_fixtures": [],
+      "lessons": [],
+      "successor": null,
+      "deprecated": false
+    }
+  ]
+}

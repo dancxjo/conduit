@@ -517,10 +517,38 @@ impl Default for PatchbayProjectionBounds {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PatchbayTopologyProjection {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub contract_imports: Vec<PatchbayContractImportProjection>,
     pub logical_nodes: Vec<PatchbayNodeProjection>,
     pub expanded_nodes: Vec<PatchbayNodeProjection>,
     pub cords: Vec<PatchbayCordProjection>,
     pub composites: Vec<PatchbayCompositeProjection>,
+}
+
+/// Checked source alias alongside its immutable semantic identity.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayContractImportProjection {
+    pub local_name: String,
+    pub package_id: String,
+    pub canonical_id: String,
+    pub descriptor_hash: String,
+}
+
+/// Projects resolved import facts without adding provider or availability claims.
+#[must_use]
+pub fn project_contract_imports(
+    resolution: &conduit_panel::PackageImportResolution,
+) -> Vec<PatchbayContractImportProjection> {
+    resolution
+        .bindings()
+        .iter()
+        .map(|binding| PatchbayContractImportProjection {
+            local_name: binding.local_name.clone(),
+            package_id: binding.package_id.clone(),
+            canonical_id: binding.canonical_id.clone(),
+            descriptor_hash: binding.descriptor_hash.clone(),
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

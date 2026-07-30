@@ -193,6 +193,26 @@ fn write_panel(panel: &Panel, output: &mut String, include_selected_root: bool) 
         optional_text(output, import.content_hash.as_deref());
         output.push('}');
     }
+    for import in &panel.package_imports {
+        output.push_str("package-import{");
+        text(output, &import.target);
+        match &import.selection {
+            crate::PackageImportSelection::Named(names) => {
+                output.push_str("named{");
+                for name in names {
+                    text(output, &name.export);
+                    text(output, &name.local);
+                }
+                output.push('}');
+            }
+            crate::PackageImportSelection::Alias { local, .. } => {
+                output.push_str("alias{");
+                text(output, local);
+                output.push('}');
+            }
+        }
+        output.push('}');
+    }
     for interface in &panel.interfaces {
         write_interface(interface, output);
     }

@@ -2965,6 +2965,7 @@ fn executable_panel(
     Ok(conduit_panel::Panel {
         version: entry.panel.version,
         imports: Vec::new(),
+        package_imports: Vec::new(),
         interfaces: Vec::new(),
         definitions,
         nodes,

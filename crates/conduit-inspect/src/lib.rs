@@ -1290,6 +1290,11 @@ fn panel_report<'a>(
         add_count(&mut counts, "roots", panel.roots.len());
         add_count(&mut counts, "port_groups", panel.port_groups.len());
         add_count(&mut counts, "pools", panel.pools.len());
+        add_count(
+            &mut counts,
+            "contract_package_imports",
+            panel.package_imports.len(),
+        );
         for import in &panel.imports {
             references.push(InspectionReference {
                 category: "source-import".to_owned(),
@@ -1298,6 +1303,26 @@ fn panel_report<'a>(
                     None => import.target.clone(),
                 },
             });
+        }
+        for import in &panel.package_imports {
+            references.push(InspectionReference {
+                category: "contract-package-import".to_owned(),
+                value: import.target.clone(),
+            });
+            match &import.selection {
+                conduit_panel::PackageImportSelection::Named(names) => {
+                    references.extend(names.iter().map(|name| InspectionReference {
+                        category: "contract-package-local-name".to_owned(),
+                        value: format!("{}:{} as {}", import.target, name.export, name.local),
+                    }));
+                }
+                conduit_panel::PackageImportSelection::Alias { local, .. } => {
+                    references.push(InspectionReference {
+                        category: "contract-package-local-name".to_owned(),
+                        value: format!("{} as {local}", import.target),
+                    });
+                }
+            }
         }
         for node in panel.nodes.iter().chain(
             panel

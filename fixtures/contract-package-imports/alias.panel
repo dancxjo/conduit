@@ -1,0 +1,5 @@
+panel 3
+
+import conduit.dev/std/{tee as split}
+
+node branch : split
