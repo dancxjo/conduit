@@ -783,6 +783,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         },
         host_observations: &observations,
         resources: &resources,
+        workloads: &[],
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,

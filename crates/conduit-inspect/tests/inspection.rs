@@ -385,6 +385,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         },
         host_observations: &observations,
         resources: &[],
+        workloads: &[],
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,

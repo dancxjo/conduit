@@ -38,6 +38,11 @@ import {
   BoundedBrowserPool,
   PoolReason,
 } from "./conduit-pool.mjs";
+import {
+  admitBrowserWorkload,
+  BrowserWorkloadState,
+  WorkloadReason,
+} from "./conduit-workload.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -672,6 +677,62 @@ assert(
   "browser pool generation rollback contains live and queued work",
 );
 
+const browserWorkloadBudget = Object.freeze({
+  workUnits: 100,
+  tasks: 1,
+  processes: null,
+  descriptors: 2,
+  connections: 1,
+  storageBytes: null,
+  deviceOperations: null,
+  networkBytes: 4096,
+  callbacks: 2,
+  foreignQueueItems: 1,
+  transitionOverlapWorkUnits: 20,
+});
+const browserWorkload = Object.freeze({
+  guarantee: "host-observed-best-effort",
+  timeBasis: "clock/browser",
+  deadlineTicks: 20,
+  maximumJitterTicks: 4,
+  budget: browserWorkloadBudget,
+});
+const browserWorkloadCapability = Object.freeze({
+  evidenceKind: "host-observation",
+  timeBasis: "clock/browser",
+  observedAtTick: 1,
+  validUntilTick: 100,
+  capacity: Object.freeze({ ...browserWorkloadBudget, workUnits: 200 }),
+  maximumDeadlineTicks: 30,
+  maximumJitterTicks: 4,
+});
+const browserWorkloadAdmission = admitBrowserWorkload(
+  browserWorkload,
+  browserWorkloadCapability,
+  { basis: "clock/browser", tick: 10 },
+);
+assert(
+  browserWorkloadAdmission.ok &&
+  browserWorkloadAdmission.guarantee === "host-observed-best-effort",
+  "browser workload remains explicitly best effort",
+);
+assert(
+  admitBrowserWorkload(
+    { ...browserWorkload, guarantee: "hard" },
+    browserWorkloadCapability,
+    { basis: "clock/browser", tick: 10 },
+  ).code === WorkloadReason.ExactEnforcement,
+  "browser observation cannot become hard deadline authority",
+);
+const browserWorkloadState = new BrowserWorkloadState(
+  browserWorkload,
+  browserWorkloadAdmission,
+);
+assert(
+  browserWorkloadState.record({ callbacks: 3 }).code === WorkloadReason.Overload,
+  "browser callback queues are included in workload accounting",
+);
+
 globalThis.__conduitBrowserResults = Object.freeze({
   placementOutcomes: Object.freeze(placementOutcomes),
   reportedAvailability: Object.freeze(Object.fromEntries(
@@ -707,6 +768,11 @@ globalThis.__conduitBrowserResults = Object.freeze({
     evidenceBound: poolContract.maximumEvidenceEvents,
     generationDrainAffected: browserPoolDrain.affected,
     evidenceExhaustionCode: PoolReason.EvidenceExhausted,
+  }),
+  workload: Object.freeze({
+    guarantee: browserWorkloadAdmission.guarantee,
+    hardAuthority: false,
+    overloadCode: browserWorkloadState.terminal,
   }),
 });
 document.querySelector("#result").textContent = "ok";

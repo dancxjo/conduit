@@ -224,6 +224,7 @@ fn with_plan(
         },
         host_observations: &observation,
         resources: &[],
+        workloads: &[],
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &cords,

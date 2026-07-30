@@ -50,6 +50,7 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
         feedback_boundaries: Vec::new(),
         resource_leases: Vec::new(),
         effect_commit_profiles: Vec::new(),
+        workloads: Vec::new(),
     };
     let run = RunSnapshot {
         run_id: "run/1".to_owned(),
@@ -405,8 +406,52 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
             evidence_events_per_attempt: 2,
         }),
     }];
+    let workload_budget = conduit_core::WorkloadBudget {
+        work_units: conduit_core::WorkloadLimit::Finite(100),
+        tasks: conduit_core::WorkloadLimit::Finite(1),
+        processes: conduit_core::WorkloadLimit::Unsupported,
+        descriptors: conduit_core::WorkloadLimit::Finite(1),
+        connections: conduit_core::WorkloadLimit::Unsupported,
+        storage_bytes: conduit_core::WorkloadLimit::Finite(1024),
+        device_operations: conduit_core::WorkloadLimit::Unsupported,
+        network_bytes: conduit_core::WorkloadLimit::Unsupported,
+        callbacks: conduit_core::WorkloadLimit::Finite(2),
+        foreign_queue_items: conduit_core::WorkloadLimit::Finite(1),
+        transition_overlap_work_units: conduit_core::WorkloadLimit::Finite(20),
+    };
+    let workloads = [conduit_core::PlanWorkload {
+        contract: conduit_core::WorkloadContract {
+            schema_version: conduit_core::WORKLOAD_CONTRACT_SCHEMA_VERSION,
+            id: Id("workload/greeting"),
+            service: Id("service/greeting"),
+            node: nodes[0].instance,
+            guarantee: conduit_core::WorkloadGuarantee::Hard,
+            budget: workload_budget,
+            deadline: Some(conduit_core::DeadlineContract {
+                time_basis: Id("clock/test"),
+                relative_deadline_ticks: 5,
+                maximum_jitter_ticks: 1,
+            }),
+            maximum_evidence_events: 4,
+        },
+        capability: conduit_core::WorkloadCapability {
+            id: Id("capability/greeting-deadline"),
+            identity: hash(17),
+            host_observation: hosts[0].id,
+            evidence_kind: conduit_core::WorkloadEvidenceKind::ExactEnforcement,
+            time_basis: Id("clock/test"),
+            observed_at_tick: 1,
+            valid_until_tick: 20,
+            capacity: conduit_core::WorkloadBudget {
+                work_units: conduit_core::WorkloadLimit::Finite(200),
+                ..workload_budget
+            },
+            maximum_deadline_ticks: 10,
+            maximum_jitter_ticks: 1,
+        },
+    }];
     let plan = ExecutionPlan {
-        schema_version: 18,
+        schema_version: 19,
         identity: hash(1),
         source_semantic_hash: hash(5),
         resolver: PinnedDescriptor {
@@ -422,6 +467,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         budget: PlanResourceBudget::ZERO,
         host_observations: &hosts,
         resources: &resources,
+        workloads: &workloads,
         artifacts: &[],
         nodes: &nodes,
         cords: &[],
@@ -471,6 +517,9 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         projection.effect_commit_profiles[0].unknown_commit,
         "reconcile"
     );
+    assert_eq!(projection.workloads[0].guarantee, "hard");
+    assert_eq!(projection.workloads[0].budget.processes, None);
+    assert_eq!(projection.workloads[0].evidence_kind, "exact-enforcement");
 }
 
 #[test]

@@ -542,6 +542,8 @@ pub struct PlanSnapshot {
     pub resource_leases: Vec<ResourceLeaseProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub effect_commit_profiles: Vec<EffectCommitProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub workloads: Vec<WorkloadProjection>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -593,6 +595,40 @@ pub struct EffectCommitProjection {
     pub cleanup_identity: String,
     pub maximum_attempts: u16,
     pub evidence_events_per_attempt: u16,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WorkloadBudgetProjection {
+    pub work_units: Option<u64>,
+    pub tasks: Option<u64>,
+    pub processes: Option<u64>,
+    pub descriptors: Option<u64>,
+    pub connections: Option<u64>,
+    pub storage_bytes: Option<u64>,
+    pub device_operations: Option<u64>,
+    pub network_bytes: Option<u64>,
+    pub callbacks: Option<u64>,
+    pub foreign_queue_items: Option<u64>,
+    pub transition_overlap_work_units: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WorkloadProjection {
+    pub id: String,
+    pub service: String,
+    pub node: String,
+    pub guarantee: String,
+    pub budget: WorkloadBudgetProjection,
+    pub deadline_time_basis: Option<String>,
+    pub relative_deadline_ticks: Option<u64>,
+    pub maximum_jitter_ticks: Option<u64>,
+    pub capability_id: String,
+    pub capability_identity: String,
+    pub host_observation: String,
+    pub evidence_kind: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub maximum_evidence_events: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -858,6 +894,36 @@ impl PlanSnapshot {
                 evidence_events_per_attempt: profile.evidence_events_per_attempt,
             })
             .collect();
+        let workloads = plan
+            .workloads
+            .iter()
+            .map(|workload| WorkloadProjection {
+                id: workload.contract.id.as_str().to_owned(),
+                service: workload.contract.service.as_str().to_owned(),
+                node: workload.contract.node.as_str().to_owned(),
+                guarantee: workload.contract.guarantee.as_str().to_owned(),
+                budget: workload_budget_projection(workload.contract.budget),
+                deadline_time_basis: workload
+                    .contract
+                    .deadline
+                    .map(|deadline| deadline.time_basis.as_str().to_owned()),
+                relative_deadline_ticks: workload
+                    .contract
+                    .deadline
+                    .map(|deadline| deadline.relative_deadline_ticks),
+                maximum_jitter_ticks: workload
+                    .contract
+                    .deadline
+                    .map(|deadline| deadline.maximum_jitter_ticks),
+                capability_id: workload.capability.id.as_str().to_owned(),
+                capability_identity: workload.capability.identity.to_string(),
+                host_observation: workload.capability.host_observation.as_str().to_owned(),
+                evidence_kind: workload.capability.evidence_kind.as_str().to_owned(),
+                observed_at_tick: workload.capability.observed_at_tick,
+                valid_until_tick: workload.capability.valid_until_tick,
+                maximum_evidence_events: workload.contract.maximum_evidence_events,
+            })
+            .collect();
         Self {
             identity: plan.identity.to_string(),
             source_semantic_hash: plan.source_semantic_hash.to_string(),
@@ -867,7 +933,33 @@ impl PlanSnapshot {
             feedback_boundaries,
             resource_leases,
             effect_commit_profiles,
+            workloads,
         }
+    }
+}
+
+fn workload_limit_projection(value: conduit_core::WorkloadLimit) -> Option<u64> {
+    match value {
+        conduit_core::WorkloadLimit::Finite(value) => Some(value),
+        conduit_core::WorkloadLimit::Unsupported => None,
+    }
+}
+
+fn workload_budget_projection(value: conduit_core::WorkloadBudget) -> WorkloadBudgetProjection {
+    WorkloadBudgetProjection {
+        work_units: workload_limit_projection(value.work_units),
+        tasks: workload_limit_projection(value.tasks),
+        processes: workload_limit_projection(value.processes),
+        descriptors: workload_limit_projection(value.descriptors),
+        connections: workload_limit_projection(value.connections),
+        storage_bytes: workload_limit_projection(value.storage_bytes),
+        device_operations: workload_limit_projection(value.device_operations),
+        network_bytes: workload_limit_projection(value.network_bytes),
+        callbacks: workload_limit_projection(value.callbacks),
+        foreign_queue_items: workload_limit_projection(value.foreign_queue_items),
+        transition_overlap_work_units: workload_limit_projection(
+            value.transition_overlap_work_units,
+        ),
     }
 }
 

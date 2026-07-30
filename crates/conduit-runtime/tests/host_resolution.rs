@@ -1049,6 +1049,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
         budget: budget(8, 1, 1),
         host_observations: &observations,
         resources: &[],
+        workloads: &[],
         artifacts: &artifacts,
         nodes: &nodes,
         cords: &[],

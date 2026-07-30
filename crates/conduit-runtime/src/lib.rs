@@ -47,6 +47,7 @@ mod supervision;
 mod transition;
 mod transport;
 mod type_registry;
+mod workload;
 
 pub use artifact_verification::{
     ArtifactRejectionEvidence, EvidencedArtifactVerificationError, HostedArtifactVerificationError,
@@ -132,6 +133,10 @@ pub use transport::{
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
     TypeRegistry, TypeRegistryError, TypeSatisfactionReport,
+};
+pub use workload::{
+    LinuxWorkloadObservation, WorkloadRunEvidence, observe_linux_workload,
+    run_deterministic_workload,
 };
 
 /// Allocator-aware convenience around the core-compatible exact-plan validator.
