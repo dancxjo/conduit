@@ -36,7 +36,7 @@ fn fallback_node_selects_primary_or_fallback() {
             node sink : io/stdout
             cord primary.value -> router.primary
             cord secondary.value -> router.fallback
-            cord router.value -> encoded.text
+            cord router.selected -> encoded.text
             cord encoded.bytes -> sink.bytes
         "#,
     )

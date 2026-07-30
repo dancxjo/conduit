@@ -56,6 +56,8 @@ struct Entry {
     successor: Option<String>,
     deprecation: Option<String>,
     compatible_adapter_artifacts: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    introduction: Option<ContractIntroduction>,
 }
 
 #[derive(Serialize)]
@@ -65,6 +67,51 @@ struct Port {
     value_type: String,
     type_schema_version: u32,
     type_hash: String,
+    presence: &'static str,
+    connections: &'static str,
+    values: &'static str,
+    delivery: &'static str,
+    temporal: &'static str,
+    terminal: &'static str,
+    sensitivity: &'static str,
+    loss: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    migration: Option<PortMigration>,
+}
+
+#[derive(Serialize)]
+struct PortMigration {
+    former: FormerPort,
+    reason: String,
+    affected_bindings: Vec<String>,
+    repository_migration: &'static str,
+    compatibility_disposition: &'static str,
+}
+
+#[derive(Serialize)]
+struct FormerPort {
+    contract: String,
+    id: String,
+    direction: &'static str,
+    value_type: String,
+    type_schema_version: u32,
+    type_hash: String,
+    presence: &'static str,
+    connections: &'static str,
+    values: &'static str,
+    delivery: &'static str,
+    temporal: &'static str,
+    terminal: &'static str,
+    sensitivity: &'static str,
+    loss: &'static str,
+}
+
+#[derive(Serialize)]
+struct ContractIntroduction {
+    reason: &'static str,
+    affected_bindings: Vec<String>,
+    repository_migration: &'static str,
+    compatibility_disposition: &'static str,
 }
 
 #[derive(Serialize)]
@@ -291,6 +338,178 @@ fn lesson(id: &str, composition: bool) -> Lesson {
     }
 }
 
+fn former_port_id(contract: &str, direction: &str, current: &str) -> Option<&'static str> {
+    if matches!(contract, "display/text" | "text/encode-utf8") {
+        return None;
+    }
+    if matches!(
+        (contract, direction, current),
+        ("supervision/supervisor", "input", "terminal")
+            | ("supervision/supervisor", "output", "decision")
+            | ("std/text/format", "input", "template" | "values")
+            | ("std/text/lines", "output", "line")
+            | ("std/text/join", "input", "item")
+            | ("flow/fallback", "input", "primary" | "fallback")
+            | ("conduit.std/zip", "output", "left" | "right")
+            | ("flow/validate", "output", "valid")
+            | ("flow/count", "output", "count")
+            | ("test/probe" | "test/record", "output", "evidence")
+            | ("net/http/fetch", "input", "request")
+            | ("net/http/fetch", "output", "response")
+            | ("net/http/serve", "input", "response")
+            | ("net/http/serve", "output", "request")
+    ) {
+        return None;
+    }
+    match (direction, current) {
+        ("output", "elapsed" | "tick") if matches!(contract, "time/timer" | "time/ticker") => {
+            Some("count")
+        }
+        ("input", "left") => Some("in1"),
+        ("input", "right") => Some("in2"),
+        ("input", "command") => Some("control"),
+        ("output", "left") if contract == "conduit.std/tee" => Some("out1"),
+        ("output", "right") if contract == "conduit.std/tee" => Some("out2"),
+        ("output", "left") if contract == "flow/demux" => Some("out1"),
+        ("output", "right") if contract == "flow/demux" => Some("out2"),
+        ("input", _) => Some("in"),
+        ("output", _) => Some("out"),
+        _ => unreachable!("catalog directions are input or output"),
+    }
+}
+
+fn naming_reason(contract: &str, direction: &str, current: &str) -> String {
+    match (contract, direction, current) {
+        ("std/literal", "output", "value") => {
+            "The literal emits its explicitly configured typed value.".to_owned()
+        }
+        ("std/format-values/literal", "output", "values") => {
+            "The source emits the explicitly configured bounded format-value collection.".to_owned()
+        }
+        ("std/text/format", "output", "text") => {
+            "The formatter emits checked text, not a direction-named value.".to_owned()
+        }
+        ("std/text/lines", "input", "text") => {
+            "The line splitter receives a finite text batch.".to_owned()
+        }
+        ("std/text/join", "output", "text") => "The join emits one bounded text batch.".to_owned(),
+        ("text/uppercase", _, "text") => {
+            "The transform receives and emits text; direction remains a separate contract fact."
+                .to_owned()
+        }
+        ("io/stdin", "output", "bytes") | ("io/stdout" | "io/stderr", "input", "bytes") => {
+            "The process stream boundary carries bytes and performs no hidden text conversion."
+                .to_owned()
+        }
+        (_, _, "left" | "right") => format!(
+            "`{contract}` names this stable structural branch independently of declaration order."
+        ),
+        (_, "input", "command") => format!(
+            "`{contract}` receives explicit typed control commands separately from its data ports."
+        ),
+        (_, _, "value") => format!(
+            "`{contract}` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity."
+        ),
+        (_, "output", "result") => format!(
+            "`{contract}` emits its bounded operation result record separately from its request or command boundary."
+        ),
+        (_, "output", "values") => {
+            format!("`{contract}` emits its declared bounded value collection.")
+        }
+        (_, _, "text") => {
+            format!("`{contract}` declares this boundary specifically as checked text.")
+        }
+        (_, _, "bytes") => {
+            format!("`{contract}` declares this process boundary specifically as bytes.")
+        }
+        _ => format!(
+            "`{contract}` names this {direction} port for its contract-specific `{current}` payload or role."
+        ),
+    }
+}
+
+fn former_type(
+    contract: &str,
+    current_type: &str,
+    current_schema: u32,
+    current_hash: &str,
+) -> (String, u32, String) {
+    if matches!(contract, "io/stdin" | "io/stdout" | "io/stderr") {
+        (
+            "std/text".to_owned(),
+            1,
+            "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab".to_owned(),
+        )
+    } else {
+        (
+            current_type.to_owned(),
+            current_schema,
+            current_hash.to_owned(),
+        )
+    }
+}
+
+fn validate_semantic_port_inventory(entries: &[Entry]) -> Result<(), String> {
+    const DISPLACED: &[&str] = &[
+        "in", "out", "input", "output", "in1", "in2", "out1", "out2", "control",
+    ];
+    for entry in entries {
+        for port in &entry.ports {
+            if DISPLACED.contains(&port.id.as_str()) {
+                return Err(format!(
+                    "`{}.{}` retains a displaced directional or positional identity",
+                    entry.semantic_identity, port.id
+                ));
+            }
+            if let Some(migration) = &port.migration {
+                if migration.former.contract != entry.semantic_identity
+                    || migration.former.direction != port.direction
+                {
+                    return Err(format!(
+                        "`{}.{}` migration changes its contract or direction",
+                        entry.semantic_identity, port.id
+                    ));
+                }
+                if migration.former.id == port.id
+                    && migration.former.value_type == port.value_type
+                    && migration.former.type_hash == port.type_hash
+                {
+                    return Err(format!(
+                        "`{}.{}` records a migration without an identity or type change",
+                        entry.semantic_identity, port.id
+                    ));
+                }
+                if migration.reason.trim().is_empty() || migration.affected_bindings.is_empty() {
+                    return Err(format!(
+                        "`{}.{}` has an incomplete migration record",
+                        entry.semantic_identity, port.id
+                    ));
+                }
+            }
+        }
+    }
+    let introductions = entries
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .introduction
+                .as_ref()
+                .map(|introduction| (entry.semantic_identity.as_str(), introduction))
+        })
+        .collect::<BTreeMap<_, _>>();
+    for required in ["display/text", "text/encode-utf8"] {
+        let introduction = introductions
+            .get(required)
+            .ok_or_else(|| format!("`{required}` lacks its introduction disposition"))?;
+        if introduction.affected_bindings.is_empty() {
+            return Err(format!(
+                "`{required}` introduction has no affected bindings"
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     let registry = Registry::default();
     let standard = conduit_std::STANDARD_CATALOG
@@ -323,16 +542,87 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
         }
         let owner = ownership(id)?;
         let schema = OwnedNodeSchema::from_contract(contract);
+        let contract_id = id;
+        let provider_binding_ids = providers
+            .get(id)
+            .into_iter()
+            .flatten()
+            .map(|provider| format!("provider:{}", provider.implementation))
+            .collect::<Vec<_>>();
         let ports = contract
             .inputs
             .iter()
             .chain(contract.outputs.iter())
-            .map(|port| Port {
-                id: port.id.to_string(),
-                direction: port.direction.as_str(),
-                value_type: port.value_type.contract_id.to_string(),
-                type_schema_version: port.value_type.schema_version,
-                type_hash: port.value_type.semantic_hash.to_string(),
+            .map(|port| {
+                let direction = port.direction.as_str();
+                let port_id = port.id.as_str();
+                let value_type = port.value_type.contract_id.as_str();
+                let type_hash = port.value_type.semantic_hash.to_string();
+                let presence = match port.presence {
+                    conduit_core::Presence::Required => "required",
+                    conduit_core::Presence::Optional => "optional",
+                };
+                let migration =
+                    former_port_id(contract_id, direction, port_id).map(|former_id| {
+                    let (former_type, former_schema, former_hash) =
+                        former_type(
+                            contract_id,
+                            value_type,
+                            port.value_type.schema_version,
+                            &type_hash,
+                        );
+                    let mut affected_bindings = vec![
+                        format!("runtime-contract:{contract_id}"),
+                        format!(
+                            "exact-plan-cord:{contract_id}.{former_id}->{contract_id}.{port_id}"
+                        ),
+                        format!(
+                            "conformance-fixture:{}",
+                            fixture(contract_id, owner.classification)
+                        ),
+                    ];
+                    affected_bindings.extend(provider_binding_ids.iter().cloned());
+                    PortMigration {
+                        former: FormerPort {
+                            contract: contract_id.to_owned(),
+                            id: former_id.to_owned(),
+                            direction,
+                            value_type: former_type,
+                            type_schema_version: former_schema,
+                            type_hash: former_hash,
+                            presence,
+                            connections: port.connections.as_str(),
+                            values: port.values.as_str(),
+                            delivery: port.delivery.as_str(),
+                            temporal: port.temporal.as_str(),
+                            terminal: port.terminal.as_str(),
+                            sensitivity: port.sensitivity.as_str(),
+                            loss: port.flow.loss.as_str(),
+                        },
+                        reason: naming_reason(contract_id, direction, port_id),
+                        affected_bindings,
+                        repository_migration:
+                            "pending whole-corpus rewrite and regeneration under issue 185",
+                        compatibility_disposition:
+                            "old unreleased identity is removed after repository migration; no alias or draft reader is retained",
+                    }
+                    });
+                Port {
+                    id: port_id.to_owned(),
+                    direction,
+                    value_type: value_type.to_owned(),
+                    type_schema_version: port.value_type.schema_version,
+                    type_hash,
+                    presence,
+                    connections: port.connections.as_str(),
+                    values: port.values.as_str(),
+                    delivery: port.delivery.as_str(),
+                    temporal: port.temporal.as_str(),
+                    terminal: port.terminal.as_str(),
+                    sensitivity: port.sensitivity.as_str(),
+                    loss: port.flow.loss.as_str(),
+                    migration,
+                }
             })
             .collect();
         let config = contract
@@ -376,9 +666,41 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
             successor: None,
             deprecation: None,
             compatible_adapter_artifacts: Vec::new(),
+            introduction: match id {
+                "display/text" => Some(ContractIntroduction {
+                    reason:
+                        "Introduces a browser and UI text sink distinct from the process stdout byte boundary.",
+                    affected_bindings: vec![
+                        "runtime-contract:display/text".to_owned(),
+                        format!("conformance-fixture:{}", fixture(id, owner.classification)),
+                    ],
+                    repository_migration:
+                        "pending Tour and browser display rewrites under issue 185",
+                    compatibility_disposition:
+                        "new semantic contract; no former identity or compatibility alias exists",
+                }),
+                "text/encode-utf8" => {
+                    let mut affected_bindings = vec![
+                        "runtime-contract:text/encode-utf8".to_owned(),
+                        format!("conformance-fixture:{}", fixture(id, owner.classification)),
+                    ];
+                    affected_bindings.extend(provider_binding_ids.iter().cloned());
+                    Some(ContractIntroduction {
+                        reason:
+                            "Introduces an explicit checked text-to-UTF-8 boundary before byte sinks.",
+                        affected_bindings,
+                        repository_migration:
+                            "pending explicit text-to-stdout pipeline rewrites under issue 185",
+                        compatibility_disposition:
+                            "new semantic contract; no hidden codec or compatibility alias exists",
+                    })
+                }
+                _ => None,
+            },
         });
     }
     entries.sort_by(|left, right| left.semantic_identity.cmp(&right.semantic_identity));
+    validate_semantic_port_inventory(&entries)?;
     if !providers.is_empty() {
         return Err("installed provider refers to an unknown catalog contract".into());
     }

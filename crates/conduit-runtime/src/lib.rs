@@ -357,6 +357,18 @@ const VALUE_TEXT_OUTPUT: PortContract<'static> = PortContract {
     id: Id("value"),
     ..TEXT_OUTPUT
 };
+const fn named_text_input(id: &'static str) -> PortContract<'static> {
+    PortContract {
+        id: Id(id),
+        ..VALUE_TEXT_INPUT
+    }
+}
+const fn named_text_output(id: &'static str) -> PortContract<'static> {
+    PortContract {
+        id: Id(id),
+        ..VALUE_TEXT_OUTPUT
+    }
+}
 const BYTES_INPUT: PortContract<'static> = PortContract {
     id: Id("bytes"),
     value_type: BYTES_TYPE,
@@ -641,199 +653,199 @@ pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/delay"),
     config: EMPTY_CONFIG,
     inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    outputs: &[named_text_output("delayed")],
 };
 pub const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/debounce"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("event")],
+    outputs: &[named_text_output("settled")],
 };
 pub const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/throttle"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("request")],
+    outputs: &[named_text_output("admitted")],
 };
 pub const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/take"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("item")],
+    outputs: &[named_text_output("taken")],
 };
 pub const SKIP_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/skip"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("item")],
+    outputs: &[named_text_output("retained")],
 };
 pub const FILTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/filter"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("candidate")],
+    outputs: &[named_text_output("accepted")],
 };
 pub const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/fallback"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_PRIMARY, INPUT_FALLBACK],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    outputs: &[named_text_output("selected")],
 };
 pub const PROBE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/probe"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("observed")],
+    outputs: &[named_text_output("forwarded")],
 };
 pub const LOG_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("observe/log"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("message")],
+    outputs: &[named_text_output("forwarded")],
 };
 pub const ASSERT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/assertion"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("candidate")],
+    outputs: &[named_text_output("verified")],
 };
 pub const RECORD_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/record"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("observed")],
+    outputs: &[named_text_output("recorded")],
 };
 pub const REPLAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/replay"),
     config: EMPTY_CONFIG,
     inputs: &[],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    outputs: &[named_text_output("recorded")],
 };
 pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/fault-source"),
     config: EMPTY_CONFIG,
     inputs: &[],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    outputs: &[named_text_output("failure")],
 };
 pub const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("fs/read"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("path")],
+    outputs: &[named_text_output("contents")],
 };
 pub const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("fs/write"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
+    inputs: &[named_text_input("contents")],
     outputs: &[],
 };
 pub const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("storage/blob/store"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("blob")],
+    outputs: &[named_text_output("reference")],
 };
 pub const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("storage/key-value"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("operation")],
+    outputs: &[named_text_output("result")],
 };
 pub const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("process/run"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("invocation")],
+    outputs: &[named_text_output("completion")],
 };
 pub const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("device/gpio/pin"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("command")],
+    outputs: &[named_text_output("state")],
 };
 pub const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("device/serial/port"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("transmit")],
+    outputs: &[named_text_output("received")],
 };
 pub const CELL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/cell"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("update")],
+    outputs: &[named_text_output("current")],
 };
 pub const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/counter"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("event")],
+    outputs: &[named_text_output("count")],
 };
 pub const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/deduplicate"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("candidate")],
+    outputs: &[named_text_output("unique")],
 };
 pub const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/cache"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("request")],
+    outputs: &[named_text_output("response")],
 };
 pub const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/circuit-breaker"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("request")],
+    outputs: &[named_text_output("admitted")],
 };
 pub const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/health-gate"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("observation")],
+    outputs: &[named_text_output("healthy")],
 };
 pub const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/backoff"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("request")],
+    outputs: &[named_text_output("ready")],
 };
 pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/wifi/join"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("configuration")],
+    outputs: &[named_text_output("state")],
 };
 pub const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/wifi/access-point"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("configuration")],
+    outputs: &[named_text_output("state")],
 };
 pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/interface"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("configuration")],
+    outputs: &[named_text_output("state")],
 };
 pub const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/tcp/socket"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("transmit")],
+    outputs: &[named_text_output("received")],
 };
 pub const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/udp/socket"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("datagram")],
+    outputs: &[named_text_output("datagram")],
 };
 pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/dns/resolve"),
     config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[VALUE_TEXT_OUTPUT],
+    inputs: &[named_text_input("name")],
+    outputs: &[named_text_output("addresses")],
 };
 /// Minimal bounded hosted HTTP service boundary.
 ///

@@ -60,6 +60,48 @@ fn every_node_has_unique_stable_port_identities() {
 }
 
 #[test]
+fn semantic_port_names_do_not_encode_direction() {
+    const DISPLACED_DIRECTIONAL_NAMES: &[&str] =
+        &["in", "out", "input", "output", "in1", "in2", "out1", "out2"];
+    for entry in STANDARD_CATALOG {
+        for port in entry.contract.inputs.iter().chain(entry.contract.outputs) {
+            assert!(
+                !DISPLACED_DIRECTIONAL_NAMES.contains(&port.id.as_str()),
+                "{} retains displaced directional port `{}`",
+                entry.contract.id,
+                port.id
+            );
+        }
+    }
+
+    let udp = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "net/udp/socket")
+        .unwrap();
+    assert_eq!(udp.contract.inputs[0].id.as_str(), "datagram");
+    assert_eq!(udp.contract.outputs[0].id.as_str(), "datagram");
+    assert_eq!(
+        udp.contract.inputs[0].direction,
+        conduit_core::Direction::Input
+    );
+    assert_eq!(
+        udp.contract.outputs[0].direction,
+        conduit_core::Direction::Output
+    );
+
+    let empty = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "std/empty")
+        .unwrap();
+    let discard = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "flow/discard")
+        .unwrap();
+    assert!(empty.contract.inputs.is_empty());
+    assert!(discard.contract.outputs.is_empty());
+}
+
+#[test]
 fn standard_nodes_use_the_one_canonical_identity_selected_for_each_contract() {
     let restored_flat_identities = [
         "conduit.std/tee",
