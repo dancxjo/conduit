@@ -34,6 +34,14 @@ providers produce the declared structured resolver diagnostic. Pedagogical
 check completion is recorded separately and is never presented as executor
 evidence.
 
-`tour/build-site.sh` assembles only the checked static Tour, lessons, exact
-browser-host adapter, and license. The Pages workflow publishes that artifact
-only after the corresponding `main` CI run succeeds.
+Library lessons add a checked descriptor with standalone, composition, failure,
+and cancellation scenarios. Their execution-story controls only reveal,
+select, and explain the ordered evidence returned by the exact Rust run. The
+Patchbay projection and timeline therefore share one plan/run/evidence
+authority. Play, pause, step, reset, replay, and scrub are presentation state;
+the complete ordered table remains available without motion, color, or audio.
+
+`tour/build-site.sh` assembles the checked static Tour, lessons, exact
+browser-host adapter, linked examples, and the formatter's linked
+specification/cookbook/conformance fixture. The Pages workflow publishes that
+artifact only after the corresponding `main` CI run succeeds.
