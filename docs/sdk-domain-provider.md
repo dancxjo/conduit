@@ -137,7 +137,10 @@ cord asr.transcript -> output_log.in {
 }
 ```
 
-Run verification and inspection commands:
+This source is **illustrative/unavailable** until the domain provider,
+implementation artifacts, capabilities, and grants named by an exact plan are
+installed on the selected host. Syntax and inspection remain useful, but the
+presence of a provider contract is not execution authority:
 
 ```sh
 # Validate syntax and check lowerings
@@ -145,9 +148,6 @@ conduct check my_asr_pipeline.panel
 
 # Inspect lowering identities and execution plans
 conduct explain my_asr_pipeline.panel
-
-# Execute the exact plan
-conduct run my_asr_pipeline.panel
 ```
 
 ---

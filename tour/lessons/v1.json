@@ -8,285 +8,709 @@
       "prerequisites": [],
       "objective": "Send one explicit text value to one explicit display sink.",
       "prose": "A panel is a bounded assembly of named nodes and cords. Run this one before changing it.",
-      "vocabulary": ["node", "cord", "capacity"],
+      "vocabulary": [
+        "node",
+        "cord",
+        "capacity"
+      ],
       "source": "panel 1\n\nnode greeting : conduit.std/literal {\n    value = \"Hello from the Tour.\\n\"\n}\nnode output : conduit.std/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "commands": ["conduct --check lesson.panel", "conduct --run lesson.panel"],
+      "commands": [
+        "conduct --check lesson.panel",
+        "conduct --run lesson.panel"
+      ],
       "expected_stdout": "Hello from the Tour.\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "Hello from the Tour.\n"},
-      "hints": ["The literal node produces text on its out port.", "The stdout node consumes text on its in port."],
+      "budgets": {
+        "runtime_ticks": 16,
+        "queue_bytes": 1024,
+        "evidence_events": 16
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "Hello from the Tour.\n"
+      },
+      "hints": [
+        "The literal node produces text on its out port.",
+        "The stdout node consumes text on its in port."
+      ],
       "solution": "Connect greeting.out to output.in with the declared bounded cord.",
-      "accessibility": {"non_audio": "The visible text output is the complete result.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The visible text output is the complete result.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "welcome.pull-the-cord",
       "chapter": 0,
       "title": "Pull the cord",
-      "prerequisites": ["welcome.hello-panel"],
+      "prerequisites": [
+        "welcome.hello-panel"
+      ],
       "objective": "Observe that a required input is not satisfied by a nearby node.",
       "prose": "Remove a cord on purpose. A useful diagnostic names the missing boundary instead of guessing a connection.",
-      "vocabulary": ["required input", "diagnostic"],
+      "vocabulary": [
+        "required input",
+        "diagnostic"
+      ],
       "source": "panel 1\n\nnode greeting : conduit.std/literal {\n    value = \"Connect me.\\n\"\n}\nnode output : conduit.std/stdout\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-PRT-002",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 0, "queue_bytes": 0, "evidence_events": 0},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "diagnostic", "value": "CND-PRT-002"},
-      "hints": ["The output node has one required input.", "A node declaration does not create a connection."],
+      "budgets": {
+        "runtime_ticks": 0,
+        "queue_bytes": 0,
+        "evidence_events": 0
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-PRT-002"
+      },
+      "hints": [
+        "The output node has one required input.",
+        "A node declaration does not create a connection."
+      ],
       "solution": "Restore the bounded cord from greeting.out to output.in.",
-      "accessibility": {"non_audio": "The structured diagnostic is available as text.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The structured diagnostic is available as text.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection",
+        "code": "CND-PRT-002",
+        "reason": "the authored lesson intentionally has no resolvable exact plan"
+      }
     },
     {
       "id": "welcome.change-message",
       "chapter": 0,
       "title": "Change the message",
-      "prerequisites": ["welcome.hello-panel"],
+      "prerequisites": [
+        "welcome.hello-panel"
+      ],
       "objective": "Edit semantic configuration while preserving the same panel structure.",
       "prose": "Change the literal value, then select and move its faceplate. Source semantics and presentation are separate identities.",
-      "vocabulary": ["configuration", "semantic identity", "presentation"],
+      "vocabulary": [
+        "configuration",
+        "semantic identity",
+        "presentation"
+      ],
       "source": "panel 1\n\nnode greeting : conduit.std/literal {\n    value = \"Change me.\\n\"\n}\nnode output : conduit.std/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "Change me.\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "Change me.\n"},
-      "hints": ["Only the value configuration needs to change.", "Moving a selected node does not rewrite source."],
+      "budgets": {
+        "runtime_ticks": 16,
+        "queue_bytes": 1024,
+        "evidence_events": 16
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "Change me.\n"
+      },
+      "hints": [
+        "Only the value configuration needs to change.",
+        "Moving a selected node does not rewrite source."
+      ],
       "solution": "Set greeting.value to the desired text and retain its explicit cord.",
-      "accessibility": {"non_audio": "The output and source selection do not depend on color or sound.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The output and source selection do not depend on color or sound.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "welcome.nothing-up-our-sleeves",
       "chapter": 0,
       "title": "Nothing up our sleeves",
-      "prerequisites": ["welcome.hello-panel", "welcome.change-message"],
+      "prerequisites": [
+        "welcome.hello-panel",
+        "welcome.change-message"
+      ],
       "objective": "Take the exact authored panel home and run it with the canonical command.",
       "prose": "Download preserves the real source you just ran. The same source is checked with conduct --check and executed with conduct --run outside the Tour.",
-      "vocabulary": ["conduct", "check", "run"],
+      "vocabulary": [
+        "conduct",
+        "check",
+        "run"
+      ],
       "source": "panel 1\n\nnode greeting : conduit.std/literal {\n    value = \"No hidden interpreter.\\n\"\n}\nnode output : conduit.std/stdout\n\ncord greeting.out -> output.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "commands": ["conduct --check lesson.panel", "conduct --run lesson.panel"],
+      "commands": [
+        "conduct --check lesson.panel",
+        "conduct --run lesson.panel"
+      ],
       "expected_stdout": "No hidden interpreter.\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "No hidden interpreter.\n"},
-      "hints": ["Use Download after editing.", "The command shown is the normal conduit command, not a Tour command."],
+      "budgets": {
+        "runtime_ticks": 16,
+        "queue_bytes": 1024,
+        "evidence_events": 16
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "No hidden interpreter.\n"
+      },
+      "hints": [
+        "Use Download after editing.",
+        "The command shown is the normal conduit command, not a Tour command."
+      ],
       "solution": "Download the source, then run conduct --check lesson.panel followed by conduct --run lesson.panel.",
-      "accessibility": {"non_audio": "The executable result is represented by text output and canonical commands.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The executable result is represented by text output and canonical commands.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "nodes.more-than-one-port",
       "chapter": 1,
       "title": "More than one port",
-      "prerequisites": ["welcome.hello-panel"],
+      "prerequisites": [
+        "welcome.hello-panel"
+      ],
       "objective": "Patch two independently named inputs instead of treating a node like universal stdin.",
       "prose": "The display panel exports left and right jacks. Each jack retains its own typed boundary and each incoming cord has a separate finite budget.",
-      "vocabulary": ["named port", "input boundary", "cardinality"],
+      "vocabulary": [
+        "named port",
+        "input boundary",
+        "cardinality"
+      ],
       "source": "panel 1\n\ncomposite example/two-input-display {\n    node left_sink : conduit.std/stdout\n    node right_sink : conduit.std/stdout\n    export input left = left_sink.in\n    export input right = right_sink.in\n}\n\nnode left : conduit.std/literal {\n    value = \"Left.\\n\"\n}\nnode right : conduit.std/literal {\n    value = \"Right.\\n\"\n}\nnode display : example/two-input-display\n\ncord left.out -> display.left {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord right.out -> display.right {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "Left.\nRight.\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
-      "presentation": {"layout": "ports", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "Left.\nRight.\n"},
-      "hints": ["The exported names are display.left and display.right.", "Each source needs its own cord."],
+      "budgets": {
+        "runtime_ticks": 24,
+        "queue_bytes": 2048,
+        "evidence_events": 24
+      },
+      "presentation": {
+        "layout": "ports",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "pedagogical-stdout",
+        "value": "Left.\nRight.\n"
+      },
+      "hints": [
+        "The exported names are display.left and display.right.",
+        "Each source needs its own cord."
+      ],
       "solution": "Connect left.out to display.left and right.out to display.right with separate bounded cords.",
-      "accessibility": {"non_audio": "Both named inputs produce ordered visible text.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "Both named inputs produce ordered visible text.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "illustrative/unavailable",
+        "profile": "browser",
+        "proof": "canonical-run-rejection",
+        "code": "CND-CMP-006",
+        "reason": "the current exact planner cannot bind repeated hosted implementation instances"
+      }
     },
     {
       "id": "nodes.direction-matters",
       "chapter": 1,
       "title": "Direction matters",
-      "prerequisites": ["welcome.pull-the-cord"],
+      "prerequisites": [
+        "welcome.pull-the-cord"
+      ],
       "objective": "See a wrong-direction cord rejected at the exact destination port.",
       "prose": "Ports are directional contracts. An output cannot stand in for an input, even when both nodes produce the same text type.",
-      "vocabulary": ["input", "output", "directional compatibility"],
+      "vocabulary": [
+        "input",
+        "output",
+        "directional compatibility"
+      ],
       "source": "panel 1\n\nnode first : conduit.std/literal {\n    value = \"First.\\n\"\n}\nnode second : conduit.std/literal {\n    value = \"Second.\\n\"\n}\n\ncord first.out -> second.out {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-CMP-003",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 0, "queue_bytes": 0, "evidence_events": 0},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "diagnostic", "value": "CND-CMP-003"},
-      "hints": ["Look at the port after the arrow.", "A literal node only exposes an output port."],
+      "budgets": {
+        "runtime_ticks": 0,
+        "queue_bytes": 0,
+        "evidence_events": 0
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-CMP-003"
+      },
+      "hints": [
+        "Look at the port after the arrow.",
+        "A literal node only exposes an output port."
+      ],
       "solution": "Connect an output port to an input port, such as conduit.std/stdout.in.",
-      "accessibility": {"non_audio": "The direction failure is exposed as a structured text diagnostic.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The direction failure is exposed as a structured text diagnostic.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection",
+        "code": "CND-CMP-003",
+        "reason": "the authored lesson intentionally has no resolvable exact plan"
+      }
     },
     {
       "id": "nodes.fan-out-is-a-choice",
       "chapter": 1,
       "title": "Fan-out is a choice",
-      "prerequisites": ["welcome.hello-panel"],
+      "prerequisites": [
+        "welcome.hello-panel"
+      ],
       "objective": "Declare each consumer explicitly when one output feeds more than one sink.",
       "prose": "The literal output contract permits one or more connections. The two bounded cords are visible in source and each sink receives one value.",
-      "vocabulary": ["fan-out", "sink", "bounded cord"],
+      "vocabulary": [
+        "fan-out",
+        "sink",
+        "bounded cord"
+      ],
       "source": "panel 1\n\nnode greeting : conduit.std/literal {\n    value = \"Fan out.\\n\"\n}\nnode first : conduit.std/stdout\nnode second : conduit.std/stdout\n\ncord greeting.out -> first.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord greeting.out -> second.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "Fan out.\nFan out.\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "Fan out.\nFan out.\n"},
-      "hints": ["The output node contract accepts more than one connection.", "Each cord declares its own finite capacity and pressure rule."],
+      "budgets": {
+        "runtime_ticks": 24,
+        "queue_bytes": 2048,
+        "evidence_events": 24
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "pedagogical-stdout",
+        "value": "Fan out.\nFan out.\n"
+      },
+      "hints": [
+        "The output node contract accepts more than one connection.",
+        "Each cord declares its own finite capacity and pressure rule."
+      ],
       "solution": "Keep two explicit cords from greeting.out, one to each sink input.",
-      "accessibility": {"non_audio": "Both delivered values appear as text output.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "Both delivered values appear as text output.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "illustrative/unavailable",
+        "profile": "browser",
+        "proof": "canonical-run-rejection",
+        "code": "CND-CMP-006",
+        "reason": "the current exact planner cannot bind repeated hosted implementation instances"
+      }
     },
     {
       "id": "nodes.types-mean-promises",
       "chapter": 1,
       "title": "Types mean promises",
-      "prerequisites": ["nodes.direction-matters"],
+      "prerequisites": [
+        "nodes.direction-matters"
+      ],
       "objective": "See that naming an adapter does not make an absent contract or implementation real.",
       "prose": "Conduit never guesses a conversion. This source names an adapter that has not been declared or implemented, so resolution fails before execution.",
-      "vocabulary": ["adapter", "implementation", "resolution"],
+      "vocabulary": [
+        "adapter",
+        "implementation",
+        "resolution"
+      ],
       "source": "panel 1\n\nnode source : conduit.std/literal {\n    value = \"Adapt me.\\n\"\n}\nnode adapter : example/text-adapter\nnode sink : conduit.std/stdout\n\ncord source.out -> adapter.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord adapter.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --check lesson.panel",
       "expected_diagnostic": "CND-IMP-001",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 0, "queue_bytes": 2048, "evidence_events": 0},
-      "presentation": {"layout": "minimal", "show_plan": true},
-      "validation": {"kind": "diagnostic", "value": "CND-IMP-001"},
-      "hints": ["The adapter name is not registered.", "A real adapter needs its own contract and implementation."],
+      "budgets": {
+        "runtime_ticks": 0,
+        "queue_bytes": 2048,
+        "evidence_events": 0
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": true
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-IMP-001"
+      },
+      "hints": [
+        "The adapter name is not registered.",
+        "A real adapter needs its own contract and implementation."
+      ],
       "solution": "Replace the invented adapter with a declared compatible implementation, such as conduit.std/uppercase for this text exercise.",
-      "accessibility": {"non_audio": "The missing implementation is reported as a structured text diagnostic.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The missing implementation is reported as a structured text diagnostic.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection",
+        "code": "CND-IMP-001",
+        "reason": "the authored lesson intentionally has no resolvable exact plan"
+      }
     },
     {
       "id": "nodes.empty-is-not-never",
       "chapter": 1,
       "title": "Empty is not never",
-      "prerequisites": ["welcome.hello-panel"],
+      "prerequisites": [
+        "welcome.hello-panel"
+      ],
       "objective": "Distinguish one empty value that completes from a live input that has produced nothing.",
       "prose": "This literal emits exactly one empty text value. The output is blank, but the finite run still completes with two terminal nodes and one conducted cord.",
-      "vocabulary": ["empty value", "completion", "terminal"],
+      "vocabulary": [
+        "empty value",
+        "completion",
+        "terminal"
+      ],
       "source": "panel 1\n\nnode empty : conduit.std/literal {\n    value = \"\"\n}\nnode sink : conduit.std/stdout\n\ncord empty.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "stdout", "value": ""},
-      "hints": ["Look at completion evidence, not only visible output.", "The literal has an empty string value rather than no value."],
+      "budgets": {
+        "runtime_ticks": 16,
+        "queue_bytes": 1024,
+        "evidence_events": 16
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": ""
+      },
+      "hints": [
+        "Look at completion evidence, not only visible output.",
+        "The literal has an empty string value rather than no value."
+      ],
       "solution": "Keep one explicit empty literal connected to the sink and inspect the terminal evidence.",
-      "accessibility": {"non_audio": "Completion is announced in text even though stdout is empty.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "Completion is announced in text even though stdout is empty.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "panels.put-a-panel-in-a-panel",
       "chapter": 2,
       "title": "Put a panel in a panel",
-      "prerequisites": ["nodes.direction-matters"],
+      "prerequisites": [
+        "nodes.direction-matters"
+      ],
       "objective": "Use a composite boundary as an ordinary typed transform node.",
       "prose": "The composite exports only the ports it chooses. Its internal uppercase worker remains an implementation detail while the boundary remains substitutable for a primitive node.",
-      "vocabulary": ["composite", "export", "boundary", "substitution"],
+      "vocabulary": [
+        "composite",
+        "export",
+        "boundary",
+        "substitution"
+      ],
       "source": "panel 1\n\ncomposite example/uppercase {\n    node worker : conduit.std/uppercase\n    export input in = worker.in\n    export output out = worker.out\n}\n\nnode source : conduit.std/literal {\n    value = \"boundary\"\n}\nnode transform : example/uppercase\nnode sink : conduit.std/stdout\n\ncord source.out -> transform.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord transform.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "BOUNDARY",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
-      "presentation": {"layout": "minimal", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "BOUNDARY"},
-      "hints": ["The composite has an input export and an output export.", "The top-level cords connect to the composite boundary, not directly to worker."],
+      "budgets": {
+        "runtime_ticks": 24,
+        "queue_bytes": 2048,
+        "evidence_events": 24
+      },
+      "presentation": {
+        "layout": "minimal",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "BOUNDARY"
+      },
+      "hints": [
+        "The composite has an input export and an output export.",
+        "The top-level cords connect to the composite boundary, not directly to worker."
+      ],
       "solution": "Keep the worker behind exported in/out ports, then connect the literal to transform and transform to the sink.",
-      "accessibility": {"non_audio": "The uppercase transformation is visible as text output and source structure.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The uppercase transformation is visible as text output and source structure.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "panels.jacks-on-the-front",
       "chapter": 2,
       "title": "The jacks on the front",
-      "prerequisites": ["panels.put-a-panel-in-a-panel"],
+      "prerequisites": [
+        "panels.put-a-panel-in-a-panel"
+      ],
       "objective": "Expose only the internal ports that belong on a composite boundary.",
       "prose": "The internal worker remains private. The two exports are the complete public faceplate; outer cords cannot bypass it.",
-      "vocabulary": ["export", "faceplate", "encapsulation"],
+      "vocabulary": [
+        "export",
+        "faceplate",
+        "encapsulation"
+      ],
       "source": "panel 1\n\ncomposite example/front-panel {\n    node private_worker : conduit.std/uppercase\n    export input text = private_worker.in\n    export output result = private_worker.out\n}\n\nnode source : conduit.std/literal {\n    value = \"jacks\"\n}\nnode faceplate : example/front-panel\nnode sink : conduit.std/stdout\n\ncord source.out -> faceplate.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord faceplate.result -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "JACKS",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
-      "presentation": {"layout": "faceplate", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "JACKS"},
-      "hints": ["Outer cords name faceplate.text and faceplate.result.", "private_worker never appears in an outer endpoint."],
+      "budgets": {
+        "runtime_ticks": 24,
+        "queue_bytes": 2048,
+        "evidence_events": 24
+      },
+      "presentation": {
+        "layout": "faceplate",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "JACKS"
+      },
+      "hints": [
+        "Outer cords name faceplate.text and faceplate.result.",
+        "private_worker never appears in an outer endpoint."
+      ],
       "solution": "Export the private worker's input and output under public boundary names.",
-      "accessibility": {"non_audio": "The public and private port names are available in source text.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The public and private port names are available in source text.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "panels.inside-outside",
       "chapter": 2,
       "title": "Inside / outside",
-      "prerequisites": ["panels.jacks-on-the-front"],
+      "prerequisites": [
+        "panels.jacks-on-the-front"
+      ],
       "objective": "Switch between logical composite structure and the exact expanded execution view.",
       "prose": "Logical view preserves the authored faceplate. Expanded view reveals the internal worker selected for execution without flattening the semantic source.",
-      "vocabulary": ["logical view", "expanded view", "execution projection"],
+      "vocabulary": [
+        "logical view",
+        "expanded view",
+        "execution projection"
+      ],
       "source": "panel 1\n\ncomposite example/upper-box {\n    node worker : conduit.std/uppercase\n    export input in = worker.in\n    export output out = worker.out\n}\n\nnode source : conduit.std/literal {\n    value = \"inside\"\n}\nnode box : example/upper-box\nnode sink : conduit.std/stdout\n\ncord source.out -> box.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord box.out -> sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "INSIDE",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 24, "queue_bytes": 2048, "evidence_events": 24},
-      "presentation": {"layout": "logical-expanded", "show_plan": true},
-      "validation": {"kind": "stdout", "value": "INSIDE"},
-      "hints": ["Open Logical / expanded topology below the result.", "The source remains unchanged when the projection changes."],
+      "budgets": {
+        "runtime_ticks": 24,
+        "queue_bytes": 2048,
+        "evidence_events": 24
+      },
+      "presentation": {
+        "layout": "logical-expanded",
+        "show_plan": true
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "INSIDE"
+      },
+      "hints": [
+        "Open Logical / expanded topology below the result.",
+        "The source remains unchanged when the projection changes."
+      ],
       "solution": "Run the panel, then compare the logical and expanded resolver projections.",
-      "accessibility": {"non_audio": "Both projections are selectable text, not canvas-only graphics.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "Both projections are selectable text, not canvas-only graphics.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "panels.reuse-without-copying",
       "chapter": 2,
       "title": "Reuse without copying",
-      "prerequisites": ["panels.jacks-on-the-front"],
+      "prerequisites": [
+        "panels.jacks-on-the-front"
+      ],
       "objective": "Instantiate one composite definition twice without duplicating its source.",
       "prose": "Both transforms share the same semantic definition. Their instance paths and runtime evidence remain distinct.",
-      "vocabulary": ["definition", "instance", "instance path"],
+      "vocabulary": [
+        "definition",
+        "instance",
+        "instance path"
+      ],
       "source": "panel 1\n\ncomposite example/reusable-upper {\n    node worker : conduit.std/uppercase\n    export input in = worker.in\n    export output out = worker.out\n}\n\nnode first_source : conduit.std/literal {\n    value = \"one\\n\"\n}\nnode second_source : conduit.std/literal {\n    value = \"two\\n\"\n}\nnode first : example/reusable-upper\nnode second : example/reusable-upper\nnode first_sink : conduit.std/stdout\nnode second_sink : conduit.std/stdout\n\ncord first_source.out -> first.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord first.out -> first_sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord second_source.out -> second.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord second.out -> second_sink.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "ONE\nTWO\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 40, "queue_bytes": 4096, "evidence_events": 32},
-      "presentation": {"layout": "instances", "show_plan": true},
-      "validation": {"kind": "stdout", "value": "ONE\nTWO\n"},
-      "hints": ["There is one composite declaration and two node instances.", "Expanded paths distinguish first.worker from second.worker."],
+      "budgets": {
+        "runtime_ticks": 40,
+        "queue_bytes": 4096,
+        "evidence_events": 32
+      },
+      "presentation": {
+        "layout": "instances",
+        "show_plan": true
+      },
+      "validation": {
+        "kind": "pedagogical-stdout",
+        "value": "ONE\nTWO\n"
+      },
+      "hints": [
+        "There is one composite declaration and two node instances.",
+        "Expanded paths distinguish first.worker from second.worker."
+      ],
       "solution": "Instantiate example/reusable-upper as first and second, with separate bounded cords.",
-      "accessibility": {"non_audio": "Distinct instance names and outputs are visible as text.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "Distinct instance names and outputs are visible as text.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "illustrative/unavailable",
+        "profile": "browser",
+        "proof": "canonical-run-rejection",
+        "code": "CND-CMP-006",
+        "reason": "the current exact planner cannot bind repeated hosted implementation instances"
+      }
     },
     {
       "id": "panels.tiny-instrument",
       "chapter": 2,
       "title": "A tiny instrument",
-      "prerequisites": ["panels.reuse-without-copying"],
+      "prerequisites": [
+        "panels.reuse-without-copying"
+      ],
       "objective": "Build a small reusable source panel with one explicit tick output.",
       "prose": "This deterministic metronome emits one finite tick. Later timing lessons will replace the fixture with an explicit clock contract rather than ambient wall time.",
-      "vocabulary": ["source panel", "deterministic fixture", "tick"],
+      "vocabulary": [
+        "source panel",
+        "deterministic fixture",
+        "tick"
+      ],
       "source": "panel 1\n\ncomposite example/metronome {\n    node pulse : conduit.std/literal {\n        value = \"tick\\n\"\n    }\n    export output tick = pulse.out\n}\n\nnode clock : example/metronome\nnode display : conduit.std/stdout\n\ncord clock.tick -> display.in {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "tick\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 16, "queue_bytes": 1024, "evidence_events": 16},
-      "presentation": {"layout": "instrument", "show_plan": false},
-      "validation": {"kind": "stdout", "value": "tick\n"},
-      "hints": ["The composite exports pulse.out as clock.tick.", "The finite fixture does not read wall time."],
+      "budgets": {
+        "runtime_ticks": 16,
+        "queue_bytes": 1024,
+        "evidence_events": 16
+      },
+      "presentation": {
+        "layout": "instrument",
+        "show_plan": false
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "tick\n"
+      },
+      "hints": [
+        "The composite exports pulse.out as clock.tick.",
+        "The finite fixture does not read wall time."
+      ],
       "solution": "Export one literal pulse and connect the metronome boundary to the display.",
-      "accessibility": {"non_audio": "The tick is visible text; no sound or motion is required.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The tick is visible text; no sound or motion is required.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
     },
     {
       "id": "patchbay.observes-patchbay",
       "chapter": 3,
       "title": "Patchbay observes Patchbay",
-      "prerequisites": ["panels.tiny-instrument"],
+      "prerequisites": [
+        "panels.tiny-instrument"
+      ],
       "objective": "Inspect the root patchbay.panel graph inside Patchbay itself.",
       "prose": "Patchbay is an authored .panel graph. Witness its composite surfaces (authoring, presentation, observation) and inspect its own logical and expanded topology.",
-      "vocabulary": ["self-observation", "meta-panel", "composite surfaces"],
+      "vocabulary": [
+        "self-observation",
+        "meta-panel",
+        "composite surfaces"
+      ],
       "source": "panel 1\n\ncomposite patchbay/authoring {\n    node editor : conduit.std/uppercase\n    node parser : conduit.std/uppercase\n    export input source_in = editor.in\n    export output parsed_out = parser.out\n    cord editor.out -> parser.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/presentation {\n    node layout : conduit.std/uppercase\n    node canvas : conduit.std/uppercase\n    export input positions_in = layout.in\n    export output rendered_out = canvas.out\n    cord layout.out -> canvas.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\ncomposite patchbay/observation {\n    node resolver : conduit.std/uppercase\n    node evidence_feed : conduit.std/uppercase\n    export input plan_in = resolver.in\n    export output telemetry_out = evidence_feed.out\n    cord resolver.out -> evidence_feed.in {\n        capacity = 1\n        max_value_bytes = 1024\n        max_queued_bytes = 1024\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n}\n\nnode nav_selection : conduit.std/literal {\n    value = \"tour/meta-lesson\\n\"\n}\nnode authoring_surface : patchbay/authoring\nnode presentation_surface : patchbay/presentation\nnode observation_surface : patchbay/observation\nnode console_sink : conduit.std/stdout\n\ncord nav_selection.out -> authoring_surface.source_in {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord authoring_surface.parsed_out -> presentation_surface.positions_in {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord presentation_surface.rendered_out -> observation_surface.plan_in {\n    capacity = 4\n    max_value_bytes = 4096\n    max_queued_bytes = 16384\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord observation_surface.telemetry_out -> console_sink.in {\n    capacity = 8\n    max_value_bytes = 8192\n    max_queued_bytes = 65536\n    low_watermark = 1\n    high_watermark = 8\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
       "expected_stdout": "TOUR/META-LESSON\n",
       "profile": "browser-dedicated-worker",
-      "budgets": {"runtime_ticks": 32, "queue_bytes": 8192, "evidence_events": 32},
-      "presentation": {"layout": "logical-expanded", "show_plan": true},
-      "validation": {"kind": "stdout", "value": "TOUR/META-LESSON\n"},
-      "hints": ["Switch between Logical and Expanded topology to see Patchbay internals unfold.", "Running executes the exact self-observation pipeline."],
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 8192,
+        "evidence_events": 32
+      },
+      "presentation": {
+        "layout": "logical-expanded",
+        "show_plan": true
+      },
+      "validation": {
+        "kind": "pedagogical-stdout",
+        "value": "TOUR/META-LESSON\n"
+      },
+      "hints": [
+        "Switch between Logical and Expanded topology to see Patchbay internals unfold.",
+        "Running executes the exact self-observation pipeline."
+      ],
       "solution": "Execute the patchbay.panel graph to observe Patchbay's own execution telemetry.",
-      "accessibility": {"non_audio": "The self-observation results and topology projections are visible as text.", "reduced_motion": true}
+      "accessibility": {
+        "non_audio": "The self-observation results and topology projections are visible as text.",
+        "reduced_motion": true
+      },
+      "runnability": {
+        "state": "illustrative/unavailable",
+        "profile": "browser",
+        "proof": "canonical-run-rejection",
+        "code": "CND-RUN-007",
+        "reason": "the current exact binding set rejects duplicate hosted implementation bindings"
+      }
     }
   ]
 }

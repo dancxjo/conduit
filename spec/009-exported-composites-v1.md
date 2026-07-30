@@ -160,7 +160,10 @@ host selection, artifacts, and UI state remain outside the core.
 
 `conformance/c2/composite-v1.tsv` freezes one-level and nested exports,
 fan-out, parameter provenance, and every required negative classification.
-`examples/composite-uppercase.panel` is an executable authored example.
+`examples/composite-uppercase.panel` is an authored
+**illustrative/unavailable** example. The canonical hosted run currently
+rejects it with `CND-CMP-004`; it must not be presented as executable until
+that exact path has conformance evidence.
 
 ## Normative requirements
 

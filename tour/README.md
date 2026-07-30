@@ -27,6 +27,13 @@ returns bounded diagnostics, a compatibility proof, a candidate exact-plan
 identity when one can be resolved, and a committed/rejected disposition.
 Presentation failure does not remove the editor, checker, or worker controls.
 
+Every lesson and reference panel declares `runnable`, `contract-only`, or
+`illustrative/unavailable`. Only `runnable` sources enable Run. Reference
+panels fetch their canonical checked-in `examples/*.panel` source; unavailable
+providers produce the declared structured resolver diagnostic. Pedagogical
+check completion is recorded separately and is never presented as executor
+evidence.
+
 `tour/build-site.sh` assembles only the checked static Tour, lessons, exact
 browser-host adapter, and license. The Pages workflow publishes that artifact
 only after the corresponding `main` CI run succeeds.

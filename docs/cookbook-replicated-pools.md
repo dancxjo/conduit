@@ -4,6 +4,9 @@ Use a pool when one already-defined composite template must handle a finite
 population of semantically identified work items. A pool does not make child
 ports public and does not permit runtime graph editing.
 
+State: **contract-only**. The referenced template and its exact implementation,
+host, authority, and resource bindings are not installed by this snippet.
+
 ```panel
 panel 1
 

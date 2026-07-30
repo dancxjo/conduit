@@ -17,6 +17,9 @@ Keep these identities distinct when modeling domain capability boundaries:
 
 ## Authoring node interfaces and claims
 
+State: **illustrative/unavailable**. The snippet demonstrates contract syntax;
+it does not identify an installed speech implementation.
+
 Declare reusable named interfaces using the `interface` keyword in `.panel` source files:
 
 ```panel

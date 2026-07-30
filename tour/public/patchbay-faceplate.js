@@ -16,6 +16,7 @@ export function FaceplateNodeComponent({ data, id }) {
     outputs = [],
     status = "idle",
     placement = null,
+    availability = null,
     activity = null,
     isComposite = false,
     isSelected = false,
@@ -121,7 +122,11 @@ export function FaceplateNodeComponent({ data, id }) {
     // Subheader
     e("div", { className: "faceplate-subhead" },
       e("code", { className: "kind-tag" }, kind),
-      placement && e("span", { className: "badge placement-tag" }, placement)
+      placement && e("span", { className: "badge placement-tag" }, placement),
+      availability && e("span", {
+        className: "badge availability-tag",
+        title: availability.reason_code,
+      }, availability.availability_state)
     ),
     // Body
     expanded && e("div", { className: "faceplate-body" },

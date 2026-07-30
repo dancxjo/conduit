@@ -79,6 +79,7 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(page.locator(".conduit-faceplate-card")).toHaveCount(2, {
     timeout: 20_000,
   });
+  await expect(page.locator(".availability-tag")).toHaveCount(2);
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
@@ -87,11 +88,12 @@ test("retains headless editing and execution when presentation fails", async ({ 
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
   const source = page.locator("#source");
+  await expect(source).toHaveValue(/Hello from the Tour\./);
   await source.evaluate((element) => {
     element.value = element.value.replace("Hello from the Tour.", "Headless proof.");
     element.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  await expect(page.locator("#result")).toContainText("Valid panel");
+  await expect(page.locator("#result")).toContainText("Valid runnable panel");
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
   await page.locator("#run").click();
   await expect(page.locator("#result")).toContainText("Headless proof.", {
@@ -105,4 +107,37 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/value-type-text/);
   await expect(edge.locator(".react-flow__edge-path")).toHaveAttribute("d", /^M/);
+});
+
+test("reference panels expose canonical contract-only status and disable Run", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  await page.getByRole("button", { name: "File Copier Pipeline" }).click();
+  await expect(page.locator("#runnability-state")).toContainText("contract-only");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator("#result")).toContainText("CND-IMP-001");
+  await expect(page.locator("#source")).toHaveValue(/node reader : std\/file-read/);
+});
+
+test("pedagogical completion is not execution evidence", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  await page.getByRole("button", { name: "Pull the cord" }).click();
+  await expect(page.locator("#run")).toBeDisabled();
+  await page.locator("#check").click();
+  await expect(page.locator("#result")).toContainText(
+    "Lesson check complete (not execution evidence)",
+  );
+  await expect(page.locator("#evidence")).toContainText(
+    '"executionEvidence": false',
+  );
+});
+
+test("illustrative lessons cannot run their pedagogical target", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  await page.getByRole("button", { name: "More than one port" }).click();
+  await expect(page.locator("#runnability-state")).toContainText(
+    "illustrative/unavailable",
+  );
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator("#result")).toContainText("CND-CMP-006");
+  await expect(page.locator("#evidence")).not.toContainText('"event_kind": "terminal"');
 });

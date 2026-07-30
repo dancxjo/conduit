@@ -6,6 +6,9 @@ ports, and handle compile/admission diagnostics outside the run.
 
 The source relationship is intentionally small:
 
+State: **contract-only**. Exact policy, implementation, host, authority,
+timer, and allocation bindings are deliberately absent from this snippet.
+
 ```panel
 panel 2
 

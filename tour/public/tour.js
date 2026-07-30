@@ -17,55 +17,25 @@ const consoleBadge = document.querySelector("#console-status-badge");
 const selectedNodeLabel = document.querySelector("#selected-node-label");
 const moveLeftBtn = document.querySelector("#move-left");
 const moveRightBtn = document.querySelector("#move-right");
+const runnabilityState = document.querySelector("#runnability-state");
 
 const lessons = await (await fetch("../lessons/v1.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
-
-// Standard Library Reference Panels definition
-const referencePanels = [
-  {
-    id: "file-copier",
-    title: "File Copier Pipeline",
-    objective: "Bounded file stream copy with pressure control",
-    prose: "Transfers data from source file to destination file through a bounded 8-value cord.",
-    source: `panel 1\n\nnode reader : conduit.std/file-read {\n    path = "source.txt"\n}\n\nnode writer : conduit.std/file-write {\n    path = "destination.txt"\n}\n\ncord reader.out -> writer.in {\n    capacity = 8\n    max_value_bytes = 65536\n    max_queued_bytes = 524288\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}`
-  },
-  {
-    id: "dir-watcher",
-    title: "Directory Watcher & Filter",
-    objective: "Stream directory inspection, uppercase filter, and logging",
-    prose: "Watches a directory stream, passes through a filter, converts to uppercase, and writes to log.",
-    source: `panel 1\n\nnode watcher : conduit.std/file-read {\n    path = "watch_directory"\n}\n\nnode filter : conduit/passthrough\nnode processor : conduit.std/uppercase\nnode logger : conduit.std/log\n\ncord watcher.out -> filter.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}\n\ncord filter.out -> processor.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}\n\ncord processor.out -> logger.in {\n    capacity = 16\n    max_value_bytes = 4096\n    max_queued_bytes = 65536\n    low_watermark = 2\n    high_watermark = 16\n    pressure = block\n}`
-  },
-  {
-    id: "http-webhook-relay",
-    title: "HTTP Webhook Relay",
-    objective: "Ingest HTTP webhooks and forward via HTTP client",
-    prose: "Listens on port 8080 and relays incoming payloads to a remote endpoint.",
-    source: `panel 1\n\nnode receiver : conduit/http-server {\n    port = 8080\n}\n\nnode filter : conduit/passthrough\nnode forwarding_client : conduit/http-client {\n    endpoint = "https://hooks.example.com/relay"\n}\n\ncord receiver.out -> filter.in {\n    capacity = 16\n    max_value_bytes = 32768\n    max_queued_bytes = 524288\n    low_watermark = 4\n    high_watermark = 16\n    pressure = block\n}\n\ncord filter.out -> forwarding_client.in {\n    capacity = 16\n    max_value_bytes = 32768\n    max_queued_bytes = 524288\n    low_watermark = 4\n    high_watermark = 16\n    pressure = block\n}`
-  },
-  {
-    id: "ollama-text",
-    title: "Local Ollama AI Generation",
-    objective: "Stream text generation request to local Ollama LLM endpoint",
-    prose: "Sends a JSON prompt to local Ollama HTTP server without cloud fallback or hidden state.",
-    source: `panel 1\n\nnode prompt : conduit.std/literal {\n    value = "{\\"model\\": \\"llama3\\", \\"prompt\\": \\"Summarize Conduit architecture.\\", \\"stream\\": false}"\n}\n\nnode ollama_api : conduit/http-client {\n    endpoint = "http://127.0.0.1:11434/api/generate"\n}\n\nnode output : conduit.std/stdout\n\ncord prompt.out -> ollama_api.in {\n    capacity = 4\n    max_value_bytes = 8192\n    max_queued_bytes = 32768\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n\ncord ollama_api.out -> output.in {\n    capacity = 4\n    max_value_bytes = 65536\n    max_queued_bytes = 262144\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}`
-  },
-  {
-    id: "network-health",
-    title: "Network Health & Circuit Breaker",
-    objective: "UDP socket health monitoring with backoff retry and circuit breaker",
-    prose: "Probes DNS port 53, evaluates health gate, trips circuit breaker if unreachable, and applies backoff.",
-    source: `panel 1\n\nnode probe_ping : conduit.std/udp-socket {\n    port = 53\n}\n\nnode health_check : conduit.std/health-gate\nnode breaker : conduit.std/circuit-breaker\nnode backoff_retry : conduit.std/backoff\n\ncord probe_ping.out -> health_check.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}\n\ncord health_check.out -> breaker.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}\n\ncord breaker.out -> backoff_retry.in {\n    capacity = 8\n    max_value_bytes = 2048\n    max_queued_bytes = 16384\n    low_watermark = 2\n    high_watermark = 8\n    pressure = block\n}`
-  },
-  {
-    id: "wifi-station-join",
-    title: "Wi-Fi Station Profile",
-    objective: "Witness Wi-Fi Station join contract without background scanning",
-    prose: "Resolves Wi-Fi station capability requirement on Linux or Pico W host.",
-    source: `panel 1\n\nnode wifi_sta : conduit.std/wifi-station {\n    ssid = "ConduitNet"\n}\n\nnode status_logger : conduit.std/log\n\ncord wifi_sta.out -> status_logger.in {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}`
+const referenceManifest = await (
+  await fetch("../reference-panels/v1.json", { cache: "no-store" })
+).json();
+if (referenceManifest.schema !== "conduit.tour-reference-panels/v1") {
+  throw new Error("unsupported Tour reference-panel manifest");
+}
+const referencePanels = await Promise.all(referenceManifest.panels.map(async (panel) => {
+  const response = await fetch(new URL(panel.source_path, import.meta.url), {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`reference-panel-fetch:${panel.id}:${response.status}`);
   }
-];
+  return { ...panel, source: await response.text() };
+}));
 
 async function fetchArtifact(artifact) {
   const url = new URL(artifact.path, import.meta.url);
@@ -294,7 +264,7 @@ function stopActive(cause, message) {
     activeAdapter.terminate(cause);
     activeAdapter = null;
   }
-  runButton.disabled = false;
+  runButton.disabled = current?.runnability?.state !== "runnable";
   stopButton.disabled = true;
   consoleBadge.textContent = "Ready";
   consoleBadge.className = "badge status-badge idle";
@@ -307,8 +277,16 @@ function show(lesson) {
   document.querySelector("#title").textContent = lesson.title;
   document.querySelector("#goal").textContent = lesson.objective || lesson.title;
   document.querySelector("#prose").textContent = lesson.prose || "";
-  document.querySelector("#execution-note").textContent =
-    `${lesson.profile || "conduit/std"}: exact ${browserPlan.placement} placement on ${hostReport.hostId}.`;
+  const availability = lesson.runnability;
+  if (!availability) {
+    throw new Error(`missing runnability declaration for ${lesson.id}`);
+  }
+  runnabilityState.textContent =
+    `${availability.state} · ${availability.profile}`;
+  runnabilityState.dataset.state = availability.state;
+  document.querySelector("#execution-note").textContent = availability.state === "runnable"
+    ? `${lesson.profile || availability.profile}: exact ${browserPlan.placement} placement on ${hostReport.hostId}.`
+    : `${availability.code}: ${availability.reason}`;
   document.querySelector("#command").textContent =
     (lesson.commands ?? [lesson.command || "conduct inspect"]).join("  ·  ");
 
@@ -332,6 +310,7 @@ function show(lesson) {
   renderPlan();
   openPatchbaySession();
   check();
+  runButton.disabled = availability.state !== "runnable";
 }
 
 function selectNode(node) {
@@ -351,10 +330,31 @@ function selectNode(node) {
 }
 
 function check() {
-  const value = JSON.parse(parse_panel(source.value));
-  result.textContent = value.ok
-    ? `Valid panel: ${value.nodes} nodes, ${value.cords} cords.`
-    : value.diagnostic;
+  const parsed = JSON.parse(parse_panel(source.value));
+  const availability = current.runnability;
+  if (!parsed.ok) {
+    result.textContent = parsed.diagnostic;
+  } else if (availability.state === "runnable") {
+    result.textContent =
+      `Valid runnable panel: ${parsed.nodes} nodes, ${parsed.cords} cords.`;
+  } else {
+    const resolved = JSON.parse(explain_panel(source.value));
+    const diagnostic = resolved.ok
+      ? `${availability.code}: declared ${availability.state}; execution remains disabled`
+      : resolved.diagnostic;
+    const checkComplete = current.validation?.kind === "diagnostic"
+      && diagnostic.includes(current.validation.value);
+    result.textContent = checkComplete
+      ? `✓ Lesson check complete (not execution evidence).\n${diagnostic}`
+      : `${availability.code}: ${availability.reason}\n${diagnostic}`;
+    if (checkComplete) {
+      recordEvidence({
+        kind: "lesson-check-completed",
+        lesson: current.id,
+        executionEvidence: false,
+      });
+    }
+  }
   updateCytoscapeGraph();
   renderTopology();
 }
@@ -429,6 +429,11 @@ moveLeftBtn.onclick = () => moveSelected(-20);
 moveRightBtn.onclick = () => moveSelected(20);
 
 async function run() {
+  if (current.runnability?.state !== "runnable") {
+    result.textContent =
+      `${current.runnability.code}: ${current.runnability.reason}`;
+    return;
+  }
   stopActive("superseded");
   const epoch = ++runEpoch;
   const binding = resolveBrowserPlacement(hostReport, {
@@ -502,7 +507,7 @@ async function run() {
     if (epoch === runEpoch) {
       adapter.terminate("completed");
       activeAdapter = null;
-      runButton.disabled = false;
+      runButton.disabled = current.runnability?.state !== "runnable";
       stopButton.disabled = true;
       consoleBadge.textContent = "Idle";
       consoleBadge.className = "badge status-badge idle";

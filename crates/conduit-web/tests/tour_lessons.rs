@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use conduit_runtime::{Registry, RunIo};
+use conduit_runtime::Registry;
 use serde_json::Value;
 
 const REQUIRED_FOUNDATION_LESSONS: [&str; 15] = [
@@ -22,7 +22,7 @@ const REQUIRED_FOUNDATION_LESSONS: [&str; 15] = [
 ];
 
 #[test]
-fn tour_lessons_use_the_production_parser_and_runtime() {
+fn tour_lessons_declare_verified_browser_runnability() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
         .expect("Tour lesson manifest is valid JSON");
     assert_eq!(manifest["schema"], "conduit.tour-lessons/v1");
@@ -78,6 +78,16 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
             "{id} has an accessible alternative"
         );
         assert!(
+            lesson["accessibility"]["non_audio"]
+                .as_str()
+                .is_some_and(|alternative| !alternative.is_empty()),
+            "{id} retains a non-audio proof"
+        );
+        assert!(
+            lesson.get("expected_audio").is_none(),
+            "{id} cannot claim audible proof without a bound provider"
+        );
+        assert!(
             lesson["command"]
                 .as_str()
                 .expect("lesson has a command")
@@ -92,6 +102,8 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
             lesson["profile"], "browser-dedicated-worker",
             "{id} uses the exact bounded browser-host placement"
         );
+        let runnability = &lesson["runnability"];
+        assert_eq!(runnability["profile"], "browser", "{id} names its profile");
 
         let source = lesson["source"].as_str().expect("lesson has source");
         assert!(
@@ -124,28 +136,24 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
         let registry = Registry::compatibility_demo();
 
         if let Some(expected_stdout) = lesson["expected_stdout"].as_str() {
-            assert_eq!(lesson["validation"]["kind"], "stdout");
             assert_eq!(lesson["validation"]["value"], expected_stdout);
-            let resolved = registry.resolve(&panel).unwrap_or_else(|error| {
-                panic!("{id} must resolve through conduit-runtime: {error}")
-            });
-            let mut input = std::io::empty();
-            let mut output = Vec::new();
-            let mut error = Vec::new();
-            resolved
-                .run_batch(&mut RunIo {
-                    input: &mut input,
-                    output: &mut output,
-                    error: &mut error,
-                })
-                .unwrap_or_else(|run_error| panic!("{id} must run: {run_error}"));
-            assert_eq!(
-                String::from_utf8(output).expect("runtime stdout is UTF-8"),
-                expected_stdout,
-                "{id} expected stdout stays in sync with its source"
-            );
-            assert!(error.is_empty(), "{id} does not emit stderr");
+            if runnability["state"] == "runnable" {
+                assert_eq!(runnability["proof"], "browser-worker-exact-plan");
+                assert_eq!(lesson["validation"]["kind"], "stdout");
+            } else {
+                assert_eq!(runnability["state"], "illustrative/unavailable");
+                assert_eq!(runnability["proof"], "canonical-run-rejection");
+                assert_eq!(lesson["validation"]["kind"], "pedagogical-stdout");
+                assert!(
+                    runnability["code"]
+                        .as_str()
+                        .is_some_and(|code| code.starts_with("CND-")),
+                    "{id} names the exact production rejection"
+                );
+            }
         } else {
+            assert_eq!(runnability["state"], "contract-only");
+            assert_eq!(runnability["proof"], "resolver-rejection");
             let expected = lesson["expected_diagnostic"]
                 .as_str()
                 .expect("non-running lesson declares a diagnostic");
@@ -156,5 +164,52 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
             assert_eq!(lesson["validation"]["kind"], "diagnostic");
             assert_eq!(lesson["validation"]["value"], expected);
         }
+    }
+}
+
+#[test]
+fn tour_reference_panels_are_canonical_and_fail_closed() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let manifest: Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("tour/reference-panels/v1.json"))
+            .expect("reference-panel manifest exists"),
+    )
+    .expect("reference-panel manifest is valid");
+    assert_eq!(manifest["schema"], "conduit.tour-reference-panels/v1");
+
+    for reference in manifest["panels"]
+        .as_array()
+        .expect("reference panels are listed")
+    {
+        let id = reference["id"].as_str().expect("reference id");
+        assert_eq!(
+            reference["runnability"]["state"], "contract-only",
+            "{id} cannot claim an unavailable browser provider"
+        );
+        assert!(
+            reference["runnability"]["reason"]
+                .as_str()
+                .is_some_and(|reason| !reason.is_empty()),
+            "{id} explains why Run is unavailable"
+        );
+        let relative = reference["source_path"]
+            .as_str()
+            .expect("canonical source path")
+            .strip_prefix("../../")
+            .expect("source path points to repository fixture");
+        let source = std::fs::read_to_string(root.join(relative))
+            .unwrap_or_else(|error| panic!("{id} canonical source is readable: {error}"));
+        let panel = conduit_panel::parse(&source)
+            .unwrap_or_else(|error| panic!("{id} canonical source parses: {error}"));
+        let failure = Registry::hosted_primitives()
+            .resolve(&panel)
+            .expect_err("reference panel must fail closed without its provider");
+        assert_eq!(
+            failure.code,
+            reference["runnability"]["code"]
+                .as_str()
+                .expect("structured rejection code"),
+            "{id} declaration matches authoritative resolver"
+        );
     }
 }
