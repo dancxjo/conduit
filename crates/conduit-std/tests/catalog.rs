@@ -64,6 +64,37 @@ fn type_universe_is_richer_than_any_host_support_claim() {
 }
 
 #[test]
+fn formatter_types_have_exact_finite_descriptors() {
+    let expected = [
+        (
+            "std/text",
+            "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab",
+        ),
+        (
+            "std/integer",
+            "sha256:161d9106bcff3ea645da0f89570c1c43fe87a50299f2725720dc5c75f10cd12e",
+        ),
+        (
+            "std/format-values",
+            "sha256:ba23e276b70b1b0c747d2b4ada100d72fa5b3874e4fa2baa250cf07149795cc0",
+        ),
+    ];
+    for (id, hash) in expected {
+        let definition = standard_type(id).expect("formatter type is published");
+        let descriptor = conduit_std::standard_type_descriptor(definition);
+        assert_ne!(descriptor.body, conduit_core::CanonicalValue::Null);
+        assert_eq!(
+            standard_type_reference(id)
+                .expect("formatter type is concrete")
+                .semantic_hash
+                .to_string(),
+            hash,
+            "{id}"
+        );
+    }
+}
+
+#[test]
 fn polymorphic_flow_contracts_publish_type_relationships_not_byte_placeholders() {
     for id in [
         "flow/identity",
@@ -236,5 +267,169 @@ fn deterministic_and_hosted_profiles_emit_equivalent_normalized_evidence() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn text_format_fixture_and_contract_freeze_the_final_typed_shape() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../conformance/c4/text-format-v1.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    let ids = cases
+        .iter()
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "indexed-success",
+        "named-success",
+        "empty-template",
+        "escaped-delimiters",
+        "missing-value",
+        "extra-value",
+        "malformed-placeholder",
+        "supported-text",
+        "supported-bool",
+        "supported-integer-boundaries",
+        "unsupported-value-kind",
+        "maximum-output",
+        "output-overflow",
+        "cancellation",
+        "stale-provider",
+        "missing-provider",
+        "constrained-unsupported-host",
+        "no-provider-known-contract",
+        "evidence-bounds",
+    ] {
+        assert!(ids.contains(required), "fixture covers {required}");
+    }
+    for case in cases {
+        match case["class"].as_str().unwrap() {
+            "semantic" => run_text_format_semantic_case(case),
+            "generated-boundary" => run_text_format_boundary_case(case),
+            "exact-execution" | "resolution" | "availability" => {
+                assert!(
+                    case["proof"]
+                        .as_str()
+                        .is_some_and(|proof| !proof.is_empty()),
+                    "{} names its executable higher-layer proof",
+                    case["id"]
+                );
+                assert!(
+                    case["expected"]
+                        .as_str()
+                        .is_some_and(|expected| !expected.is_empty())
+                );
+            }
+            other => panic!("unknown formatter fixture class {other}"),
+        }
+    }
+
+    let format = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "std/text/format")
+        .unwrap();
+    assert!(format.contract.config.fields.is_empty());
+    assert_eq!(format.contract.inputs.len(), 2);
+    assert_eq!(format.contract.inputs[0].id.as_str(), "template");
+    assert_eq!(
+        format.contract.inputs[0].value_type.contract_id.as_str(),
+        "std/text"
+    );
+    assert_eq!(format.contract.inputs[1].id.as_str(), "values");
+    assert_eq!(
+        format.contract.inputs[1].value_type.contract_id.as_str(),
+        "std/format-values"
+    );
+    assert_eq!(format.contract.outputs.len(), 1);
+    assert_eq!(
+        format.contract.outputs[0].value_type.contract_id.as_str(),
+        "std/text"
+    );
+    assert_eq!(format.limits.retained_values, 3);
+    assert_eq!(
+        format.limits.retained_bytes,
+        conduit_std::FORMAT_MAX_RETAINED_BYTES as u64
+    );
+    assert_eq!(
+        format.limits.work_per_step,
+        conduit_std::FORMAT_MAX_WORK as u32
+    );
+    assert!(!format.required_support.constrained);
+    assert!(
+        STANDARD_CATALOG
+            .iter()
+            .all(|entry| entry.contract.id.as_str() != "std/format")
+    );
+}
+
+fn run_text_format_semantic_case(case: &serde_json::Value) {
+    let values = case["values"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| {
+            let name = value.get("name").and_then(serde_json::Value::as_str);
+            let scalar = match value["kind"].as_str().unwrap() {
+                "text" => conduit_std::FormatScalarRef::Text(value["value"].as_str().unwrap()),
+                "boolean" => {
+                    conduit_std::FormatScalarRef::Boolean(value["value"].as_bool().unwrap())
+                }
+                "integer" => conduit_std::FormatScalarRef::Integer(
+                    value["value"].as_str().unwrap().parse().unwrap(),
+                ),
+                "future" => conduit_std::FormatScalarRef::Unsupported(0xff),
+                kind => panic!("unknown formatter fixture value kind {kind}"),
+            };
+            conduit_std::FormatValueRef {
+                name,
+                value: scalar,
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut output = [0; conduit_std::FORMAT_MAX_OUTPUT_BYTES];
+    let result =
+        conduit_std::format_text_into(case["template"].as_str().unwrap(), &values, &mut output);
+    if let Some(expected) = case.get("expected_output") {
+        let length =
+            result.unwrap_or_else(|error| panic!("{} unexpectedly failed: {error:?}", case["id"]));
+        assert_eq!(
+            core::str::from_utf8(&output[..length]).unwrap(),
+            expected.as_str().unwrap(),
+            "{}",
+            case["id"]
+        );
+    } else {
+        assert_eq!(
+            result.unwrap_err().code(),
+            case["expected_error"].as_str().unwrap(),
+            "{}",
+            case["id"]
+        );
+    }
+}
+
+fn run_text_format_boundary_case(case: &serde_json::Value) {
+    let scalar = "x".repeat(case["scalar_bytes"].as_u64().unwrap() as usize);
+    let template = "{0}".repeat(case["references"].as_u64().unwrap() as usize);
+    let values = [conduit_std::FormatValueRef {
+        name: None,
+        value: conduit_std::FormatScalarRef::Text(&scalar),
+    }];
+    let mut output = [0; conduit_std::FORMAT_MAX_OUTPUT_BYTES];
+    let result = conduit_std::format_text_into(&template, &values, &mut output);
+    if let Some(expected) = case.get("expected_output_bytes") {
+        assert_eq!(
+            result.unwrap(),
+            expected.as_u64().unwrap() as usize,
+            "{}",
+            case["id"]
+        );
+    } else {
+        assert_eq!(
+            result.unwrap_err().code(),
+            case["expected_error"].as_str().unwrap(),
+            "{}",
+            case["id"]
+        );
     }
 }

@@ -1,0 +1,146 @@
+{
+  "schema": "conduit.text-format-fixture/v1",
+  "contract": "std/text/format",
+  "type": "std/format-values",
+  "cases": [
+    {
+      "id": "indexed-success",
+      "class": "semantic",
+      "template": "{1}/{0}",
+      "values": [
+        {"kind": "text", "value": "first"},
+        {"kind": "text", "value": "second"}
+      ],
+      "expected_output": "second/first"
+    },
+    {
+      "id": "named-success",
+      "class": "semantic",
+      "template": "{worker}:{ready}",
+      "values": [
+        {"name": "worker", "kind": "text", "value": "alpha"},
+        {"name": "ready", "kind": "boolean", "value": true}
+      ],
+      "expected_output": "alpha:true"
+    },
+    {
+      "id": "empty-template",
+      "class": "semantic",
+      "template": "",
+      "values": [],
+      "expected_output": ""
+    },
+    {
+      "id": "escaped-delimiters",
+      "class": "semantic",
+      "template": "{{{0}}}",
+      "values": [{"kind": "text", "value": "ok"}],
+      "expected_output": "{ok}"
+    },
+    {
+      "id": "missing-value",
+      "class": "semantic",
+      "template": "{} {}",
+      "values": [{"kind": "text", "value": "one"}],
+      "expected_error": "format/missing-value"
+    },
+    {
+      "id": "extra-value",
+      "class": "semantic",
+      "template": "{}",
+      "values": [
+        {"kind": "text", "value": "one"},
+        {"kind": "text", "value": "two"}
+      ],
+      "expected_error": "format/extra-value"
+    },
+    {
+      "id": "malformed-placeholder",
+      "class": "semantic",
+      "template": "{name",
+      "values": [],
+      "expected_error": "format/malformed-placeholder"
+    },
+    {
+      "id": "supported-text",
+      "class": "semantic",
+      "template": "{}",
+      "values": [{"kind": "text", "value": "verbatim"}],
+      "expected_output": "verbatim"
+    },
+    {
+      "id": "supported-bool",
+      "class": "semantic",
+      "template": "{}",
+      "values": [{"kind": "boolean", "value": false}],
+      "expected_output": "false"
+    },
+    {
+      "id": "supported-integer-boundaries",
+      "class": "semantic",
+      "template": "{0}/{1}",
+      "values": [
+        {"kind": "integer", "value": "-170141183460469231731687303715884105728"},
+        {"kind": "integer", "value": "170141183460469231731687303715884105727"}
+      ],
+      "expected_output": "-170141183460469231731687303715884105728/170141183460469231731687303715884105727"
+    },
+    {
+      "id": "unsupported-value-kind",
+      "class": "semantic",
+      "template": "{}",
+      "values": [{"kind": "future", "value": null}],
+      "expected_error": "format/unsupported-value-kind"
+    },
+    {
+      "id": "maximum-output",
+      "class": "generated-boundary",
+      "scalar_bytes": 1024,
+      "references": 16,
+      "expected_output_bytes": 16384
+    },
+    {
+      "id": "output-overflow",
+      "class": "generated-boundary",
+      "scalar_bytes": 1024,
+      "references": 17,
+      "expected_error": "format/output-overflow"
+    },
+    {
+      "id": "cancellation",
+      "class": "exact-execution",
+      "proof": "typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence",
+      "expected": "cancelled"
+    },
+    {
+      "id": "stale-provider",
+      "class": "resolution",
+      "proof": "text_format_availability_and_stale_provider_fail_closed_separately",
+      "expected": "CND-CMP-006"
+    },
+    {
+      "id": "missing-provider",
+      "class": "resolution",
+      "proof": "text_format_availability_and_stale_provider_fail_closed_separately",
+      "expected": "CND-IMP-001"
+    },
+    {
+      "id": "constrained-unsupported-host",
+      "class": "availability",
+      "proof": "text_format_fixture_and_contract_freeze_the_final_typed_shape",
+      "expected": "unsupported"
+    },
+    {
+      "id": "no-provider-known-contract",
+      "class": "availability",
+      "proof": "text_format_availability_and_stale_provider_fail_closed_separately",
+      "expected": "contract-only"
+    },
+    {
+      "id": "evidence-bounds",
+      "class": "exact-execution",
+      "proof": "typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence",
+      "expected": "within-plan-budget"
+    }
+  ]
+}

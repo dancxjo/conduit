@@ -5,7 +5,7 @@ use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
     CompileSourceLimits, ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
-    HostReportDocument, ImplementationDocument, MemoryClaimDocument, PinDocument,
+    HostReportDocument, ImplementationDocument, InstalledProfile, MemoryClaimDocument, PinDocument,
     builtin_catalog_document, compile_source,
 };
 use conduit_core::{
@@ -15,8 +15,8 @@ use conduit_core::{
 };
 use conduit_panel::parse;
 use conduit_runtime::{
-    ExactHostedBinding, ExactHostedBindings, ExactRunContext, HostedPrimitiveImplementation,
-    Registry, RunIo, SchedulerReservation,
+    AvailabilityState, ExactHostedBinding, ExactHostedBindings, ExactRunContext,
+    HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
 };
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
@@ -589,4 +589,161 @@ fn sealed_document_drives_the_exact_hosted_executor() {
     assert_eq!(summary.cords_conducted, 2);
     assert_eq!(output, b"HELLO");
     assert!(error.is_empty());
+}
+
+#[test]
+fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
+    const FORMAT_SOURCE: &str = include_str!("../../../examples/formatted-greeting.panel");
+
+    let installed = InstalledProfile::observe(FORMAT_SOURCE).unwrap();
+    let document = compile_source(FORMAT_SOURCE, &installed.input).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+    let format = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "std/text/format")
+        .unwrap();
+    let profile = format.execution_profile.unwrap();
+    assert_eq!(profile.limits.max_input_leases, 2);
+    assert_eq!(profile.limits.max_retained_values, 3);
+    assert_eq!(
+        profile.limits.max_retained_bytes,
+        conduit_std::FORMAT_MAX_RETAINED_BYTES as u64
+    );
+    assert_eq!(
+        profile.limits.max_step_work,
+        conduit_std::FORMAT_MAX_WORK as u32
+    );
+    assert_eq!(
+        profile.limits.max_output_bytes,
+        conduit_std::FORMAT_MAX_OUTPUT_BYTES as u64
+    );
+    assert_eq!(plan.cords.len(), 3);
+    assert!(plan.cords.iter().all(|cord| {
+        cord.flow.capacity.items() == 1
+            && cord.queue_memory_bytes > 0
+            && cord.flow.capacity.max_value_bytes() > 0
+    }));
+
+    let panel = parse(FORMAT_SOURCE).unwrap();
+    let registry = Registry::hosted_primitives();
+    let resolved = registry.resolve(&panel).unwrap();
+    let bindings = installed.bindings(&plan).unwrap();
+    let context = |run_id| ExactRunContext {
+        semantic_source_hash: plan.source_semantic_hash,
+        plan_epoch: 121,
+        run_id,
+        validation: conduit_core::PlanValidationContext {
+            supported_schema_version: plan.schema_version,
+            now: plan.created_at,
+        },
+        scheduler_policy: SchedulerPolicy {
+            schema_version: SCHEDULER_CONTRACT_VERSION,
+            ready_queue: ReadyQueueDiscipline::RoundRobin,
+            max_decisions: 256,
+            max_tick: 512,
+            max_consecutive_yields: 8,
+            max_events: 128,
+        },
+        reservation: SchedulerReservation {
+            available_runtime_memory_bytes: plan.budget.memory_bytes,
+            executor_overhead_limit_bytes: plan.budget.memory_bytes,
+        },
+    };
+    let mut input = &b""[..];
+    let mut output = Vec::new();
+    let mut error = Vec::new();
+    let report = resolved
+        .run_exact_report(
+            &plan,
+            &bindings,
+            context(conduit_core::Id("fixture/format-run")),
+            &mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+            },
+        )
+        .unwrap();
+    assert_eq!(output, b"Hello, operator. Payload: {status = ready}\n");
+    assert!(error.is_empty());
+    assert_eq!(report.terminal, conduit_core::TerminalClass::Succeeded);
+    assert!(
+        report.evidence_bytes <= plan.budget.evidence_bytes,
+        "{} > {}",
+        report.evidence_bytes,
+        plan.budget.evidence_bytes
+    );
+    assert!(report.evidence.iter().any(|event| {
+        event.node_id.as_deref() == Some("root/greeting")
+            && event.implementation_id.as_deref() == Some(format.implementation.id.as_str())
+            && event.implementation_identity.as_deref()
+                == Some(format.implementation.semantic_hash.to_string().as_str())
+            && event.plan_identity == plan.identity.to_string()
+            && event.run_id == "fixture/format-run"
+    }));
+    assert_ne!(
+        format.contract.semantic_hash,
+        format.implementation.semantic_hash
+    );
+    assert_ne!(format.implementation.semantic_hash, plan.identity);
+
+    let mut input = &b""[..];
+    let mut cancelled_output = Vec::new();
+    let mut cancelled_error = Vec::new();
+    let cancelled = resolved
+        .cancel_exact_report(
+            &plan,
+            &bindings,
+            context(conduit_core::Id("fixture/format-cancel")),
+            conduit_core::StopPolicy::Abort,
+            &mut RunIo {
+                input: &mut input,
+                output: &mut cancelled_output,
+                error: &mut cancelled_error,
+            },
+        )
+        .unwrap();
+    assert_eq!(cancelled.terminal, conduit_core::TerminalClass::Cancelled);
+    assert!(cancelled.evidence_bytes <= plan.budget.evidence_bytes);
+}
+
+#[test]
+fn text_format_availability_and_stale_provider_fail_closed_separately() {
+    const FORMAT_SOURCE: &str = include_str!("../../../examples/formatted-greeting.panel");
+
+    let contract_only = Registry::default();
+    assert_eq!(
+        contract_only.node_availability("std/text/format").state,
+        AvailabilityState::ContractOnly
+    );
+    assert_eq!(
+        contract_only.node_availability("std/format").state,
+        AvailabilityState::Unsupported
+    );
+    let panel = parse(FORMAT_SOURCE).unwrap();
+    assert_eq!(
+        contract_only.resolve(&panel).unwrap_err().code,
+        "CND-IMP-001"
+    );
+
+    let hosted = Registry::hosted_primitives();
+    assert_eq!(
+        hosted.node_availability("std/text/format").state,
+        AvailabilityState::ProviderAvailable
+    );
+    let installed = InstalledProfile::observe(FORMAT_SOURCE).unwrap();
+    let mut stale = installed.input.clone();
+    let candidate = stale
+        .candidates
+        .iter_mut()
+        .find(|candidate| candidate.implementation.semantic_contract.id == "std/text/format")
+        .unwrap();
+    candidate.host_report.valid_until_tick = stale.current_tick - 1;
+    stale.seal().unwrap();
+    assert_eq!(
+        compile_source(FORMAT_SOURCE, &stale).unwrap_err().code(),
+        "CND-CMP-006"
+    );
 }

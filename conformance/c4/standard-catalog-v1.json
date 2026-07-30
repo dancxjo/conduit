@@ -3,7 +3,8 @@
   "required_fixture_classes": ["positive", "negative", "pressure", "cancellation", "terminal"],
   "contracts": {
     "std/literal": ["STD-001", "STD-002"],
-    "std/format": ["STD-001", "STD-002"],
+    "std/text/format": ["STD-001", "STD-002"],
+    "std/format-values/literal": ["STD-001", "STD-002"],
     "std/empty": ["STD-001", "STD-003"],
     "std/never": ["STD-001", "STD-003"],
     "std/finite-sequence": ["STD-001", "STD-002"],

@@ -24,7 +24,7 @@ contracts. A standard node consumes the exact plan-supplied facts or fails.
 Standard contracts use domain-first canonical paths. The path describes the
 problem domain, not the implementation mechanism:
 
-- `std/literal`, `std/format`, and the fundamental `std/...` types;
+- `std/literal`, `std/text/format`, and the fundamental `std/...` types;
 - `flow/identity`, `flow/merge`, and the other structural operators;
 - `time/delay`, `state/cell`, and `supervision/retry`;
 - `fs/read`, `process/run`, and `net/http/serve`.
@@ -43,7 +43,7 @@ Consequently the HTTP server operation is `net/http/serve`, not
 The standard type catalog publishes meanings independently of representations:
 
 - fundamentals: `std/unit`, `std/bool`, `std/integer`, `std/natural`,
-  `std/float`, `std/decimal`, `std/text`, and `std/bytes`;
+  `std/float`, `std/decimal`, `std/text`, `std/format-values`, and `std/bytes`;
 - fixed-width integers: `std/i8` through `std/i128` and `std/u8` through
   `std/u128`;
 - structural constructors: `std/option`, `std/result`, `std/list`, `std/map`,

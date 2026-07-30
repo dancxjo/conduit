@@ -1,17 +1,42 @@
-# Rust-style positional formatting with escaped literal braces.
+# Typed template + values -> text formatting with exact finite cords.
 panel 1
 
-node greeting : std/format {
-    template = "Hello, {}. Payload: {{status = {}}}\n"
-    parameters = list("operator", "ready")
+node template : std/literal {
+    value = "Hello, {name}. Payload: {{status = {status}}}\n"
 }
 
+node values : std/format-values/literal {
+    values = list(
+        record(name="name", value="operator"),
+        record(name="status", value="ready")
+    )
+}
+
+node greeting : std/text/format
 node output : io/stdout
+
+cord template.out -> greeting.template {
+    capacity = 1
+    max_value_bytes = 4096
+    max_queued_bytes = 4096
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+
+cord values.out -> greeting.values {
+    capacity = 1
+    max_value_bytes = 16384
+    max_queued_bytes = 16384
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
 
 cord greeting.out -> output.in {
     capacity = 1
-    max_value_bytes = 1024
-    max_queued_bytes = 1024
+    max_value_bytes = 16384
+    max_queued_bytes = 16384
     low_watermark = 0
     high_watermark = 1
     pressure = block

@@ -22,6 +22,7 @@ cord shout.out -> output.in {\n\
   high_watermark = 2\n\
   pressure = block\n\
 }\n";
+const FORMAT_SOURCE: &str = include_str!("../../../examples/formatted-greeting.panel");
 
 #[test]
 fn browser_entrypoint_executes_the_authored_exact_plan() {
@@ -74,6 +75,36 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
             .as_array()
             .expect("Patchbay projected nodes");
         assert!(nodes.iter().all(|node| node.get("placement").is_none()));
+    }
+}
+
+#[test]
+fn patchbay_projects_final_formatter_ports_from_authoritative_contracts() {
+    let result: serde_json::Value =
+        serde_json::from_str(&run_panel(FORMAT_SOURCE.to_owned())).unwrap();
+    assert_eq!(result["ok"], true);
+    assert_eq!(
+        result["stdout"],
+        "Hello, operator. Payload: {status = ready}\n"
+    );
+    assert!(result["evidence_bytes"].as_u64().unwrap() <= 64 * 1024);
+    for layer in ["logical_nodes", "expanded_nodes"] {
+        let formatter = result["patchbay"]["topology"][layer]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["contract_id"] == "std/text/format")
+            .unwrap();
+        let inputs = formatter["inputs"].as_array().unwrap();
+        assert_eq!(inputs.len(), 2);
+        assert_eq!(inputs[0]["id"], "template");
+        assert_eq!(inputs[0]["type_id"], "std/text");
+        assert_eq!(inputs[1]["id"], "values");
+        assert_eq!(inputs[1]["type_id"], "std/format-values");
+        let outputs = formatter["outputs"].as_array().unwrap();
+        assert_eq!(outputs.len(), 1);
+        assert_eq!(outputs[0]["id"], "out");
+        assert_eq!(outputs[0]["type_id"], "std/text");
     }
 }
 
