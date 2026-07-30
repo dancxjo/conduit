@@ -16,6 +16,7 @@ export function FaceplateNodeComponent({ data, id }) {
     outputs = [],
     status = "idle",
     isComposite = false,
+    isSelected = false,
     onConfigChange,
     onOpenNested
   } = data;
@@ -136,7 +137,7 @@ export function FaceplateNodeComponent({ data, id }) {
   }
 
   return e("div", {
-      className: `conduit-faceplate-card ${status} ${isComposite ? "composite-faceplate" : ""}`,
+      className: `conduit-faceplate-card ${status} ${isComposite ? "composite-faceplate" : ""} ${isSelected ? "selected-faceplate" : ""}`,
       tabIndex: 0,
       role: "region",
       "aria-label": `Equipment faceplate ${title}`

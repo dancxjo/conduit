@@ -529,6 +529,11 @@ pre {
   background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
 }
 
+.conduit-faceplate-card.selected-faceplate {
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 0 3px var(--accent-emerald-glow), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
 .faceplate-header {
   display: flex;
   align-items: center;

@@ -296,9 +296,9 @@ function selectNode(node) {
     source.focus();
     source.setSelectionRange(start, start + node.length + 5);
   }
-  cy.nodes().unselect();
-  const cyNode = cy.getElementById(node);
-  if (cyNode) cyNode.select();
+  if (patchbayRenderer) {
+    patchbayRenderer.selectNode(node);
+  }
 }
 
 function check() {
@@ -368,18 +368,22 @@ document.querySelector("#expanded-view").onclick = () => {
 
 function moveSelected(delta) {
   if (!selectedNode) return;
-  const cyNode = cy.getElementById(selectedNode);
-  if (!cyNode) return;
-  const pos = cyNode.position();
+  const currentPos = (patchbayRenderer && patchbayRenderer.savedPositions[selectedNode])
+    || positions[selectedNode]
+    || { x: 100, y: 80 };
+  const newX = currentPos.x + delta;
+  const newY = currentPos.y;
   const transaction = JSON.parse(
-    patchbay_move_node(source.value, selectedNode, pos.x + delta, pos.y),
+    patchbay_move_node(source.value, selectedNode, newX, newY),
   );
   if (!transaction.ok) {
     result.textContent = transaction.diagnostic;
     return;
   }
   positions = transaction.positions;
-  cyNode.position({ x: pos.x + delta, y: pos.y });
+  if (patchbayRenderer) {
+    patchbayRenderer.moveNode(selectedNode, { x: newX, y: newY });
+  }
   result.textContent = `Presentation moved; semantic hash remains ${transaction.semantic_hash}.`;
 }
 

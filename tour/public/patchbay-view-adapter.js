@@ -158,8 +158,8 @@ export function parsePanelToViewModel(sourceText, runtimeState = {}, savedPositi
     }
 
     const defaultPos = {
-      x: 100 + (index % 3) * 260,
-      y: 80 + Math.floor(index / 3) * 200
+      x: 80 + (index % 2) * 340,
+      y: 60 + Math.floor(index / 2) * 240
     };
 
     nodes.push({

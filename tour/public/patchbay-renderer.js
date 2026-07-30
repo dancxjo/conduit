@@ -23,6 +23,7 @@ export class PatchbayReactFlowRenderer {
     this.reactRoot = null;
     this.currentSource = "";
     this.runtimeState = {};
+    this.selectedNodeId = null;
     this.onSourceMutation = options.onSourceMutation || null;
     this.onNodeSelect = options.onNodeSelect || null;
     this.onOpenNested = options.onOpenNested || null;
@@ -74,14 +75,23 @@ export class PatchbayReactFlowRenderer {
       return;
     }
 
-    const cordId = `${source}.${sourceHandle || "out"} -> ${target}.${targetHandle || "in"}`;
-    const newCordSource = `\ncord ${source}.${sourceHandle || "out"} -> ${target}.${targetHandle || "in"} {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n`;
+    const srcPort = sourceHandle || "out";
+    const tgtPort = targetHandle || "in";
+    const cordDeclaration = `cord ${source}.${srcPort} -> ${target}.${tgtPort}`;
 
-    if (this.currentSource.includes(`${source}.${sourceHandle || "out"}`) && this.currentSource.includes(`${target}.${targetHandle || "in"}`)) {
-      const updatedSource = this.currentSource + newCordSource;
-      if (this.onSourceMutation) {
-        this.onSourceMutation(updatedSource);
+    // Prevent duplicate cords
+    if (this.currentSource.includes(cordDeclaration)) {
+      if (this.options.onNotification) {
+        this.options.onNotification(`Cord ${source}.${srcPort} → ${target}.${tgtPort} already exists.`);
       }
+      return;
+    }
+
+    const newCordSource = `\ncord ${source}.${srcPort} -> ${target}.${tgtPort} {\n    capacity = 4\n    max_value_bytes = 1024\n    max_queued_bytes = 4096\n    low_watermark = 1\n    high_watermark = 4\n    pressure = block\n}\n`;
+
+    const updatedSource = this.currentSource + newCordSource;
+    if (this.onSourceMutation) {
+      this.onSourceMutation(updatedSource);
     }
   }
 
@@ -89,6 +99,16 @@ export class PatchbayReactFlowRenderer {
     if (node && node.id && node.position) {
       this.savePosition(node.id, node.position);
     }
+  }
+
+  selectNode(nodeId) {
+    this.selectedNodeId = nodeId;
+    this.renderFlow();
+  }
+
+  moveNode(nodeId, position) {
+    this.savePosition(nodeId, position);
+    this.renderFlow();
   }
 
   renderFlow() {
@@ -103,10 +123,23 @@ export class PatchbayReactFlowRenderer {
       id: n.id,
       type: "conduitFaceplate",
       position: n.position,
+      selected: n.id === this.selectedNodeId,
       data: {
         ...n,
+        isSelected: n.id === this.selectedNodeId,
         onConfigChange: (nodeId, key, val) => {
-          // Inline config edit
+          if (this.onSourceMutation && this.currentSource) {
+            // Replace the config value in the .panel source text
+            const escaped = val.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+            const pattern = new RegExp(
+              `(node\\s+${nodeId}\\s*:[^{]*\\{[^}]*?)${key}\\s*=\\s*"[^"]*"`,
+              "s"
+            );
+            const updated = this.currentSource.replace(pattern, `$1${key} = "${escaped}"`);
+            if (updated !== this.currentSource) {
+              this.onSourceMutation(updated);
+            }
+          }
         },
         onOpenNested: (kind) => {
           if (this.onOpenNested) this.onOpenNested(kind);
@@ -114,15 +147,18 @@ export class PatchbayReactFlowRenderer {
       }
     }));
 
-    const flowEdges = viewModel.edges.map((e) => ({
-      id: e.id,
-      source: e.sourceNodeId,
-      sourceHandle: e.sourcePortId,
-      target: e.targetNodeId,
-      targetHandle: e.targetPortId,
-      animated: e.connectionState === "active" || e.pressure === "block",
-      style: { stroke: "#38bdf8", strokeWidth: 3 },
-      label: `${e.capacity} cap`
+    const flowEdges = viewModel.edges.map((edge) => ({
+      id: edge.id,
+      source: edge.sourceNodeId,
+      sourceHandle: edge.sourcePortId,
+      target: edge.targetNodeId,
+      targetHandle: edge.targetPortId,
+      animated: edge.pressure === "block",
+      style: { stroke: "#38bdf8", strokeWidth: 2 },
+      labelStyle: { fill: "#94a3b8", fontSize: 11 },
+      labelBgStyle: { fill: "#0f172a", fillOpacity: 0.9 },
+      labelBgPadding: [6, 3],
+      label: `${edge.capacity} cap`
     }));
 
     const FlowApp = () => {
