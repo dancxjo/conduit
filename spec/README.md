@@ -225,6 +225,11 @@ containment program is tracked by
 - [`057-workload-admission-deadline-v1.md`](057-workload-admission-deadline-v1.md)
   separates finite workload reservations and exact deadline enforcement from
   measurements, benchmarks, and best-effort host observations.
+- [`058-cross-host-provider-conformance-v1.md`](058-cross-host-provider-conformance-v1.md)
+  proves optional providers and namespaced extensions across Linux,
+  browser/WASM, constrained, deterministic, and describe-only hosts while
+  retaining exact satisfaction, conformance, artifact, observation, adapter,
+  and binding identities.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

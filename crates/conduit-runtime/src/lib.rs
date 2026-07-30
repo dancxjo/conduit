@@ -36,6 +36,7 @@ mod config_resolution;
 mod distributed;
 mod evidence_ndjson;
 mod exact_evidence;
+mod host_conformance;
 mod host_resolution;
 mod implementation_binding;
 mod pool;
@@ -71,6 +72,10 @@ pub use evidence_ndjson::{
     encode_event_ndjson, encode_owned_event_ndjson,
 };
 pub use exact_evidence::ExactEvidenceRecord;
+pub use host_conformance::{
+    BoundedProviderRun, ProviderRunError, ProviderRunEvidence, ProviderRunEvidenceKind,
+    ProviderRunPhase,
+};
 pub use host_resolution::{
     CandidateAuthority, CandidateRejection, CandidateRejectionReason, CapabilityPredicate,
     HostResolverPolicy, PlacementCandidate, PlacementRequest, PlanSealingReason, ResolutionFailure,

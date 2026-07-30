@@ -631,6 +631,158 @@ pub struct WorkloadProjection {
     pub maximum_evidence_events: u32,
 }
 
+/// Presentation-only cross-host chain. These categories remain separate so
+/// Patchbay cannot present a descriptor as installed, available, conformant,
+/// or exactly bound merely because it was discovered.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct HostConformanceProjection {
+    pub profile_id: String,
+    pub profile_identity: String,
+    pub host_class: String,
+    pub execution_mode: String,
+    pub mandatory_facts: Vec<IdentityProjection>,
+    pub optional_providers: Vec<OptionalProviderProjection>,
+    pub extensions: Vec<HostExtensionProjection>,
+    pub exact_bindings: Vec<ExactProviderBindingProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct IdentityProjection {
+    pub id: String,
+    pub identity: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OptionalProviderProjection {
+    pub contract: IdentityProjection,
+    pub provider_bundle: IdentityProjection,
+    pub inventory_state: String,
+    pub observation_state: Option<String>,
+    pub host_observation: Option<IdentityProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct HostExtensionProjection {
+    pub kind: String,
+    pub descriptor: IdentityProjection,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ExactProviderBindingProjection {
+    pub required_contract: IdentityProjection,
+    pub offered_facets: Vec<IdentityProjection>,
+    pub satisfaction_proof: String,
+    pub conformance_result: String,
+    pub provider_bundle: IdentityProjection,
+    pub host_observation: IdentityProjection,
+    pub implementation: IdentityProjection,
+    pub artifact: IdentityProjection,
+    pub adapter: IdentityProjection,
+    pub maximum_in_flight: u16,
+    pub maximum_foreign_queue: u16,
+    pub maximum_memory_bytes: u64,
+    pub maximum_cancellation_ticks: u64,
+    pub maximum_evidence_events: u32,
+}
+
+pub struct HostConformanceProjectionInput<'a> {
+    pub profile_pin: conduit_core::PinnedDescriptor<'a>,
+    pub profile: conduit_core::HostConformanceProfile<'a>,
+    pub observations: &'a [conduit_core::ProviderObservation<'a>],
+    pub conformance_results: &'a [conduit_core::ProviderConformanceResult<'a>],
+    pub bindings: &'a [conduit_core::ExactProviderBinding<'a>],
+}
+
+#[must_use]
+pub fn project_host_conformance(
+    input: HostConformanceProjectionInput<'_>,
+) -> HostConformanceProjection {
+    let optional_providers = input
+        .profile
+        .optional_providers
+        .iter()
+        .map(|provider| {
+            let observation = input
+                .observations
+                .iter()
+                .find(|observation| observation.provider_bundle == provider.provider_bundle);
+            OptionalProviderProjection {
+                contract: identity_projection(provider.contract),
+                provider_bundle: identity_projection(provider.provider_bundle),
+                inventory_state: provider.state.as_str().to_owned(),
+                observation_state: observation.map(|value| value.state.as_str().to_owned()),
+                host_observation: observation.map(|value| identity_projection(value.host_report)),
+            }
+        })
+        .collect();
+    let exact_bindings = input
+        .bindings
+        .iter()
+        .map(|binding| {
+            let conformance = input
+                .conformance_results
+                .iter()
+                .find(|result| result.identity == binding.conformance_result);
+            ExactProviderBindingProjection {
+                required_contract: identity_projection(binding.required_contract),
+                offered_facets: conformance
+                    .map(|result| {
+                        result
+                            .offered_facets
+                            .iter()
+                            .copied()
+                            .map(identity_projection)
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                satisfaction_proof: binding.satisfaction_proof.to_string(),
+                conformance_result: binding.conformance_result.to_string(),
+                provider_bundle: identity_projection(binding.provider_bundle),
+                host_observation: identity_projection(binding.host_report),
+                implementation: identity_projection(binding.implementation),
+                artifact: identity_projection(binding.artifact),
+                adapter: identity_projection(binding.adapter),
+                maximum_in_flight: binding.bounds.maximum_in_flight,
+                maximum_foreign_queue: binding.bounds.maximum_foreign_queue,
+                maximum_memory_bytes: binding.bounds.maximum_memory_bytes,
+                maximum_cancellation_ticks: binding.bounds.maximum_cancellation_ticks,
+                maximum_evidence_events: binding.bounds.maximum_evidence_events,
+            }
+        })
+        .collect();
+    HostConformanceProjection {
+        profile_id: input.profile.id.as_str().to_owned(),
+        profile_identity: input.profile_pin.semantic_hash.to_string(),
+        host_class: input.profile.class.as_str().to_owned(),
+        execution_mode: input.profile.execution_mode.as_str().to_owned(),
+        mandatory_facts: input
+            .profile
+            .mandatory_facts
+            .iter()
+            .copied()
+            .map(identity_projection)
+            .collect(),
+        optional_providers,
+        extensions: input
+            .profile
+            .extensions
+            .iter()
+            .map(|extension| HostExtensionProjection {
+                kind: extension.kind.as_str().to_owned(),
+                descriptor: identity_projection(extension.descriptor),
+            })
+            .collect(),
+        exact_bindings,
+    }
+}
+
+fn identity_projection(value: conduit_core::PinnedDescriptor<'_>) -> IdentityProjection {
+    IdentityProjection {
+        id: value.id.as_str().to_owned(),
+        identity: value.semantic_hash.to_string(),
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ValueEnvelopeProjection {
     pub cord: String,

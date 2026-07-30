@@ -551,6 +551,52 @@ fn nested_malformed_and_extension_conflicts_are_bounded() {
 }
 
 #[test]
+fn host_conformance_report_separates_profile_providers_extensions_and_binding_chain() {
+    let bytes = include_bytes!("../../../examples/host-conformance-report-v1.json");
+    let report = inspect_bytes(
+        bytes,
+        RequestedKind::Auto,
+        Some("json"),
+        InspectLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(report.kind, ArtifactKind::HostConformanceReport);
+    assert_eq!(report.counts["mandatory_host_facts"], 1);
+    assert_eq!(report.counts["optional_providers"], 1);
+    assert_eq!(report.counts["extensions"], 2);
+    assert_eq!(report.counts["exact_bindings"], 1);
+    for category in [
+        "mandatory-host-fact",
+        "optional-provider-contract",
+        "extension-type",
+        "extension-adapter",
+        "required-contract",
+        "offered-facet",
+        "satisfaction-proof",
+        "conformance-result",
+        "exact-provider-bundle",
+        "host-observation",
+        "implementation",
+        "artifact",
+        "adapter",
+    ] {
+        assert!(
+            report
+                .references
+                .iter()
+                .any(|reference| reference.category == category),
+            "missing {category}"
+        );
+    }
+    assert!(
+        report
+            .notes
+            .iter()
+            .any(|note| note.contains("performs no discovery"))
+    );
+}
+
+#[test]
 fn typed_plan_validation_reports_budgets_and_staleness_without_loading_artifacts() {
     with_minimal_plan(|plan| {
         let context = PlanValidationContext {

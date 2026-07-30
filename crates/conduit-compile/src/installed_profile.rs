@@ -14,7 +14,7 @@ use conduit_core::{
 use conduit_panel::parse;
 use conduit_runtime::{
     ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation,
-    InstalledHostedProvider, Registry, RuntimeError,
+    InstalledHostedProvider, OwnedNodeSchema, Registry, RuntimeError,
 };
 
 pub struct InstalledProfile {
@@ -98,6 +98,31 @@ impl InstalledProfile {
                 stdout_granted,
             ));
         }
+        let mut catalog = builtin_catalog_document()
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        for contract_id in candidates
+            .iter()
+            .map(|candidate| candidate.implementation.semantic_contract.id.as_str())
+        {
+            let contract = registry
+                .contracts()
+                .find(|contract| contract.id.as_str() == contract_id)
+                .expect("candidate contract came from registry");
+            if catalog
+                .nodes
+                .iter()
+                .any(|node| node.id == contract.id.as_str())
+            {
+                continue;
+            }
+            catalog.nodes.push(PinDocument {
+                id: contract.id.to_string(),
+                schema_version: 1,
+                semantic_hash: OwnedNodeSchema::from_contract(contract)
+                    .semantic_hash()
+                    .to_string(),
+            });
+        }
         let mut input = CompileInput {
             schema: COMPILE_INPUT_SCHEMA.to_owned(),
             schema_version: COMPILE_INPUT_SCHEMA_VERSION,
@@ -110,8 +135,7 @@ impl InstalledProfile {
                 content_hash: String::new(),
                 source: source.to_owned(),
             }],
-            catalog: builtin_catalog_document()
-                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?,
+            catalog,
             pool_bindings: Vec::new(),
             supervision_bindings: Vec::new(),
             hazard_closure: None,

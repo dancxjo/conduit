@@ -1196,6 +1196,130 @@
           "overload, missed deadline, exact reason code, and terminal evidence"
         ]
       }
+    },
+    {
+      "id": "platform.cross-host-provider-conformance",
+      "chapter": 4,
+      "title": "A provider is more than a matching label",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.workload-admission-deadline"
+      ],
+      "objective": "Run one semantic graph while comparing exact provider chains across Linux, browser/WASM, firmware, deterministic, and describe-only profiles.",
+      "prose": "Discovery tells you which contracts and extensions a host understands. Execution additionally needs a fresh available provider, complete satisfaction proof, passing behavioral conformance, exact artifacts, finite bounds, and an explicit adapter when custom type identities differ.",
+      "vocabulary": [
+        "host profile",
+        "optional provider",
+        "satisfaction proof",
+        "conformance result",
+        "explicit adapter"
+      ],
+      "source": "panel 1\n\n# The graph stays semantic. A host profile may bind exact providers for these\n# nodes only after current observation and conformance checks.\nnode message : std/literal {\n    value = \"Custom contracts need exact conformance and explicit adapters.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.out -> output.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run cross-host-provider-conformance.panel",
+      "commands": [
+        "conduct inspect host-conformance-report-v1.json",
+        "conduct --check cross-host-provider-conformance.panel",
+        "conduct --run cross-host-provider-conformance.panel"
+      ],
+      "expected_stdout": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 256,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "provider-binding-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "mandatory_facts",
+          "optional_providers",
+          "extensions",
+          "exact_bindings"
+        ]
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n"
+      },
+      "hints": [
+        "Edit message.value and rerun; the semantic graph does not acquire host authority.",
+        "Step from contract to facets, satisfaction, conformance, bundle, observation, and exact binding.",
+        "Compare the adapter-absent and provider-lost cases with the successful Linux and browser cases."
+      ],
+      "solution": "Keep profile inventory and current observation separate, validate the complete satisfaction and behavioral proofs, then bind exact artifacts and an explicit tested adapter within finite bounds.",
+      "accessibility": {
+        "non_audio": "The graph is paired with ordered text for profile, inventory, observation, satisfaction, conformance, exact binding, execution, cancellation, and terminal evidence.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered provider story has focus.",
+        "color_independent": "State labels, identities, finite values, reason codes, and ordered text duplicate every provider color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "platform": {
+        "schema": "conduit.tour-platform-lesson/v1",
+        "what": "A provider is selectable only through an exact chain from required contract through behavioral conformance, current host observation, implementation, artifact, adapter, and finite execution bounds.",
+        "when": "Use this chain for optional host services and custom namespaced contracts that must run across native, process, browser/WASM, or constrained provider boundaries.",
+        "wrong": "Matching labels, source-language interfaces, stale reports, wrong artifacts, unavailable runtimes, protocol resemblance, hidden queues, and describe-only reports presented as executable fail closed.",
+        "editable": [
+          "message.value:std/text"
+        ],
+        "fixture": "../../conformance/c5/cross-host-provider-conformance-v1.json",
+        "panel": "../../examples/cross-host-provider-conformance.panel",
+        "docs": [
+          "../../spec/058-cross-host-provider-conformance-v1.md"
+        ],
+        "profiles": [
+          {
+            "id": "linux-native",
+            "fixture_case": "linux-native-pass",
+            "admission": "accepted",
+            "guarantee": "exact-binding"
+          },
+          {
+            "id": "browser-wasm",
+            "fixture_case": "browser-wasm-pass",
+            "admission": "accepted",
+            "guarantee": "exact-binding"
+          },
+          {
+            "id": "firmware-unsupported",
+            "fixture_case": "firmware-honest-unsupported",
+            "admission": "rejected",
+            "code": "CND-HCF-005"
+          },
+          {
+            "id": "describe-only",
+            "fixture_case": "describe-only-not-executable",
+            "admission": "rejected",
+            "code": "CND-HCF-003"
+          },
+          {
+            "id": "explicit-adapter",
+            "fixture_case": "explicit-adapter-pass",
+            "admission": "accepted",
+            "guarantee": "exact-adapter"
+          },
+          {
+            "id": "provider-lost",
+            "fixture_case": "provider-lost",
+            "admission": "rejected",
+            "terminal": "provider-lost",
+            "code": "CND-HCF-007"
+          }
+        ],
+        "authoritative_story": [
+          "mandatory host facts remain separate from optional provider inventory and namespaced extensions",
+          "fresh provider observation distinguishes linked, uninitialized, available, lost, and stale",
+          "offered facets and complete satisfaction proof reject label-only impersonation",
+          "behavioral conformance pins fixtures, adapter boundary, implementation, artifact, profile, and finite bounds",
+          "exact binding and ordered terminal evidence preserve every identity without granting authority during discovery"
+        ]
+      }
     }
   ]
 }

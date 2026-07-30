@@ -1,7 +1,7 @@
 use conduit_patchbay::{
-    EditOperation, EditRequest, NodePosition, PATCHBAY_PROTOCOL_V1, PlanSnapshot,
-    PoolProjectionInput, ProjectionLog, ProjectionUpdate, RunSnapshot, RunState, SubjectPath,
-    Workspace, project_pool, project_supervision,
+    EditOperation, EditRequest, HostConformanceProjectionInput, NodePosition, PATCHBAY_PROTOCOL_V1,
+    PlanSnapshot, PoolProjectionInput, ProjectionLog, ProjectionUpdate, RunSnapshot, RunState,
+    SubjectPath, Workspace, project_host_conformance, project_pool, project_supervision,
 };
 
 const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
@@ -15,6 +15,117 @@ fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest
         expected_presentation_revision: workspace.presentation().revision,
         operations,
     }
+}
+
+#[test]
+fn host_projection_keeps_contract_inventory_observation_and_exact_binding_separate() {
+    use conduit_core::{
+        ExactProviderBinding, HostClass, HostConformanceProfile, HostExecutionMode, HostExtension,
+        HostExtensionKind, Id, PinnedDescriptor, ProviderBoundary, ProviderBounds,
+        ProviderConformanceOutcome, ProviderConformanceResult, ProviderInventory,
+        ProviderInventoryState, ProviderObservation, ProviderObservationState, SemanticHash,
+    };
+    let hash = |byte| SemanticHash::from_bytes([byte; 32]);
+    let pin = |id, byte| PinnedDescriptor {
+        id: Id(id),
+        schema_version: 1,
+        semantic_hash: hash(byte),
+    };
+    let profile_pin = pin("acme/profile/linux", 1);
+    let contract = pin("acme/contract/weather", 2);
+    let bundle = pin("acme/provider/weather", 3);
+    let adapter = pin("acme/adapter/celsius-to-kelvin", 4);
+    let mandatory = [pin("conduit/host/minimal-execution-v1", 5)];
+    let providers = [ProviderInventory {
+        contract,
+        provider_bundle: bundle,
+        state: ProviderInventoryState::Linked,
+    }];
+    let extensions = [HostExtension {
+        kind: HostExtensionKind::Adapter,
+        descriptor: adapter,
+    }];
+    let profile = HostConformanceProfile {
+        schema_version: 1,
+        identity: profile_pin.semantic_hash,
+        id: profile_pin.id,
+        class: HostClass::LinuxHosted,
+        execution_mode: HostExecutionMode::Executable,
+        mandatory_facts: &mandatory,
+        optional_providers: &providers,
+        extensions: &extensions,
+    };
+    let observation = ProviderObservation {
+        id: Id("acme/observation/weather"),
+        identity: hash(6),
+        profile: profile_pin,
+        provider_bundle: bundle,
+        host_report: pin("acme/host-report/linux", 7),
+        state: ProviderObservationState::Available,
+        time_basis: Id("clock/test"),
+        observed_at_tick: 10,
+        valid_until_tick: 20,
+    };
+    let facets = [pin("acme/facet/weather", 8)];
+    let implementation = pin("acme/implementation/weather", 9);
+    let artifact = pin("acme/artifact/weather", 10);
+    let bounds = ProviderBounds {
+        maximum_in_flight: 2,
+        maximum_foreign_queue: 0,
+        maximum_memory_bytes: 4096,
+        maximum_cancellation_ticks: 5,
+        maximum_evidence_events: 8,
+    };
+    let conformance = ProviderConformanceResult {
+        schema_version: 1,
+        identity: hash(11),
+        required_contract: contract,
+        implementation,
+        artifact,
+        adapter,
+        profile: profile_pin,
+        fixture_suite: pin("acme/fixtures/weather", 12),
+        offered_facets: &facets,
+        satisfaction_proof: hash(13),
+        boundary: ProviderBoundary::Native,
+        outcome: ProviderConformanceOutcome::Passed,
+        bounds,
+        time_basis: Id("clock/test"),
+        observed_at_tick: 10,
+        valid_until_tick: 20,
+    };
+    let binding = ExactProviderBinding {
+        profile: profile_pin,
+        required_contract: contract,
+        provider_bundle: bundle,
+        implementation,
+        artifact,
+        adapter,
+        host_report: observation.host_report,
+        observation: observation.identity,
+        satisfaction_proof: conformance.satisfaction_proof,
+        conformance_result: conformance.identity,
+        bounds,
+    };
+    let projection = project_host_conformance(HostConformanceProjectionInput {
+        profile_pin,
+        profile,
+        observations: &[observation],
+        conformance_results: &[conformance],
+        bindings: &[binding],
+    });
+    assert_eq!(projection.mandatory_facts.len(), 1);
+    assert_eq!(projection.optional_providers.len(), 1);
+    assert_eq!(projection.extensions.len(), 1);
+    assert_eq!(projection.exact_bindings.len(), 1);
+    assert_eq!(
+        projection.optional_providers[0]
+            .observation_state
+            .as_deref(),
+        Some("available")
+    );
+    assert_eq!(projection.exact_bindings[0].offered_facets.len(), 1);
+    assert_eq!(projection.exact_bindings[0].maximum_foreign_queue, 0);
 }
 
 #[test]

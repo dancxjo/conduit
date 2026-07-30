@@ -1,5 +1,13 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 52 — 2026-07-30
+
+- Added the shared Linux, browser/WASM, constrained-firmware,
+  deterministic-test, and describe-only host conformance matrix.
+- Added exact custom provider/type/adapter chains, multilingual boundary facts,
+  provider-loss and freshness outcomes, finite foreign-queue/cancellation
+  bounds, and read-only inspect/Patchbay projections.
+
 ## Manifest revision 51 — 2026-07-30
 
 - Added plan-v19 workload declarations with explicit finite-or-unsupported
