@@ -1389,7 +1389,13 @@ impl HostedTransitionGeneration for InMemoryHttpTransitionGeneration<'_> {
         Err(Id("http/state-unsupported"))
     }
 
-    fn accept_replayed_value(&mut self, _: u64, _: &[u8], _: bool) -> Result<(), Id<'static>> {
+    fn accept_replayed_value(
+        &mut self,
+        _: u64,
+        _: &[u8],
+        _: Option<conduit_runtime::RuntimeValueEnvelope>,
+        _: bool,
+    ) -> Result<(), Id<'static>> {
         Err(Id("http/replay-unsupported"))
     }
 

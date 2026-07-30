@@ -23,7 +23,7 @@ use conduit_core::{
 };
 use sha2::{Digest, Sha256};
 
-use crate::ResolvedPlacement;
+use crate::{ResolvedPlacement, RuntimeValueEnvelope};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HostedGenerationBinding<'a> {
@@ -68,6 +68,7 @@ pub trait HostedTransitionGeneration {
         &mut self,
         cursor: u64,
         value: &[u8],
+        envelope: Option<RuntimeValueEnvelope>,
         redelivered: bool,
     ) -> Result<(), Id<'static>>;
 
@@ -120,6 +121,7 @@ pub struct RetainedReplayItem {
     pub bytes: usize,
     pub redelivered: bool,
     pub gap: bool,
+    pub value_envelope: Option<RuntimeValueEnvelope>,
 }
 
 /// Explicit #79 retained-event source. The transaction never owns hidden
@@ -701,7 +703,12 @@ where
                     .ok_or(HostedTransitionError::ReplayBoundsViolated)?;
             }
             self.candidate
-                .accept_replayed_value(item.cursor, &item_buffer[..item.bytes], item.redelivered)
+                .accept_replayed_value(
+                    item.cursor,
+                    &item_buffer[..item.bytes],
+                    item.value_envelope,
+                    item.redelivered,
+                )
                 .map_err(HostedTransitionError::Generation)?;
             items = items
                 .checked_add(1)
