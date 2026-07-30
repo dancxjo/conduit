@@ -213,6 +213,94 @@ fn node_contract_outcome(id: &str) -> &'static str {
                 evidence_events: 1,
             },
         ),
+        "record-without-state" => (
+            StandardNodeKind::Record,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-record" => (
+            StandardNodeKind::Record,
+            StandardNodeLimits {
+                retained_values: 100,
+                retained_bytes: 65536,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 100,
+            },
+        ),
+        "replay-without-state" => (
+            StandardNodeKind::Replay,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-replay" => (
+            StandardNodeKind::Replay,
+            StandardNodeLimits {
+                retained_values: 100,
+                retained_bytes: 65536,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 100,
+            },
+        ),
+        "probe-without-state" => (
+            StandardNodeKind::Probe,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-probe" => (
+            StandardNodeKind::Probe,
+            StandardNodeLimits {
+                retained_values: 16,
+                retained_bytes: 1024,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 16,
+            },
+        ),
+        "clock-without-timer" => (
+            StandardNodeKind::InjectedClock,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 0,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
+        "finite-clock" => (
+            StandardNodeKind::InjectedClock,
+            StandardNodeLimits {
+                retained_values: 0,
+                retained_bytes: 0,
+                pending_operations: 0,
+                timers: 1,
+                work_per_step: 1,
+                evidence_events: 1,
+            },
+        ),
         _ => panic!("unknown node fixture {id}"),
     };
 
@@ -244,7 +332,7 @@ fn every_standard_node_contract_fixture_executes_independently() {
         .iter()
         .filter(|case| case["contract"] == "node")
         .collect::<Vec<_>>();
-    assert_eq!(cases.len(), 8);
+    assert_eq!(cases.len(), 16);
     for case in cases {
         let id = case["id"].as_str().unwrap();
         assert_eq!(node_contract_outcome(id), case["expected"], "{id}");

@@ -57,6 +57,16 @@ pub enum StandardNodeKind {
     OperatorAction,
     FaultSource,
     Probe,
+    Log,
+    Meter,
+    Trace,
+    Assert,
+    ControlGate,
+    Record,
+    Replay,
+    SequenceSource,
+    InjectedClock,
+    InjectedEntropy,
 }
 
 /// Finite resources that are part of a standard node's semantic contract.
@@ -241,6 +251,8 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::Timeout
             | StandardNodeKind::Sample
             | StandardNodeKind::RateLimit
+            | StandardNodeKind::InjectedClock
+            | StandardNodeKind::ControlGate
     );
     if needs_timer && limits.timers == 0 {
         return Err(StandardContractError::IncompatibleLimits);
@@ -258,6 +270,14 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::Select
             | StandardNodeKind::Batch
             | StandardNodeKind::RateLimit
+            | StandardNodeKind::Record
+            | StandardNodeKind::Replay
+            | StandardNodeKind::Probe
+            | StandardNodeKind::Log
+            | StandardNodeKind::Meter
+            | StandardNodeKind::Trace
+            | StandardNodeKind::SequenceSource
+            | StandardNodeKind::InjectedEntropy
     );
     if needs_state && (limits.retained_values == 0 || limits.retained_bytes == 0) {
         return Err(StandardContractError::IncompatibleLimits);

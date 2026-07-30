@@ -418,6 +418,42 @@ const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[INPUT_PRIMARY, INPUT_FALLBACK],
     outputs: &[OUTPUT_TEXT],
 };
+const PROBE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/probe"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const LOG_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/log"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const ASSERT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/assert"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const RECORD_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/record"),
+    config: EMPTY_CONFIG,
+    inputs: &[INPUT_TEXT],
+    outputs: &[OUTPUT_TEXT],
+};
+const REPLAY_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/replay"),
+    config: EMPTY_CONFIG,
+    inputs: &[],
+    outputs: &[OUTPUT_TEXT],
+};
+const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit/fault-source"),
+    config: EMPTY_CONFIG,
+    inputs: &[],
+    outputs: &[OUTPUT_TEXT],
+};
 
 /// Typed runtime value.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -609,6 +645,54 @@ impl Default for Registry {
             RegisteredNode {
                 contract: &FALLBACK_CONTRACT,
                 factory: || Box::new(FallbackHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            PROBE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &PROBE_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            LOG_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &LOG_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            ASSERT_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &ASSERT_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            RECORD_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &RECORD_CONTRACT,
+                factory: || Box::new(PassThroughHandler),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            REPLAY_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &REPLAY_CONTRACT,
+                factory: || Box::new(Literal),
+                validate_config: validate_empty_config,
+            },
+        );
+        nodes.insert(
+            FAULT_SOURCE_CONTRACT.id.as_str(),
+            RegisteredNode {
+                contract: &FAULT_SOURCE_CONTRACT,
+                factory: || Box::new(Literal),
                 validate_config: validate_empty_config,
             },
         );
