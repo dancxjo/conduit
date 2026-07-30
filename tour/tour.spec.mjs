@@ -48,10 +48,10 @@ test("highlights panel source while retaining the native editor surface", async 
     highlight.locator(".panel-token-string").filter({ hasText: "Hello from the Tour." }),
   ).toHaveCount(1);
 
-  await source.fill("panel 1\\n# note\\nnode value : fixture/source\\n");
+  await source.fill("panel 1\n# note\nnode value : fixture/source\n");
   await expect(highlight.locator(".panel-token-comment")).toHaveText("# note");
   await expect(highlight).toContainText("fixture/source");
-  await expect(source).toHaveValue("panel 1\\n# note\\nnode value : fixture/source\\n");
+  await expect(source).toHaveValue("panel 1\n# note\nnode value : fixture/source\n");
   await expect(highlight).toHaveAttribute("aria-hidden", "true");
 });
 
