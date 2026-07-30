@@ -1,12 +1,12 @@
 # A finite proof of typed resolution and execution.
 panel 1
 
-node greeting : conduit.std/literal {
+node greeting : std/literal {
     value = "Hello from Conduit.\n"
 }
 
-node shout : conduit.std/uppercase
-node output : conduit.std/stdout
+node shout : std/uppercase
+node output : std/stdout
 
 cord greeting.out -> shout.in {
     capacity = 8

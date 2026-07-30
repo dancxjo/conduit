@@ -3,6 +3,7 @@
   "required_fixture_classes": ["positive", "negative", "pressure", "cancellation", "terminal"],
   "contracts": {
     "conduit.std/literal": ["STD-001", "STD-002"],
+    "conduit.std/format": ["STD-001", "STD-002"],
     "conduit.std/empty": ["STD-001", "STD-003"],
     "conduit.std/never": ["STD-001", "STD-003"],
     "conduit.std/finite-sequence": ["STD-001", "STD-002"],

@@ -1,8 +1,8 @@
 panel 1
 
-node greeting : conduit.std/literal {
+node greeting : std/literal {
     value = "This endpoint does not exist."
 }
-node output : conduit.std/stdout
+node output : std/stdout
 
 cord greeting.missing -> output.in

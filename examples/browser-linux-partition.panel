@@ -2,11 +2,11 @@
 # browser AudioWorklet profile and speech on an exact Linux remote endpoint.
 panel 1
 
-node media : conduit.std/literal {
+node media : std/literal {
     value = "browser media frame\n"
 }
-node preprocess : conduit.std/uppercase
-node speech : conduit.std/stdout
+node preprocess : std/uppercase
+node speech : std/stdout
 
 cord media.out -> preprocess.in {
     capacity = 2

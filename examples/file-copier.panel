@@ -1,11 +1,11 @@
 # File copier panel with bounded buffer and cancellation/pressure controls.
 panel 1
 
-node reader : conduit.std/file-read {
+node reader : std/file-read {
     path = "source.txt"
 }
 
-node writer : conduit.std/file-write {
+node writer : std/file-write {
     path = "destination.txt"
 }
 

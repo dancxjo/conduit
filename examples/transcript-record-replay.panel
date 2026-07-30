@@ -1,11 +1,11 @@
 # Chat transcript recording and replay pipeline.
 panel 1
 
-node input_stream : conduit.std/stdin
-node recorder : conduit.std/record {
+node input_stream : std/stdin
+node recorder : std/record {
     session = "transcript-001"
 }
-node store : conduit.std/blob-store {
+node store : std/blob-store {
     bucket = "transcripts"
 }
 

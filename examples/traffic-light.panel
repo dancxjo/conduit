@@ -1,11 +1,11 @@
 # Traffic light state machine sequencer panel.
 panel 1
 
-node clock_ticks : conduit.std/counter
-node state_selector : conduit.std/cell {
+node clock_ticks : std/counter
+node state_selector : std/cell {
     initial = "RED"
 }
-node light_controller : conduit.std/gpio-pin {
+node light_controller : std/gpio-pin {
     pin = 16
     mode = "write"
 }

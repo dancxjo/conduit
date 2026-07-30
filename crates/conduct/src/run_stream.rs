@@ -6,7 +6,7 @@
 use std::fmt;
 use std::io::{self, Write};
 
-use conduit_runtime::{ExecutionSummary, OwnedExecutionEvent};
+use conduit_runtime::{ExactEvidenceRecord, ExecutionSummary, OwnedExecutionEvent};
 use serde::Serialize;
 
 pub const RUN_STREAM_SCHEMA: &str = "conduit.run/v2";
@@ -83,6 +83,15 @@ struct RunExecutionEventRecord<'a> {
     event: &'a OwnedExecutionEvent,
 }
 
+#[derive(Serialize)]
+struct RunExactEvidenceRecord<'a> {
+    schema: &'static str,
+    schema_version: u16,
+    sequence: u64,
+    record: &'static str,
+    evidence: &'a ExactEvidenceRecord,
+}
+
 /// One globally ordered run-stream encoder.
 pub struct RunNdjsonState<W> {
     pub inner: W,
@@ -147,6 +156,21 @@ impl<W: Write> RunNdjsonState<W> {
             sequence: self.sequence,
             record: "execution_event",
             event,
+        };
+        self.write_record(&record, RUN_STRUCTURED_RECORD_MAX_BYTES)?;
+        self.sequence = next_sequence;
+        Ok(())
+    }
+
+    /// Direct bounded path for exact executor evidence.
+    pub fn write_exact_evidence(&mut self, evidence: &ExactEvidenceRecord) -> io::Result<()> {
+        let next_sequence = checked_next_sequence(self.sequence)?;
+        let record = RunExactEvidenceRecord {
+            schema: RUN_STREAM_SCHEMA,
+            schema_version: RUN_STREAM_SCHEMA_VERSION,
+            sequence: self.sequence,
+            record: "exact_execution_evidence",
+            evidence,
         };
         self.write_record(&record, RUN_STRUCTURED_RECORD_MAX_BYTES)?;
         self.sequence = next_sequence;
@@ -377,5 +401,49 @@ mod tests {
         assert_eq!(record["event"], expected_event);
         assert!(record.get("channel").is_none());
         assert!(record.get("payload_hex").is_none());
+    }
+
+    #[test]
+    fn exact_executor_evidence_uses_the_direct_bounded_outer_path() {
+        let evidence = ExactEvidenceRecord {
+            schema: "conduit.exact-execution-evidence/v1",
+            schema_version: 1,
+            plan_identity:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            plan_epoch: 1,
+            run_id: "fixture/run".to_owned(),
+            sequence: 0,
+            tick: 1,
+            subject_kind: "cord",
+            subject_id: "root/source.out->root/sink.in".to_owned(),
+            node_id: None,
+            cord_id: Some("root/source.out->root/sink.in".to_owned()),
+            from_port: Some("root/source.out".to_owned()),
+            to_port: Some("root/sink.in".to_owned()),
+            implementation_id: None,
+            implementation_identity: None,
+            artifact_id: None,
+            host_id: None,
+            host_observation_id: None,
+            pressure: Some("block"),
+            event_kind: "value-accepted",
+            event_detail: None,
+            terminal_cause: None,
+            occupancy_items: 1,
+            occupancy_bytes: 8,
+            scheduling_latency_ticks: 0,
+            processing_latency_ticks: 1,
+        };
+        let mut bytes = Vec::new();
+        let mut stream = RunNdjsonState::new(&mut bytes);
+        stream.write_exact_evidence(&evidence).unwrap();
+
+        let record: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(record["record"], "exact_execution_evidence");
+        assert_eq!(
+            record["evidence"]["schema"],
+            "conduit.exact-execution-evidence/v1"
+        );
+        assert_eq!(record["evidence"]["pressure"], "block");
     }
 }

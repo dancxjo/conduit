@@ -1,13 +1,13 @@
 # Network health monitor panel with circuit breaker and backoff.
 panel 1
 
-node probe_ping : conduit.std/udp-socket {
+node probe_ping : std/udp-socket {
     port = 53
 }
 
-node health_check : conduit.std/health-gate
-node breaker : conduit.std/circuit-breaker
-node backoff_retry : conduit.std/backoff
+node health_check : std/health-gate
+node breaker : std/circuit-breaker
+node backoff_retry : std/backoff
 
 cord probe_ping.out -> health_check.in {
     capacity = 8

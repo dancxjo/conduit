@@ -1,13 +1,13 @@
 # Directory watcher and file processing pipeline.
 panel 1
 
-node watcher : conduit.std/file-read {
+node watcher : std/file-read {
     path = "watch_directory"
 }
 
 node filter : conduit/passthrough
-node processor : conduit.std/uppercase
-node logger : conduit.std/log
+node processor : std/uppercase
+node logger : std/log
 
 cord watcher.out -> filter.in {
     capacity = 16

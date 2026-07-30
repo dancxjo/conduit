@@ -1,7 +1,7 @@
 panel 2
 
 node text_pipeline implements conduit/text-processor {
-  node processor : conduit.std/uppercase
+  node processor : std/uppercase
   export input processor.in as in
   export output processor.out as out
 }
