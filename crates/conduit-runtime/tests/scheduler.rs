@@ -1542,6 +1542,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             node: nodes[0].instance,
             resource,
             host_observation: nodes[0].host_observation,
+            lease: None,
         }];
         let authorities = [PlanAuthority {
             node: nodes[0].instance,
@@ -1554,6 +1555,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             administrative_subject: None,
             containment: None,
             policy_budgets: &[],
+            commit_profile: None,
         }];
         let members = [nodes[0].instance, nodes[1].instance];
         let exports = [

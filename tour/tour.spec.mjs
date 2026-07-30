@@ -66,10 +66,26 @@ test("preserves a recoverable draft across reset", async ({ page }) => {
 
 test("highlights panel source while retaining the native editor surface", async ({ page }) => {
   await page.goto("/tour/public/index.html");
+  const editor = page.locator(".panel-source-editor");
   const source = page.locator("#source");
   const highlight = page.locator(".panel-source-highlight");
+  const expectLayersAligned = async () => {
+    const [sourceBox, highlightBox] = await Promise.all([
+      source.boundingBox(),
+      highlight.boundingBox(),
+    ]);
+    expect(sourceBox).not.toBeNull();
+    expect(highlightBox).not.toBeNull();
+    expect(sourceBox).toEqual(highlightBox);
+  };
 
   await expect(source).toHaveAttribute("data-highlighting", "panel");
+  await expectLayersAligned();
+  await editor.evaluate((element) => {
+    element.style.height = "517px";
+    element.style.width = "73%";
+  });
+  await expectLayersAligned();
   await expect(highlight.locator(".panel-token-keyword").first()).toHaveText("panel");
   await expect(highlight.locator(".panel-token-type").first()).toHaveText("std/literal");
   await expect(
@@ -126,7 +142,7 @@ test("highlights panel source while retaining the native editor surface", async 
 
 test("covers Chapters 0-3 and exposes production topology projections", async ({ page }) => {
   await page.goto("/tour/public/index.html");
-  await expect(page.locator("#lessons > li")).toHaveCount(17);
+  await expect(page.locator("#lessons > li")).toHaveCount(18);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await page.locator("#expanded-view").click();
@@ -203,12 +219,30 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
   const highlighted = (
     await page.locator(".panel-source-selection").allTextContents()
   ).join("");
+  await expect(page.locator(".panel-source-selection")).toHaveCount(1);
+  await expect(
+    page.locator(".panel-source-selection .panel-token-keyword").filter({
+      hasText: /^cord$/,
+    }),
+  ).toHaveCount(1);
   expect(highlighted).toContain("cord greeting.out -> output.in");
   expect(highlighted).toContain("pressure = block");
   const nativeSelection = await page.locator("#source").evaluate((element) =>
     element.value.slice(element.selectionStart, element.selectionEnd)
   );
   expect(nativeSelection).toBe(highlighted);
+  const selectionStyle = await page.locator(".panel-source-selection").evaluate(
+    (element) => ({
+      backgroundColor: getComputedStyle(element).backgroundColor,
+      outlineStyle: getComputedStyle(element).outlineStyle,
+      outlineWidth: getComputedStyle(element).outlineWidth,
+    }),
+  );
+  expect(selectionStyle).toEqual({
+    backgroundColor: "rgba(56, 189, 248, 0.08)",
+    outlineStyle: "solid",
+    outlineWidth: "1px",
+  });
 
   await page.locator('[data-id="greeting"]').click();
   await expect(page.locator("#selected-node-label")).toContainText(
@@ -479,4 +513,38 @@ test("value envelope platform lesson links checked admission to an exact run", a
   await expect(page.locator("#timeline-table")).toContainText("block");
   await expect(page.locator("#timeline-table")).toContainText("succeeded");
   await expect(page.locator("#plan")).toContainText("bound-in-this-plan");
+});
+
+test("resource lease lesson keeps unknown commit and cleanup visible", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=platform.resource-lease-effect-commit",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+  const source = page.locator("#source");
+
+  await expect(story).toBeVisible();
+  await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
+  await expect(page.locator("#scenario option")).toHaveCount(4);
+  await expect(story).toContainText("lost-ack-is-commit-unknown");
+  await expect(story.locator("#library-docs a")).toHaveCount(3);
+
+  await story.getByRole("button", { name: "wrong-holder" }).click();
+  await expect(result).toContainText("rejected before execution with CND-LSE-003");
+  await expect(source).toHaveValue(/node emphasize : text\/uppercase/);
+
+  await page.locator("#scenario").selectOption("lost-ack-is-commit-unknown");
+  await expect(result).toContainText("admitted by the checked contract");
+  await source.fill(
+    (await source.inputValue()).replace(
+      "Leased effect boundaries stay explicit.",
+      "Edited lease lesson.",
+    ),
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText("EDITED LEASE LESSON.", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+  await expect(page.locator("#timeline-table")).toContainText("succeeded");
 });

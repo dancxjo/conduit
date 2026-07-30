@@ -18,34 +18,36 @@ use conduit_core::{
     EXECUTION_PLAN_SCHEMA_VERSION_V3, EXECUTION_PLAN_SCHEMA_VERSION_V11,
     EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
     EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
-    EXECUTION_PLAN_SCHEMA_VERSION_V16, EffectClassBinding, EffectClassTraits, EffectFlowBinding,
-    EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
-    FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy,
-    FlowCapacity, FlowPolicy, FlowWatermarks, GenesisReason, GrantStatus, HandleDisposition,
-    HazardClosureContext, HazardClosureLimits, HazardClosurePolicy, HazardClosureReason,
-    HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding, HazardousHostProfile,
-    HostCapability, HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest,
-    InhibitLatchState, InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES,
-    ManifestArtifactRef, ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim,
-    ObservedGrant, OperatingEnvelopeLimit, OwnershipModel, PassportStatus,
-    PassportStatusObservation, PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanClockConversion, PlanCompositeMapping, PlanExportBinding,
-    PlanFeedbackBoundary, PlanHazardClosure, PlanHostObservation, PlanInstancePool,
-    PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanSupervision, PlanSupervisionTarget, PlanValidationContext,
-    PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits,
-    PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy,
-    PoolCleanupPolicy, PoolContract, PoolGenerationReservation, PoolReservationProfile,
-    PoolSupervisionPolicy, Pressure, ProviderAvailability, ProviderRequirement, ProviderRiskTraits,
-    ProviderSelection, ReferenceDistributionProfile, ReplacementSupport, ReportCapability,
-    ReportMembership, ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RollingLimit,
+    EXECUTION_PLAN_SCHEMA_VERSION_V16, EXECUTION_PLAN_SCHEMA_VERSION_V17, EffectClassBinding,
+    EffectClassTraits, EffectCommitProfile, EffectDiscontinuity, EffectFlowBinding,
+    EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile,
+    ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy,
+    FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention,
+    GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits,
+    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode,
+    HazardousHostBinding, HazardousHostProfile, HostCapability, HostDistributionKind, Id,
+    ImplementationConfinement, ImplementationManifest, InhibitLatchState, InhibitObservation,
+    InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint,
+    MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit,
+    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion, PlanCompositeMapping,
+    PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure, PlanHostObservation,
+    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
+    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
+    PlanValidationContext, PolicyBudgetAnchor, PolicyBudgetAvailability, PolicyBudgetLease,
+    PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
+    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
+    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
+    ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
+    ReplacementSupport, ReportCapability, ReportMembership, ReportResource, ReportTopology,
+    ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode, RollingLimit,
     SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
     SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
     ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
-    TypeContractRef, ValueEnvelopePolicy, ValueRepresentation, analyze_effect_closure,
-    assess_provider_requirement, resolve_authority, validate_administrative_proof,
-    validate_reference_distribution,
+    TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation,
+    analyze_effect_closure, assess_provider_requirement, resolve_authority,
+    validate_administrative_proof, validate_reference_distribution,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -72,6 +74,7 @@ pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
 pub const SUPERVISION_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v7";
 pub const POOL_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v8";
 pub const VALUE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v9";
+pub const EFFECT_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v10";
 pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -1953,6 +1956,34 @@ pub struct PlanResourceDocument {
     pub kind: String,
     pub resource: String,
     pub host_observation: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lease: Option<ResourceLeaseDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceLeaseDocument {
+    pub schema_version: u32,
+    pub id: String,
+    pub resource_binding: String,
+    pub holder: String,
+    pub run: String,
+    pub epoch: u64,
+    pub scope: String,
+    pub sharing: String,
+    pub maximum_holders: u16,
+    pub reservation: BudgetDocument,
+    pub time_basis: String,
+    pub issued_at_tick: u64,
+    pub expires_at_tick: u64,
+    pub revocation_grace_ticks: u64,
+    pub cleanup_ticks: u64,
+    pub maximum_operations: u32,
+    pub maximum_evidence_events: u32,
+    pub cleanup_escalation: PinDocument,
+    pub foreign_retention: String,
+    pub foreign_maximum_bytes: u64,
+    pub foreign_release_ticks: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -2114,6 +2145,24 @@ pub struct PlanAuthorityDocument {
     pub containment: Option<AdministrativeProofDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policy_budgets: Vec<PolicyBudgetBindingDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commit_profile: Option<EffectCommitProfileDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EffectCommitProfileDocument {
+    pub schema_version: u32,
+    pub id: String,
+    pub operation: String,
+    pub resource_lease: String,
+    pub commit_boundary: PinDocument,
+    pub idempotency: String,
+    pub unknown_commit: String,
+    pub discontinuity: String,
+    pub cleanup: PinDocument,
+    pub maximum_attempts: u16,
+    pub evidence_events_per_attempt: u16,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -2249,6 +2298,8 @@ impl ExactPlanDocument {
             || (self.schema == POOL_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V16)
             || (self.schema == VALUE_PLAN_DOCUMENT_SCHEMA
+                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V17)
+            || (self.schema == EFFECT_PLAN_DOCUMENT_SCHEMA
                 && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
@@ -2289,6 +2340,7 @@ impl ExactPlanDocument {
                         id: id(&resource.resource)?,
                     },
                     host_observation: id(&resource.host_observation)?,
+                    lease: resource.lease.as_ref().map(resource_lease).transpose()?,
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
@@ -2489,6 +2541,11 @@ impl ExactPlanDocument {
                         _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
                     },
                     policy_budgets: arena.alloc_slice_copy(&policy_budgets),
+                    commit_profile: authority
+                        .commit_profile
+                        .as_ref()
+                        .map(effect_commit_profile)
+                        .transpose()?,
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
@@ -3010,6 +3067,7 @@ fn compile_topology(
                     node: instance(&node.instance)?,
                     resource: resource.resource,
                     host_observation: candidate.report.id,
+                    lease: None,
                 });
                 id(resource_id)
             })
@@ -3040,6 +3098,7 @@ fn compile_topology(
                     node: instance_path,
                     resource: authority.capability.resource,
                     host_observation: candidate.report.id,
+                    lease: None,
                 });
                 required_resources.push(authority.capability.resource.id);
             }
@@ -3055,6 +3114,7 @@ fn compile_topology(
                 administrative_subject: authority.administrative_subject,
                 containment: authority.containment,
                 policy_budgets: authority.policy_budgets,
+                commit_profile: None,
             });
         }
         nodes.push(ResolvedPlanNode {
@@ -5141,6 +5201,80 @@ fn report_identity(document: &HostReportDocument) -> Result<String, CompileError
         .map_err(|_| CompileError::new(CompileReason::InvalidInput))
 }
 
+fn resource_lease_document(lease: ResourceLeaseContract<'_>) -> ResourceLeaseDocument {
+    let (sharing, maximum_holders) = match lease.sharing {
+        ResourceSharingMode::Exclusive => ("exclusive", 1),
+        ResourceSharingMode::SharedRead => ("shared-read", u16::MAX),
+        ResourceSharingMode::SharedBounded { maximum_holders } => {
+            ("shared-bounded", maximum_holders)
+        }
+    };
+    let (foreign_retention, foreign_maximum_bytes, foreign_release_ticks) =
+        match lease.foreign_retention {
+            ForeignRetention::None => ("none", 0, 0),
+            ForeignRetention::Bounded {
+                maximum_bytes,
+                release_ticks,
+            } => ("bounded", maximum_bytes, release_ticks),
+            ForeignRetention::ObservedOnly => ("observed-only", 0, 0),
+            ForeignRetention::Unsupported => ("unsupported", 0, 0),
+        };
+    ResourceLeaseDocument {
+        schema_version: lease.schema_version,
+        id: lease.id.to_string(),
+        resource_binding: lease.resource_binding.to_string(),
+        holder: lease.holder.as_str().to_owned(),
+        run: lease.run.to_string(),
+        epoch: lease.epoch,
+        scope: lease.scope.to_string(),
+        sharing: sharing.to_owned(),
+        maximum_holders,
+        reservation: lease.reservation.into(),
+        time_basis: lease.time_basis.to_string(),
+        issued_at_tick: lease.issued_at_tick,
+        expires_at_tick: lease.expires_at_tick,
+        revocation_grace_ticks: lease.revocation_grace_ticks,
+        cleanup_ticks: lease.cleanup_ticks,
+        maximum_operations: lease.maximum_operations,
+        maximum_evidence_events: lease.maximum_evidence_events,
+        cleanup_escalation: pin_document(lease.cleanup_escalation),
+        foreign_retention: foreign_retention.to_owned(),
+        foreign_maximum_bytes,
+        foreign_release_ticks,
+    }
+}
+
+fn effect_commit_profile_document(profile: EffectCommitProfile<'_>) -> EffectCommitProfileDocument {
+    EffectCommitProfileDocument {
+        schema_version: profile.schema_version,
+        id: profile.id.to_string(),
+        operation: profile.operation.to_string(),
+        resource_lease: profile.resource_lease.to_string(),
+        commit_boundary: pin_document(profile.commit_boundary),
+        idempotency: match profile.idempotency {
+            EffectIdempotency::None => "none",
+            EffectIdempotency::SameKeySameEffect => "same-key-same-effect",
+            EffectIdempotency::ReconcileBeforeRetry => "reconcile-before-retry",
+        }
+        .to_owned(),
+        unknown_commit: match profile.unknown_commit {
+            UnknownCommitPolicy::Fail => "fail",
+            UnknownCommitPolicy::Reconcile => "reconcile",
+            UnknownCommitPolicy::RetrySameIdempotencyKey => "retry-same-idempotency-key",
+        }
+        .to_owned(),
+        discontinuity: match profile.discontinuity {
+            EffectDiscontinuity::FailedBeforeCommit => "failed-before-commit",
+            EffectDiscontinuity::CommitUnknown => "commit-unknown",
+            EffectDiscontinuity::ReconcileRequired => "reconcile-required",
+        }
+        .to_owned(),
+        cleanup: pin_document(profile.cleanup),
+        maximum_attempts: profile.maximum_attempts,
+        evidence_events_per_attempt: profile.evidence_events_per_attempt,
+    }
+}
+
 fn plan_document(
     plan: &ExecutionPlan<'_>,
     topology: &ExactTopologyView,
@@ -5176,6 +5310,7 @@ fn plan_document(
             kind: resource.resource.kind.to_string(),
             resource: resource.resource.id.to_string(),
             host_observation: resource.host_observation.to_string(),
+            lease: resource.lease.map(resource_lease_document),
         })
         .collect::<Vec<_>>();
     resources.sort_by(|left, right| left.id.cmp(&right.id));
@@ -5286,6 +5421,7 @@ fn plan_document(
                 .copied()
                 .map(policy_budget_binding_document)
                 .collect(),
+            commit_profile: authority.commit_profile.map(effect_commit_profile_document),
         })
         .collect();
     let hazard_closure = plan.hazard_closure.map(hazard_closure_document);
@@ -5501,7 +5637,9 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 17 {
+        schema: if plan.schema_version >= 18 {
+            EFFECT_PLAN_DOCUMENT_SCHEMA.to_owned()
+        } else if plan.schema_version >= 17 {
             VALUE_PLAN_DOCUMENT_SCHEMA.to_owned()
         } else if plan.schema_version >= 16 {
             POOL_PLAN_DOCUMENT_SCHEMA.to_owned()
@@ -5553,6 +5691,92 @@ fn port_document(document: &PlanPortDocument) -> Result<ResolvedPlanPort<'_>, Co
             schema_version: document.value_type_schema_version,
             semantic_hash: parse_hash(&document.value_type_semantic_hash)?,
         },
+    })
+}
+
+fn resource_lease(
+    document: &ResourceLeaseDocument,
+) -> Result<ResourceLeaseContract<'_>, CompileError> {
+    let sharing = match document.sharing.as_str() {
+        "exclusive" if document.maximum_holders == 1 => ResourceSharingMode::Exclusive,
+        "shared-read" if document.maximum_holders == u16::MAX => ResourceSharingMode::SharedRead,
+        "shared-bounded" if document.maximum_holders > 0 => ResourceSharingMode::SharedBounded {
+            maximum_holders: document.maximum_holders,
+        },
+        _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+    };
+    let foreign_retention = match document.foreign_retention.as_str() {
+        "none" if document.foreign_maximum_bytes == 0 && document.foreign_release_ticks == 0 => {
+            ForeignRetention::None
+        }
+        "bounded" => ForeignRetention::Bounded {
+            maximum_bytes: document.foreign_maximum_bytes,
+            release_ticks: document.foreign_release_ticks,
+        },
+        "observed-only"
+            if document.foreign_maximum_bytes == 0 && document.foreign_release_ticks == 0 =>
+        {
+            ForeignRetention::ObservedOnly
+        }
+        "unsupported"
+            if document.foreign_maximum_bytes == 0 && document.foreign_release_ticks == 0 =>
+        {
+            ForeignRetention::Unsupported
+        }
+        _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+    };
+    Ok(ResourceLeaseContract {
+        schema_version: document.schema_version,
+        id: id(&document.id)?,
+        resource_binding: id(&document.resource_binding)?,
+        holder: instance(&document.holder)?,
+        run: id(&document.run)?,
+        epoch: document.epoch,
+        scope: id(&document.scope)?,
+        sharing,
+        reservation: document.reservation.into(),
+        time_basis: id(&document.time_basis)?,
+        issued_at_tick: document.issued_at_tick,
+        expires_at_tick: document.expires_at_tick,
+        revocation_grace_ticks: document.revocation_grace_ticks,
+        cleanup_ticks: document.cleanup_ticks,
+        maximum_operations: document.maximum_operations,
+        maximum_evidence_events: document.maximum_evidence_events,
+        cleanup_escalation: pin(&document.cleanup_escalation)?,
+        foreign_retention,
+    })
+}
+
+fn effect_commit_profile(
+    document: &EffectCommitProfileDocument,
+) -> Result<EffectCommitProfile<'_>, CompileError> {
+    Ok(EffectCommitProfile {
+        schema_version: document.schema_version,
+        id: id(&document.id)?,
+        operation: id(&document.operation)?,
+        resource_lease: id(&document.resource_lease)?,
+        commit_boundary: pin(&document.commit_boundary)?,
+        idempotency: match document.idempotency.as_str() {
+            "none" => EffectIdempotency::None,
+            "same-key-same-effect" => EffectIdempotency::SameKeySameEffect,
+            "reconcile-before-retry" => EffectIdempotency::ReconcileBeforeRetry,
+            _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+        },
+        unknown_commit: match document.unknown_commit.as_str() {
+            "fail" => UnknownCommitPolicy::Fail,
+            "reconcile" => UnknownCommitPolicy::Reconcile,
+            "retry-same-idempotency-key" => UnknownCommitPolicy::RetrySameIdempotencyKey,
+            _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+        },
+        discontinuity: match document.discontinuity.as_str() {
+            "failed-before-commit" => EffectDiscontinuity::FailedBeforeCommit,
+            "commit-unknown" => EffectDiscontinuity::CommitUnknown,
+            "reconcile-required" => EffectDiscontinuity::ReconcileRequired,
+            _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+        },
+        cleanup: pin(&document.cleanup)?,
+        maximum_attempts: document.maximum_attempts,
+        evidence_events_per_attempt: document.evidence_events_per_attempt,
     })
 }
 
@@ -7246,7 +7470,10 @@ mod tests {
     use super::*;
     use std::collections::BTreeMap;
 
-    use conduit_core::{ARTIFACT_MANIFEST_SCHEMA_VERSION, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION};
+    use conduit_core::{
+        ARTIFACT_MANIFEST_SCHEMA_VERSION, EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+        IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, RESOURCE_LEASE_SCHEMA_VERSION,
+    };
     use conduit_panel::parse;
 
     fn hash(byte: u8) -> String {
@@ -7757,7 +7984,7 @@ mod tests {
         let cord = document.cords.first_mut().unwrap();
         cord.queue_memory_bytes += u64::from(cord.capacity_items) * 16;
         document.schema = VALUE_PLAN_DOCUMENT_SCHEMA.to_owned();
-        document.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        document.schema_version = EXECUTION_PLAN_SCHEMA_VERSION_V17;
         document.value_envelopes = vec![ValueEnvelopePolicyDocument {
             cord: cord.id.clone(),
             representation: pin_doc("fixture/value-bytes", 211),
@@ -8287,6 +8514,101 @@ mod tests {
                     .contains(&"fixture/device-a".to_owned())
         }));
         plan.validate().unwrap();
+
+        let mut effect_plan = plan.clone();
+        effect_plan.schema = EFFECT_PLAN_DOCUMENT_SCHEMA.to_owned();
+        effect_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
+        let authority_node = effect_plan.authorities[0].node.clone();
+        let resource_id = effect_plan.authorities[0].binding.resource_id.clone();
+        let resource_index = effect_plan
+            .resources
+            .iter()
+            .position(|resource| {
+                resource.node == authority_node && resource.resource == resource_id
+            })
+            .unwrap();
+        let resource_binding = effect_plan.resources[resource_index].id.clone();
+        let lease_id = "lease/fixture-read".to_owned();
+        effect_plan.resources[resource_index].lease = Some(ResourceLeaseDocument {
+            schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+            id: lease_id.clone(),
+            resource_binding,
+            holder: authority_node,
+            run: "fixture/run".to_owned(),
+            epoch: 1,
+            scope: "fixture/read-scope".to_owned(),
+            sharing: "exclusive".to_owned(),
+            maximum_holders: 1,
+            reservation: BudgetDocument {
+                memory_bytes: 1,
+                ..BudgetDocument::default()
+            },
+            time_basis: effect_plan.time_basis.clone(),
+            issued_at_tick: effect_plan.created_at_tick,
+            expires_at_tick: effect_plan.authorities[0].grant.expires_at_tick,
+            revocation_grace_ticks: 1,
+            cleanup_ticks: 2,
+            maximum_operations: 1,
+            maximum_evidence_events: 4,
+            cleanup_escalation: PinDocument {
+                id: "fixture/force-close".to_owned(),
+                schema_version: 1,
+                semantic_hash: hash(102),
+            },
+            foreign_retention: "unsupported".to_owned(),
+            foreign_maximum_bytes: 0,
+            foreign_release_ticks: 0,
+        });
+        effect_plan.authorities[0].commit_profile = Some(EffectCommitProfileDocument {
+            schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: "effect/fixture-read".to_owned(),
+            operation: effect_plan.authorities[0].effect.action.clone(),
+            resource_lease: lease_id,
+            commit_boundary: PinDocument {
+                id: "fixture/read-commit".to_owned(),
+                schema_version: 1,
+                semantic_hash: hash(103),
+            },
+            idempotency: "reconcile-before-retry".to_owned(),
+            unknown_commit: "reconcile".to_owned(),
+            discontinuity: "reconcile-required".to_owned(),
+            cleanup: PinDocument {
+                id: "fixture/read-cleanup".to_owned(),
+                schema_version: 1,
+                semantic_hash: hash(104),
+            },
+            maximum_attempts: 2,
+            evidence_events_per_attempt: 2,
+        });
+        let computed_identity = |document: &ExactPlanDocument| {
+            let arena = Bump::new();
+            let exact = document.as_plan(&arena).unwrap();
+            let mut scratch =
+                vec![SemanticHash::from_bytes([0; 32]); exact.validation_scratch_count().unwrap()];
+            exact.semantic_hash(&mut scratch).unwrap().to_string()
+        };
+        effect_plan.identity = computed_identity(&effect_plan);
+        effect_plan.validate().unwrap();
+        let encoded = serde_json::to_vec(&effect_plan).unwrap();
+        let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, effect_plan);
+        assert_eq!(decoded.schema, EFFECT_PLAN_DOCUMENT_SCHEMA);
+
+        let mut missing_commit = effect_plan.clone();
+        missing_commit.authorities[0].commit_profile = None;
+        missing_commit.identity = computed_identity(&missing_commit);
+        assert_eq!(missing_commit.validate().unwrap_err().code(), "CND-CMP-008");
+
+        let mut identity_mutation = effect_plan;
+        identity_mutation.authorities[0]
+            .commit_profile
+            .as_mut()
+            .unwrap()
+            .maximum_attempts = 1;
+        assert_eq!(
+            identity_mutation.validate().unwrap_err().code(),
+            "CND-CMP-008"
+        );
 
         let mut authority_over_budget = input.clone();
         authority_over_budget.maximum_authority_bindings = 0;

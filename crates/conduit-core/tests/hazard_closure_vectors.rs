@@ -123,6 +123,7 @@ fn authority(
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
+        commit_profile: None,
     }
 }
 

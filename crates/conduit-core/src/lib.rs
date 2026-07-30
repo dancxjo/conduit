@@ -34,6 +34,7 @@ mod pool;
 mod port;
 mod realm;
 mod resonance;
+mod resource_lease;
 mod runtime_evidence;
 mod satisfaction;
 mod scheduler;
@@ -115,15 +116,15 @@ pub use execution_plan::{
     EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
     EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
     EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
-    EXECUTION_PLAN_SCHEMA_VERSION_V16, ExecutionPlan, PinnedDescriptor, PlanArtifact,
-    PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
-    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
-    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPoolRuntime,
-    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision, PlanSupervisionTarget,
-    PlanValidationContext, PlanValidationError, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind, minimum_supervision_allocation,
-    validate_execution_plan, validate_supervision_allocation,
+    EXECUTION_PLAN_SCHEMA_VERSION_V16, EXECUTION_PLAN_SCHEMA_VERSION_V17, ExecutionPlan,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanCollection, PlanCompositeMapping,
+    PlanDiagnosticCode, PlanEventStream, PlanExportBinding, PlanFanOut, PlanHazardClosure,
+    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
+    PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision,
+    PlanSupervisionTarget, PlanValidationContext, PlanValidationError, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind,
+    minimum_supervision_allocation, validate_execution_plan, validate_supervision_allocation,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,
@@ -264,6 +265,14 @@ pub use resonance::{
     SubscriberCoupling, SubscriptionContract, extend_execution_event, validate_envelope,
     validate_projection, validate_projection_snapshot, validate_stream_contract,
     validate_subscription,
+};
+pub use resource_lease::{
+    CancellationDisposition, EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EffectAttemptPhase,
+    EffectAttemptState, EffectCommitProfile, EffectDiscontinuity, EffectIdempotency,
+    ForeignRetention, HostOperationAuthorityContext, LeasedHostOperationError,
+    RESOURCE_LEASE_SCHEMA_VERSION, ResourceLeaseContract, ResourceLeasePhase, ResourceLeaseReason,
+    ResourceLeaseState, ResourceLeaseUseContext, ResourceSharingMode, UnknownCommitPolicy,
+    validate_effect_commit_profile, validate_leased_host_operation, validate_resource_lease,
 };
 pub use runtime_evidence::{
     RUNTIME_EVIDENCE_POLICY_VERSION, RuntimeEvidenceBudget, RuntimeEvidenceMode,

@@ -973,6 +973,114 @@
           "cancellation, exact error, and terminal evidence"
         ]
       }
+    },
+    {
+      "id": "platform.resource-lease-effect-commit",
+      "chapter": 4,
+      "title": "Finite leases and honest effect commits",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.value-envelope-clock-feedback"
+      ],
+      "objective": "Run a representative panel while inspecting the exact lease, commit, retry, and cleanup facts that must exist before a host effect mutates anything.",
+      "prose": "Authority permits an effect, but it does not reserve a resource or make retries exactly once. A schema-18 plan pins the holder, run, epoch, capacity, expiry, commit boundary, lost-ack policy, and finite cleanup disposition.",
+      "vocabulary": [
+        "resource lease",
+        "commit boundary",
+        "lost acknowledgement",
+        "idempotency key",
+        "cleanup disposition"
+      ],
+      "source": "panel 1\n\nnode message : std/literal {\n    value = \"Leased effect boundaries stay explicit.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : io/stdout\n\ncord message.out -> emphasize.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.out -> output.in {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run resource-lease-cleanup.panel",
+      "commands": [
+        "conduct --check resource-lease-cleanup.panel",
+        "conduct --run resource-lease-cleanup.panel"
+      ],
+      "expected_stdout": "LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 256,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "plan-admission-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "resource_leases",
+          "effect_commit_profiles"
+        ]
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n"
+      },
+      "hints": [
+        "The editable panel remains ordinary source; lease and commit facts belong to its resolved exact plan.",
+        "A host loss after commit but before acknowledgement is commit-unknown, never success.",
+        "Cancellation remains pending until cleanup or reconciliation reaches a finite disposition."
+      ],
+      "solution": "Pin a finite run-scoped lease, recheck authority and lease at every use, reserve evidence before mutation, and use the domain's exact commit and cleanup profile.",
+      "accessibility": {
+        "non_audio": "Lease identity, bounds, fault point, commit state, cleanup disposition, and terminal result are presented as ordered text.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered execution story has focus.",
+        "color_independent": "Labels and ordered text duplicate every admission, commit, unknown, cleanup, and terminal color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "platform": {
+        "schema": "conduit.tour-platform-lesson/v1",
+        "what": "A schema-18 exact plan pins one finite resource lease beside its resource binding and one domain-owned commit profile beside each effect authority.",
+        "when": "Use these contracts whenever an operation holds scarce capacity, mutates an external domain, can lose its acknowledgement, or needs cancellation cleanup.",
+        "wrong": "Wrong holder, run, epoch, resource, time, evidence, or release generation fails closed. Unknown commit cannot be reported as success or upgraded to global exactly once.",
+        "editable": [
+          "message.value:std/text"
+        ],
+        "fixture": "../../conformance/c5/resource-lease-effect-commit-v1.json",
+        "panel": "../../examples/resource-lease-cleanup.panel",
+        "docs": [
+          "../../spec/056-resource-lease-effect-commit-v1.md"
+        ],
+        "profiles": [
+          {
+            "id": "acknowledged-domain-commit",
+            "fixture_case": "acknowledged-domain-commit",
+            "admission": "accepted",
+            "terminal": "acknowledged"
+          },
+          {
+            "id": "lost-ack-is-commit-unknown",
+            "fixture_case": "lost-ack-is-commit-unknown",
+            "admission": "accepted",
+            "terminal": "commit-unknown"
+          },
+          {
+            "id": "wrong-holder",
+            "fixture_case": "wrong-holder",
+            "admission": "rejected",
+            "code": "CND-LSE-003"
+          },
+          {
+            "id": "cleanup-timeout-forces-escalation",
+            "fixture_case": "cleanup-timeout-forces-escalation",
+            "admission": "rejected",
+            "code": "CND-LSE-016"
+          }
+        ],
+        "authoritative_story": [
+          "plan lease holder, run, epoch, scope, reservation, and expiry",
+          "fresh authority plus lease admission before provider mutation",
+          "domain commit boundary and acknowledgement disposition",
+          "same-key retry or reconciliation after unknown commit",
+          "finite cancellation cleanup, release sequence, and escalation"
+        ]
+      }
     }
   ]
 }

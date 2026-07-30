@@ -637,6 +637,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
+        commit_profile: None,
     };
     let authority_b = PlanAuthority {
         node: sink,
@@ -662,6 +663,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
+        commit_profile: None,
     };
     let authorities = [authority_a, authority_b];
     let source_effects = [authority_a.effect_hash];
@@ -674,12 +676,14 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
             node: source,
             resource: resource_a,
             host_observation: observations[0].id,
+            lease: None,
         },
         PlanResourceBinding {
             id: sink_resources[0],
             node: sink,
             resource: resource_b,
             host_observation: observations[1].id,
+            lease: None,
         },
     ];
     let artifacts = [

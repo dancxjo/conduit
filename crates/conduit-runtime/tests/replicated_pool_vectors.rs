@@ -1,5 +1,5 @@
 use conduit_core::{
-    EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V15, Id, InstancePath,
+    EXECUTION_PLAN_SCHEMA_VERSION_V15, EXECUTION_PLAN_SCHEMA_VERSION_V17, Id, InstancePath,
     PinnedDescriptor, PlanInstancePool, PlanPoolRuntime, PlanResourceBudget,
     PoolAdmissionDisposition, PoolAdmissionFacts, PoolAdmissionPolicy, PoolCleanupPolicy,
     PoolContract, PoolController, PoolError, PoolFailureDisposition, PoolGeneration,
@@ -708,7 +708,7 @@ fn execute(id: &str) -> Value {
         }
         "schema-17-roundtrip" => {
             let pool = plan_pool(true);
-            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION,"runtime":pool.runtime.is_some()})
+            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION_V17,"runtime":pool.runtime.is_some()})
         }
         _ => panic!("unimplemented replicated-pool fixture `{id}`"),
     }

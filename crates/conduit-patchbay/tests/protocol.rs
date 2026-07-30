@@ -48,6 +48,8 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
         value_envelopes: Vec::new(),
         clock_conversions: Vec::new(),
         feedback_boundaries: Vec::new(),
+        resource_leases: Vec::new(),
+        effect_commit_profiles: Vec::new(),
     };
     let run = RunSnapshot {
         run_id: "run/1".to_owned(),
@@ -180,10 +182,15 @@ fn fixture_names_each_required_protocol_boundary() {
 #[test]
 fn exact_plan_projection_preserves_authoritative_binding_state() {
     use conduit_core::{
-        AuthorityTime, ClockRounding, ExecutionPlan, FeedbackBoundaryKind, FeedbackInitialization,
-        FeedbackReplayGapPolicy, FeedbackTerminalPolicy, Id, InstancePath, PinnedDescriptor,
-        PlanClockConversion, PlanFeedbackBoundary, PlanHostObservation, PlanResourceBudget,
-        ResolvedPlanNode, SemanticHash, Sensitivity, ValueEnvelopePolicy,
+        AuthorityGrant, AuthorityScope, AuthorityTime, ClockRounding, DelegationPolicy,
+        EffectCommitProfile, EffectDiscontinuity, EffectIdempotency, EffectRequirement,
+        ExecutionPlan, FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy,
+        FeedbackTerminalPolicy, ForeignRetention, HostCapability, Id, InstancePath,
+        PinnedDescriptor, PlanAuthority, PlanClockConversion, PlanFeedbackBoundary,
+        PlanHostObservation, PlanResourceBinding, PlanResourceBudget, ResolvedAuthorityBinding,
+        ResolvedPlanNode, ResourceLeaseContract, ResourceRef, ResourceSelector,
+        ResourceSharingMode, SemanticHash, Sensitivity, StopPolicy, UnknownCommitPolicy,
+        ValueEnvelopePolicy,
     };
 
     const fn hash(byte: u8) -> SemanticHash {
@@ -279,8 +286,127 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         },
         terminal: FeedbackTerminalPolicy::DropRetained,
     }];
+    let resource = ResourceRef {
+        kind: Id("fixture/file"),
+        id: Id("fixture/output"),
+    };
+    let lease = ResourceLeaseContract {
+        schema_version: 1,
+        id: Id("lease/output"),
+        resource_binding: Id("resource/output"),
+        holder: nodes[0].instance,
+        run: Id("run/patchbay"),
+        epoch: 2,
+        scope: Id("scope/write"),
+        sharing: ResourceSharingMode::Exclusive,
+        reservation: PlanResourceBudget {
+            memory_bytes: 16,
+            ..PlanResourceBudget::ZERO
+        },
+        time_basis: Id("clock/test"),
+        issued_at_tick: 1,
+        expires_at_tick: 20,
+        revocation_grace_ticks: 2,
+        cleanup_ticks: 4,
+        maximum_operations: 1,
+        maximum_evidence_events: 4,
+        cleanup_escalation: PinnedDescriptor {
+            id: Id("cleanup/force-close"),
+            schema_version: 1,
+            semantic_hash: hash(12),
+        },
+        foreign_retention: ForeignRetention::Unsupported,
+    };
+    let resources = [PlanResourceBinding {
+        id: Id("resource/output"),
+        node: nodes[0].instance,
+        resource,
+        host_observation: hosts[0].id,
+        lease: Some(lease),
+    }];
+    let effect = EffectRequirement {
+        id: Id("effect/write"),
+        administrative_class: None,
+        policy_budget_class: None,
+        action: Id("file/write"),
+        resource: ResourceSelector::Exact(resource),
+        requester: nodes[0].instance,
+        audience: Id("run/patchbay"),
+        constraints: &[],
+        check_at_use: true,
+    };
+    let capability = HostCapability {
+        id: Id("capability/write"),
+        action: effect.action,
+        resource,
+        host: nodes[0].host,
+        time_basis: Id("clock/test"),
+        observed_at_tick: 1,
+        valid_until_tick: 20,
+    };
+    let grant = AuthorityGrant {
+        id: Id("grant/write"),
+        action: effect.action,
+        resource,
+        scope: AuthorityScope {
+            root: nodes[0].instance,
+            descendants: false,
+        },
+        audience: effect.audience,
+        constraints: &[],
+        time_basis: Id("clock/test"),
+        not_before_tick: 1,
+        expires_at_tick: 20,
+        issued_for_host: nodes[0].host,
+        delegation: DelegationPolicy::None,
+        audit_id: Id("audit/write"),
+        terminal_policy: StopPolicy::Abort,
+    };
+    let authorities = [PlanAuthority {
+        node: nodes[0].instance,
+        effect_hash: hash(13),
+        grant_hash: hash(14),
+        effect,
+        capability,
+        grant,
+        binding: ResolvedAuthorityBinding {
+            effect_id: effect.id,
+            capability_id: capability.id,
+            grant_id: grant.id,
+            resource,
+            host: nodes[0].host,
+            audit_id: grant.audit_id,
+            time_basis: Id("clock/test"),
+            validated_at_tick: 10,
+            check_at_use: true,
+        },
+        administrative_subject: None,
+        containment: None,
+        policy_budgets: &[],
+        commit_profile: Some(EffectCommitProfile {
+            schema_version: 1,
+            id: Id("commit/write"),
+            operation: effect.action,
+            resource_lease: lease.id,
+            commit_boundary: PinnedDescriptor {
+                id: Id("commit/fsync"),
+                schema_version: 1,
+                semantic_hash: hash(15),
+            },
+            idempotency: EffectIdempotency::ReconcileBeforeRetry,
+            unknown_commit: UnknownCommitPolicy::Reconcile,
+            discontinuity: EffectDiscontinuity::ReconcileRequired,
+            cleanup: PinnedDescriptor {
+                id: Id("cleanup/unlink"),
+                schema_version: 1,
+                semantic_hash: hash(16),
+            },
+            maximum_attempts: 2,
+            evidence_events_per_attempt: 2,
+        }),
+    }];
     let plan = ExecutionPlan {
-        schema_version: 17,
+        schema_version: 18,
         identity: hash(1),
         source_semantic_hash: hash(5),
         resolver: PinnedDescriptor {
@@ -295,7 +421,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         },
         budget: PlanResourceBudget::ZERO,
         host_observations: &hosts,
-        resources: &[],
+        resources: &resources,
         artifacts: &[],
         nodes: &nodes,
         cords: &[],
@@ -309,7 +435,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         runtime_evidence: None,
         jobs: &[],
         satisfaction_proofs: &[],
-        authorities: &[],
+        authorities: &authorities,
         hazard_closure: None,
         composites: &[],
         port_groups: &[],
@@ -335,6 +461,16 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
     assert_eq!(projection.clock_conversions[0].maximum_uncertainty_ticks, 1);
     assert_eq!(projection.feedback_boundaries[0].kind, "state");
     assert_eq!(projection.feedback_boundaries[0].maximum_retained_bytes, 64);
+    assert_eq!(projection.resource_leases[0].run, "run/patchbay");
+    assert_eq!(projection.resource_leases[0].cleanup_ticks, 4);
+    assert_eq!(
+        projection.effect_commit_profiles[0].commit_boundary_id,
+        "commit/fsync"
+    );
+    assert_eq!(
+        projection.effect_commit_profiles[0].unknown_commit,
+        "reconcile"
+    );
 }
 
 #[test]

@@ -218,6 +218,10 @@ containment program is tracked by
   defines plan-authorized bounded value metadata, exact clock conversion with
   uncertainty, and finite delay/state feedback admission without introducing
   a second event model or scheduler.
+- [`056-resource-lease-effect-commit-v1.md`](056-resource-lease-effect-commit-v1.md)
+  defines finite run-scoped resource leases, domain-owned commit boundaries,
+  honest retry semantics, bounded cleanup, and deterministic plus real Linux
+  effect witnesses.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
