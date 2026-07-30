@@ -1,4 +1,4 @@
-panel 1
+panel 3
 
 node chunks : std/literal {
     value = "alpha\r\nbeta\n\ngamma"

@@ -1,5 +1,5 @@
 # File copier panel with bounded buffer and cancellation/pressure controls.
-panel 1
+panel 3
 
 node reader : std/file-read {
     path = "source.txt"

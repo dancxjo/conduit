@@ -27,6 +27,17 @@ const REQUIRED_TOUR_LESSONS: [&str; 20] = [
     "platform.cross-host-provider-conformance",
 ];
 
+const CURRENT_PANEL_VERSION: u16 = 3;
+
+fn assert_current_panel_source(id: &str, source: &str) {
+    let panel = conduit_panel::parse(source)
+        .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
+    assert_eq!(
+        panel.version, CURRENT_PANEL_VERSION,
+        "{id} must teach the current Panel grammar"
+    );
+}
+
 #[test]
 fn tour_lessons_declare_verified_browser_runnability() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
@@ -135,8 +146,8 @@ fn tour_lessons_declare_verified_browser_runnability() {
                 "{id} names an existing prerequisite"
             );
         }
-        let panel = conduit_panel::parse(source)
-            .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
+        assert_current_panel_source(id, source);
+        let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
         let registry = Registry::compatibility_demo();
 
         if let Some(expected_stdout) = lesson["expected_stdout"].as_str() {
@@ -148,11 +159,21 @@ fn tour_lessons_declare_verified_browser_runnability() {
                 assert_eq!(runnability["state"], "illustrative/unavailable");
                 assert_eq!(runnability["proof"], "canonical-run-rejection");
                 assert_eq!(lesson["validation"]["kind"], "pedagogical-stdout");
+                let expected = runnability["code"]
+                    .as_str()
+                    .filter(|code| code.starts_with("CND-"))
+                    .expect("illustrative lesson names the exact production rejection");
+                let raw = run_panel(source.to_owned());
+                let result: Value = serde_json::from_str(&raw)
+                    .unwrap_or_else(|error| panic!("{id}: {error}: {raw}"));
+                assert_eq!(result["ok"], false, "{id} must remain non-runnable");
+                let diagnostic = result["diagnostic"]
+                    .as_str()
+                    .or_else(|| result["stderr"].as_str())
+                    .unwrap_or_default();
                 assert!(
-                    runnability["code"]
-                        .as_str()
-                        .is_some_and(|code| code.starts_with("CND-")),
-                    "{id} names the exact production rejection"
+                    diagnostic.contains(expected),
+                    "{id} must retain its intended rejection {expected}: {result}"
                 );
             }
         } else {
@@ -264,8 +285,7 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
     for scenario in scenarios {
         let id = scenario["id"].as_str().unwrap();
         let source = scenario["source"].as_str().unwrap();
-        conduit_panel::parse(source)
-            .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
+        assert_current_panel_source(id, source);
         let raw = if scenario["execution"] == "cancel-before-first-step" {
             cancel_panel(source.to_owned())
         } else {
@@ -598,8 +618,8 @@ fn tour_reference_panels_are_canonical_and_fail_closed() {
             .expect("source path points to repository fixture");
         let source = std::fs::read_to_string(root.join(relative))
             .unwrap_or_else(|error| panic!("{id} canonical source is readable: {error}"));
-        let panel = conduit_panel::parse(&source)
-            .unwrap_or_else(|error| panic!("{id} canonical source parses: {error}"));
+        assert_current_panel_source(id, &source);
+        let panel = conduit_panel::parse(&source).expect("current reference source already parsed");
         let failure = Registry::hosted_primitives()
             .resolve(&panel)
             .expect_err("reference panel must fail closed without its provider");
@@ -610,5 +630,36 @@ fn tour_reference_panels_are_canonical_and_fail_closed() {
                 .expect("structured rejection code"),
             "{id} declaration matches authoritative resolver"
         );
+    }
+}
+
+#[test]
+fn tour_linked_panel_examples_use_the_current_grammar() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+
+    for lesson in manifest["lessons"].as_array().expect("lessons are listed") {
+        let mut linked_panels = lesson["library"]["docs"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>();
+        if let Some(panel) = lesson["platform"]["panel"].as_str() {
+            linked_panels.push(panel);
+        }
+        for link in linked_panels {
+            let path = link.split('#').next().unwrap();
+            if !path.ends_with(".panel") {
+                continue;
+            }
+            let relative = path
+                .strip_prefix("../../")
+                .expect("Tour panel link is repository-relative");
+            let source = std::fs::read_to_string(root.join(relative))
+                .unwrap_or_else(|error| panic!("{relative} is readable: {error}"));
+            assert_current_panel_source(relative, &source);
+        }
     }
 }

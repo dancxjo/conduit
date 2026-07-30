@@ -1,4 +1,4 @@
-panel 1
+panel 3
 
 node message : std/literal {
     value = "Deadline guarantees stay separate from measurements.\n"

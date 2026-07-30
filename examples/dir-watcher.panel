@@ -1,5 +1,5 @@
 # Directory watcher and file processing pipeline.
-panel 1
+panel 3
 
 node watcher : std/file-read {
     path = "watch_directory"
