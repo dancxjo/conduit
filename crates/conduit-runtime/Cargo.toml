@@ -18,6 +18,7 @@ sha2 = "0.10.9"
 conduit-embedded = { path = "../conduit-embedded" }
 conduit-http = { path = "../conduit-http" }
 conduit-package = { path = "../conduit-package" }
+conduit-patchbay = { path = "../conduit-patchbay" }
 conduit-rp2040-hil = { path = "../../firmware/conduit-rp2040-hil" }
 
 [lints]

@@ -460,6 +460,7 @@ dependencies = [
  "conduit-http",
  "conduit-package",
  "conduit-panel",
+ "conduit-patchbay",
  "conduit-rp2040-hil",
  "serde",
  "serde_json",

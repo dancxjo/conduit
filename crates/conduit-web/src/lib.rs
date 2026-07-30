@@ -201,10 +201,9 @@ mod tests {
                 .as_str()
                 .is_some_and(|value| value.contains("composite transform : example/upper"))
         );
-        assert!(
-            explained["expanded"]
-                .as_str()
-                .is_some_and(|value| value.contains("transform.worker : conduit/uppercase"))
-        );
+        assert!(explained["expanded"].as_str().is_some_and(|value| {
+            value.contains("transform.worker : conduit/uppercase")
+                || value.contains("transform.worker : conduit.std/uppercase")
+        }));
     }
 }

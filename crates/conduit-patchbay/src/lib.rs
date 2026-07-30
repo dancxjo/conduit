@@ -363,6 +363,39 @@ pub struct PlanSnapshot {
     pub bindings: Vec<PlanBindingProjection>,
 }
 
+impl PlanSnapshot {
+    #[must_use]
+    pub fn project_from_panel<F>(
+        identity: String,
+        source_semantic_hash: String,
+        panel: &conduit_panel::Panel,
+        lookup: F,
+    ) -> Self
+    where
+        F: Fn(&str) -> NodeAvailabilityProjection,
+    {
+        let mut bindings = Vec::new();
+        for node in &panel.nodes {
+            let avail = lookup(node.kind.as_str());
+            bindings.push(PlanBindingProjection {
+                instance: node.id.clone(),
+                contract_id: avail.contract_id,
+                implementation_id: avail
+                    .implementation_id
+                    .unwrap_or_else(|| "unbound".to_owned()),
+                host_id: avail.host_id.unwrap_or_else(|| "unassigned".to_owned()),
+                availability_state: "bound-in-this-plan".to_owned(),
+                reason_code: "CND-AVL-004".to_owned(),
+            });
+        }
+        Self {
+            identity,
+            source_semantic_hash,
+            bindings,
+        }
+    }
+}
+
 /// A run is pinned to its resolved plan even if source changes later.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RunSnapshot {
@@ -571,10 +604,100 @@ impl Workspace {
 
     #[must_use]
     pub fn semantic(&self) -> SemanticSnapshot {
+        self.semantic_with_lookup(Self::default_availability_lookup)
+    }
+
+    #[must_use]
+    pub fn semantic_with_lookup<F>(&self, lookup: F) -> SemanticSnapshot
+    where
+        F: Fn(&str) -> NodeAvailabilityProjection,
+    {
+        let mut availabilities = Vec::new();
+        let document = conduit_panel::parse_document(&self.source.source);
+        if let Ok(panel) = document.panel() {
+            for node in &panel.nodes {
+                availabilities.push(lookup(node.kind.as_str()));
+            }
+        }
         SemanticSnapshot {
             source_semantic_hash: self.source.semantic_hash.clone(),
             descriptor_identity: self.descriptor_identity.clone(),
-            availabilities: Vec::new(),
+            availabilities,
+        }
+    }
+
+    pub fn default_availability_lookup(kind: &str) -> NodeAvailabilityProjection {
+        let canonical_id = if let Some(stripped) = kind.strip_prefix("conduit/") {
+            format!("conduit.std/{stripped}")
+        } else {
+            kind.to_owned()
+        };
+
+        match canonical_id.as_str() {
+            "conduit.std/literal"
+            | "conduit.std/stdin"
+            | "conduit.std/uppercase"
+            | "conduit.std/stdout"
+            | "conduit.std/stderr"
+            | "conduit.std/supervisor"
+            | "conduit.std/pass-through"
+            | "conduit.std/tee"
+            | "conduit.std/merge"
+            | "conduit.std/fallback" => NodeAvailabilityProjection {
+                contract_id: canonical_id.clone(),
+                availability_state: "resolvable-on-this-host".to_owned(),
+                reason_code: "CND-AVL-003".to_owned(),
+                implementation_id: Some(format!("{canonical_id}.native")),
+                host_id: Some("hosted-local".to_owned()),
+                rejection_reasons: Vec::new(),
+            },
+            "conduit.std/delay"
+            | "conduit.std/debounce"
+            | "conduit.std/throttle"
+            | "conduit.std/take"
+            | "conduit.std/skip"
+            | "conduit.std/filter"
+            | "conduit.std/probe"
+            | "conduit.std/log"
+            | "conduit.std/assert"
+            | "conduit.std/record"
+            | "conduit.std/replay"
+            | "conduit.std/fault-source"
+            | "conduit.std/file-read"
+            | "conduit.std/file-write"
+            | "conduit.std/blob-store"
+            | "conduit.std/kv-store"
+            | "conduit.std/process-spawn"
+            | "conduit.std/gpio-pin"
+            | "conduit.std/serial-port"
+            | "conduit.std/cell"
+            | "conduit.std/counter"
+            | "conduit.std/deduplicate"
+            | "conduit.std/cache"
+            | "conduit.std/circuit-breaker"
+            | "conduit.std/health-gate"
+            | "conduit.std/backoff"
+            | "conduit.std/wifi-station"
+            | "conduit.std/wifi-ap"
+            | "conduit.std/network-interface"
+            | "conduit.std/tcp-socket"
+            | "conduit.std/udp-socket"
+            | "conduit.std/dns-resolver" => NodeAvailabilityProjection {
+                contract_id: canonical_id,
+                availability_state: "contract-only".to_owned(),
+                reason_code: "CND-AVL-001".to_owned(),
+                implementation_id: None,
+                host_id: None,
+                rejection_reasons: vec!["CND-RES-008".to_owned()],
+            },
+            _ => NodeAvailabilityProjection {
+                contract_id: kind.to_owned(),
+                availability_state: "unsupported".to_owned(),
+                reason_code: "CND-AVL-006".to_owned(),
+                implementation_id: None,
+                host_id: None,
+                rejection_reasons: vec!["CND-RES-001".to_owned()],
+            },
         }
     }
 

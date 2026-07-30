@@ -283,7 +283,8 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
         .unwrap()
         .iter_mut()
         .find(|candidate| {
-            candidate["implementation"]["semantic_contract"]["id"] == "conduit/literal"
+            let id = &candidate["implementation"]["semantic_contract"]["id"];
+            id == "conduit/literal" || id == "conduit.std/literal"
         })
         .unwrap();
     candidate["implementation"]["maximum_plan_version"] =
@@ -401,7 +402,8 @@ fn toxic_hazard_input(source: &str) -> CompileInput {
         .unwrap()
         .iter_mut()
         .find(|candidate| {
-            candidate["implementation"]["semantic_contract"]["id"] == "conduit/literal"
+            let id = &candidate["implementation"]["semantic_contract"]["id"];
+            id == "conduit/literal" || id == "conduit.std/literal"
         })
         .unwrap();
     candidate["implementation"]["maximum_plan_version"] =

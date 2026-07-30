@@ -7849,7 +7849,10 @@ mod tests {
         let candidate = input
             .candidates
             .iter_mut()
-            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .find(|candidate| {
+                let id = &candidate.implementation.semantic_contract.id;
+                id == "conduit/literal" || id == "conduit.std/literal"
+            })
             .unwrap();
         let host = candidate.host_report.host.clone();
         candidate.authorities.push(AuthorityDecisionDocument {
@@ -7964,7 +7967,10 @@ mod tests {
         let candidate = input
             .candidates
             .iter_mut()
-            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .find(|candidate| {
+                let id = &candidate.implementation.semantic_contract.id;
+                id == "conduit/literal" || id == "conduit.std/literal"
+            })
             .unwrap();
         candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
         candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
@@ -8052,7 +8058,10 @@ mod tests {
         let candidate = input
             .candidates
             .iter_mut()
-            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .find(|candidate| {
+                let id = &candidate.implementation.semantic_contract.id;
+                id == "conduit/literal" || id == "conduit.std/literal"
+            })
             .unwrap();
         candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
         candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
@@ -8139,7 +8148,10 @@ mod tests {
         let candidate = input
             .candidates
             .iter_mut()
-            .find(|candidate| candidate.implementation.semantic_contract.id == "conduit/literal")
+            .find(|candidate| {
+                let id = &candidate.implementation.semantic_contract.id;
+                id == "conduit/literal" || id == "conduit.std/literal"
+            })
             .unwrap();
         candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
         candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
