@@ -411,7 +411,12 @@ fn authoritative_patchbay_view(
                     outputs,
                     config,
                     availability: availability_projection(&registry, &source_node.kind),
-                    placement: plan_placement(plan.as_ref(), &source_node.id),
+                    // Exact plans produced from InstalledProfile carry a
+                    // deterministic compile input, not an independently
+                    // observed host-placement fact. Keep the plan artifact
+                    // visible without promoting its synthetic host report to
+                    // authoritative Patchbay topology.
+                    placement: None,
                     activity: None,
                 }
             }
@@ -568,7 +573,7 @@ fn authoritative_patchbay_view(
 fn project_resolved_node(
     node: &conduit_runtime::ResolvedNodeView,
     semantic: &conduit_patchbay::SemanticSnapshot,
-    plan: Option<&conduit_patchbay::PlanSnapshot>,
+    _plan: Option<&conduit_patchbay::PlanSnapshot>,
     _run: Option<&conduit_patchbay::RunSnapshot>,
     config: BTreeMap<String, conduit_patchbay::PatchbayConfigProjection>,
 ) -> conduit_patchbay::PatchbayNodeProjection {
@@ -610,7 +615,9 @@ fn project_resolved_node(
                 host_id: None,
                 rejection_reasons: vec!["no authoritative availability observation".to_owned()],
             }),
-        placement: plan_placement(plan, &node.id),
+        // Placement is an observed host fact, not something the presentation
+        // layer may infer from an exact plan compiled against InstalledProfile.
+        placement: None,
         activity: None,
     }
 }
@@ -645,19 +652,6 @@ fn project_config_value(
         display_value,
         editable,
     }
-}
-
-fn plan_placement(plan: Option<&conduit_patchbay::PlanSnapshot>, node_id: &str) -> Option<String> {
-    plan.and_then(|plan| {
-        plan.bindings
-            .iter()
-            .find(|binding| {
-                binding.instance == node_id
-                    || binding.instance == format!("root/{node_id}")
-                    || binding.instance.ends_with(&format!("/{node_id}"))
-            })
-            .map(|binding| binding.host_id.clone())
-    })
 }
 
 /// Applies a source transaction through the production Patchbay protocol.
@@ -1018,6 +1012,28 @@ mod tests {
             value.contains("transform.worker : conduit.std/uppercase")
                 || value.contains("transform.worker : conduit.std/uppercase")
         }));
+    }
+
+    #[test]
+    fn installed_profile_plan_does_not_become_authoritative_placement() {
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "placement-authority".to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("session JSON");
+
+        assert_eq!(opened["ok"], true);
+        assert!(opened["view"]["plan"].is_object());
+        for layer in ["logical_nodes", "expanded_nodes"] {
+            let nodes = opened["view"]["topology"][layer]
+                .as_array()
+                .expect("projected nodes");
+            assert!(!nodes.is_empty());
+            assert!(
+                nodes.iter().all(|node| node.get("placement").is_none()),
+                "synthetic installed-profile host facts must not be projected as placement"
+            );
+        }
     }
 
     #[test]

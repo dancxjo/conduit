@@ -69,6 +69,12 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
     assert!(evidence.iter().any(|event| {
         event["event_kind"] == "terminal" && event["terminal_cause"] == "succeeded"
     }));
+    for layer in ["logical_nodes", "expanded_nodes"] {
+        let nodes = result["patchbay"]["topology"][layer]
+            .as_array()
+            .expect("Patchbay projected nodes");
+        assert!(nodes.iter().all(|node| node.get("placement").is_none()));
+    }
 }
 
 #[test]
