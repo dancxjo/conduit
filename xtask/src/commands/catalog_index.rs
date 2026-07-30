@@ -96,7 +96,12 @@ struct Removal {
 }
 
 fn ownership(id: &str) -> Result<Ownership, String> {
-    let value = if id.starts_with("std/") {
+    let value = if id.starts_with("conduit.std/") {
+        Ownership {
+            classification: "portable-standard",
+            package_owner: "conduit.std.flow",
+        }
+    } else if id.starts_with("std/") {
         Ownership {
             classification: "portable-standard",
             package_owner: "conduit.std",
@@ -253,6 +258,11 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             "std/text/format" | "std/format-values/literal" | "std/text/lines" | "std/text/join",
             _,
         ) => Some("library.typed-text-format"),
+        (
+            "conduit.std/tee" | "conduit.std/merge" | "conduit.std/zip" | "conduit.std/gate"
+            | "conduit.std/select",
+            _,
+        ) => Some("library.standard-flow-control"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };
@@ -377,8 +387,8 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
         },
         entries,
         removals: vec![Removal {
-            removed_identity_pattern: "conduit.std/*",
-            exact_replacement_rule: "remove the `conduit.` prefix and use the resulting `std/*` identity",
+            removed_identity_pattern: "flow/{tee,merge,zip,gate,select}",
+            exact_replacement_rule: "replace `flow/` with `conduit.std/` for the five issue-124 components",
             disposition: "removed; no active alias or second semantic identity",
         }],
     })
@@ -408,8 +418,9 @@ fn render_index(inventory: &Inventory) -> String {
     }
     output.push_str(
         "\n## Removed duplicate/provisional spellings\n\n\
-         - `conduit.std/*` is removed. Its exact replacement is the corresponding \
-         `std/*` identity; no compatibility alias remains active.\n",
+         - `flow/{tee,merge,zip,gate,select}` is removed. Its exact replacement \
+         uses the corresponding `conduit.std/*` identity; no compatibility alias \
+         remains active.\n",
     );
     output
 }
@@ -460,7 +471,7 @@ mod tests {
     #[test]
     fn namespace_policy_distinguishes_all_catalog_classes() {
         assert_eq!(
-            ownership("flow/tee").unwrap().classification,
+            ownership("conduit.std/tee").unwrap().classification,
             "portable-standard"
         );
         assert_eq!(

@@ -3048,7 +3048,7 @@ fn rewrite_node_kind(
     module: &conduit_panel::ResolvedModule,
     modules: &BTreeMap<&str, &conduit_panel::ResolvedModule>,
 ) -> Result<String, CompileError> {
-    if kind.starts_with("module.h") {
+    if kind.starts_with("module.h") || kind.starts_with("conduit.std/") {
         return Ok(kind.to_owned());
     }
     if module

@@ -1,0 +1,54 @@
+panel 3
+
+node first : std/literal {
+    value = "left"
+}
+node second : std/literal {
+    value = "right"
+}
+node first_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node second_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node zip : conduit.std/zip {
+    unpaired = "fail"
+}
+node left_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+node right_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+node left : io/stdout
+node right : io/stderr
+
+cord first.out -> first_lines.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord second.out -> second_lines.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord first_lines.line -> zip.in1 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord second_lines.line -> zip.in2 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord zip.left -> left_text.item {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord zip.right -> right_text.item {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord left_text.out -> left.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_text.out -> right.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

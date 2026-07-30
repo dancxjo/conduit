@@ -21,18 +21,21 @@ contracts. A standard node consumes the exact plan-supplied facts or fails.
 
 ## Canonical library paths
 
-Standard contracts use domain-first canonical paths. The path describes the
-problem domain, not the implementation mechanism:
+Standard contracts use one checked canonical path. Most paths describe the
+problem domain, while the multi-port structural family restored by issue #124
+retains its previously selected `conduit.std/...` identity:
 
 - `std/literal`, `std/text/format`, and the fundamental `std/...` types;
-- `flow/identity`, `flow/merge`, and the other structural operators;
+- `flow/identity` and the single-port structural operators;
+- `conduit.std/tee`, `conduit.std/merge`, `conduit.std/zip`,
+  `conduit.std/gate`, and `conduit.std/select`;
 - `time/delay`, `state/cell`, and `supervision/retry`;
 - `fs/read`, `process/run`, and `net/http/serve`.
 
-Node and type identities occupy distinct grammar and catalog positions, so
-their paths do not repeat `node` or `type`. There is no compatibility rewrite
-from the former flat `conduit.std/...` spelling. A resolved plan retains the
-same canonical path that source selected.
+Node and type identities occupy distinct grammar and catalog positions. There
+is no compatibility rewrite between the discarded `flow/...` spellings for
+these five components and their canonical `conduit.std/...` identities. A
+resolved plan retains the same canonical path that source selected.
 
 `host` is reserved for the execution environment and its observations.
 Consequently the HTTP server operation is `net/http/serve`, not

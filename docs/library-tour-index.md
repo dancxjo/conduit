@@ -4,6 +4,11 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 | Contract | Class | Package | Provider bundles | Standalone lesson | Composition lesson |
 |---|---|---|---:|---|---|
+| `conduit.std/gate` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.standard-flow-control (published) | tour/lessons/v1.json#library.standard-flow-control (published) |
+| `conduit.std/merge` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.standard-flow-control (published) | tour/lessons/v1.json#library.standard-flow-control (published) |
+| `conduit.std/select` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.standard-flow-control (published) | tour/lessons/v1.json#library.standard-flow-control (published) |
+| `conduit.std/tee` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.standard-flow-control (published) | tour/lessons/v1.json#library.standard-flow-control (published) |
+| `conduit.std/zip` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.standard-flow-control (published) | tour/lessons/v1.json#library.standard-flow-control (published) |
 | `crypto/operation` | optional-host-boundary | `conduit.host.crypto` | 0 | tour/lessons/v1.json#library.crypto.operation.standalone (required) | tour/lessons/v1.json#library.crypto.operation.composition (required) |
 | `data/compress` | optional-host-boundary | `conduit.host.data` | 0 | tour/lessons/v1.json#library.data.compress.standalone (required) | tour/lessons/v1.json#library.data.compress.composition (required) |
 | `device/gpio/pin` | optional-host-boundary | `conduit.host.device` | 0 | tour/lessons/v1.json#library.device.gpio.pin.standalone (required) | tour/lessons/v1.json#library.device.gpio.pin.composition (required) |
@@ -26,20 +31,15 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `flow/flat-map` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.flat-map.standalone (required) | tour/lessons/v1.json#library.flow.flat-map.composition (required) |
 | `flow/fold` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.fold.standalone (required) | tour/lessons/v1.json#library.flow.fold.composition (required) |
 | `flow/frame` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.frame.standalone (required) | tour/lessons/v1.json#library.flow.frame.composition (required) |
-| `flow/gate` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.gate.standalone (required) | tour/lessons/v1.json#library.flow.gate.composition (required) |
 | `flow/identity` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.flow.identity.standalone (required) | tour/lessons/v1.json#library.flow.identity.composition (required) |
 | `flow/keyed-dispatch` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.keyed-dispatch.standalone (required) | tour/lessons/v1.json#library.flow.keyed-dispatch.composition (required) |
 | `flow/last` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.last.standalone (required) | tour/lessons/v1.json#library.flow.last.composition (required) |
 | `flow/map` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.map.standalone (required) | tour/lessons/v1.json#library.flow.map.composition (required) |
-| `flow/merge` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.flow.merge.standalone (required) | tour/lessons/v1.json#library.flow.merge.composition (required) |
 | `flow/mux` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.mux.standalone (required) | tour/lessons/v1.json#library.flow.mux.composition (required) |
-| `flow/select` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.select.standalone (required) | tour/lessons/v1.json#library.flow.select.composition (required) |
 | `flow/skip` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.skip.standalone (required) | tour/lessons/v1.json#library.flow.skip.composition (required) |
 | `flow/switch` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.switch.standalone (required) | tour/lessons/v1.json#library.flow.switch.composition (required) |
 | `flow/take` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.take.standalone (required) | tour/lessons/v1.json#library.flow.take.composition (required) |
-| `flow/tee` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/v1.json#library.flow.tee.standalone (required) | tour/lessons/v1.json#library.flow.tee.composition (required) |
 | `flow/validate` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.validate.standalone (required) | tour/lessons/v1.json#library.flow.validate.composition (required) |
-| `flow/zip` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.zip.standalone (required) | tour/lessons/v1.json#library.flow.zip.composition (required) |
 | `fs/read` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/v1.json#library.fs.read.standalone (required) | tour/lessons/v1.json#library.fs.read.composition (required) |
 | `fs/watch` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/v1.json#library.fs.watch.standalone (required) | tour/lessons/v1.json#library.fs.watch.composition (required) |
 | `fs/write` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/v1.json#library.fs.write.standalone (required) | tour/lessons/v1.json#library.fs.write.composition (required) |
@@ -118,4 +118,4 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 ## Removed duplicate/provisional spellings
 
-- `conduit.std/*` is removed. Its exact replacement is the corresponding `std/*` identity; no compatibility alias remains active.
+- `flow/{tee,merge,zip,gate,select}` is removed. Its exact replacement uses the corresponding `conduit.std/*` identity; no compatibility alias remains active.

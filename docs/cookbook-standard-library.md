@@ -10,12 +10,14 @@ executable authority for example files.
 
 ## Catalog arrangement
 
-Library names are canonical domain paths: `flow/merge`, `time/delay`,
+Library names have one canonical path: `conduit.std/merge`, `time/delay`,
 `state/cell`, `fs/read`, and `net/http/serve`. `std/...` is reserved for
 fundamental values and mechanics such as `std/integer`, `std/text`,
 `std/literal`, and `std/text/format`; it is not a bucket for every built-in
 node.
-The former `conduit.std/...` names are not aliases.
+The five multi-port structural components use the checked `conduit.std/...`
+identities restored by issue #124. Their discarded `flow/...` spellings are
+not aliases.
 
 Finding a contract in the catalog proves only that its meaning is defined. A
 host must separately advertise an implementation and finite limits, the plan
@@ -32,8 +34,8 @@ separately; recognizing `std/integer` does not claim arbitrary-precision
 storage.
 
 Polymorphic standard nodes publish their relationships explicitly:
-`flow/identity<T>` is `T -> T`, `flow/tee<T>` is `T -> (T, T)`,
-`flow/merge<T>` is `(T, T) -> T`, `flow/first<T>` produces
+`flow/identity<T>` is `T -> T`, `conduit.std/tee<T>` is `T -> (T, T)`,
+`conduit.std/merge<T>` is `(T, T) -> T`, `flow/first<T>` produces
 `std/option<T>`, `flow/count<T>` produces `std/natural`, and both
 `time/delay<T>` and `state/cell<T>` preserve `T`. Any concrete byte ports used
 by reference fixtures are provider specializations, not a universal
@@ -94,37 +96,68 @@ See the checked [`lines → join`](../examples/text-lines-join.panel) and
 
 ## 2. Structural & Flow Control Nodes
 
-### Pass-Through & Merge
+State: **runnable** for exact `std/text` instances on the hosted profile.
+The installed provider set is still explicit: another host may report these
+contracts as unsupported, and unsupported modes fail during resolution.
 
-State: **contract-only**; no merge provider is installed.
-```panel
-panel 1
+### Deterministic merge
 
-node src1 : std/literal { value = "stream_a\n" }
-node src2 : std/literal { value = "stream_b\n" }
-node merger : flow/merge
-node sink : io/stdout
+`conduit.std/merge` preserves each input's order and uses a retained round-robin
+cursor to choose between simultaneously ready inputs. The two inputs have
+stable identities; source order and executor wake order are not policies.
 
-cord src1.out -> merger.in { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
-cord src2.out -> merger.in { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
-cord merger.out -> sink.in { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+The current checked panel uses `std/text/lines` to turn finite text batches
+into exact text streams, merges those streams, and uses `std/text/join` to
+return to a finite batch for stdout:
+
+```sh
+cargo run -p conduct -- --check examples/flow-merge.panel
+cargo run -p conduct -- --explain examples/flow-merge.panel
+cargo run -p conduct -- examples/flow-merge.panel
 ```
 
-### Fan-Out Tee Node
+See [`examples/flow-merge.panel`](../examples/flow-merge.panel) for the
+complete Panel 3 source.
 
-State: **contract-only**; tee, log, and blob-store providers are not installed.
-```panel
-panel 1
+### Coupled and isolated tee
 
-node src : std/literal { value = "telemetry_event\n" }
-node splitter : flow/tee
-node logger : observe/log
-node store : storage/blob/store { bucket = "events" }
+`conduit.std/tee` in `coupled` mode publishes both branches in one executor
+transaction. If either
+branch blocks, neither branch commits and the input lease rolls back.
+`isolated` retains at most one exact value and advances each output
+independently; the retained value and both branch reservations are charged to
+the node's exact execution profile.
 
-cord src.out -> splitter.in { capacity = 8 max_value_bytes = 4096 max_queued_bytes = 32768 low_watermark = 2 high_watermark = 8 pressure = block }
-cord splitter.out -> logger.in { capacity = 8 max_value_bytes = 4096 max_queued_bytes = 32768 low_watermark = 2 high_watermark = 8 pressure = block }
-cord splitter.out -> store.in { capacity = 8 max_value_bytes = 4096 max_queued_bytes = 32768 low_watermark = 2 high_watermark = 8 pressure = block }
+The checked Panel 3 example makes the finite-batch/stream boundary explicit
+with `std/text/lines` before tee and one bounded `std/text/join` per branch:
+
+```sh
+cargo run -p conduct -- --check examples/flow-tee.panel
+cargo run -p conduct -- --explain examples/flow-tee.panel
+cargo run -p conduct -- examples/flow-tee.panel
 ```
+
+See [`examples/flow-tee.panel`](../examples/flow-tee.panel) for the complete
+source.
+
+### Zip, gate, and select
+
+- `conduit.std/zip` pairs `in1` and `in2` and atomically publishes correlated
+  `left` and `right` outputs. `unpaired = "fail"` rejects an early terminal
+  remainder; `unpaired = "drop"` is the explicit lossy alternative.
+- `conduit.std/gate` processes control before data in a step. `initial` is `open` or
+  `closed`; the hosted profile supports `retained = "block"`, so a closed gate
+  propagates pressure instead of hiding a retained value or loss.
+- `conduit.std/select` processes control before the selected input. `initial` is
+  `in1` or `in2`; `inactive = "block"` preserves inactive-input pressure and
+  rejects implicit loss.
+
+Checked standalone panels:
+[`zip`](../examples/flow-zip.panel),
+[`gate`](../examples/flow-gate.panel), and
+[`select`](../examples/flow-select.panel). The checked
+[`select → tee` composition](../examples/flow-compose.panel)
+demonstrates why the nodes are separate ordinary graph boundaries.
 
 ---
 

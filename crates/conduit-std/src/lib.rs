@@ -159,6 +159,7 @@ pub struct CatalogEntry {
 pub enum CatalogError {
     InvalidIdentifier,
     DuplicateContract,
+    DuplicatePort,
     InvalidPort,
     UnboundedWork,
     MissingStateBound,
@@ -435,8 +436,36 @@ const IN_BYTES: PortContract<'static> = port(
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
+const IN_BYTES_1: PortContract<'static> = port(
+    "in1",
+    Direction::Input,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const IN_BYTES_2: PortContract<'static> = port(
+    "in2",
+    Direction::Input,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
 const OUT_BYTES: PortContract<'static> = port(
     "out",
+    Direction::Output,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const OUT_BYTES_1: PortContract<'static> = port(
+    "out1",
+    Direction::Output,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const OUT_BYTES_2: PortContract<'static> = port(
+    "out2",
     Direction::Output,
     BYTES,
     ValueCardinality::ZeroOrMore,
@@ -472,6 +501,13 @@ const OUT_U64: PortContract<'static> = port(
 );
 const OUT_RECORD: PortContract<'static> = port(
     "out",
+    Direction::Output,
+    RECORD,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const OUT_EVIDENCE_RECORD: PortContract<'static> = port(
+    "evidence",
     Direction::Output,
     RECORD,
     ValueCardinality::ZeroOrMore,
@@ -946,11 +982,11 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         IDENTITY_GENERIC
     ),
     generic_entry!(
-        "flow/tee",
+        "conduit.std/tee",
         Structural,
         BOUNDED,
         &[IN_BYTES],
-        &[OUT_BYTES, OUT_BYTES],
+        &[OUT_BYTES_1, OUT_BYTES_2],
         Preserving,
         None,
         BUFFERED,
@@ -958,10 +994,10 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TEE_GENERIC
     ),
     generic_entry!(
-        "flow/merge",
+        "conduit.std/merge",
         Structural,
         BOUNDED,
-        &[IN_BYTES, IN_BYTES],
+        &[IN_BYTES_1, IN_BYTES_2],
         &[OUT_BYTES],
         Preserving,
         None,
@@ -970,10 +1006,10 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         MERGE_GENERIC
     ),
     entry!(
-        "flow/zip",
+        "conduit.std/zip",
         Structural,
         BOUNDED,
-        &[IN_BYTES, IN_BYTES],
+        &[IN_BYTES_1, IN_BYTES_2],
         &[OUT_RECORD],
         ExplicitAdapter,
         None,
@@ -984,7 +1020,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "flow/combine-latest",
         Structural,
         BOUNDED,
-        &[IN_BYTES, IN_BYTES],
+        &[IN_BYTES_1, IN_BYTES_2],
         &[OUT_RECORD],
         ExplicitAdapter,
         None,
@@ -1007,7 +1043,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Structural,
         BOUNDED,
         &[IN_BYTES, CONTROL],
-        &[OUT_BYTES, OUT_BYTES],
+        &[OUT_BYTES_1, OUT_BYTES_2],
         Preserving,
         None,
         BUFFERED,
@@ -1025,10 +1061,10 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "flow/select",
+        "conduit.std/select",
         Structural,
         BOUNDED,
-        &[IN_BYTES, IN_BYTES, CONTROL],
+        &[IN_BYTES_1, IN_BYTES_2, CONTROL],
         &[OUT_BYTES],
         Preserving,
         None,
@@ -1036,7 +1072,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "flow/gate",
+        "conduit.std/gate",
         Structural,
         EMPTY,
         &[IN_BYTES, CONTROL],
@@ -1050,7 +1086,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "flow/switch",
         Structural,
         BOUNDED,
-        &[IN_BYTES, IN_BYTES, CONTROL],
+        &[IN_BYTES_1, IN_BYTES_2, CONTROL],
         &[OUT_BYTES],
         Preserving,
         None,
@@ -1061,7 +1097,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "flow/fallback",
         Structural,
         BOUNDED,
-        &[IN_BYTES, IN_BYTES, CONTROL],
+        &[IN_BYTES_1, IN_BYTES_2, CONTROL],
         &[OUT_BYTES],
         Preserving,
         None,
@@ -1550,7 +1586,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Testing,
         BOUNDED,
         &[IN_BYTES],
-        &[OUT_BYTES, OUT_RECORD],
+        &[OUT_BYTES, OUT_EVIDENCE_RECORD],
         ExplicitAdapter,
         None,
         BUFFERED,
@@ -1583,7 +1619,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Testing,
         STATEFUL,
         &[IN_BYTES],
-        &[OUT_BYTES, OUT_RECORD],
+        &[OUT_BYTES, OUT_EVIDENCE_RECORD],
         ExplicitAdapter,
         None,
         BUFFERED,
@@ -1691,6 +1727,25 @@ pub fn validate_entry(entry: &CatalogEntry) -> Result<(), CatalogError> {
             .any(|port| port.direction != Direction::Output)
     {
         return Err(CatalogError::InvalidPort);
+    }
+    for (index, port) in entry
+        .contract
+        .inputs
+        .iter()
+        .chain(entry.contract.outputs)
+        .enumerate()
+    {
+        Id::new(port.id.as_str()).map_err(|_| CatalogError::InvalidPort)?;
+        if entry
+            .contract
+            .inputs
+            .iter()
+            .chain(entry.contract.outputs)
+            .take(index)
+            .any(|prior| prior.id == port.id)
+        {
+            return Err(CatalogError::DuplicatePort);
+        }
     }
     if let Some(signature) = entry.generic_signature {
         validate_generic_signature(entry, signature)?;

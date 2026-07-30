@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 20] = [
+const REQUIRED_TOUR_LESSONS: [&str; 21] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -21,6 +21,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 20] = [
     "panels.tiny-instrument",
     "patchbay.observes-patchbay",
     "library.typed-text-format",
+    "library.standard-flow-control",
     "platform.value-envelope-clock-feedback",
     "platform.resource-lease-effect-commit",
     "platform.workload-admission-deadline",
@@ -190,6 +191,79 @@ fn tour_lessons_declare_verified_browser_runnability() {
             assert_eq!(lesson["validation"]["value"], expected);
         }
     }
+}
+
+#[test]
+fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.standard-flow-control")
+        .expect("standard flow lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "pressure",
+        "occupancy",
+        "ordering",
+        "retained_values",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.std/gate",
+            "conduit.std/merge",
+            "conduit.std/select",
+            "conduit.std/tee",
+            "conduit.std/zip",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let scenarios = lesson["library"]["scenarios"]
+        .as_array()
+        .expect("standalone and composition scenarios are selectable");
+    assert_eq!(scenarios.len(), 6);
+    assert!(scenarios.iter().all(|scenario| {
+        scenario["panel"]
+            .as_str()
+            .is_some_and(|panel| panel.starts_with("../../examples/flow-"))
+            && scenario["semantics"]
+                .as_str()
+                .is_some_and(|semantics| !semantics.is_empty())
+    }));
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .is_some_and(|text| text.contains("pressure") && text.contains("terminal"))
+    );
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(result["stdout"], "right");
+    assert_eq!(result["stderr"], "right");
 }
 
 #[test]

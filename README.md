@@ -86,8 +86,11 @@ concepts to `conduit-core`. Its catalog-level conformance runner distinguishes
 required provider profiles from installed implementations and treats
 constrained-host unsupported results explicitly.
 
-Standard library identities are canonical domain paths such as `flow/merge`,
-`time/delay`, `fs/read`, and `net/http/serve`. Fundamental types live under
+Standard library identities use their one checked canonical path. The
+multi-port structural family restored by issue #124 uses
+`conduit.std/tee`, `conduit.std/merge`, `conduit.std/zip`,
+`conduit.std/gate`, and `conduit.std/select`; other established examples
+include `time/delay`, `fs/read`, and `net/http/serve`. Fundamental types live under
 `std/...`, including mathematical `std/integer`, fixed-width integer types,
 structural constructors, and `std/text`. Catalog definition, installed host
 support, authority, and placement remain separate facts.

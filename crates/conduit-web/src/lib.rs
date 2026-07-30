@@ -999,7 +999,7 @@ fn run_panel_exact_inner(
                 max_decisions: 256,
                 max_tick: 512,
                 max_consecutive_yields: 8,
-                max_events: 128,
+                max_events: if plan.nodes.len() > 5 { 256 } else { 128 },
             },
             reservation: SchedulerReservation {
                 available_runtime_memory_bytes: plan.budget.memory_bytes,

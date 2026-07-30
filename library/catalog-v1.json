@@ -7,6 +7,357 @@
   },
   "entries": [
     {
+      "semantic_identity": "conduit.std/gate",
+      "public_source_spelling": "conduit.std/gate",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.flow",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
+      "export_path": "conduit.std.flow/conduit.std/gate",
+      "schema_version": 1,
+      "semantic_hash": "sha256:0c8aecace055266ecf4475b53036f98886d17279b22d2a9ef6643fa8cee4244c",
+      "ports": [
+        {
+          "id": "in",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "control",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "out",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "initial",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "key": "retained",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-gate-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.flow/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.std/merge",
+      "public_source_spelling": "conduit.std/merge",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.flow",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
+      "export_path": "conduit.std.flow/conduit.std/merge",
+      "schema_version": 1,
+      "semantic_hash": "sha256:3e14894ebf36d143288210a9f43c42cacd8f7a1dcfc093b8edc307ed91a481c9",
+      "ports": [
+        {
+          "id": "in1",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "in2",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "out",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "ordering",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-merge-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.flow/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.std/select",
+      "public_source_spelling": "conduit.std/select",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.flow",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
+      "export_path": "conduit.std.flow/conduit.std/select",
+      "schema_version": 1,
+      "semantic_hash": "sha256:73cff6de582f2438894f743e2e6ed99c66557b062cfa22f9b3376f1d167e523d",
+      "ports": [
+        {
+          "id": "in1",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "in2",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "control",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "out",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "initial",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "key": "inactive",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-select-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.flow/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.std/tee",
+      "public_source_spelling": "conduit.std/tee",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.flow",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
+      "export_path": "conduit.std.flow/conduit.std/tee",
+      "schema_version": 1,
+      "semantic_hash": "sha256:4d16fe2f7284b751996d372a5f418d3916b31d55e5cdd5f09558a8eb9fb9d659",
+      "ports": [
+        {
+          "id": "in",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "out1",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "out2",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "mode",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-tee-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.flow/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.std/zip",
+      "public_source_spelling": "conduit.std/zip",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.flow",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
+      "export_path": "conduit.std.flow/conduit.std/zip",
+      "schema_version": 1,
+      "semantic_hash": "sha256:2516a2e98bb993b088b4b0af1812dde7a789bedfea0f971cee6287a43389a0b3",
+      "ports": [
+        {
+          "id": "in1",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "in2",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "left",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "right",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "unpaired",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-zip-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.flow/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.standard-flow-control",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "crypto/operation",
       "public_source_spelling": "crypto/operation",
       "classification": "optional-host-boundary",
@@ -451,14 +802,14 @@
       "semantic_hash": "sha256:e092f744f1deafb2052529d4a7b7e1238ae30d9c7cca9e3b67686a670b02a365",
       "ports": [
         {
-          "id": "in",
+          "id": "in1",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "in",
+          "id": "in2",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -704,14 +1055,14 @@
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "out1",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "out2",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -886,7 +1237,7 @@
         {
           "implementation": "conduit/hosted-fallback-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1305,58 +1656,6 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "flow/gate",
-      "public_source_spelling": "flow/gate",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
-      "export_path": "conduit.std.flow/flow/gate",
-      "schema_version": 1,
-      "semantic_hash": "sha256:2f64255abb3942fc8abc8254839f2391300ff950a2b02ba0d8aa9f1cec811598",
-      "ports": [
-        {
-          "id": "in",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        },
-        {
-          "id": "control",
-          "direction": "input",
-          "value_type": "std/record",
-          "type_schema_version": 1,
-          "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
-        },
-        {
-          "id": "out",
-          "direction": "output",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        }
-      ],
-      "config": [],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
-      "required_result_profile": "conduit.cross-host-provider/v1",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.gate.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.gate.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
       "semantic_identity": "flow/identity",
       "public_source_spelling": "flow/identity",
       "classification": "portable-standard",
@@ -1388,7 +1687,7 @@
         {
           "implementation": "conduit/hosted-pass-through-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1589,64 +1888,6 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "flow/merge",
-      "public_source_spelling": "flow/merge",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
-      "export_path": "conduit.std.flow/flow/merge",
-      "schema_version": 1,
-      "semantic_hash": "sha256:f280f4a572a2b77213b4303f5dc8315acdf1d49891abfe1407c03fa2cfa72c72",
-      "ports": [
-        {
-          "id": "in1",
-          "direction": "input",
-          "value_type": "std/text",
-          "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
-        },
-        {
-          "id": "in2",
-          "direction": "input",
-          "value_type": "std/text",
-          "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
-        },
-        {
-          "id": "out",
-          "direction": "output",
-          "value_type": "std/text",
-          "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
-        }
-      ],
-      "config": [],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [
-        {
-          "implementation": "conduit/hosted-merge-v1",
-          "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
-        }
-      ],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
-      "required_result_profile": "conduit.cross-host-provider/v1",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.merge.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.merge.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
       "semantic_identity": "flow/mux",
       "public_source_spelling": "flow/mux",
       "classification": "portable-standard",
@@ -1712,78 +1953,6 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "flow/select",
-      "public_source_spelling": "flow/select",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
-      "export_path": "conduit.std.flow/flow/select",
-      "schema_version": 1,
-      "semantic_hash": "sha256:807f830ed51095bee49bb59f9d5797d88d19e2a4e71f2a75d344890143fd8cbe",
-      "ports": [
-        {
-          "id": "in",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        },
-        {
-          "id": "in",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        },
-        {
-          "id": "control",
-          "direction": "input",
-          "value_type": "std/record",
-          "type_schema_version": 1,
-          "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
-        },
-        {
-          "id": "out",
-          "direction": "output",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        }
-      ],
-      "config": [
-        {
-          "key": "maximum_values",
-          "value_type": "std/u64",
-          "type_schema_version": 1,
-          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
-        },
-        {
-          "key": "maximum_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 1,
-          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
-      "required_result_profile": "conduit.cross-host-provider/v1",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.select.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.select.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
       "semantic_identity": "flow/skip",
       "public_source_spelling": "flow/skip",
       "classification": "portable-standard",
@@ -1839,14 +2008,14 @@
       "semantic_hash": "sha256:d8cb74f932b1bc7c3ab424760a031b9b02a8553e45c65fa2985e44d65ce9a875",
       "ports": [
         {
-          "id": "in",
+          "id": "in1",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "in",
+          "id": "in2",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1946,64 +2115,6 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "flow/tee",
-      "public_source_spelling": "flow/tee",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
-      "export_path": "conduit.std.flow/flow/tee",
-      "schema_version": 1,
-      "semantic_hash": "sha256:73ba88aa4f33e5137c4ff955cb397c72faa239003edc769bcd9a4670390d2b0a",
-      "ports": [
-        {
-          "id": "in",
-          "direction": "input",
-          "value_type": "std/text",
-          "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
-        },
-        {
-          "id": "out1",
-          "direction": "output",
-          "value_type": "std/text",
-          "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
-        },
-        {
-          "id": "out2",
-          "direction": "output",
-          "value_type": "std/text",
-          "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
-        }
-      ],
-      "config": [],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [
-        {
-          "implementation": "conduit/hosted-tee-v1",
-          "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
-        }
-      ],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
-      "required_result_profile": "conduit.cross-host-provider/v1",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.tee.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.tee.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
       "semantic_identity": "flow/validate",
       "public_source_spelling": "flow/validate",
       "classification": "portable-standard",
@@ -2055,71 +2166,6 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/v1.json#library.flow.validate.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "flow/zip",
-      "public_source_spelling": "flow/zip",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow/v1",
-      "export_path": "conduit.std.flow/flow/zip",
-      "schema_version": 1,
-      "semantic_hash": "sha256:9f14be1c45b1cf02445f468cd4c653afbf92ac18d560cca7b66f350d281edd08",
-      "ports": [
-        {
-          "id": "in",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        },
-        {
-          "id": "in",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 1,
-          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
-        },
-        {
-          "id": "out",
-          "direction": "output",
-          "value_type": "std/record",
-          "type_schema_version": 1,
-          "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
-        }
-      ],
-      "config": [
-        {
-          "key": "maximum_values",
-          "value_type": "std/u64",
-          "type_schema_version": 1,
-          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
-        },
-        {
-          "key": "maximum_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 1,
-          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
-      "required_result_profile": "conduit.cross-host-provider/v1",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.zip.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/v1.json#library.flow.zip.composition",
         "status": "required"
       },
       "successor": null,
@@ -2310,7 +2356,7 @@
         {
           "implementation": "conduit/hosted-stderr-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2354,7 +2400,7 @@
         {
           "implementation": "conduit/hosted-stdin-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2398,7 +2444,7 @@
         {
           "implementation": "conduit/hosted-stdout-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4486,7 +4532,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4537,7 +4583,7 @@
         {
           "implementation": "conduit/hosted-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4633,7 +4679,7 @@
         {
           "implementation": "conduit/hosted-format-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4715,7 +4761,7 @@
         {
           "implementation": "conduit/hosted-text-join-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4779,7 +4825,7 @@
         {
           "implementation": "conduit/hosted-text-lines-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5721,7 +5767,7 @@
         {
           "implementation": "conduit/hosted-uppercase-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:6face62a6a88790a75d538e9b180bda9a2e1e22a5171b7f669fc2e200e9ce878"
+          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6452,8 +6498,8 @@
   ],
   "removals": [
     {
-      "removed_identity_pattern": "conduit.std/*",
-      "exact_replacement_rule": "remove the `conduit.` prefix and use the resulting `std/*` identity",
+      "removed_identity_pattern": "flow/{tee,merge,zip,gate,select}",
+      "exact_replacement_rule": "replace `flow/` with `conduit.std/` for the five issue-124 components",
       "disposition": "removed; no active alias or second semantic identity"
     }
   ]

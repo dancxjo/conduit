@@ -22,13 +22,55 @@ fn complete_catalog_is_allocator_free_typed_and_bounded() {
 }
 
 #[test]
-fn standard_nodes_use_domain_oriented_canonical_paths() {
+fn every_node_has_unique_stable_port_identities() {
     for entry in STANDARD_CATALOG {
-        assert!(
-            !entry.contract.id.as_str().starts_with("conduit.std/"),
-            "flat legacy identity remains for {}",
-            entry.contract.id.as_str()
-        );
+        let ports = entry
+            .contract
+            .inputs
+            .iter()
+            .chain(entry.contract.outputs)
+            .collect::<Vec<_>>();
+        for (index, port) in ports.iter().enumerate() {
+            assert!(
+                ports[..index].iter().all(|prior| prior.id != port.id),
+                "{} repeats port identity {}",
+                entry.contract.id,
+                port.id
+            );
+        }
+    }
+
+    let tee = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "conduit.std/tee")
+        .unwrap();
+    assert_eq!(tee.contract.inputs[0].id.as_str(), "in");
+    assert_eq!(tee.contract.outputs[0].id.as_str(), "out1");
+    assert_eq!(tee.contract.outputs[1].id.as_str(), "out2");
+
+    for id in ["conduit.std/merge", "conduit.std/zip", "conduit.std/select"] {
+        let entry = STANDARD_CATALOG
+            .iter()
+            .find(|entry| entry.contract.id.as_str() == id)
+            .unwrap();
+        assert_eq!(entry.contract.inputs[0].id.as_str(), "in1");
+        assert_eq!(entry.contract.inputs[1].id.as_str(), "in2");
+    }
+}
+
+#[test]
+fn standard_nodes_use_the_one_canonical_identity_selected_for_each_contract() {
+    let restored_flat_identities = [
+        "conduit.std/tee",
+        "conduit.std/merge",
+        "conduit.std/zip",
+        "conduit.std/gate",
+        "conduit.std/select",
+    ];
+    for entry in STANDARD_CATALOG {
+        if entry.contract.id.as_str().starts_with("conduit.std/") {
+            assert!(restored_flat_identities.contains(&entry.contract.id.as_str()));
+        }
         assert!(entry.contract.id.as_str().contains('/'));
     }
     assert!(
@@ -98,8 +140,8 @@ fn formatter_types_have_exact_finite_descriptors() {
 fn polymorphic_flow_contracts_publish_type_relationships_not_byte_placeholders() {
     for id in [
         "flow/identity",
-        "flow/tee",
-        "flow/merge",
+        "conduit.std/tee",
+        "conduit.std/merge",
         "flow/first",
         "flow/count",
         "time/delay",
