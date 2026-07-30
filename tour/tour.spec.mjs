@@ -142,7 +142,7 @@ test("highlights panel source while retaining the native editor surface", async 
 
 test("covers Chapters 0-3 and exposes production topology projections", async ({ page }) => {
   await page.goto("/tour/public/index.html");
-  await expect(page.locator("#lessons > li")).toHaveCount(18);
+  await expect(page.locator("#lessons > li")).toHaveCount(19);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await page.locator("#expanded-view").click();
