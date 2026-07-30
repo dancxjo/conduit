@@ -18,9 +18,11 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
     "exact dedicated-worker placement",
   );
   await expect(page.locator("#plan")).toContainText(
-    "conduit/tour-production-wasm-worker",
+    "conduit/hosted-literal-v1",
   );
-  await expect(page.locator("#evidence")).toContainText("lesson-completed");
+  await expect(page.locator("#plan")).toContainText("bound-in-this-plan");
+  await expect(page.locator("#evidence")).toContainText('"event_kind": "terminal"');
+  await expect(page.locator("#evidence")).toContainText('"terminal_cause": "succeeded"');
   expect(failures).toEqual([]);
 });
 
