@@ -4,6 +4,7 @@ pub mod check_python_boundary;
 pub mod embedded_gate;
 pub mod generate_browser_plan;
 pub mod performance_gate;
+pub mod release_gate;
 pub mod rp2040_hil;
 pub mod serve;
 pub mod verify_canonical;

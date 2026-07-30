@@ -238,6 +238,18 @@ research and development system: current code and candidate specifications
 must not be represented as a supported security profile, autonomous deployment
 platform, or certified safety boundary.
 
+Current public capability claims come from the mechanically checked
+[`release/capabilities-v1.json`](release/capabilities-v1.json), rendered in the
+[`docs/capability-matrix.md`](docs/capability-matrix.md). The
+[`spec/002-roadmap.md`](spec/002-roadmap.md) records the current production
+dependency graph and brownfield entry gates. Issue state and prose do not
+upgrade a capability.
+
+The README intentionally carries no hand-authored Patchbay screenshot as
+runtime proof. Any future screenshot must be captured from an authoritative
+Rust-produced Patchbay projection, link its source/plan/run identities and
+exact commit, and label prototype or renderer-only state explicitly.
+
 The implemented foundation includes:
 
 - `conduit-core`: allocator-free contracts, canonical semantic hashes,

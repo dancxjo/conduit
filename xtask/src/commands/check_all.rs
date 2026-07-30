@@ -43,6 +43,12 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     run_step(
+        "release evidence gate",
+        &["cargo", "xtask", "release-gate", "--check"],
+        workspace_root,
+    )?;
+
+    run_step(
         "cargo check conduit-core thumbv6m-none-eabi",
         &[
             "cargo",

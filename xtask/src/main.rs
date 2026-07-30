@@ -65,6 +65,13 @@ enum Commands {
     },
     /// Verify that zero repository-owned Python scripts or dependencies exist
     CheckPythonBoundary,
+    /// Verify release claims and emit commit-bound release evidence
+    ReleaseGate {
+        #[arg(long)]
+        check: bool,
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
     /// Run complete workspace check suite (formatting, clippy, tests, gates, boundaries)
     CheckAll,
 }
@@ -132,6 +139,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Serve { directory, port } => commands::serve::run(directory, port),
         Commands::CheckPythonBoundary => commands::check_python_boundary::run(&root),
+        Commands::ReleaseGate { check, output } => {
+            commands::release_gate::run(&root, check, output.as_deref())
+        }
         Commands::CheckAll => commands::check_all::run(&root),
     }
 }

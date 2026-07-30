@@ -1,5 +1,15 @@
 # Conformance fixture version 1 history
 
+## Manifest revision 48 — 2026-07-30
+
+- Added an exact installed bounded HTTP host-service provider, a checked-in
+  canonical loopback panel, and CLI production-executor proof.
+- Expanded HTTP conformance to 56 cases with explicit route conflict/unknown,
+  missing address, stale opaque TLS handle, hostname mismatch, disconnect, and
+  hidden-kernel-buffer boundary negatives.
+- Kept compiler contract inspection distinct from installed executability and
+  preserved structured HTTP terminal failures through the scheduler.
+
 ## Manifest revision 47 — 2026-07-30
 
 - Replaced Patchbay browser parsing, contract inference, configuration regex
