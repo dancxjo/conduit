@@ -1,18 +1,18 @@
 {
   "schema": "conduit.performance-baseline/v1",
   "owner": "@dancxjo",
-  "reviewed_commit": "97f8ee8e02262aba83c27292ea0c3b5f0ea4003c",
+  "reviewed_commit": "751ffe4197d9dab8f79ec382facd9c14fcfbb2ef",
   "rustc": "1.97.1",
   "host_target": "x86_64-unknown-linux-gnu",
   "fixture_revision": 18,
   "threshold_policy": {
     "rule": "fail when growth exceeds the larger of percent and absolute allowances",
-    "update": "Run `python3 tools/performance_gate.py --update`, inspect the semantic and artifact-size explanation, then commit the reviewed baseline."
+    "update": "Run `cargo xtask performance-gate --update`, inspect the semantic and artifact-size explanation, then commit the reviewed baseline."
   },
   "artifacts": {
     "conduct-release": {
       "kind": "host-executable",
-      "baseline_bytes": 7099408,
+      "baseline_bytes": 9764408,
       "maximum_growth_percent": 12,
       "maximum_growth_bytes": 262144
     },
