@@ -3138,10 +3138,11 @@ impl ResolvedPanel<'_> {
         }
     }
 
-    /// Executes using the experimental synthetic-plan compatibility path.
+    /// Historical synthetic-plan spike retained only for regression archaeology.
     ///
-    /// This is retained only until callers have migrated to [`Self::run_exact`].
-    pub fn run_deterministic<'r, 'i>(
+    /// Production and compatibility callers must not select this path.
+    #[allow(dead_code)]
+    fn run_synthetic_plan_spike<'r, 'i>(
         &self,
         io: &'r mut RunIo<'i>,
     ) -> Result<ExecutionSummary, RuntimeError> {
@@ -3567,11 +3568,6 @@ impl ResolvedPanel<'_> {
             nodes_completed: self.nodes.len(),
             cords_conducted: self.cords.len(),
         })
-    }
-
-    /// Primary execution entrypoint: drives the production DeterministicExecutor.
-    pub fn run(&self, io: &mut RunIo<'_>) -> Result<ExecutionSummary, RuntimeError> {
-        self.run_deterministic(io)
     }
 }
 
@@ -4444,7 +4440,7 @@ mod tests {
         let mut output = Vec::new();
         let mut error = Vec::new();
         let summary = resolved
-            .run(&mut RunIo {
+            .run_batch(&mut RunIo {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
@@ -4531,7 +4527,7 @@ mod tests {
         let mut error = Vec::new();
 
         resolved
-            .run(&mut RunIo {
+            .run_batch(&mut RunIo {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
@@ -4583,7 +4579,7 @@ mod tests {
         let mut output = Vec::new();
         let mut error = Vec::new();
         let summary = resolved
-            .run(&mut RunIo {
+            .run_batch(&mut RunIo {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
@@ -4620,7 +4616,7 @@ mod tests {
         let mut output = Vec::new();
         let mut error = Vec::new();
         resolved
-            .run(&mut RunIo {
+            .run_batch(&mut RunIo {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,

@@ -133,7 +133,7 @@ fn tour_lessons_use_the_production_parser_and_runtime() {
             let mut output = Vec::new();
             let mut error = Vec::new();
             resolved
-                .run(&mut RunIo {
+                .run_batch(&mut RunIo {
                     input: &mut input,
                     output: &mut output,
                     error: &mut error,

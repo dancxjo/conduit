@@ -201,36 +201,37 @@ fn run_panel_exact_inner(
     let mut input_stream = std::io::empty();
     let mut output = Vec::new();
     let mut error = Vec::new();
-    let mut io = conduit_runtime::RunIo {
-        input: &mut input_stream,
-        output: &mut output,
-        error: &mut error,
+    let summary = {
+        let mut io = conduit_runtime::RunIo {
+            input: &mut input_stream,
+            output: &mut output,
+            error: &mut error,
+        };
+        resolved.run_exact(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                validation: conduit_core::PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 256,
+                    max_tick: 512,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            &mut io,
+        )?
     };
-    let summary = resolved.run_exact(
-        &plan,
-        &bindings,
-        ExactRunContext {
-            semantic_source_hash: plan.source_semantic_hash,
-            validation: conduit_core::PlanValidationContext {
-                supported_schema_version: plan.schema_version,
-                now: plan.created_at,
-            },
-            scheduler_policy: SchedulerPolicy {
-                schema_version: SCHEDULER_CONTRACT_VERSION,
-                ready_queue: ReadyQueueDiscipline::RoundRobin,
-                max_decisions: 256,
-                max_tick: 512,
-                max_consecutive_yields: 8,
-                max_events: 64,
-            },
-            reservation: SchedulerReservation {
-                available_runtime_memory_bytes: plan.budget.memory_bytes,
-                executor_overhead_limit_bytes: plan.budget.memory_bytes,
-            },
-        },
-        &mut io,
-    )?;
-    drop(io);
     Ok((summary, output, error))
 }
 

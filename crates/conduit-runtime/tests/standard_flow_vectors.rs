@@ -25,7 +25,7 @@ fn tee_node_duplicates_flow_to_multiple_sinks() {
     let mut error = Vec::new();
 
     resolved
-        .run(&mut RunIo {
+        .run_batch(&mut RunIo {
             input: &mut input,
             output: &mut output,
             error: &mut error,
@@ -60,7 +60,7 @@ fn fallback_node_selects_primary_or_fallback() {
     let mut error = Vec::new();
 
     resolved
-        .run(&mut RunIo {
+        .run_batch(&mut RunIo {
             input: &mut input,
             output: &mut output,
             error: &mut error,
@@ -96,7 +96,7 @@ fn pass_through_and_merge_nodes_shape_flow() {
     let mut error = Vec::new();
 
     resolved
-        .run(&mut RunIo {
+        .run_batch(&mut RunIo {
             input: &mut input,
             output: &mut output,
             error: &mut error,
