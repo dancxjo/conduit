@@ -30,7 +30,7 @@ Options:
       --verbose-diagnostics
           Include related spans, notes, paths, and causes
       --compile-input <INPUT>
-          Validate check/explain against this explicit compile-input snapshot
+          Resolve and run against this explicit compile-input snapshot
   -h, --help
           Print help
   -V, --version

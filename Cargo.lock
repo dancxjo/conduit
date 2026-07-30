@@ -308,6 +308,7 @@ dependencies = [
 name = "conduct"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "clap",
  "clap_complete",
  "clap_mangen",

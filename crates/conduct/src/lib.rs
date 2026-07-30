@@ -202,7 +202,7 @@ pub struct Arguments {
     #[arg(value_name = "PANEL")]
     pub panel: Option<PathBuf>,
 
-    /// Validate check/explain against this explicit compile-input snapshot.
+    /// Resolve and run against this explicit compile-input snapshot.
     #[arg(long, value_name = "INPUT")]
     pub compile_input: Option<PathBuf>,
 

@@ -4137,7 +4137,7 @@ pub struct RuntimeError {
 }
 
 impl RuntimeError {
-    fn new(code: &'static str, message: impl Into<String>) -> Self {
+    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),

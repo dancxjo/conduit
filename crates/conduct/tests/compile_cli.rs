@@ -8,9 +8,9 @@ use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
     CompileSourceLimits, DistributionProviderDocument, ExecutionLimitsDocument,
-    ExecutionProfileDocument, HostReportDocument, ImplementationDocument, PinDocument,
-    ProviderRequirementDocument, ProviderRiskTraitsDocument, ReferenceDistributionDocument,
-    builtin_catalog_document, compile_source,
+    ExecutionProfileDocument, HostReportDocument, ImplementationDocument, MemoryClaimDocument,
+    PinDocument, ProviderRequirementDocument, ProviderRiskTraitsDocument,
+    ReferenceDistributionDocument, builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -72,12 +72,22 @@ fn profile(ordinal: u8) -> ExecutionProfileDocument {
         step_bound_enforced: true,
         limits: ExecutionLimitsDocument {
             max_step_work: 4,
+            max_input_leases: 1,
+            max_input_bytes: 1024,
+            max_output_reservations: 1,
+            max_output_bytes: 1024,
             max_transactions: 1,
+            max_fragments_per_step: 1,
+            implementation_memory_bytes: 2048,
             cancellation_ticks: 1,
             ..ExecutionLimitsDocument::default()
         },
         representations: Vec::new(),
-        memory_claims: Vec::new(),
+        memory_claims: vec![MemoryClaimDocument {
+            category: "port-transactions".to_owned(),
+            accounting: "executor-allocated".to_owned(),
+            bytes: 2048,
+        }],
         checkpoint: None,
     }
 }
@@ -97,9 +107,9 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
                 semantic_hash: contract_hash.to_string(),
             },
             executor: "native-in-process".to_owned(),
-            entrypoint_name: "run".to_owned(),
-            entrypoint_adapter: "conduit/native-step".to_owned(),
-            entrypoint_abi: "conduit/native-v1".to_owned(),
+            entrypoint_name: contract_id.strip_prefix("conduit.std/").unwrap().to_owned(),
+            entrypoint_adapter: "conduit/hosted-primitive-step".to_owned(),
+            entrypoint_abi: "conduit/hosted-primitive-v1".to_owned(),
             runtime_protocol_version: 1,
             execution_profile: pin("fixture/execution-profile", 30),
             artifacts: vec![ArtifactReferenceDocument {
@@ -163,7 +173,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
-            memory_bytes: 32,
+            memory_bytes: 2048,
             cpu_units: 1,
             ..BudgetDocument::default()
         },
@@ -621,6 +631,57 @@ fn check_and_explain_validate_the_explicit_compile_snapshot() {
             String::from_utf8_lossy(&output.stderr)
         );
     }
+}
+
+#[test]
+fn run_consumes_the_authored_exact_plan_and_explicit_hosted_bindings() {
+    let root = temporary_directory();
+    let source = include_str!("../../../examples/hello.panel");
+    let panel = root.join("hello.panel");
+    let input_path = root.join("compile-input.json");
+    std::fs::write(&panel, source).unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&input(source)).unwrap(),
+    )
+    .unwrap();
+
+    let executed = command()
+        .arg("--run")
+        .arg("--compile-input")
+        .arg(&input_path)
+        .arg(&panel)
+        .output()
+        .unwrap();
+    assert!(
+        executed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&executed.stderr)
+    );
+    assert_eq!(executed.stdout, b"HELLO FROM CONDUIT.\n");
+    assert!(executed.stderr.is_empty());
+
+    let mut unavailable_adapter = input(source);
+    unavailable_adapter.candidates[0]
+        .implementation
+        .entrypoint_adapter = "fixture/unavailable-adapter".to_owned();
+    unavailable_adapter.seal().unwrap();
+    std::fs::write(
+        &input_path,
+        serde_json::to_vec_pretty(&unavailable_adapter).unwrap(),
+    )
+    .unwrap();
+    let rejected = command()
+        .arg("--run")
+        .arg("--compile-input")
+        .arg(&input_path)
+        .arg(&panel)
+        .output()
+        .unwrap();
+    assert_eq!(rejected.status.code(), Some(2));
+    assert!(rejected.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("CND-RUN-007"));
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
