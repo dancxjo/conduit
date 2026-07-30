@@ -418,7 +418,7 @@ test("illustrative lessons cannot run their pedagogical target", async ({ page }
   await expect(page.locator("#evidence")).not.toContainText('"event_kind": "terminal"');
 });
 
-test("typed formatter lesson shares exact graph and ordered evidence scenarios", async ({ page }) => {
+test("typed text lesson shares format, lines, join, and ordered evidence", async ({ page }) => {
   await page.goto(
     "/tour/public/index.html?lesson=library.typed-text-format",
   );
@@ -429,10 +429,12 @@ test("typed formatter lesson shares exact graph and ordered evidence scenarios",
   await expect(story).toBeVisible();
   await expect(story).toContainText("std/text/format");
   await expect(story).toContainText("std/format-values/literal");
+  await expect(story).toContainText("std/text/lines");
+  await expect(story).toContainText("std/text/join");
   await story.getByRole("button", { name: "std/text/format" }).click();
   await expect(page.locator("#selected-node-label")).toContainText("message");
-  await expect(story.locator("#library-docs a")).toHaveCount(4);
-  await expect(page.locator("#scenario option")).toHaveCount(4);
+  await expect(story.locator("#library-docs a")).toHaveCount(10);
+  await expect(page.locator("#scenario option")).toHaveCount(6);
   await expect(page.locator('[data-id="message"]')).toContainText("std/text/format");
   await expect(page.locator('[data-id="message"]')).toContainText("template");
   await expect(page.locator('[data-id="message"]')).toContainText("values");
@@ -472,6 +474,16 @@ test("typed formatter lesson shares exact graph and ordered evidence scenarios",
   await page.locator("#run").click();
   await expect(result).toContainText("cancelled", { timeout: 20_000 });
   await expect(page.locator("#timeline-table")).toContainText("cancelled");
+
+  await page.locator("#scenario").selectOption("lines-join");
+  await page.locator("#run").click();
+  await expect(result).toContainText("alpha | beta |  | gamma", { timeout: 20_000 });
+  await expect(page.locator('[data-id="lines"]')).toContainText("std/text/lines");
+  await expect(page.locator('[data-id="joined"]')).toContainText("std/text/join");
+
+  await page.locator("#scenario").selectOption("format-lines");
+  await page.locator("#run").click();
+  await expect(result).toContainText("alpha / beta", { timeout: 20_000 });
 
   await page.locator("#scenario").selectOption("standalone");
   await source.fill((await source.inputValue()).replace("operator", "robot"));
