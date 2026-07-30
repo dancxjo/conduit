@@ -46,12 +46,35 @@ fn cell_and_deduplicate_nodes_run_in_panel() {
     assert_eq!(err.code, "CND-IMP-001");
 
     let mut custom_registry = Registry::default();
-    custom_registry.register_executable_node(&CELL_CONTRACT, || Box::new(EchoHandler), |_| Ok(()));
-    custom_registry.register_executable_node(
-        &DEDUPLICATE_CONTRACT,
-        || Box::new(EchoHandler),
-        |_| Ok(()),
-    );
+    let reg_provider = |reg: &mut Registry,
+                        contract: &'static conduit_core::NodeContract<'static>,
+                        factory: conduit_runtime::HandlerFactory| {
+        let manifest = conduit_runtime::ImplementationManifest {
+            implementation_id: format!("{}.test", contract.id.as_str()),
+            contract_id: contract.id.as_str().to_owned(),
+            contract_hash: conduit_runtime::compute_contract_hash(contract),
+        };
+        let host_evidence = conduit_runtime::HostResolutionEvidence {
+            host_id: "hosted-local".to_owned(),
+            time_basis: "clock/monotonic".to_owned(),
+            observed_at_tick: 1,
+            valid_until_tick: 1000,
+            available_memory_bytes: 1_000_000,
+            required_memory_bytes: 1_000,
+            rejection_reasons: Vec::new(),
+        };
+        reg.register_executable_provider(contract, manifest, Some(host_evidence), factory, |_| {
+            Ok(())
+        })
+        .unwrap();
+    };
+
+    reg_provider(&mut custom_registry, &CELL_CONTRACT, || {
+        Box::new(EchoHandler)
+    });
+    reg_provider(&mut custom_registry, &DEDUPLICATE_CONTRACT, || {
+        Box::new(EchoHandler)
+    });
 
     let resolved = custom_registry
         .resolve(&panel)
@@ -96,12 +119,35 @@ fn circuit_breaker_and_cache_nodes_run_in_panel() {
     assert_eq!(err.code, "CND-IMP-001");
 
     let mut custom_registry = Registry::default();
-    custom_registry.register_executable_node(
-        &CIRCUIT_BREAKER_CONTRACT,
-        || Box::new(EchoHandler),
-        |_| Ok(()),
-    );
-    custom_registry.register_executable_node(&CACHE_CONTRACT, || Box::new(EchoHandler), |_| Ok(()));
+    let reg_provider = |reg: &mut Registry,
+                        contract: &'static conduit_core::NodeContract<'static>,
+                        factory: conduit_runtime::HandlerFactory| {
+        let manifest = conduit_runtime::ImplementationManifest {
+            implementation_id: format!("{}.test", contract.id.as_str()),
+            contract_id: contract.id.as_str().to_owned(),
+            contract_hash: conduit_runtime::compute_contract_hash(contract),
+        };
+        let host_evidence = conduit_runtime::HostResolutionEvidence {
+            host_id: "hosted-local".to_owned(),
+            time_basis: "clock/monotonic".to_owned(),
+            observed_at_tick: 1,
+            valid_until_tick: 1000,
+            available_memory_bytes: 1_000_000,
+            required_memory_bytes: 1_000,
+            rejection_reasons: Vec::new(),
+        };
+        reg.register_executable_provider(contract, manifest, Some(host_evidence), factory, |_| {
+            Ok(())
+        })
+        .unwrap();
+    };
+
+    reg_provider(&mut custom_registry, &CIRCUIT_BREAKER_CONTRACT, || {
+        Box::new(EchoHandler)
+    });
+    reg_provider(&mut custom_registry, &CACHE_CONTRACT, || {
+        Box::new(EchoHandler)
+    });
 
     let resolved = custom_registry
         .resolve(&panel)

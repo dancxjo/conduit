@@ -112,7 +112,7 @@ fn cross_contract_semantic_impersonation_is_rejected() {
     use conduit_panel::Node;
     use conduit_runtime::{
         FILE_READ_CONTRACT, Handler, HostResolutionEvidence, ImplementationManifest, RunIo,
-        RuntimeError, Value,
+        RuntimeError, Value, compute_contract_hash,
     };
 
     struct DummyHandler;
@@ -133,7 +133,7 @@ fn cross_contract_semantic_impersonation_is_rejected() {
     let fake_manifest = ImplementationManifest {
         implementation_id: "fake.literal.impersonator".to_owned(),
         contract_id: "conduit.std/literal".to_owned(),
-        contract_hash: None,
+        contract_hash: compute_contract_hash(&FILE_READ_CONTRACT),
     };
 
     let err = registry
@@ -142,7 +142,11 @@ fn cross_contract_semantic_impersonation_is_rejected() {
             fake_manifest,
             Some(HostResolutionEvidence {
                 host_id: "local-host".to_owned(),
-                is_capable: true,
+                time_basis: "clock/monotonic".to_owned(),
+                observed_at_tick: 1,
+                valid_until_tick: 1000,
+                available_memory_bytes: 1_000_000,
+                required_memory_bytes: 1_000,
                 rejection_reasons: Vec::new(),
             }),
             || Box::new(DummyHandler),
@@ -162,11 +166,52 @@ fn cross_contract_semantic_impersonation_is_rejected() {
 }
 
 #[test]
-fn provider_available_state_when_host_evidence_absent_or_incapable() {
+fn contract_hash_mismatch_is_rejected() {
+    use conduit_panel::Node;
+    use conduit_runtime::{
+        FILE_READ_CONTRACT, Handler, ImplementationManifest, RunIo, RuntimeError, Value,
+    };
+
+    struct DummyHandler;
+    impl Handler for DummyHandler {
+        fn run(
+            &mut self,
+            _: &Node,
+            _: &[Value],
+            _: &mut RunIo<'_>,
+        ) -> Result<Vec<Value>, RuntimeError> {
+            Ok(Vec::new())
+        }
+    }
+
+    let mut registry = Registry::default();
+
+    let invalid_hash_manifest = ImplementationManifest {
+        implementation_id: "test.file-read.invalid-hash".to_owned(),
+        contract_id: FILE_READ_CONTRACT.id.as_str().to_owned(),
+        contract_hash: "invalid-hash-12345".to_owned(),
+    };
+
+    let err = registry
+        .register_executable_provider(
+            &FILE_READ_CONTRACT,
+            invalid_hash_manifest,
+            None,
+            || Box::new(DummyHandler),
+            |_| Ok(()),
+        )
+        .expect_err("contract hash mismatch must be rejected");
+
+    assert_eq!(err.code, "CND-REG-005");
+    assert!(err.message.contains("contract hash mismatch"));
+}
+
+#[test]
+fn provider_available_state_when_host_evidence_absent_incapable_or_stale() {
     use conduit_panel::Node;
     use conduit_runtime::{
         FILE_READ_CONTRACT, Handler, HostResolutionEvidence, ImplementationManifest, RunIo,
-        RuntimeError, Value,
+        RuntimeError, Value, compute_contract_hash,
     };
 
     struct DummyHandler;
@@ -186,7 +231,7 @@ fn provider_available_state_when_host_evidence_absent_or_incapable() {
     let valid_manifest = ImplementationManifest {
         implementation_id: "test.file-read.native".to_owned(),
         contract_id: FILE_READ_CONTRACT.id.as_str().to_owned(),
-        contract_hash: None,
+        contract_hash: compute_contract_hash(&FILE_READ_CONTRACT),
     };
 
     // Case 1: Manifest present, but host facts/evidence absent
@@ -216,10 +261,14 @@ fn provider_available_state_when_host_evidence_absent_or_incapable() {
     registry
         .register_executable_provider(
             &FILE_READ_CONTRACT,
-            valid_manifest,
+            valid_manifest.clone(),
             Some(HostResolutionEvidence {
                 host_id: "remote-pico".to_owned(),
-                is_capable: false,
+                time_basis: "clock/monotonic".to_owned(),
+                observed_at_tick: 1,
+                valid_until_tick: 1000,
+                available_memory_bytes: 1_000_000,
+                required_memory_bytes: 1_000,
                 rejection_reasons: vec!["CND-RES-015".to_owned()],
             }),
             || Box::new(DummyHandler),
@@ -232,6 +281,17 @@ fn provider_available_state_when_host_evidence_absent_or_incapable() {
     assert_eq!(avail_incapable.reason_code, "CND-AVL-002");
     assert_eq!(avail_incapable.host_id.as_deref(), Some("remote-pico"));
     assert_eq!(avail_incapable.rejection_reasons, vec!["CND-RES-015"]);
+
+    // Case 3: Stale evidence at tick 2000 (valid_until_tick = 1000)
+    let avail_stale = registry.node_availability_at_tick("conduit/file-read", 2000);
+    assert_eq!(avail_stale.state, AvailabilityState::ProviderAvailable);
+    assert_eq!(avail_stale.reason_code, "CND-AVL-002");
+    assert!(
+        avail_stale
+            .rejection_reasons
+            .iter()
+            .any(|r| r.contains("CND-RES-003"))
+    );
 }
 
 #[test]
@@ -254,7 +314,18 @@ fn bound_in_plan_and_running_availability_states() {
 fn patchbay_snapshot_carries_truthful_node_availabilities() {
     let src = "panel 1\nnode greeting : conduit/literal { value = \"hello\" }\nnode output : conduit/stdout\n";
     let workspace = conduit_patchbay::Workspace::new("doc-1", src).expect("parses");
-    let snapshot = workspace.semantic();
+    let registry = Registry::default();
+    let snapshot = workspace.semantic_with_lookup(|kind| {
+        let avail = registry.node_availability(kind);
+        conduit_patchbay::NodeAvailabilityProjection {
+            contract_id: avail.contract_id,
+            availability_state: avail.state.as_str().to_owned(),
+            reason_code: avail.reason_code,
+            implementation_id: avail.implementation_id,
+            host_id: avail.host_id,
+            rejection_reasons: avail.rejection_reasons,
+        }
+    });
 
     assert_eq!(snapshot.availabilities.len(), 2);
 
@@ -262,4 +333,57 @@ fn patchbay_snapshot_carries_truthful_node_availabilities() {
     assert_eq!(greeting_avail.contract_id, "conduit.std/literal");
     assert_eq!(greeting_avail.availability_state, "resolvable-on-this-host");
     assert_eq!(greeting_avail.reason_code, "CND-AVL-003");
+}
+
+#[test]
+fn stale_or_incapable_host_evidence_fails_resolution() {
+    use conduit_panel::Node;
+    use conduit_runtime::{
+        FILE_READ_CONTRACT, Handler, HostResolutionEvidence, ImplementationManifest, RunIo,
+        RuntimeError, Value, compute_contract_hash,
+    };
+
+    struct DummyHandler;
+    impl Handler for DummyHandler {
+        fn run(
+            &mut self,
+            _: &Node,
+            _: &[Value],
+            _: &mut RunIo<'_>,
+        ) -> Result<Vec<Value>, RuntimeError> {
+            Ok(Vec::new())
+        }
+    }
+
+    let mut registry = Registry::default();
+    let valid_manifest = ImplementationManifest {
+        implementation_id: "test.file-read.native".to_owned(),
+        contract_id: FILE_READ_CONTRACT.id.as_str().to_owned(),
+        contract_hash: compute_contract_hash(&FILE_READ_CONTRACT),
+    };
+
+    // Host evidence with rejection reason (incapable host)
+    registry
+        .register_executable_provider(
+            &FILE_READ_CONTRACT,
+            valid_manifest,
+            Some(HostResolutionEvidence {
+                host_id: "remote-pico".to_owned(),
+                time_basis: "clock/monotonic".to_owned(),
+                observed_at_tick: 1,
+                valid_until_tick: 10,
+                available_memory_bytes: 1_000,
+                required_memory_bytes: 1_000,
+                rejection_reasons: vec!["CND-RES-015".to_owned()],
+            }),
+            || Box::new(DummyHandler),
+            |_| Ok(()),
+        )
+        .expect("registration succeeds");
+
+    let panel = parse("panel 1\nnode r : conduit/file-read\n").unwrap();
+    let err = registry
+        .resolve(&panel)
+        .expect_err("resolution must fail when host evidence is incapable");
+    assert_eq!(err.code, "CND-IMP-001");
 }

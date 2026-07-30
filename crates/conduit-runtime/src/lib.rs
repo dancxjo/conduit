@@ -28,6 +28,7 @@ use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 mod artifact_verification;
 mod config_resolution;
@@ -640,23 +641,72 @@ pub trait Handler {
     ) -> Result<Vec<Value>, RuntimeError>;
 }
 
-type HandlerFactory = fn() -> Box<dyn Handler>;
-type ConfigValidator = fn(&Node) -> Result<(), ResolutionError>;
+pub type HandlerFactory = fn() -> Box<dyn Handler>;
+pub type ConfigValidator = fn(&Node) -> Result<(), ResolutionError>;
 
 /// Concrete implementation manifest describing a registered provider.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ImplementationManifest {
     pub implementation_id: String,
     pub contract_id: String,
-    pub contract_hash: Option<String>,
+    pub contract_hash: String,
 }
 
 /// Host facts and resolution evidence for provider availability.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct HostResolutionEvidence {
     pub host_id: String,
-    pub is_capable: bool,
+    pub time_basis: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub available_memory_bytes: u64,
+    pub required_memory_bytes: u64,
     pub rejection_reasons: Vec<String>,
+}
+
+impl HostResolutionEvidence {
+    #[must_use]
+    pub fn is_fresh_and_capable(&self, current_tick: u64) -> bool {
+        current_tick >= self.observed_at_tick
+            && current_tick <= self.valid_until_tick
+            && self.available_memory_bytes >= self.required_memory_bytes
+            && self.rejection_reasons.is_empty()
+    }
+
+    #[must_use]
+    pub fn fresh_rejection_reasons(&self, current_tick: u64) -> Vec<String> {
+        let mut reasons = self.rejection_reasons.clone();
+        if current_tick < self.observed_at_tick {
+            reasons.push("CND-HST-006: host observation not yet valid".to_owned());
+        }
+        if current_tick > self.valid_until_tick {
+            reasons.push("CND-RES-003: host resolution evidence is stale".to_owned());
+        }
+        if self.available_memory_bytes < self.required_memory_bytes {
+            reasons.push("CND-RES-013: insufficient host capacity".to_owned());
+        }
+        reasons
+    }
+}
+
+/// Computes the exact deterministic contract hash for a NodeContract.
+pub fn compute_contract_hash(contract: &NodeContract) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(contract.id.as_str().as_bytes());
+    hasher.update(b":config:");
+    for field in contract.config.fields {
+        hasher.update(field.key.as_str().as_bytes());
+        hasher.update(field.value_type.contract_id.as_str().as_bytes());
+    }
+    hasher.update(b":inputs:");
+    for input in contract.inputs {
+        hasher.update(input.id.as_str().as_bytes());
+    }
+    hasher.update(b":outputs:");
+    for output in contract.outputs {
+        hasher.update(output.id.as_str().as_bytes());
+    }
+    format!("{:x}", hasher.finalize())
 }
 
 #[derive(Debug)]
@@ -857,6 +907,19 @@ impl Registry {
             });
         }
 
+        let expected_hash = compute_contract_hash(contract);
+        if manifest.contract_hash != expected_hash {
+            return Err(RegistryError {
+                code: "CND-REG-005",
+                message: format!(
+                    "contract hash mismatch for `{}`: manifest specifies `{}`, expected `{}`",
+                    contract.id.as_str(),
+                    manifest.contract_hash,
+                    expected_hash
+                ),
+            });
+        }
+
         self.nodes.insert(
             contract.id.as_str(),
             RegisteredNode {
@@ -872,32 +935,6 @@ impl Registry {
         Ok(())
     }
 
-    /// Registers a concrete executable provider implementation (legacy convenience wrapper with default host facts).
-    pub fn register_executable_node(
-        &mut self,
-        contract: &'static NodeContract<'static>,
-        factory: HandlerFactory,
-        validate_config: ConfigValidator,
-    ) {
-        let manifest = ImplementationManifest {
-            implementation_id: format!("{}.native", contract.id.as_str()),
-            contract_id: contract.id.as_str().to_owned(),
-            contract_hash: None,
-        };
-        let host_evidence = HostResolutionEvidence {
-            host_id: "hosted-local".to_owned(),
-            is_capable: true,
-            rejection_reasons: Vec::new(),
-        };
-        let _ = self.register_executable_provider(
-            contract,
-            manifest,
-            Some(host_evidence),
-            factory,
-            validate_config,
-        );
-    }
-
     /// Registers a semantic contract as contract-only.
     pub fn register_contract_only(&mut self, contract: &'static NodeContract<'static>) {
         self.nodes.insert(
@@ -909,14 +946,25 @@ impl Registry {
         );
     }
 
-    /// Returns the availability state for a contract id (supporting aliases).
+    /// Returns the availability state for a contract id (supporting aliases) at tick 100.
     pub fn node_availability(&self, contract_id: &str) -> NodeAvailability {
+        self.node_availability_at_tick(contract_id, 100)
+    }
+
+    /// Returns the availability state for a contract id at a specific tick.
+    pub fn node_availability_at_tick(
+        &self,
+        contract_id: &str,
+        current_tick: u64,
+    ) -> NodeAvailability {
         if let Some(registered) = self.get_registered_node(contract_id) {
             let canonical_id = registered.contract.id.as_str();
             if let Some(ref exec) = registered.executable {
                 let manifest_canonical = self
                     .resolve_canonical_id(&exec.manifest.contract_id)
                     .unwrap_or(&exec.manifest.contract_id);
+
+                let expected_hash = compute_contract_hash(registered.contract);
 
                 if manifest_canonical != canonical_id {
                     // Cross-contract mismatch
@@ -930,8 +978,21 @@ impl Registry {
                         run_id: None,
                         rejection_reasons: vec!["CND-RES-008".to_owned()],
                     }
+                } else if exec.manifest.contract_hash != expected_hash {
+                    // Contract hash mismatch
+                    NodeAvailability {
+                        contract_id: canonical_id.to_owned(),
+                        state: AvailabilityState::ContractOnly,
+                        reason_code: "CND-AVL-001".to_owned(),
+                        implementation_id: None,
+                        host_id: None,
+                        plan_identity: None,
+                        run_id: None,
+                        rejection_reasons: vec!["CND-RES-002".to_owned()],
+                    }
                 } else if let Some(ref evidence) = exec.host_evidence {
-                    if evidence.is_capable {
+                    let rejections = evidence.fresh_rejection_reasons(current_tick);
+                    if evidence.is_fresh_and_capable(current_tick) {
                         NodeAvailability {
                             contract_id: canonical_id.to_owned(),
                             state: AvailabilityState::ResolvableOnThisHost,
@@ -951,7 +1012,7 @@ impl Registry {
                             host_id: Some(evidence.host_id.clone()),
                             plan_identity: None,
                             run_id: None,
-                            rejection_reasons: evidence.rejection_reasons.clone(),
+                            rejection_reasons: rejections,
                         }
                     }
                 } else {
@@ -963,7 +1024,7 @@ impl Registry {
                         host_id: None,
                         plan_identity: None,
                         run_id: None,
-                        rejection_reasons: vec!["CND-RES-012".to_owned()],
+                        rejection_reasons: vec!["CND-RES-025".to_owned()],
                     }
                 }
             } else {
@@ -1020,11 +1081,15 @@ impl Default for Registry {
                     manifest: ImplementationManifest {
                         implementation_id: format!("{}.native", contract.id.as_str()),
                         contract_id: contract.id.as_str().to_owned(),
-                        contract_hash: None,
+                        contract_hash: compute_contract_hash(contract),
                     },
                     host_evidence: Some(HostResolutionEvidence {
                         host_id: "hosted-local".to_owned(),
-                        is_capable: true,
+                        time_basis: "clock/monotonic".to_owned(),
+                        observed_at_tick: 1,
+                        valid_until_tick: 1000,
+                        available_memory_bytes: 1_000_000,
+                        required_memory_bytes: 1_000,
                         rejection_reasons: Vec::new(),
                     }),
                     factory,
@@ -1348,12 +1413,22 @@ impl Registry {
                     ),
                 ));
             }
+            let expected_hash = compute_contract_hash(definition.contract);
+            if executable.manifest.contract_hash != expected_hash {
+                return Err(ResolutionError::new(
+                    "CND-IMP-001",
+                    format!(
+                        "contract hash mismatch for `{}`: manifest specifies `{}`, expected `{}`",
+                        source.kind, executable.manifest.contract_hash, expected_hash
+                    ),
+                ));
+            }
             if let Some(ref evidence) = executable.host_evidence {
-                if !evidence.is_capable {
+                if !evidence.is_fresh_and_capable(100) {
                     return Err(ResolutionError::new(
                         "CND-IMP-001",
                         format!(
-                            "host resolution evidence rejected for `{}`: host is not capable",
+                            "host resolution evidence rejected for `{}`: host is not capable or evidence is stale",
                             source.kind
                         ),
                     ));
