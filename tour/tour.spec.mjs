@@ -158,16 +158,18 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
 test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const input = page.locator('[data-id="greeting"] .control-input');
+  const selectedSourceText = async () =>
+    (await page.locator(".panel-source-selection").allTextContents()).join("");
   await input.click();
 
   await expect(input).toBeFocused();
-  await expect(page.locator(".panel-source-selection")).toHaveText("node greeting");
+  await expect.poll(selectedSourceText).toBe("node greeting");
 
   await input.fill("Edited on the faceplate.");
   await expect(input).toBeFocused();
   await expect(input).toHaveValue("Edited on the faceplate.");
   await expect(page.locator("#source")).toHaveValue(/Edited on the faceplate\./);
-  await expect(page.locator(".panel-source-selection")).toHaveText("node greeting");
+  await expect.poll(selectedSourceText).toBe("node greeting");
 });
 
 test("shows node movement while a topology box is being dragged", async ({ page }) => {
