@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 51,
+  "manifest_revision": 52,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -5100,6 +5100,93 @@
         {"package": "conduit-core", "test": "workload_vectors"},
         {"package": "conduit-core", "test": "execution_plan_vectors"},
         {"package": "conduit-runtime", "test": "workload_evidence"}
+      ]
+    },
+    {
+      "id": "cross-host-provider-conformance",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "HCF-001", "HCF-002", "HCF-003", "HCF-004", "HCF-005",
+        "HCF-006", "HCF-007", "HCF-008", "HCF-009"
+      ],
+      "artifacts": [{
+        "id": "cross-host-provider-conformance-v1",
+        "path": "../c5/cross-host-provider-conformance-v1.json",
+        "sha256": "sha256:35b21125ca95c41006df3176073fc9914206307ba2d7a97a3560036927b720bc",
+        "operation": "cross-host-provider-conformance-v1",
+        "requirement_ids": [
+          "HCF-001", "HCF-002", "HCF-003", "HCF-004", "HCF-005",
+          "HCF-006", "HCF-007", "HCF-008", "HCF-009"
+        ],
+        "default_rule": "HCF-001",
+        "case_rules": {
+          "firmware-honest-unsupported": "HCF-002",
+          "describe-only-not-executable": "HCF-002",
+          "empty-provider-set": "HCF-002",
+          "linked-uninitialized": "HCF-003",
+          "provider-lost": "HCF-003",
+          "stale-observation": "HCF-003",
+          "fabricated-observation": "HCF-003",
+          "label-only-false-satisfaction": "HCF-004",
+          "custom-type-incompatible": "HCF-005",
+          "explicit-adapter-pass": "HCF-005",
+          "adapter-not-published": "HCF-005",
+          "failed-conformance": "HCF-006",
+          "stale-conformance": "HCF-006",
+          "wrong-artifact-digest": "HCF-006",
+          "protocol-mismatch": "HCF-007",
+          "interpreter-unavailable": "HCF-007",
+          "non-cancellable-worker": "HCF-008",
+          "hidden-foreign-queue": "HCF-008",
+          "discovery-no-install": "HCF-009",
+          "discovery-no-authority": "HCF-009",
+          "profile-schema-version-rejected": "HCF-001"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "cross-host-provider-conformance-v1#linux-native-pass",
+          "cross-host-provider-conformance-v1#browser-wasm-pass",
+          "cross-host-provider-conformance-v1#deterministic-pass",
+          "cross-host-provider-conformance-v1#explicit-adapter-pass"
+        ],
+        "negative": [
+          "cross-host-provider-conformance-v1#firmware-honest-unsupported",
+          "cross-host-provider-conformance-v1#describe-only-not-executable",
+          "cross-host-provider-conformance-v1#empty-provider-set",
+          "cross-host-provider-conformance-v1#linked-uninitialized",
+          "cross-host-provider-conformance-v1#provider-lost",
+          "cross-host-provider-conformance-v1#stale-observation",
+          "cross-host-provider-conformance-v1#fabricated-observation",
+          "cross-host-provider-conformance-v1#label-only-false-satisfaction",
+          "cross-host-provider-conformance-v1#custom-type-incompatible",
+          "cross-host-provider-conformance-v1#adapter-not-published",
+          "cross-host-provider-conformance-v1#failed-conformance",
+          "cross-host-provider-conformance-v1#stale-conformance",
+          "cross-host-provider-conformance-v1#wrong-artifact-digest",
+          "cross-host-provider-conformance-v1#protocol-mismatch",
+          "cross-host-provider-conformance-v1#interpreter-unavailable"
+        ],
+        "boundary": [
+          "cross-host-provider-conformance-v1#non-cancellable-worker",
+          "cross-host-provider-conformance-v1#hidden-foreign-queue",
+          "cross-host-provider-conformance-v1#discovery-no-install",
+          "cross-host-provider-conformance-v1#discovery-no-authority"
+        ],
+        "migration": [
+          "cross-host-provider-conformance-v1#profile-schema-version-rejected"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "host_conformance_vectors"},
+        {"package": "conduit-compile", "test": "custom_provider_path"},
+        {"package": "conduit-runtime", "test": "host_conformance_runtime"},
+        {"package": "conduit-inspect", "test": "inspection"},
+        {"package": "conduit-patchbay", "test": "protocol"}
       ]
     }
   ]

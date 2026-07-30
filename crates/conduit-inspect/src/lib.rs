@@ -21,7 +21,7 @@ use conduit_runtime::{
     LoweredConfigValue, LoweredSourceV2, OwnedEventPayload, OwnedExecutionEvent,
     decode_event_ndjson, validate_hosted_execution_plan,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest as _, Sha256};
 
@@ -83,6 +83,7 @@ pub enum ArtifactKind {
     ImplementationManifest,
     ArtifactManifest,
     CapabilityReport,
+    HostConformanceReport,
     EntityPassport,
     Package,
 }
@@ -101,6 +102,7 @@ impl ArtifactKind {
             Self::ImplementationManifest => "implementation-manifest",
             Self::ArtifactManifest => "artifact-manifest",
             Self::CapabilityReport => "capability-report",
+            Self::HostConformanceReport => "host-conformance-report",
             Self::EntityPassport => "entity-passport",
             Self::Package => "package",
         }
@@ -233,6 +235,7 @@ pub fn inspect_bytes(
         ArtifactKind::StructuredDiagnostic => inspect_diagnostic(bytes, limits),
         ArtifactKind::ConformanceManifest => inspect_conformance_manifest(bytes, limits),
         ArtifactKind::ConformanceCases => inspect_conformance_cases(bytes, limits),
+        ArtifactKind::HostConformanceReport => inspect_host_conformance_report(bytes, limits),
         ArtifactKind::Package => inspect_package(bytes, limits),
         ArtifactKind::LoweredSource
         | ArtifactKind::ExecutionPlan
@@ -1601,6 +1604,258 @@ fn inspect_conformance_cases(
     ))
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HostConformanceReportDocument {
+    schema: String,
+    schema_version: u32,
+    profile_id: String,
+    profile_identity: String,
+    host_class: String,
+    execution_mode: String,
+    time_basis: String,
+    current_tick: u64,
+    mandatory_facts: Vec<HostConformancePinDocument>,
+    #[serde(default)]
+    optional_providers: Vec<HostProviderDocument>,
+    #[serde(default)]
+    extensions: Vec<HostExtensionDocument>,
+    #[serde(default)]
+    bindings: Vec<HostBindingDocument>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HostConformancePinDocument {
+    id: String,
+    identity: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HostProviderDocument {
+    contract: HostConformancePinDocument,
+    provider_bundle: HostConformancePinDocument,
+    state: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HostExtensionDocument {
+    kind: String,
+    descriptor: HostConformancePinDocument,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HostBindingDocument {
+    required_contract: HostConformancePinDocument,
+    offered_facets: Vec<HostConformancePinDocument>,
+    satisfaction_proof: String,
+    conformance_result: String,
+    provider_bundle: HostConformancePinDocument,
+    host_observation: HostConformancePinDocument,
+    implementation: HostConformancePinDocument,
+    artifact: HostConformancePinDocument,
+    adapter: HostConformancePinDocument,
+    provider_state: String,
+    observed_at_tick: u64,
+    valid_until_tick: u64,
+    maximum_in_flight: u16,
+    maximum_foreign_queue: u16,
+    maximum_memory_bytes: u64,
+    maximum_cancellation_ticks: u64,
+    maximum_evidence_events: u32,
+}
+
+fn inspect_host_conformance_report(
+    bytes: &[u8],
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    let document: HostConformanceReportDocument =
+        serde_json::from_value(parse_json(bytes, limits)?)
+            .map_err(|error| failure("CND-INSP-006", format!("invalid host report: {error}")))?;
+    if document.schema != "conduit.host-conformance-report/v1"
+        || document.schema_version != 1
+        || document.profile_id.is_empty()
+        || document.mandatory_facts.is_empty()
+        || !matches!(
+            document.host_class.as_str(),
+            "linux-hosted"
+                | "browser-wasm"
+                | "constrained-firmware"
+                | "deterministic-test"
+                | "describe-only"
+        )
+        || !matches!(
+            document.execution_mode.as_str(),
+            "executable" | "describe-only"
+        )
+        || (document.host_class == "describe-only") != (document.execution_mode == "describe-only")
+        || document.bindings.iter().any(|binding| {
+            binding.provider_state != "available"
+                || binding.observed_at_tick > document.current_tick
+                || binding.valid_until_tick <= document.current_tick
+                || binding.maximum_in_flight == 0
+                || binding.maximum_memory_bytes == 0
+                || binding.maximum_cancellation_ticks == 0
+                || binding.maximum_evidence_events == 0
+                || binding.offered_facets.is_empty()
+        })
+    {
+        return Err(failure(
+            "CND-HCF-002",
+            "invalid or non-executable host conformance report",
+        ));
+    }
+    let item_count = document.mandatory_facts.len()
+        + document.optional_providers.len()
+        + document.extensions.len()
+        + document.bindings.len();
+    enforce_collection_bound(item_count, limits, "host conformance report items")?;
+    let mut counts = BTreeMap::new();
+    counts.insert(
+        "mandatory_host_facts".to_owned(),
+        document.mandatory_facts.len() as u64,
+    );
+    counts.insert(
+        "optional_providers".to_owned(),
+        document.optional_providers.len() as u64,
+    );
+    counts.insert("extensions".to_owned(), document.extensions.len() as u64);
+    counts.insert("exact_bindings".to_owned(), document.bindings.len() as u64);
+    let mut budgets = BTreeMap::new();
+    budgets.insert(
+        "maximum_in_flight".to_owned(),
+        document
+            .bindings
+            .iter()
+            .map(|binding| u64::from(binding.maximum_in_flight))
+            .sum(),
+    );
+    budgets.insert(
+        "maximum_foreign_queue".to_owned(),
+        document
+            .bindings
+            .iter()
+            .map(|binding| u64::from(binding.maximum_foreign_queue))
+            .sum(),
+    );
+    budgets.insert(
+        "maximum_memory_bytes".to_owned(),
+        document
+            .bindings
+            .iter()
+            .map(|binding| binding.maximum_memory_bytes)
+            .sum(),
+    );
+    let mut references = Vec::new();
+    references.extend(
+        document
+            .mandatory_facts
+            .iter()
+            .map(|fact| InspectionReference {
+                category: "mandatory-host-fact".to_owned(),
+                value: pin_text(fact),
+            }),
+    );
+    for provider in &document.optional_providers {
+        references.extend([
+            InspectionReference {
+                category: "optional-provider-contract".to_owned(),
+                value: format!("{}:{}", pin_text(&provider.contract), provider.state),
+            },
+            InspectionReference {
+                category: "provider-bundle".to_owned(),
+                value: pin_text(&provider.provider_bundle),
+            },
+        ]);
+    }
+    references.extend(
+        document
+            .extensions
+            .iter()
+            .map(|extension| InspectionReference {
+                category: format!("extension-{}", extension.kind),
+                value: pin_text(&extension.descriptor),
+            }),
+    );
+    for binding in &document.bindings {
+        references.extend([
+            InspectionReference {
+                category: "required-contract".to_owned(),
+                value: pin_text(&binding.required_contract),
+            },
+            InspectionReference {
+                category: "satisfaction-proof".to_owned(),
+                value: binding.satisfaction_proof.clone(),
+            },
+            InspectionReference {
+                category: "conformance-result".to_owned(),
+                value: binding.conformance_result.clone(),
+            },
+            InspectionReference {
+                category: "exact-provider-bundle".to_owned(),
+                value: pin_text(&binding.provider_bundle),
+            },
+            InspectionReference {
+                category: "host-observation".to_owned(),
+                value: pin_text(&binding.host_observation),
+            },
+            InspectionReference {
+                category: "implementation".to_owned(),
+                value: pin_text(&binding.implementation),
+            },
+            InspectionReference {
+                category: "artifact".to_owned(),
+                value: pin_text(&binding.artifact),
+            },
+            InspectionReference {
+                category: "adapter".to_owned(),
+                value: pin_text(&binding.adapter),
+            },
+        ]);
+        references.extend(
+            binding
+                .offered_facets
+                .iter()
+                .map(|facet| InspectionReference {
+                    category: "offered-facet".to_owned(),
+                    value: pin_text(facet),
+                }),
+        );
+    }
+    stable_references(&mut references);
+    let digest = format!("sha256:{:x}", Sha256::digest(bytes));
+    Ok(base_report(
+        ArtifactKind::HostConformanceReport,
+        document.schema_version,
+        digest,
+        Some(document.profile_identity),
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            format!(
+                "profile {} class {} mode {}",
+                document.profile_id, document.host_class, document.execution_mode
+            ),
+            format!(
+                "observation time {}:{}",
+                document.time_basis, document.current_tick
+            ),
+            "mandatory facts, optional providers, and extensions are separate".to_owned(),
+            "inspection performs no discovery, installation, initialization, authority, or execution"
+                .to_owned(),
+        ],
+    ))
+}
+
+fn pin_text(pin: &HostConformancePinDocument) -> String {
+    format!("{}@{}", pin.id, pin.identity)
+}
+
 fn detect_kind(bytes: &[u8], limits: InspectLimits) -> Result<ArtifactKind, InspectionError> {
     if bytes.is_empty() {
         return Err(failure(
@@ -1678,6 +1933,9 @@ fn detect_json_object(value: &Value) -> Result<ArtifactKind, InspectionError> {
     if let Some(schema) = object.get("schema").and_then(Value::as_str) {
         match schema {
             "conduit.lowered-source/v2" => candidates.push(ArtifactKind::LoweredSource),
+            "conduit.host-conformance-report/v1" => {
+                candidates.push(ArtifactKind::HostConformanceReport);
+            }
             "conduit.execution-plan/v1" | "conduit.execution-plan/v2" => {
                 candidates.push(ArtifactKind::ExecutionPlan);
             }

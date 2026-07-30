@@ -23,6 +23,7 @@ mod flow;
 mod genesis;
 mod hazard_closure;
 mod host;
+mod host_conformance;
 mod implementation;
 mod inhibit;
 mod job;
@@ -164,6 +165,16 @@ pub use hazard_closure::{
 pub use host::{
     CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, HostReportIdentityError, HostReportReason,
     ReportCapability, ReportMembership, ReportResource, ReportTopology, validate_capability_report,
+};
+pub use host_conformance::{
+    ExactProviderBinding, HOST_CONFORMANCE_PROFILE_SCHEMA_VERSION, HostClass,
+    HostConformanceIdentityError, HostConformanceProfile, HostConformanceReason, HostExecutionMode,
+    HostExtension, HostExtensionKind, MAXIMUM_HOST_EXTENSIONS, MAXIMUM_HOST_MANDATORY_FACTS,
+    MAXIMUM_HOST_OPTIONAL_PROVIDERS, MAXIMUM_PROVIDER_FACETS,
+    PROVIDER_CONFORMANCE_RESULT_SCHEMA_VERSION, ProviderBindingRequest, ProviderBoundary,
+    ProviderBounds, ProviderConformanceOutcome, ProviderConformanceResult, ProviderInventory,
+    ProviderInventoryState, ProviderObservation, ProviderObservationState, bind_provider,
+    validate_host_conformance_profile,
 };
 pub use implementation::{
     BoundednessProfile, CancellationGuarantee, CheckpointRequest, ExecutionLimits,

@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 19] = [
+const REQUIRED_TOUR_LESSONS: [&str; 20] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -24,6 +24,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 19] = [
     "platform.value-envelope-clock-feedback",
     "platform.resource-lease-effect-commit",
     "platform.workload-admission-deadline",
+    "platform.cross-host-provider-conformance",
 ];
 
 #[test]
@@ -507,6 +508,57 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
         .map(|field| field.as_str().unwrap())
         .collect::<BTreeSet<_>>();
     assert_eq!(fields, ["bindings", "workloads"].into_iter().collect());
+}
+
+#[test]
+fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c5/cross-host-provider-conformance-v1.json"
+    ))
+    .expect("cross-host fixture is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "platform.cross-host-provider-conformance")
+        .expect("cross-host provider lesson is selectable");
+    let result: Value =
+        serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["stdout"], lesson["expected_stdout"]);
+    assert_eq!(result["terminal"], "succeeded");
+
+    let cases = fixture["cases"].as_array().unwrap();
+    for profile in lesson["platform"]["profiles"].as_array().unwrap() {
+        let fixture_case = cases
+            .iter()
+            .find(|case| case["id"] == profile["fixture_case"])
+            .expect("lesson profile names a conformance case");
+        if profile["admission"] == "accepted" {
+            assert_eq!(fixture_case["expected"], "bound");
+        } else {
+            assert_eq!(fixture_case["expected"], profile["code"]);
+        }
+    }
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        fields,
+        [
+            "exact_bindings",
+            "extensions",
+            "mandatory_facts",
+            "optional_providers"
+        ]
+        .into_iter()
+        .collect()
+    );
 }
 
 #[test]

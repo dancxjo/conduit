@@ -1,0 +1,26 @@
+panel 1
+
+# The graph stays semantic. A host profile may bind exact providers for these
+# nodes only after current observation and conformance checks.
+node message : std/literal {
+    value = "Custom contracts need exact conformance and explicit adapters.\n"
+}
+node emphasize : text/uppercase
+node output : io/stdout
+
+cord message.out -> emphasize.in {
+    capacity = 1
+    max_value_bytes = 128
+    max_queued_bytes = 128
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord emphasize.out -> output.in {
+    capacity = 1
+    max_value_bytes = 128
+    max_queued_bytes = 128
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

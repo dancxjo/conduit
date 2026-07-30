@@ -1757,13 +1757,31 @@ impl<'a> PinnedCatalog<'a> {
 impl SourceContractCatalog for PinnedCatalog<'_> {
     fn node_schema(&self, id: &str) -> Option<OwnedNodeSchema> {
         let pin = self.exact_pin(&self.document.nodes, id)?;
-        let schema = self.registry.node_schema(id)?;
+        let schema = self.registry.node_schema(id).or_else(|| {
+            custom_leaf_id(id).then(|| OwnedNodeSchema {
+                id: id.to_owned(),
+                fields: Vec::new(),
+            })
+        })?;
         (pin.schema_version == 1 && pin.semantic_hash == schema.semantic_hash().to_string())
             .then_some(schema)
     }
 
     fn node_contract(&self, id: &str) -> Option<OwnedNodeContract> {
         let pin = self.exact_pin(&self.document.nodes, id)?;
+        if self.registry.node_contract(id).is_none() && custom_leaf_id(id) {
+            let schema = OwnedNodeSchema {
+                id: id.to_owned(),
+                fields: Vec::new(),
+            };
+            return (pin.schema_version == 1
+                && pin.semantic_hash == schema.semantic_hash().to_string())
+            .then(|| OwnedNodeContract {
+                id: id.to_owned(),
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+            });
+        }
         let contract = self.registry.node_contract(id)?;
         (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash().to_string())
             .then_some(contract)
@@ -1829,11 +1847,15 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
     let registry = Registry::default();
     let mut ids = BTreeSet::new();
     for pin in &catalog.nodes {
+        let schema = registry.node_schema(&pin.id).or_else(|| {
+            custom_leaf_id(&pin.id).then(|| OwnedNodeSchema {
+                id: pin.id.clone(),
+                fields: Vec::new(),
+            })
+        });
         if !ids.insert(pin.id.as_str())
             || pin.schema_version != 1
-            || registry
-                .node_schema(&pin.id)
-                .is_none_or(|schema| schema.semantic_hash().to_string() != pin.semantic_hash)
+            || schema.is_none_or(|schema| schema.semantic_hash().to_string() != pin.semantic_hash)
         {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
@@ -1861,6 +1883,20 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
         }
     }
     Ok(())
+}
+
+fn custom_leaf_id(id: &str) -> bool {
+    id.contains('/')
+        && !id.starts_with("conduit/")
+        && !id.starts_with("std/")
+        && !id.starts_with("io/")
+        && !id.starts_with("text/")
+        && !id.starts_with("net/")
+        && !id.starts_with("fs/")
+        && !id.starts_with("process/")
+        && !id.starts_with("state/")
+        && !id.starts_with("time/")
+        && !id.starts_with("supervision/")
 }
 
 fn catalog_identity(catalog: &CompileCatalogDocument) -> Result<String, CompileError> {
@@ -2838,7 +2874,7 @@ fn compile_graph(
         return Err(CompileError::new(CompileReason::InvalidInput));
     }
     let panel = executable_panel(graph, &lowered.supervisions)?;
-    let registry = Registry::default();
+    let registry = registry_for_catalog(&input.catalog)?;
     let resolved = registry
         .resolve_contracts(&panel)
         .map_err(|_| CompileError::new(CompileReason::SourceInvalid))?;
@@ -2847,6 +2883,34 @@ fn compile_graph(
         .map_err(|_| CompileError::new(CompileReason::SourceInvalid))?;
     topology.source_semantic_hash = lowered.semantic_hash;
     compile_topology(&topology, &lowered, input)
+}
+
+fn registry_for_catalog(catalog: &CompileCatalogDocument) -> Result<Registry, CompileError> {
+    let mut registry = Registry::default();
+    for pin in &catalog.nodes {
+        if registry
+            .contracts()
+            .any(|contract| contract.id.as_str() == pin.id)
+        {
+            continue;
+        }
+        if !custom_leaf_id(&pin.id) {
+            return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        let id: &'static str = Box::leak(pin.id.clone().into_boxed_str());
+        let contract = Box::leak(Box::new(conduit_core::NodeContract {
+            id: Id(id),
+            config: conduit_core::ConfigContract { fields: &[] },
+            inputs: &[],
+            outputs: &[],
+        }));
+        let schema = OwnedNodeSchema::from_contract(contract);
+        if pin.schema_version != 1 || schema.semantic_hash().to_string() != pin.semantic_hash {
+            return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        registry.register_contract_only(contract);
+    }
+    Ok(registry)
 }
 
 fn executable_panel(
