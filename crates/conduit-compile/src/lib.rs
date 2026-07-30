@@ -1650,7 +1650,8 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         identity: String::new(),
         nodes: [
             "std/literal",
-            "std/format",
+            "std/format-values/literal",
+            "std/text/format",
             "io/stdout",
             "text/uppercase",
             "supervision/supervisor",
@@ -1670,6 +1671,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         .collect::<Result<Vec<_>, CompileError>>()?,
         types: [
             "std/text",
+            "std/format-values",
             "std/list/text",
             "std/terminal",
             "supervision/decision",

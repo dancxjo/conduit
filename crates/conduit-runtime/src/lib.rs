@@ -144,18 +144,18 @@ const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/text"),
     schema_version: 1,
     semantic_hash: SemanticHash::from_bytes([
-        0xbb, 0xfe, 0x54, 0x2a, 0x0e, 0x36, 0xfd, 0x88, 0x53, 0xae, 0x24, 0x23, 0x31, 0xab, 0x4f,
-        0x1a, 0x05, 0xa7, 0xd6, 0xdf, 0xec, 0xe5, 0x67, 0x65, 0xa4, 0x3d, 0x74, 0x94, 0x71, 0x02,
-        0x8a, 0x18,
+        0x79, 0xdd, 0x1d, 0x77, 0xe2, 0xcf, 0x64, 0x59, 0xbc, 0x3a, 0x8f, 0x96, 0xc6, 0x5a, 0x91,
+        0x5a, 0xdc, 0x10, 0xdb, 0x51, 0x6d, 0xca, 0xc0, 0x39, 0xf7, 0x81, 0xbe, 0xe5, 0xc1, 0xca,
+        0xb5, 0xab,
     ]),
 };
-const TEXT_LIST_TYPE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("std/list/text"),
+const FORMAT_VALUES_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/format-values"),
     schema_version: 1,
     semantic_hash: SemanticHash::from_bytes([
-        0x25, 0x58, 0xf1, 0x22, 0xcc, 0xaf, 0xdb, 0xd6, 0x1a, 0xbd, 0xb3, 0xf5, 0xff, 0x38, 0x01,
-        0x8e, 0xe4, 0x79, 0x03, 0x9e, 0xd5, 0xdf, 0xb4, 0xe6, 0x78, 0xdf, 0xc2, 0xb5, 0xc8, 0x85,
-        0x5b, 0x24,
+        0xba, 0x23, 0xe2, 0x76, 0xb7, 0x0b, 0x1b, 0x0c, 0x74, 0x7d, 0x2b, 0x4a, 0xda, 0x10, 0x0d,
+        0x72, 0xfa, 0x5b, 0x38, 0x74, 0xe4, 0xfa, 0x2b, 0xaa, 0x25, 0x0c, 0xf0, 0x71, 0x49, 0x79,
+        0x5c, 0xc0,
     ]),
 };
 const TERMINAL_OBSERVATION_TYPE: TypeContractRef<'static> = TypeContractRef {
@@ -187,25 +187,15 @@ const LITERAL_CONFIG: ConfigContract<'static> = ConfigContract {
         identity: ConfigIdentity::Semantic,
     }],
 };
-const FORMAT_CONFIG: ConfigContract<'static> = ConfigContract {
-    fields: &[
-        ConfigFieldContract {
-            key: Id("template"),
-            value_type: TEXT_TYPE,
-            requirement: ConfigRequirement::Required,
-            sensitivity: Sensitivity::Public,
-            mutability: ConfigMutability::PreStart,
-            identity: ConfigIdentity::Semantic,
-        },
-        ConfigFieldContract {
-            key: Id("parameters"),
-            value_type: TEXT_LIST_TYPE,
-            requirement: ConfigRequirement::Required,
-            sensitivity: Sensitivity::Public,
-            mutability: ConfigMutability::PreStart,
-            identity: ConfigIdentity::Semantic,
-        },
-    ],
+const FORMAT_VALUES_LITERAL_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[ConfigFieldContract {
+        key: Id("values"),
+        value_type: FORMAT_VALUES_TYPE,
+        requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Public,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Semantic,
+    }],
 };
 const HTTP_SERVE_ONCE_CONFIG: ConfigContract<'static> = ConfigContract {
     fields: &[
@@ -270,6 +260,51 @@ const OUTPUT_TEXT: PortContract<'static> = PortContract {
     id: Id("out"),
     direction: Direction::Output,
     value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const FORMAT_TEMPLATE_INPUT: PortContract<'static> = PortContract {
+    id: Id("template"),
+    direction: Direction::Input,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const FORMAT_VALUES_INPUT: PortContract<'static> = PortContract {
+    id: Id("values"),
+    direction: Direction::Input,
+    value_type: FORMAT_VALUES_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const FORMAT_VALUES_OUTPUT: PortContract<'static> = PortContract {
+    id: Id("out"),
+    direction: Direction::Output,
+    value_type: FORMAT_VALUES_TYPE,
     presence: Presence::Required,
     connections: ConnectionCardinality::OneOrMore,
     values: ValueCardinality::ExactlyOne,
@@ -439,10 +474,16 @@ pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &[OUTPUT_TEXT],
 };
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("std/format"),
-    config: FORMAT_CONFIG,
-    inputs: &[],
+    id: Id("std/text/format"),
+    config: EMPTY_CONFIG,
+    inputs: &[FORMAT_TEMPLATE_INPUT, FORMAT_VALUES_INPUT],
     outputs: &[OUTPUT_TEXT],
+};
+pub const FORMAT_VALUES_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("std/format-values/literal"),
+    config: FORMAT_VALUES_LITERAL_CONFIG,
+    inputs: &[],
+    outputs: &[FORMAT_VALUES_OUTPUT],
 };
 pub const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("io/stdout"),
@@ -727,6 +768,7 @@ pub struct RunIo<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HostedPrimitiveImplementation {
     Literal,
+    FormatValuesLiteral,
     Format,
     Stdin,
     Uppercase,
@@ -1381,6 +1423,11 @@ impl Registry {
             });
         };
         install(&LITERAL_CONTRACT, || Box::new(Literal), validate_literal);
+        install(
+            &FORMAT_VALUES_LITERAL_CONTRACT,
+            || Box::new(FormatValuesLiteral),
+            validate_format_values_literal,
+        );
         install(&FORMAT_CONTRACT, || Box::new(Format), validate_format);
         install(&STDIN_CONTRACT, || Box::new(Stdin), validate_empty_config);
         install(
@@ -1513,6 +1560,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::Literal,
                 || Box::new(Literal),
                 validate_literal,
+            ),
+            (
+                &FORMAT_VALUES_LITERAL_CONTRACT,
+                "format-values-literal",
+                HostedPrimitiveImplementation::FormatValuesLiteral,
+                || Box::new(FormatValuesLiteral),
+                validate_format_values_literal,
             ),
             (
                 &FORMAT_CONTRACT,
@@ -1669,6 +1723,14 @@ impl Default for Registry {
         nodes.insert(
             LITERAL_CONTRACT.id.as_str(),
             honest_primitive(&LITERAL_CONTRACT, || Box::new(Literal), validate_literal),
+        );
+        nodes.insert(
+            FORMAT_VALUES_LITERAL_CONTRACT.id.as_str(),
+            honest_primitive(
+                &FORMAT_VALUES_LITERAL_CONTRACT,
+                || Box::new(FormatValuesLiteral),
+                validate_format_values_literal,
+            ),
         );
         nodes.insert(
             FORMAT_CONTRACT.id.as_str(),
@@ -2108,6 +2170,7 @@ impl SourceContractCatalog for Registry {
             ("std/text", OwnedSemanticValue::Text(_))
             | ("std/bytes", OwnedSemanticValue::Bytes(_))
             | ("std/bool", OwnedSemanticValue::Boolean(_))
+            | ("std/format-values", OwnedSemanticValue::List(_))
             | (
                 "std/integer" | "std/natural" | "std/i8" | "std/i16" | "std/i32" | "std/i64"
                 | "std/i128" | "std/u8" | "std/u16" | "std/u32" | "std/u64" | "std/u128",
@@ -2158,6 +2221,16 @@ fn validate_standard_literal(
         }
         ("std/text", SourceValue::Text(value)) => Ok(OwnedSemanticValue::Text(value.clone())),
         ("std/bytes", SourceValue::Bytes(value)) => Ok(OwnedSemanticValue::Bytes(value.clone())),
+        ("std/format-values", SourceValue::List(values)) => {
+            let formatted = values
+                .iter()
+                .map(source_format_value)
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| LiteralValidationError::InvalidValue)?;
+            conduit_std::validate_format_values(&formatted)
+                .map_err(|_| LiteralValidationError::InvalidValue)?;
+            source_value(source)
+        }
         ("std/decimal" | "std/float", SourceValue::ExactDecimal(value)) => {
             Ok(OwnedSemanticValue::Text(value.clone()))
         }
@@ -2260,11 +2333,7 @@ impl TypeContractProvider for BuiltinTypeProvider {
         let definition = conduit_std::standard_type(reference.contract_id.as_str())?;
         Some(TypeContractDescription {
             human_name: definition.human_name,
-            descriptor: CanonicalDescriptor {
-                kind: exact.contract_id,
-                schema_version: exact.schema_version,
-                body: CanonicalValue::Null,
-            },
+            descriptor: conduit_std::standard_type_descriptor(definition),
             strategy: TypeComparisonStrategy::Nominal,
             flow_type_facts: FlowTypeFacts {
                 disposable: TraitProof::Disproven,
@@ -3659,7 +3728,8 @@ impl ResolvedPanel<'_> {
             let implementation = bindings.resolve(planned, plan.artifacts)?;
             let expected_contract = match implementation {
                 HostedPrimitiveImplementation::Literal => "std/literal",
-                HostedPrimitiveImplementation::Format => "std/format",
+                HostedPrimitiveImplementation::FormatValuesLiteral => "std/format-values/literal",
+                HostedPrimitiveImplementation::Format => "std/text/format",
                 HostedPrimitiveImplementation::Stdin => "io/stdin",
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
@@ -3723,10 +3793,35 @@ impl ResolvedPanel<'_> {
                         emitted: false,
                     }
                 }
-                HostedPrimitiveImplementation::Format => {
-                    let bytes = format_node(&resolved.source)?.into_bytes();
+                HostedPrimitiveImplementation::FormatValuesLiteral => {
+                    let values =
+                        source_format_values(&resolved.source).map_err(format_runtime_error)?;
+                    let bytes = encode_format_values(&values).map_err(format_runtime_error)?;
                     HostedNodeKind::Literal {
                         value: bytes,
+                        emitted: false,
+                    }
+                }
+                HostedPrimitiveImplementation::Format => {
+                    let input_cord = |port: &str| {
+                        plan.cords
+                            .iter()
+                            .position(|cord| {
+                                cord.to.node == planned.instance && cord.to.port.as_str() == port
+                            })
+                            .ok_or_else(|| {
+                                RuntimeError::new(
+                                    "CND-RUN-009",
+                                    format!("format input `{port}` is absent from the exact plan"),
+                                )
+                            })
+                    };
+                    HostedNodeKind::Format {
+                        template_cord: input_cord("template")?,
+                        values_cord: input_cord("values")?,
+                        template: None,
+                        values: None,
+                        output: None,
                         emitted: false,
                     }
                 }
@@ -3863,6 +3958,12 @@ impl ResolvedPanel<'_> {
                 })
             })
             .fold(0_u64, u64::saturating_add);
+        if evidence_bytes > plan.budget.evidence_bytes {
+            return Err(RuntimeError::new(
+                "CND-RUN-011",
+                "exact execution evidence exceeded the plan-visible byte budget",
+            ));
+        }
         match status {
             SchedulerStatus::Succeeded => Ok(ExactExecutionReport {
                 summary: ExecutionSummary {
@@ -4035,6 +4136,14 @@ enum HostedNodeKind {
         value: Vec<u8>,
         emitted: bool,
     },
+    Format {
+        template_cord: usize,
+        values_cord: usize,
+        template: Option<RuntimeValue>,
+        values: Option<RuntimeValue>,
+        output: Option<RuntimeValue>,
+        emitted: bool,
+    },
     Stdin {
         emitted: bool,
     },
@@ -4106,6 +4215,105 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     SchedulerStep::Progress
                 } else {
                     SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Format {
+                template_cord,
+                values_cord,
+                template,
+                values,
+                output,
+                emitted,
+            } => {
+                if *emitted {
+                    return SchedulerStep::Completed;
+                }
+                if template.is_none() {
+                    if let Ok(Some(value)) = io.receive(*template_cord) {
+                        *template = Some(value);
+                    } else if matches!(
+                        io.input_state(*template_cord),
+                        Ok(FlowQueueState::Completed)
+                    ) {
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "format/missing-value",
+                            "template input completed without a value",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("format/missing-value"),
+                        };
+                    }
+                }
+                if values.is_none() {
+                    if let Ok(Some(value)) = io.receive(*values_cord) {
+                        *values = Some(value);
+                    } else if matches!(io.input_state(*values_cord), Ok(FlowQueueState::Completed))
+                    {
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "format/missing-value",
+                            "values input completed without a value",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("format/missing-value"),
+                        };
+                    }
+                }
+                if template.is_none() || values.is_none() {
+                    if template.is_none() {
+                        let _ = io.wait_for_input(*template_cord);
+                    }
+                    if values.is_none() {
+                        let _ = io.wait_for_input(*values_cord);
+                    }
+                    return SchedulerStep::Pending;
+                }
+                if output.is_none() {
+                    let formatted = {
+                        let store = self.store.borrow();
+                        let template_bytes = store
+                            .get(template.expect("checked template").handle)
+                            .unwrap_or(&[]);
+                        let values_bytes = store
+                            .get(values.expect("checked values").handle)
+                            .unwrap_or(&[]);
+                        format_input_bytes(template_bytes, values_bytes)
+                    };
+                    let formatted = match formatted {
+                        Ok(formatted) => formatted,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(format_runtime_error(error));
+                            return SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            };
+                        }
+                    };
+                    let accounted_bytes = match u32::try_from(formatted.len()) {
+                        Ok(bytes) => bytes,
+                        Err(_) => {
+                            return SchedulerStep::Failed {
+                                code: Id("format/output-overflow"),
+                            };
+                        }
+                    };
+                    let Some(handle) = self.store.borrow_mut().store(formatted) else {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/value-store-bound-exceeded"),
+                        };
+                    };
+                    *output = Some(RuntimeValue {
+                        handle,
+                        accounted_bytes,
+                    });
+                }
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                match io.send(out_cord, output.expect("format output exists"), None) {
+                    Ok(SendStatus::Reserved) => {
+                        *emitted = true;
+                        SchedulerStep::Progress
+                    }
+                    Ok(_) | Err(_) => SchedulerStep::Pending,
                 }
             }
             HostedNodeKind::Stdin { emitted } => {
@@ -4661,112 +4869,264 @@ fn validate_literal(node: &Node) -> Result<(), ResolutionError> {
 }
 
 fn validate_format(node: &Node) -> Result<(), ResolutionError> {
-    let template = node.config("template").ok_or_else(|| {
-        ResolutionError::new(
-            "CND-SRC-002",
-            format!("format node `{}` requires `template`", node.id),
-        )
-    })?;
-    let parameters = node
-        .config
-        .iter()
-        .find(|entry| entry.key == "parameters")
-        .and_then(|entry| match &entry.value {
-            conduit_panel::SourceValue::List(values) => Some(values),
-            _ => None,
-        })
-        .ok_or_else(|| {
-            ResolutionError::new(
-                "CND-SRC-002",
-                format!(
-                    "format node `{}` requires a text array `parameters`",
-                    node.id
-                ),
-            )
-        })?;
-    if parameters
-        .iter()
-        .any(|value| !matches!(value, conduit_panel::SourceValue::Text(_)))
-    {
-        return Err(ResolutionError::new(
-            "CND-SRC-002",
-            format!("format node `{}` parameters must all be text", node.id),
-        ));
-    }
-    if let Some(entry) = node
-        .config
-        .iter()
-        .find(|entry| entry.key != "template" && entry.key != "parameters")
-    {
+    validate_empty_config(node)
+}
+
+fn validate_format_values_literal(node: &Node) -> Result<(), ResolutionError> {
+    if let Some(entry) = node.config.iter().find(|entry| entry.key != "values") {
         return Err(ResolutionError::new(
             "CND-SRC-002",
             format!(
-                "format node `{}` has unknown field `{}`",
+                "format-values literal `{}` has unknown field `{}`",
                 node.id, entry.key
             ),
         ));
     }
-    render_template(template, parameters)
-        .map(|_| ())
-        .map_err(|message| {
-            ResolutionError::new(
-                "CND-SRC-002",
-                format!("format node `{}`: {message}", node.id),
-            )
-        })
+    let values = source_format_values(node).map_err(|error| {
+        ResolutionError::new(
+            "CND-SRC-002",
+            format!(
+                "format-values literal `{}` failed {}",
+                node.id,
+                error.code()
+            ),
+        )
+    })?;
+    encode_format_values(&values).map(|_| ()).map_err(|error| {
+        ResolutionError::new(
+            "CND-SRC-002",
+            format!(
+                "format-values literal `{}` failed {}",
+                node.id,
+                error.code()
+            ),
+        )
+    })
 }
 
-fn render_template(
-    template: &str,
-    parameters: &[conduit_panel::SourceValue],
-) -> Result<String, &'static str> {
-    let mut output = String::with_capacity(template.len());
-    let mut parameter = 0;
-    let mut chars = template.chars().peekable();
-    while let Some(ch) = chars.next() {
-        match (ch, chars.peek().copied()) {
-            ('{', Some('{')) => {
-                chars.next();
-                output.push('{');
-            }
-            ('}', Some('}')) => {
-                chars.next();
-                output.push('}');
-            }
-            ('{', Some('}')) => {
-                chars.next();
-                let Some(conduit_panel::SourceValue::Text(value)) = parameters.get(parameter)
-                else {
-                    return Err("template has more placeholders than parameters");
-                };
-                output.push_str(value);
-                parameter += 1;
-            }
-            ('{' | '}', _) => return Err("unmatched brace in template"),
-            _ => output.push(ch),
-        }
-    }
-    if parameter != parameters.len() {
-        return Err("template has fewer placeholders than parameters");
-    }
-    Ok(output)
-}
-
-fn format_node(node: &Node) -> Result<String, RuntimeError> {
-    let template = node
-        .config("template")
-        .ok_or_else(|| RuntimeError::new("CND-RUN-004", "format template disappeared"))?;
-    let parameters = node
+fn source_format_values(
+    node: &Node,
+) -> Result<Vec<conduit_std::FormatValueRef<'_>>, conduit_std::FormatError> {
+    let values = node
         .config
         .iter()
-        .find(|entry| entry.key == "parameters")
+        .find(|entry| entry.key == "values")
         .and_then(|entry| match &entry.value {
             conduit_panel::SourceValue::List(values) => Some(values.as_slice()),
             _ => None,
         })
-        .ok_or_else(|| RuntimeError::new("CND-RUN-004", "format parameters disappeared"))?;
-    render_template(template, parameters)
-        .map_err(|message| RuntimeError::new("CND-RUN-004", message))
+        .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?;
+    let values = values
+        .iter()
+        .map(source_format_value)
+        .collect::<Result<Vec<_>, _>>()?;
+    conduit_std::validate_format_values(&values)?;
+    Ok(values)
+}
+
+fn source_format_value(
+    value: &conduit_panel::SourceValue,
+) -> Result<conduit_std::FormatValueRef<'_>, conduit_std::FormatError> {
+    use conduit_panel::SourceValue;
+
+    if let SourceValue::Record(fields) = value {
+        if fields.len() != 2 {
+            return Err(conduit_std::FormatError::UnsupportedValueKind);
+        }
+        let name = fields
+            .iter()
+            .find(|(key, _)| key == "name")
+            .and_then(|(_, value)| match value {
+                SourceValue::Text(value) => Some(value.as_str()),
+                _ => None,
+            })
+            .ok_or(conduit_std::FormatError::InvalidName)?;
+        let scalar = fields
+            .iter()
+            .find(|(key, _)| key == "value")
+            .map(|(_, value)| source_format_scalar(value))
+            .ok_or(conduit_std::FormatError::UnsupportedValueKind)??;
+        return Ok(conduit_std::FormatValueRef {
+            name: Some(name),
+            value: scalar,
+        });
+    }
+    Ok(conduit_std::FormatValueRef {
+        name: None,
+        value: source_format_scalar(value)?,
+    })
+}
+
+fn source_format_scalar(
+    value: &conduit_panel::SourceValue,
+) -> Result<conduit_std::FormatScalarRef<'_>, conduit_std::FormatError> {
+    match value {
+        conduit_panel::SourceValue::Text(value) => Ok(conduit_std::FormatScalarRef::Text(value)),
+        conduit_panel::SourceValue::Boolean(value) => {
+            Ok(conduit_std::FormatScalarRef::Boolean(*value))
+        }
+        conduit_panel::SourceValue::Integer(value) => {
+            Ok(conduit_std::FormatScalarRef::Integer(*value))
+        }
+        _ => Err(conduit_std::FormatError::UnsupportedValueKind),
+    }
+}
+
+const FORMAT_VALUES_MAGIC: &[u8; 4] = b"CFV\x01";
+
+fn encode_format_values(
+    values: &[conduit_std::FormatValueRef<'_>],
+) -> Result<Vec<u8>, conduit_std::FormatError> {
+    conduit_std::validate_format_values(values)?;
+    let mut encoded = Vec::with_capacity(conduit_std::FORMAT_VALUES_MAX_ENCODED_BYTES);
+    encoded.extend_from_slice(FORMAT_VALUES_MAGIC);
+    encoded.push(u8::try_from(values.len()).map_err(|_| conduit_std::FormatError::TooManyValues)?);
+    for value in values {
+        let name = value.name.unwrap_or("").as_bytes();
+        encoded.push(u8::try_from(name.len()).map_err(|_| conduit_std::FormatError::NameTooLarge)?);
+        encoded.extend_from_slice(name);
+        match value.value {
+            conduit_std::FormatScalarRef::Text(text) => {
+                encoded.push(1);
+                encoded.extend_from_slice(
+                    &u16::try_from(text.len())
+                        .map_err(|_| conduit_std::FormatError::ScalarTooLarge)?
+                        .to_be_bytes(),
+                );
+                encoded.extend_from_slice(text.as_bytes());
+            }
+            conduit_std::FormatScalarRef::Boolean(value) => {
+                encoded.extend_from_slice(&[2, u8::from(value)]);
+            }
+            conduit_std::FormatScalarRef::Integer(value) => {
+                encoded.push(3);
+                encoded.extend_from_slice(&value.to_be_bytes());
+            }
+            conduit_std::FormatScalarRef::Unsupported(_) => {
+                return Err(conduit_std::FormatError::UnsupportedValueKind);
+            }
+        }
+        if encoded.len() > conduit_std::FORMAT_VALUES_MAX_ENCODED_BYTES {
+            return Err(conduit_std::FormatError::InvalidValuesEncoding);
+        }
+    }
+    Ok(encoded)
+}
+
+fn decode_format_values(
+    encoded: &[u8],
+) -> Result<Vec<conduit_std::FormatValueRef<'_>>, conduit_std::FormatError> {
+    if encoded.len() > conduit_std::FORMAT_VALUES_MAX_ENCODED_BYTES
+        || encoded.get(..4) != Some(FORMAT_VALUES_MAGIC.as_slice())
+    {
+        return Err(conduit_std::FormatError::InvalidValuesEncoding);
+    }
+    let mut cursor = 4;
+    let count = usize::from(
+        *encoded
+            .get(cursor)
+            .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?,
+    );
+    cursor += 1;
+    if count > conduit_std::FORMAT_MAX_VALUES {
+        return Err(conduit_std::FormatError::TooManyValues);
+    }
+    let mut values = Vec::with_capacity(count);
+    for _ in 0..count {
+        let name_length = usize::from(
+            *encoded
+                .get(cursor)
+                .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?,
+        );
+        cursor += 1;
+        let name_bytes = take_encoded(encoded, &mut cursor, name_length)?;
+        let name = if name_bytes.is_empty() {
+            None
+        } else {
+            Some(
+                std::str::from_utf8(name_bytes)
+                    .map_err(|_| conduit_std::FormatError::InvalidValuesEncoding)?,
+            )
+        };
+        let kind = *encoded
+            .get(cursor)
+            .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?;
+        cursor += 1;
+        let value = match kind {
+            1 => {
+                let length = u16::from_be_bytes(
+                    take_encoded(encoded, &mut cursor, 2)?
+                        .try_into()
+                        .expect("exact two-byte length"),
+                );
+                let text =
+                    std::str::from_utf8(take_encoded(encoded, &mut cursor, usize::from(length))?)
+                        .map_err(|_| conduit_std::FormatError::InvalidTextEncoding)?;
+                conduit_std::FormatScalarRef::Text(text)
+            }
+            2 => match *encoded
+                .get(cursor)
+                .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?
+            {
+                0 => {
+                    cursor += 1;
+                    conduit_std::FormatScalarRef::Boolean(false)
+                }
+                1 => {
+                    cursor += 1;
+                    conduit_std::FormatScalarRef::Boolean(true)
+                }
+                _ => return Err(conduit_std::FormatError::InvalidValuesEncoding),
+            },
+            3 => {
+                let value = i128::from_be_bytes(
+                    take_encoded(encoded, &mut cursor, 16)?
+                        .try_into()
+                        .expect("exact sixteen-byte integer"),
+                );
+                conduit_std::FormatScalarRef::Integer(value)
+            }
+            other => conduit_std::FormatScalarRef::Unsupported(other),
+        };
+        values.push(conduit_std::FormatValueRef { name, value });
+    }
+    if cursor != encoded.len() {
+        return Err(conduit_std::FormatError::InvalidValuesEncoding);
+    }
+    conduit_std::validate_format_values(&values)?;
+    Ok(values)
+}
+
+fn take_encoded<'a>(
+    encoded: &'a [u8],
+    cursor: &mut usize,
+    length: usize,
+) -> Result<&'a [u8], conduit_std::FormatError> {
+    let end = cursor
+        .checked_add(length)
+        .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?;
+    let value = encoded
+        .get(*cursor..end)
+        .ok_or(conduit_std::FormatError::InvalidValuesEncoding)?;
+    *cursor = end;
+    Ok(value)
+}
+
+fn format_input_bytes(
+    template: &[u8],
+    encoded_values: &[u8],
+) -> Result<Vec<u8>, conduit_std::FormatError> {
+    let template =
+        std::str::from_utf8(template).map_err(|_| conduit_std::FormatError::InvalidTextEncoding)?;
+    let values = decode_format_values(encoded_values)?;
+    let mut output = vec![0; conduit_std::FORMAT_MAX_OUTPUT_BYTES];
+    let length = conduit_std::format_text_into(template, &values, &mut output)?;
+    output.truncate(length);
+    Ok(output)
+}
+
+fn format_runtime_error(error: conduit_std::FormatError) -> RuntimeError {
+    RuntimeError::new(error.code(), error.code())
 }
 
 struct Literal;
@@ -4785,16 +5145,50 @@ impl Handler for Literal {
     }
 }
 
-struct Format;
+struct FormatValuesLiteral;
 
-impl Handler for Format {
+impl Handler for FormatValuesLiteral {
     fn run(
         &mut self,
         node: &Node,
         _inputs: &[Value],
         _io: &mut RunIo<'_>,
     ) -> Result<Vec<Value>, RuntimeError> {
-        Ok(vec![Value::text(format_node(node)?.into_bytes())])
+        let values = source_format_values(node).map_err(format_runtime_error)?;
+        let bytes = encode_format_values(&values).map_err(format_runtime_error)?;
+        Ok(vec![Value {
+            value_type: FORMAT_VALUES_TYPE,
+            bytes,
+        }])
+    }
+}
+
+struct Format;
+
+impl Handler for Format {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !node.config.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-RUN-004",
+                "format configuration changed after resolution",
+            ));
+        }
+        let template = inputs
+            .first()
+            .filter(|value| value.value_type == TEXT_TYPE)
+            .ok_or_else(|| RuntimeError::new("format/missing-value", "template input is absent"))?;
+        let values = inputs
+            .get(1)
+            .filter(|value| value.value_type == FORMAT_VALUES_TYPE)
+            .ok_or_else(|| RuntimeError::new("format/missing-value", "values input is absent"))?;
+        Ok(vec![Value::text(
+            format_input_bytes(&template.bytes, &values.bytes).map_err(format_runtime_error)?,
+        )])
     }
 }
 
@@ -4956,15 +5350,24 @@ mod tests {
     use conduit_panel::parse;
 
     #[test]
-    fn format_uses_positional_placeholders_and_escaped_braces() {
+    fn format_uses_typed_inputs_named_indexed_and_escaped_placeholders() {
         let panel = parse(
             r#"
                 panel 1
-                node message : std/format {
-                    template = "{} = {{status: {}}}"
-                    parameters = list("worker", "ready")
+                node template : std/literal {
+                    value = "{worker} = {{status: {1}; count={2}}}"
                 }
+                node values : std/format-values/literal {
+                    values = list(
+                        record(name="worker", value="alpha"),
+                        record(name="ready", value=true),
+                        record(name="count", value=-7)
+                    )
+                }
+                node message : std/text/format
                 node output : io/stdout
+                cord template.out -> message.template
+                cord values.out -> message.values
                 cord message.out -> output.in
             "#,
         )
@@ -4981,24 +5384,93 @@ mod tests {
                 error: &mut error,
             })
             .unwrap();
-        assert_eq!(output, b"worker = {status: ready}");
+        assert_eq!(output, b"alpha = {status: true; count=-7}");
     }
 
     #[test]
-    fn format_rejects_placeholder_count_mismatch() {
+    fn format_rejects_missing_and_extra_values_at_execution() {
         let panel = parse(
             r#"
                 panel 1
-                node message : std/format {
-                    template = "{} {}"
-                    parameters = list("only-one")
+                node template : std/literal {
+                    value = "{} {}"
                 }
+                node values : std/format-values/literal {
+                    values = list("only-one")
+                }
+                node message : std/text/format
+                node output : io/stdout
+                cord template.out -> message.template
+                cord values.out -> message.values
+                cord message.out -> output.in
             "#,
         )
         .unwrap();
-        let error = Registry::compatibility_demo().resolve(&panel).unwrap_err();
-        assert_eq!(error.code, "CND-SRC-002");
-        assert!(error.message.contains("more placeholders than parameters"));
+        let registry = Registry::compatibility_demo();
+        let resolved = registry.resolve(&panel).unwrap();
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        let failure = resolved
+            .run_batch(&mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+            })
+            .unwrap_err();
+        assert_eq!(failure.code, "format/missing-value");
+    }
+
+    #[test]
+    fn hosted_format_codec_matches_portable_success_and_failure_outcomes() {
+        let values = [
+            conduit_std::FormatValueRef {
+                name: Some("text"),
+                value: conduit_std::FormatScalarRef::Text("ready"),
+            },
+            conduit_std::FormatValueRef {
+                name: Some("flag"),
+                value: conduit_std::FormatScalarRef::Boolean(true),
+            },
+            conduit_std::FormatValueRef {
+                name: Some("count"),
+                value: conduit_std::FormatScalarRef::Integer(i128::MAX),
+            },
+        ];
+        let encoded = encode_format_values(&values).unwrap();
+        let template = b"{text}:{flag}:{count}";
+        let hosted = format_input_bytes(template, &encoded).unwrap();
+        let mut portable = [0; conduit_std::FORMAT_MAX_OUTPUT_BYTES];
+        let length = conduit_std::format_text_into(
+            std::str::from_utf8(template).unwrap(),
+            &values,
+            &mut portable,
+        )
+        .unwrap();
+        assert_eq!(hosted, portable[..length]);
+
+        let mut unsupported = encode_format_values(&[conduit_std::FormatValueRef {
+            name: None,
+            value: conduit_std::FormatScalarRef::Text("future"),
+        }])
+        .unwrap();
+        unsupported[6] = 0xff;
+        unsupported.truncate(7);
+        assert_eq!(
+            format_input_bytes(b"{0}", &unsupported),
+            Err(conduit_std::FormatError::UnsupportedValueKind)
+        );
+        assert_eq!(
+            conduit_std::format_text_into(
+                "{0}",
+                &[conduit_std::FormatValueRef {
+                    name: None,
+                    value: conduit_std::FormatScalarRef::Unsupported(0xff),
+                }],
+                &mut portable,
+            ),
+            Err(conduit_std::FormatError::UnsupportedValueKind)
+        );
     }
 
     #[test]

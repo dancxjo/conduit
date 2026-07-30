@@ -13,7 +13,8 @@ executable authority for example files.
 Library names are canonical domain paths: `flow/merge`, `time/delay`,
 `state/cell`, `fs/read`, and `net/http/serve`. `std/...` is reserved for
 fundamental values and mechanics such as `std/integer`, `std/text`,
-`std/literal`, and `std/format`; it is not a bucket for every built-in node.
+`std/literal`, and `std/text/format`; it is not a bucket for every built-in
+node.
 The former `conduit.std/...` names are not aliases.
 
 Finding a contract in the catalog proves only that its meaning is defined. A
@@ -45,22 +46,37 @@ byte-placeholder contract.
 State: **runnable** on the hosted profile (`format` and `stdout` have exact
 installed bindings).
 
-`std/format` uses Rust-style positional `{}` placeholders. Parameters
-are consumed from a finite text array in order; `{{` and `}}` produce literal
-braces. Missing or unused parameters and unmatched braces are rejected while
-the panel is resolved.
+`std/text/format` is the ordinary typed `template + values -> text` filter.
+It accepts automatic `{}`, indexed `{0}`, and named `{name}` placeholders;
+`{{` and `}}` produce literal braces. `std/format-values` contains at most 32
+ordered values with optional unique names and supports only bounded text,
+boolean, and integer scalars. Missing or unused values, malformed
+placeholders, unsupported kinds, and output overflow terminate with exact
+`format/...` codes during execution.
 
 ```panel
 panel 1
 
-node message : std/format {
-    template = "{} processed {} records; payload = {{ok}}.\n"
-    parameters = list("worker-1", "42")
+node template : std/literal {
+    value = "{worker} processed {count} records; payload = {{ok}}.\n"
 }
+node values : std/format-values/literal {
+    values = list(
+        record(name="worker", value="worker-1"),
+        record(name="count", value=42)
+    )
+}
+node message : std/text/format
 node sink : io/stdout
 
-cord message.out -> sink.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
+cord message.out -> sink.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
 ```
+
+The exact grammar, type descriptors, wire representation, limits, normalized
+terminal codes, migration rule, and conformance fixture are frozen in
+[specification 054](../spec/054-text-format-v1.md).
 
 ## 2. Structural & Flow Control Nodes
 

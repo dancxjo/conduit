@@ -333,6 +333,7 @@ dependencies = [
  "conduit-core",
  "conduit-panel",
  "conduit-runtime",
+ "conduit-std",
  "serde",
  "serde_json",
  "sha2",

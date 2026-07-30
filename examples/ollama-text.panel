@@ -1,16 +1,42 @@
 # Local Ollama LLM text generation request via HTTP client.
 panel 1
 
-node prompt : std/format {
-    template = "{{\"model\": \"{}\", \"prompt\": \"{}\", \"stream\": false}}"
-    parameters = list("llama3", "Summarize Conduit architecture.")
+node prompt_template : std/literal {
+    value = "{{\"model\": \"{model}\", \"prompt\": \"{prompt}\", \"stream\": false}}"
 }
+
+node prompt_values : std/format-values/literal {
+    values = list(
+        record(name="model", value="llama3"),
+        record(name="prompt", value="Summarize Conduit architecture.")
+    )
+}
+
+node prompt : std/text/format
 
 node ollama_api : conduit/http-client {
     endpoint = "http://127.0.0.1:11434/api/generate"
 }
 
 node output : io/stdout
+
+cord prompt_template.out -> prompt.template {
+    capacity = 1
+    max_value_bytes = 4096
+    max_queued_bytes = 4096
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+
+cord prompt_values.out -> prompt.values {
+    capacity = 1
+    max_value_bytes = 16384
+    max_queued_bytes = 16384
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
 
 cord prompt.out -> ollama_api.in {
     capacity = 4

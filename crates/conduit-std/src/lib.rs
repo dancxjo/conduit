@@ -14,15 +14,22 @@ use conduit_core::{
 };
 
 mod conformance;
+mod text_format;
 mod types;
 
 pub use conformance::{
     ConformanceError, DeterministicProvider, FixtureClass, FixtureOutcome, HostedProvider,
     NormalizedEvidence, ProviderProfile, ReferenceProvider, run_catalog_fixture,
 };
+pub use text_format::{
+    FORMAT_MAX_NAME_BYTES, FORMAT_MAX_OUTPUT_BYTES, FORMAT_MAX_RETAINED_BYTES,
+    FORMAT_MAX_SCALAR_BYTES, FORMAT_MAX_TEMPLATE_BYTES, FORMAT_MAX_VALUES, FORMAT_MAX_WORK,
+    FORMAT_VALUES_MAX_ENCODED_BYTES, FormatError, FormatScalarRef, FormatValueRef,
+    format_text_into, validate_format_values,
+};
 pub use types::{
     STANDARD_TYPE_CATALOG, StandardRepresentation, StandardTypeDefinition, StandardTypeFamily,
-    TypeRepresentationSupport, standard_type, standard_type_reference,
+    TypeRepresentationSupport, standard_type, standard_type_descriptor, standard_type_reference,
 };
 
 /// Catalog schema consumed by manifests and conformance tooling.
@@ -170,6 +177,24 @@ const BOOL: TypeContractRef<'static> = TypeContractRef {
         0x41, 0x8e, 0x7f, 0xb1, 0xd8, 0xcb, 0x6e, 0xae, 0x61, 0x55, 0xa9, 0xcb, 0x77, 0xcd, 0xb1,
         0xc1, 0x19, 0x3b, 0x92, 0xcc, 0xf7, 0x6c, 0xb3, 0x33, 0x26, 0x0f, 0x8c, 0xf3, 0x24, 0x9a,
         0x08, 0xd7,
+    ]),
+};
+const TEXT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/text"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x79, 0xdd, 0x1d, 0x77, 0xe2, 0xcf, 0x64, 0x59, 0xbc, 0x3a, 0x8f, 0x96, 0xc6, 0x5a, 0x91,
+        0x5a, 0xdc, 0x10, 0xdb, 0x51, 0x6d, 0xca, 0xc0, 0x39, 0xf7, 0x81, 0xbe, 0xe5, 0xc1, 0xca,
+        0xb5, 0xab,
+    ]),
+};
+const FORMAT_VALUES: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/format-values"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0xba, 0x23, 0xe2, 0x76, 0xb7, 0x0b, 0x1b, 0x0c, 0x74, 0x7d, 0x2b, 0x4a, 0xda, 0x10, 0x0d,
+        0x72, 0xfa, 0x5b, 0x38, 0x74, 0xe4, 0xfa, 0x2b, 0xaa, 0x25, 0x0c, 0xf0, 0x71, 0x49, 0x79,
+        0x5c, 0xc0,
     ]),
 };
 const U64: TypeContractRef<'static> = TypeContractRef {
@@ -456,6 +481,34 @@ const OUT_HTTP_RESPONSE: PortContract<'static> = port(
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
+const FORMAT_TEMPLATE: PortContract<'static> = port(
+    "template",
+    Direction::Input,
+    TEXT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const FORMAT_VALUES_INPUT: PortContract<'static> = port(
+    "values",
+    Direction::Input,
+    FORMAT_VALUES,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const FORMAT_TEXT_OUTPUT: PortContract<'static> = port(
+    "out",
+    Direction::Output,
+    TEXT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const FORMAT_VALUES_OUTPUT: PortContract<'static> = port(
+    "out",
+    Direction::Output,
+    FORMAT_VALUES,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
 
 const EMPTY: ConfigContract<'static> = ConfigContract { fields: &[] };
 const BOUNDED: ConfigContract<'static> = ConfigContract {
@@ -474,8 +527,8 @@ const TRANSFORM: ConfigContract<'static> = ConfigContract {
         field("maximum_outputs_per_input", U64),
     ],
 };
-const FORMAT: ConfigContract<'static> = ConfigContract {
-    fields: &[field("template", BYTES), field("parameters", RECORD)],
+const FORMAT_VALUES_LITERAL: ConfigContract<'static> = ConfigContract {
+    fields: &[field("values", FORMAT_VALUES)],
 };
 const STATEFUL: ConfigContract<'static> = ConfigContract {
     fields: &[
@@ -549,6 +602,11 @@ const HOST_SUPPORT: ProviderRequirement = ProviderRequirement {
     hosted: true,
     constrained: false,
 };
+const FORMAT_SUPPORT: ProviderRequirement = ProviderRequirement {
+    deterministic: true,
+    hosted: true,
+    constrained: false,
+};
 const FINITE: CatalogLimits = CatalogLimits {
     retained_values: 0,
     retained_bytes: 0,
@@ -593,6 +651,24 @@ const HOST_LIMITS: CatalogLimits = CatalogLimits {
     retries: 0,
     work_per_step: 8,
     evidence_events: 32,
+};
+const FORMAT_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 3,
+    retained_bytes: FORMAT_MAX_RETAINED_BYTES as u64,
+    pending_operations: 0,
+    timers: 0,
+    retries: 0,
+    work_per_step: FORMAT_MAX_WORK as u32,
+    evidence_events: 32,
+};
+const FORMAT_VALUES_LITERAL_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 0,
+    retained_bytes: 0,
+    pending_operations: 0,
+    timers: 0,
+    retries: 0,
+    work_per_step: FORMAT_VALUES_MAX_ENCODED_BYTES as u32,
+    evidence_events: 4,
 };
 
 const fn node(
@@ -701,14 +777,25 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "std/format",
+        "std/text/format",
         Transform,
-        FORMAT,
+        EMPTY,
+        &[FORMAT_TEMPLATE, FORMAT_VALUES_INPUT],
+        &[FORMAT_TEXT_OUTPUT],
+        ExplicitAdapter,
+        None,
+        FORMAT_LIMITS,
+        FORMAT_SUPPORT
+    ),
+    entry!(
+        "std/format-values/literal",
+        Source,
+        FORMAT_VALUES_LITERAL,
         &[],
-        &[OUT_FINITE],
+        &[FORMAT_VALUES_OUTPUT],
         ProducesDeclaredType,
         None,
-        BUFFERED,
+        FORMAT_VALUES_LITERAL_LIMITS,
         PURE
     ),
     entry!(

@@ -1,4 +1,11 @@
-use conduit_core::{CanonicalDescriptor, CanonicalValue, Id, TypeContractRef};
+use conduit_core::{
+    CanonicalDescriptor, CanonicalValue, FieldDisposition, Id, MapField, TypeContractRef,
+};
+
+use crate::{
+    FORMAT_MAX_NAME_BYTES, FORMAT_MAX_SCALAR_BYTES, FORMAT_MAX_VALUES,
+    FORMAT_VALUES_MAX_ENCODED_BYTES,
+};
 
 /// Broad semantic family of a standard type definition.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -118,6 +125,12 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
         "Unicode text",
         Fundamental,
         StandardRepresentation::Domain
+    ),
+    concrete!(
+        "std/format-values",
+        "bounded ordered and named formatter values",
+        Structural,
+        StandardRepresentation::Structural
     ),
     concrete!(
         "std/bytes",
@@ -360,6 +373,107 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
     ),
 ];
 
+const fn semantic_field(name: &'static str, value: CanonicalValue<'static>) -> MapField<'static> {
+    MapField {
+        name: Id(name),
+        value,
+        disposition: FieldDisposition::Semantic,
+    }
+}
+
+static TEXT_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field("encoding", CanonicalValue::Identifier(Id("utf-8"))),
+    semantic_field(
+        "value",
+        CanonicalValue::Identifier(Id("unicode-scalar-sequence")),
+    ),
+    semantic_field(
+        "normalization",
+        CanonicalValue::Identifier(Id("none-required")),
+    ),
+    semantic_field("invalid_encoding", CanonicalValue::Identifier(Id("reject"))),
+    semantic_field(
+        "byte_bound",
+        CanonicalValue::Identifier(Id("plan-value-envelope")),
+    ),
+];
+
+static INTEGER_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "domain",
+        CanonicalValue::Identifier(Id("mathematical-signed-integer")),
+    ),
+    semantic_field("range", CanonicalValue::Identifier(Id("unbounded"))),
+    semantic_field(
+        "canonical_encoding",
+        CanonicalValue::Identifier(Id("minimal-twos-complement-big-endian")),
+    ),
+    semantic_field(
+        "representation_bound",
+        CanonicalValue::Identifier(Id("host-and-plan-explicit")),
+    ),
+    semantic_field(
+        "overflow",
+        CanonicalValue::Identifier(Id("typed-terminal-no-truncation")),
+    ),
+];
+
+static FORMAT_VALUE_KINDS: &[CanonicalValue<'static>] = &[
+    CanonicalValue::Identifier(Id("std/text")),
+    CanonicalValue::Identifier(Id("std/bool")),
+    CanonicalValue::Identifier(Id("std/integer")),
+];
+
+static FORMAT_VALUES_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "collection",
+        CanonicalValue::Identifier(Id("ordered-optional-unique-names")),
+    ),
+    semantic_field(
+        "maximum_values",
+        CanonicalValue::Integer(FORMAT_MAX_VALUES as i128),
+    ),
+    semantic_field(
+        "maximum_name_bytes",
+        CanonicalValue::Integer(FORMAT_MAX_NAME_BYTES as i128),
+    ),
+    semantic_field(
+        "maximum_scalar_bytes",
+        CanonicalValue::Integer(FORMAT_MAX_SCALAR_BYTES as i128),
+    ),
+    semantic_field(
+        "maximum_encoded_bytes",
+        CanonicalValue::Integer(FORMAT_VALUES_MAX_ENCODED_BYTES as i128),
+    ),
+    semantic_field("supported_kinds", CanonicalValue::Set(FORMAT_VALUE_KINDS)),
+    semantic_field(
+        "encoding",
+        CanonicalValue::Identifier(Id("conduit-format-values-v1")),
+    ),
+    semantic_field(
+        "unsupported_kind",
+        CanonicalValue::Identifier(Id("typed-terminal")),
+    ),
+];
+
+/// Returns the exact host-language-neutral descriptor for one type definition.
+#[must_use]
+pub fn standard_type_descriptor(
+    definition: &StandardTypeDefinition,
+) -> CanonicalDescriptor<'static> {
+    let body = match definition.id.as_str() {
+        "std/text" => CanonicalValue::Map(TEXT_DESCRIPTOR_FIELDS),
+        "std/integer" => CanonicalValue::Map(INTEGER_DESCRIPTOR_FIELDS),
+        "std/format-values" => CanonicalValue::Map(FORMAT_VALUES_DESCRIPTOR_FIELDS),
+        _ => CanonicalValue::Null,
+    };
+    CanonicalDescriptor {
+        kind: definition.id,
+        schema_version: 1,
+        body,
+    }
+}
+
 /// Finds a standard type definition by exact catalog path.
 #[must_use]
 pub fn standard_type(id: &str) -> Option<&'static StandardTypeDefinition> {
@@ -378,11 +492,7 @@ pub fn standard_type_reference(id: &str) -> Option<TypeContractRef<'static>> {
     if definition.parameters != 0 {
         return None;
     }
-    let descriptor = CanonicalDescriptor {
-        kind: definition.id,
-        schema_version: 1,
-        body: CanonicalValue::Null,
-    };
+    let descriptor = standard_type_descriptor(definition);
     Some(TypeContractRef {
         contract_id: definition.id,
         schema_version: 1,

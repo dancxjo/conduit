@@ -206,6 +206,14 @@ containment program is tracked by
   defines allocator-free named multi-port node interfaces, closed optional
   member semantics, exact non-port requirements, and reasoned directional
   satisfaction shared by primitive and composite-derived node contracts.
+- [`053-panel-interface-syntax-v1.md`](053-panel-interface-syntax-v1.md)
+  defines Panel interface declarations and implements claims, corrected
+  semantic source identity, typed lowering, diagnostics, and exact
+  primitive/composite satisfaction.
+- [`054-text-format-v1.md`](054-text-format-v1.md) defines the final typed
+  template-plus-values formatter, exact text/integer/format-values
+  descriptors, finite placeholder grammar, normalized failures, provider
+  separation, migration, exact execution, and Patchbay proof.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
