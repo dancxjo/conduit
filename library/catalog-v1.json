@@ -886,7 +886,7 @@
         {
           "implementation": "conduit/hosted-fallback-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1388,7 +1388,7 @@
         {
           "implementation": "conduit/hosted-pass-through-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1627,7 +1627,7 @@
         {
           "implementation": "conduit/hosted-merge-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1984,7 +1984,7 @@
         {
           "implementation": "conduit/hosted-tee-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2310,7 +2310,7 @@
         {
           "implementation": "conduit/hosted-stderr-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2354,7 +2354,7 @@
         {
           "implementation": "conduit/hosted-stdin-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2398,7 +2398,7 @@
         {
           "implementation": "conduit/hosted-stdout-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4486,7 +4486,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4537,7 +4537,7 @@
         {
           "implementation": "conduit/hosted-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4633,11 +4633,157 @@
         {
           "implementation": "conduit/hosted-format-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/text-format-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.typed-text-format",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.typed-text-format",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/text/join",
+      "public_source_spelling": "std/text/join",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std/v1",
+      "export_path": "conduit.std/std/text/join",
+      "schema_version": 1,
+      "semantic_hash": "sha256:943bc3f64d1116ad9787c6e8570c4f495beac06d0775269abdbf3984c1dc08e9",
+      "ports": [
+        {
+          "id": "item",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "out",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "separator",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "key": "maximum_items",
+          "value_type": "std/u64",
+          "type_schema_version": 1,
+          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
+        },
+        {
+          "key": "maximum_item_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 1,
+          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
+        },
+        {
+          "key": "maximum_separator_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 1,
+          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 1,
+          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-text-join-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/text-lines-join-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.typed-text-format",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.typed-text-format",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/text/lines",
+      "public_source_spelling": "std/text/lines",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std/v1",
+      "export_path": "conduit.std/std/text/lines",
+      "schema_version": 1,
+      "semantic_hash": "sha256:9190d85df76c946d6f092a226d9574e59e27318a320c9b56bbddd94fca364201",
+      "ports": [
+        {
+          "id": "in",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "line",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [
+        {
+          "key": "maximum_line_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 1,
+          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
+        },
+        {
+          "key": "maximum_retained_prefix_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 1,
+          "type_hash": "sha256:9c2d1bb3eadeb8277a3290cd0aa98c5f8b9014738489cb2102940d42c17cf8b4"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-text-lines-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/text-lines-join-v1.json",
       "required_result_profile": "conduit.cross-host-provider/v1",
       "structural_facet_owner": "conduit.std/facets",
       "standalone_lesson": {
@@ -5575,7 +5721,7 @@
         {
           "implementation": "conduit/hosted-uppercase-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:96ee6cfe7de34142cb346a134a8c3a06b2dfedd771bb181b2e9a5ca536f3aa59"
+          "artifact_digest": "sha256:4c30dac98a4d019feaa9140d90afef1400664a589d884e8b2b8f9d9322fc0bef"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

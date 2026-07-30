@@ -78,6 +78,20 @@ The exact grammar, type descriptors, wire representation, limits, normalized
 terminal codes, migration rule, and conformance fixture are frozen in
 [specification 054](../spec/054-text-format-v1.md).
 
+### Lines and finite join
+
+State: **runnable** with the hosted exact-plan provider.
+
+`std/text/lines` removes LF or CRLF delimiters, preserves empty logical lines,
+and emits a final unterminated line. `std/text/join` waits for a finite bounded
+item stream, retains order, and inserts its configured separator only between
+items. Their retained and output sizes are explicit configuration and plan
+bounds; neither performs Unicode normalization or locale-sensitive work.
+
+See the checked [`lines → join`](../examples/text-lines-join.panel) and
+[`format → lines`](../examples/format-lines.panel) compositions and
+[specification 060](../spec/060-text-lines-join-v1.md).
+
 ## 2. Structural & Flow Control Nodes
 
 ### Pass-Through & Merge

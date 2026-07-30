@@ -1,0 +1,19 @@
+panel 1
+
+node text : std/literal { value = "alpha\r\nbeta\n" }
+node lines : std/text/lines {
+    maximum_line_bytes = 1024
+    maximum_retained_prefix_bytes = 1024
+}
+node joined : std/text/join {
+    separator = "\n"
+    maximum_items = 8
+    maximum_item_bytes = 1024
+    maximum_separator_bytes = 64
+    maximum_output_bytes = 4096
+}
+node output : io/stdout
+
+cord text.out -> lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord lines.line -> joined.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }
+cord joined.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

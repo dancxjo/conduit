@@ -210,9 +210,14 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
         .collect::<BTreeSet<_>>();
     assert_eq!(
         contracts,
-        ["std/format-values/literal", "std/text/format"]
-            .into_iter()
-            .collect()
+        [
+            "std/format-values/literal",
+            "std/text/format",
+            "std/text/join",
+            "std/text/lines",
+        ]
+        .into_iter()
+        .collect()
     );
     assert!(
         library["contracts"]
@@ -246,7 +251,7 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
     }
 
     let scenarios = library["scenarios"].as_array().expect("library scenarios");
-    assert_eq!(scenarios.len(), 4);
+    assert_eq!(scenarios.len(), 6);
     assert_eq!(lesson["source"], scenarios[0]["source"]);
     assert!(
         scenarios[1]["source"]
@@ -344,7 +349,7 @@ fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
 
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
-    assert_eq!(result["ok"], true);
+    assert_eq!(result["ok"], true, "{result}");
     assert_eq!(result["stdout"], lesson["expected_stdout"]);
     assert_eq!(result["terminal"], "succeeded");
 
@@ -429,7 +434,7 @@ fn resource_lease_platform_lesson_is_fixture_backed_and_executable() {
 
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
-    assert_eq!(result["ok"], true);
+    assert_eq!(result["ok"], true, "{result}");
     assert_eq!(result["stdout"], lesson["expected_stdout"]);
     assert_eq!(result["terminal"], "succeeded");
 
@@ -482,7 +487,7 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
 
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
-    assert_eq!(result["ok"], true);
+    assert_eq!(result["ok"], true, "{result}");
     assert_eq!(result["stdout"], lesson["expected_stdout"]);
     assert_eq!(result["terminal"], "succeeded");
 
@@ -526,7 +531,7 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         .expect("cross-host provider lesson is selectable");
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
-    assert_eq!(result["ok"], true);
+    assert_eq!(result["ok"], true, "{result}");
     assert_eq!(result["stdout"], lesson["expected_stdout"]);
     assert_eq!(result["terminal"], "succeeded");
 

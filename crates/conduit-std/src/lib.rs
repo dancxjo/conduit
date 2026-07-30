@@ -6,6 +6,9 @@
 //! plan-visible behavior and resource facts. This crate contains no executor,
 //! registry, host framework, ambient authority, or domain profile.
 
+#[cfg(test)]
+extern crate std;
+
 use conduit_core::{
     ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,
@@ -15,6 +18,7 @@ use conduit_core::{
 
 mod conformance;
 mod text_format;
+mod text_lines_join;
 mod types;
 
 pub use conformance::{
@@ -26,6 +30,10 @@ pub use text_format::{
     FORMAT_MAX_SCALAR_BYTES, FORMAT_MAX_TEMPLATE_BYTES, FORMAT_MAX_VALUES, FORMAT_MAX_WORK,
     FORMAT_VALUES_MAX_ENCODED_BYTES, FormatError, FormatScalarRef, FormatValueRef,
     format_text_into, validate_format_values,
+};
+pub use text_lines_join::{
+    JOIN_MAX_ITEM_BYTES, JOIN_MAX_ITEMS, JOIN_MAX_OUTPUT_BYTES, JOIN_MAX_SEPARATOR_BYTES,
+    LINES_MAX_LINE_BYTES, LINES_MAX_RETAINED_PREFIX_BYTES, LineError, LinesState, join_text_into,
 };
 pub use types::{
     STANDARD_TYPE_CATALOG, StandardRepresentation, StandardTypeDefinition, StandardTypeFamily,
@@ -397,6 +405,28 @@ const fn port(
     }
 }
 
+const fn batch_text_port(id: &'static str, direction: Direction) -> PortContract<'static> {
+    PortContract {
+        id: Id(id),
+        direction,
+        value_type: TEXT,
+        presence: Presence::Required,
+        connections: if matches!(direction, Direction::Input) {
+            ConnectionCardinality::ExactlyOne
+        } else {
+            ConnectionCardinality::OneOrMore
+        },
+        values: ValueCardinality::ExactlyOne,
+        delivery: Delivery::FiniteBatch,
+        temporal: TemporalContract::Atemporal,
+        terminal: TerminalContract::Finite,
+        sensitivity: Sensitivity::Public,
+        flow: PortFlowConstraints {
+            loss: LossAcceptance::LosslessOnly,
+        },
+    }
+}
+
 const IN_BYTES: PortContract<'static> = port(
     "in",
     Direction::Input,
@@ -509,6 +539,22 @@ const FORMAT_VALUES_OUTPUT: PortContract<'static> = port(
     ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
+const TEXT_STREAM_INPUT: PortContract<'static> = batch_text_port("in", Direction::Input);
+const TEXT_LINES_OUTPUT: PortContract<'static> = port(
+    "line",
+    Direction::Output,
+    TEXT,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const TEXT_ITEMS_INPUT: PortContract<'static> = port(
+    "item",
+    Direction::Input,
+    TEXT,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const TEXT_JOIN_OUTPUT: PortContract<'static> = batch_text_port("out", Direction::Output);
 
 const EMPTY: ConfigContract<'static> = ConfigContract { fields: &[] };
 const BOUNDED: ConfigContract<'static> = ConfigContract {
@@ -529,6 +575,21 @@ const TRANSFORM: ConfigContract<'static> = ConfigContract {
 };
 const FORMAT_VALUES_LITERAL: ConfigContract<'static> = ConfigContract {
     fields: &[field("values", FORMAT_VALUES)],
+};
+const TEXT_LINES: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("maximum_line_bytes", U64),
+        field("maximum_retained_prefix_bytes", U64),
+    ],
+};
+const TEXT_JOIN: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("separator", TEXT),
+        field("maximum_items", U64),
+        field("maximum_item_bytes", U64),
+        field("maximum_separator_bytes", U64),
+        field("maximum_output_bytes", U64),
+    ],
 };
 const STATEFUL: ConfigContract<'static> = ConfigContract {
     fields: &[
@@ -670,6 +731,24 @@ const FORMAT_VALUES_LITERAL_LIMITS: CatalogLimits = CatalogLimits {
     work_per_step: FORMAT_VALUES_MAX_ENCODED_BYTES as u32,
     evidence_events: 4,
 };
+const TEXT_LINES_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 1,
+    retained_bytes: LINES_MAX_RETAINED_PREFIX_BYTES as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: 4,
+    evidence_events: 4096,
+};
+const TEXT_JOIN_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: JOIN_MAX_ITEMS as u32,
+    retained_bytes: (JOIN_MAX_ITEMS * JOIN_MAX_ITEM_BYTES) as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: JOIN_MAX_ITEMS as u32,
+    evidence_events: 128,
+};
 
 const fn node(
     id: &'static str,
@@ -797,6 +876,28 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         None,
         FORMAT_VALUES_LITERAL_LIMITS,
         PURE
+    ),
+    entry!(
+        "std/text/lines",
+        Transform,
+        TEXT_LINES,
+        &[TEXT_STREAM_INPUT],
+        &[TEXT_LINES_OUTPUT],
+        Preserving,
+        None,
+        TEXT_LINES_LIMITS,
+        FORMAT_SUPPORT
+    ),
+    entry!(
+        "std/text/join",
+        Transform,
+        TEXT_JOIN,
+        &[TEXT_ITEMS_INPUT],
+        &[TEXT_JOIN_OUTPUT],
+        Preserving,
+        None,
+        TEXT_JOIN_LIMITS,
+        FORMAT_SUPPORT
     ),
     entry!(
         "std/empty",
@@ -1542,6 +1643,15 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
     host_entry!("net/tcp/socket", Network, "host/tcp"),
     host_entry!("net/udp/socket", Network, "host/udp"),
 ];
+
+/// Looks up one exact published standard contract without allocating.
+#[must_use]
+pub fn standard_node_contract(id: &str) -> Option<&'static NodeContract<'static>> {
+    STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == id)
+        .map(|entry| &entry.contract)
+}
 
 /// Validate the complete catalog without allocating or consulting a registry.
 pub fn validate_catalog(entries: &[CatalogEntry]) -> Result<(), CatalogError> {
