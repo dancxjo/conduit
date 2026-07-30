@@ -108,6 +108,7 @@ export class PatchbayReactFlowRenderer {
     this.onTransaction = options.onTransaction || null;
     this.onNodeSelect = options.onNodeSelect || null;
     this.onCordSelect = options.onCordSelect || null;
+    this.onPortSelect = options.onPortSelect || null;
     this.onSelectionClear = options.onSelectionClear || null;
     this.onOpenNested = options.onOpenNested || null;
     this.legacySmartEdge = null;
@@ -240,6 +241,11 @@ export class PatchbayReactFlowRenderer {
             this.onOpenNested(kind);
           }
         },
+        onPortSelect: (nodeId, port) => {
+          if (this.onPortSelect) {
+            this.onPortSelect(nodeId, port);
+          }
+        },
         },
         draggable: true,
         selectable: true,
@@ -259,6 +265,12 @@ export class PatchbayReactFlowRenderer {
         targetHandle: edge.to_port,
         type: edgeType,
         label: presentation.label,
+        markerEnd: {
+          type: window.ReactFlow.MarkerType.ArrowClosed,
+          color: presentation.color,
+          width: 18,
+          height: 18,
+        },
         className: `patchbay-smart-cord ${presentation.className}`,
         data: {
           presentationClass: `patchbay-smart-cord ${presentation.className}`,

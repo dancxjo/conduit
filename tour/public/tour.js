@@ -2,6 +2,7 @@ import "./patchbay-components.js";
 import init, {
   explain_panel,
   panel_language_metadata,
+  panel_source_metadata,
   parse_panel,
   patchbay_apply_transaction,
   patchbay_open_session,
@@ -11,6 +12,7 @@ import { patchbayFeatures } from "./patchbay-features.js";
 import {
   attachPanelSourceHighlighting,
   configurePanelLanguage,
+  configurePanelSourceMetadata,
 } from "./panel-highlighter.js";
 
 const source = document.querySelector("#source");
@@ -101,6 +103,7 @@ await init({
   module_or_path: loadedArtifacts.get("conduit-web-wasm").bytes,
 });
 configurePanelLanguage(JSON.parse(panel_language_metadata()));
+configurePanelSourceMetadata(panel_source_metadata);
 syncSourceHighlight();
 
 const placementFact = (id, available, lifetime, scheduling, transfer, terminalRisks) => ({
@@ -259,6 +262,9 @@ if (cyContainer) {
     onCordSelect: (cordId) => {
       selectCord(cordId);
     },
+    onPortSelect: (nodeId, port) => {
+      selectPort(nodeId, port);
+    },
     onSelectionClear: () => {
       clearTopologySelection();
     },
@@ -272,6 +278,58 @@ if (cyContainer) {
 function updateCytoscapeGraph() {
   if (patchbayRenderer && patchbayView) {
     patchbayRenderer.setViewModel(patchbayView, current.id);
+  }
+  renderStructuredTopology();
+}
+
+function renderStructuredTopology() {
+  const portList = document.querySelector("#panel-port-list");
+  const connectionList = document.querySelector("#panel-connection-list");
+  if (!portList || !connectionList) return;
+  portList.replaceChildren();
+  connectionList.replaceChildren();
+  const nodes = topologyView === "logical"
+    ? patchbayView?.topology?.logical_nodes || []
+    : patchbayView?.topology?.expanded_nodes || [];
+  for (const node of nodes) {
+    for (const port of [...node.inputs, ...node.outputs]) {
+      const item = document.createElement("li");
+      item.dataset.semanticPath = port.semantic_path;
+      item.dataset.portDirection =
+        port.direction === "input" ? "receiving" : "outgoing";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "structured-topology-button";
+      button.textContent =
+        `${node.id}: ${port.display_label} — ${port.type_id}; ` +
+        `${port.delivery}; ${port.connections}`;
+      button.setAttribute(
+        "aria-label",
+        `${node.id}, ${port.accessible_label}, type ${port.type_id}, ` +
+        `${port.delivery}, ${port.connections}`,
+      );
+      button.onclick = () => selectPort(node.id, port);
+      item.append(button);
+      portList.append(item);
+    }
+  }
+  for (const cord of patchbayView?.topology?.cords || []) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "structured-topology-button";
+    button.textContent =
+      `${cord.from_node}.${cord.from_port} → ${cord.to_node}.${cord.to_port} — ` +
+      `${cord.value_type}; ${cord.pressure}`;
+    button.setAttribute(
+      "aria-label",
+      `${cord.from_node}, ${cord.from_port}, outgoing port, to ` +
+      `${cord.to_node}, ${cord.to_port}, receiving port; ` +
+      `${cord.value_type}; ${cord.pressure}`,
+    );
+    button.onclick = () => selectCord(cord.id);
+    item.append(button);
+    connectionList.append(item);
   }
 }
 
@@ -739,6 +797,31 @@ function selectCord(cordId) {
   patchbayRenderer?.selectCord(cordId);
 }
 
+function selectPort(nodeId, port) {
+  const cord = (patchbayView?.topology?.cords || []).find((candidate) =>
+    port.direction === "input"
+      ? candidate.to_node === nodeId && candidate.to_port === port.id
+      : candidate.from_node === nodeId && candidate.from_port === port.id
+  );
+  if (cord) {
+    selectCord(cord.id);
+    selectedNodeLabel.textContent =
+      `Selected ${port.accessible_label}: ${port.semantic_path}`;
+    return;
+  }
+  const projection = [
+    ...(patchbayView?.topology?.logical_nodes || []),
+    ...(patchbayView?.topology?.expanded_nodes || []),
+  ].find((candidate) => candidate.id === nodeId);
+  if (!selectSourceRange("port owner", port.semantic_path, projection?.source_range)) {
+    return;
+  }
+  selectedNode = nodeId;
+  selectedCord = null;
+  selectedNodeLabel.textContent =
+    `Selected ${port.accessible_label}: ${port.semantic_path}`;
+}
+
 function selectSourceRange(kind, id, range) {
   if (!range) {
     result.textContent =
@@ -808,6 +891,7 @@ function renderTopology() {
   document.querySelector("#topology").textContent = explanation.ok
     ? explanation[topologyView]
     : explanation.diagnostic;
+  renderStructuredTopology();
 }
 
 // Populate Lessons Nav

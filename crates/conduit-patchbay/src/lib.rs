@@ -550,7 +550,13 @@ pub struct PatchbayConfigProjection {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PatchbayPortProjection {
     pub id: String,
+    /// Stable semantic selection subject; never derived from screen geometry.
+    pub semantic_path: String,
     pub direction: String,
+    /// Exact full face/list spelling with the one-glyph flow convention.
+    pub display_label: String,
+    /// Redundant non-color description for assistive presentation.
+    pub accessible_label: String,
     pub type_id: String,
     pub delivery: String,
     pub connections: String,

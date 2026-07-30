@@ -18,6 +18,14 @@ export function explain_panel(source: string): string;
 export function panel_language_metadata(): string;
 
 /**
+ * Returns exact semantic port ranges derived from the production parser.
+ *
+ * Malformed source deliberately returns no semantic annotations: the browser
+ * may retain lossless lexical presentation, but it must not guess direction.
+ */
+export function panel_source_metadata(source: string): string;
+
+/**
  * Returns a small JSON summary produced from `conduit_panel::parse` itself.
  */
 export function parse_panel(source: string): string;
@@ -72,6 +80,7 @@ export interface InitOutput {
     readonly cancel_panel: (a: number, b: number) => [number, number];
     readonly explain_panel: (a: number, b: number) => [number, number];
     readonly panel_language_metadata: () => [number, number];
+    readonly panel_source_metadata: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
     readonly patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];

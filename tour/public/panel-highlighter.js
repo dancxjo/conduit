@@ -1,6 +1,7 @@
 let panelSyntaxWords = new Set();
 let panelReservedWords = new Set();
 let panelIdentifierCompatibleSyntaxWords = new Set();
+let panelSourceMetadata = null;
 
 const PANEL_LITERALS = new Set([
   "abort", "block", "coalesce", "drain", "drop-disposable", "fail",
@@ -28,12 +29,26 @@ export function configurePanelLanguage(metadata) {
     new Set(metadata.identifier_compatible_syntax_words);
 }
 
-export function highlightPanelSource(source, selectedRange = null) {
+export function configurePanelSourceMetadata(resolver) {
+  if (typeof resolver !== "function") {
+    throw new Error("panel source metadata resolver must be a function");
+  }
+  panelSourceMetadata = resolver;
+}
+
+function semanticAttributes(annotation) {
+  const direction = annotation.direction;
+  const label = escapeHtml(annotation.accessible_label || `${direction} port`);
+  const path = escapeHtml(annotation.semantic_path || "");
+  return ` data-token-label="${direction} port" aria-label="${label}"` +
+    ` title="${label}" data-semantic-path="${path}"`;
+}
+
+export function highlightPanelSource(source, selectedRange = null, metadata = null) {
   const runs = [];
   let cursor = 0;
   let expectTypeName = false;
   let inImplementsList = false;
-  let cordEndpoint = null;
 
   const renderText = (text, tokenStart, kind, attributes = "") => {
     runs.push({ text, tokenStart, kind, attributes });
@@ -55,7 +70,7 @@ export function highlightPanelSource(source, selectedRange = null) {
       kind = "string";
     } else if ((match = rest.match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/))) {
       kind = "number";
-    } else if ((match = rest.match(/^(?:->|[{}()[\],:=])/))) {
+    } else if ((match = rest.match(/^(?:->|<-|[><{}()[\],:=])/))) {
       kind = "operator";
     } else if ((match = rest.match(/^[-./@A-Za-z_][-./@A-Za-z0-9_[\]]*/))) {
       if (expectTypeName) kind = "type";
@@ -85,33 +100,10 @@ export function highlightPanelSource(source, selectedRange = null) {
         if (inImplementsList && !wasExpectedType) inImplementsList = false;
       }
 
-      if (kind === "keyword" && text === "cord") {
-        cordEndpoint = "output";
-      } else if (kind === "operator" && text === "->") {
-        cordEndpoint = "input";
-      }
     }
 
     const tokenStart = cursor;
-    const endpointSelector = kind === "identifier" && cordEndpoint
-      ? match[0].match(/^(.+)(\.(?:in|out))$/)
-      : null;
-    if (endpointSelector) {
-      const [, node, selector] = endpointSelector;
-      renderText(node, tokenStart, "identifier");
-      const direction = selector === ".in" ? "input" : "output";
-      renderText(
-        selector,
-        tokenStart + node.length,
-        `port panel-token-port-${direction}`,
-        ` data-token-label="${direction} port" aria-label="${direction} port"` +
-          ` title="${direction[0].toUpperCase()}${direction.slice(1)} port"`,
-      );
-      cordEndpoint = null;
-    } else {
-      renderText(match[0], tokenStart, kind);
-      if (kind === "identifier" && cordEndpoint) cordEndpoint = null;
-    }
+    renderText(match[0], tokenStart, kind);
     cursor += match[0].length;
   }
 
@@ -120,6 +112,16 @@ export function highlightPanelSource(source, selectedRange = null) {
   const hasSelection = Number.isInteger(selectionStart) &&
     Number.isInteger(selectionEnd) &&
     selectionStart < selectionEnd;
+  const semanticAnnotations = metadata?.semantic_available === true &&
+      Array.isArray(metadata.annotations)
+    ? metadata.annotations.filter((annotation) =>
+      Number.isInteger(annotation.start_utf16) &&
+      Number.isInteger(annotation.end_utf16) &&
+      annotation.start_utf16 < annotation.end_utf16 &&
+      ["receiving", "outgoing"].includes(annotation.direction) &&
+      ["port-name", "port-sigil"].includes(annotation.kind)
+    )
+    : [];
   let output = "";
   let selectionOpen = false;
 
@@ -131,6 +133,16 @@ export function highlightPanelSource(source, selectedRange = null) {
     }
     if (hasSelection && selectionEnd > tokenStart && selectionEnd < tokenEnd) {
       boundaries.push(selectionEnd);
+    }
+    for (const annotation of semanticAnnotations) {
+      if (annotation.start_utf16 > tokenStart &&
+          annotation.start_utf16 < tokenEnd) {
+        boundaries.push(annotation.start_utf16);
+      }
+      if (annotation.end_utf16 > tokenStart &&
+          annotation.end_utf16 < tokenEnd) {
+        boundaries.push(annotation.end_utf16);
+      }
     }
     boundaries.sort((left, right) => left - right);
 
@@ -152,8 +164,21 @@ export function highlightPanelSource(source, selectedRange = null) {
       const escaped = escapeHtml(
         text.slice(fragmentStart - tokenStart, fragmentEnd - tokenStart),
       );
-      output += kind
-        ? `<span class="panel-token-${kind}"${attributes}>${escaped}</span>`
+      const annotation = semanticAnnotations.find((candidate) =>
+        fragmentStart >= candidate.start_utf16 &&
+        fragmentEnd <= candidate.end_utf16
+      );
+      const semanticKind = annotation?.kind === "port-sigil"
+        ? `port-sigil panel-token-port-sigil-${annotation.direction}`
+        : annotation
+          ? `port panel-token-port-${annotation.direction}`
+          : null;
+      const renderedKind = semanticKind || kind;
+      const renderedAttributes = annotation
+        ? semanticAttributes(annotation)
+        : attributes;
+      output += renderedKind
+        ? `<span class="panel-token-${renderedKind}"${renderedAttributes}>${escaped}</span>`
         : escaped;
     }
   }
@@ -176,10 +201,21 @@ export function attachPanelSourceHighlighting(textarea) {
     highlight.scrollLeft = textarea.scrollLeft;
   };
   const sync = () => {
+    let metadata = null;
+    if (panelSourceMetadata) {
+      try {
+        metadata = JSON.parse(panelSourceMetadata(textarea.value));
+      } catch {
+        metadata = null;
+      }
+    }
     highlight.innerHTML = highlightPanelSource(
       textarea.value,
       textarea.sourceHighlightRange,
+      metadata,
     );
+    highlight.dataset.semanticMetadata =
+      metadata?.semantic_available === true ? "available" : "unavailable";
     syncScroll();
   };
 

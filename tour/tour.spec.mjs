@@ -102,28 +102,35 @@ test("highlights panel source while retaining the native editor surface", async 
   await expect(highlight.locator(".panel-token-identifier").filter({
     hasText: /^output$/,
   })).toHaveCount(2);
-  await expect(highlight.locator(".panel-token-port-output")).toHaveText(".out");
-  await expect(highlight.locator(".panel-token-port-input")).toHaveText(".in");
-  await expect(highlight.locator(".panel-token-port-output"))
-    .toHaveAttribute("data-token-label", "output port");
-  await expect(highlight.locator(".panel-token-port-input"))
-    .toHaveAttribute("data-token-label", "input port");
-  const inputPortDecoration = await highlight.locator(".panel-token-port-input").evaluate(
+  await expect(highlight.locator(".panel-token-port-outgoing")).toHaveText("out");
+  await expect(highlight.locator(".panel-token-port-receiving")).toHaveText("in");
+  await expect(highlight.locator(".panel-token-port-outgoing"))
+    .toHaveAttribute("data-token-label", "outgoing port");
+  await expect(highlight.locator(".panel-token-port-receiving"))
+    .toHaveAttribute("data-token-label", "receiving port");
+  const inputPortDecoration = await highlight.locator(".panel-token-port-receiving").evaluate(
     (element) => getComputedStyle(element).textDecorationStyle,
   );
-  const outputPortDecoration = await highlight.locator(".panel-token-port-output").evaluate(
+  const outputPortDecoration = await highlight.locator(".panel-token-port-outgoing").evaluate(
     (element) => getComputedStyle(element).textDecorationStyle,
   );
   expect(inputPortDecoration).not.toBe(outputPortDecoration);
 
   await source.fill(
-    "panel 2\n# note\ninterface speech/recognizer {\n" +
-      "  input audio : audio/pcm-stream\n" +
+    "panel 3\n# note > ignored\ninterface speech/recognizer {\n" +
+      "  > in : audio/pcm-stream\n" +
+      "  in > : speech/transcript\n" +
+      "  > audio : audio/pcm-stream\n" +
+      "  committed > : speech/transcript\n" +
       "}\nnode value : fixture/source implements speech/recognizer\n",
   );
-  await expect(highlight.locator(".panel-token-comment")).toHaveText("# note");
+  await expect(highlight).toHaveAttribute("data-semantic-metadata", "available");
+  await expect(highlight.locator(".panel-token-comment")).toHaveText("# note > ignored");
   await expect(highlight.locator(".panel-token-type")).toHaveText([
     "audio/pcm-stream",
+    "speech/transcript",
+    "audio/pcm-stream",
+    "speech/transcript",
     "fixture/source",
     "speech/recognizer",
   ]);
@@ -137,10 +144,38 @@ test("highlights panel source while retaining the native editor surface", async 
     (element) => getComputedStyle(element).color,
   );
   expect(typeColor).not.toBe(identifierColor);
+  await expect(highlight.locator(".panel-token-port-receiving")).toHaveText([
+    "in",
+    "audio",
+  ]);
+  await expect(highlight.locator(".panel-token-port-outgoing")).toHaveText([
+    "in",
+    "committed",
+  ]);
+  await expect(highlight.locator(".panel-token-port-sigil-receiving")).toHaveText([
+    ">",
+    ">",
+  ]);
+  await expect(highlight.locator(".panel-token-port-sigil-outgoing")).toHaveText([
+    ">",
+    ">",
+  ]);
+  await expect(highlight.locator(".panel-token-comment .panel-token-port-sigil")).toHaveCount(0);
   await expect(source).toHaveValue(
-    "panel 2\n# note\ninterface speech/recognizer {\n" +
-      "  input audio : audio/pcm-stream\n" +
+    "panel 3\n# note > ignored\ninterface speech/recognizer {\n" +
+      "  > in : audio/pcm-stream\n" +
+      "  in > : speech/transcript\n" +
+      "  > audio : audio/pcm-stream\n" +
+      "  committed > : speech/transcript\n" +
       "}\nnode value : fixture/source implements speech/recognizer\n",
+  );
+
+  await source.fill('panel 3\ninterface broken {\n  > audio : "not > metadata"\n');
+  await expect(highlight).toHaveAttribute("data-semantic-metadata", "unavailable");
+  await expect(highlight.locator(".panel-token-port")).toHaveCount(0);
+  await expect(highlight.locator(".panel-token-port-sigil")).toHaveCount(0);
+  await expect(source).toHaveValue(
+    'panel 3\ninterface broken {\n  > audio : "not > metadata"\n',
   );
   await expect(highlight).toHaveAttribute("aria-hidden", "true");
 });
@@ -193,6 +228,24 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   expect(firstNodeBox?.y).toBeGreaterThanOrEqual(canvasBox?.y ?? Infinity);
   expect(firstNodeBox?.y).toBeLessThan((canvasBox?.y ?? 0) + (canvasBox?.height ?? 0));
   await expect(page.locator(".availability-tag")).toHaveCount(2);
+  const receiving = page.locator(".react-flow__node").getByRole("button", {
+    name: "in, receiving port; type std/text",
+    exact: true,
+  });
+  const outgoing = page.locator(".react-flow__node").getByRole("button", {
+    name: "out, outgoing port; type std/text",
+    exact: true,
+  });
+  await expect(receiving).toContainText("> in");
+  await expect(outgoing).toContainText("out >");
+  await expect(page.locator(".faceplate-jack")).not.toContainText("<");
+  await expect(page.locator("#panel-port-list")).toContainText("> in");
+  await expect(page.locator("#panel-port-list")).toContainText("out >");
+  await outgoing.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected out, outgoing port: root/greeting/port/outgoing/out",
+  );
 });
 
 test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
@@ -382,6 +435,7 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await expect(edge).toHaveClass(/compatibility-compatible/);
   const path = edge.locator(".react-flow__edge-path");
   await expect(path).toHaveAttribute("d", /^M/);
+  await expect(path).toHaveAttribute("marker-end", /type=arrowclosed/);
   await expect(path).toHaveCSS("stroke", "rgb(52, 211, 153)");
   await expect(path).toHaveCSS("animation-name", "patchbay-cord-block");
   await expect(edge.locator(".react-flow__edge-text")).toContainText(

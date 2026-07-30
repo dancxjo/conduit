@@ -45,6 +45,12 @@ export class PatchbayCanvasElement extends HTMLElement {
         <span class="cord-legend-item"><i class="cord-legend-swatch weight"></i>Weight: capacity</span>
         <span class="cord-legend-item"><i class="cord-legend-swatch proof"></i>Glow: compatible</span>
       </div>
+      <section class="structured-topology" aria-labelledby="structured-topology-title">
+        <h4 id="structured-topology-title">Structured semantic ports and cords</h4>
+        <p class="card-subtitle">Keyboard and screen-reader equivalent of the selected topology projection.</p>
+        <ul id="panel-port-list" class="connection-list" aria-label="Explicit semantic ports"></ul>
+        <ul id="panel-connection-list" class="connection-list" aria-label="Typed cord connections"></ul>
+      </section>
       <div class="node-controls">
         <span id="selected-node-label" class="selected-label">No node selected</span>
         <div class="button-row">
