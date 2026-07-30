@@ -10,8 +10,9 @@ use conduit_core::{
     WorkloadDelegation, resolve_authority,
 };
 use conduit_runtime::{
-    CarrierSecurityCapabilities, CarrierSecurityMode, ResolvedPlacementBinding,
-    ResolvedReplacementSupport, ResolvedTransportSelection, TransportCapabilities,
+    CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_VERSION,
+    ResolvedPlacementBinding, ResolvedReplacementSupport, ResolvedTransportSelection,
+    TransportCapabilities,
 };
 
 pub const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -178,7 +179,7 @@ pub const fn security_pin(mode: CarrierSecurityMode) -> PinnedDescriptor<'static
 
 pub fn capabilities(binding: &PlanDistributedCord<'_>) -> TransportCapabilities {
     TransportCapabilities {
-        protocol_version: 1,
+        protocol_version: DISTRIBUTED_ENVELOPE_VERSION,
         publish_subscribe: true,
         query_reply: false,
         reconnect: true,

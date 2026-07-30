@@ -1724,5 +1724,28 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
             plan.identity,
             without_feedback.semantic_hash(scratch).unwrap()
         );
+
+        let unauthorized_envelopes = [ValueEnvelopePolicy {
+            maximum_timestamps: 0,
+            clock_domains: &[],
+            ..envelopes[0]
+        }];
+        let mut unauthorized_clock = ExecutionPlan {
+            identity: ZERO_HASH,
+            value_envelopes: &unauthorized_envelopes,
+            ..plan
+        };
+        unauthorized_clock.identity = unauthorized_clock.semantic_hash(scratch).unwrap();
+        let error = validate_execution_plan(
+            &unauthorized_clock,
+            PlanValidationContext {
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+                now: time(20),
+            },
+            scratch,
+        )
+        .unwrap_err();
+        assert_eq!(error.code.as_str(), "CND-VEF-003");
+        assert_eq!(error.collection, PlanCollection::FeedbackBoundaries);
     });
 }

@@ -14,8 +14,10 @@ use crate::{
     RuntimeValueEnvelope,
 };
 
-pub const DISTRIBUTED_ENVELOPE_VERSION: u16 = 1;
+pub const DISTRIBUTED_ENVELOPE_VERSION_V1: u16 = 1;
 pub const DISTRIBUTED_ENVELOPE_VERSION_V2: u16 = 2;
+/// Latest envelope version implemented by the hosted transport boundary.
+pub const DISTRIBUTED_ENVELOPE_VERSION: u16 = DISTRIBUTED_ENVELOPE_VERSION_V2;
 pub const DISTRIBUTED_ENVELOPE_FIXED_BYTES: usize = 132;
 pub const DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES: usize = 442;
 
@@ -296,8 +298,10 @@ pub fn encode_distributed_envelope(
     frame: OutboundDistributedFrame<'_>,
     destination: &mut [u8],
 ) -> Result<usize, TransportReason> {
+    if frame.value_envelope.is_some() {
+        return Err(TransportReason::UnsupportedProtocol);
+    }
     if frame.session_epoch == 0
-        || frame.value_envelope.is_some()
         || frame.payload.len() > binding.budget.maximum_payload_bytes as usize
     {
         return Err(TransportReason::EnvelopeTooLarge);
@@ -318,7 +322,7 @@ pub fn encode_distributed_envelope(
         return Err(TransportReason::EnvelopeTooLarge);
     }
     destination[..4].copy_from_slice(&MAGIC);
-    destination[4..6].copy_from_slice(&DISTRIBUTED_ENVELOPE_VERSION.to_be_bytes());
+    destination[4..6].copy_from_slice(&DISTRIBUTED_ENVELOPE_VERSION_V1.to_be_bytes());
     let (kind, terminal) = encode_kind(frame.kind);
     destination[6] = kind;
     destination[7] = terminal;
@@ -457,7 +461,7 @@ pub fn decode_distributed_envelope<'a>(
     {
         return Err(TransportReason::EnvelopeMalformed);
     }
-    if read_u16(input, 4)? != DISTRIBUTED_ENVELOPE_VERSION {
+    if read_u16(input, 4)? != DISTRIBUTED_ENVELOPE_VERSION_V1 {
         return Err(TransportReason::UnsupportedProtocol);
     }
     let kind = decode_kind(input[6], input[7])?;

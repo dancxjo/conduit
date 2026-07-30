@@ -418,7 +418,7 @@ fn distributed_v2_preserves_authorized_value_facts_and_rejects_impersonation() {
     let mut bytes = [0_u8; 1_024];
     assert_eq!(
         encode_distributed_envelope(PLAN, &binding, frame, &mut bytes),
-        Err(conduit_runtime::TransportReason::EnvelopeTooLarge)
+        Err(conduit_runtime::TransportReason::UnsupportedProtocol)
     );
     let used = encode_distributed_envelope_v2(PLAN, &binding, frame, &mut bytes).unwrap();
     let decoded = decode_distributed_envelope_v2(&bytes[..used], PLAN, &binding).unwrap();

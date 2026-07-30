@@ -1,6 +1,6 @@
 # Value envelope, clock conversion, and feedback contract version 1
 
-Status: proposed portable contract
+Status: implemented portable contract
 
 Depends on: specifications 005, 006, 007, 008, 011, 022, 029, 037, and 046
 

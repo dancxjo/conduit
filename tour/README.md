@@ -41,6 +41,12 @@ Patchbay projection and timeline therefore share one plan/run/evidence
 authority. Play, pause, step, reset, replay, and scrub are presentation state;
 the complete ordered table remains available without motion, color, or audio.
 
+Platform lessons reuse that surface for checked plan profiles. Admission
+outcomes come from repository conformance fixtures, while the editable
+representative panel still runs through the exact browser worker. Envelope,
+clock-conversion, and feedback facts remain exact-plan projections rather than
+teaching-only runtime events.
+
 `tour/build-site.sh` assembles the checked static Tour, lessons, exact
 browser-host adapter, linked examples, and the formatter's linked
 specification/cookbook/conformance fixture. The Pages workflow publishes that

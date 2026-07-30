@@ -1,6 +1,6 @@
 {
   "fixture_version": "conduit.conformance/v1",
-  "manifest_revision": 48,
+  "manifest_revision": 49,
   "protocol_version": 1,
   "deterministic_environment": {
     "clock": {
@@ -4851,6 +4851,94 @@
         {"package": "conduit-runtime", "test": "transition_runtime"},
         {"package": "conduit-runtime", "test": "replicated_pool_vectors"},
         {"package": "conduit-runtime", "test": "host_resolution"}
+      ]
+    },
+    {
+      "id": "value-envelope-clock-feedback",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "VEF-001", "VEF-002", "VEF-003", "VEF-004", "CLK-001", "FBK-001", "FBK-002"
+      ],
+      "artifacts": [{
+        "id": "value-envelope-clock-feedback-v1",
+        "path": "../c5/value-envelope-clock-feedback-v1.json",
+        "sha256": "sha256:7f6440e00f73749bb7a2619b32504244198a06fdd68c9f1340478726b485221b",
+        "operation": "value-envelope-clock-feedback-v1",
+        "requirement_ids": [
+          "VEF-001", "VEF-002", "VEF-003", "VEF-004", "CLK-001", "FBK-001", "FBK-002"
+        ],
+        "default_rule": "VEF-002",
+        "case_rules": {
+          "identity-affecting-envelope-bounds": "VEF-001",
+          "local-envelope-preserved": "VEF-003",
+          "distributed-envelope-preserved": "VEF-003",
+          "replayed-envelope-preserved": "VEF-003",
+          "corrected-envelope-preserved": "VEF-003",
+          "fresh-clock-conversion": "CLK-001",
+          "incomparable-clocks": "CLK-001",
+          "stale-clock-conversion": "CLK-001",
+          "clock-arithmetic-overflow": "CLK-001",
+          "uncertainty-above-consumer-ceiling": "CLK-001",
+          "finite-delay-feedback": "FBK-001",
+          "finite-state-feedback": "FBK-001",
+          "zero-feedback-retention": "FBK-001",
+          "cycle-without-boundary": "FBK-001",
+          "missing-feedback-initialization": "FBK-002",
+          "cancellation-during-feedback-initialization": "FBK-002",
+          "terminal-before-retained-value": "FBK-002",
+          "replay-correlation-impersonation": "VEF-004"
+        },
+        "format": "json-vectors",
+        "collection": "cases",
+        "case_fields": ["id"],
+        "expected_fields": ["expected"]
+      }],
+      "coverage": {
+        "positive": [
+          "value-envelope-clock-feedback-v1#payload-only",
+          "value-envelope-clock-feedback-v1#authorized-correlation-provenance",
+          "value-envelope-clock-feedback-v1#local-envelope-preserved",
+          "value-envelope-clock-feedback-v1#distributed-envelope-preserved",
+          "value-envelope-clock-feedback-v1#replayed-envelope-preserved",
+          "value-envelope-clock-feedback-v1#corrected-envelope-preserved",
+          "value-envelope-clock-feedback-v1#fresh-clock-conversion",
+          "value-envelope-clock-feedback-v1#finite-delay-feedback",
+          "value-envelope-clock-feedback-v1#finite-state-feedback"
+        ],
+        "negative": [
+          "value-envelope-clock-feedback-v1#unbounded-envelope",
+          "value-envelope-clock-feedback-v1#oversized-fragmented-envelope",
+          "value-envelope-clock-feedback-v1#unknown-representation",
+          "value-envelope-clock-feedback-v1#forbidden-sensitivity-widening",
+          "value-envelope-clock-feedback-v1#unlisted-clock",
+          "value-envelope-clock-feedback-v1#incomparable-clocks",
+          "value-envelope-clock-feedback-v1#stale-clock-conversion",
+          "value-envelope-clock-feedback-v1#clock-arithmetic-overflow",
+          "value-envelope-clock-feedback-v1#zero-feedback-retention",
+          "value-envelope-clock-feedback-v1#cycle-without-boundary",
+          "value-envelope-clock-feedback-v1#missing-feedback-initialization",
+          "value-envelope-clock-feedback-v1#replay-correlation-impersonation"
+        ],
+        "boundary": [
+          "value-envelope-clock-feedback-v1#identity-affecting-envelope-bounds",
+          "value-envelope-clock-feedback-v1#uncertainty-above-consumer-ceiling",
+          "value-envelope-clock-feedback-v1#cancellation-during-feedback-initialization",
+          "value-envelope-clock-feedback-v1#terminal-before-retained-value"
+        ],
+        "migration": [
+          "value-envelope-clock-feedback-v1#distributed-envelope-preserved",
+          "value-envelope-clock-feedback-v1#replayed-envelope-preserved",
+          "value-envelope-clock-feedback-v1#corrected-envelope-preserved"
+        ]
+      },
+      "reference_tests": [
+        {"package": "conduit-core", "test": "value_envelope_vectors"},
+        {"package": "conduit-core", "test": "execution_plan_vectors"},
+        {"package": "conduit-core", "test": "resonance_vectors"},
+        {"package": "conduit-runtime", "test": "scheduler"},
+        {"package": "conduit-runtime", "test": "distributed_backend"},
+        {"package": "conduit-runtime", "test": "transition_runtime"},
+        {"package": "conduit-patchbay", "test": "protocol"}
       ]
     }
   ]

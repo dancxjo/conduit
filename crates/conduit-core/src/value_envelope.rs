@@ -124,6 +124,134 @@ pub struct PlanFeedbackBoundary<'a> {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FeedbackRuntimePhase {
+    Uninitialized,
+    Ready,
+    WaitingForReplay,
+    Cancelled,
+    Terminal,
+}
+
+/// Allocator-free reference state for one implementation-owned feedback
+/// boundary. It accounts retained state and makes initialization, replay gaps,
+/// cancellation, and terminal ordering explicit without storing domain values.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FeedbackRuntimeState {
+    pub phase: FeedbackRuntimePhase,
+    pub retained_items: u16,
+    pub retained_bytes: u64,
+}
+
+impl FeedbackRuntimeState {
+    pub const NEW: Self = Self {
+        phase: FeedbackRuntimePhase::Uninitialized,
+        retained_items: 0,
+        retained_bytes: 0,
+    };
+
+    pub fn initialize(
+        &mut self,
+        boundary: PlanFeedbackBoundary<'_>,
+    ) -> Result<(), ValueEnvelopeReason> {
+        validate_feedback_boundary(boundary)?;
+        if self.phase != FeedbackRuntimePhase::Uninitialized {
+            return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
+        }
+        self.retained_items = boundary.initial_items;
+        self.retained_bytes = boundary.initial_bytes;
+        self.phase = FeedbackRuntimePhase::Ready;
+        Ok(())
+    }
+
+    pub fn retain(
+        &mut self,
+        boundary: PlanFeedbackBoundary<'_>,
+        items: u16,
+        bytes: u64,
+    ) -> Result<(), ValueEnvelopeReason> {
+        validate_feedback_boundary(boundary)?;
+        if self.phase != FeedbackRuntimePhase::Ready
+            || items > boundary.maximum_retained_items
+            || bytes > boundary.maximum_retained_bytes
+        {
+            return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
+        }
+        self.retained_items = items;
+        self.retained_bytes = bytes;
+        Ok(())
+    }
+
+    pub fn replay_gap(
+        &mut self,
+        boundary: PlanFeedbackBoundary<'_>,
+    ) -> Result<(), ValueEnvelopeReason> {
+        validate_feedback_boundary(boundary)?;
+        if self.phase != FeedbackRuntimePhase::Ready {
+            return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
+        }
+        match boundary.replay_gap {
+            FeedbackReplayGapPolicy::Fail => {
+                self.retained_items = 0;
+                self.retained_bytes = 0;
+                self.phase = FeedbackRuntimePhase::Terminal;
+            }
+            FeedbackReplayGapPolicy::Reset => {
+                self.retained_items = boundary.initial_items;
+                self.retained_bytes = boundary.initial_bytes;
+            }
+            FeedbackReplayGapPolicy::Wait => {
+                self.phase = FeedbackRuntimePhase::WaitingForReplay;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn resume_replay(&mut self) -> Result<(), ValueEnvelopeReason> {
+        if self.phase != FeedbackRuntimePhase::WaitingForReplay {
+            return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
+        }
+        self.phase = FeedbackRuntimePhase::Ready;
+        Ok(())
+    }
+
+    pub fn cancel(&mut self) {
+        if self.phase != FeedbackRuntimePhase::Terminal {
+            self.retained_items = 0;
+            self.retained_bytes = 0;
+            self.phase = FeedbackRuntimePhase::Cancelled;
+        }
+    }
+
+    pub fn finish(
+        &mut self,
+        boundary: PlanFeedbackBoundary<'_>,
+    ) -> Result<(), ValueEnvelopeReason> {
+        validate_feedback_boundary(boundary)?;
+        match self.phase {
+            FeedbackRuntimePhase::Cancelled | FeedbackRuntimePhase::Terminal => return Ok(()),
+            FeedbackRuntimePhase::Uninitialized => {
+                return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
+            }
+            FeedbackRuntimePhase::Ready | FeedbackRuntimePhase::WaitingForReplay => {}
+        }
+        if boundary.terminal == FeedbackTerminalPolicy::DrainRetained
+            && (self.retained_items != 0 || self.retained_bytes != 0)
+        {
+            return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
+        }
+        self.retained_items = 0;
+        self.retained_bytes = 0;
+        self.phase = FeedbackRuntimePhase::Terminal;
+        Ok(())
+    }
+
+    #[must_use]
+    pub const fn may_emit(self) -> bool {
+        matches!(self.phase, FeedbackRuntimePhase::Ready) && self.retained_items != 0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ValueEnvelopeReason {
     InvalidPolicy,
     InvalidBound,
@@ -136,6 +264,7 @@ pub enum ValueEnvelopeReason {
     ClockArithmeticOverflow,
     InvalidFeedbackBoundary,
     InvalidFeedbackCycle,
+    InvalidFeedbackPolicy,
 }
 
 impl ValueEnvelopeReason {
@@ -153,6 +282,7 @@ impl ValueEnvelopeReason {
             | Self::ClockArithmeticOverflow => "CND-CLK-001",
             Self::InvalidFeedbackBoundary => "CND-FBK-001",
             Self::InvalidFeedbackCycle => "CND-FBK-002",
+            Self::InvalidFeedbackPolicy => "CND-FBK-003",
         }
     }
 }
@@ -269,6 +399,7 @@ pub fn convert_clock(
     conversion: PlanClockConversion<'_>,
     source_tick: i64,
     now: AuthorityTime<'_>,
+    maximum_uncertainty_ticks: u64,
 ) -> Result<ConvertedTime, ValueEnvelopeReason> {
     validate_clock_conversion(conversion)?;
     if now.basis != conversion.observed_at.basis
@@ -276,6 +407,9 @@ pub fn convert_clock(
         || now.tick > conversion.valid_until_tick
     {
         return Err(ValueEnvelopeReason::StaleClockConversion);
+    }
+    if conversion.maximum_uncertainty_ticks > maximum_uncertainty_ticks {
+        return Err(ValueEnvelopeReason::InvalidClockConversion);
     }
 
     let scaled = i128::from(source_tick)
@@ -319,11 +453,14 @@ pub fn validate_feedback_boundary(
     if !valid_id(boundary.id)
         || InstancePath::new(boundary.node.as_str()).is_err()
         || !valid_id(boundary.cord)
-        || !valid_pin(boundary.cancellation)
         || boundary.maximum_retained_items == 0
         || boundary.maximum_retained_bytes == 0
         || boundary.initial_items > boundary.maximum_retained_items
         || boundary.initial_bytes > boundary.maximum_retained_bytes
+    {
+        return Err(ValueEnvelopeReason::InvalidFeedbackBoundary);
+    }
+    if !valid_pin(boundary.cancellation)
         || matches!(boundary.initialization, FeedbackInitialization::Empty)
             && (boundary.initial_items != 0 || boundary.initial_bytes != 0)
         || matches!(
@@ -331,7 +468,7 @@ pub fn validate_feedback_boundary(
             FeedbackInitialization::InitialValue
         ) && (boundary.initial_items == 0 || boundary.initial_bytes == 0)
     {
-        return Err(ValueEnvelopeReason::InvalidFeedbackBoundary);
+        return Err(ValueEnvelopeReason::InvalidFeedbackPolicy);
     }
 
     match boundary.kind {

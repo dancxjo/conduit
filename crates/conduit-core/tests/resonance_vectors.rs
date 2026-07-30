@@ -280,7 +280,10 @@ fn required_evidence_and_control_authority_fail_closed() {
 
 #[test]
 fn correction_is_append_only_and_prior_event_is_unchanged() {
-    let original = envelope("event/original", 0);
+    let original = ResonanceEnvelope {
+        domain_time: Some((Id("clock/device"), 42)),
+        ..envelope("event/original", 0)
+    };
     let correction = ResonanceEnvelope {
         event: Id("event/correction"),
         sequence: 1,
@@ -292,6 +295,11 @@ fn correction_is_append_only_and_prior_event_is_unchanged() {
     };
     assert_eq!(original.relations.corrects, None);
     assert_eq!(correction.relations.corrects, Some(original.event));
+    assert_eq!(correction.correlation, original.correlation);
+    assert_eq!(correction.provenance, original.provenance);
+    assert_eq!(correction.domain_time, original.domain_time);
+    assert_eq!(correction.sensitivity, original.sensitivity);
+    assert_eq!(correction.payload, original.payload);
 }
 
 #[test]

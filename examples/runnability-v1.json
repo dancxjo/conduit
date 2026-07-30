@@ -27,6 +27,7 @@
     {"path":"examples/threshold-alarm.panel","state":"contract-only","profile":"device","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/traffic-light.panel","state":"contract-only","profile":"embedded","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/transcript-record-replay.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
+    {"path":"examples/value-envelope-feedback.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"ENVELOPE FACTS STAY EXACT.\n"},
     {"path":"examples/wifi-ap-isolated.panel","state":"contract-only","profile":"device","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/wifi-station-join.panel","state":"contract-only","profile":"device","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"fixtures/invalid/type-or-port-mismatch.panel","state":"illustrative/unavailable","profile":"deterministic","proof":"canonical-check-rejection","expected_diagnostic":"CND-CMP-003"},

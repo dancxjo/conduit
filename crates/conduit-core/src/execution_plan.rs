@@ -1472,7 +1472,7 @@ pub fn validate_execution_plan(
             !plan
                 .value_envelopes
                 .iter()
-                .any(|policy| policy.clock_domains.contains(&clock))
+                .any(|policy| policy.cord == boundary.cord && policy.clock_domains.contains(&clock))
         }) {
             return Err(indexed(
                 PlanDiagnosticCode::ValueEnvelope(ValueEnvelopeReason::ClockNotAuthorized),

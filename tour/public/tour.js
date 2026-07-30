@@ -350,9 +350,22 @@ function recordEvidence(event) {
 }
 
 function activeScenario() {
-  return current.library?.scenarios?.find(
+  const libraryScenario = current.library?.scenarios?.find(
     (scenario) => scenario.id === scenarioSelect.value,
-  ) || null;
+  );
+  if (libraryScenario) return libraryScenario;
+  const platformProfile = current.platform?.profiles?.find(
+    (profile) => profile.id === scenarioSelect.value,
+  );
+  if (!platformProfile) return null;
+  const outcome = platformProfile.admission === "accepted"
+    ? "admitted by the checked contract"
+    : `rejected before execution with ${platformProfile.code}`;
+  return {
+    ...platformProfile,
+    source: current.source,
+    explanation: `${platformProfile.id}: ${outcome}. The editable representative panel remains real source and reruns independently.`,
+  };
 }
 
 function authoredSource() {
@@ -529,30 +542,45 @@ function configureExecutionStory() {
   renderTimeline([]);
   document.querySelector("#timeline-values").textContent =
     "No exact run values yet.";
-  const library = current.library;
-  executionStory.hidden = !library;
-  if (!library) return;
-  document.querySelector("#library-summary").textContent = library.summary;
-  document.querySelector("#library-what").textContent = library.what;
-  document.querySelector("#library-when").textContent = library.when;
-  document.querySelector("#library-wrong").textContent = library.wrong;
+  const story = current.library || current.platform;
+  executionStory.hidden = !story;
+  if (!story) return;
+  const platform = Boolean(current.platform);
+  document.querySelector("#story-kind").textContent =
+    platform ? "Platform contract lesson" : "Library lesson";
+  document.querySelector("#story-selectable-title").textContent =
+    platform ? "Checked plan profiles" : "Selectable contracts";
+  document.querySelector("#library-summary").textContent =
+    story.summary || current.objective;
+  document.querySelector("#library-what").textContent = story.what;
+  document.querySelector("#library-when").textContent = story.when;
+  document.querySelector("#library-wrong").textContent = story.wrong;
   const contractList = document.querySelector("#library-contracts");
   contractList.replaceChildren();
-  for (const contract of library.contracts) {
+  for (const contract of story.contracts || story.profiles) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "btn small";
     button.textContent = contract.id;
     button.onclick = () => {
-      selectNode(contract.instance);
-      result.textContent =
-        `${contract.id}: selected ${contract.instance} in the authoritative Patchbay projection.`;
+      if (platform) {
+        scenarioSelect.value = contract.id;
+        scenarioSelect.dispatchEvent(new Event("change"));
+      } else {
+        selectNode(contract.instance);
+        result.textContent =
+          `${contract.id}: selected ${contract.instance} in the authoritative Patchbay projection.`;
+      }
     };
     contractList.append(button);
   }
   const docs = document.querySelector("#library-docs");
   docs.replaceChildren();
-  for (const path of library.docs) {
+  const references = [
+    ...(story.docs || []),
+    ...(platform ? [story.fixture, story.panel].filter(Boolean) : []),
+  ];
+  for (const path of references) {
     const item = document.createElement("li");
     const link = document.createElement("a");
     link.href = path;
@@ -561,10 +589,10 @@ function configureExecutionStory() {
     docs.append(item);
   }
   scenarioSelect.replaceChildren();
-  for (const scenario of library.scenarios) {
+  for (const scenario of story.scenarios || story.profiles) {
     const option = document.createElement("option");
     option.value = scenario.id;
-    option.textContent = scenario.title;
+    option.textContent = scenario.title || scenario.id;
     scenarioSelect.append(option);
   }
 }
@@ -1071,8 +1099,9 @@ if (requestedLesson) {
 }
 show(current);
 const requestedScenario = pageParameters.get("scenario");
-if (requestedScenario && current.library &&
-    current.library.scenarios.some((scenario) => scenario.id === requestedScenario)) {
+if (requestedScenario &&
+    [...(current.library?.scenarios || []), ...(current.platform?.profiles || [])]
+      .some((scenario) => scenario.id === requestedScenario)) {
   scenarioSelect.value = requestedScenario;
   scenarioSelect.dispatchEvent(new Event("change"));
 }

@@ -1,0 +1,30 @@
+{
+  "suite": "conduit.value-envelope-clock-feedback/v1",
+  "cases": [
+    {"id":"payload-only","runner":"core-envelope","expected":{"accepted":true}},
+    {"id":"authorized-correlation-provenance","runner":"core-envelope","expected":{"accepted":true}},
+    {"id":"identity-affecting-envelope-bounds","runner":"exact-plan","expected":{"identity_changed":true}},
+    {"id":"local-envelope-preserved","runner":"hosted-scheduler","expected":{"preserved":true}},
+    {"id":"distributed-envelope-preserved","runner":"distributed-fault-backend","expected":{"preserved":true,"protocol_version":2}},
+    {"id":"replayed-envelope-preserved","runner":"transition-replay","expected":{"preserved":true}},
+    {"id":"corrected-envelope-preserved","runner":"resonance-correction","expected":{"preserved":true}},
+    {"id":"fresh-clock-conversion","runner":"core-clock","expected":{"accepted":true,"earliest_tick":92,"latest_tick":98}},
+    {"id":"finite-delay-feedback","runner":"core-feedback","expected":{"accepted":true}},
+    {"id":"finite-state-feedback","runner":"hosted-scheduler","expected":{"accepted":true,"retained_bytes":64}},
+    {"id":"unbounded-envelope","runner":"core-envelope","expected":{"accepted":false,"code":"CND-VEF-002"}},
+    {"id":"oversized-fragmented-envelope","runner":"core-envelope","expected":{"accepted":false,"code":"CND-VEF-002"}},
+    {"id":"unknown-representation","runner":"core-envelope","expected":{"accepted":false,"code":"CND-VEF-003"}},
+    {"id":"forbidden-sensitivity-widening","runner":"core-envelope","expected":{"accepted":false,"code":"CND-VEF-003"}},
+    {"id":"unlisted-clock","runner":"core-envelope","expected":{"accepted":false,"code":"CND-VEF-003"}},
+    {"id":"incomparable-clocks","runner":"core-clock","expected":{"accepted":false,"code":"CND-CLK-001"}},
+    {"id":"stale-clock-conversion","runner":"core-clock","expected":{"accepted":false,"code":"CND-CLK-001"}},
+    {"id":"clock-arithmetic-overflow","runner":"core-clock","expected":{"accepted":false,"code":"CND-CLK-001"}},
+    {"id":"uncertainty-above-consumer-ceiling","runner":"core-clock","expected":{"accepted":false,"code":"CND-CLK-001"}},
+    {"id":"zero-feedback-retention","runner":"core-feedback","expected":{"accepted":false,"code":"CND-FBK-001"}},
+    {"id":"cycle-without-boundary","runner":"hosted-scheduler","expected":{"accepted":false,"code":"CND-FBK-002"}},
+    {"id":"missing-feedback-initialization","runner":"core-feedback","expected":{"accepted":false,"code":"CND-FBK-003"}},
+    {"id":"replay-correlation-impersonation","runner":"distributed-codec","expected":{"accepted":false,"code":"CND-TRN-010"}},
+    {"id":"cancellation-during-feedback-initialization","runner":"hosted-scheduler","expected":{"terminal":"cancelled","retained_items":0}},
+    {"id":"terminal-before-retained-value","runner":"hosted-scheduler","expected":{"terminal_wins":true,"post_terminal_values":0}}
+  ]
+}
