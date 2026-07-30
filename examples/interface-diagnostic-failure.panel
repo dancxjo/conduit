@@ -1,10 +1,10 @@
-panel 2
+panel 3
 
 interface speech/recognizer {
-  input audio : std/text
-  output final : std/text
-  output error_channel : std/text
+  > audio : std/text
+  final > : std/text
+  error_channel > : std/text
 }
 
-# Fails because io/stdout lacks output port `final` and `error_channel`
-node invalid_worker : io/stdout implements speech/recognizer
+# Fails because display/text lacks the required ports.
+node invalid_worker : display/text implements speech/recognizer

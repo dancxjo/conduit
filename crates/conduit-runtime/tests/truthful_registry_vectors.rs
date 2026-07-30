@@ -61,8 +61,10 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "std/text/join",
         "io/stdin",
         "text/uppercase",
+        "text/encode-utf8",
         "io/stdout",
         "io/stderr",
+        "display/text",
         "supervision/supervisor",
         "flow/identity",
         "conduit.std/tee",
@@ -181,9 +183,11 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
         "panel 1\n\
          node source : std/literal { value = \"fixture\" }\n\
          node upper : text/uppercase\n\
+         node encoded : text/encode-utf8\n\
          node sink : io/stdout\n\
-         cord source.out -> upper.in\n\
-         cord upper.out -> sink.in\n",
+         cord source.value -> upper.text\n\
+         cord upper.text -> encoded.text\n\
+         cord encoded.bytes -> sink.bytes\n",
     )
     .unwrap();
     registry
@@ -195,7 +199,7 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
 fn hosted_primitive_registry_couples_callbacks_to_installed_artifacts() {
     let registry = Registry::hosted_primitives();
     let installed = Registry::installed_hosted_providers();
-    assert_eq!(installed.len(), 16);
+    assert_eq!(installed.len(), 17);
     for provider in installed {
         let availability = registry.node_availability(provider.contract.id.as_str());
         assert_eq!(availability.state, AvailabilityState::ProviderAvailable);

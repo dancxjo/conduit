@@ -136,7 +136,12 @@ fn ownership(id: &str) -> Result<Ownership, String> {
             classification: "optional-host-boundary",
             package_owner: "conduit.host.data",
         }
-    } else if id == "text/uppercase" {
+    } else if id.starts_with("display/") {
+        Ownership {
+            classification: "portable-standard",
+            package_owner: "conduit.std.display",
+        }
+    } else if id.starts_with("text/") {
         Ownership {
             classification: "portable-standard",
             package_owner: "conduit.std.text",
@@ -263,7 +268,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.std/select",
             _,
         ) => Some("library.standard-flow-control"),
-        ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
+        ("text/uppercase" | "text/encode-utf8", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };
     if let Some(artifact) = published {

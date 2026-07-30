@@ -24,19 +24,20 @@ fn complete_catalog_is_allocator_free_typed_and_bounded() {
 #[test]
 fn every_node_has_unique_stable_port_identities() {
     for entry in STANDARD_CATALOG {
-        let ports = entry
-            .contract
-            .inputs
-            .iter()
-            .chain(entry.contract.outputs)
-            .collect::<Vec<_>>();
-        for (index, port) in ports.iter().enumerate() {
-            assert!(
-                ports[..index].iter().all(|prior| prior.id != port.id),
-                "{} repeats port identity {}",
-                entry.contract.id,
-                port.id
-            );
+        for ports in [entry.contract.inputs, entry.contract.outputs] {
+            for (index, port) in ports.iter().enumerate() {
+                assert!(
+                    ports[..index].iter().all(|prior| prior.id != port.id),
+                    "{} repeats {} port identity {}",
+                    entry.contract.id,
+                    if port.direction == conduit_core::Direction::Input {
+                        "receiving"
+                    } else {
+                        "outgoing"
+                    },
+                    port.id
+                );
+            }
         }
     }
 
@@ -44,17 +45,17 @@ fn every_node_has_unique_stable_port_identities() {
         .iter()
         .find(|entry| entry.contract.id.as_str() == "conduit.std/tee")
         .unwrap();
-    assert_eq!(tee.contract.inputs[0].id.as_str(), "in");
-    assert_eq!(tee.contract.outputs[0].id.as_str(), "out1");
-    assert_eq!(tee.contract.outputs[1].id.as_str(), "out2");
+    assert_eq!(tee.contract.inputs[0].id.as_str(), "value");
+    assert_eq!(tee.contract.outputs[0].id.as_str(), "left");
+    assert_eq!(tee.contract.outputs[1].id.as_str(), "right");
 
     for id in ["conduit.std/merge", "conduit.std/zip", "conduit.std/select"] {
         let entry = STANDARD_CATALOG
             .iter()
             .find(|entry| entry.contract.id.as_str() == id)
             .unwrap();
-        assert_eq!(entry.contract.inputs[0].id.as_str(), "in1");
-        assert_eq!(entry.contract.inputs[1].id.as_str(), "in2");
+        assert_eq!(entry.contract.inputs[0].id.as_str(), "left");
+        assert_eq!(entry.contract.inputs[1].id.as_str(), "right");
     }
 }
 

@@ -17,21 +17,21 @@
       "semantic_hash": "sha256:0c8aecace055266ecf4475b53036f98886d17279b22d2a9ef6643fa8cee4244c",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -58,7 +58,7 @@
         {
           "implementation": "conduit/hosted-gate-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -88,21 +88,21 @@
       "semantic_hash": "sha256:3e14894ebf36d143288210a9f43c42cacd8f7a1dcfc093b8edc307ed91a481c9",
       "ports": [
         {
-          "id": "in1",
+          "id": "left",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "in2",
+          "id": "right",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -123,7 +123,7 @@
         {
           "implementation": "conduit/hosted-merge-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -153,28 +153,28 @@
       "semantic_hash": "sha256:73cff6de582f2438894f743e2e6ed99c66557b062cfa22f9b3376f1d167e523d",
       "ports": [
         {
-          "id": "in1",
+          "id": "left",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "in2",
+          "id": "right",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -201,7 +201,7 @@
         {
           "implementation": "conduit/hosted-select-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -231,21 +231,21 @@
       "semantic_hash": "sha256:4d16fe2f7284b751996d372a5f418d3916b31d55e5cdd5f09558a8eb9fb9d659",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out1",
+          "id": "left",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out2",
+          "id": "right",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -266,7 +266,7 @@
         {
           "implementation": "conduit/hosted-tee-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -296,14 +296,14 @@
       "semantic_hash": "sha256:2516a2e98bb993b088b4b0af1812dde7a789bedfea0f971cee6287a43389a0b3",
       "ports": [
         {
-          "id": "in1",
+          "id": "left",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "in2",
+          "id": "right",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -338,7 +338,7 @@
         {
           "implementation": "conduit/hosted-zip-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -368,14 +368,14 @@
       "semantic_hash": "sha256:4737bffe2c23b13a9d55dfe559af538ba8934f09340830245b64ba4359f1e55b",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -444,14 +444,14 @@
       "semantic_hash": "sha256:004dc9d404cb66a8335d6d83c10907a627875c68854a22b85b59a56a7b5ee5c2",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -520,14 +520,14 @@
       "semantic_hash": "sha256:08d85883f38ddb0025dd5da7c8d23892797a8dad1ecc73b0e8ce2b2e60b996f3",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -565,14 +565,14 @@
       "semantic_hash": "sha256:28ccfca779e9aa226c0765880c4c0015205c61077259c75ad8892198927ffd91",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -600,6 +600,44 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "display/text",
+      "public_source_spelling": "display/text",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.display",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.display/v1",
+      "export_path": "conduit.std.display/display/text",
+      "schema_version": 1,
+      "semantic_hash": "sha256:3714470f10c7bbb79db8dc9745bd1191a188854ea31a66a6b8b67268ccba35db",
+      "ports": [
+        {
+          "id": "text",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.display/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.display.text.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#library.display.text.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "evidence/export",
       "public_source_spelling": "evidence/export",
       "classification": "optional-host-boundary",
@@ -610,14 +648,14 @@
       "semantic_hash": "sha256:443b82cd9913d6b0812f6bc93310f2f1d940c8ffdf929d0a0c30553a174e9234",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -686,14 +724,14 @@
       "semantic_hash": "sha256:937ad23bf1bb2901bf5fd049484ed8b2bb88eeec675467b03ab3d67bc979658a",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -744,14 +782,14 @@
       "semantic_hash": "sha256:3dc1d15eb90e3a905c709446fcae84ea4eaabe4970926eacb8df8d91f70849dc",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -802,21 +840,21 @@
       "semantic_hash": "sha256:e092f744f1deafb2052529d4a7b7e1238ae30d9c7cca9e3b67686a670b02a365",
       "ports": [
         {
-          "id": "in1",
+          "id": "left",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "in2",
+          "id": "right",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -867,7 +905,7 @@
       "semantic_hash": "sha256:e885258c761ad4a2243944b4ce1b3f79c30bf60570451bf77c71b76d80dfbb6c",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -925,14 +963,14 @@
       "semantic_hash": "sha256:fb2817a89606e010b3a74db7098a0906a6c53684323aa18a41bd8e8e89c25867",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -983,14 +1021,14 @@
       "semantic_hash": "sha256:f5f0efab9d706a5dc6f367865c3d1f4e96c5187df69e7e2f73645886100642e4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1041,28 +1079,28 @@
       "semantic_hash": "sha256:a3f42f78d2778a2f89e72f792cbc827fdd504ed8590c0c17d94d54e0a5389c36",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out1",
+          "id": "left",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out2",
+          "id": "right",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1113,7 +1151,7 @@
       "semantic_hash": "sha256:eda2af9a38fffaf06ac3b4e69b686899980fbb5e081c9e843132b052e7218728",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1151,14 +1189,14 @@
       "semantic_hash": "sha256:50c8b3c53181b2b3a24ff613a9f403c7641c019308dfb05ffb46158d6bff68bd",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1223,7 +1261,7 @@
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -1237,7 +1275,7 @@
         {
           "implementation": "conduit/hosted-fallback-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1267,14 +1305,14 @@
       "semantic_hash": "sha256:dbafa704e11aad76f90d59519d3d5ba653e3e4f929a74ddd3625ea3cf11500b7",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1325,14 +1363,14 @@
       "semantic_hash": "sha256:cbd3aa5ce2378abe25ef8d6d27708d3e04e9dba6b47433c6504181aaac00d89f",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -1370,14 +1408,14 @@
       "semantic_hash": "sha256:d4f84a25c2afa37198a708e7a85993c3751989db0240539bfa989d41fc88a1da",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1428,14 +1466,14 @@
       "semantic_hash": "sha256:4f03a2af8c311329fdd3abd5ae2ee0d75f732fe20f4f163070ea4c246ce51241",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1486,14 +1524,14 @@
       "semantic_hash": "sha256:0ce5bd4bf61ff36abdcfc9a4236c87d9967c11a90832b2e880e784add1570691",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1544,14 +1582,14 @@
       "semantic_hash": "sha256:2390643fcd0903b7857dbafb5a387521bf4ca418ff29508d43c98ff8a32ac834",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1608,14 +1646,14 @@
       "semantic_hash": "sha256:765c0abda2f3deced98f660b195bcf4645464112bc6a99389fd40be7c778671e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1666,14 +1704,14 @@
       "semantic_hash": "sha256:6e31ffb365ef861bc2406320b6b15618a58cfcbcf644631a202b8bbad971f29a",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -1687,7 +1725,7 @@
         {
           "implementation": "conduit/hosted-pass-through-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1717,21 +1755,21 @@
       "semantic_hash": "sha256:6bf88aac5300fbd4f9d557eb08c0a5336279d1011466032929486ab8a9ff86c4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1782,14 +1820,14 @@
       "semantic_hash": "sha256:1abec8a597b0c9a8ff6d3696a09266ad0af583b80bb9e156117d99c23dcc985e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1840,14 +1878,14 @@
       "semantic_hash": "sha256:41dba5ffe52a466d15341a7943d376d339f099e88f8ea9b2dbde423b55471298",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -1898,21 +1936,21 @@
       "semantic_hash": "sha256:ce4ee505522504c158ec5aff1729d7e6fb94cb8c61aeabdc176ad7ced63c2fad",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -1963,14 +2001,14 @@
       "semantic_hash": "sha256:7f93a061b1a2a0c439e111e6138024e83cdbacef4e9f61376a72403123c931af",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -2008,28 +2046,28 @@
       "semantic_hash": "sha256:d8cb74f932b1bc7c3ab424760a031b9b02a8553e45c65fa2985e44d65ce9a875",
       "ports": [
         {
-          "id": "in1",
+          "id": "left",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "in2",
+          "id": "right",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -2080,14 +2118,14 @@
       "semantic_hash": "sha256:af164159da28632a87350685812f9ce3d76ce963eff8d0a8d13fdca3eeb799c5",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -2125,7 +2163,7 @@
       "semantic_hash": "sha256:7731cb60660d42faa4c969f778438b4a8e3630103a42b65d0dcd7c529b062295",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -2183,14 +2221,14 @@
       "semantic_hash": "sha256:0ddaa8ac33f60b7ad9fd4772b3abd9465693e44957f19e015b7d699b746b75f4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -2228,14 +2266,14 @@
       "semantic_hash": "sha256:8d27fd9e1ab7c57ccb7358dd700485ec156cc39e63ded23bfe8ef66c637434ef",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -2304,7 +2342,7 @@
       "semantic_hash": "sha256:3ffe479d09957a1559c7c8dc5de37731ff579ed22ea242d7609d328f5f69cb93",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -2342,11 +2380,11 @@
       "semantic_hash": "sha256:e0baa4808eab70f5f298f0c2ddb238c129816738bb2b92139a75e03ccded0d42",
       "ports": [
         {
-          "id": "in",
+          "id": "bytes",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         }
       ],
       "config": [],
@@ -2356,7 +2394,7 @@
         {
           "implementation": "conduit/hosted-stderr-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2386,11 +2424,11 @@
       "semantic_hash": "sha256:93894904616a3912524e2703d539818a6a6a82fde167892a1109dcf942af1de1",
       "ports": [
         {
-          "id": "out",
+          "id": "bytes",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         }
       ],
       "config": [],
@@ -2400,7 +2438,7 @@
         {
           "implementation": "conduit/hosted-stdin-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2430,11 +2468,11 @@
       "semantic_hash": "sha256:db57fa1ebd82f7d8cdddf82e5459b938b5a91d787065b82f7ab0835a1818aecc",
       "ports": [
         {
-          "id": "in",
+          "id": "bytes",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 1,
-          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         }
       ],
       "config": [],
@@ -2444,7 +2482,7 @@
         {
           "implementation": "conduit/hosted-stdout-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2474,14 +2512,14 @@
       "semantic_hash": "sha256:c28619aa3aa29caaa85d4fe13e0e224d52853c5fc8e5a4d8104f4423c6feae17",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -2550,14 +2588,14 @@
       "semantic_hash": "sha256:c08844edfa0c23756e831bbc08e9f04295ab3f702a43a0279cd77574051d903d",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -2626,14 +2664,14 @@
       "semantic_hash": "sha256:da894ea5d0dee867e934687ed801c40dff053604771505825fe34eeca7a84848",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -2702,14 +2740,14 @@
       "semantic_hash": "sha256:2c8037218ebc856af0e97f852331f02c189b8e55e4c30557ec1efa9f4cd558d8",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -2954,14 +2992,14 @@
       "semantic_hash": "sha256:f6c87003a425a6d7fea70873faece89ddacf6663386474e5ca03255fd88f3f0e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -2999,14 +3037,14 @@
       "semantic_hash": "sha256:ddfb86bea7a625d8c70e8f1b57b789741072f12198290e18694703e73a095f21",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3075,14 +3113,14 @@
       "semantic_hash": "sha256:40d3d012718f7fc539b30c9bbf77a966850834a2452ea5ec9afc9ec910484a19",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3151,14 +3189,14 @@
       "semantic_hash": "sha256:61de5b301bde14315c9b0a6561abbb46ac69c6b3106e8b69567b60d534f5a349",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3227,14 +3265,14 @@
       "semantic_hash": "sha256:674266ee3803e4ff0c175993eca71a782b186b1a2fc83cf1a4306f84ab05aabb",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3303,14 +3341,14 @@
       "semantic_hash": "sha256:80649e9d8a09aa51ba1f6383e2fb3f3fb0d49e34c00e4a2dc0c947e5ff373d6b",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3379,14 +3417,14 @@
       "semantic_hash": "sha256:7ec0c8f255eb85f2288f403a9eff2daf1c57a92fe03d5cc6fdec2f01916ca31e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3455,14 +3493,14 @@
       "semantic_hash": "sha256:0d97c61eceb6044a72e373b307f50f73678f17989c08c8d7fcac339c3130e1e2",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -3500,14 +3538,14 @@
       "semantic_hash": "sha256:b98c9a926e71e0c01deccfcaa09d54744a8d7d7ba2c87ccc5ec8b84276a0e571",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -3545,14 +3583,14 @@
       "semantic_hash": "sha256:bd8e843b5276e7cf83ffb810452d688a2a172d05964286dd61b29ab40f9da1d2",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3621,14 +3659,14 @@
       "semantic_hash": "sha256:688b1f64203850e7b2c86ec717df875d7ca3238696d93874193763228fd6b49e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -3666,14 +3704,14 @@
       "semantic_hash": "sha256:a7bcf880d7468841575ed2898802574b8c956d752abc64ac49928e7e00423c8d",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -3711,14 +3749,14 @@
       "semantic_hash": "sha256:56bba765d2e6ae5644ade882b62431867918377c53cc1105f9e10b7add2468a4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3787,14 +3825,14 @@
       "semantic_hash": "sha256:60e36fd95969a043e74fcd56a4dd29681d26ae2506cf825c341ff6e39d33717d",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -3832,14 +3870,14 @@
       "semantic_hash": "sha256:dcf97b5142ead7de7d9b5749804d4d421b19c0ea5fc09b354f5ac34c40354fb9",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -3877,14 +3915,14 @@
       "semantic_hash": "sha256:013337f3bc60543c90bfd0041f829599bca0fc00ae86d64baf5032d06d5a0714",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -3953,14 +3991,14 @@
       "semantic_hash": "sha256:f5258d19a5e3725a3a0a85621dba50a1e18428c578571be06f186076e80877a9",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -4029,14 +4067,14 @@
       "semantic_hash": "sha256:216b4092228b985dee5694c9d7aca38fda8b42d6b2cfb95b99ba775b50965057",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4074,14 +4112,14 @@
       "semantic_hash": "sha256:65299901fe03e15d7a038d64a7489d0dbea932541a85112430ccbc5d89e334a7",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4119,21 +4157,21 @@
       "semantic_hash": "sha256:a98d69b36e888b450a488c69471e01799a713312174b3d5b91a8a15f6c9dcd9b",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -4190,14 +4228,14 @@
       "semantic_hash": "sha256:4d4ea9bee992c34d6217577b52868b6976a7a8f108760c262554e71097c50396",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4235,14 +4273,14 @@
       "semantic_hash": "sha256:576f0ce26328469a35ff25f7f48ce278c19ed8a2e4d9ec6073652ecf94f5d122",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4280,21 +4318,21 @@
       "semantic_hash": "sha256:0406675c61b222085aba4f5468a624b3860579a5895861b729cc1dc8684fc8af",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -4351,21 +4389,21 @@
       "semantic_hash": "sha256:a4fd23ed0ee7fccfd29e755a04d47a1d7e62d79db30ec9c09a7336a7cf76f194",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -4422,7 +4460,7 @@
       "semantic_hash": "sha256:77acc5a3e69ca0d30efe0f9170f03a063068339f67111aa639de5a7624e4cf9c",
       "ports": [
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -4460,7 +4498,7 @@
       "semantic_hash": "sha256:2a450bff3e3c6e2b909a709e2a99b7eaf25f57074cd7ea034425b4eca8cf65fe",
       "ports": [
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -4511,7 +4549,7 @@
       "semantic_hash": "sha256:41f67dc2968865db2480cfbbecddd1145401538f85329b81df53e0eb4800dc83",
       "ports": [
         {
-          "id": "out",
+          "id": "values",
           "direction": "output",
           "value_type": "std/format-values",
           "type_schema_version": 1,
@@ -4532,7 +4570,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4562,7 +4600,7 @@
       "semantic_hash": "sha256:f818cadfb5842e0293dad0b576c577ce3cca36947ac95387bf15bded04e6cb9a",
       "ports": [
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4583,7 +4621,7 @@
         {
           "implementation": "conduit/hosted-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4613,7 +4651,7 @@
       "semantic_hash": "sha256:a72605f0f6b25876e6f9a472567bc6a2725856c46026d70cef691844b84ec703",
       "ports": [
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -4665,7 +4703,7 @@
           "type_hash": "sha256:ba23e276b70b1b0c747d2b4ada100d72fa5b3874e4fa2baa250cf07149795cc0"
         },
         {
-          "id": "out",
+          "id": "text",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4679,7 +4717,7 @@
         {
           "implementation": "conduit/hosted-format-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4716,7 +4754,7 @@
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "text",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4761,7 +4799,7 @@
         {
           "implementation": "conduit/hosted-text-join-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4791,7 +4829,7 @@
       "semantic_hash": "sha256:9190d85df76c946d6f092a226d9574e59e27318a320c9b56bbddd94fca364201",
       "ports": [
         {
-          "id": "in",
+          "id": "text",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4825,7 +4863,7 @@
         {
           "implementation": "conduit/hosted-text-lines-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4855,14 +4893,14 @@
       "semantic_hash": "sha256:dc63355774e3e757665ad17c3012e4dceac46c558dd431d5241629e218fe1130",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -4931,14 +4969,14 @@
       "semantic_hash": "sha256:9ac220d114e5940b986468b532341e23db4f7a202a755b758b1b9a7d4c2cc7d4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -4976,14 +5014,14 @@
       "semantic_hash": "sha256:e5e90902154a97b2ebfbe291f287ac08bc111c984eb1e921b5d05d28a67a98b4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -5052,14 +5090,14 @@
       "semantic_hash": "sha256:d5e949197db896a1213f61e9d9d4eae65f150c69709641b530c83ee7396fb81a",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5097,14 +5135,14 @@
       "semantic_hash": "sha256:836760dd533438cb826d5aabaaea668f01c908c79863435d3c6602c716abc67a",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5142,14 +5180,14 @@
       "semantic_hash": "sha256:64677b4929f78c60d4a2d90d814d2d710c0be1f15c4f6ecafe3d8b1e4f2c950c",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5187,14 +5225,14 @@
       "semantic_hash": "sha256:8f02c043fe4d94498b75b0957e1ac460b2d398fb2aeb559c57858b7c10188b1e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5232,14 +5270,14 @@
       "semantic_hash": "sha256:8d845325e46b887b5783eebc9f584d36c00ca71b7276ed0ac6e0b05fe20b0061",
       "ports": [
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -5290,21 +5328,21 @@
       "semantic_hash": "sha256:041ec3e4ef2f0fc7870bf87963660e701740c30da4b0a1a4e2cfed4b332bb759",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -5406,14 +5444,14 @@
       "semantic_hash": "sha256:2190118e09de83ddeba8cd9fc90d0e2fa18cf49f3d5fae81983d6c5aec4e9cbd",
       "ports": [
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -5464,21 +5502,21 @@
       "semantic_hash": "sha256:8a258d34e7fe264dfee573914bf03bf350e794ff47beda1ae6b870e5124b27eb",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "control",
+          "id": "command",
           "direction": "input",
           "value_type": "std/record",
           "type_schema_version": 1,
           "type_hash": "sha256:e47129d8323dd8171d5d286dbb1bbc8379923cb1878a9b976c4c8bbf75643fe7"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -5535,14 +5573,14 @@
       "semantic_hash": "sha256:5d06f6f4119e23b1976780657d2cfd15d8ef4af4323cc0201a9b5e74e4003f71",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5580,7 +5618,7 @@
       "semantic_hash": "sha256:3f46ea11b498d9fd613514a244b008f9fe470264ab552c95353533dd66722176",
       "ports": [
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5618,14 +5656,14 @@
       "semantic_hash": "sha256:e2ff09f64131b45780225d4b29abb6738de0053f5d4d2f9270b52cd4a77d96cf",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5663,14 +5701,14 @@
       "semantic_hash": "sha256:65fc2153d4abe9ec1be889f5116ff53377abc1dd01d10e3bd289e8dae68be7e2",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5708,7 +5746,7 @@
       "semantic_hash": "sha256:46c7a0c5513d8872d7722bc5f6198b5eb7305d11f84877205f513fde28ec083d",
       "ports": [
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5736,6 +5774,57 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "text/encode-utf8",
+      "public_source_spelling": "text/encode-utf8",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std.text",
+      "contract_package_artifact": "conduit.contract-package/conduit.std.text/v1",
+      "export_path": "conduit.std.text/text/encode-utf8",
+      "schema_version": 1,
+      "semantic_hash": "sha256:90eacef05e83bfe6c6ed9c5cc954eba023fb07ae1459921bfbfa4227ea934f90",
+      "ports": [
+        {
+          "id": "text",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 1,
+          "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
+        },
+        {
+          "id": "bytes",
+          "direction": "output",
+          "value_type": "std/bytes",
+          "type_schema_version": 1,
+          "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-encode-utf8-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
+      "required_result_profile": "conduit.cross-host-provider/v1",
+      "structural_facet_owner": "conduit.std.text/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/v1.json#library.text.encode-utf8.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/v1.json#panels.put-a-panel-in-a-panel",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "text/uppercase",
       "public_source_spelling": "text/uppercase",
       "classification": "portable-standard",
@@ -5746,14 +5835,14 @@
       "semantic_hash": "sha256:2ae5393f4e5a806ab8c36237ed165d909a3bb7c838d6dbccd5226dffe0b28fb2",
       "ports": [
         {
-          "id": "in",
+          "id": "text",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "text",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5767,7 +5856,7 @@
         {
           "implementation": "conduit/hosted-uppercase-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:9937722a318f6ed0de79229a0b15afac678c090589ed17fc57726b887a1faaf9"
+          "artifact_digest": "sha256:27dc27df4b03e2cb9c7acfd9c5f2bb04682e6169b849056d78e7c52b9555203f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5797,14 +5886,14 @@
       "semantic_hash": "sha256:858dd760197b4e6367305f7b6e6c08eb8c688450c05625f41290faa9a38ccbe4",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -5861,14 +5950,14 @@
       "semantic_hash": "sha256:44c70ab4caf9e77e67029273ad2a1231291fc4e1dd6d3fbc9f58479925008234",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -5925,14 +6014,14 @@
       "semantic_hash": "sha256:99e71dfde2a885d1759831ba5bf307a8c5f843b0779c945b03389e6e344c7bfe",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -5970,14 +6059,14 @@
       "semantic_hash": "sha256:134a4bafa357d7b4ea168dbcbe2697d6d1cb7c0fa6fc04ba8af68c856f755776",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -6015,14 +6104,14 @@
       "semantic_hash": "sha256:1694f8e7ee8ba15b809251002f6ae016245f113abf3eeb7e6ab35dcb322fe55c",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -6079,14 +6168,14 @@
       "semantic_hash": "sha256:8eddc51264d3770958b8c73ca5021f796ea22776e3469362c7ed7bbca556821e",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -6143,14 +6232,14 @@
       "semantic_hash": "sha256:bbeb32046439bf826731e3c3f5645a97c315279e379b8d7e90325b56aa92fa84",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/text",
           "type_schema_version": 1,
           "type_hash": "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/text",
           "type_schema_version": 1,
@@ -6245,14 +6334,14 @@
       "semantic_hash": "sha256:c51a116c8b4ea34a9539602527c93789f3ae6ab5a78167a5147d533e3f3062b7",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "value",
           "direction": "output",
           "value_type": "std/bytes",
           "type_schema_version": 1,
@@ -6366,14 +6455,14 @@
       "semantic_hash": "sha256:2c39bc735c999890b412a32fed284f38ace79e4c88d3ad927af4a30ac17aa7f9",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,
@@ -6430,14 +6519,14 @@
       "semantic_hash": "sha256:50f97de82673e77da5e14d8843989dadab86fada0fc20a94d7e27c4290a63469",
       "ports": [
         {
-          "id": "in",
+          "id": "value",
           "direction": "input",
           "value_type": "std/bytes",
           "type_schema_version": 1,
           "type_hash": "sha256:7be7df9a17c75a28c8b5df5fa6ea6a859d888669913d836de2c6141c8d19d453"
         },
         {
-          "id": "out",
+          "id": "result",
           "direction": "output",
           "value_type": "std/record",
           "type_schema_version": 1,

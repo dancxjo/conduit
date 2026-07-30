@@ -12,9 +12,10 @@ node merge : conduit.std/merge {
     ordering = "round-robin"
 }
 node merged_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+node encoded : text/encode-utf8
 node output : io/stdout
 
-cord first.out -> first_lines.in {
+cord first.value -> first_lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -22,7 +23,7 @@ cord first.out -> first_lines.in {
     high_watermark = 1
     pressure = block
 }
-cord second.out -> second_lines.in {
+cord second.value -> second_lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -30,9 +31,9 @@ cord second.out -> second_lines.in {
     high_watermark = 1
     pressure = block
 }
-cord first_lines.line -> merge.in1 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord second_lines.line -> merge.in2 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord merge.out -> merged_text.item {
+cord first_lines.line -> merge.left { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord second_lines.line -> merge.right { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord merge.value -> merged_text.item {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -40,4 +41,5 @@ cord merge.out -> merged_text.item {
     high_watermark = 1
     pressure = block
 }
-cord merged_text.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord merged_text.text -> encoded.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord encoded.bytes -> output.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

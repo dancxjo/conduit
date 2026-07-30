@@ -24,10 +24,12 @@ node right_text : std/text/join {
     maximum_separator_bytes = 64
     maximum_output_bytes = 4096
 }
+node left_bytes : text/encode-utf8
+node right_bytes : text/encode-utf8
 node left : io/stdout
 node right : io/stderr
 
-cord message.out -> messages.in {
+cord message.value -> messages.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -35,7 +37,7 @@ cord message.out -> messages.in {
     high_watermark = 1
     pressure = block
 }
-cord messages.line -> tee.in {
+cord messages.line -> tee.value {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -43,7 +45,7 @@ cord messages.line -> tee.in {
     high_watermark = 1
     pressure = block
 }
-cord tee.out1 -> left_text.item {
+cord tee.left -> left_text.item {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -51,6 +53,8 @@ cord tee.out1 -> left_text.item {
     high_watermark = 1
     pressure = block
 }
-cord tee.out2 -> right_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord left_text.out -> left.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_text.out -> right.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord tee.right -> right_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left_text.text -> left_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_text.text -> right_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left_bytes.bytes -> left.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_bytes.bytes -> right.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

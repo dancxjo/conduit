@@ -32,10 +32,12 @@ fn fallback_node_selects_primary_or_fallback() {
             node primary : std/literal { value = "primary data" }
             node secondary : std/literal { value = "fallback data" }
             node router : flow/fallback
+            node encoded : text/encode-utf8
             node sink : io/stdout
-            cord primary.out -> router.primary
-            cord secondary.out -> router.fallback
-            cord router.out -> sink.in
+            cord primary.value -> router.primary
+            cord secondary.value -> router.fallback
+            cord router.value -> encoded.text
+            cord encoded.bytes -> sink.bytes
         "#,
     )
     .expect("fallback panel parses");

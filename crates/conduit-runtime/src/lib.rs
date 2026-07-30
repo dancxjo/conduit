@@ -187,6 +187,15 @@ const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
         0xb5, 0xab,
     ]),
 };
+const BYTES_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/bytes"),
+    schema_version: 1,
+    semantic_hash: SemanticHash::from_bytes([
+        0x7b, 0xe7, 0xdf, 0x9a, 0x17, 0xc7, 0x5a, 0x28, 0xc8, 0xb5, 0xdf, 0x5f, 0xa6, 0xea, 0x6a,
+        0x85, 0x9d, 0x88, 0x86, 0x69, 0x91, 0x3d, 0x83, 0x6d, 0xe2, 0xc6, 0x14, 0x1c, 0x8d, 0x19,
+        0xd4, 0x53,
+    ]),
+};
 const FORMAT_VALUES_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/format-values"),
     schema_version: 1,
@@ -310,8 +319,8 @@ const HTTP_SERVE_ONCE_CONFIG: ConfigContract<'static> = ConfigContract {
         },
     ],
 };
-const INPUT_TEXT: PortContract<'static> = PortContract {
-    id: Id("in"),
+const TEXT_INPUT: PortContract<'static> = PortContract {
+    id: Id("text"),
     direction: Direction::Input,
     value_type: TEXT_TYPE,
     presence: Presence::Required,
@@ -325,8 +334,8 @@ const INPUT_TEXT: PortContract<'static> = PortContract {
         loss: LossAcceptance::LosslessOnly,
     },
 };
-const OUTPUT_TEXT: PortContract<'static> = PortContract {
-    id: Id("out"),
+const TEXT_OUTPUT: PortContract<'static> = PortContract {
+    id: Id("text"),
     direction: Direction::Output,
     value_type: TEXT_TYPE,
     presence: Presence::Required,
@@ -339,6 +348,24 @@ const OUTPUT_TEXT: PortContract<'static> = PortContract {
     flow: PortFlowConstraints {
         loss: LossAcceptance::LosslessOnly,
     },
+};
+const VALUE_TEXT_INPUT: PortContract<'static> = PortContract {
+    id: Id("value"),
+    ..TEXT_INPUT
+};
+const VALUE_TEXT_OUTPUT: PortContract<'static> = PortContract {
+    id: Id("value"),
+    ..TEXT_OUTPUT
+};
+const BYTES_INPUT: PortContract<'static> = PortContract {
+    id: Id("bytes"),
+    value_type: BYTES_TYPE,
+    ..TEXT_INPUT
+};
+const BYTES_OUTPUT: PortContract<'static> = PortContract {
+    id: Id("bytes"),
+    value_type: BYTES_TYPE,
+    ..TEXT_OUTPUT
 };
 const FORMAT_TEMPLATE_INPUT: PortContract<'static> = PortContract {
     id: Id("template"),
@@ -371,7 +398,7 @@ const FORMAT_VALUES_INPUT: PortContract<'static> = PortContract {
     },
 };
 const FORMAT_VALUES_OUTPUT: PortContract<'static> = PortContract {
-    id: Id("out"),
+    id: Id("values"),
     direction: Direction::Output,
     value_type: FORMAT_VALUES_TYPE,
     presence: Presence::Required,
@@ -455,18 +482,19 @@ const STREAM_INPUT_TEXT: PortContract<'static> = PortContract {
     temporal: TemporalContract::Committed,
     terminal: TerminalContract::Either,
     sensitivity: Sensitivity::Restricted,
-    ..INPUT_TEXT
+    id: Id("value"),
+    ..TEXT_INPUT
 };
 const STREAM_INPUT_TEXT_1: PortContract<'static> = PortContract {
-    id: Id("in1"),
+    id: Id("left"),
     ..STREAM_INPUT_TEXT
 };
 const STREAM_INPUT_TEXT_2: PortContract<'static> = PortContract {
-    id: Id("in2"),
+    id: Id("right"),
     ..STREAM_INPUT_TEXT
 };
 const STREAM_CONTROL_TEXT: PortContract<'static> = PortContract {
-    id: Id("control"),
+    id: Id("command"),
     ..STREAM_INPUT_TEXT
 };
 const STREAM_OUTPUT_TEXT: PortContract<'static> = PortContract {
@@ -475,14 +503,15 @@ const STREAM_OUTPUT_TEXT: PortContract<'static> = PortContract {
     temporal: TemporalContract::Committed,
     terminal: TerminalContract::Finite,
     sensitivity: Sensitivity::Restricted,
-    ..OUTPUT_TEXT
+    id: Id("value"),
+    ..TEXT_OUTPUT
 };
 const STREAM_OUTPUT_TEXT_1: PortContract<'static> = PortContract {
-    id: Id("out1"),
+    id: Id("left"),
     ..STREAM_OUTPUT_TEXT
 };
 const STREAM_OUTPUT_TEXT_2: PortContract<'static> = PortContract {
-    id: Id("out2"),
+    id: Id("right"),
     ..STREAM_OUTPUT_TEXT
 };
 const STREAM_OUTPUT_TEXT_LEFT: PortContract<'static> = PortContract {
@@ -512,25 +541,31 @@ pub const LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/literal"),
     config: LITERAL_CONFIG,
     inputs: &[],
-    outputs: &[OUTPUT_TEXT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const STDIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("io/stdin"),
     config: EMPTY_CONFIG,
     inputs: &[],
-    outputs: &[OUTPUT_TEXT],
+    outputs: &[BYTES_OUTPUT],
 };
 pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("text/uppercase"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[TEXT_INPUT],
+    outputs: &[TEXT_OUTPUT],
+};
+pub const ENCODE_UTF8_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("text/encode-utf8"),
+    config: EMPTY_CONFIG,
+    inputs: &[TEXT_INPUT],
+    outputs: &[BYTES_OUTPUT],
 };
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
     config: EMPTY_CONFIG,
     inputs: &[FORMAT_TEMPLATE_INPUT, FORMAT_VALUES_INPUT],
-    outputs: &[OUTPUT_TEXT],
+    outputs: &[TEXT_OUTPUT],
 };
 pub const FORMAT_VALUES_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/format-values/literal"),
@@ -541,13 +576,19 @@ pub const FORMAT_VALUES_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
 pub const STDOUT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("io/stdout"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
+    inputs: &[BYTES_INPUT],
     outputs: &[],
 };
 pub const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("io/stderr"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
+    inputs: &[BYTES_INPUT],
+    outputs: &[],
+};
+pub const DISPLAY_TEXT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("display/text"),
+    config: EMPTY_CONFIG,
+    inputs: &[TEXT_INPUT],
     outputs: &[],
 };
 pub const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
@@ -559,8 +600,8 @@ pub const SUPERVISOR_CONTRACT: NodeContract<'static> = NodeContract {
 pub const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/identity"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const TEE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.std/tee"),
@@ -599,200 +640,200 @@ pub const SELECT_CONTRACT: NodeContract<'static> = NodeContract {
 pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/delay"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/debounce"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/throttle"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/take"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const SKIP_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/skip"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const FILTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/filter"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const FALLBACK_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/fallback"),
     config: EMPTY_CONFIG,
     inputs: &[INPUT_PRIMARY, INPUT_FALLBACK],
-    outputs: &[OUTPUT_TEXT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const PROBE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/probe"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const LOG_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("observe/log"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const ASSERT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/assertion"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const RECORD_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/record"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const REPLAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/replay"),
     config: EMPTY_CONFIG,
     inputs: &[],
-    outputs: &[OUTPUT_TEXT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("test/fault-source"),
     config: EMPTY_CONFIG,
     inputs: &[],
-    outputs: &[OUTPUT_TEXT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("fs/read"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("fs/write"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
     outputs: &[],
 };
 pub const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("storage/blob/store"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("storage/key-value"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("process/run"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("device/gpio/pin"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("device/serial/port"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const CELL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/cell"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/counter"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/deduplicate"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/cache"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/circuit-breaker"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/health-gate"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/backoff"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/wifi/join"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/wifi/access-point"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/interface"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/tcp/socket"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/udp/socket"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/dns/resolve"),
     config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT],
+    inputs: &[VALUE_TEXT_INPUT],
+    outputs: &[VALUE_TEXT_OUTPUT],
 };
 /// Minimal bounded hosted HTTP service boundary.
 ///
@@ -823,6 +864,14 @@ impl Value {
             bytes: value.into(),
         }
     }
+
+    #[must_use]
+    pub fn bytes(value: impl Into<Vec<u8>>) -> Self {
+        Self {
+            value_type: BYTES_TYPE,
+            bytes: value.into(),
+        }
+    }
 }
 
 /// Process boundary supplied by the host.
@@ -849,6 +898,7 @@ pub enum HostedPrimitiveImplementation {
     Join,
     Stdin,
     Uppercase,
+    EncodeUtf8,
     Stdout,
     Stderr,
     PassThrough,
@@ -1515,6 +1565,11 @@ impl Registry {
             || Box::new(Uppercase),
             validate_empty_config,
         );
+        install(
+            &ENCODE_UTF8_CONTRACT,
+            || Box::new(EncodeUtf8),
+            validate_empty_config,
+        );
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
@@ -1684,6 +1739,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 "uppercase",
                 HostedPrimitiveImplementation::Uppercase,
                 || Box::new(Uppercase),
+                validate_empty_config,
+            ),
+            (
+                &ENCODE_UTF8_CONTRACT,
+                "encode-utf8",
+                HostedPrimitiveImplementation::EncodeUtf8,
+                || Box::new(EncodeUtf8),
                 validate_empty_config,
             ),
             (
@@ -1867,6 +1929,14 @@ impl Default for Registry {
             ),
         );
         nodes.insert(
+            ENCODE_UTF8_CONTRACT.id.as_str(),
+            honest_primitive(
+                &ENCODE_UTF8_CONTRACT,
+                || Box::new(EncodeUtf8),
+                validate_empty_config,
+            ),
+        );
+        nodes.insert(
             STDOUT_CONTRACT.id.as_str(),
             honest_primitive(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config),
         );
@@ -1958,6 +2028,7 @@ impl Default for Registry {
             &UDP_SOCKET_CONTRACT,
             &DNS_RESOLVER_CONTRACT,
             &HTTP_SERVE_ONCE_CONTRACT,
+            &DISPLAY_TEXT_CONTRACT,
         ];
 
         for &contract in contract_only_list {
@@ -1990,7 +2061,7 @@ impl Default for Registry {
         let mut interfaces = BTreeMap::new();
         let stream_sink_member = OwnedInterfaceMember {
             requirement: conduit_core::InterfaceMemberRequirement::Required,
-            id: "in".to_owned(),
+            id: "text".to_owned(),
             direction: Direction::Input,
             value_type: TEXT_TYPE.into(),
             presence: Presence::Required,
@@ -2015,7 +2086,7 @@ impl Default for Registry {
 
         let text_processor_in = OwnedInterfaceMember {
             requirement: conduit_core::InterfaceMemberRequirement::Required,
-            id: "in".to_owned(),
+            id: "text".to_owned(),
             direction: Direction::Input,
             value_type: TEXT_TYPE.into(),
             presence: Presence::Required,
@@ -2029,7 +2100,7 @@ impl Default for Registry {
         };
         let text_processor_out = OwnedInterfaceMember {
             requirement: conduit_core::InterfaceMemberRequirement::Required,
-            id: "out".to_owned(),
+            id: "text".to_owned(),
             direction: Direction::Output,
             value_type: TEXT_TYPE.into(),
             presence: Presence::Required,
@@ -2257,8 +2328,8 @@ impl SourceContractCatalog for Registry {
 
     fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
         let contract = match id {
-            "conduit/input-text" => Some(&INPUT_TEXT),
-            "conduit/output-text" => Some(&OUTPUT_TEXT),
+            "conduit/input-text" => Some(&VALUE_TEXT_INPUT),
+            "conduit/output-text" => Some(&VALUE_TEXT_OUTPUT),
             _ => self
                 .nodes
                 .values()
@@ -3860,6 +3931,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Join => "std/text/join",
                 HostedPrimitiveImplementation::Stdin => "io/stdin",
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
+                HostedPrimitiveImplementation::EncodeUtf8 => "text/encode-utf8",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::PassThrough => "flow/identity",
@@ -3993,6 +4065,7 @@ impl ResolvedPanel<'_> {
                 },
                 HostedPrimitiveImplementation::Stdin => HostedNodeKind::Stdin { emitted: false },
                 HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
+                HostedPrimitiveImplementation::EncodeUtf8 => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::PassThrough => HostedNodeKind::PassThrough,
@@ -4003,32 +4076,32 @@ impl ResolvedPanel<'_> {
                 },
                 HostedPrimitiveImplementation::Merge => HostedNodeKind::Merge {
                     inputs: [
-                        planned_input_cord(plan, planned.instance, "in1")?,
-                        planned_input_cord(plan, planned.instance, "in2")?,
+                        planned_input_cord(plan, planned.instance, "left")?,
+                        planned_input_cord(plan, planned.instance, "right")?,
                     ],
                     cursor: 0,
                 },
                 HostedPrimitiveImplementation::Zip => HostedNodeKind::Zip {
                     inputs: [
-                        planned_input_cord(plan, planned.instance, "in1")?,
-                        planned_input_cord(plan, planned.instance, "in2")?,
+                        planned_input_cord(plan, planned.instance, "left")?,
+                        planned_input_cord(plan, planned.instance, "right")?,
                     ],
                     left: None,
                     right: None,
                     drop_unpaired: resolved.source.config("unpaired") == Some("drop"),
                 },
                 HostedPrimitiveImplementation::Gate => HostedNodeKind::Gate {
-                    input: planned_input_cord(plan, planned.instance, "in")?,
-                    control: planned_input_cord(plan, planned.instance, "control")?,
+                    input: planned_input_cord(plan, planned.instance, "value")?,
+                    control: planned_input_cord(plan, planned.instance, "command")?,
                     open: resolved.source.config("initial") == Some("open"),
                 },
                 HostedPrimitiveImplementation::Select => HostedNodeKind::Select {
                     inputs: [
-                        planned_input_cord(plan, planned.instance, "in1")?,
-                        planned_input_cord(plan, planned.instance, "in2")?,
+                        planned_input_cord(plan, planned.instance, "left")?,
+                        planned_input_cord(plan, planned.instance, "right")?,
                     ],
-                    control: planned_input_cord(plan, planned.instance, "control")?,
-                    selected: usize::from(resolved.source.config("initial") == Some("in2")),
+                    control: planned_input_cord(plan, planned.instance, "command")?,
+                    selected: usize::from(resolved.source.config("initial") == Some("right")),
                 },
                 HostedPrimitiveImplementation::Fallback => {
                     HostedNodeKind::Fallback { emitted: false }
@@ -5439,15 +5512,15 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let next = {
                         let store = self.store.borrow();
                         match store.get(value.handle).unwrap_or(&[]) {
-                            b"in1" => Some(0),
-                            b"in2" => Some(1),
+                            b"left" => Some(0),
+                            b"right" => Some(1),
                             _ => None,
                         }
                     };
                     let Some(next) = next else {
                         *self.host_failure.borrow_mut() = Some(RuntimeError::new(
                             "conduit.std/select-invalid-control",
-                            "select control must be `in1` or `in2`",
+                            "select command must be `left` or `right`",
                         ));
                         return SchedulerStep::Failed {
                             code: Id("conduit.std/select-invalid-control"),
@@ -5832,7 +5905,7 @@ fn validate_gate(node: &Node) -> Result<(), ResolutionError> {
 fn validate_select(node: &Node) -> Result<(), ResolutionError> {
     validate_enum_config(
         node,
-        &[("initial", &["in1", "in2"]), ("inactive", &["block"])],
+        &[("initial", &["left", "right"]), ("inactive", &["block"])],
     )
 }
 
@@ -6396,9 +6469,7 @@ impl Handler for Stdin {
         io.input
             .read_to_end(&mut bytes)
             .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
-        std::str::from_utf8(&bytes)
-            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
-        Ok(vec![Value::text(bytes)])
+        Ok(vec![Value::bytes(bytes)])
     }
 }
 
@@ -6417,6 +6488,25 @@ impl Handler for Uppercase {
         let text = std::str::from_utf8(&input.bytes)
             .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
         Ok(vec![Value::text(text.to_uppercase().into_bytes())])
+    }
+}
+
+struct EncodeUtf8;
+
+impl Handler for EncodeUtf8 {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == TEXT_TYPE)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "UTF-8 encoder text input missing"))?;
+        std::str::from_utf8(&input.bytes)
+            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
+        Ok(vec![Value::bytes(input.bytes.clone())])
     }
 }
 
@@ -6566,11 +6656,11 @@ impl Handler for SelectHandler {
         let selected = inputs
             .get(2)
             .and_then(|control| match control.bytes.as_slice() {
-                b"in1" => Some(0),
-                b"in2" => Some(1),
+                b"left" => Some(0),
+                b"right" => Some(1),
                 _ => None,
             })
-            .unwrap_or_else(|| usize::from(node.config("initial") == Some("in2")));
+            .unwrap_or_else(|| usize::from(node.config("initial") == Some("right")));
         Ok(inputs.get(selected).cloned().into_iter().collect())
     }
 }
@@ -6614,10 +6704,12 @@ mod tests {
                     )
                 }
                 node message : std/text/format
+                node encoded : text/encode-utf8
                 node output : io/stdout
-                cord template.out -> message.template
-                cord values.out -> message.values
-                cord message.out -> output.in
+                cord template.value -> message.template
+                cord values.values -> message.values
+                cord message.text -> encoded.text
+                cord encoded.bytes -> output.bytes
             "#,
         )
         .unwrap();
@@ -6648,10 +6740,12 @@ mod tests {
                     values = list("only-one")
                 }
                 node message : std/text/format
+                node encoded : text/encode-utf8
                 node output : io/stdout
-                cord template.out -> message.template
-                cord values.out -> message.values
-                cord message.out -> output.in
+                cord template.value -> message.template
+                cord values.values -> message.values
+                cord message.text -> encoded.text
+                cord encoded.bytes -> output.bytes
             "#,
         )
         .unwrap();
@@ -6731,9 +6825,11 @@ mod tests {
                     value = "Hello from Conduit.\n"
                 }
                 node shout : text/uppercase
+                node encoded : text/encode-utf8
                 node output : io/stdout
-                cord greeting.out -> shout.in
-                cord shout.out -> output.in
+                cord greeting.value -> shout.text
+                cord shout.text -> encoded.text
+                cord encoded.bytes -> output.bytes
             "#,
         )
         .expect("panel parses");
@@ -6758,8 +6854,8 @@ mod tests {
 
         assert_eq!(output, b"HELLO FROM CONDUIT.\n");
         assert!(error.is_empty());
-        assert_eq!(summary.nodes_completed, 3);
-        assert_eq!(summary.cords_conducted, 2);
+        assert_eq!(summary.nodes_completed, 4);
+        assert_eq!(summary.cords_conducted, 3);
     }
 
     #[test]
@@ -6792,7 +6888,7 @@ mod tests {
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
             "panel 1\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.out -> b.in {\n\
+             cord a.bytes -> b.bytes {\n\
                pressure = sample\n\
                sample_every = 2\n\
              }",
@@ -6805,7 +6901,7 @@ mod tests {
 
         let coalesce = parse(
             "panel 1\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.out -> b.in {\n\
+             cord a.bytes -> b.bytes {\n\
                pressure = coalesce\n\
                coalescer = conduit/replace-latest\n\
              }",
@@ -6825,7 +6921,7 @@ mod tests {
                 panel 1
                 node input : io/stdin
                 node output : io/stdout
-                cord input.out -> output.in
+                cord input.bytes -> output.bytes
             "#,
         )
         .expect("panel parses");
@@ -6853,21 +6949,23 @@ mod tests {
                 panel 1
                 composite example/literal-line {
                     node source : std/literal
-                    export output text = source.out
+                    export output text = source.value
                     bind value = source.value
                 }
                 composite example/upper-line {
                     node source : example/literal-line
                     node upper : text/uppercase
-                    cord source.text -> upper.in
-                    export output text = upper.out
+                    cord source.text -> upper.text
+                    export output text = upper.text
                     bind value = source.value
                 }
                 node line : example/upper-line { value = "mixed Case" }
+                node encoded : text/encode-utf8
                 node stdout : io/stdout
                 node stderr : io/stderr
-                cord line.text -> stdout.in
-                cord line.text -> stderr.in
+                cord line.text -> encoded.text
+                cord encoded.bytes -> stdout.bytes
+                cord encoded.bytes -> stderr.bytes
             "#,
         )
         .expect("nested composite parses");
@@ -6878,7 +6976,7 @@ mod tests {
         assert!(logical.contains("composite line : example/upper-line"));
         assert!(logical.contains("composite line/source : example/literal-line"));
         assert!(logical.contains("child line/upper : text/uppercase"));
-        assert!(logical.contains("export output text -> line.upper.out"));
+        assert!(logical.contains("export output text -> line.upper.text"));
         assert!(logical.contains("bind value -> line/source.value"));
         assert!(expanded.contains("line.source.source : std/literal"));
         assert!(expanded.contains("line.upper : text/uppercase"));
@@ -6894,7 +6992,7 @@ mod tests {
                 error: &mut error,
             })
             .expect("flattened composite runs");
-        assert_eq!(summary.nodes_completed, 4);
+        assert_eq!(summary.nodes_completed, 5);
         assert_eq!(output, b"MIXED CASE");
         assert_eq!(error, b"MIXED CASE");
     }
@@ -6906,14 +7004,16 @@ mod tests {
                 panel 1
                 composite example/uppercase {
                     node worker : text/uppercase
-                    export input in = worker.in
-                    export output out = worker.out
+                    export input text = worker.text
+                    export output text = worker.text
                 }
                 node source : std/literal { value = "boundary" }
                 node transform : example/uppercase
+                node encoded : text/encode-utf8
                 node sink : io/stdout
-                cord source.out -> transform.in
-                cord transform.out -> sink.in
+                cord source.value -> transform.text
+                cord transform.text -> encoded.text
+                cord encoded.bytes -> sink.bytes
             "#,
         )
         .expect("transparent composite parses");

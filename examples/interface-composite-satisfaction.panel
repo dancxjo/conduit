@@ -1,7 +1,7 @@
-panel 2
+panel 3
 
 node text_pipeline implements conduit/text-processor {
   node processor : text/uppercase
-  export input processor.in as in
-  export output processor.out as out
+  export > text = processor.text
+  export text > = processor.text
 }

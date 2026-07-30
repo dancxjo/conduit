@@ -430,56 +430,56 @@ const fn batch_text_port(id: &'static str, direction: Direction) -> PortContract
 }
 
 const IN_BYTES: PortContract<'static> = port(
-    "in",
+    "value",
     Direction::Input,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
 const IN_BYTES_1: PortContract<'static> = port(
-    "in1",
+    "left",
     Direction::Input,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
 const IN_BYTES_2: PortContract<'static> = port(
-    "in2",
+    "right",
     Direction::Input,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
 const OUT_BYTES: PortContract<'static> = port(
-    "out",
+    "value",
     Direction::Output,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
 const OUT_BYTES_1: PortContract<'static> = port(
-    "out1",
+    "left",
     Direction::Output,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
 const OUT_BYTES_2: PortContract<'static> = port(
-    "out2",
+    "right",
     Direction::Output,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
 const OUT_FINITE: PortContract<'static> = port(
-    "out",
+    "value",
     Direction::Output,
     BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
 );
 const OUT_OPEN: PortContract<'static> = port(
-    "out",
+    "value",
     Direction::Output,
     BYTES,
     ValueCardinality::ZeroOrMore,
@@ -500,7 +500,7 @@ const OUT_U64: PortContract<'static> = port(
     TerminalContract::Finite,
 );
 const OUT_RECORD: PortContract<'static> = port(
-    "out",
+    "result",
     Direction::Output,
     RECORD,
     ValueCardinality::ZeroOrMore,
@@ -514,7 +514,7 @@ const OUT_EVIDENCE_RECORD: PortContract<'static> = port(
     TerminalContract::Either,
 );
 const CONTROL: PortContract<'static> = port(
-    "control",
+    "command",
     Direction::Input,
     RECORD,
     ValueCardinality::ZeroOrMore,
@@ -563,20 +563,20 @@ const FORMAT_VALUES_INPUT: PortContract<'static> = port(
     TerminalContract::Finite,
 );
 const FORMAT_TEXT_OUTPUT: PortContract<'static> = port(
-    "out",
+    "text",
     Direction::Output,
     TEXT,
     ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
 const FORMAT_VALUES_OUTPUT: PortContract<'static> = port(
-    "out",
+    "values",
     Direction::Output,
     FORMAT_VALUES,
     ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
-const TEXT_STREAM_INPUT: PortContract<'static> = batch_text_port("in", Direction::Input);
+const TEXT_STREAM_INPUT: PortContract<'static> = batch_text_port("text", Direction::Input);
 const TEXT_LINES_OUTPUT: PortContract<'static> = port(
     "line",
     Direction::Output,
@@ -591,7 +591,7 @@ const TEXT_ITEMS_INPUT: PortContract<'static> = port(
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
 );
-const TEXT_JOIN_OUTPUT: PortContract<'static> = batch_text_port("out", Direction::Output);
+const TEXT_JOIN_OUTPUT: PortContract<'static> = batch_text_port("text", Direction::Output);
 
 const EMPTY: ConfigContract<'static> = ConfigContract { fields: &[] };
 const BOUNDED: ConfigContract<'static> = ConfigContract {
@@ -1728,23 +1728,12 @@ pub fn validate_entry(entry: &CatalogEntry) -> Result<(), CatalogError> {
     {
         return Err(CatalogError::InvalidPort);
     }
-    for (index, port) in entry
-        .contract
-        .inputs
-        .iter()
-        .chain(entry.contract.outputs)
-        .enumerate()
-    {
-        Id::new(port.id.as_str()).map_err(|_| CatalogError::InvalidPort)?;
-        if entry
-            .contract
-            .inputs
-            .iter()
-            .chain(entry.contract.outputs)
-            .take(index)
-            .any(|prior| prior.id == port.id)
-        {
-            return Err(CatalogError::DuplicatePort);
+    for ports in [entry.contract.inputs, entry.contract.outputs] {
+        for (index, port) in ports.iter().enumerate() {
+            Id::new(port.id.as_str()).map_err(|_| CatalogError::InvalidPort)?;
+            if ports[..index].iter().any(|prior| prior.id == port.id) {
+                return Err(CatalogError::DuplicatePort);
+            }
         }
     }
     if let Some(signature) = entry.generic_signature {

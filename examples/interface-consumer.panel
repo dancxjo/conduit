@@ -1,9 +1,9 @@
-panel 2
+panel 3
 
 node source : std/literal {
   value = "hello interface"
 }
 
-node target : io/stdout implements conduit/stream-sink
+node target : display/text implements conduit/stream-sink
 
-cord source.out -> target.in
+cord source.value -> target.text

@@ -26,7 +26,7 @@ fn builtin_registry_interfaces_are_present_and_valid() {
     let sink = registry.interface_contract("conduit/stream-sink").unwrap();
     assert_eq!(sink.id, "conduit/stream-sink");
     assert_eq!(sink.members.len(), 1);
-    assert_eq!(sink.members[0].id, "in");
+    assert_eq!(sink.members[0].id, "text");
 
     let proc = registry
         .interface_contract("conduit/text-processor")

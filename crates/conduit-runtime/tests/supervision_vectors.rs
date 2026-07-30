@@ -209,9 +209,11 @@ impl ModuleLoader for MemoryLoader {
 fn panel_v2_source() -> &'static str {
     "panel 2\n\
      node subject : std/literal { value = \"work\" }\n\
+     node encoded : text/encode-utf8\n\
      node sink : io/stdout\n\
      node handler : supervision/supervisor\n\
-     cord subject.out -> sink.in\n\
+     cord subject.value -> encoded.text\n\
+     cord encoded.bytes -> sink.bytes\n\
      supervise subject with handler\n"
 }
 
