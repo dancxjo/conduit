@@ -2,7 +2,7 @@
  * Conduit Patchbay Rich Equipment Faceplate Renderer (#90, #99, #91)
  *
  * Implements standard customizable equipment faceplate DOM components
- * for ReactFlow projection.
+ * for Reaflow projection.
  */
 
 const e = window.React.createElement;
@@ -38,19 +38,11 @@ export function FaceplateNodeComponent({ data, id }) {
 
   const statusColor = status === "running" ? "#22c55e" : status === "error" ? "#ef4444" : "#94a3b8";
 
-  // Build input handles (left)
+  // Reaflow owns port geometry. These labels are presentation only.
   const inputJacks = inputs.map((port, idx) => {
-    const handleId = port.name;
     const topOffset = 60 + idx * 36;
 
     return e("div", { key: port.id, className: "faceplate-jack input-jack", style: { top: `${topOffset}px` } },
-      e(window.ReactFlow.Handle, {
-        type: "target",
-        position: window.ReactFlow.Position.Left,
-        id: handleId,
-        className: `jack-handle ${port.connectionState}`,
-        style: { top: "50%", background: port.connectionState === "connected" ? "#38bdf8" : "#64748b" }
-      }),
       e("span", { className: "jack-label", title: `Type: ${port.type}` },
         e("span", { className: "jack-status-dot", style: { background: port.connectionState === "connected" ? "#38bdf8" : "#475569" } }),
         port.name
@@ -60,21 +52,13 @@ export function FaceplateNodeComponent({ data, id }) {
 
   // Build output handles (right)
   const outputJacks = outputs.map((port, idx) => {
-    const handleId = port.name;
     const topOffset = 60 + idx * 36;
 
     return e("div", { key: port.id, className: "faceplate-jack output-jack", style: { top: `${topOffset}px` } },
       e("span", { className: "jack-label", title: `Type: ${port.type}` },
         port.name,
         e("span", { className: "jack-status-dot", style: { background: port.connectionState === "connected" ? "#38bdf8" : "#475569" } })
-      ),
-      e(window.ReactFlow.Handle, {
-        type: "source",
-        position: window.ReactFlow.Position.Right,
-        id: handleId,
-        className: `jack-handle ${port.connectionState}`,
-        style: { top: "50%", background: port.connectionState === "connected" ? "#38bdf8" : "#64748b" }
-      })
+      )
     );
   });
 

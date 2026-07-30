@@ -421,6 +421,10 @@ kbd {
   border-top: 1px solid var(--line-color);
 }
 
+.node-controls[hidden] {
+  display: none !important;
+}
+
 .selected-label {
   font-size: 0.85rem;
   font-family: var(--font-mono);
@@ -496,11 +500,34 @@ pre {
 
 }
 
-/* React Flow & Equipment Faceplates Styling (#90, #99, #91) */
+/* Reaflow & Equipment Faceplates Styling (#90, #99, #91) */
 .patchbay-flow-container {
   overflow: hidden;
   border-radius: 8px;
   position: relative;
+}
+
+.patchbay-flow-container > div,
+.patchbay-flow-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+.reaflow-node-shell {
+  overflow: visible;
+}
+
+.reaflow-node-shell .conduit-faceplate-card {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.reaflow-cord {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .patchbay-smart-cord {

@@ -8,10 +8,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./tour.css">
-  <link rel="stylesheet" href="./react-flow.css">
   <script src="./react.min.js"></script>
   <script src="./react-dom.min.js"></script>
-  <script src="./react-flow.min.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "./react-esm-shim.js",
+        "react/jsx-runtime": "./react-jsx-runtime-shim.js",
+        "react-dom": "./react-dom-esm-shim.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to lesson workspace</a>
@@ -56,7 +63,7 @@
       </div>
 
       <div class="work-grid">
-        <!-- Interactive Cytoscape Graph Canvas -->
+        <!-- Interactive Reaflow Graph Canvas -->
         <section aria-labelledby="canvas-title" class="card canvas-card">
           <div class="card-header">
             <h3 id="canvas-title">Patchbay Topology Canvas</h3>

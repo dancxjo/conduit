@@ -68,29 +68,16 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
   await expect(source).toHaveValue(/node salutation/);
 });
 
-test("routes projected cords around intervening faceplates", async ({ page }) => {
+test("uses Reaflow with legacy line placement disabled", async ({ page }) => {
   await page.goto("/tour/public/index.html");
-  const route = await page.evaluate(async () => {
-    const { routeAroundNodes } = await import("./patchbay-smart-edge.js");
-    return routeAroundNodes(
-      { x: 0, y: 80 },
-      { x: 320, y: 80 },
-      [{
-        id: "middle",
-        positionAbsolute: { x: 120, y: 32 },
-        width: 80,
-        height: 96,
-      }],
-    );
+  const canvas = page.locator("#patchbay-flow-root");
+  await expect(canvas).toHaveAttribute("data-renderer", "reaflow");
+  await expect(canvas).toHaveAttribute("data-legacy-line-placement", "false");
+  await expect(canvas).toHaveAttribute("data-node-count", "2");
+  await expect(canvas).toHaveAttribute("data-edge-count", "1");
+  await expect(page.locator(".conduit-faceplate-card")).toHaveCount(2, {
+    timeout: 20_000,
   });
-
-  expect(route).not.toBeNull();
-  expect(route.path).toMatch(/^M /);
-  expect(route.path).toContain(" Q ");
-  expect(route.points.some((point) => point.y < 16 || point.y > 144)).toBe(true);
-  expect(route.points.every((point) =>
-    point.x < 104 || point.x > 216 || point.y < 16 || point.y > 144
-  )).toBe(true);
 });
 
 test("styles cords from their projected type and pressure policy", async ({ page }) => {
@@ -98,5 +85,5 @@ test("styles cords from their projected type and pressure policy", async ({ page
   const edge = page.locator(".patchbay-smart-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/value-type-text/);
-  await expect(edge).toHaveAttribute("d", / Q /);
+  await expect(edge).toHaveAttribute("d", /^M/);
 });

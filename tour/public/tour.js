@@ -5,7 +5,8 @@ import init, {
   patchbay_move_node,
   patchbay_replace_source,
 } from "./conduit_web.js";
-import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
+import { PatchbayReaflowRenderer } from "./patchbay-renderer.js";
+import { patchbayFeatures } from "./patchbay-features.js";
 
 const source = document.querySelector("#source");
 const result = document.querySelector("#result");
@@ -191,11 +192,13 @@ const evidence = [];
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
 
-// Initialize React Flow Patchbay Renderer
+// Initialize Reaflow Patchbay Renderer
 let patchbayRenderer = null;
 const cyContainer = document.getElementById("cy");
+document.querySelector(".node-controls").hidden =
+  !patchbayFeatures.legacyLinePlacement;
 if (cyContainer) {
-  patchbayRenderer = new PatchbayReactFlowRenderer(cyContainer, {
+  patchbayRenderer = new PatchbayReaflowRenderer(cyContainer, {
     onSourceMutation: (newSource) => {
       source.value = newSource;
       updateAnalysis();
