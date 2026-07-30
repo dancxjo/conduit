@@ -23,6 +23,7 @@ struct ExactBrowserResult {
     report: ExactExecutionReport,
     output: Vec<u8>,
     error: Vec<u8>,
+    display: Vec<u8>,
     patchbay: serde_json::Value,
 }
 
@@ -860,18 +861,21 @@ pub fn run_panel_compatibility_demo(source: String) -> String {
     let mut input = std::io::empty();
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
     let mut io = conduit_runtime::RunIo {
         input: &mut input,
         output: &mut output,
         error: &mut error,
+        display: &mut display,
     };
     match resolved.run_batch(&mut io) {
         Ok(summary) => format!(
-            "{{\"ok\":true,\"completed_nodes\":{},\"cords_conducted\":{},\"stdout\":{:?},\"stderr\":{:?}}}",
+            "{{\"ok\":true,\"completed_nodes\":{},\"cords_conducted\":{},\"stdout\":{:?},\"stderr\":{:?},\"display\":{:?}}}",
             summary.nodes_completed,
             summary.cords_conducted,
             String::from_utf8_lossy(&output),
-            String::from_utf8_lossy(&error)
+            String::from_utf8_lossy(&error),
+            String::from_utf8_lossy(&display)
         ),
         Err(error) => format!("{{\"ok\":false,\"diagnostic\":{:?}}}", error.to_string()),
     }
@@ -899,6 +903,7 @@ fn run_panel_result(source: &str, compile_input_json: Option<&str>) -> String {
             "cords_conducted": result.report.summary.cords_conducted,
             "stdout": String::from_utf8_lossy(&result.output),
             "stderr": String::from_utf8_lossy(&result.error),
+            "display": String::from_utf8_lossy(&result.display),
             "profile": "exact-plan-deterministic-executor",
             "high_water": {
                 "queue_items": result.report.high_water.queue_items,
@@ -979,11 +984,13 @@ fn run_panel_exact_inner(
     let mut input_stream = std::io::empty();
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
     let report = {
         let mut io = conduit_runtime::RunIo {
             input: &mut input_stream,
             output: &mut output,
             error: &mut error,
+            display: &mut display,
         };
         let context = ExactRunContext {
             semantic_source_hash: plan.source_semantic_hash,
@@ -1046,6 +1053,7 @@ fn run_panel_exact_inner(
         report,
         output,
         error,
+        display,
         patchbay,
     })
 }

@@ -502,6 +502,7 @@ fn run(
                     let mut output = ObservedWriter::new(stdout.lock());
                     let summary = {
                         let mut error = stderr.lock();
+                        let mut display = stdout.lock();
                         execute_run(
                             &resolved,
                             compiled.as_ref(),
@@ -511,6 +512,7 @@ fn run(
                                 input: &mut stdin,
                                 output: &mut output,
                                 error: &mut error,
+                                display: &mut display,
                             },
                         )
                     };
@@ -528,6 +530,7 @@ fn run(
                     let summary = {
                         let mut output = RunNdjsonChannelWriter::new(&stream, "stdout");
                         let mut error = RunNdjsonChannelWriter::new(&stream, "stderr");
+                        let mut display = RunNdjsonChannelWriter::new(&stream, "display");
                         execute_run(
                             &resolved,
                             compiled.as_ref(),
@@ -537,6 +540,7 @@ fn run(
                                 input: &mut stdin,
                                 output: &mut output,
                                 error: &mut error,
+                                display: &mut display,
                             },
                         )
                     };

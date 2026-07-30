@@ -129,6 +129,7 @@ fn text_lines_and_join_survive_exact_plan_and_production_execution() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();
@@ -177,6 +178,7 @@ fn text_lines_and_join_survive_exact_plan_and_production_execution() {
                 input: &mut cancelled_input,
                 output: &mut cancelled_output,
                 error: &mut cancelled_error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();
@@ -262,6 +264,7 @@ fn maximum_join_requeues_fairly_with_lines_under_tiny_steps() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();
@@ -373,6 +376,7 @@ fn maximum_line_scanning_and_copying_span_bounded_steps() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();

@@ -13,7 +13,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `data/compress` | optional-host-boundary | `conduit.host.data` | 0 | tour/lessons/v1.json#library.data.compress.standalone (required) | tour/lessons/v1.json#library.data.compress.composition (required) |
 | `device/gpio/pin` | optional-host-boundary | `conduit.host.device` | 0 | tour/lessons/v1.json#library.device.gpio.pin.standalone (required) | tour/lessons/v1.json#library.device.gpio.pin.composition (required) |
 | `device/serial/port` | optional-host-boundary | `conduit.host.device` | 0 | tour/lessons/v1.json#library.device.serial.port.standalone (required) | tour/lessons/v1.json#library.device.serial.port.composition (required) |
-| `display/text` | portable-standard | `conduit.std.display` | 0 | tour/lessons/v1.json#library.display.text.standalone (required) | tour/lessons/v1.json#library.display.text.composition (required) |
+| `display/text` | portable-standard | `conduit.std.display` | 1 | tour/lessons/v1.json#library.display.text.standalone (required) | tour/lessons/v1.json#library.display.text.composition (required) |
 | `evidence/export` | optional-host-boundary | `conduit.host.evidence` | 0 | tour/lessons/v1.json#library.evidence.export.standalone (required) | tour/lessons/v1.json#library.evidence.export.composition (required) |
 | `flow/adapter` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.adapter.standalone (required) | tour/lessons/v1.json#library.flow.adapter.composition (required) |
 | `flow/collect` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/v1.json#library.flow.collect.standalone (required) | tour/lessons/v1.json#library.flow.collect.composition (required) |

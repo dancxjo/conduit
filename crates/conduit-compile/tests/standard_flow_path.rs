@@ -74,6 +74,7 @@ fn exact_report(
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap_or_else(|error| panic!("{run_id}: {error}"));
@@ -130,6 +131,7 @@ fn cancel_exact(source: &str, run_id: &'static str) -> conduit_runtime::ExactExe
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();
@@ -475,6 +477,7 @@ cord right_joined.out -> right_sink.in {{ capacity = 1 max_value_bytes = 128 max
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap_err();

@@ -506,6 +506,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 input: &mut rejected_input,
                 output: &mut rejected_output,
                 error: &mut rejected_error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap_err();
@@ -544,6 +545,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 input: &mut rejected_input,
                 output: &mut rejected_output,
                 error: &mut rejected_error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap_err();
@@ -581,6 +583,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();
@@ -663,6 +666,7 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();
@@ -702,6 +706,7 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
                 input: &mut input,
                 output: &mut cancelled_output,
                 error: &mut cancelled_error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();

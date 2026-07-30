@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1441,7 +1441,13 @@
       "config": [],
       "catalog_membership": "host-registry",
       "compiler_exported": false,
-      "known_provider_bundles": [],
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-display-text-v1",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library-v1.json",
       "required_result_profile": "conduit.cross-host-provider/v1",
@@ -2878,7 +2884,7 @@
         {
           "implementation": "conduit/hosted-fallback-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3874,7 +3880,7 @@
         {
           "implementation": "conduit/hosted-pass-through-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5402,7 +5408,7 @@
         {
           "implementation": "conduit/hosted-stderr-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5481,7 +5487,7 @@
         {
           "implementation": "conduit/hosted-stdin-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5560,7 +5566,7 @@
         {
           "implementation": "conduit/hosted-stdout-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9789,7 +9795,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9875,7 +9881,7 @@
         {
           "implementation": "conduit/hosted-literal-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10056,7 +10062,7 @@
         {
           "implementation": "conduit/hosted-format-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10181,7 +10187,7 @@
         {
           "implementation": "conduit/hosted-text-join-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10288,7 +10294,7 @@
         {
           "implementation": "conduit/hosted-text-lines-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12350,7 +12356,7 @@
         {
           "implementation": "conduit/hosted-encode-utf8-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12481,7 +12487,7 @@
         {
           "implementation": "conduit/hosted-uppercase-v1",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:90b58ac1b105baf22d9eef4562b3bf4a882c3d460ac64d06517455466da987d1"
+          "artifact_digest": "sha256:3b65029ef7f1b02a5c5699a9b5a3fcfbdb0baf8298a21a6ec70a04403eb6403c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

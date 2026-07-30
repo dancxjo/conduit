@@ -199,7 +199,12 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
 fn hosted_primitive_registry_couples_callbacks_to_installed_artifacts() {
     let registry = Registry::hosted_primitives();
     let installed = Registry::installed_hosted_providers();
-    assert_eq!(installed.len(), 17);
+    assert_eq!(installed.len(), 18);
+    assert!(
+        installed
+            .iter()
+            .any(|provider| provider.contract.id.as_str() == "display/text")
+    );
     for provider in installed {
         let availability = registry.node_availability(provider.contract.id.as_str());
         assert_eq!(availability.state, AvailabilityState::ProviderAvailable);

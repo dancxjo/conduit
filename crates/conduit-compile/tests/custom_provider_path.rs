@@ -103,6 +103,7 @@ fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() 
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             },
         )
         .unwrap();

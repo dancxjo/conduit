@@ -894,6 +894,11 @@ pub struct RunIo<'a> {
     pub output: &'a mut dyn Write,
     /// Process standard error.
     pub error: &'a mut dyn Write,
+    /// Browser/UI presentation text.
+    ///
+    /// This is intentionally distinct from process standard output. Only an
+    /// explicit `display/text.text` sink writes here.
+    pub display: &'a mut dyn Write,
 }
 
 /// Behavior-specific hosted implementation selected by an exact binding.
@@ -913,6 +918,7 @@ pub enum HostedPrimitiveImplementation {
     EncodeUtf8,
     Stdout,
     Stderr,
+    DisplayText,
     PassThrough,
     Tee,
     Merge,
@@ -1585,6 +1591,11 @@ impl Registry {
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
+            &DISPLAY_TEXT_CONTRACT,
+            || Box::new(DisplayText),
+            validate_empty_config,
+        );
+        install(
             &SUPERVISOR_CONTRACT,
             || Box::new(Supervisor),
             validate_empty_config,
@@ -1775,6 +1786,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 validate_empty_config,
             ),
             (
+                &DISPLAY_TEXT_CONTRACT,
+                "display-text",
+                HostedPrimitiveImplementation::DisplayText,
+                || Box::new(DisplayText),
+                validate_empty_config,
+            ),
+            (
                 &PASS_THROUGH_CONTRACT,
                 "pass-through",
                 HostedPrimitiveImplementation::PassThrough,
@@ -1957,6 +1975,14 @@ impl Default for Registry {
             honest_primitive(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config),
         );
         nodes.insert(
+            DISPLAY_TEXT_CONTRACT.id.as_str(),
+            honest_primitive(
+                &DISPLAY_TEXT_CONTRACT,
+                || Box::new(DisplayText),
+                validate_empty_config,
+            ),
+        );
+        nodes.insert(
             SUPERVISOR_CONTRACT.id.as_str(),
             honest_primitive(
                 &SUPERVISOR_CONTRACT,
@@ -2040,7 +2066,6 @@ impl Default for Registry {
             &UDP_SOCKET_CONTRACT,
             &DNS_RESOLVER_CONTRACT,
             &HTTP_SERVE_ONCE_CONTRACT,
-            &DISPLAY_TEXT_CONTRACT,
         ];
 
         for &contract in contract_only_list {
@@ -3946,6 +3971,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::EncodeUtf8 => "text/encode-utf8",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
+                HostedPrimitiveImplementation::DisplayText => "display/text",
                 HostedPrimitiveImplementation::PassThrough => "flow/identity",
                 HostedPrimitiveImplementation::Tee => "conduit.std/tee",
                 HostedPrimitiveImplementation::Merge => "conduit.std/merge",
@@ -4080,6 +4106,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::EncodeUtf8 => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
+                HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
                 HostedPrimitiveImplementation::PassThrough => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::Tee => HostedNodeKind::Tee {
                     isolated: resolved.source.config("mode") == Some("isolated"),
@@ -4463,6 +4490,7 @@ enum HostedNodeKind {
     Uppercase,
     Stdout,
     Stderr,
+    DisplayText,
     PassThrough,
     Tee {
         isolated: bool,
@@ -5227,6 +5255,29 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     if self.io.borrow_mut().error.write_all(bytes).is_err() {
                         return SchedulerStep::Failed {
                             code: Id("io/stderr-write-error"),
+                        };
+                    }
+                    SchedulerStep::Progress
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::DisplayText => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&c) => c,
+                    None => return SchedulerStep::Completed,
+                };
+                if let Ok(Some(val)) = io.receive(in_cord) {
+                    let store = self.store.borrow();
+                    let bytes = store.get(val.handle).unwrap_or(&[]);
+                    if std::str::from_utf8(bytes).is_err()
+                        || self.io.borrow_mut().display.write_all(bytes).is_err()
+                    {
+                        return SchedulerStep::Failed {
+                            code: Id("display/text-write-error"),
                         };
                     }
                     SchedulerStep::Progress
@@ -6560,6 +6611,28 @@ impl Handler for Stderr {
     }
 }
 
+struct DisplayText;
+
+impl Handler for DisplayText {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == TEXT_TYPE)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "display text input missing"))?;
+        std::str::from_utf8(&input.bytes)
+            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
+        io.display
+            .write_all(&input.bytes)
+            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
+        Ok(Vec::new())
+    }
+}
+
 struct Supervisor;
 
 impl Handler for Supervisor {
@@ -6735,6 +6808,7 @@ mod tests {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             })
             .unwrap();
         assert_eq!(output, b"alpha = {status: true; count=-7}");
@@ -6771,6 +6845,7 @@ mod tests {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             })
             .unwrap_err();
         assert_eq!(failure.code, "format/missing-value");
@@ -6861,6 +6936,7 @@ mod tests {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             })
             .expect("panel runs");
 
@@ -6948,6 +7024,7 @@ mod tests {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             })
             .expect("panel runs");
 
@@ -7002,6 +7079,7 @@ mod tests {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             })
             .expect("flattened composite runs");
         assert_eq!(summary.nodes_completed, 5);
@@ -7041,6 +7119,7 @@ mod tests {
                 input: &mut input,
                 output: &mut output,
                 error: &mut error,
+                display: &mut Vec::new(),
             })
             .expect("same primitive implementation runs");
         assert_eq!(output, b"BOUNDARY");

@@ -2,6 +2,38 @@ use conduit_panel::parse;
 use conduit_runtime::{Registry, RunIo};
 
 #[test]
+fn display_text_uses_the_presentation_channel_not_process_stdout() {
+    let panel = parse(
+        r#"
+            panel 1
+            node message : std/literal { value = "visible text" }
+            node display : display/text
+            cord message.value -> display.text
+        "#,
+    )
+    .expect("display panel parses");
+    let registry = Registry::hosted_primitives();
+    let resolved = registry.resolve(&panel).expect("display panel resolves");
+    let mut input = &b""[..];
+    let mut output = Vec::new();
+    let mut error = Vec::new();
+    let mut display = Vec::new();
+
+    resolved
+        .run_batch(&mut RunIo {
+            input: &mut input,
+            output: &mut output,
+            error: &mut error,
+            display: &mut display,
+        })
+        .expect("display panel executes");
+
+    assert!(output.is_empty());
+    assert!(error.is_empty());
+    assert_eq!(display, b"visible text");
+}
+
+#[test]
 fn tee_node_duplicates_flow_to_multiple_sinks() {
     let panel = parse(include_str!("../../../examples/flow-tee.panel")).expect("tee panel parses");
 
@@ -11,12 +43,14 @@ fn tee_node_duplicates_flow_to_multiple_sinks() {
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
 
     resolved
         .run_batch(&mut RunIo {
             input: &mut input,
             output: &mut output,
             error: &mut error,
+            display: &mut display,
         })
         .expect("tee panel executes");
 
@@ -48,12 +82,14 @@ fn fallback_node_selects_primary_or_fallback() {
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
 
     resolved
         .run_batch(&mut RunIo {
             input: &mut input,
             output: &mut output,
             error: &mut error,
+            display: &mut display,
         })
         .expect("fallback panel executes");
 
@@ -71,12 +107,14 @@ fn compatibility_batch_projects_the_first_merge_value() {
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
+    let mut display = Vec::new();
 
     resolved
         .run_batch(&mut RunIo {
             input: &mut input,
             output: &mut output,
             error: &mut error,
+            display: &mut display,
         })
         .expect("merge panel executes");
 
