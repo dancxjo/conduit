@@ -1,0 +1,44 @@
+panel 3
+
+node message : std/literal {
+    value = "admitted"
+}
+node command : std/literal {
+    value = "open"
+}
+node messages : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node commands : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node gate : conduit.std/gate {
+    initial = "closed"
+    retained = "block"
+}
+node admitted_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+node output : io/stdout
+
+cord message.out -> messages.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord command.out -> commands.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord messages.line -> gate.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord commands.line -> gate.control { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord gate.out -> admitted_text.item {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord admitted_text.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

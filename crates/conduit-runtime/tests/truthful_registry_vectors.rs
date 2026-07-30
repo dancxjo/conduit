@@ -65,8 +65,11 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "io/stderr",
         "supervision/supervisor",
         "flow/identity",
-        "flow/tee",
-        "flow/merge",
+        "conduit.std/tee",
+        "conduit.std/merge",
+        "conduit.std/zip",
+        "conduit.std/gate",
+        "conduit.std/select",
         "flow/fallback",
         "time/delay",
         "time/debounce",
@@ -165,8 +168,8 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
         "io/stderr",
         "supervision/supervisor",
         "flow/identity",
-        "flow/tee",
-        "flow/merge",
+        "conduit.std/tee",
+        "conduit.std/merge",
         "flow/fallback",
     ] {
         assert_eq!(
@@ -192,7 +195,7 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
 fn hosted_primitive_registry_couples_callbacks_to_installed_artifacts() {
     let registry = Registry::hosted_primitives();
     let installed = Registry::installed_hosted_providers();
-    assert_eq!(installed.len(), 13);
+    assert_eq!(installed.len(), 16);
     for provider in installed {
         let availability = registry.node_availability(provider.contract.id.as_str());
         assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
@@ -319,18 +322,36 @@ fn missing_exact_artifact_is_rejected() {
 #[test]
 fn discarded_standard_id_is_unsupported_and_never_aliased() {
     let registry = Registry::default();
-    let availability = registry.node_availability("conduit.std/literal");
-    assert_eq!(availability.state, AvailabilityState::Unsupported);
-    assert_eq!(availability.reason_code, "CND-AVL-006");
-    assert_eq!(availability.rejection_reasons, vec!["CND-RES-001"]);
-    let panel = parse("panel 1\nnode legacy : conduit.std/literal\n").unwrap();
-    assert_eq!(
-        registry
-            .resolve(&panel)
-            .expect_err("discarded ID must fail")
-            .code,
-        "CND-IMP-001"
-    );
+    for discarded in [
+        "conduit.std/literal",
+        "flow/tee",
+        "flow/merge",
+        "flow/zip",
+        "flow/gate",
+        "flow/select",
+    ] {
+        let availability = registry.node_availability(discarded);
+        assert_eq!(
+            availability.state,
+            AvailabilityState::Unsupported,
+            "{discarded}"
+        );
+        assert_eq!(availability.reason_code, "CND-AVL-006", "{discarded}");
+        assert_eq!(
+            availability.rejection_reasons,
+            vec!["CND-RES-001"],
+            "{discarded}"
+        );
+        let panel = parse(&format!("panel 1\nnode legacy : {discarded}\n")).unwrap();
+        assert_eq!(
+            registry
+                .resolve(&panel)
+                .expect_err("discarded ID must fail")
+                .code,
+            "CND-IMP-001",
+            "{discarded}"
+        );
+    }
 }
 
 #[test]

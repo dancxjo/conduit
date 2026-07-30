@@ -23,6 +23,7 @@ struct Entry {
     profile: String,
     proof: String,
     expected_stdout: Option<String>,
+    expected_stderr: Option<String>,
     expected_diagnostic: Option<String>,
 }
 
@@ -232,7 +233,12 @@ fn every_checked_panel_has_one_verified_runnability_state() {
                 "{} exact stdout",
                 entry.path
             );
-            assert!(stderr.is_empty(), "{} has clean stderr", entry.path);
+            assert_eq!(
+                stderr,
+                entry.expected_stderr.as_deref().unwrap_or_default(),
+                "{} exact stderr",
+                entry.path
+            );
         } else {
             assert!(!output.status.success(), "{} must fail closed", entry.path);
             assert!(
@@ -282,9 +288,10 @@ fn every_checked_panel_has_one_verified_runnability_state() {
             lesson["expected_stdout"].as_str().expect("runnable stdout"),
             "{id} exported source has the same canonical result"
         );
-        assert!(
-            ran.stderr.is_empty(),
-            "{id} exported source has clean stderr"
+        assert_eq!(
+            String::from_utf8(ran.stderr).expect("lesson stderr is UTF-8"),
+            lesson["expected_stderr"].as_str().unwrap_or_default(),
+            "{id} exported source has the declared canonical stderr"
         );
     }
 }

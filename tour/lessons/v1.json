@@ -692,7 +692,7 @@
         "show_plan": true
       },
       "validation": {
-        "kind": "pedagogical-stdout",
+        "kind": "stdout",
         "value": "TOUR/META-LESSON\n"
       },
       "hints": [
@@ -705,11 +705,9 @@
         "reduced_motion": true
       },
       "runnability": {
-        "state": "illustrative/unavailable",
+        "state": "runnable",
         "profile": "browser",
-        "proof": "canonical-run-rejection",
-        "code": "CND-RUN-007",
-        "reason": "the current exact binding set rejects duplicate hosted implementation bindings"
+        "proof": "browser-worker-exact-plan"
       }
     },
     {
@@ -925,6 +923,120 @@
               "value": "alpha / beta"
             }
           }
+        ]
+      }
+    },
+    {
+      "id": "library.standard-flow-control",
+      "chapter": 4,
+      "title": "Bounded flow control",
+      "prerequisites": [
+        "nodes.fan-out-is-a-choice",
+        "library.typed-text-format"
+      ],
+      "objective": "Run the canonical tee, merge, zip, gate, and select contracts and inspect the exact ordering, pressure, retained-state, and terminal facts that make their behavior portable.",
+      "prose": "These nodes shape a stream without inventing a universal value type. This lesson uses their exact std/text instantiations, capacity-one block pressure, finite retained state, and explicit terminal policies.",
+      "vocabulary": [
+        "coupled fan-out",
+        "round-robin merge",
+        "pairwise zip",
+        "control priority",
+        "terminal policy"
+      ],
+      "source": "panel 3\n\nnode left : std/literal { value = \"\" }\nnode right : std/literal { value = \"right\" }\nnode command : std/literal { value = \"in2\" }\nnode left_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode right_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode commands : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }\nnode chosen : conduit.std/select { initial = \"in1\" inactive = \"block\" }\nnode split : conduit.std/tee { mode = \"coupled\" }\nnode stdout_text : std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode stderr_text : std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\nnode output : io/stdout\nnode evidence : io/stderr\n\ncord left.out -> left_lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord right.out -> right_lines.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord command.out -> commands.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord left_lines.line -> chosen.in1 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord right_lines.line -> chosen.in2 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord commands.line -> chosen.control { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord chosen.out -> split.in { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord split.out1 -> stdout_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord split.out2 -> stderr_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord stdout_text.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\ncord stderr_text.out -> evidence.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run examples/flow-compose.panel",
+      "commands": [
+        "conduct --check examples/flow-tee.panel",
+        "conduct --check examples/flow-merge.panel",
+        "conduct --check examples/flow-zip.panel",
+        "conduct --check examples/flow-gate.panel",
+        "conduct --check examples/flow-select.panel",
+        "conduct --run examples/flow-compose.panel"
+      ],
+      "expected_stdout": "right",
+      "expected_stderr": "right",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 128,
+        "queue_bytes": 6144,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "structural-flow-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "port_id",
+          "pressure",
+          "occupancy",
+          "ordering",
+          "retained_values",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "stdout",
+        "value": "right"
+      },
+      "hints": [
+        "Select one standalone scenario before changing its supported configuration.",
+        "Capacity and pressure belong to each cord; ordering and retained-state policy belong to the selected node contract.",
+        "The timeline is a projection of bounded evidence and never changes the resolved plan."
+      ],
+      "solution": "Use the canonical conduit.std identities, exact typed ports, supported finite configuration, and capacity-one blocking cords; inspect the resolved plan before treating the timeline as evidence.",
+      "accessibility": {
+        "non_audio": "An ordered text table names sequence, node, port, pressure result, occupancy, retained-value count, ordering decision, terminal input, and final cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered flow story has focus.",
+        "color_independent": "Port labels, branch numbers, ordering ordinals, terminal words, and table text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson/v1",
+        "summary": "Five canonical structural nodes provide bounded fan-out, merge, pairing, admission, and selection.",
+        "what": "Tee duplicates one value to two branches; merge chooses available inputs round-robin; zip emits complete pairs; gate admits data only while open; select consumes only its active input.",
+        "when": "Use these nodes when stream topology needs an explicit, inspectable structural policy instead of hidden callback or host-channel behavior.",
+        "wrong": "Legacy flow/* identities, duplicate port IDs, wake-order races, partial coupled publication, unbounded retention, implicit dropping, and fabricated terminal success fail closed.",
+        "contracts": [
+          {"id":"conduit.std/tee","inputs":["in:std/text"],"outputs":["out1:std/text","out2:std/text"],"policy":"mode=coupled|isolated"},
+          {"id":"conduit.std/merge","inputs":["in1:std/text","in2:std/text"],"outputs":["out:std/text"],"policy":"ordering=round-robin"},
+          {"id":"conduit.std/zip","inputs":["in1:std/text","in2:std/text"],"outputs":["left:std/text","right:std/text"],"policy":"unpaired=fail|drop"},
+          {"id":"conduit.std/gate","inputs":["in:std/text","control:std/text"],"outputs":["out:std/text"],"policy":"initial=open|closed; retained=block"},
+          {"id":"conduit.std/select","inputs":["in1:std/text","in2:std/text","control:std/text"],"outputs":["out:std/text"],"policy":"initial=in1|in2; inactive=block"}
+        ],
+        "editable": [
+          "chosen.initial:in1|in2",
+          "split.mode:coupled|isolated"
+        ],
+        "provider": "hosted exact-plan deterministic executor",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact contract, implementation, artifact, and port bindings",
+          "capacity-one block pressure and queue occupancy",
+          "round-robin input ordinal or control-priority decision",
+          "bounded retained-value usage and one exact terminal cause"
+        ],
+        "docs": [
+          "../../docs/cookbook-standard-library.md#2-bounded-structural-flow",
+          "../../examples/flow-tee.panel",
+          "../../examples/flow-merge.panel",
+          "../../examples/flow-zip.panel",
+          "../../examples/flow-gate.panel",
+          "../../examples/flow-select.panel",
+          "../../examples/flow-compose.panel"
+        ],
+        "scenarios": [
+          {"id":"tee","title":"Coupled tee","panel":"../../examples/flow-tee.panel","semantics":"Both branches reserve in one scheduler transaction; block pressure rolls the whole step back."},
+          {"id":"merge","title":"Round-robin merge","panel":"../../examples/flow-merge.panel","semantics":"One available value is chosen per input ordinal cycle; completion drains both inputs."},
+          {"id":"zip","title":"Pairwise zip","panel":"../../examples/flow-zip.panel","semantics":"At most one value per side is retained; both outputs publish in one scheduler transaction."},
+          {"id":"gate","title":"Controlled gate","panel":"../../examples/flow-gate.panel","semantics":"Control is processed before data; closed block mode retains values only in bounded input queues."},
+          {"id":"select","title":"Controlled select","panel":"../../examples/flow-select.panel","semantics":"Control is processed before the selected input; inactive block mode leaves the other queue untouched."},
+          {"id":"composition","title":"Select then tee","panel":"../../examples/flow-compose.panel","semantics":"The selected exact text value reaches both coupled branches with the same handle and terminal cause."}
         ]
       }
     },

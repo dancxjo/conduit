@@ -215,6 +215,37 @@ const SUPERVISION_DECISION_TYPE: TypeContractRef<'static> = TypeContractRef {
     ]),
 };
 const EMPTY_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
+const fn optional_text_field(key: &'static str) -> ConfigFieldContract<'static> {
+    ConfigFieldContract {
+        key: Id(key),
+        value_type: TEXT_TYPE,
+        requirement: ConfigRequirement::Optional,
+        sensitivity: Sensitivity::Public,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Semantic,
+    }
+}
+const TEE_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[optional_text_field("mode")],
+};
+const MERGE_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[optional_text_field("ordering")],
+};
+const ZIP_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[optional_text_field("unpaired")],
+};
+const GATE_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        optional_text_field("initial"),
+        optional_text_field("retained"),
+    ],
+};
+const SELECT_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        optional_text_field("initial"),
+        optional_text_field("inactive"),
+    ],
+};
 const LITERAL_CONFIG: ConfigContract<'static> = ConfigContract {
     fields: &[ConfigFieldContract {
         key: Id("value"),
@@ -388,36 +419,6 @@ const SUPERVISION_DECISION_OUTPUT: PortContract<'static> = PortContract {
     },
 };
 
-const INPUT_TEXT_1: PortContract<'static> = PortContract {
-    id: Id("in1"),
-    direction: Direction::Input,
-    value_type: TEXT_TYPE,
-    presence: Presence::Required,
-    connections: ConnectionCardinality::ExactlyOne,
-    values: ValueCardinality::ExactlyOne,
-    delivery: Delivery::FiniteBatch,
-    temporal: TemporalContract::Atemporal,
-    terminal: TerminalContract::Finite,
-    sensitivity: Sensitivity::Public,
-    flow: PortFlowConstraints {
-        loss: LossAcceptance::LosslessOnly,
-    },
-};
-const INPUT_TEXT_2: PortContract<'static> = PortContract {
-    id: Id("in2"),
-    direction: Direction::Input,
-    value_type: TEXT_TYPE,
-    presence: Presence::Required,
-    connections: ConnectionCardinality::ExactlyOne,
-    values: ValueCardinality::ExactlyOne,
-    delivery: Delivery::FiniteBatch,
-    temporal: TemporalContract::Atemporal,
-    terminal: TerminalContract::Finite,
-    sensitivity: Sensitivity::Public,
-    flow: PortFlowConstraints {
-        loss: LossAcceptance::LosslessOnly,
-    },
-};
 const INPUT_PRIMARY: PortContract<'static> = PortContract {
     id: Id("primary"),
     direction: Direction::Input,
@@ -448,35 +449,49 @@ const INPUT_FALLBACK: PortContract<'static> = PortContract {
         loss: LossAcceptance::LosslessOnly,
     },
 };
-const OUTPUT_TEXT_1: PortContract<'static> = PortContract {
-    id: Id("out1"),
-    direction: Direction::Output,
-    value_type: TEXT_TYPE,
-    presence: Presence::Required,
-    connections: ConnectionCardinality::OneOrMore,
-    values: ValueCardinality::ExactlyOne,
-    delivery: Delivery::FiniteBatch,
-    temporal: TemporalContract::Atemporal,
-    terminal: TerminalContract::Finite,
-    sensitivity: Sensitivity::Public,
-    flow: PortFlowConstraints {
-        loss: LossAcceptance::LosslessOnly,
-    },
+const STREAM_INPUT_TEXT: PortContract<'static> = PortContract {
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::Either,
+    sensitivity: Sensitivity::Restricted,
+    ..INPUT_TEXT
 };
-const OUTPUT_TEXT_2: PortContract<'static> = PortContract {
-    id: Id("out2"),
-    direction: Direction::Output,
-    value_type: TEXT_TYPE,
-    presence: Presence::Required,
-    connections: ConnectionCardinality::OneOrMore,
-    values: ValueCardinality::ExactlyOne,
-    delivery: Delivery::FiniteBatch,
-    temporal: TemporalContract::Atemporal,
+const STREAM_INPUT_TEXT_1: PortContract<'static> = PortContract {
+    id: Id("in1"),
+    ..STREAM_INPUT_TEXT
+};
+const STREAM_INPUT_TEXT_2: PortContract<'static> = PortContract {
+    id: Id("in2"),
+    ..STREAM_INPUT_TEXT
+};
+const STREAM_CONTROL_TEXT: PortContract<'static> = PortContract {
+    id: Id("control"),
+    ..STREAM_INPUT_TEXT
+};
+const STREAM_OUTPUT_TEXT: PortContract<'static> = PortContract {
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
     terminal: TerminalContract::Finite,
-    sensitivity: Sensitivity::Public,
-    flow: PortFlowConstraints {
-        loss: LossAcceptance::LosslessOnly,
-    },
+    sensitivity: Sensitivity::Restricted,
+    ..OUTPUT_TEXT
+};
+const STREAM_OUTPUT_TEXT_1: PortContract<'static> = PortContract {
+    id: Id("out1"),
+    ..STREAM_OUTPUT_TEXT
+};
+const STREAM_OUTPUT_TEXT_2: PortContract<'static> = PortContract {
+    id: Id("out2"),
+    ..STREAM_OUTPUT_TEXT
+};
+const STREAM_OUTPUT_TEXT_LEFT: PortContract<'static> = PortContract {
+    id: Id("left"),
+    ..STREAM_OUTPUT_TEXT
+};
+const STREAM_OUTPUT_TEXT_RIGHT: PortContract<'static> = PortContract {
+    id: Id("right"),
+    ..STREAM_OUTPUT_TEXT
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -548,16 +563,38 @@ pub const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &[OUTPUT_TEXT],
 };
 pub const TEE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("flow/tee"),
-    config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT],
-    outputs: &[OUTPUT_TEXT_1, OUTPUT_TEXT_2],
+    id: Id("conduit.std/tee"),
+    config: TEE_CONFIG,
+    inputs: &[STREAM_INPUT_TEXT],
+    outputs: &[STREAM_OUTPUT_TEXT_1, STREAM_OUTPUT_TEXT_2],
 };
 pub const MERGE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("flow/merge"),
-    config: EMPTY_CONFIG,
-    inputs: &[INPUT_TEXT_1, INPUT_TEXT_2],
-    outputs: &[OUTPUT_TEXT],
+    id: Id("conduit.std/merge"),
+    config: MERGE_CONFIG,
+    inputs: &[STREAM_INPUT_TEXT_1, STREAM_INPUT_TEXT_2],
+    outputs: &[STREAM_OUTPUT_TEXT],
+};
+pub const ZIP_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.std/zip"),
+    config: ZIP_CONFIG,
+    inputs: &[STREAM_INPUT_TEXT_1, STREAM_INPUT_TEXT_2],
+    outputs: &[STREAM_OUTPUT_TEXT_LEFT, STREAM_OUTPUT_TEXT_RIGHT],
+};
+pub const GATE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.std/gate"),
+    config: GATE_CONFIG,
+    inputs: &[STREAM_INPUT_TEXT, STREAM_CONTROL_TEXT],
+    outputs: &[STREAM_OUTPUT_TEXT],
+};
+pub const SELECT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.std/select"),
+    config: SELECT_CONFIG,
+    inputs: &[
+        STREAM_INPUT_TEXT_1,
+        STREAM_INPUT_TEXT_2,
+        STREAM_CONTROL_TEXT,
+    ],
+    outputs: &[STREAM_OUTPUT_TEXT],
 };
 pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("time/delay"),
@@ -817,6 +854,9 @@ pub enum HostedPrimitiveImplementation {
     PassThrough,
     Tee,
     Merge,
+    Zip,
+    Gate,
+    Select,
     Fallback,
     /// An exact, registered host-service provider with no value cords.
     ///
@@ -1487,15 +1527,14 @@ impl Registry {
             || Box::new(PassThroughHandler),
             validate_empty_config,
         );
+        install(&TEE_CONTRACT, || Box::new(TeeHandler), validate_tee);
+        install(&MERGE_CONTRACT, || Box::new(MergeHandler), validate_merge);
+        install(&ZIP_CONTRACT, || Box::new(ZipHandler), validate_zip);
+        install(&GATE_CONTRACT, || Box::new(GateHandler), validate_gate);
         install(
-            &TEE_CONTRACT,
-            || Box::new(TeeHandler),
-            validate_empty_config,
-        );
-        install(
-            &MERGE_CONTRACT,
-            || Box::new(MergeHandler),
-            validate_empty_config,
+            &SELECT_CONTRACT,
+            || Box::new(SelectHandler),
+            validate_select,
         );
         install(
             &FALLBACK_CONTRACT,
@@ -1673,14 +1712,35 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 "tee",
                 HostedPrimitiveImplementation::Tee,
                 || Box::new(TeeHandler),
-                validate_empty_config,
+                validate_tee,
             ),
             (
                 &MERGE_CONTRACT,
                 "merge",
                 HostedPrimitiveImplementation::Merge,
                 || Box::new(MergeHandler),
-                validate_empty_config,
+                validate_merge,
+            ),
+            (
+                &ZIP_CONTRACT,
+                "zip",
+                HostedPrimitiveImplementation::Zip,
+                || Box::new(ZipHandler),
+                validate_zip,
+            ),
+            (
+                &GATE_CONTRACT,
+                "gate",
+                HostedPrimitiveImplementation::Gate,
+                || Box::new(GateHandler),
+                validate_gate,
+            ),
+            (
+                &SELECT_CONTRACT,
+                "select",
+                HostedPrimitiveImplementation::Select,
+                || Box::new(SelectHandler),
+                validate_select,
             ),
             (
                 &FALLBACK_CONTRACT,
@@ -1832,18 +1892,26 @@ impl Default for Registry {
         );
         nodes.insert(
             TEE_CONTRACT.id.as_str(),
-            honest_primitive(
-                &TEE_CONTRACT,
-                || Box::new(TeeHandler),
-                validate_empty_config,
-            ),
+            honest_primitive(&TEE_CONTRACT, || Box::new(TeeHandler), validate_tee),
         );
         nodes.insert(
             MERGE_CONTRACT.id.as_str(),
+            honest_primitive(&MERGE_CONTRACT, || Box::new(MergeHandler), validate_merge),
+        );
+        nodes.insert(
+            ZIP_CONTRACT.id.as_str(),
+            honest_primitive(&ZIP_CONTRACT, || Box::new(ZipHandler), validate_zip),
+        );
+        nodes.insert(
+            GATE_CONTRACT.id.as_str(),
+            honest_primitive(&GATE_CONTRACT, || Box::new(GateHandler), validate_gate),
+        );
+        nodes.insert(
+            SELECT_CONTRACT.id.as_str(),
             honest_primitive(
-                &MERGE_CONTRACT,
-                || Box::new(MergeHandler),
-                validate_empty_config,
+                &SELECT_CONTRACT,
+                || Box::new(SelectHandler),
+                validate_select,
             ),
         );
         nodes.insert(
@@ -3795,8 +3863,11 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::PassThrough => "flow/identity",
-                HostedPrimitiveImplementation::Tee => "flow/tee",
-                HostedPrimitiveImplementation::Merge => "flow/merge",
+                HostedPrimitiveImplementation::Tee => "conduit.std/tee",
+                HostedPrimitiveImplementation::Merge => "conduit.std/merge",
+                HostedPrimitiveImplementation::Zip => "conduit.std/zip",
+                HostedPrimitiveImplementation::Gate => "conduit.std/gate",
+                HostedPrimitiveImplementation::Select => "conduit.std/select",
                 HostedPrimitiveImplementation::Fallback => "flow/fallback",
                 HostedPrimitiveImplementation::HostedService => planned.contract.id.as_str(),
             };
@@ -3925,8 +3996,40 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::PassThrough => HostedNodeKind::PassThrough,
-                HostedPrimitiveImplementation::Tee => HostedNodeKind::Tee,
-                HostedPrimitiveImplementation::Merge => HostedNodeKind::Merge,
+                HostedPrimitiveImplementation::Tee => HostedNodeKind::Tee {
+                    isolated: resolved.source.config("mode") == Some("isolated"),
+                    retained: None,
+                    delivered: [false; 2],
+                },
+                HostedPrimitiveImplementation::Merge => HostedNodeKind::Merge {
+                    inputs: [
+                        planned_input_cord(plan, planned.instance, "in1")?,
+                        planned_input_cord(plan, planned.instance, "in2")?,
+                    ],
+                    cursor: 0,
+                },
+                HostedPrimitiveImplementation::Zip => HostedNodeKind::Zip {
+                    inputs: [
+                        planned_input_cord(plan, planned.instance, "in1")?,
+                        planned_input_cord(plan, planned.instance, "in2")?,
+                    ],
+                    left: None,
+                    right: None,
+                    drop_unpaired: resolved.source.config("unpaired") == Some("drop"),
+                },
+                HostedPrimitiveImplementation::Gate => HostedNodeKind::Gate {
+                    input: planned_input_cord(plan, planned.instance, "in")?,
+                    control: planned_input_cord(plan, planned.instance, "control")?,
+                    open: resolved.source.config("initial") == Some("open"),
+                },
+                HostedPrimitiveImplementation::Select => HostedNodeKind::Select {
+                    inputs: [
+                        planned_input_cord(plan, planned.instance, "in1")?,
+                        planned_input_cord(plan, planned.instance, "in2")?,
+                    ],
+                    control: planned_input_cord(plan, planned.instance, "control")?,
+                    selected: usize::from(resolved.source.config("initial") == Some("in2")),
+                },
                 HostedPrimitiveImplementation::Fallback => {
                     HostedNodeKind::Fallback { emitted: false }
                 }
@@ -4276,8 +4379,31 @@ enum HostedNodeKind {
     Stdout,
     Stderr,
     PassThrough,
-    Tee,
-    Merge,
+    Tee {
+        isolated: bool,
+        retained: Option<RuntimeValue>,
+        delivered: [bool; 2],
+    },
+    Merge {
+        inputs: [usize; 2],
+        cursor: usize,
+    },
+    Zip {
+        inputs: [usize; 2],
+        left: Option<RuntimeValue>,
+        right: Option<RuntimeValue>,
+        drop_unpaired: bool,
+    },
+    Gate {
+        input: usize,
+        control: usize,
+        open: bool,
+    },
+    Select {
+        inputs: [usize; 2],
+        control: usize,
+        selected: usize,
+    },
     Fallback {
         emitted: bool,
     },
@@ -5054,48 +5180,324 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     SchedulerStep::Pending
                 }
             }
-            HostedNodeKind::Tee => {
+            HostedNodeKind::Tee {
+                isolated,
+                retained,
+                delivered,
+            } => {
                 let in_cord = match self.in_cords.first() {
                     Some(&c) => c,
                     None => return SchedulerStep::Completed,
                 };
-                if let Ok(Some(val)) = io.receive(in_cord) {
-                    for &out_cord in &self.out_cords {
-                        let _ = io.send(out_cord, val, None);
+                if *isolated {
+                    if retained.is_none() {
+                        if let Ok(Some(value)) = io.receive(in_cord) {
+                            *retained = Some(value);
+                            *delivered = [false; 2];
+                            return SchedulerStep::Progress;
+                        }
+                        if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                            return SchedulerStep::Completed;
+                        }
+                        let _ = io.wait_for_input(in_cord);
+                        return SchedulerStep::Pending;
                     }
-                    SchedulerStep::Progress
-                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
-                    SchedulerStep::Completed
-                } else {
-                    let _ = io.wait_for_input(in_cord);
-                    SchedulerStep::Pending
+                    if let Some((branch, &out_cord)) = self
+                        .out_cords
+                        .iter()
+                        .enumerate()
+                        .find(|(branch, _)| !delivered[*branch])
+                    {
+                        return match io.send(
+                            out_cord,
+                            retained.expect("isolated tee retained input"),
+                            None,
+                        ) {
+                            Ok(SendStatus::Reserved) => {
+                                delivered[branch] = true;
+                                SchedulerStep::Progress
+                            }
+                            Ok(SendStatus::WouldBlock) => {
+                                let _ = io.wait_for_output(out_cord);
+                                SchedulerStep::Pending
+                            }
+                            Ok(_) | Err(_) => SchedulerStep::Failed {
+                                code: Id("conduit.std/tee-branch-rejected"),
+                            },
+                        };
+                    }
+                    *retained = None;
+                    *delivered = [false; 2];
+                    return if io.record_host_progress().is_ok() {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        }
+                    };
                 }
+                let value = match io.receive(in_cord) {
+                    Ok(Some(value)) => value,
+                    _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                        return SchedulerStep::Completed;
+                    }
+                    _ => {
+                        let _ = io.wait_for_input(in_cord);
+                        return SchedulerStep::Pending;
+                    }
+                };
+                for &out_cord in &self.out_cords {
+                    match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {}
+                        Ok(SendStatus::WouldBlock) => {
+                            let _ = io.wait_for_output(out_cord);
+                            return SchedulerStep::Pending;
+                        }
+                        Ok(_) | Err(_) => {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit.std/tee-branch-rejected"),
+                            };
+                        }
+                    }
+                }
+                SchedulerStep::Progress
             }
-            HostedNodeKind::Merge => {
-                let mut received = None;
-                for &in_cord in &self.in_cords {
-                    if let Ok(Some(val)) = io.receive(in_cord) {
-                        received = Some(val);
-                        break;
+            HostedNodeKind::Merge { inputs, cursor } => {
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                for offset in 0..inputs.len() {
+                    let ordinal = (*cursor + offset) % inputs.len();
+                    let in_cord = inputs[ordinal];
+                    if let Ok(Some(value)) = io.receive(in_cord) {
+                        return match io.send(out_cord, value, None) {
+                            Ok(SendStatus::Reserved) => {
+                                *cursor = (ordinal + 1) % inputs.len();
+                                SchedulerStep::Progress
+                            }
+                            Ok(SendStatus::WouldBlock) => {
+                                let _ = io.wait_for_output(out_cord);
+                                SchedulerStep::Pending
+                            }
+                            Ok(_) | Err(_) => SchedulerStep::Failed {
+                                code: Id("conduit.std/merge-output-rejected"),
+                            },
+                        };
                     }
                 }
-                if let Some(val) = received {
-                    if let Some(&out_cord) = self.out_cords.first() {
-                        let _ = io.send(out_cord, val, None);
-                    }
-                    SchedulerStep::Progress
-                } else if self
-                    .in_cords
+                if inputs
                     .iter()
                     .all(|&c| matches!(io.input_state(c), Ok(FlowQueueState::Completed)))
                 {
                     SchedulerStep::Completed
                 } else {
-                    for &in_cord in &self.in_cords {
+                    for &in_cord in inputs.iter() {
                         let _ = io.wait_for_input(in_cord);
                     }
                     SchedulerStep::Pending
                 }
+            }
+            HostedNodeKind::Zip {
+                inputs,
+                left,
+                right,
+                drop_unpaired,
+            } => {
+                if left.is_none() {
+                    if let Ok(Some(value)) = io.receive(inputs[0]) {
+                        *left = Some(value);
+                        return SchedulerStep::Progress;
+                    }
+                }
+                if right.is_none() {
+                    if let Ok(Some(value)) = io.receive(inputs[1]) {
+                        *right = Some(value);
+                        return SchedulerStep::Progress;
+                    }
+                }
+                if let (Some(left_value), Some(right_value)) = (*left, *right) {
+                    let Some(&left_out) = self.out_cords.first() else {
+                        return SchedulerStep::Completed;
+                    };
+                    let Some(&right_out) = self.out_cords.get(1) else {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit.std/zip-output-missing"),
+                        };
+                    };
+                    for (cord, value) in [(left_out, left_value), (right_out, right_value)] {
+                        match io.send(cord, value, None) {
+                            Ok(SendStatus::Reserved) => {}
+                            Ok(SendStatus::WouldBlock) => {
+                                let _ = io.wait_for_output(cord);
+                                return SchedulerStep::Pending;
+                            }
+                            Ok(_) | Err(_) => {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit.std/zip-output-rejected"),
+                                };
+                            }
+                        }
+                    }
+                    *left = None;
+                    *right = None;
+                    return SchedulerStep::Progress;
+                }
+                let left_done = matches!(io.input_state(inputs[0]), Ok(FlowQueueState::Completed));
+                let right_done = matches!(io.input_state(inputs[1]), Ok(FlowQueueState::Completed));
+                if left_done || right_done {
+                    if left.is_some() || right.is_some() {
+                        if *drop_unpaired {
+                            *left = None;
+                            *right = None;
+                            return SchedulerStep::Completed;
+                        }
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "conduit.std/zip-unpaired",
+                            "zip input terminated with an unpaired value",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("conduit.std/zip-unpaired"),
+                        };
+                    }
+                    return SchedulerStep::Completed;
+                }
+                if left.is_none() {
+                    let _ = io.wait_for_input(inputs[0]);
+                }
+                if right.is_none() {
+                    let _ = io.wait_for_input(inputs[1]);
+                }
+                SchedulerStep::Pending
+            }
+            HostedNodeKind::Gate {
+                input,
+                control,
+                open,
+            } => {
+                if let Ok(Some(value)) = io.receive(*control) {
+                    let next = {
+                        let store = self.store.borrow();
+                        match store.get(value.handle).unwrap_or(&[]) {
+                            b"open" => Some(true),
+                            b"closed" => Some(false),
+                            _ => None,
+                        }
+                    };
+                    let Some(next) = next else {
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "conduit.std/gate-invalid-control",
+                            "gate control must be `open` or `closed`",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("conduit.std/gate-invalid-control"),
+                        };
+                    };
+                    *open = next;
+                    return SchedulerStep::Progress;
+                }
+                if *open {
+                    if let Ok(Some(value)) = io.receive(*input) {
+                        let Some(&out_cord) = self.out_cords.first() else {
+                            return SchedulerStep::Completed;
+                        };
+                        return match io.send(out_cord, value, None) {
+                            Ok(SendStatus::Reserved) => SchedulerStep::Progress,
+                            Ok(SendStatus::WouldBlock) => {
+                                let _ = io.wait_for_output(out_cord);
+                                SchedulerStep::Pending
+                            }
+                            Ok(_) | Err(_) => SchedulerStep::Failed {
+                                code: Id("conduit.std/gate-output-rejected"),
+                            },
+                        };
+                    }
+                }
+                if matches!(io.input_state(*input), Ok(FlowQueueState::Completed)) {
+                    return SchedulerStep::Completed;
+                }
+                if !*open && matches!(io.input_state(*control), Ok(FlowQueueState::Completed)) {
+                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                        "conduit.std/gate-closed-terminal",
+                        "gate control terminated while the gate was closed",
+                    ));
+                    return SchedulerStep::Failed {
+                        code: Id("conduit.std/gate-closed-terminal"),
+                    };
+                }
+                let _ = io.wait_for_input(*control);
+                if *open {
+                    let _ = io.wait_for_input(*input);
+                }
+                SchedulerStep::Pending
+            }
+            HostedNodeKind::Select {
+                inputs,
+                control,
+                selected,
+            } => {
+                if let Ok(Some(value)) = io.receive(*control) {
+                    let next = {
+                        let store = self.store.borrow();
+                        match store.get(value.handle).unwrap_or(&[]) {
+                            b"in1" => Some(0),
+                            b"in2" => Some(1),
+                            _ => None,
+                        }
+                    };
+                    let Some(next) = next else {
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "conduit.std/select-invalid-control",
+                            "select control must be `in1` or `in2`",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("conduit.std/select-invalid-control"),
+                        };
+                    };
+                    *selected = next;
+                    return SchedulerStep::Progress;
+                }
+                let selected_cord = inputs[*selected];
+                if let Ok(Some(value)) = io.receive(selected_cord) {
+                    let Some(&out_cord) = self.out_cords.first() else {
+                        return SchedulerStep::Completed;
+                    };
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => SchedulerStep::Progress,
+                        Ok(SendStatus::WouldBlock) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                        Ok(_) | Err(_) => SchedulerStep::Failed {
+                            code: Id("conduit.std/select-output-rejected"),
+                        },
+                    };
+                }
+                if matches!(io.input_state(selected_cord), Ok(FlowQueueState::Completed))
+                    && matches!(io.input_state(*control), Ok(FlowQueueState::Completed))
+                {
+                    if inputs
+                        .iter()
+                        .all(|&cord| matches!(io.input_state(cord), Ok(FlowQueueState::Completed)))
+                    {
+                        return SchedulerStep::Completed;
+                    }
+                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                        "conduit.std/select-inactive-terminal",
+                        "select control terminated with an inactive input remainder",
+                    ));
+                    return SchedulerStep::Failed {
+                        code: Id("conduit.std/select-inactive-terminal"),
+                    };
+                }
+                if inputs
+                    .iter()
+                    .all(|&cord| matches!(io.input_state(cord), Ok(FlowQueueState::Completed)))
+                {
+                    return SchedulerStep::Completed;
+                }
+                let _ = io.wait_for_input(*control);
+                let _ = io.wait_for_input(selected_cord);
+                SchedulerStep::Pending
             }
             HostedNodeKind::Fallback { emitted } => {
                 if *emitted {
@@ -5378,6 +5780,62 @@ fn validate_empty_config(node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
 
+fn validate_enum_config(node: &Node, fields: &[(&str, &[&str])]) -> Result<(), ResolutionError> {
+    for entry in &node.config {
+        let Some((_, accepted)) = fields.iter().find(|(key, _)| *key == entry.key) else {
+            return Err(ResolutionError::new(
+                "CND-SRC-002",
+                format!(
+                    "node `{}` has unknown configuration field `{}`",
+                    node.id, entry.key
+                ),
+            ));
+        };
+        let Some(value) = node.config(entry.key.as_str()) else {
+            return Err(ResolutionError::new(
+                "CND-SRC-002",
+                format!("node `{}` requires text field `{}`", node.id, entry.key),
+            ));
+        };
+        if !accepted.contains(&value) {
+            return Err(ResolutionError::new(
+                "CND-IMP-001",
+                format!(
+                    "node `{}` requests unsupported {} profile `{value}`",
+                    node.id, entry.key
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_tee(node: &Node) -> Result<(), ResolutionError> {
+    validate_enum_config(node, &[("mode", &["coupled", "isolated"])])
+}
+
+fn validate_merge(node: &Node) -> Result<(), ResolutionError> {
+    validate_enum_config(node, &[("ordering", &["round-robin"])])
+}
+
+fn validate_zip(node: &Node) -> Result<(), ResolutionError> {
+    validate_enum_config(node, &[("unpaired", &["fail", "drop"])])
+}
+
+fn validate_gate(node: &Node) -> Result<(), ResolutionError> {
+    validate_enum_config(
+        node,
+        &[("initial", &["open", "closed"]), ("retained", &["block"])],
+    )
+}
+
+fn validate_select(node: &Node) -> Result<(), ResolutionError> {
+    validate_enum_config(
+        node,
+        &[("initial", &["in1", "in2"]), ("inactive", &["block"])],
+    )
+}
+
 fn validate_contract_config(_node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
@@ -5421,6 +5879,22 @@ fn source_usize(node: &Node, key: &str) -> Result<usize, RuntimeError> {
             format!("node `{}` has out-of-range `{key}`", node.id),
         )
     })
+}
+
+fn planned_input_cord(
+    plan: &ExecutionPlan<'_>,
+    instance: conduit_core::InstancePath<'_>,
+    port: &str,
+) -> Result<usize, RuntimeError> {
+    plan.cords
+        .iter()
+        .position(|cord| cord.to.node == instance && cord.to.port.as_str() == port)
+        .ok_or_else(|| {
+            RuntimeError::new(
+                "CND-RUN-009",
+                format!("planned input `{}.{port}` is absent", instance.as_str()),
+            )
+        })
 }
 
 fn validate_bounded_integer(
@@ -6040,6 +6514,64 @@ impl Handler for MergeHandler {
             .cloned()
             .unwrap_or_else(|| Value::text(""));
         Ok(vec![val])
+    }
+}
+
+struct ZipHandler;
+impl Handler for ZipHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let left = inputs.first().cloned().ok_or_else(|| {
+            RuntimeError::new("conduit.std/zip-unpaired", "zip left input is absent")
+        })?;
+        let right = inputs.get(1).cloned().ok_or_else(|| {
+            RuntimeError::new("conduit.std/zip-unpaired", "zip right input is absent")
+        })?;
+        Ok(vec![left, right])
+    }
+}
+
+struct GateHandler;
+impl Handler for GateHandler {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let open = inputs
+            .get(1)
+            .map(|control| control.bytes.as_slice() == b"open")
+            .unwrap_or_else(|| node.config("initial") == Some("open"));
+        Ok(if open {
+            inputs.first().cloned().into_iter().collect()
+        } else {
+            Vec::new()
+        })
+    }
+}
+
+struct SelectHandler;
+impl Handler for SelectHandler {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let selected = inputs
+            .get(2)
+            .and_then(|control| match control.bytes.as_slice() {
+                b"in1" => Some(0),
+                b"in2" => Some(1),
+                _ => None,
+            })
+            .unwrap_or_else(|| usize::from(node.config("initial") == Some("in2")));
+        Ok(inputs.get(selected).cloned().into_iter().collect())
     }
 }
 

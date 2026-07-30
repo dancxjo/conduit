@@ -1,0 +1,57 @@
+panel 3
+
+node first : std/literal {
+    value = ""
+}
+node second : std/literal {
+    value = "selected"
+}
+node command : std/literal {
+    value = "in2"
+}
+node first_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node second_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node commands : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+node select : conduit.std/select {
+    initial = "in1"
+    inactive = "block"
+}
+node selected_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+node output : io/stdout
+
+cord first.out -> first_lines.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord second.out -> second_lines.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord command.out -> commands.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord first_lines.line -> select.in1 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord second_lines.line -> select.in2 { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord commands.line -> select.control { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord select.out -> selected_text.item {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord selected_text.out -> output.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

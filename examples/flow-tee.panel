@@ -1,0 +1,56 @@
+panel 3
+
+node message : std/literal {
+    value = "one value, two coupled branches"
+}
+node messages : std/text/lines {
+    maximum_line_bytes = 1024
+    maximum_retained_prefix_bytes = 1024
+}
+node tee : conduit.std/tee {
+    mode = "coupled"
+}
+node left_text : std/text/join {
+    separator = ""
+    maximum_items = 8
+    maximum_item_bytes = 1024
+    maximum_separator_bytes = 64
+    maximum_output_bytes = 4096
+}
+node right_text : std/text/join {
+    separator = ""
+    maximum_items = 8
+    maximum_item_bytes = 1024
+    maximum_separator_bytes = 64
+    maximum_output_bytes = 4096
+}
+node left : io/stdout
+node right : io/stderr
+
+cord message.out -> messages.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord messages.line -> tee.in {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord tee.out1 -> left_text.item {
+    capacity = 1
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord tee.out2 -> right_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord left_text.out -> left.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right_text.out -> right.in { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

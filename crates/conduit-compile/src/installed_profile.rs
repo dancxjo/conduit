@@ -66,10 +66,21 @@ impl InstalledProfile {
                 .1
                 .push(node.instance.clone());
         }
-        let requires_large_evidence = required.contains_key("std/text/format")
+        let requires_large_evidence = topology.nodes.len() > 5
+            || required.contains_key("std/text/format")
             || required.contains_key("std/format-values/literal")
             || required.contains_key("std/text/lines")
-            || required.contains_key("std/text/join");
+            || required.contains_key("std/text/join")
+            || required.keys().any(|id| {
+                matches!(
+                    id.as_str(),
+                    "conduit.std/tee"
+                        | "conduit.std/merge"
+                        | "conduit.std/zip"
+                        | "conduit.std/gate"
+                        | "conduit.std/select"
+                )
+            });
         let providers = registry.installed_providers();
         let mut implementations = BTreeMap::new();
         let mut candidates = Vec::with_capacity(required.len());
@@ -251,13 +262,18 @@ impl InstalledProfile {
                     "planned artifact does not match installed executable code",
                 ));
             }
-            bindings.push(ExactHostedBinding {
-                implementation_id: node.implementation.id.to_string(),
-                implementation_identity: node.implementation.semantic_hash,
-                artifact_id: installed.artifact.id.to_string(),
-                artifact_digest: installed.artifact.digest,
-                implementation,
-            });
+            if !bindings.iter().any(|binding: &ExactHostedBinding| {
+                binding.implementation_id == node.implementation.id.as_str()
+                    && binding.implementation_identity == node.implementation.semantic_hash
+            }) {
+                bindings.push(ExactHostedBinding {
+                    implementation_id: node.implementation.id.to_string(),
+                    implementation_identity: node.implementation.semantic_hash,
+                    artifact_id: installed.artifact.id.to_string(),
+                    artifact_digest: installed.artifact.digest,
+                    implementation,
+                });
+            }
         }
         ExactHostedBindings::new(bindings)
     }
@@ -284,6 +300,14 @@ fn candidate(
     let buffered_text_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::Lines | HostedPrimitiveImplementation::Join
+    );
+    let structural_flow_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Tee
+            | HostedPrimitiveImplementation::Merge
+            | HostedPrimitiveImplementation::Zip
+            | HostedPrimitiveImplementation::Gate
+            | HostedPrimitiveImplementation::Select
     );
     CandidateDocument {
         implementation: ImplementationDocument {
@@ -326,6 +350,8 @@ fn candidate(
             format_execution_profile()
         } else if buffered_text_profile {
             buffered_text_execution_profile()
+        } else if structural_flow_profile {
+            structural_flow_execution_profile()
         } else {
             execution_profile()
         },
@@ -383,12 +409,16 @@ fn candidate(
                 64 * 1024
             } else if format_profile || buffered_text_profile {
                 128 * 1024
+            } else if structural_flow_profile {
+                8 * 1024
             } else {
                 2048
             },
             cpu_units: 1,
             evidence_bytes: if format_profile || buffered_text_profile {
                 8 * 1024
+            } else if structural_flow_profile {
+                4 * 1024
             } else {
                 256
             },
@@ -537,6 +567,47 @@ fn execution_profile() -> ExecutionProfileDocument {
             accounting: "executor-allocated".to_owned(),
             bytes: 2048,
         }],
+        checkpoint: None,
+    }
+}
+
+fn structural_flow_execution_profile() -> ExecutionProfileDocument {
+    const RETAINED_BYTES: u64 = 2 * 1024;
+    const MEMORY_BYTES: u64 = 8 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-structural-flow-profile-v1".to_owned(),
+        schema_version: 1,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 4,
+            max_input_leases: 2,
+            max_input_bytes: RETAINED_BYTES,
+            max_output_reservations: 2,
+            max_output_bytes: RETAINED_BYTES,
+            max_transactions: 2,
+            max_fragments_per_step: 2,
+            max_retained_values: 2,
+            max_retained_bytes: RETAINED_BYTES,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "retained".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: RETAINED_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - RETAINED_BYTES,
+            },
+        ],
         checkpoint: None,
     }
 }

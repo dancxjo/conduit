@@ -20,8 +20,8 @@ availability belongs to a fresh host observation and exact plan.
 
 Every active entry has exactly one mechanical classification:
 
-- `portable-standard` for cross-domain `std/`, `flow/`, `time/`, `state/`,
-  `supervision/`, and retained `text/uppercase` semantics;
+- `portable-standard` for cross-domain `std/`, `conduit.std/`, `flow/`,
+  `time/`, `state/`, `supervision/`, and retained `text/uppercase` semantics;
 - `optional-host-boundary` for I/O, filesystem, storage, process, device,
   networking, transport, secret, crypto, compression, and evidence effects;
 - `reusable-domain-package` for AI, knowledge, learned, media, robotics,
@@ -29,8 +29,10 @@ Every active entry has exactly one mechanical classification:
 - `implementation-helper` for testing and observation helpers.
 
 Provisional or duplicate spellings do not remain active beside their
-replacement. The former `conduit.std/*` spelling is removed and has the exact
-`std/*` replacement rule; the registry does not resolve it as an alias.
+replacement. The five issue-#124 components use `conduit.std/{tee,merge,zip,gate,select}`;
+their former `flow/*` spellings are removed, and the registry does not resolve
+them as aliases. Other `std/*` value and mechanics identities remain
+unchanged.
 
 Each retained entry records its canonical identity and public spelling,
 package artifact/export, schema and semantic hash, exact port/config type

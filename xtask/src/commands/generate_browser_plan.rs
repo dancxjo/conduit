@@ -70,7 +70,7 @@ pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error:
                 "maximum_message_bytes": 131072,
                 "response_timeout_ms": 20000,
                 "maximum_evidence_events": 64,
-                "maximum_scheduler_events": 128,
+                "maximum_scheduler_events": 256,
                 "maximum_runtime_ticks": 512
             }),
         );
