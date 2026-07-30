@@ -19,18 +19,25 @@ compatibility path merely because a prior commit wrote a different shape.
 
 ## Current pre-release scheme
 
-Before the first tagged release:
+Before the first tagged release, use this matrix:
 
-- the workspace package version is development metadata, not a support promise;
-- each Conduit-owned source, serialized, persisted, or wire artifact uses one
-  current draft marker, consistently represented as schema version `0` or a
-  `/draft` identifier within that artifact family;
-- each family has one current encoder and one current decoder;
-- candidate specifications and conformance suites use topical names rather
-  than accumulating release-looking `-v1`, `-v2`, and similar suffixes;
-- draft changes replace the current definition and regenerate repository-owned
-  artifacts rather than adding a second accepted generation;
-- the exception ledger for released compatibility obligations is empty.
+| Surface | Current pre-release representation |
+| --- | --- |
+| Workspace/package SemVer | One development-only version: `0.0.0-dev` |
+| Numeric schema or grammar field | `0` |
+| Panel source header | `panel 0` |
+| Conduit-owned contract/package/interface name | Unversioned canonical name |
+| Exact artifact identity | Canonical content hash, separate from the name |
+| Spec, fixture, and conformance filename | Topical name with no `-v1`, `-v2`, or generation suffix |
+| External protocol or standard | Its real external version |
+| Released-compatibility exception | None |
+
+A family has one current encoder and one current decoder. Draft changes replace
+the current definition and regenerate repository-owned artifacts; they do not
+add a second accepted generation. Do not add `@1`, `/v1`, `V2`, `plan-v9`, or a
+similar release-looking marker to distinguish one unreleased Conduit draft from
+another. When an immutable current artifact must be compared exactly, use its
+canonical content identity, not a fake release number.
 
 At the first public release, establish the initial supported baseline
 deliberately. Only a tagged public release can create a Conduit-owned
