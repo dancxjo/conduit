@@ -132,5 +132,22 @@ Sink failure leaves the same cursor and observations available for an explicit
 retry. Patchbay consumes the provider's committed projection; it is never this
 authoritative sink.
 
+## Browser worker control
+
+The Tour's dedicated worker is a bounded host for the same exact session. It
+first verifies the pinned WASM artifact, then opens one revisioned Patchbay
+workspace and accepts only explicit Start, bounded pump, timer/host wake,
+candidate-transaction, snapshot, and actual Drain/Abort requests for that
+session. Pump quanta and ticks cross the JavaScript/WASM boundary as exact
+non-negative integers; the worker never owns a JavaScript scheduler or runs
+an unbounded loop. The old terminal-only worker `run` command and its
+fresh-run `cancel` command are not part of the current protocol: Stop targets
+the already started session and returns its own terminal cleanup evidence.
+
+An invalid candidate remains visible in its next source revision without
+removing the prior active plan epoch from the worker's authoritative
+projection. Terminating a worker or closing its page outside that stop path is
+an abrupt placement loss, not graceful cancellation.
+
 Long-lived value reclamation and Patchbay Watches build on this boundary and
 each have their own explicit bounds and lifecycle rules.
