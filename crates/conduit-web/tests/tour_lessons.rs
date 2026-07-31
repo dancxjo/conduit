@@ -1459,9 +1459,10 @@ fn cross_host_media_bindings(
     profile: &str,
 ) -> BTreeMap<String, (String, String, String, String)> {
     let registry = cross_host_profile_registry(profile);
-    let mut installed = InstalledProfile::observe_registry(source, &registry).unwrap_or_else(|error| {
-        panic!("profile {profile} must produce a compatible installed profile: {error}")
-    });
+    let mut installed =
+        InstalledProfile::observe_registry(source, &registry).unwrap_or_else(|error| {
+            panic!("profile {profile} must produce a compatible installed profile: {error}")
+        });
     let profile_observation = match profile {
         "deterministic-host" => ("conduit/conduct-host-observation", "conduit/conduct-host"),
         "linux-native-fixture" => (
@@ -1571,7 +1572,9 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
             );
         } else {
             let profile_id = profile["id"].as_str().expect("platform profile has id");
-            let profile_code = profile["code"].as_str().expect("platform profile has rejection code");
+            let profile_code = profile["code"]
+                .as_str()
+                .expect("platform profile has rejection code");
             assert_eq!(fixture_case["expected"], profile_code);
             rejected_profile_codes.insert(profile_id.to_owned(), profile_code.to_owned());
         }
