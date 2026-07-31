@@ -884,6 +884,42 @@ fn exact_session_timer_wake_resumes_the_same_waiting_epoch() {
 }
 
 #[test]
+fn exact_session_pump_after_terminal_keeps_the_terminal_epoch_intact() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostProgress {
+            remaining: 1,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 1,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        while run.state() == ExactRunState::Active {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(
+            run.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+        );
+        let identity = run.identity().clone();
+        let decisions = run.high_water().decisions;
+        let evidence = run.exact_evidence();
+
+        assert_eq!(
+            run.pump(1).unwrap().state,
+            ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+        );
+        assert_eq!(run.identity(), &identity);
+        assert_eq!(run.high_water().decisions, decisions);
+        assert_eq!(run.exact_evidence(), evidence);
+    });
+}
+
+#[test]
 fn exact_session_rejects_nonterminal_finalization_without_dropping_the_epoch() {
     with_plan(1, 64, |plan, profile| {
         let source = FixtureNode::HostWait {

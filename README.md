@@ -71,6 +71,11 @@ cargo run -p conduct -- --explain examples/hello.panel
 Primary values stay on stdout; diagnostics and status stay on stderr, so
 `conduct` remains friendly to ordinary Unix pipes.
 
+For an exact run that stays alive between inputs, timers, or host operations,
+see [hosted exact-run sessions](docs/exact-run-sessions.md). It explains the
+difference between an editable blueprint, one pinned active run, Waiting,
+Drain, and Abort.
+
 ## What exists today
 
 Conduit is pre-release research software. The repository currently proves:
