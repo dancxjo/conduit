@@ -53,7 +53,7 @@
     {"fixture":"calibration-hash-mismatch","code":"CND-SPATIAL-007"},
     {"fixture":"history-overflow","code":"CND-SPATIAL-008"},
     {"fixture":"numeric-work-overflow","code":"CND-SPATIAL-008"},
-    {"fixture":"cancellation","code":"CND-SPATIAL-009"},
-    {"fixture":"unsupported-provider","code":"CND-SPATIAL-010"}
+    {"fixture":"cancellation","terminal":"cancelled"},
+    {"fixture":"unsupported-provider","code":"CND-IMP-001"}
   ]
 }

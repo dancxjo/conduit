@@ -174,7 +174,7 @@ fn spatial_contracts_remain_domain_specific() {
         .collect::<Vec<_>>();
     assert_eq!(
         ids.iter().filter(|id| id.starts_with("spatial/")).count(),
-        9
+        10
     );
     assert!(
         !ids.iter()

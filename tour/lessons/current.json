@@ -1383,6 +1383,7 @@
           {"id":"spatial/transform/literal","kind":"node","outputs":["transform:spatial/transform3"],"policy":"explicit finite source-target transform"},
           {"id":"spatial/point/literal","kind":"node","outputs":["point:spatial/stamped-point3"],"policy":"explicit finite stamped point"},
           {"id":"spatial/transform/compose","kind":"node","inputs":["first:spatial/transform3","second:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"checked source-middle-target composition"},
+          {"id":"spatial/transform/lookup","kind":"node","inputs":["first:spatial/transform3","second:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"finite explicit-graph path lookup without ambient state"},
           {"id":"spatial/transform/invert","kind":"node","inputs":["transform:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"checked exact inverse"},
           {"id":"spatial/transform/interpolate","kind":"node","inputs":["before:spatial/transform3","after:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"two-value finite-window interpolation"},
           {"id":"spatial/transform/apply","kind":"node","inputs":["transform:spatial/transform3","point:spatial/stamped-point3"],"outputs":["point:spatial/stamped-point3"],"policy":"frame-clock-stamp checked application"},
@@ -1401,7 +1402,7 @@
         "docs": ["../../spec/070-bounded-spatial-foundation.md","../../conformance/c4/spatial-foundation.json","../../examples/spatial-transform-interpolate.panel","../../examples/spatial-transform-compose.panel"],
         "scenarios": [
           {"id":"spatial-interpolation-standalone","title":"Interpolate and apply one transform","panel":"../../examples/spatial-transform-interpolate.panel","semantics":"Two exact history values produce one bounded-time transform and move a point without ambient lookup."},
-          {"id":"spatial-camera-composition","title":"Compose frames and cross calibration","panel":"../../examples/spatial-transform-compose.panel","semantics":"Compose, invert, apply, project, and unproject retain exact frame, clock, uncertainty, calibration, provider, pressure, and terminal evidence."}
+          {"id":"spatial-camera-composition","title":"Compose frames and cross calibration","panel":"../../examples/spatial-transform-compose.panel","semantics":"Compose, finite lookup, invert, apply, project, and unproject retain exact frame, clock, uncertainty, calibration, provider, pressure, and terminal evidence."}
         ]
       }
     },

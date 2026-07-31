@@ -53,7 +53,10 @@ node camera_point : spatial/point/literal {
   unit = "um" axes = "x-right-y-forward-z-up" maximum_output_bytes = 256
 }
 node compose : spatial/transform/compose { maximum_uncertainty_um = 10 maximum_work = 256 }
-node compose_inverse : spatial/transform/compose { maximum_uncertainty_um = 10 maximum_work = 256 }
+node lookup : spatial/transform/lookup {
+  source_frame = "sensor" target_frame = "camera" maximum_edges = 2
+  maximum_uncertainty_um = 10 maximum_work = 256
+}
 node invert : spatial/transform/invert { maximum_uncertainty_um = 10 maximum_work = 256 }
 node apply : spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
 node apply_inverse : spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
@@ -77,9 +80,9 @@ node output_inverse : display/text
 cord sensor_to_body.transform -> compose.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
 cord body_to_camera.transform -> compose.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
 cord compose.transform -> apply.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord sensor_to_body_inverse.transform -> compose_inverse.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord body_to_camera_inverse.transform -> compose_inverse.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord compose_inverse.transform -> invert.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord sensor_to_body_inverse.transform -> lookup.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord body_to_camera_inverse.transform -> lookup.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord lookup.transform -> invert.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
 cord sensor_point.point -> apply.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
 cord invert.transform -> apply_inverse.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
 cord camera_point.point -> apply_inverse.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }

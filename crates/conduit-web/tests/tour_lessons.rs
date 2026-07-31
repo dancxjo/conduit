@@ -531,6 +531,7 @@ fn bounded_spatial_lesson_exposes_frames_calibration_and_finite_history() {
             "spatial/transform/interpolate",
             "spatial/transform/invert",
             "spatial/transform/literal",
+            "spatial/transform/lookup",
         ]
         .into_iter()
         .collect()

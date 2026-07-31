@@ -7,11 +7,11 @@
 mod runtime_nodes;
 
 pub use runtime_nodes::{
-    APPLY_CONTRACT, COMPOSE_CONTRACT, INTERPOLATE_CONTRACT, INVERT_CONTRACT, PIXEL_DESCRIPTOR,
-    PIXEL_TYPE, POINT_DESCRIPTOR, POINT_INSPECT_CONTRACT, POINT_LITERAL_CONTRACT, POINT_TYPE,
-    PROJECT_CONTRACT, SPATIAL_CONTRACTS, TRANSFORM_DESCRIPTOR, TRANSFORM_LITERAL_CONTRACT,
-    TRANSFORM_TYPE, UNPROJECT_CONTRACT, register_deterministic_spatial_provider,
-    register_spatial_contracts,
+    APPLY_CONTRACT, COMPOSE_CONTRACT, INTERPOLATE_CONTRACT, INVERT_CONTRACT, LOOKUP_CONTRACT,
+    PIXEL_DESCRIPTOR, PIXEL_TYPE, POINT_DESCRIPTOR, POINT_INSPECT_CONTRACT, POINT_LITERAL_CONTRACT,
+    POINT_TYPE, PROJECT_CONTRACT, SPATIAL_CONTRACTS, TRANSFORM_DESCRIPTOR,
+    TRANSFORM_LITERAL_CONTRACT, TRANSFORM_TYPE, UNPROJECT_CONTRACT,
+    register_deterministic_spatial_provider, register_spatial_contracts,
 };
 
 pub const MAXIMUM_FRAME_ID_BYTES: usize = 64;
@@ -46,8 +46,6 @@ pub enum SpatialReason {
     WorkOverflow,
     NumericOverflow,
     BehindCamera,
-    Cancellation,
-    UnsupportedProvider,
 }
 
 impl SpatialReason {
@@ -70,8 +68,6 @@ impl SpatialReason {
             Self::ExcessiveUncertainty => "CND-SPATIAL-006",
             Self::CalibrationMismatch | Self::InvalidCalibration => "CND-SPATIAL-007",
             Self::HistoryOverflow | Self::WorkOverflow => "CND-SPATIAL-008",
-            Self::Cancellation => "CND-SPATIAL-009",
-            Self::UnsupportedProvider => "CND-SPATIAL-010",
         }
     }
 }
@@ -163,6 +159,27 @@ pub struct QuaternionQ30 {
     pub y: i32,
     pub z: i32,
     pub w: i32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Vector3 {
+    pub xyz_um: [i64; 3],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Pose3 {
+    pub frame: FrameIdentity,
+    pub translation_um: [i64; 3],
+    pub rotation: QuaternionQ30,
+    pub uncertainty: Uncertainty,
+    pub calibration_identity: [u8; 32],
+    pub provenance_identity: [u8; 32],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StampedPose3 {
+    pub pose: Pose3,
+    pub validity: Validity,
 }
 
 impl QuaternionQ30 {
@@ -692,26 +709,69 @@ pub fn validate_acyclic_frames(edges: &[(&str, &str)]) -> Result<(), SpatialReas
     if edges.len() > MAXIMUM_TRANSFORM_EDGES {
         return Err(SpatialReason::HistoryOverflow);
     }
-    for (index, (source, target)) in edges.iter().enumerate() {
+    for (source, target) in edges {
         if source == target {
             return Err(SpatialReason::FrameCycle);
         }
-        let mut current = *target;
-        for _ in 0..=edges.len() {
+        let mut frontier = vec![*target];
+        let mut work = 0_usize;
+        while let Some(current) = frontier.pop() {
             if current == *source {
                 return Err(SpatialReason::FrameCycle);
             }
-            let Some((_, next)) = edges
-                .iter()
-                .take(index + 1)
-                .find(|(candidate, _)| *candidate == current)
-            else {
-                break;
-            };
-            current = next;
+            for (_, next) in edges.iter().filter(|(candidate, _)| *candidate == current) {
+                work = work.checked_add(1).ok_or(SpatialReason::WorkOverflow)?;
+                if work > MAXIMUM_NUMERIC_WORK {
+                    return Err(SpatialReason::WorkOverflow);
+                }
+                frontier.push(*next);
+            }
         }
     }
     Ok(())
+}
+
+pub fn lookup_transform(
+    edges: &[Transform3],
+    source: &str,
+    target: &str,
+    profile: NumericProfile,
+    maximum_uncertainty_um: u64,
+) -> Result<Transform3, SpatialReason> {
+    profile.validate()?;
+    if edges.is_empty() || edges.len() > MAXIMUM_TRANSFORM_EDGES {
+        return Err(SpatialReason::HistoryOverflow);
+    }
+    let identities = edges
+        .iter()
+        .map(|edge| (edge.source.id.as_str(), edge.target.id.as_str()))
+        .collect::<Vec<_>>();
+    validate_acyclic_frames(&identities)?;
+    let mut current = source;
+    let mut result: Option<Transform3> = None;
+    for _ in 0..edges.len() {
+        if current == target {
+            return result.ok_or(SpatialReason::SameFrame);
+        }
+        let mut candidates = edges.iter().filter(|edge| edge.source.id == current);
+        let edge = candidates.next().ok_or(SpatialReason::UnknownFrame)?;
+        if candidates.next().is_some() {
+            return Err(SpatialReason::WrongFrame);
+        }
+        result = Some(match result {
+            None => {
+                edge.validate(maximum_uncertainty_um)?;
+                edge.clone()
+            }
+            Some(prefix) => compose(&prefix, edge, profile, maximum_uncertainty_um)?,
+        });
+        current = &edge.target.id;
+    }
+    if current == target {
+        result.ok_or(SpatialReason::UnknownFrame)
+    } else {
+        Err(SpatialReason::UnknownFrame)
+    }
 }
 
 #[cfg(test)]
@@ -861,6 +921,47 @@ mod tests {
         assert_eq!(
             invert(&singular, NumericProfile::FIRST_PROOF, 10),
             Err(SpatialReason::SingularTransform)
+        );
+    }
+
+    #[test]
+    fn lookup_and_admitted_clock_conversion_are_explicit_and_bounded() {
+        let first = transform("sensor", "body", [10, 20, 30], 10);
+        let second = transform("body", "camera", [100, 200, 300], 10);
+        let found = lookup_transform(
+            &[first, second],
+            "sensor",
+            "camera",
+            NumericProfile::FIRST_PROOF,
+            10,
+        )
+        .unwrap();
+        assert_eq!(found.translation_um, [110, 220, 330]);
+        assert_eq!(
+            lookup_transform(
+                &[transform("sensor", "body", [0; 3], 10)],
+                "sensor",
+                "missing",
+                NumericProfile::FIRST_PROOF,
+                10,
+            ),
+            Err(SpatialReason::UnknownFrame)
+        );
+        assert_eq!(
+            convert_tick(
+                "clock/sensor",
+                10,
+                "clock/host",
+                Some(ClockConversion {
+                    source_clock: "clock/sensor".to_owned(),
+                    target_clock: "clock/host".to_owned(),
+                    source_tick: 10,
+                    target_tick: 100,
+                    uncertainty_ticks: 1,
+                    valid_until_tick: 10,
+                }),
+            ),
+            Ok((100, 1))
         );
     }
 

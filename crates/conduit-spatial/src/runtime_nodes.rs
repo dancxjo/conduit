@@ -13,7 +13,7 @@ use conduit_runtime::{
 use crate::{
     AxisConvention, FrameIdentity, Handedness, LinearUnit, NumericProfile, PinholeCalibration,
     PixelPoint, QuaternionQ30, SpatialReason, StampedPoint3, Transform3, Uncertainty, Validity,
-    apply_transform, compose, interpolate, invert, project, unproject,
+    apply_transform, compose, interpolate, invert, lookup_transform, project, unproject,
 };
 
 pub const CALIBRATION_IDENTITY_TEXT: &str =
@@ -125,6 +125,13 @@ const INTERPOLATE_FIELDS: [ConfigFieldContract<'static>; 5] = [
     field("tick", U64_TYPE),
     field("maximum_window_ticks", U64_TYPE),
     field("maximum_history_values", U64_TYPE),
+    field("maximum_uncertainty_um", U64_TYPE),
+    field("maximum_work", U64_TYPE),
+];
+const LOOKUP_FIELDS: [ConfigFieldContract<'static>; 5] = [
+    field("source_frame", TEXT_TYPE),
+    field("target_frame", TEXT_TYPE),
+    field("maximum_edges", U64_TYPE),
     field("maximum_uncertainty_um", U64_TYPE),
     field("maximum_work", U64_TYPE),
 ];
@@ -281,6 +288,14 @@ pub const COMPOSE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &COMPOSE_INPUTS,
     outputs: &TRANSFORM_OUTPUT,
 };
+pub const LOOKUP_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("spatial/transform/lookup"),
+    config: ConfigContract {
+        fields: &LOOKUP_FIELDS,
+    },
+    inputs: &COMPOSE_INPUTS,
+    outputs: &TRANSFORM_OUTPUT,
+};
 pub const INVERT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("spatial/transform/invert"),
     config: ConfigContract { fields: &OP_FIELDS },
@@ -324,10 +339,11 @@ pub const POINT_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &SUMMARY_OUTPUT,
 };
 
-pub const SPATIAL_CONTRACTS: [&NodeContract<'static>; 9] = [
+pub const SPATIAL_CONTRACTS: [&NodeContract<'static>; 10] = [
     &TRANSFORM_LITERAL_CONTRACT,
     &POINT_LITERAL_CONTRACT,
     &COMPOSE_CONTRACT,
+    &LOOKUP_CONTRACT,
     &INVERT_CONTRACT,
     &INTERPOLATE_CONTRACT,
     &APPLY_CONTRACT,
@@ -513,6 +529,22 @@ fn validate_interpolate(node: &Node) -> Result<(), ResolutionError> {
         resolution(
             SpatialReason::HistoryOverflow,
             "interpolation requires exact finite history and work bounds",
+        )
+    })
+}
+
+fn validate_lookup(node: &Node) -> Result<(), ResolutionError> {
+    (node.config.len() == LOOKUP_FIELDS.len()
+        && text(node, "source_frame").is_ok()
+        && text(node, "target_frame").is_ok()
+        && unsigned(node, "maximum_edges") == Ok(2)
+        && unsigned(node, "maximum_work") == Ok(256)
+        && unsigned(node, "maximum_uncertainty_um").is_ok())
+    .then_some(())
+    .ok_or_else(|| {
+        resolution(
+            SpatialReason::WorkOverflow,
+            "transform lookup requires exact frames and finite graph bounds",
         )
     })
 }
@@ -851,6 +883,41 @@ impl Handler for Invert {
     }
 }
 
+struct Lookup;
+impl Handler for Lookup {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let [first, second] = inputs else {
+            return Err(runtime(SpatialReason::WrongFrame));
+        };
+        if unsigned(node, "maximum_edges").map_err(runtime)? != 2
+            || unsigned(node, "maximum_work").map_err(runtime)? != 256
+        {
+            return Err(runtime(SpatialReason::WorkOverflow));
+        }
+        let first =
+            decode_transform(typed(first, TRANSFORM_TYPE).map_err(runtime)?).map_err(runtime)?;
+        let second =
+            decode_transform(typed(second, TRANSFORM_TYPE).map_err(runtime)?).map_err(runtime)?;
+        let value = lookup_transform(
+            &[first, second],
+            text(node, "source_frame").map_err(runtime)?,
+            text(node, "target_frame").map_err(runtime)?,
+            NumericProfile::FIRST_PROOF,
+            unsigned(node, "maximum_uncertainty_um").map_err(runtime)?,
+        )
+        .map_err(runtime)?;
+        Ok(vec![Value {
+            value_type: TRANSFORM_TYPE,
+            bytes: encode_transform(&value).map_err(runtime)?,
+        }])
+    }
+}
+
 struct Interpolate;
 impl Handler for Interpolate {
     fn run(
@@ -1032,6 +1099,14 @@ pub fn register_deterministic_spatial_provider(
             "spatial-invert",
             (|| Box::new(Invert) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
             validate_operation as conduit_runtime::ConfigValidator,
+        ),
+        (
+            &LOOKUP_CONTRACT,
+            "conduit.spatial/lookup-deterministic",
+            "conduit.spatial/lookup-artifact",
+            "spatial-lookup",
+            (|| Box::new(Lookup) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+            validate_lookup as conduit_runtime::ConfigValidator,
         ),
         (
             &INTERPOLATE_CONTRACT,

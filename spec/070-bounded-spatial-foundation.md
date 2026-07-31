@@ -61,8 +61,8 @@ input.
 
 - `spatial/transform/literal` and `spatial/point/literal` create checked finite values.
 - `spatial/transform/compose`, `spatial/transform/invert`,
-  `spatial/transform/interpolate`, and `spatial/transform/apply` perform canonical
-  checked transform operations.
+  `spatial/transform/lookup`, `spatial/transform/interpolate`, and
+  `spatial/transform/apply` perform canonical checked transform operations.
 - `spatial/camera/project` and `spatial/camera/unproject` cross the explicit
   calibration boundary.
 - `spatial/point/inspect` emits a bounded textual proof projection.

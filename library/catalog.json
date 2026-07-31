@@ -8525,6 +8525,113 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "spatial/transform/lookup",
+      "public_source_spelling": "spatial/transform/lookup",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/transform/lookup",
+      "schema_version": 0,
+      "semantic_hash": "sha256:c36253d9b4ecabbb74c82ece45946b8db582f3cf0af26d735c9533153817c65a",
+      "ports": [
+        {
+          "id": "first",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "second",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "transform",
+          "direction": "output",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "source_frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "target_frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_edges",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "state/cache",
       "public_source_spelling": "state/cache",
       "classification": "portable-standard",
