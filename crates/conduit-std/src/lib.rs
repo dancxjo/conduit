@@ -18,6 +18,7 @@ use conduit_core::{
 
 mod conformance;
 mod data_boundaries;
+mod state;
 mod text_format;
 mod text_lines_join;
 mod time;
@@ -33,6 +34,10 @@ pub use data_boundaries::{
     LengthU32BeDecoder, RequiredField, StructuralDecision, StructuralField, StructuralRejection,
     decode_utf8, encode_closed_record, encode_length_u32be, encode_utf8, validate_closed_record,
     validate_closed_record_bytes,
+};
+pub use state::{
+    CacheEntry, CacheInsert, CacheState, CellState, DeduplicateDecision, DeduplicateState,
+    STATE_MAX_ENTRIES, STATE_MAX_VALUE_BYTES, StateError, StateIdentity,
 };
 pub use text_format::{
     FORMAT_MAX_NAME_BYTES, FORMAT_MAX_OUTPUT_BYTES, FORMAT_MAX_RETAINED_BYTES,
