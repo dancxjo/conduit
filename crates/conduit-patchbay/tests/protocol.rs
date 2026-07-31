@@ -52,7 +52,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 116);
+    assert_eq!(projection.entries.len(), 118);
     let literal = projection
         .entries
         .iter()
@@ -84,6 +84,24 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
         process.current_provider_observation,
         "not-recorded-in-catalog"
     );
+    for id in [
+        "conduit.host/net/tcp/connect",
+        "conduit.host/net/tcp/listen",
+        "conduit.host/net/udp/connected",
+        "conduit.host/net/udp/datagram",
+    ] {
+        let socket = projection
+            .entries
+            .iter()
+            .find(|entry| entry.semantic_identity == id)
+            .unwrap();
+        assert_eq!(socket.classification, "optional-host-boundary");
+        assert_eq!(socket.standalone_lesson.status, "published");
+        assert_eq!(
+            socket.current_provider_observation,
+            "not-recorded-in-catalog"
+        );
+    }
     assert!(file.known_provider_bundles.is_empty());
     assert_eq!(file.standalone_lesson.status, "published");
 }
