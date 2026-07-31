@@ -1616,12 +1616,12 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
     await expect(result).toContainText("admitted by the checked contract");
     await page.locator("#run").click();
     await expect(result).toContainText(
-      "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes",
+      "audio:s16le:48000:stereo:192",
       { timeout: 20_000 },
     );
     await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
     await expect(page.locator("#timeline-table")).toContainText("succeeded");
-    await expect(source).toHaveValue(/node probe : conduit\.media\/container\/probe/);
+    await expect(source).toHaveValue(/node decode : conduit\.media\/audio\/decode/);
   };
 
   await story.getByRole("button", { name: "firmware-unsupported" }).click();

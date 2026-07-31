@@ -2308,7 +2308,7 @@
         "platform.workload-admission-deadline"
       ],
       "objective": "Run one unchanged media graph while comparing exact provider chains across deterministic, Linux/process, browser/WASM, firmware, and describe-only profiles.",
-      "prose": "Probe the same semantic `conduit.media/container/probe` contract while hosts choose deterministic, FFmpeg, SoX, and browser/WASM realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
+      "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose deterministic, FFmpeg, SoX, and browser/WASM realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
       "vocabulary": [
         "host profile",
         "optional provider",
@@ -2316,14 +2316,14 @@
         "conformance result",
         "explicit adapter"
       ],
-      "source": "panel 0\n\nnode wave : conduit.media/wave/literal {\n  fixture = \"silence-pcm-s16le-stereo-48000-192\"\n  content_identity = \"sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d\"\n  maximum_output_bytes = 1024\n}\nnode probe : conduit.media/container/probe {\n  container = \"wave\"\n  codec = \"pcm-s16le\"\n  profile = \"stereo-48000-192\"\n  extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\"\n  maximum_input_bytes = 1024\n  maximum_output_bytes = 1024\n  maximum_tracks = 1\n  maximum_packets = 1\n  maximum_reorder_depth = 0\n  maximum_retained_bytes = 1024\n  maximum_metadata_entries = 0\n  maximum_work = 4096\n  flush = \"exact-terminal\"\n}\nnode output : display/text\n\ncord wave.container -> probe.container {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord probe.summary -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+"source": "panel 0\n\nnode wave : conduit.media/wave/literal {\n  fixture = \"silence-pcm-s16le-stereo-48000-192\"\n  content_identity = \"sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d\"\n  maximum_output_bytes = 1024\n}\nnode demux : conduit.media/container/demux {\n  container = \"wave\"\n  codec = \"pcm-s16le\"\n  profile = \"stereo-48000-192\"\n  extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\"\n  maximum_input_bytes = 1024\n  maximum_output_bytes = 1024\n  maximum_tracks = 1\n  maximum_packets = 1\n  maximum_reorder_depth = 0\n  maximum_retained_bytes = 1024\n  maximum_metadata_entries = 0\n  maximum_work = 4096\n  flush = \"exact-terminal\"\n}\nnode decode : conduit.media/audio/decode {\n  container = \"wave\"\n  codec = \"pcm-s16le\"\n  profile = \"stereo-48000-192\"\n  extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\"\n  maximum_input_bytes = 1024\n  maximum_output_bytes = 1024\n  maximum_tracks = 1\n  maximum_packets = 1\n  maximum_reorder_depth = 0\n  maximum_retained_bytes = 1024\n  maximum_metadata_entries = 0\n  maximum_work = 4096\n  flush = \"exact-terminal\"\n}\nnode inspect : conduit.media/audio-frame/inspect\nnode output : display/text\n\ncord wave.container -> demux.container {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord demux.packet -> decode.packet {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord decode.frame -> inspect.frame {\n    capacity = 1\n    max_value_bytes = 64\n    max_queued_bytes = 64\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord inspect.summary -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run cross-host-provider-conformance.panel",
       "commands": [
         "conduct inspect host-conformance-report.json",
         "conduct --check cross-host-provider-conformance.panel",
         "conduct --run cross-host-provider-conformance.panel"
       ],
-      "expected_display": "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes",
+      "expected_display": "audio:s16le:48000:stereo:192",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -2343,7 +2343,7 @@
       },
       "validation": {
         "kind": "display",
-        "value": "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes"
+        "value": "audio:s16le:48000:stereo:192"
       },
       "hints": [
         "Edit wave.fixture and rerun; the semantic graph does not acquire host authority.",
