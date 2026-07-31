@@ -200,6 +200,20 @@
       ]
     },
     {
+      "family": "panel-capsule",
+      "classification": "current-draft-self-description",
+      "validator": "current-schema",
+      "markers": [
+        "conduit.panel-capsule",
+        "conduit.panel-capsule-conformance"
+      ],
+      "locations": [
+        "conformance/c4/panel-capsules.json",
+        "crates/conduit-capsule",
+        "spec/067-panel-capsules.md"
+      ]
+    },
+    {
       "family": "panel-grammar-and-embedded-source",
       "classification": "current-draft-self-description",
       "validator": "panel-source",

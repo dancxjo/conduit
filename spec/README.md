@@ -259,6 +259,10 @@ containment program is tracked by
 - [`066-bounded-media-values.md`](066-bounded-media-values.md) defines finite
   host-neutral media time, stream, audio/image frame, packet, metadata, and
   exact compatibility boundaries without codecs or devices.
+- [`067-panel-capsules.md`](067-panel-capsules.md) defines the bounded readable
+  authored-program capsule, lossless source projection, exact artifact and
+  sensitivity policy, deterministic offline tooling, and separation from
+  plans, live epochs, site bindings, presentation, and evidence.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

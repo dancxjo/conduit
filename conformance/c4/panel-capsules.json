@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.panel-capsule-conformance",
+  "schema_version": 0,
+  "requirements": [
+    "CAP-001", "CAP-002", "CAP-003", "CAP-004",
+    "CAP-005", "CAP-006", "CAP-007", "CAP-008"
+  ],
+  "bounds": {
+    "source_bytes": 1048576,
+    "auxiliary_document_bytes": 1048576,
+    "artifact_references": 256,
+    "embedded_bytes": 1048576,
+    "capsule_document_bytes": 4194304
+  },
+  "positive": [
+    "source-document-source-byte-round-trip",
+    "patchbay-source-semantic-identity",
+    "presentation-only-same-program",
+    "source-edit-new-program",
+    "import-lock-edit-new-program",
+    "thin-reference-offline-check",
+    "bounded-embedded-public-fixture",
+    "unavailable-provider-reference-still-checks",
+    "detached-conformance-and-evidence-references",
+    "candidate-source-does-not-change-active-epoch",
+    "definition-reused-with-enclosing-instance-cords"
+  ],
+  "negative": [
+    "unsupported-schema",
+    "unknown-field",
+    "malformed-source",
+    "oversized-source",
+    "oversized-auxiliary-document",
+    "too-many-references",
+    "noncanonical-reference-order",
+    "duplicate-artifact-digest",
+    "artifact-digest-substitution",
+    "embedded-size-mismatch",
+    "embedded-secret",
+    "embedded-executable",
+    "embedded-byte-overflow",
+    "plaintext-secret-auxiliary-document",
+    "implicit-fetch-denied",
+    "existing-unpack-target-denied",
+    "archive-path-traversal-not-an-accepted-encoding",
+    "archive-duplicate-entry-not-an-accepted-encoding",
+    "archive-decompression-not-an-accepted-encoding",
+    "archive-symlink-device-not-an-accepted-encoding"
+  ]
+}

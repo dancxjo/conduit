@@ -15,6 +15,7 @@ pub const MAXIMUM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_AUXILIARY_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_REFERENCES: usize = 256;
 pub const MAXIMUM_CAPSULE_DOCUMENT_BYTES: u64 = 4 * 1024 * 1024;
+pub const MAXIMUM_EMBEDDED_BYTES: usize = 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -43,6 +44,7 @@ pub struct InlineDocument {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ArtifactReference {
+    pub role: String,
     pub digest: String,
     pub byte_size: u64,
     pub media_type: String,
@@ -50,7 +52,8 @@ pub struct ArtifactReference {
     pub provenance: String,
     pub sensitivity: String,
     pub acquisition: String,
-    pub embedded: bool,
+    pub executable: bool,
+    pub embedded_hex: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -126,9 +129,33 @@ impl CapsuleDocument {
             self.presentation.as_ref(),
             "application/vnd.conduit.presentation+json",
         )?;
+        if self
+            .artifact_references
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        {
+            return Err(CapsuleError::InvalidReference);
+        }
         let mut digests = BTreeSet::new();
+        let mut embedded_bytes = 0usize;
         for reference in &self.artifact_references {
-            if !valid_digest(&reference.digest)
+            let embedded = reference
+                .embedded_hex
+                .as_deref()
+                .map(embedded_digest)
+                .transpose()?;
+            if !matches!(
+                reference.role.as_str(),
+                "fixture"
+                    | "provider"
+                    | "model"
+                    | "media"
+                    | "data"
+                    | "profile"
+                    | "site-binding"
+                    | "conformance"
+                    | "evidence"
+            ) || !valid_digest(&reference.digest)
                 || reference.byte_size == 0
                 || reference.media_type.is_empty()
                 || reference.license.is_empty()
@@ -141,10 +168,23 @@ impl CapsuleDocument {
                     reference.acquisition.as_str(),
                     "never" | "explicit" | "embedded"
                 )
-                || reference.embedded != (reference.acquisition == "embedded")
+                || reference.executable
+                || embedded.is_some() != (reference.acquisition == "embedded")
+                || embedded.as_ref().is_some_and(|(digest, size)| {
+                    digest != &reference.digest || *size as u64 != reference.byte_size
+                })
+                || (embedded.is_some() && reference.sensitivity == "secret")
                 || !digests.insert(reference.digest.as_str())
             {
                 return Err(CapsuleError::InvalidReference);
+            }
+            if let Some((_, size)) = embedded {
+                embedded_bytes = embedded_bytes
+                    .checked_add(size)
+                    .ok_or(CapsuleError::LimitExceeded)?;
+                if embedded_bytes > MAXIMUM_EMBEDDED_BYTES {
+                    return Err(CapsuleError::LimitExceeded);
+                }
             }
         }
         Ok(())
@@ -206,9 +246,33 @@ fn validate_inline(
 }
 
 fn valid_digest(value: &str) -> bool {
-    value
-        .strip_prefix("sha256:")
-        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    value.strip_prefix("sha256:").is_some_and(|hex| {
+        hex.len() == 64
+            && hex
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    })
+}
+
+fn embedded_digest(value: &str) -> Result<(String, usize), CapsuleError> {
+    if value.len() % 2 != 0 || value.len() / 2 > MAXIMUM_EMBEDDED_BYTES {
+        return Err(CapsuleError::LimitExceeded);
+    }
+    let mut hasher = Sha256::new();
+    for pair in value.as_bytes().chunks_exact(2) {
+        let high = hex_nibble(pair[0]).ok_or(CapsuleError::InvalidReference)?;
+        let low = hex_nibble(pair[1]).ok_or(CapsuleError::InvalidReference)?;
+        hasher.update([high << 4 | low]);
+    }
+    Ok((format!("sha256:{:x}", hasher.finalize()), value.len() / 2))
+}
+
+fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        _ => None,
+    }
 }
 
 fn digest(bytes: &[u8]) -> String {
