@@ -7,6 +7,16 @@ use crate::{InterfaceClaim, ModuleGraph, PackageImportSelection, Panel, SourceSp
 
 /// Single current pre-release contract-package draft marker.
 pub const CONTRACT_PACKAGE_DRAFT: u16 = 0;
+/// Maximum packages or artifacts in one explicit lock closure.
+pub const MAXIMUM_CONTRACT_PACKAGES: usize = 256;
+/// Maximum bytes in one supplied immutable contract-package artifact.
+pub const MAXIMUM_CONTRACT_PACKAGE_BYTES: usize = 4 * 1024 * 1024;
+/// Maximum aggregate artifact bytes admitted by one resolution.
+pub const MAXIMUM_CONTRACT_PACKAGE_CLOSURE_BYTES: usize = 16 * 1024 * 1024;
+/// Maximum exports retained by one contract package.
+pub const MAXIMUM_CONTRACT_PACKAGE_EXPORTS: usize = 4_096;
+/// Maximum transitive dependency pins retained by one contract package.
+pub const MAXIMUM_CONTRACT_PACKAGE_DEPENDENCIES: usize = 256;
 
 /// Semantic export kind. This is contract metadata, never an implementation kind.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -224,6 +234,22 @@ pub fn resolve_package_imports(
     lock: &ContractPackageLock,
     artifacts: &[ContractPackageArtifact<'_>],
 ) -> Result<PackageImportResolution, PackageResolutionError> {
+    let closure_bytes = artifacts.iter().try_fold(0_usize, |total, artifact| {
+        total.checked_add(artifact.bytes.len())
+    });
+    if lock.packages.len() > MAXIMUM_CONTRACT_PACKAGES
+        || artifacts.len() > MAXIMUM_CONTRACT_PACKAGES
+        || artifacts
+            .iter()
+            .any(|artifact| artifact.bytes.len() > MAXIMUM_CONTRACT_PACKAGE_BYTES)
+        || closure_bytes.is_none_or(|total| total > MAXIMUM_CONTRACT_PACKAGE_CLOSURE_BYTES)
+    {
+        return Err(error(
+            "CND-IPK-008",
+            None,
+            "contract-package input exceeds a finite resolver bound",
+        ));
+    }
     validate_lock(lock)?;
     let mut resolved = BTreeMap::new();
     for locked in &lock.packages {
@@ -233,7 +259,7 @@ pub fn resolve_package_imports(
         });
         let Some((artifact, artifact_digest)) = matches.next() else {
             return Err(error(
-                "CND-PKG-003",
+                "CND-IPK-003",
                 None,
                 format!(
                     "locked package `{}` has no supplied artifact with digest `{}`",
@@ -241,20 +267,10 @@ pub fn resolve_package_imports(
                 ),
             ));
         };
-        if matches.next().is_some() {
-            return Err(error(
-                "CND-PKG-002",
-                None,
-                format!(
-                    "multiple supplied artifacts claim locked package `{}`",
-                    locked.package_id
-                ),
-            ));
-        }
         let manifest: ContractPackageManifest =
             serde_json::from_slice(artifact.bytes).map_err(|failure| {
                 error(
-                    "CND-PKG-001",
+                    "CND-IPK-001",
                     None,
                     format!(
                         "package `{}` artifact is not a current manifest: {failure}",
@@ -277,7 +293,7 @@ pub fn resolve_package_imports(
         for dependency in &package.manifest.dependencies {
             let Some(found) = resolved.get(dependency.package_id.as_str()) else {
                 return Err(error(
-                    "CND-PKG-004",
+                    "CND-IPK-004",
                     None,
                     format!(
                         "package `{}` requires missing transitive package `{}`",
@@ -287,7 +303,7 @@ pub fn resolve_package_imports(
             };
             if found.artifact_digest != dependency.artifact_digest {
                 return Err(error(
-                    "CND-PKG-005",
+                    "CND-IPK-005",
                     None,
                     format!(
                         "package `{}` pins descriptor package `{}` at `{}`, found `{}`",
@@ -308,7 +324,7 @@ pub fn resolve_package_imports(
             PackageImportSelection::Named(names) => {
                 let package = resolved.get(import.target.as_str()).ok_or_else(|| {
                     error(
-                        "CND-PKG-004",
+                        "CND-IPK-004",
                         Some(import.source_span),
                         format!(
                             "package `{}` is absent from supplied lock data",
@@ -339,7 +355,7 @@ pub fn resolve_package_imports(
                 match (exact_package, split_export) {
                     (Some(_), Some(_)) => {
                         return Err(error(
-                            "CND-PKG-002",
+                            "CND-IPK-002",
                             Some(import.source_span),
                             format!(
                                 "import target `{}` is both a package and an export path",
@@ -369,7 +385,7 @@ pub fn resolve_package_imports(
                     )?,
                     (None, None) => {
                         return Err(error(
-                            "CND-PKG-004",
+                            "CND-IPK-004",
                             Some(import.source_span),
                             format!(
                                 "import target `{}` is absent from supplied lock data",
@@ -386,11 +402,13 @@ pub fn resolve_package_imports(
         .iter()
         .map(|binding| (binding.local_name.as_str(), binding))
         .collect::<BTreeMap<_, _>>();
+    reject_local_declaration_collisions(panel, &bindings)?;
     let mut rewritten = panel.clone();
     rewrite_nodes(&mut rewritten.nodes, &binding_map)?;
     for definition in &mut rewritten.definitions {
         rewrite_nodes(&mut definition.nodes, &binding_map)?;
         rewrite_claims(&mut definition.implements, &binding_map)?;
+        rewrite_type_references(&mut definition.parameters, &binding_map)?;
     }
     for node in &mut rewritten.nodes {
         rewrite_claims(&mut node.implements, &binding_map)?;
@@ -402,6 +420,38 @@ pub fn resolve_package_imports(
         packages: resolved.into_values().collect(),
         bindings,
     })
+}
+
+fn reject_local_declaration_collisions(
+    panel: &Panel,
+    bindings: &[PackageImportBinding],
+) -> Result<(), PackageResolutionError> {
+    for binding in bindings {
+        let collision = match binding.kind {
+            ContractExportKind::Node
+            | ContractExportKind::Composite
+            | ContractExportKind::Adapter => panel
+                .definitions
+                .iter()
+                .any(|definition| definition.id == binding.local_name),
+            ContractExportKind::Interface => panel
+                .interfaces
+                .iter()
+                .any(|interface| interface.id == binding.local_name),
+            ContractExportKind::Type => false,
+        };
+        if collision {
+            return Err(error(
+                "CND-IPK-002",
+                Some(binding.source_span),
+                format!(
+                    "import name `{}` collides with a local declaration",
+                    binding.local_name
+                ),
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Resolves package imports in every module of an already explicit local
@@ -432,7 +482,7 @@ pub fn resolve_module_package_imports(
 fn validate_lock(lock: &ContractPackageLock) -> Result<(), PackageResolutionError> {
     if lock.schema != "conduit.contract-package-lock" || lock.draft != CONTRACT_PACKAGE_DRAFT {
         return Err(error(
-            "CND-PKG-001",
+            "CND-IPK-001",
             None,
             "lock does not use the single current contract-package draft",
         ));
@@ -441,7 +491,7 @@ fn validate_lock(lock: &ContractPackageLock) -> Result<(), PackageResolutionErro
     for package in &lock.packages {
         if !valid_package_id(&package.package_id) || !packages.insert(package.package_id.as_str()) {
             return Err(error(
-                "CND-PKG-002",
+                "CND-IPK-002",
                 None,
                 format!(
                     "invalid or duplicate locked package `{}`",
@@ -454,7 +504,7 @@ fn validate_lock(lock: &ContractPackageLock) -> Result<(), PackageResolutionErro
             || package.provenance_policy.trim().is_empty()
         {
             return Err(error(
-                "CND-PKG-001",
+                "CND-IPK-001",
                 None,
                 format!(
                     "locked package `{}` has incomplete exact facts",
@@ -477,9 +527,11 @@ fn validate_manifest(
         || manifest.owner.trim().is_empty()
         || manifest.provenance.trim().is_empty()
         || manifest.license.trim().is_empty()
+        || manifest.exports.len() > MAXIMUM_CONTRACT_PACKAGE_EXPORTS
+        || manifest.dependencies.len() > MAXIMUM_CONTRACT_PACKAGE_DEPENDENCIES
     {
         return Err(error(
-            "CND-PKG-001",
+            "CND-IPK-001",
             None,
             format!(
                 "package `{}` manifest has invalid current-draft identity or metadata",
@@ -494,7 +546,7 @@ fn validate_manifest(
         .collect::<BTreeMap<_, _>>();
     if locked_exports.len() != locked.exports.len() {
         return Err(error(
-            "CND-PKG-002",
+            "CND-IPK-002",
             None,
             format!("package `{}` lock repeats an export", locked.package_id),
         ));
@@ -510,7 +562,7 @@ fn validate_manifest(
             || !valid_descriptor(export)
         {
             return Err(error(
-                "CND-PKG-001",
+                "CND-IPK-001",
                 None,
                 format!(
                     "package `{}` has invalid export `{}`",
@@ -520,7 +572,7 @@ fn validate_manifest(
         }
         let Some(pin) = locked_exports.get(export.name.as_str()) else {
             return Err(error(
-                "CND-PKG-005",
+                "CND-IPK-005",
                 None,
                 format!(
                     "package `{}` export `{}` is absent from the lock",
@@ -531,7 +583,7 @@ fn validate_manifest(
         if pin.canonical_id != export.canonical_id || pin.descriptor_hash != export.descriptor_hash
         {
             return Err(error(
-                "CND-PKG-005",
+                "CND-IPK-005",
                 None,
                 format!(
                     "package `{}` export `{}` descriptor differs from the lock",
@@ -542,7 +594,7 @@ fn validate_manifest(
     }
     if seen.len() != locked_exports.len() {
         return Err(error(
-            "CND-PKG-005",
+            "CND-IPK-005",
             None,
             format!(
                 "package `{}` omits a descriptor pinned by the lock",
@@ -595,7 +647,7 @@ fn bind_export(
         .find(|candidate| candidate.name == export_name)
         .ok_or_else(|| {
             error(
-                "CND-PKG-004",
+                "CND-IPK-004",
                 Some(source_span),
                 format!(
                     "package `{}` has no export `{export_name}`",
@@ -605,7 +657,7 @@ fn bind_export(
         })?;
     if !export.public {
         return Err(error(
-            "CND-PKG-006",
+            "CND-IPK-006",
             Some(source_span),
             format!(
                 "package `{}` export `{export_name}` is private",
@@ -615,7 +667,7 @@ fn bind_export(
     }
     if !local_names.insert(local_name.to_owned()) {
         return Err(error(
-            "CND-PKG-002",
+            "CND-IPK-002",
             Some(source_span),
             format!("duplicate or colliding import name `{local_name}`"),
         ));
@@ -644,7 +696,7 @@ fn rewrite_nodes(
                     | ContractExportKind::Adapter
             ) {
                 return Err(error(
-                    "CND-PKG-007",
+                    "CND-IPK-007",
                     Some(node.source_span),
                     format!(
                         "import `{}` is not a node, composite, or adapter contract",
@@ -666,12 +718,31 @@ fn rewrite_claims(
         if let Some(binding) = bindings.get(claim.interface.as_str()) {
             if binding.kind != ContractExportKind::Interface {
                 return Err(error(
-                    "CND-PKG-007",
+                    "CND-IPK-007",
                     Some(claim.source_span),
                     format!("import `{}` is not an interface contract", claim.interface),
                 ));
             }
             claim.interface.clone_from(&binding.canonical_id);
+        }
+    }
+    Ok(())
+}
+
+fn rewrite_type_references(
+    parameters: &mut [crate::Parameter],
+    bindings: &BTreeMap<&str, &PackageImportBinding>,
+) -> Result<(), PackageResolutionError> {
+    for parameter in parameters {
+        if let Some(binding) = bindings.get(parameter.value_type.as_str()) {
+            if binding.kind != ContractExportKind::Type {
+                return Err(error(
+                    "CND-IPK-007",
+                    Some(parameter.source_span),
+                    format!("import `{}` is not a type contract", parameter.value_type),
+                ));
+            }
+            parameter.value_type.clone_from(&binding.canonical_id);
         }
     }
     Ok(())

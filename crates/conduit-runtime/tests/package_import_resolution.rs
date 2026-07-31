@@ -162,7 +162,7 @@ fn checker_rejects_a_package_descriptor_that_does_not_match_its_known_contract()
     let mut registry = Registry::default();
     registry.register_contract_only(&CONTRACT);
     let failure = registry.resolve_package_contracts(&imports).unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-005");
+    assert_eq!(failure.code, "CND-IPK-005");
 }
 
 #[test]

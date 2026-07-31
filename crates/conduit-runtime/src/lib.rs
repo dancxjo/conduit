@@ -1250,7 +1250,7 @@ impl Registry {
             }
             .ok_or_else(|| {
                 ResolutionError::new(
-                    "CND-PKG-004",
+                    "CND-IPK-004",
                     format!(
                         "imported canonical contract `{}` is not known to the supplied checker catalog",
                         binding.canonical_id
@@ -1259,7 +1259,7 @@ impl Registry {
             })?;
             if expected != binding.descriptor_hash {
                 return Err(ResolutionError::new(
-                    "CND-PKG-005",
+                    "CND-IPK-005",
                     format!(
                         "imported canonical contract `{}` descriptor differs: package `{}`, checker `{expected}`",
                         binding.canonical_id, binding.descriptor_hash

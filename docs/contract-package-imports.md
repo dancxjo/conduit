@@ -92,13 +92,14 @@ that proof or collapse its ownership.
 
 | Code | Meaning |
 |---|---|
-| `CND-PKG-001` | malformed or non-current package/lock form |
-| `CND-PKG-002` | duplicate, collision, or ambiguous target |
-| `CND-PKG-003` | locked artifact bytes absent |
-| `CND-PKG-004` | missing package, export, or transitive package |
-| `CND-PKG-005` | artifact dependency or descriptor differs from the lock/checker |
-| `CND-PKG-006` | requested export is private |
-| `CND-PKG-007` | imported export kind is invalid at the source use site |
+| `CND-IPK-001` | malformed or non-current package/lock form |
+| `CND-IPK-002` | duplicate, collision, or ambiguous target |
+| `CND-IPK-003` | locked artifact bytes absent |
+| `CND-IPK-004` | missing package, export, or transitive package |
+| `CND-IPK-005` | artifact dependency or descriptor differs from the lock/checker |
+| `CND-IPK-006` | requested export is private |
+| `CND-IPK-007` | imported export kind is invalid at the source use site |
+| `CND-IPK-008` | package count, byte closure, export, or dependency bound exceeded |
 
 The plain-language rule is: imports name the part; the plan determines whether
 a particular machine can provide it.

@@ -1534,7 +1534,7 @@
       },
       "hints": [
         "Select split to reveal conduit.dev/std/tee and its pinned descriptor hash.",
-        "Switch to the missing-export scenario to see deterministic CND-PKG-004 source-span evidence.",
+        "Switch to the missing-export scenario to see deterministic CND-IPK-004 source-span evidence.",
         "Notice that successful import checking adds no installed provider, host grant, or authority."
       ],
       "solution": "Supply the immutable package artifact and exact lock to the checker, retain the alias only for presentation, and let later exact planning decide whether current host facts permit a provider binding.",
@@ -1560,7 +1560,7 @@
         "availability": "contract-only",
         "error": {
           "scenario": "missing export",
-          "code": "CND-PKG-004",
+          "code": "CND-IPK-004",
           "message": "the supplied locked package has no requested public export"
         },
         "offline_proof": [

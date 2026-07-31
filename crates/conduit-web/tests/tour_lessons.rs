@@ -292,7 +292,7 @@ fn contract_package_import_lesson_separates_names_meaning_and_availability() {
             .starts_with("sha256:")
     );
     assert_eq!(imports["availability"], "contract-only");
-    assert_eq!(imports["error"]["code"], "CND-PKG-004");
+    assert_eq!(imports["error"]["code"], "CND-IPK-004");
 }
 
 #[test]

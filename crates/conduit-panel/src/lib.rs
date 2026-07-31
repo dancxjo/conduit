@@ -21,9 +21,11 @@ pub use modules::{
 pub use packages::{
     ContractExportKind, ContractPackageArtifact, ContractPackageDependency, ContractPackageExport,
     ContractPackageLock, ContractPackageManifest, ContractPackageResolver, LockedContractPackage,
-    LockedExport, ModulePackageImportBinding, PackageImportBinding, PackageImportResolution,
-    PackageResolutionError, PackageResolvedModuleGraph, ResolvedContractPackage,
-    resolve_module_package_imports, resolve_package_imports,
+    LockedExport, MAXIMUM_CONTRACT_PACKAGE_BYTES, MAXIMUM_CONTRACT_PACKAGE_CLOSURE_BYTES,
+    MAXIMUM_CONTRACT_PACKAGE_DEPENDENCIES, MAXIMUM_CONTRACT_PACKAGE_EXPORTS,
+    MAXIMUM_CONTRACT_PACKAGES, ModulePackageImportBinding, PackageImportBinding,
+    PackageImportResolution, PackageResolutionError, PackageResolvedModuleGraph,
+    ResolvedContractPackage, resolve_module_package_imports, resolve_package_imports,
 };
 
 /// Portable ceiling applied before the parser retains attacker-controlled
@@ -39,6 +41,10 @@ pub const MAXIMUM_INTERFACE_DECLARATIONS: usize = 256;
 pub const MAXIMUM_INTERFACE_MEMBERS: usize = 64;
 /// Maximum explicit interface claims on one node boundary.
 pub const MAXIMUM_INTERFACE_CLAIMS: usize = 32;
+/// Maximum contract-package import declarations retained by one module.
+pub const MAXIMUM_PACKAGE_IMPORTS: usize = 256;
+/// Maximum explicitly selected export names retained by one import.
+pub const MAXIMUM_PACKAGE_IMPORT_NAMES: usize = 256;
 
 /// Words that may never be used where the grammar accepts an identifier.
 ///
@@ -1116,6 +1122,9 @@ impl Parser {
             pools,
             supervisions,
         };
+        if panel.package_imports.len() > MAXIMUM_PACKAGE_IMPORTS {
+            return Err(self.error_code("CND-SEC-001", "package import declaration limit exceeded"));
+        }
         validate_source_symbols(panel, self.current().line, self.current().column)
     }
 
@@ -1176,6 +1185,11 @@ impl Parser {
                         end_column: name_end_column,
                     },
                 });
+                if names.len() > MAXIMUM_PACKAGE_IMPORT_NAMES {
+                    return Err(
+                        self.error_code("CND-SEC-001", "package import name limit exceeded")
+                    );
+                }
                 if matches!(self.current().kind, TokenKind::Comma) {
                     self.advance();
                 } else if !matches!(self.current().kind, TokenKind::RightBrace) {
@@ -1184,7 +1198,7 @@ impl Parser {
             }
             if names.is_empty() {
                 return Err(self.error_code(
-                    "CND-PKG-001",
+                    "CND-IPK-001",
                     "package import must name at least one public export",
                 ));
             }

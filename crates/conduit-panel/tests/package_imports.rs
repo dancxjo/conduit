@@ -1,8 +1,8 @@
 use conduit_panel::{
     ContractExportKind, ContractPackageArtifact, ContractPackageDependency, ContractPackageExport,
     ContractPackageLock, ContractPackageManifest, LoadedModule, LockedContractPackage,
-    LockedExport, ModuleLoader, PackageImportSelection, parse, resolve_module_package_imports,
-    resolve_modules, resolve_package_imports,
+    LockedExport, MAXIMUM_CONTRACT_PACKAGE_BYTES, ModuleLoader, PackageImportSelection, parse,
+    resolve_module_package_imports, resolve_modules, resolve_package_imports,
 };
 use sha2::{Digest as _, Sha256};
 use std::collections::BTreeMap;
@@ -50,6 +50,7 @@ fn artifact(dependencies: Vec<ContractPackageDependency>) -> (Vec<u8>, ContractP
             export("tee", ContractExportKind::Node, true),
             export("gate", ContractExportKind::Node, true),
             export("stream", ContractExportKind::Interface, true),
+            export("reading", ContractExportKind::Type, true),
             export("internal", ContractExportKind::Node, false),
         ],
     };
@@ -159,6 +160,48 @@ fn exact_lock_resolution_rewrites_only_semantic_references() {
 }
 
 #[test]
+fn imported_types_lower_in_typed_source_positions_and_local_declarations_win_no_ambiguity() {
+    let panel = parse(
+        "panel 3\n\
+         import conduit.dev/std/{reading as sample}\n\
+         composite Envelope(value: sample) {}\n",
+    )
+    .unwrap();
+    let (bytes, lock) = artifact(Vec::new());
+    let resolution = resolve_package_imports(
+        &panel,
+        &lock,
+        &[ContractPackageArtifact {
+            bytes: &bytes,
+            mirror: None,
+        }],
+    )
+    .unwrap();
+    assert_eq!(
+        resolution.panel().definitions[0].parameters[0].value_type,
+        "conduit.dev/std/reading"
+    );
+
+    let colliding = parse(
+        "panel 3\n\
+         import conduit.dev/std/{tee as Part}\n\
+         composite Part {}\n",
+    )
+    .unwrap();
+    let failure = resolve_package_imports(
+        &colliding,
+        &lock,
+        &[ContractPackageArtifact {
+            bytes: &bytes,
+            mirror: None,
+        }],
+    )
+    .unwrap_err();
+    assert_eq!(failure.code, "CND-IPK-002");
+    assert!(failure.source_span.is_some());
+}
+
+#[test]
 fn qualified_package_alias_resolves_public_exports_but_not_private_surface() {
     let panel = parse(
         "panel 3\n\
@@ -198,10 +241,10 @@ fn duplicate_missing_hidden_and_descriptor_mismatch_fail_deterministically() {
 
     let (bytes, lock) = artifact(Vec::new());
     for (source, code) in [
-        ("panel 3\nimport conduit.dev/std/{absent}\n", "CND-PKG-004"),
+        ("panel 3\nimport conduit.dev/std/{absent}\n", "CND-IPK-004"),
         (
             "panel 3\nimport conduit.dev/std/{internal}\n",
-            "CND-PKG-006",
+            "CND-IPK-006",
         ),
     ] {
         let panel = parse(source).unwrap();
@@ -230,7 +273,7 @@ fn duplicate_missing_hidden_and_descriptor_mismatch_fail_deterministically() {
         }],
     )
     .unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-005");
+    assert_eq!(failure.code, "CND-IPK-005");
 }
 
 #[test]
@@ -260,6 +303,22 @@ fn bytes_are_location_independent_and_mutation_or_missing_transitive_data_is_rej
         second.packages()[0].artifact_digest
     );
     assert_eq!(first.bindings(), second.bindings());
+    let both_mirrors = resolve_package_imports(
+        &panel,
+        &lock,
+        &[
+            ContractPackageArtifact {
+                bytes: &bytes,
+                mirror: Some("mirror-a"),
+            },
+            ContractPackageArtifact {
+                bytes: &bytes,
+                mirror: Some("mirror-b"),
+            },
+        ],
+    )
+    .unwrap();
+    assert_eq!(first.bindings(), both_mirrors.bindings());
 
     let mut mutated = bytes.clone();
     mutated.push(b' ');
@@ -272,7 +331,7 @@ fn bytes_are_location_independent_and_mutation_or_missing_transitive_data_is_rej
         }],
     )
     .unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-003");
+    assert_eq!(failure.code, "CND-IPK-003");
 
     let dependency = ContractPackageDependency {
         package_id: "foreign.dev/types".to_owned(),
@@ -288,7 +347,32 @@ fn bytes_are_location_independent_and_mutation_or_missing_transitive_data_is_rej
         }],
     )
     .unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-004");
+    assert_eq!(failure.code, "CND-IPK-004");
+}
+
+#[test]
+fn package_and_source_import_bounds_fail_before_unbounded_retention() {
+    let panel = parse("panel 3\nimport conduit.dev/std/{tee}\n").unwrap();
+    let oversized = vec![b' '; MAXIMUM_CONTRACT_PACKAGE_BYTES + 1];
+    let (_, lock) = artifact(Vec::new());
+    let failure = resolve_package_imports(
+        &panel,
+        &lock,
+        &[ContractPackageArtifact {
+            bytes: &oversized,
+            mirror: None,
+        }],
+    )
+    .unwrap_err();
+    assert_eq!(failure.code, "CND-IPK-008");
+
+    let names = (0..=conduit_panel::MAXIMUM_PACKAGE_IMPORT_NAMES)
+        .map(|index| format!("name{index}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let source = format!("panel 3\nimport example.dev/parts/{{{names}}}\n");
+    let failure = parse(&source).unwrap_err();
+    assert_eq!(failure.code, "CND-SEC-001");
 }
 
 #[test]
@@ -367,7 +451,7 @@ fn a_target_that_can_name_both_a_package_and_parent_export_is_ambiguous() {
         ],
     )
     .unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-002");
+    assert_eq!(failure.code, "CND-IPK-002");
     assert!(failure.source_span.is_some());
 }
 
@@ -463,7 +547,7 @@ fn semantic_descriptors_cannot_smuggle_fetch_install_or_authority_instructions()
         }],
     )
     .unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-001");
+    assert_eq!(failure.code, "CND-IPK-001");
 
     manifest.exports[0].descriptor = serde_json::json!({
         "id": "other.dev/parts/probe",
@@ -485,5 +569,5 @@ fn semantic_descriptors_cannot_smuggle_fetch_install_or_authority_instructions()
         }],
     )
     .unwrap_err();
-    assert_eq!(failure.code, "CND-PKG-001");
+    assert_eq!(failure.code, "CND-IPK-001");
 }
