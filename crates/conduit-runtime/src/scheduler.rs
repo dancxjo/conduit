@@ -1807,6 +1807,18 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         self.check_cancellation_deadline()
     }
 
+    /// Earliest exact timer deadline currently retained by any node.
+    #[must_use]
+    pub fn next_timer_deadline(&self) -> Option<u64> {
+        self.waits
+            .iter()
+            .flat_map(|waits| waits.iter())
+            .filter(|wait| wait.interest.kind == WakeInterestKind::Timer)
+            .filter_map(|wait| wait.deadline_tick)
+            .filter(|deadline| *deadline > self.tick)
+            .min()
+    }
+
     /// Wake a bounded host operation; callback queues remain outside this API
     /// and must fit the implementation profile.
     pub fn notify_host_operation(&mut self, subject: Id<'p>) -> Result<(), SchedulerError> {

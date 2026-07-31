@@ -604,6 +604,11 @@ const DATA_CLOSED_RECORD_SCHEMA_HASH: &[u8; 32] = &[
     0xa3, 0xde, 0x3b, 0x0c, 0x27, 0x8e, 0x14, 0xc8, 0x76, 0x5d, 0x3e, 0x93, 0xa5, 0x25, 0x6e, 0x95,
     0x7f, 0x58, 0xee, 0x58, 0x20, 0x56, 0x4b, 0x5d, 0xce, 0x0d, 0x23, 0xd5, 0xde, 0xb0, 0x6b, 0xcf,
 ];
+const TIME_CLOCK_DESCRIPTOR: &str = "conduit.clock/monotonic-ticks";
+const TIME_CLOCK_HASH: &[u8; 32] = &[
+    0x6b, 0x9c, 0x68, 0x72, 0x26, 0xd4, 0xa1, 0x96, 0x5e, 0x78, 0x0b, 0x63, 0xb4, 0xbd, 0xc0, 0x92,
+    0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
+];
 const CLOSED_RECORD_REQUIRED_FIELDS: &[conduit_std::RequiredField<'static>] = &[
     conduit_std::RequiredField {
         name: "name",
@@ -617,6 +622,10 @@ const CLOSED_RECORD_REQUIRED_FIELDS: &[conduit_std::RequiredField<'static>] = &[
 
 fn standard_data_contract(id: &str) -> &'static NodeContract<'static> {
     conduit_std::standard_node_contract(id).expect("standard data contract is published")
+}
+
+fn standard_time_contract(id: &str) -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract(id).expect("standard time contract is published")
 }
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
@@ -966,6 +975,10 @@ pub enum HostedPrimitiveImplementation {
     ValidationDecisionAssert,
     FrameLengthU32Be,
     DeframeLengthU32Be,
+    TimeDelay,
+    TimeTimeout,
+    TimeDebounce,
+    TimeThrottle,
     Stdout,
     Stderr,
     DisplayText,
@@ -1718,6 +1731,18 @@ impl Registry {
             || Box::new(DeframeLengthU32Be),
             validate_data_framing,
         );
+        for (id, validate) in [
+            ("time/delay", validate_time_delay as ConfigValidator),
+            ("time/timeout", validate_time_timeout as ConfigValidator),
+            ("time/debounce", validate_time_debounce as ConfigValidator),
+            ("time/throttle", validate_time_throttle as ConfigValidator),
+        ] {
+            install(
+                standard_time_contract(id),
+                || Box::new(TimeCompatibilityHandler),
+                validate,
+            );
+        }
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
@@ -1942,6 +1967,34 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::DeframeLengthU32Be,
                 || Box::new(DeframeLengthU32Be),
                 validate_data_framing,
+            ),
+            (
+                standard_time_contract("time/delay"),
+                "time-delay",
+                HostedPrimitiveImplementation::TimeDelay,
+                || Box::new(TimeCompatibilityHandler),
+                validate_time_delay,
+            ),
+            (
+                standard_time_contract("time/timeout"),
+                "time-timeout",
+                HostedPrimitiveImplementation::TimeTimeout,
+                || Box::new(TimeCompatibilityHandler),
+                validate_time_timeout,
+            ),
+            (
+                standard_time_contract("time/debounce"),
+                "time-debounce",
+                HostedPrimitiveImplementation::TimeDebounce,
+                || Box::new(TimeCompatibilityHandler),
+                validate_time_debounce,
+            ),
+            (
+                standard_time_contract("time/throttle"),
+                "time-throttle",
+                HostedPrimitiveImplementation::TimeThrottle,
+                || Box::new(TimeCompatibilityHandler),
+                validate_time_throttle,
             ),
             (
                 &STDOUT_CONTRACT,
@@ -4181,6 +4234,10 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::DeframeLengthU32Be => {
                     "std/data/deframe-length-u32be"
                 }
+                HostedPrimitiveImplementation::TimeDelay => "time/delay",
+                HostedPrimitiveImplementation::TimeTimeout => "time/timeout",
+                HostedPrimitiveImplementation::TimeDebounce => "time/debounce",
+                HostedPrimitiveImplementation::TimeThrottle => "time/throttle",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
@@ -4384,6 +4441,48 @@ impl ResolvedPanel<'_> {
                         terminal_seen: false,
                     }
                 }
+                HostedPrimitiveImplementation::TimeDelay
+                | HostedPrimitiveImplementation::TimeTimeout
+                | HostedPrimitiveImplementation::TimeDebounce
+                | HostedPrimitiveImplementation::TimeThrottle => {
+                    let behavior = match implementation {
+                        HostedPrimitiveImplementation::TimeDelay => TimeBehavior::Delay {
+                            drop_at_terminal: resolved.source.config("terminal") == Some("drop"),
+                        },
+                        HostedPrimitiveImplementation::TimeTimeout => TimeBehavior::Timeout,
+                        HostedPrimitiveImplementation::TimeDebounce => TimeBehavior::Debounce {
+                            mode: if resolved.source.config("mode") == Some("leading") {
+                                conduit_std::DebounceMode::Leading
+                            } else {
+                                conduit_std::DebounceMode::Trailing
+                            },
+                            flush_at_terminal: resolved.source.config("terminal") == Some("flush"),
+                        },
+                        HostedPrimitiveImplementation::TimeThrottle => TimeBehavior::Throttle {
+                            mode: if resolved.source.config("mode") == Some("leading") {
+                                conduit_std::ThrottleMode::LeadingBlock
+                            } else {
+                                conduit_std::ThrottleMode::TrailingCoalesce
+                            },
+                            flush_at_terminal: resolved.source.config("terminal") == Some("flush"),
+                        },
+                        _ => unreachable!("time implementation selected"),
+                    };
+                    HostedNodeKind::TimeTransform {
+                        behavior,
+                        duration_ticks: u64::try_from(source_usize(
+                            &resolved.source,
+                            "duration_ticks",
+                        )?)
+                        .map_err(|_| {
+                            RuntimeError::new("CND-TIM-001", "duration does not fit u64")
+                        })?,
+                        deadline_tick: None,
+                        retained: None,
+                        pending_output: None,
+                        terminal_seen: false,
+                    }
+                }
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
@@ -4522,14 +4621,25 @@ impl ResolvedPanel<'_> {
                 .cancel(stop)
                 .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         }
-        let status = match executor.run_until_stalled() {
-            Ok(status) => status,
-            Err(error) => {
-                return Err(host_failure
-                    .borrow_mut()
-                    .take()
-                    .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string())));
+        let status = loop {
+            let status = match executor.run_until_stalled() {
+                Ok(status) => status,
+                Err(error) => {
+                    return Err(host_failure
+                        .borrow_mut()
+                        .take()
+                        .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string())));
+                }
+            };
+            if status != SchedulerStatus::Stalled {
+                break status;
             }
+            let Some(deadline) = executor.next_timer_deadline() else {
+                break status;
+            };
+            executor
+                .advance_to(deadline)
+                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         };
         let allocation = executor.allocation();
         let high_water = executor.high_water();
@@ -4721,6 +4831,22 @@ impl HostValueStore {
     }
 }
 
+#[derive(Clone, Copy)]
+enum TimeBehavior {
+    Delay {
+        drop_at_terminal: bool,
+    },
+    Timeout,
+    Debounce {
+        mode: conduit_std::DebounceMode,
+        flush_at_terminal: bool,
+    },
+    Throttle {
+        mode: conduit_std::ThrottleMode,
+        flush_at_terminal: bool,
+    },
+}
+
 // Runtime values carry the complete fixed envelope inline so executor
 // allocation remains exact and no per-value metadata allocation is hidden.
 #[allow(clippy::large_enum_variant)]
@@ -4805,6 +4931,14 @@ enum HostedNodeKind {
         decoder: conduit_std::LengthU32BeDecoder<{ conduit_std::DATA_MAX_FRAME_BYTES }>,
         input: Option<RuntimeValue>,
         cursor: usize,
+        pending_output: Option<RuntimeValue>,
+        terminal_seen: bool,
+    },
+    TimeTransform {
+        behavior: TimeBehavior,
+        duration_ticks: u64,
+        deadline_tick: Option<u64>,
+        retained: Option<RuntimeValue>,
         pending_output: Option<RuntimeValue>,
         terminal_seen: bool,
     },
@@ -6147,6 +6281,251 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     SchedulerStep::Progress
                 }
             }
+            HostedNodeKind::TimeTransform {
+                behavior,
+                duration_ticks,
+                deadline_tick,
+                retained,
+                pending_output,
+                terminal_seen,
+            } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let now = io.tick();
+                let arm = |host_failure: &RefCell<Option<RuntimeError>>| {
+                    conduit_std::exact_deadline(now, *duration_ticks).map_err(|error| {
+                        let runtime = time_runtime_error(error);
+                        *host_failure.borrow_mut() = Some(runtime.clone());
+                        runtime
+                    })
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            if matches!(behavior, TimeBehavior::Timeout) {
+                                let Ok(deadline) = arm(&self.host_failure) else {
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-TIM-002"),
+                                    };
+                                };
+                                *deadline_tick = Some(deadline);
+                            }
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+
+                match *behavior {
+                    TimeBehavior::Delay { drop_at_terminal } => {
+                        if retained.is_some()
+                            && matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed))
+                            && drop_at_terminal
+                        {
+                            *retained = None;
+                            *deadline_tick = None;
+                            return SchedulerStep::Completed;
+                        }
+                        if let Some(value) = *retained {
+                            let deadline = deadline_tick.expect("delayed value owns a timer");
+                            if now >= deadline {
+                                *retained = None;
+                                *deadline_tick = None;
+                                *pending_output = Some(value);
+                                return recorded_time_progress(io);
+                            }
+                            let _ = io.wait_for_timer(Id("conduit/time-timer"), deadline);
+                            return SchedulerStep::Pending;
+                        }
+                        match io.receive(in_cord) {
+                            Ok(Some(value)) => {
+                                let Ok(deadline) = arm(&self.host_failure) else {
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-TIM-002"),
+                                    };
+                                };
+                                *retained = Some(value);
+                                *deadline_tick = Some(deadline);
+                                SchedulerStep::Progress
+                            }
+                            _ if matches!(
+                                io.input_state(in_cord),
+                                Ok(FlowQueueState::Completed)
+                            ) =>
+                            {
+                                SchedulerStep::Completed
+                            }
+                            _ => {
+                                let _ = io.wait_for_input(in_cord);
+                                SchedulerStep::Pending
+                            }
+                        }
+                    }
+                    TimeBehavior::Timeout => {
+                        if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                            return SchedulerStep::Completed;
+                        }
+                        if let Ok(Some(value)) = io.receive(in_cord) {
+                            *pending_output = Some(value);
+                            return SchedulerStep::Progress;
+                        }
+                        if deadline_tick.is_none() {
+                            let Ok(deadline) = arm(&self.host_failure) else {
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-TIM-002"),
+                                };
+                            };
+                            *deadline_tick = Some(deadline);
+                            return recorded_time_progress(io);
+                        }
+                        let deadline = deadline_tick.expect("timeout owns a timer");
+                        if now >= deadline {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-TIM-020",
+                                "the exact inactivity timeout elapsed",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-TIM-020"),
+                            };
+                        }
+                        let _ = io.wait_for_input(in_cord);
+                        let _ = io.wait_for_timer(Id("conduit/time-timer"), deadline);
+                        SchedulerStep::Pending
+                    }
+                    TimeBehavior::Debounce {
+                        mode,
+                        flush_at_terminal,
+                    } => {
+                        if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                            *terminal_seen = true;
+                        }
+                        if *terminal_seen {
+                            *deadline_tick = None;
+                            if flush_at_terminal {
+                                *pending_output = retained.take();
+                                return if pending_output.is_some() {
+                                    recorded_time_progress(io)
+                                } else {
+                                    SchedulerStep::Completed
+                                };
+                            }
+                            *retained = None;
+                            return SchedulerStep::Completed;
+                        }
+                        if let Ok(Some(value)) = io.receive(in_cord) {
+                            let leading_window_active = deadline_tick.is_some();
+                            let Ok(deadline) = arm(&self.host_failure) else {
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-TIM-002"),
+                                };
+                            };
+                            *deadline_tick = Some(deadline);
+                            match mode {
+                                conduit_std::DebounceMode::Leading if !leading_window_active => {
+                                    *pending_output = Some(value);
+                                }
+                                conduit_std::DebounceMode::Leading => {}
+                                conduit_std::DebounceMode::Trailing => {
+                                    *retained = Some(value);
+                                }
+                            }
+                            return SchedulerStep::Progress;
+                        }
+                        if let Some(deadline) = *deadline_tick {
+                            if now >= deadline {
+                                *deadline_tick = None;
+                                match mode {
+                                    conduit_std::DebounceMode::Leading => {
+                                        *retained = None;
+                                    }
+                                    conduit_std::DebounceMode::Trailing => {
+                                        *pending_output = retained.take();
+                                    }
+                                }
+                                return recorded_time_progress(io);
+                            }
+                            let _ = io.wait_for_timer(Id("conduit/time-timer"), deadline);
+                        }
+                        let _ = io.wait_for_input(in_cord);
+                        SchedulerStep::Pending
+                    }
+                    TimeBehavior::Throttle {
+                        mode,
+                        flush_at_terminal,
+                    } => {
+                        if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                            *terminal_seen = true;
+                        }
+                        if *terminal_seen {
+                            *deadline_tick = None;
+                            if flush_at_terminal {
+                                *pending_output = retained.take();
+                                return if pending_output.is_some() {
+                                    recorded_time_progress(io)
+                                } else {
+                                    SchedulerStep::Completed
+                                };
+                            }
+                            *retained = None;
+                            return SchedulerStep::Completed;
+                        }
+                        if let Some(deadline) = *deadline_tick
+                            && now >= deadline
+                        {
+                            *deadline_tick = None;
+                            if matches!(mode, conduit_std::ThrottleMode::TrailingCoalesce) {
+                                *pending_output = retained.take();
+                            }
+                            return recorded_time_progress(io);
+                        }
+                        match mode {
+                            conduit_std::ThrottleMode::LeadingBlock => {
+                                if let Some(deadline) = *deadline_tick {
+                                    let _ = io.wait_for_timer(Id("conduit/time-timer"), deadline);
+                                    return SchedulerStep::Pending;
+                                }
+                                if let Ok(Some(value)) = io.receive(in_cord) {
+                                    let Ok(deadline) = arm(&self.host_failure) else {
+                                        return SchedulerStep::Failed {
+                                            code: Id("CND-TIM-002"),
+                                        };
+                                    };
+                                    *deadline_tick = Some(deadline);
+                                    *pending_output = Some(value);
+                                    return SchedulerStep::Progress;
+                                }
+                            }
+                            conduit_std::ThrottleMode::TrailingCoalesce => {
+                                if let Ok(Some(value)) = io.receive(in_cord) {
+                                    if deadline_tick.is_none() {
+                                        let Ok(deadline) = arm(&self.host_failure) else {
+                                            return SchedulerStep::Failed {
+                                                code: Id("CND-TIM-002"),
+                                            };
+                                        };
+                                        *deadline_tick = Some(deadline);
+                                    }
+                                    *retained = Some(value);
+                                    return SchedulerStep::Progress;
+                                }
+                                if let Some(deadline) = *deadline_tick {
+                                    let _ = io.wait_for_timer(Id("conduit/time-timer"), deadline);
+                                }
+                            }
+                        }
+                        let _ = io.wait_for_input(in_cord);
+                        SchedulerStep::Pending
+                    }
+                }
+            }
             HostedNodeKind::Tee {
                 isolated,
                 retained,
@@ -6801,6 +7180,195 @@ fn validate_select(node: &Node) -> Result<(), ResolutionError> {
         node,
         &[("initial", &["left", "right"]), ("inactive", &["block"])],
     )
+}
+
+fn required_time_bound(node: &Node, key: &str, maximum: u64) -> Result<u64, ResolutionError> {
+    let Some(conduit_panel::SourceValue::Integer(value)) = node.config_value(key) else {
+        return Err(ResolutionError::new(
+            "CND-TIM-010",
+            format!("node `{}` requires integer `{key}`", node.id),
+        ));
+    };
+    let value = u64::try_from(*value).map_err(|_| {
+        ResolutionError::new(
+            "CND-TIM-012",
+            format!("node `{}` has negative `{key}`", node.id),
+        )
+    })?;
+    if value > maximum {
+        return Err(ResolutionError::new(
+            "CND-TIM-012",
+            format!("node `{}` exceeds `{key}` provider bound", node.id),
+        ));
+    }
+    Ok(value)
+}
+
+fn validate_time_common(node: &Node, expected: &[&str]) -> Result<(), ResolutionError> {
+    if node.config.len() != expected.len()
+        || node
+            .config
+            .iter()
+            .any(|entry| !expected.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-010",
+            format!("node `{}` has an incomplete exact clock profile", node.id),
+        ));
+    }
+    if node.config("clock") != Some(TIME_CLOCK_DESCRIPTOR)
+        || required_time_bound(node, "clock_schema_version", u32::MAX as u64)? != 0
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-011",
+            format!(
+                "node `{}` requests an unsupported clock descriptor",
+                node.id
+            ),
+        ));
+    }
+    let Some(conduit_panel::SourceValue::Bytes(hash)) = node.config_value("clock_hash") else {
+        return Err(ResolutionError::new(
+            "CND-TIM-010",
+            format!("node `{}` requires bytes `clock_hash`", node.id),
+        ));
+    };
+    if hash.as_slice() != TIME_CLOCK_HASH {
+        return Err(ResolutionError::new(
+            "CND-TIM-011",
+            format!("node `{}` requests an unsupported clock hash", node.id),
+        ));
+    }
+    if required_time_bound(node, "resolution_ticks", 1)? != 1 {
+        return Err(ResolutionError::new(
+            "CND-TIM-011",
+            format!("node `{}` requires one-tick clock resolution", node.id),
+        ));
+    }
+    required_time_bound(node, "duration_ticks", conduit_std::TIME_MAX_DURATION_TICKS)?;
+    if node.config("discontinuity") != Some("fail") {
+        return Err(ResolutionError::new(
+            "CND-TIM-011",
+            format!("node `{}` must fail on clock discontinuity", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_time_delay(node: &Node) -> Result<(), ResolutionError> {
+    validate_time_common(
+        node,
+        &[
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "resolution_ticks",
+            "duration_ticks",
+            "maximum_pending",
+            "terminal",
+            "discontinuity",
+        ],
+    )?;
+    if required_time_bound(node, "maximum_pending", 1)? != 1
+        || !matches!(node.config("terminal"), Some("drain" | "drop"))
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-012",
+            format!(
+                "node `{}` has unsupported delay bounds or terminal policy",
+                node.id
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_time_timeout(node: &Node) -> Result<(), ResolutionError> {
+    validate_time_common(
+        node,
+        &[
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "resolution_ticks",
+            "duration_ticks",
+            "condition",
+            "reset",
+            "late",
+            "discontinuity",
+        ],
+    )?;
+    if node.config("condition") != Some("inactivity")
+        || node.config("reset") != Some("each-value")
+        || node.config("late") != Some("timeout")
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-011",
+            format!("node `{}` requests unsupported timeout semantics", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_time_debounce(node: &Node) -> Result<(), ResolutionError> {
+    validate_time_common(
+        node,
+        &[
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "resolution_ticks",
+            "duration_ticks",
+            "mode",
+            "loss",
+            "terminal",
+            "maximum_retained",
+            "discontinuity",
+        ],
+    )?;
+    if !matches!(node.config("mode"), Some("leading" | "trailing"))
+        || node.config("loss") != Some("coalesce")
+        || !matches!(node.config("terminal"), Some("flush" | "drop"))
+        || required_time_bound(node, "maximum_retained", 1)? != 1
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-012",
+            format!("node `{}` has unsupported debounce semantics", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_time_throttle(node: &Node) -> Result<(), ResolutionError> {
+    validate_time_common(
+        node,
+        &[
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "resolution_ticks",
+            "duration_ticks",
+            "mode",
+            "overflow",
+            "terminal",
+            "maximum_retained",
+            "discontinuity",
+        ],
+    )?;
+    let mode = node.config("mode");
+    let overflow = node.config("overflow");
+    if !matches!(
+        (mode, overflow),
+        (Some("leading"), Some("block")) | (Some("trailing"), Some("coalesce"))
+    ) || !matches!(node.config("terminal"), Some("flush" | "drop"))
+        || required_time_bound(node, "maximum_retained", 1)? != 1
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-012",
+            format!("node `{}` has unsupported throttle semantics", node.id),
+        ));
+    }
+    Ok(())
 }
 
 fn required_data_reference<'a>(
@@ -7672,6 +8240,22 @@ impl Handler for Uppercase {
 
 struct EncodeUtf8;
 
+struct TimeCompatibilityHandler;
+
+impl Handler for TimeCompatibilityHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let value = inputs
+            .first()
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "time input is missing"))?;
+        Ok(vec![value.clone()])
+    }
+}
+
 fn encode_record_literal(node: &Node) -> Result<Vec<u8>, RuntimeError> {
     let Some(SourceValue::Record(fields)) = node.config_value("fields") else {
         return Err(RuntimeError::new(
@@ -7892,6 +8476,20 @@ fn runtime_data_bound(node: &Node, key: &str, _maximum: usize) -> Result<usize, 
 
 fn data_boundary_runtime_error(error: conduit_std::DataBoundaryError) -> RuntimeError {
     RuntimeError::new(error.code(), error.code())
+}
+
+fn time_runtime_error(error: conduit_std::TimeError) -> RuntimeError {
+    RuntimeError::new(error.code(), error.code())
+}
+
+fn recorded_time_progress(io: &mut StepIo<'_, '_>) -> SchedulerStep {
+    if io.record_host_progress().is_ok() {
+        SchedulerStep::Progress
+    } else {
+        SchedulerStep::Failed {
+            code: Id("conduit/step-work-bound-exceeded"),
+        }
+    }
 }
 
 struct FrameLengthU32Be;
