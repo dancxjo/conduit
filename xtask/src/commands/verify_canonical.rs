@@ -332,7 +332,7 @@ impl<'a> Reader<'a> {
 
     fn descriptor(&mut self) -> Result<(String, u32, Value), String> {
         if self.take(MAGIC.len())? != MAGIC {
-            return Err("not a canonical descriptor v1".to_string());
+            return Err("not a current canonical descriptor".to_string());
         }
         let kind_val = self.value(0)?;
         let kind = kind_val
@@ -367,8 +367,8 @@ pub fn run(
     let text = fs::read_to_string(&path)?;
     let suite: Value = serde_json::from_str(&text)?;
 
-    if suite.get("canonical_form_version").and_then(Value::as_u64) != Some(1) {
-        return Err("reader only supports canonical form version 1".into());
+    if suite.get("canonical_form_version").and_then(Value::as_u64) != Some(0) {
+        return Err("reader only supports canonical form 0".into());
     }
 
     let vectors = suite

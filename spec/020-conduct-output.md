@@ -2,12 +2,6 @@
 
 Status: C3 normative hosted CLI presentation and transport contract
 
-Compatibility note: `conduit.run` below remains current as the exact
-pre-release contract introduced for issue #18. Specification 028 deliberately
-withdraws its writer and replaces current run output with bounded
-`conduit.run` channel chunks. This historical text and fixture are retained
-instead of silently redefining the current `value` record.
-
 This document extends the command contract in specification 018 with
 generated completions and manual pages, quiet and general verbosity policy,
 truthfully bounded progress state, finite result JSON, and streaming run
@@ -81,15 +75,16 @@ semantic plan.
 
 ## Streaming run envelope
 
-Run NDJSON emits one compact, newline-terminated `conduit.run` record per
-runtime stdout write, followed by one summary after successful completion.
+Run NDJSON emits bounded, compact, newline-terminated `conduit.run` records.
+Runtime process writes use the current `channel_chunk` form from specification
+028, followed by one summary after successful completion.
 Every record has `schema`, `schema_version`, a zero-based contiguous
 `sequence`, and a `record` discriminator.
 
-A value record is lossless and identifies the semantic process channel:
+A channel record is lossless process I/O and does not claim a semantic value:
 
 ```json
-{"schema":"conduit.run","schema_version":0,"sequence":0,"record":"value","channel":"stdout","encoding":"hex","payload_hex":"00ff"}
+{"schema":"conduit.run","schema_version":0,"sequence":0,"record":"channel_chunk","channel":"stdout","encoding":"hex","payload_bytes":2,"payload_hex":"00ff"}
 ```
 
 `channel` is `stdout` or `stderr`. In NDJSON mode both runtime value channels
@@ -135,13 +130,12 @@ long-running work and a truthful progress total, so no current operation
 renders progress. Future use must remain on terminal stderr and must be
 suppressed for quiet, non-terminal, or machine-output execution.
 
-## Conformance and compatibility
+## Conformance
 
 `conformance/c3/conduct-output.json` freezes result envelopes, ordered run
 records, every operation/format pairing, stream policy, quiet/verbosity,
 bounded progress, pipe/output failures, and the generated artifact inventory.
-The existing `conduct-cli` fixture remains the canonical base invocation
-contract; its help snapshot grows compatibly with the optional flags here.
+The `conduct-cli` fixture is the canonical current base invocation contract.
 
 Consumers must select a supported schema and operation pairing. They must not
 infer result schema from diagnostic format, treat run records as finite
@@ -152,9 +146,9 @@ Specification 021 adds finite `inspect` results and a generated
 `conduct-inspect(1)` page without changing the result/diagnostic selectors or
 the canonical run/check/explain defaults here.
 
-Specification 028 supersedes only the active run NDJSON writer and reader
-selection policy. `conduit.run` remains recognizable as withdrawn; current
-writers emit current and current readers reject current rather than falling back.
+Specification 028 defines the bounded run NDJSON writer and reader selection
+policy. Writers and readers accept schema `0` only; no withdrawn form or
+fallback reader is retained.
 
 ## Normative requirements
 

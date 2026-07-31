@@ -128,8 +128,7 @@ pub struct Panel {
     pub port_groups: Vec<PortGroup>,
     /// Plan-visible top-level bounded instance pools.
     pub pools: Vec<InstancePool>,
-    /// Explicit terminal-supervision bindings. Only grammar version 2 may
-    /// author these; version 1 remains frozen.
+    /// Explicit terminal-supervision bindings in the current grammar.
     pub supervisions: Vec<SupervisionBinding>,
 }
 
@@ -2109,7 +2108,7 @@ impl Parser {
         if matches!(self.current().kind, TokenKind::Comma) {
             self.advance();
             if matches!(self.current().kind, TokenKind::RightParen) {
-                return Err(self.error("trailing comma is not part of source grammar version 1"));
+                return Err(self.error("trailing comma is not part of the current source grammar"));
             }
             Ok(())
         } else if matches!(self.current().kind, TokenKind::RightParen) {

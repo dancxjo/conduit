@@ -1,6 +1,6 @@
 {
   "suite": "conduit.canonical",
-  "canonical_form_version": 1,
+  "canonical_form_version": 0,
   "semantic_hash": "sha256",
   "vectors": [
     {

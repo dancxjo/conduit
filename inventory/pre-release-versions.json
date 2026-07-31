@@ -4,105 +4,278 @@
   "policy": "one-current-draft",
   "classifications": [
     {
+      "family": "repository-owned-corpus",
+      "classification": "repository-owned-corpus",
+      "validator": "owned-corpus",
+      "locations": [
+        ".cargo",
+        ".github",
+        ".gitignore",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "Cargo.lock",
+        "Cargo.toml",
+        "LICENSE",
+        "README.md",
+        "SECURITY.md",
+        "audits",
+        "benchmarks",
+        "browser",
+        "conformance",
+        "crates",
+        "deny.toml",
+        "distribution",
+        "docs",
+        "examples",
+        "firmware",
+        "fixtures",
+        "fuzz",
+        "generated",
+        "inventory",
+        "justfile",
+        "library",
+        "package-lock.json",
+        "package.json",
+        "release",
+        "rust-toolchain.toml",
+        "spec",
+        "tour",
+        "xtask"
+      ]
+    },
+    {
       "family": "workspace-crates",
       "classification": "current-draft-self-description",
-      "marker": "0.0.0-dev",
-      "locations": ["Cargo.toml", "Cargo.lock"]
-    },
-    {
-      "family": "panel-grammar",
-      "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-panel", "examples", "fixtures", "tour"]
-    },
-    {
-      "family": "source-ast",
-      "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-panel/src/document.rs"]
-    },
-    {
-      "family": "semantic-source-hash",
-      "classification": "semantic-identity-substitution-fact",
-      "marker": "conduit.panel-source",
-      "locations": ["crates/conduit-panel/src/document.rs"]
-    },
-    {
-      "family": "lowered-source",
-      "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-runtime/src/source_lowering.rs"]
+      "validator": "workspace-version",
+      "locations": [
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "family": "canonical-form",
-      "classification": "semantic-identity-substitution-fact",
-      "marker": 0,
-      "locations": ["crates/conduit-core/src/canonical.rs", "conformance/c1/canonical.json"]
+      "classification": "current-draft-self-description",
+      "validator": "current-schema",
+      "markers": [
+        "conduit.canonical"
+      ],
+      "locations": [
+        "conformance/c1/canonical.json",
+        "crates/conduit-core/src/canonical.rs",
+        "xtask/src/commands/verify_canonical.rs"
+      ]
     },
     {
       "family": "execution-plan",
       "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-core/src/execution_plan.rs"]
+      "validator": "current-schema",
+      "markers": [
+        "conduit.execution-plan"
+      ],
+      "locations": [
+        "conformance",
+        "crates/conduit-core/src/execution_plan.rs",
+        "tour"
+      ]
     },
     {
-      "family": "run-stream",
+      "family": "source-ast-and-lowered-source",
       "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduct/src/run_stream.rs"]
-    },
-    {
-      "family": "result-diagnostic-evidence-inspection",
-      "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-diagnostics", "crates/conduit-inspect", "crates/conduit-core/src/evidence.rs"]
-    },
-    {
-      "family": "package-manifest-catalog",
-      "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-package", "crates/conduit-core/src/manifest.rs", "library/catalog.json"]
-    },
-    {
-      "family": "tour-patchbay-browser-plan",
-      "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["tour/lessons/current.json", "crates/conduit-patchbay", "tour/public/browser-plan.json"]
+      "validator": "current-schema",
+      "markers": [
+        "conduit.lowered-source",
+        "conduit.source-ast"
+      ],
+      "locations": [
+        "conformance/c3/source-lowering.json",
+        "crates/conduit-panel/src/document.rs",
+        "crates/conduit-runtime/src/source_lowering.rs"
+      ]
     },
     {
       "family": "distributed-binding-envelope",
       "classification": "current-draft-self-description",
-      "marker": 0,
-      "locations": ["crates/conduit-core/src/distributed.rs", "crates/conduit-runtime/src/transport.rs"]
+      "validator": "current-schema",
+      "markers": [
+        "conduit.distributed-binding-envelope"
+      ],
+      "locations": [
+        "conformance/c5/distributed-cord.json",
+        "crates/conduit-core/src/distributed.rs",
+        "crates/conduit-runtime/src/transport.rs"
+      ]
     },
     {
-      "family": "semantic-type-and-port-compatibility",
+      "family": "result-run-evidence-diagnostic-inspection",
+      "classification": "current-draft-self-description",
+      "validator": "current-schema",
+      "markers": [
+        "conduit.host-conformance-report",
+        "conduit.pure-node-proof-profile",
+        "conduit.result",
+        "conduit.run"
+      ],
+      "locations": [
+        "conformance",
+        "crates/conduct",
+        "crates/conduit-diagnostics",
+        "crates/conduit-inspect",
+        "crates/conduit-runtime/src/evidence_ndjson.rs",
+        "crates/conduit-runtime/src/exact_evidence.rs",
+        "examples/host-conformance-report.json"
+      ]
+    },
+    {
+      "family": "package-manifest-catalog",
+      "classification": "current-draft-self-description",
+      "validator": "current-schema",
+      "markers": [
+        "conduit.contract-package",
+        "conduit.contract-package-lock",
+        "conduit.library-catalog",
+        "conduit.standard-catalog"
+      ],
+      "locations": [
+        "conformance",
+        "crates/conduit-core/src/manifest.rs",
+        "crates/conduit-package",
+        "fixtures",
+        "library"
+      ]
+    },
+    {
+      "family": "tour-patchbay-browser-plan",
+      "classification": "current-draft-self-description",
+      "validator": "current-schema",
+      "markers": [
+        "conduit.browser-reference-profiles",
+        "conduit.panel-runnability",
+        "conduit.tour-browser-plan",
+        "conduit.tour-contract-import-lesson",
+        "conduit.tour-lessons",
+        "conduit.tour-library-lesson",
+        "conduit.tour-platform-lesson",
+        "conduit.tour-reference-panels"
+      ],
+      "locations": [
+        "browser",
+        "conformance",
+        "crates/conduit-patchbay",
+        "examples/runnability.json",
+        "tour"
+      ]
+    },
+    {
+      "family": "bounded-host-distribution-and-conformance-artifacts",
+      "classification": "current-draft-self-description",
+      "validator": "current-schema",
+      "markers": [
+        "conduit.conformance/distributed-cord",
+        "conduit.conformance.plan-transitions",
+        "conduit.conformance.replicated-pools",
+        "conduit.conformance/security-boundaries",
+        "conduit.containment-fixtures",
+        "conduit.hazard-closure-fixtures",
+        "conduit.http-serving-fixtures",
+        "conduit.performance-baseline",
+        "conduit.persistent-budget-fixtures",
+        "conduit.reference-distribution",
+        "conduit.release-capabilities",
+        "conduit.rp2040-budget",
+        "conduit.standard-node-library-fixture",
+        "conduit.supervision-fixtures",
+        "conduit.text-format-fixture",
+        "conduit.text-lines-join-fixture"
+      ],
+      "locations": [
+        "benchmarks",
+        "conformance",
+        "distribution",
+        "firmware",
+        "release"
+      ]
+    },
+    {
+      "family": "panel-grammar-and-embedded-source",
+      "classification": "current-draft-self-description",
+      "validator": "panel-source",
+      "locations": [
+        "browser",
+        "conformance",
+        "crates",
+        "docs",
+        "examples",
+        "fixtures",
+        "fuzz",
+        "spec",
+        "tour"
+      ]
+    },
+    {
+      "family": "semantic-identity-and-live-transition-contracts",
       "classification": "semantic-identity-substitution-fact",
-      "marker": "exact-current-identities",
-      "locations": ["crates/conduit-core/src/type_contract.rs", "crates/conduit-core/src/port.rs"]
+      "validator": "semantic-contract",
+      "locations": [
+        "conformance/c1/compatibility.tsv",
+        "conformance/c1/migration.tsv",
+        "crates/conduit-core/src/compatibility.rs",
+        "crates/conduit-core/src/job.rs",
+        "crates/conduit-core/src/port.rs",
+        "crates/conduit-core/src/satisfaction.rs",
+        "crates/conduit-core/src/transition.rs",
+        "crates/conduit-core/src/type_contract.rs",
+        "crates/conduit-runtime/src/transition.rs"
+      ]
     },
     {
-      "family": "live-plan-and-checkpoint-transition",
-      "classification": "live-transition-state-contract",
-      "marker": "explicit-current-state-boundaries",
-      "locations": ["crates/conduit-core/src/transition.rs", "crates/conduit-runtime/src/transition.rs"]
-    },
-    {
-      "family": "http-tls-wasm-zenoh-platform-standards",
+      "family": "external-protocol-and-standard-versions",
       "classification": "external-protocol-standard-version",
-      "marker": "owned-by-external-standard",
-      "locations": ["crates/conduit-http", "crates/conduit-web", "crates/conduit-zenoh"]
+      "validator": "external-standard",
+      "locations": [
+        "crates/conduit-http",
+        "crates/conduit-web",
+        "crates/conduit-zenoh",
+        "spec/040-zenoh-reference-transport.md",
+        "spec/048-http-serving-profile.md"
+      ]
+    },
+    {
+      "family": "c2-c3-integration-audit-history",
+      "classification": "historical-non-normative-record",
+      "validator": "historical-record",
+      "locations": [
+        "audits/2026-07-29-c2-c3-integration.md"
+      ]
+    },
+    {
+      "family": "deliberately-rejected-version-inputs",
+      "classification": "rejected-input-fixture",
+      "validator": "rejected-input",
+      "locations": [
+        "conformance/c3/conduct-run-stream.json",
+        "conformance/c3/panel-grammar.json",
+        "crates/conduit-diagnostics/tests/diagnostic_vectors.rs",
+        "fuzz/corpus/exact_plan/malformed",
+        "xtask/src/commands/pre_release_version_gate.rs"
+      ]
+    },
+    {
+      "family": "release-compatibility-ledger",
+      "classification": "released-obligation",
+      "validator": "release-ledger",
+      "locations": [
+        "inventory/release-compatibility-exceptions.json"
+      ]
+    },
+    {
+      "family": "generated-browser-wasm",
+      "classification": "generated-from-current-source",
+      "validator": "generated-binary",
+      "locations": [
+        "tour/public/conduit_web_bg.wasm"
+      ]
     }
-  ],
-  "removed_unreleased_compatibility": [
-    "panel 1 and panel 2 parser branches",
-    "directional syntax one-time migrator",
-    "source AST version selectors and old hash domains",
-    "lowered-source readers and migrator",
-    "withdrawn run-stream writer",
-    "execution-plan version ladder",
-    "distributed binding and envelope version selectors",
-    "displaced source-lowering fixture"
   ],
   "released_obligations": []
 }

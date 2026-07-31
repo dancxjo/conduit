@@ -16,7 +16,7 @@
       "00",
       "ff",
       "0001ff",
-      "434e4401"
+      "434e4400"
     ],
     "recursion_depths": [
       0,
@@ -57,7 +57,7 @@
         {
           "id": "canonical",
           "path": "../c1/canonical.json",
-          "sha256": "sha256:6cbfffd65ec5dd0bc31915acbd2165e3dc6d78afa6d1b57941e05b9a855ecb75",
+          "sha256": "sha256:73195dcb8cebf60271857b5bcaabfbd4cd3a1af716d2421ba589a0bf25a23ff3",
           "operation": "canonical-descriptor",
           "requirement_ids": [
             "CAN-001",
@@ -84,7 +84,7 @@
         {
           "id": "canonical-negative",
           "path": "../c1/canonical.json",
-          "sha256": "sha256:6cbfffd65ec5dd0bc31915acbd2165e3dc6d78afa6d1b57941e05b9a855ecb75",
+          "sha256": "sha256:73195dcb8cebf60271857b5bcaabfbd4cd3a1af716d2421ba589a0bf25a23ff3",
           "operation": "canonical-descriptor-rejection",
           "requirement_ids": [
             "CAN-004",

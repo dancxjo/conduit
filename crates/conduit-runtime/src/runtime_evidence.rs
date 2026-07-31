@@ -1,4 +1,4 @@
-//! Hosted projection of bounded executor observations into ExecutionEvent v1.
+//! Hosted projection of bounded executor observations into current ExecutionEvent records.
 
 use std::fmt;
 use std::io::{self, Write};

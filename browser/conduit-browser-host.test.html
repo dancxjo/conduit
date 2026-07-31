@@ -353,7 +353,7 @@ assert(
 );
 
 const supervisionBinding = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 0,
   id: "fixture/browser-supervisor",
   scope: "child",
   subject: "root/subject",
@@ -501,7 +501,7 @@ const queuedProfile = Object.freeze({
   cancellationScopes: 1,
 });
 const poolContract = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 0,
   pool: "root/pool.workers",
   planIdentity: "fixture/browser-plan",
   templateIdentity: "fixture/worker-template",

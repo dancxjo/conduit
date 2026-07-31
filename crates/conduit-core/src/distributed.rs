@@ -219,13 +219,13 @@ pub struct PlanDistributedCord<'a> {
     pub backend: PinnedDescriptor<'a>,
     /// Exact selected backend artifact.
     pub backend_artifact: Option<PlanArtifact<'a>>,
-    /// Exact bounded host-operation profile. Absent only in schema 1.
+    /// Exact bounded host-operation profile. Absent only before host resolution.
     pub backend_profile: Option<PinnedDescriptor<'a>>,
     pub carrier_security: PinnedDescriptor<'a>,
     /// Explicit selected protection.
     pub carrier_security_mode: Option<CarrierSecurityMode>,
     /// Exact resolved carrier endpoint. It remains carrier-owned text rather
-    /// than a semantic Conduit identifier. Absent only in schema 1.
+    /// than a semantic Conduit identifier. Absent only before host resolution.
     pub carrier_endpoint: Option<&'a str>,
     /// Carrier-owned binding (for example a resolved topic or key
     /// expression), distinct from the semantic cord ID.

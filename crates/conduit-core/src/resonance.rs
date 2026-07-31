@@ -157,7 +157,7 @@ pub struct EvidenceStreamExtension<'a> {
     pub integrity: SemanticHash,
 }
 
-/// Extend current ExecutionEvent v1 without changing its identity or semantics.
+/// Extend the current ExecutionEvent without changing its identity or semantics.
 pub fn extend_execution_event<'a>(
     event: ExecutionEvent<'a>,
     policy: EvidencePolicy,

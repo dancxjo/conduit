@@ -2,7 +2,7 @@
 // All arrays are allocated to plan maxima at construction; no callback,
 // Promise, worker, or transport queue is created by this controller.
 
-export const POOL_CONTRACT_VERSION = 1;
+export const POOL_CONTRACT_VERSION = 0;
 
 export const PoolReason = Object.freeze({
   InvalidContract: "CND-POL-001",

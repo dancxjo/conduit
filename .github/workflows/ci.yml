@@ -29,6 +29,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
       - run: cargo xtask release-gate --check --output target/release-evidence.json
+      - run: cargo xtask pre-release-version-gate
       - run: cargo xtask catalog-index --check
       - uses: actions/upload-artifact@v4
         with:
