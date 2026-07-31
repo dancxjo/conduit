@@ -31,6 +31,7 @@ _conduct() {
 '--enable-file-watch[Explicitly install the bounded example file-watch provider]' \
 '--enable-storage-cache[Explicitly install the bounded evictable blob-cache provider]' \
 '--enable-process-exec[Explicitly install the bounded closed-inventory process provider]' \
+'--enable-socket-loopback[Explicitly install the bounded numeric-loopback socket providers]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \
