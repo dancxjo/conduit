@@ -222,6 +222,10 @@ pub struct Arguments {
     #[arg(long)]
     pub enable_storage_cache: bool,
 
+    /// Explicitly install the bounded closed-inventory process provider.
+    #[arg(long)]
+    pub enable_process_exec: bool,
+
     /// Additive read-only operations.
     #[command(subcommand)]
     pub secondary: Option<SecondaryCommand>,

@@ -76,6 +76,24 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
     if entry.proof == "canonical-storage-cache" {
         command.arg("--enable-storage-cache");
     }
+    if entry.proof == "canonical-process-exec" {
+        command.arg("--enable-process-exec");
+        command
+            .arg(&entry.path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut child = command.spawn().expect("process exec conduct starts");
+        child
+            .stdin
+            .take()
+            .expect("process exec stdin")
+            .write_all(b"bounded process bytes\n")
+            .expect("process exec stdin writes");
+        return child
+            .wait_with_output()
+            .expect("process exec conduct completes");
+    }
     command.arg(&entry.path).output().expect("conduct executes")
 }
 
@@ -491,6 +509,84 @@ fn storage_cache_exact_plan_pins_distinct_provider_resource_grant_and_bounds() {
         );
         assert!(authority.commit_profile.is_some());
     }
+}
+
+#[test]
+fn process_exec_exact_plan_pins_provider_executable_authority_and_stream_bounds() {
+    let root = root();
+    let source =
+        fs::read_to_string(root.join("examples/process-exec.panel")).expect("process example");
+    let absent = conduit_compile::InstalledProfile::observe_registry(
+        &source,
+        &conduit_runtime::Registry::hosted_primitives(),
+    )
+    .err()
+    .expect("known process contract does not imply an installed provider");
+    assert_eq!(absent.code, "CND-IMP-001");
+
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_process::register_hosted_process_provider(&mut registry)
+        .expect("process provider links");
+    let installed = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .expect("process installed profile resolves");
+    let candidate = installed
+        .input
+        .candidates
+        .iter()
+        .find(|candidate| {
+            candidate.implementation.semantic_contract.id == "conduit.host/process/exec"
+        })
+        .expect("process candidate");
+    assert_eq!(candidate.implementation.id, "conduit/process-exec-hosted");
+    assert_eq!(candidate.authorities.len(), 1);
+    assert_eq!(candidate.authorities[0].status, "active");
+    assert_eq!(
+        candidate.authorities[0].grant.id,
+        "conduit.grant/process-exec"
+    );
+    assert_eq!(
+        candidate.authorities[0].grant.resource_id,
+        "conduit.executable/process-fixture"
+    );
+
+    let document =
+        conduit_compile::compile_source(&source, &installed.input).expect("exact plan compiles");
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).expect("exact plan loads");
+    let node = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "conduit.host/process/exec")
+        .expect("process node is planned");
+    assert_eq!(
+        node.implementation.id.as_str(),
+        "conduit/process-exec-hosted"
+    );
+    assert_eq!(
+        node.artifact.as_str(),
+        "conduit/process-exec-hosted-artifact"
+    );
+    assert_eq!(node.host.as_str(), "conduit/conduct-host");
+    let profile = node.execution_profile.expect("execution profile is pinned");
+    assert_eq!(profile.limits.max_input_bytes, 64 * 1024);
+    assert_eq!(profile.limits.max_output_bytes, 64 * 1024);
+    assert_eq!(profile.limits.max_pending_operations, 1);
+    assert_eq!(profile.limits.max_timers, 1);
+    let authority = plan
+        .authorities
+        .iter()
+        .find(|authority| authority.node == node.instance)
+        .expect("process authority is planned");
+    assert_eq!(authority.grant.id.as_str(), "conduit.grant/process-exec");
+    assert_eq!(
+        authority.binding.resource.id.as_str(),
+        "conduit.executable/process-fixture"
+    );
+    assert_eq!(
+        authority.binding.resource.kind.as_str(),
+        "conduit.resource/executable"
+    );
+    assert!(authority.commit_profile.is_some());
 }
 
 #[test]

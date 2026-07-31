@@ -223,6 +223,9 @@ enum Completion {
 }
 
 fn main() -> ExitCode {
+    if let Some(exit) = conduit_process::fixture_entrypoint() {
+        return exit;
+    }
     let raw_arguments: Vec<OsString> = env::args_os().skip(1).collect();
     let environment = EnvironmentPolicy::capture();
     let stderr_is_terminal = io::stderr().is_terminal();
@@ -373,6 +376,15 @@ fn run(
         }
         if arguments.enable_storage_cache {
             conduit_cache::register_hosted_cache_provider(&mut registry).map_err(|error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            })?;
+        }
+        if arguments.enable_process_exec {
+            conduit_process::register_hosted_process_provider(&mut registry).map_err(|error| {
                 cli_error(
                     simple_diagnostic(error.code, &error.message),
                     presentation,

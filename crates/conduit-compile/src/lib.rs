@@ -1912,6 +1912,7 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
 fn custom_leaf_id(id: &str) -> bool {
     id.contains('/')
         && !id.starts_with("conduit/")
+        && !id.starts_with("conduit.host/")
         && !id.starts_with("std/")
         && !id.starts_with("io/")
         && !id.starts_with("text/")
@@ -3048,7 +3049,10 @@ fn rewrite_node_kind(
     module: &conduit_panel::ResolvedModule,
     modules: &BTreeMap<&str, &conduit_panel::ResolvedModule>,
 ) -> Result<String, CompileError> {
-    if kind.starts_with("module.h") || kind.starts_with("conduit.std/") {
+    if kind.starts_with("module.h")
+        || kind.starts_with("conduit.std/")
+        || kind.starts_with("conduit.host/")
+    {
         return Ok(kind.to_owned());
     }
     if module

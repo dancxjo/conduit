@@ -606,6 +606,13 @@ fn host_service_authority(contract_id: &str, instance: &str) -> Option<Authority
             "conduit.resource/evictable-blob-cache",
             "conduit.resource/storage-cache-example-remove",
         ),
+        "conduit.host/process/exec" => (
+            "process-exec",
+            "sha256:5050505050505050505050505050505050505050505050505050505050505050",
+            "conduit.action/execute",
+            "conduit.resource/executable",
+            "conduit.executable/process-fixture",
+        ),
         "net/http/serve-once" => (
             "http-loopback-listen",
             "sha256:4848484848484848484848484848484848484848484848484848484848484848",

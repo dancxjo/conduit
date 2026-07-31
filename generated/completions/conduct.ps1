@@ -36,6 +36,7 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             [CompletionResult]::new('--enable-file-write', '--enable-file-write', [CompletionResultType]::ParameterName, 'Explicitly install the bounded example file-write provider')
             [CompletionResult]::new('--enable-file-watch', '--enable-file-watch', [CompletionResultType]::ParameterName, 'Explicitly install the bounded example file-watch provider')
             [CompletionResult]::new('--enable-storage-cache', '--enable-storage-cache', [CompletionResultType]::ParameterName, 'Explicitly install the bounded evictable blob-cache provider')
+            [CompletionResult]::new('--enable-process-exec', '--enable-process-exec', [CompletionResultType]::ParameterName, 'Explicitly install the bounded closed-inventory process provider')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('-V', '-V ', [CompletionResultType]::ParameterName, 'Print version')

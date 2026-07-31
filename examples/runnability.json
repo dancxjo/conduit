@@ -33,6 +33,7 @@
     {"path":"examples/interface-primitive-satisfaction.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-PRT-002"},
     {"path":"examples/ollama-text.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/patchbay.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"TOUR/META-LESSON\n"},
+    {"path":"examples/process-exec.panel","state":"runnable","profile":"hosted","proof":"canonical-process-exec","expected_stdout":"bounded process bytes\n"},
     {"path":"examples/resource-lease-cleanup.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"LEASED EFFECT BOUNDARIES STAY EXPLICIT.\n"},
     {"path":"examples/state-cache.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"stored,alpha,invalidated,miss"},
     {"path":"examples/state-cell.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"initial,first,second"},

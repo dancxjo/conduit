@@ -291,7 +291,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -380,7 +380,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -490,7 +490,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -579,7 +579,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -683,7 +683,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1041,7 +1041,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1676,7 +1676,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2180,7 +2180,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2797,7 +2797,7 @@
         {
           "implementation": "conduit/hosted-file-chunk-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3200,7 +3200,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3213,6 +3213,58 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.io.stderr.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "io/stderr-stream",
+      "public_source_spelling": "io/stderr-stream",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.io",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.io",
+      "export_path": "conduit.host.io/io/stderr-stream",
+      "schema_version": 0,
+      "semantic_hash": "sha256:234b8039c076c4c4d8e981404b14490d60743ca4f47133a7302c418847ec540f",
+      "ports": [
+        {
+          "id": "bytes",
+          "direction": "input",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-stderr-stream",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.io/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.io.stderr-stream.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.io.stderr-stream.composition",
         "status": "required"
       },
       "successor": null,
@@ -3252,7 +3304,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3265,6 +3317,58 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.io.stdin.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "io/stdin-stream",
+      "public_source_spelling": "io/stdin-stream",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.io",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.io",
+      "export_path": "conduit.host.io/io/stdin-stream",
+      "schema_version": 0,
+      "semantic_hash": "sha256:ebe45c2574bbf84e385337f4c1bff4d843d0282cfbc561e4b26f9597eacce881",
+      "ports": [
+        {
+          "id": "bytes",
+          "direction": "output",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-stdin-stream",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.io/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.io.stdin-stream.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.io.stdin-stream.composition",
         "status": "required"
       },
       "successor": null,
@@ -3304,7 +3408,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3318,6 +3422,58 @@
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#platform.cross-host-provider-conformance",
         "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "io/stdout-stream",
+      "public_source_spelling": "io/stdout-stream",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.io",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.io",
+      "export_path": "conduit.host.io/io/stdout-stream",
+      "schema_version": 0,
+      "semantic_hash": "sha256:1861ffaa4298954bff3057d178e8914bfccf3e9d1905432592871c36c30b73ad",
+      "ports": [
+        {
+          "id": "bytes",
+          "direction": "input",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-stdout-stream",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.io/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.io.stdout-stream.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.io.stdout-stream.composition",
+        "status": "required"
       },
       "successor": null,
       "deprecation": null,
@@ -5232,7 +5388,7 @@
         {
           "implementation": "conduit/hosted-state-cache",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5381,7 +5537,7 @@
         {
           "implementation": "conduit/hosted-state-cell",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5671,7 +5827,7 @@
         {
           "implementation": "conduit/hosted-state-deduplicate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5959,7 +6115,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6063,7 +6219,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6161,7 +6317,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6265,7 +6421,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6390,7 +6546,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6554,7 +6710,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6613,7 +6769,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6742,7 +6898,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6801,7 +6957,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6883,7 +7039,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6981,7 +7137,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7061,7 +7217,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7659,7 +7815,7 @@
         {
           "implementation": "conduit/hosted-supervision-circuit-breaker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8030,7 +8186,7 @@
         {
           "implementation": "conduit/hosted-supervision-retry",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8602,7 +8758,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8890,7 +9046,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9006,7 +9162,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9294,7 +9450,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9481,7 +9637,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:3a367e8011a8a1586193e27080f68291bd673d5faceb44937e1b73895ddf9b51"
+          "artifact_digest": "sha256:be57541909619d064269ad5d679009afa0d5511167fabc8a9f462bb64cff2b37"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

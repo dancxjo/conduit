@@ -321,6 +321,7 @@ dependencies = [
  "conduit-inspect",
  "conduit-package",
  "conduit-panel",
+ "conduit-process",
  "conduit-runtime",
  "serde",
  "serde_json",
@@ -461,6 +462,16 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "conduit-process"
+version = "0.0.0-dev"
+dependencies = [
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "conduit-std",
 ]
 
 [[package]]

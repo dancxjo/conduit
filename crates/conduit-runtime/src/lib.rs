@@ -394,6 +394,36 @@ const BYTES_OUTPUT: PortContract<'static> = PortContract {
     value_type: BYTES_TYPE,
     ..TEXT_OUTPUT
 };
+const BYTES_STREAM_INPUT: PortContract<'static> = PortContract {
+    id: Id("bytes"),
+    direction: Direction::Input,
+    value_type: BYTES_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Restricted,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const BYTES_STREAM_OUTPUT: PortContract<'static> = PortContract {
+    id: Id("bytes"),
+    direction: Direction::Output,
+    value_type: BYTES_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Restricted,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
 const FORMAT_TEMPLATE_INPUT: PortContract<'static> = PortContract {
     id: Id("template"),
     direction: Direction::Input,
@@ -584,6 +614,12 @@ pub const STDIN_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[],
     outputs: &[BYTES_OUTPUT],
 };
+pub const STDIN_STREAM_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("io/stdin-stream"),
+    config: EMPTY_CONFIG,
+    inputs: &[],
+    outputs: &[BYTES_STREAM_OUTPUT],
+};
 pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("text/uppercase"),
     config: EMPTY_CONFIG,
@@ -711,6 +747,18 @@ pub const STDERR_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("io/stderr"),
     config: EMPTY_CONFIG,
     inputs: &[BYTES_INPUT],
+    outputs: &[],
+};
+pub const STDOUT_STREAM_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("io/stdout-stream"),
+    config: EMPTY_CONFIG,
+    inputs: &[BYTES_STREAM_INPUT],
+    outputs: &[],
+};
+pub const STDERR_STREAM_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("io/stderr-stream"),
+    config: EMPTY_CONFIG,
+    inputs: &[BYTES_STREAM_INPUT],
     outputs: &[],
 };
 pub const DISPLAY_TEXT_CONTRACT: NodeContract<'static> = NodeContract {
@@ -969,6 +1017,7 @@ pub enum HostedPrimitiveImplementation {
     Lines,
     Join,
     Stdin,
+    StdinStream,
     Uppercase,
     DataEncodeUtf8,
     DataDecodeUtf8,
@@ -989,6 +1038,8 @@ pub enum HostedPrimitiveImplementation {
     SupervisionCircuitBreaker,
     Stdout,
     Stderr,
+    StdoutStream,
+    StderrStream,
     DisplayText,
     PassThrough,
     Tee,
@@ -1931,6 +1982,11 @@ impl Registry {
         install(&FORMAT_CONTRACT, || Box::new(Format), validate_format);
         install(&STDIN_CONTRACT, || Box::new(Stdin), validate_empty_config);
         install(
+            &STDIN_STREAM_CONTRACT,
+            || Box::new(Stdin),
+            validate_empty_config,
+        );
+        install(
             &UPPERCASE_CONTRACT,
             || Box::new(Uppercase),
             validate_empty_config,
@@ -2014,6 +2070,16 @@ impl Registry {
         }
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
+        install(
+            &STDOUT_STREAM_CONTRACT,
+            || Box::new(Stdout),
+            validate_empty_config,
+        );
+        install(
+            &STDERR_STREAM_CONTRACT,
+            || Box::new(Stderr),
+            validate_empty_config,
+        );
         install(
             &DISPLAY_TEXT_CONTRACT,
             || Box::new(DisplayText),
@@ -2182,6 +2248,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 validate_empty_config,
             ),
             (
+                &STDIN_STREAM_CONTRACT,
+                "stdin-stream",
+                HostedPrimitiveImplementation::StdinStream,
+                || Box::new(Stdin),
+                validate_empty_config,
+            ),
+            (
                 &UPPERCASE_CONTRACT,
                 "uppercase",
                 HostedPrimitiveImplementation::Uppercase,
@@ -2318,6 +2391,20 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 &STDERR_CONTRACT,
                 "stderr",
                 HostedPrimitiveImplementation::Stderr,
+                || Box::new(Stderr),
+                validate_empty_config,
+            ),
+            (
+                &STDOUT_STREAM_CONTRACT,
+                "stdout-stream",
+                HostedPrimitiveImplementation::StdoutStream,
+                || Box::new(Stdout),
+                validate_empty_config,
+            ),
+            (
+                &STDERR_STREAM_CONTRACT,
+                "stderr-stream",
+                HostedPrimitiveImplementation::StderrStream,
                 || Box::new(Stderr),
                 validate_empty_config,
             ),
@@ -2487,6 +2574,14 @@ impl Default for Registry {
             honest_primitive(&STDIN_CONTRACT, || Box::new(Stdin), validate_empty_config),
         );
         nodes.insert(
+            STDIN_STREAM_CONTRACT.id.as_str(),
+            honest_primitive(
+                &STDIN_STREAM_CONTRACT,
+                || Box::new(Stdin),
+                validate_empty_config,
+            ),
+        );
+        nodes.insert(
             UPPERCASE_CONTRACT.id.as_str(),
             honest_primitive(
                 &UPPERCASE_CONTRACT,
@@ -2548,6 +2643,22 @@ impl Default for Registry {
         nodes.insert(
             STDERR_CONTRACT.id.as_str(),
             honest_primitive(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config),
+        );
+        nodes.insert(
+            STDOUT_STREAM_CONTRACT.id.as_str(),
+            honest_primitive(
+                &STDOUT_STREAM_CONTRACT,
+                || Box::new(Stdout),
+                validate_empty_config,
+            ),
+        );
+        nodes.insert(
+            STDERR_STREAM_CONTRACT.id.as_str(),
+            honest_primitive(
+                &STDERR_STREAM_CONTRACT,
+                || Box::new(Stderr),
+                validate_empty_config,
+            ),
         );
         nodes.insert(
             DISPLAY_TEXT_CONTRACT.id.as_str(),
@@ -4571,6 +4682,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Lines => "std/text/lines",
                 HostedPrimitiveImplementation::Join => "std/text/join",
                 HostedPrimitiveImplementation::Stdin => "io/stdin",
+                HostedPrimitiveImplementation::StdinStream => "io/stdin-stream",
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
                 HostedPrimitiveImplementation::DataEncodeUtf8 => "std/data/encode-utf8",
                 HostedPrimitiveImplementation::DataDecodeUtf8 => "std/data/decode-utf8",
@@ -4599,6 +4711,8 @@ impl ResolvedPanel<'_> {
                 }
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
+                HostedPrimitiveImplementation::StdoutStream => "io/stdout-stream",
+                HostedPrimitiveImplementation::StderrStream => "io/stderr-stream",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
                 HostedPrimitiveImplementation::PassThrough => "flow/identity",
                 HostedPrimitiveImplementation::Tee => "conduit.std/tee",
@@ -4730,6 +4844,9 @@ impl ResolvedPanel<'_> {
                     maximum_output_bytes: source_usize(&resolved.source, "maximum_output_bytes")?,
                 },
                 HostedPrimitiveImplementation::Stdin => HostedNodeKind::Stdin { emitted: false },
+                HostedPrimitiveImplementation::StdinStream => {
+                    HostedNodeKind::Stdin { emitted: false }
+                }
                 HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
                 HostedPrimitiveImplementation::DataEncodeUtf8
                 | HostedPrimitiveImplementation::DataDecodeUtf8 => HostedNodeKind::DataUtf8 {
@@ -4995,6 +5112,8 @@ impl ResolvedPanel<'_> {
                 }
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
+                HostedPrimitiveImplementation::StdoutStream => HostedNodeKind::Stdout,
+                HostedPrimitiveImplementation::StderrStream => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
                 HostedPrimitiveImplementation::PassThrough => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::Tee => HostedNodeKind::Tee {
