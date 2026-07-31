@@ -146,10 +146,22 @@ const fn port(id: &'static str, direction: Direction) -> PortContract<'static> {
             Direction::Input => ConnectionCardinality::ExactlyOne,
             Direction::Output => ConnectionCardinality::OneOrMore,
         },
-        values: ValueCardinality::ExactlyOne,
-        delivery: Delivery::FiniteBatch,
-        temporal: TemporalContract::Committed,
-        terminal: TerminalContract::Finite,
+        values: match direction {
+            Direction::Input => ValueCardinality::ExactlyOne,
+            Direction::Output => ValueCardinality::ExactlyOne,
+        },
+        delivery: match direction {
+            Direction::Input => Delivery::FiniteBatch,
+            Direction::Output => Delivery::Stream,
+        },
+        temporal: match direction {
+            Direction::Input => TemporalContract::Atemporal,
+            Direction::Output => TemporalContract::Committed,
+        },
+        terminal: match direction {
+            Direction::Input => TerminalContract::Finite,
+            Direction::Output => TerminalContract::Finite,
+        },
         sensitivity: Sensitivity::Public,
         flow: PortFlowConstraints {
             loss: LossAcceptance::LosslessOnly,

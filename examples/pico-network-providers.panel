@@ -1,0 +1,26 @@
+# Compose isolated attachment with one bounded lease operation, without radio I/O.
+panel 0
+
+node ap_request : std/literal { value = "start-isolated" }
+node dhcp_request : std/literal { value = "discover:motherbrain-fixture" }
+node wifi_ap : net/wifi/access-point {
+    resource = secret("conduit.resource/network-fixture") grant = secret("conduit.grant/network-fixture") interface = "fixture/ap0"
+    maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
+    ssid_prefix = "pete-" address = "192.168.4.1" maximum_clients = 8 routing = "forbidden" bridging = "forbidden" nat = "forbidden"
+}
+node dhcp : net/dhcp/server {
+    resource = secret("conduit.resource/network-fixture") grant = secret("conduit.grant/network-fixture") interface = "fixture/ap0"
+    maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
+    server_address = "192.168.4.1" pool_first = "192.168.4.2" pool_last = "192.168.4.9" maximum_leases = 8 lease_ticks = 3600000
+}
+node ap_summary : std/text/join { separator = "" maximum_items = 1 maximum_item_bytes = 256 maximum_separator_bytes = 1 maximum_output_bytes = 256 }
+node dhcp_summary : std/text/join { separator = "" maximum_items = 1 maximum_item_bytes = 256 maximum_separator_bytes = 1 maximum_output_bytes = 256 }
+node ap_display : display/text
+node dhcp_display : display/text
+
+cord ap_request.value -> wifi_ap.configuration { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord dhcp_request.value -> dhcp.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord wifi_ap.state -> ap_summary.item { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord dhcp.lease -> dhcp_summary.item { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord ap_summary.text -> ap_display.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord dhcp_summary.text -> dhcp_display.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }

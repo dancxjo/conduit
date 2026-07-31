@@ -3,7 +3,7 @@ mod support;
 use conduit_panel::Node;
 use conduit_runtime::{
     AvailabilityState, DNS_RESOLVER_CONTRACT, Handler, Registry, RunIo, RuntimeError, Value,
-    WIFI_AP_CONTRACT, WIFI_STATION_CONTRACT,
+    WIFI_STATION_CONTRACT,
 };
 
 struct Impostor;
@@ -21,11 +21,7 @@ impl Handler for Impostor {
 
 #[test]
 fn wifi_socket_and_dns_callbacks_cannot_claim_network_conformance() {
-    let mut contracts = vec![
-        &WIFI_STATION_CONTRACT,
-        &WIFI_AP_CONTRACT,
-        &DNS_RESOLVER_CONTRACT,
-    ];
+    let mut contracts = vec![&WIFI_STATION_CONTRACT, &DNS_RESOLVER_CONTRACT];
     contracts.extend(
         [
             "conduit.host/net/tcp/connect",

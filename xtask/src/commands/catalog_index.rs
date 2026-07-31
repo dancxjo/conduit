@@ -252,6 +252,11 @@ fn fixture(id: &str, classification: &str) -> &'static str {
         "conformance/c4/http-client.json"
     } else if matches!(
         id,
+        "net/wifi/access-point" | "net/dhcp/server" | "net/reachability" | "net/dns-sd"
+    ) {
+        "conformance/c4/netherwick-network.json"
+    } else if matches!(
+        id,
         "conduit.media/wave/literal"
             | "conduit.media/container/probe"
             | "conduit.media/container/demux"
@@ -321,6 +326,9 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             _,
         ) => Some("library.bounded-sockets"),
         ("net/http/request/literal" | "net/http/fetch", _) => Some("library.bounded-http-client"),
+        ("net/wifi/access-point" | "net/dhcp/server" | "net/reachability" | "net/dns-sd", _) => {
+            Some("library.bounded-brainstem-network")
+        }
         (
             "storage/blob/literal"
             | "storage/cache/put"
@@ -386,6 +394,7 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     conduit_media::register_media_codec_contracts(&mut registry);
     conduit_learned::register_learned_contracts(&mut registry);
     conduit_spatial::register_spatial_contracts(&mut registry);
+    conduit_net::register_network_contracts(&mut registry);
     let standard = conduit_std::STANDARD_CATALOG
         .iter()
         .map(|entry| entry.contract.id.as_str())

@@ -273,6 +273,9 @@ containment program is tracked by
   defines explicit bounded frames, transforms, stamped values, clock
   conversion, uncertainty, calibration, lookup, interpolation, and projection
   without an ambient world or framework identity.
+- [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
+  separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
+  observation, and Netherwick robot authority with finite no-radio fixtures.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

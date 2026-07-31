@@ -906,12 +906,6 @@ pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[named_text_input("configuration")],
     outputs: &[named_text_output("state")],
 };
-pub const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/wifi/access-point"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("configuration")],
-    outputs: &[named_text_output("state")],
-};
 pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/interface"),
     config: EMPTY_CONFIG,
@@ -2911,7 +2905,6 @@ impl Default for Registry {
             standard_supervision_contract("supervision/circuit-breaker"),
             &HEALTH_GATE_CONTRACT,
             &WIFI_STATION_CONTRACT,
-            &WIFI_AP_CONTRACT,
             &NETWORK_INTERFACE_CONTRACT,
             &DNS_RESOLVER_CONTRACT,
             &HTTP_SERVE_ONCE_CONTRACT,

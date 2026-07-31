@@ -1,15 +1,12 @@
-# One bounded deterministic no-radio access-point contract proof.
 panel 0
-
-node request : std/literal { value = "start-isolated" }
-node wifi_ap : net/wifi/access-point {
+node request : std/literal { value = "publish:pete.local" }
+node dns_sd : net/dns-sd {
     resource = secret("conduit.resource/network-fixture") grant = secret("conduit.grant/network-fixture") interface = "fixture/ap0"
     maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
-    ssid_prefix = "pete-" address = "192.168.4.1" maximum_clients = 8 routing = "forbidden" bridging = "forbidden" nat = "forbidden"
+    name = "pete.local" address = "192.168.4.1" ttl_ticks = 120000 maximum_records = 8 maximum_name_bytes = 63
 }
 node summary : std/text/join { separator = "" maximum_items = 1 maximum_item_bytes = 256 maximum_separator_bytes = 1 maximum_output_bytes = 256 }
 node display : display/text
-
-cord request.value -> wifi_ap.configuration { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord wifi_ap.state -> summary.item { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord request.value -> dns_sd.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord dns_sd.record -> summary.item { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
 cord summary.text -> display.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }

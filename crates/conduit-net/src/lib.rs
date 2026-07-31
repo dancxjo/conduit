@@ -875,4 +875,60 @@ mod tests {
             .unwrap();
         evidence.push(5, EvidenceKind::Terminal, None).unwrap();
     }
+
+    #[test]
+    fn conformance_inventory_owns_every_required_boundary_and_fixture() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/c4/netherwick-network.json"
+        ))
+        .unwrap();
+        let ownership = fixture["ownership"].as_array().unwrap();
+        for required in [
+            "ap",
+            "dhcp",
+            "icmp",
+            "tcp",
+            "udp",
+            "http",
+            "sse",
+            "websocket",
+            "mdns",
+            "motherbrain-registration",
+            "create-uart",
+        ] {
+            assert!(ownership.iter().any(|entry| entry["behavior"] == required));
+        }
+        let cases = fixture["cases"].as_array().unwrap();
+        for required in [
+            "zero-client",
+            "eight-clients",
+            "ninth-client",
+            "renew",
+            "expiry",
+            "client-identity-change",
+            "wrong-boot",
+            "wrong-device",
+            "stale-registration",
+            "ap-unavailable",
+            "cyw43-init-failure",
+            "malformed-packet",
+            "icmp-rate-bound",
+            "tcp-port-conflict",
+            "udp-port-conflict",
+            "http-sse-websocket-cancellation",
+            "mdns-name-conflict",
+            "pressure",
+            "cancel",
+            "reboot",
+            "provider-loss",
+            "no-route-no-bridge-no-nat",
+            "describe-only-no-effects",
+            "network-never-grants-robot-authority",
+        ] {
+            assert!(
+                cases.iter().any(|case| case["id"] == required),
+                "{required}"
+            );
+        }
+    }
 }

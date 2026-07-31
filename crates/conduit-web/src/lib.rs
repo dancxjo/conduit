@@ -374,6 +374,8 @@ fn browser_registry() -> Registry {
         .expect("deterministic inference providers have distinct identities");
     conduit_spatial::register_deterministic_spatial_provider(&mut registry)
         .expect("deterministic spatial providers have distinct identities");
+    conduit_net::register_deterministic_network_fixture_providers(&mut registry)
+        .expect("deterministic network fixture providers have distinct identities");
     for provider in [
         CompiledInHostService {
             contract: file_read_contract(),

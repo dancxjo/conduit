@@ -3302,6 +3302,71 @@
       }
     },
     {
+      "id": "library.bounded-brainstem-network",
+      "chapter": 4,
+      "title": "A small isolated network without robot authority",
+      "prerequisites": ["platform.cross-host-provider-conformance", "library.bounded-sockets"],
+      "objective": "Run one bounded no-radio access-point fixture, then inspect how attachment, leases, reachability, discovery, transport, application sessions, and robot authority remain separate.",
+      "prose": "The checked provider is a deterministic fixture: it opens no radio or socket and never claims that a Pico W is initialized. A physical binding separately pins firmware, build, device, boot, interface, address, provider, resource, authority and a fresh current observation. The AP stays isolated: no route, bridge or NAT. DHCP is an eight-slot expiring lease table, ICMP is rate bounded, and DNS-SD publishes a finite local record. TCP/UDP remain conduit-socket contracts; HTTP/SSE/WebSocket remain conduit-http contracts. Discovery never enrolls, possesses, arms, stops or moves Pete.",
+      "vocabulary": ["compiled inventory", "current provider observation", "lease generation", "DNS-SD", "no-route boundary", "discovery is not authority"],
+      "source": "panel 0\n\nnode request : std/literal { value = \"start-isolated\" }\nnode wifi_ap : net/wifi/access-point {\n  resource = secret(\"conduit.resource/network-fixture\") grant = secret(\"conduit.grant/network-fixture\") interface = \"fixture/ap0\"\n  maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = \"cancel-before-commit\"\n  ssid_prefix = \"pete-\" address = \"192.168.4.1\" maximum_clients = 8 routing = \"forbidden\" bridging = \"forbidden\" nat = \"forbidden\"\n}\nnode summary : std/text/join { separator = \"\" maximum_items = 1 maximum_item_bytes = 256 maximum_separator_bytes = 1 maximum_output_bytes = 256 }\nnode display : display/text\ncord request.value -> wifi_ap.configuration { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord wifi_ap.state -> summary.item { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\ncord summary.text -> display.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct examples/wifi-ap-isolated.panel",
+      "commands": ["conduct examples/wifi-ap-isolated.panel", "conduct examples/dhcp-server.panel", "conduct examples/icmp-reachability.panel", "conduct examples/dns-sd-local.panel", "conduct examples/pico-network-providers.panel"],
+      "expected_display": "wifi-ap:pete-fixture:192.168.4.1:clients=8:no-route:no-bridge:no-nat",
+      "profile": "browser-dedicated-worker",
+      "budgets": {"runtime_ticks":32,"queue_bytes":576,"evidence_events":32},
+      "presentation": {
+        "layout": "bounded-brainstem-network-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": ["contract_id","compiled_inventory","firmware_artifact","device_identity","boot_identity","interface_generation","provider_observation","observation_validity","address","client_limit","lease_generation","lease_expiry","packet_limit","icmp_rate","name_record_limit","record_expiry","transport_owner","application_owner","resource","authority","queue","pressure","cancellation","provider_loss","error","terminal","routing","bridging","nat","robot_authority"]
+      },
+      "validation": {"kind":"display","value":"wifi-ap:pete-fixture:192.168.4.1:clients=8:no-route:no-bridge:no-nat"},
+      "hints": [
+        "Describe-only inventory has no provider observation and cannot start the fixture or a radio.",
+        "The ninth DHCP client, stale registration, wrong boot/device, ICMP overflow, port or mDNS conflict, cancellation, reboot and provider loss each have distinct bounded outcomes.",
+        "No network value can become a Create UART handle, possession lease, safety grant or motor authority."
+      ],
+      "solution": "Keep every requested network limit in the exact plan, bind physical execution only through fresh host evidence and an enforced effect backend, and retain explicit ownership boundaries for transports, application sessions, discovery and robot authority.",
+      "accessibility": {
+        "non_audio": "An ordered event table names inventory, observation freshness, device, boot, interface, address, lease generation and expiry, ICMP rate, DNS-SD record and expiry, queue pressure, cancellation, provider loss, no-route state, error and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered network event table has focus.",
+        "color_independent": "Every state is duplicated by an exact identity, numeric bound, ownership label, diagnostic or terminal word."
+      },
+      "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"},
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Four optional bounded network contracts expose attachment, leases, reachability and DNS-SD without ambient networking or robot authority.",
+        "what": "The AP admits one isolated fixed-address profile; DHCP maintains eight expiring leases; ICMP enforces a packet rate; DNS-SD publishes finite expiring local records.",
+        "when": "Use these contracts when a constrained or hosted provider must expose network attachment and discovery with exact limits and replaceable implementations.",
+        "wrong": "Uninitialized, stale or lost providers, lease exhaustion or expiry, changed identity, malformed or oversized packets, rate pressure, port/name conflicts, cancellation, reboot, routing and any discovery-as-authority attempt fail explicitly.",
+        "contracts": [
+          {"id":"net/wifi/access-point","kind":"node","inputs":["configuration:std/text"],"outputs":["state:std/text"],"policy":"isolated finite AP"},
+          {"id":"net/dhcp/server","kind":"node","inputs":["request:std/text"],"outputs":["lease:std/text"],"policy":"eight expiring leases"},
+          {"id":"net/reachability","kind":"node","inputs":["target:std/text"],"outputs":["observation:std/text"],"policy":"four packets per 1000 ticks"},
+          {"id":"net/dns-sd","kind":"node","inputs":["request:std/text"],"outputs":["record:std/text"],"policy":"eight finite local records"}
+        ],
+        "editable": ["maximum_clients:8","maximum_packet_bytes:1500","maximum_packets_per_window:4","ttl_ticks:1..120000","cancellation:cancel-before-commit"],
+        "provider": "deterministic no-radio fixture; physical Pico W availability requires a separate fresh initialized-provider observation and exact effect binding",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "contract, implementation, artifact, compiled inventory, current observation and exact binding remain distinct",
+          "finite clients, leases, packets, records, names, ports, queues, deadlines, cancellation and evidence",
+          "ordered request, admission, pressure, cancellation, provider loss, error and terminal outcomes",
+          "no route, bridge, NAT, enrollment, possession, service, safety or motor authority"
+        ],
+        "docs": ["../../spec/071-bounded-brainstem-network.md", "../../conformance/c4/netherwick-network.json", "../../examples/wifi-ap-isolated.panel", "../../examples/pico-network-providers.panel"],
+        "scenarios": [
+          {"id":"wifi-ap-standalone","title":"Isolated AP","panel":"../../examples/wifi-ap-isolated.panel","semantics":"One finite AP request yields isolated state without radio I/O."},
+          {"id":"dhcp-standalone","title":"Eight-slot lease service","panel":"../../examples/dhcp-server.panel","semantics":"One client receives a generation-bound expiring address."},
+          {"id":"icmp-standalone","title":"Rate-bounded reachability","panel":"../../examples/icmp-reachability.panel","semantics":"One numeric local target is admitted under exact packet and window ceilings."},
+          {"id":"dns-sd-standalone","title":"Finite local discovery","panel":"../../examples/dns-sd-local.panel","semantics":"One local record is published with a finite name table and TTL."},
+          {"id":"attachment-lease-composition","title":"Attachment plus lease","panel":"../../examples/pico-network-providers.panel","semantics":"AP attachment and DHCP lease behavior compose while retaining separate contracts, outputs and evidence."}
+        ]
+      }
+    },
+    {
       "id": "platform.panel-capsules",
       "chapter": 3,
       "title": "One program, four different records",

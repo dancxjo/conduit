@@ -30,6 +30,7 @@ conduit-http = { path = "../conduit-http" }
 conduit-inspect = { path = "../conduit-inspect" }
 conduit-learned = { path = "../conduit-learned" }
 conduit-media = { path = "../conduit-media" }
+conduit-net = { path = "../conduit-net" }
 conduit-package = { path = "../conduit-package" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-process = { path = "../conduit-process" }

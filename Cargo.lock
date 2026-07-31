@@ -322,6 +322,7 @@ dependencies = [
  "conduit-inspect",
  "conduit-learned",
  "conduit-media",
+ "conduit-net",
  "conduit-package",
  "conduit-panel",
  "conduit-process",
@@ -479,6 +480,7 @@ dependencies = [
  "conduit-core",
  "conduit-panel",
  "conduit-runtime",
+ "serde_json",
 ]
 
 [[package]]
@@ -597,6 +599,7 @@ dependencies = [
  "conduit-core",
  "conduit-learned",
  "conduit-media",
+ "conduit-net",
  "conduit-panel",
  "conduit-patchbay",
  "conduit-runtime",
@@ -3372,6 +3375,7 @@ dependencies = [
  "conduit-core",
  "conduit-learned",
  "conduit-media",
+ "conduit-net",
  "conduit-runtime",
  "conduit-spatial",
  "conduit-std",

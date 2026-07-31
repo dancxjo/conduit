@@ -108,7 +108,6 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "supervision/circuit-breaker",
         "supervision/health-gate",
         "net/wifi/join",
-        "net/wifi/access-point",
         "net/interface",
         "conduit.host/net/tcp/connect",
         "conduit.host/net/tcp/listen",

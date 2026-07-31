@@ -2821,13 +2821,6 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "host/wifi-station"
     ),
     host_entry!(
-        "net/wifi/access-point",
-        Network,
-        "configuration",
-        "state",
-        "host/wifi-access-point"
-    ),
-    host_entry!(
         "net/ip/configure-static",
         Network,
         "configuration",
@@ -2841,24 +2834,10 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "lease",
         "host/dhcp-client"
     ),
-    host_entry!(
-        "net/dhcp/server",
-        Network,
-        "configuration",
-        "lease",
-        "host/dhcp-server"
-    ),
     host_entry!("net/dns/resolve", Network, "name", "addresses", "host/dns"),
     host_entry!("net/route", Network, "route", "state", "host/route"),
     host_entry!("net/bridge", Network, "frame", "frame", "host/bridge"),
     host_entry!("net/nat", Network, "packet", "packet", "host/nat"),
-    host_entry!(
-        "net/reachability",
-        Network,
-        "target",
-        "observation",
-        "host/reachability"
-    ),
     {
         let mut value = entry!(
             "conduit.host/net/tcp/connect",

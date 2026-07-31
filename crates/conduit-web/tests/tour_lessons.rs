@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 36] = [
+const REQUIRED_TOUR_LESSONS: [&str; 37] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -26,6 +26,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 36] = [
     "library.bounded-media-codecs",
     "library.bounded-learned-inference",
     "library.bounded-spatial-foundation",
+    "library.bounded-brainstem-network",
     "library.standard-flow-control",
     "library.bounded-state",
     "library.bounded-supervision",
@@ -555,6 +556,78 @@ fn bounded_spatial_lesson_exposes_frames_calibration_and_finite_history() {
     assert_eq!(cancelled["terminal"], "cancelled");
     assert_eq!(cancelled["stdout"], "");
     assert_eq!(cancelled["stderr"], "");
+}
+
+#[test]
+fn bounded_brainstem_network_lesson_keeps_observation_and_robot_authority_separate() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-brainstem-network")
+        .expect("brainstem network lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "compiled_inventory",
+        "provider_observation",
+        "observation_validity",
+        "lease_generation",
+        "lease_expiry",
+        "icmp_rate",
+        "record_expiry",
+        "pressure",
+        "cancellation",
+        "provider_loss",
+        "routing",
+        "nat",
+        "robot_authority",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "net/dhcp/server",
+            "net/dns-sd",
+            "net/reachability",
+            "net/wifi/access-point",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(lesson["library"]["scenarios"].as_array().unwrap().len(), 5);
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    for forbidden in ["CreateUart", "motor_grant", "possession_grant"] {
+        assert!(!lesson["source"].as_str().unwrap().contains(forbidden));
+    }
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(
+        result["display"],
+        "wifi-ap:pete-fixture:192.168.4.1:clients=8:no-route:no-bridge:no-nat"
+    );
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
 }
 
 #[test]
