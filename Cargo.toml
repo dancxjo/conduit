@@ -13,6 +13,7 @@ members = [
     "crates/conduit-panel",
     "crates/conduit-patchbay",
     "crates/conduit-process",
+    "crates/conduit-socket",
     "crates/conduit-runtime",
     "crates/conduit-std",
     "crates/conduit-zenoh",

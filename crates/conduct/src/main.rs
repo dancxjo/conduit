@@ -392,6 +392,15 @@ fn run(
                 )
             })?;
         }
+        if arguments.enable_socket_loopback {
+            conduit_socket::register_hosted_socket_providers(&mut registry).map_err(|error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            })?;
+        }
         conduit_http::register_hosted_http_provider(&mut registry).map_err(|error| {
             cli_error(
                 simple_diagnostic(error.code, &error.message),

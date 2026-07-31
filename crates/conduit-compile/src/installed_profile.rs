@@ -79,6 +79,9 @@ impl InstalledProfile {
             })
             || required.keys().any(|id| id.starts_with("time/"))
             || required.keys().any(|id| id.starts_with("state/"))
+            || required
+                .keys()
+                .any(|id| id.starts_with("conduit.host/net/"))
             || required.keys().any(|id| {
                 matches!(
                     id.as_str(),
@@ -129,20 +132,39 @@ impl InstalledProfile {
                 .contracts()
                 .find(|contract| contract.id.as_str() == contract_id)
                 .expect("candidate contract came from registry");
-            if catalog
+            if !catalog
                 .nodes
                 .iter()
                 .any(|node| node.id == contract.id.as_str())
             {
-                continue;
+                catalog.nodes.push(PinDocument {
+                    id: contract.id.to_string(),
+                    schema_version: 0,
+                    semantic_hash: OwnedNodeSchema::from_contract(contract)
+                        .semantic_hash()
+                        .to_string(),
+                });
             }
-            catalog.nodes.push(PinDocument {
-                id: contract.id.to_string(),
-                schema_version: 0,
-                semantic_hash: OwnedNodeSchema::from_contract(contract)
-                    .semantic_hash()
-                    .to_string(),
-            });
+            for value_type in contract
+                .config
+                .fields
+                .iter()
+                .map(|field| field.value_type)
+                .chain(contract.inputs.iter().map(|port| port.value_type))
+                .chain(contract.outputs.iter().map(|port| port.value_type))
+            {
+                if !catalog
+                    .types
+                    .iter()
+                    .any(|entry| entry.id == value_type.contract_id.as_str())
+                {
+                    catalog.types.push(PinDocument {
+                        id: value_type.contract_id.to_string(),
+                        schema_version: value_type.schema_version,
+                        semantic_hash: value_type.semantic_hash.to_string(),
+                    });
+                }
+            }
         }
         let mut input = CompileInput {
             schema: COMPILE_INPUT_SCHEMA.to_owned(),
@@ -351,6 +373,11 @@ fn candidate(
             | HostedPrimitiveImplementation::SupervisionCircuitBreaker
     );
     let process_profile = installed.contract.id.as_str() == "conduit.host/process/exec";
+    let socket_profile = installed
+        .contract
+        .id
+        .as_str()
+        .starts_with("conduit.host/net/");
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -388,6 +415,8 @@ fn candidate(
         },
         execution_profile: if process_profile {
             process_execution_profile()
+        } else if socket_profile {
+            socket_execution_profile()
         } else if host_service_instance.is_some() {
             host_service_execution_profile()
         } else if format_profile {
@@ -461,6 +490,8 @@ fn candidate(
         allocation: BudgetDocument {
             memory_bytes: if process_profile {
                 448 * 1024
+            } else if socket_profile {
+                256 * 1024
             } else if host_service_instance.is_some() {
                 192 * 1024
             } else if structural_validation_profile {
@@ -475,7 +506,7 @@ fn candidate(
                 2048
             },
             cpu_units: 1,
-            evidence_bytes: if process_profile {
+            evidence_bytes: if process_profile || socket_profile {
                 16 * 1024
             } else if format_profile
                 || buffered_text_profile
@@ -490,8 +521,10 @@ fn candidate(
             } else {
                 256
             },
-            transports: u16::from(host_service_instance.is_some() && !process_profile),
-            timers: if process_profile || supervision_profile {
+            transports: u16::from(
+                host_service_instance.is_some() && !process_profile && !socket_profile,
+            ) + u16::from(socket_profile),
+            timers: if process_profile || socket_profile || supervision_profile {
                 2
             } else {
                 u16::from(host_service_instance.is_some() || time_profile)
@@ -619,6 +652,34 @@ fn host_service_authority(contract_id: &str, instance: &str) -> Option<Authority
             "conduit.action/execute",
             "conduit.resource/executable",
             "conduit.executable/process-fixture",
+        ),
+        "conduit.host/net/tcp/connect" => (
+            "socket-tcp-connect",
+            "sha256:6161616161616161616161616161616161616161616161616161616161616161",
+            "conduit.action/connect",
+            "conduit.resource/tcp-loopback",
+            "conduit.resource/socket-loopback",
+        ),
+        "conduit.host/net/tcp/listen" => (
+            "socket-tcp-listen",
+            "sha256:6262626262626262626262626262626262626262626262626262626262626262",
+            "conduit.action/listen",
+            "conduit.resource/tcp-loopback",
+            "conduit.resource/socket-loopback",
+        ),
+        "conduit.host/net/udp/connected" => (
+            "socket-udp-connected",
+            "sha256:6363636363636363636363636363636363636363636363636363636363636363",
+            "conduit.action/connect",
+            "conduit.resource/udp-loopback",
+            "conduit.resource/socket-loopback",
+        ),
+        "conduit.host/net/udp/datagram" => (
+            "socket-udp-datagram",
+            "sha256:6464646464646464646464646464646464646464646464646464646464646464",
+            "conduit.action/bind",
+            "conduit.resource/udp-loopback",
+            "conduit.resource/socket-loopback",
         ),
         "net/http/serve-once" => (
             "http-loopback-listen",
@@ -1221,6 +1282,50 @@ fn process_execution_profile() -> ExecutionProfileDocument {
                 category: "port-transactions".to_owned(),
                 accounting: "executor-allocated".to_owned(),
                 bytes: 240 * 1024,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn socket_execution_profile() -> ExecutionProfileDocument {
+    ExecutionProfileDocument {
+        id: "conduit/hosted-primitive-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: conduit_std::SOCKET_MAX_MESSAGE_BYTES as u32,
+            max_transactions: conduit_std::SOCKET_MAX_SESSIONS as u16,
+            max_input_leases: conduit_std::SOCKET_MAX_SESSIONS as u16,
+            max_input_bytes: conduit_std::SOCKET_MAX_STREAM_BYTES as u64,
+            max_output_reservations: conduit_std::SOCKET_MAX_SESSIONS as u16,
+            max_output_bytes: conduit_std::SOCKET_MAX_STREAM_BYTES as u64,
+            max_pending_operations: 4,
+            max_timers: 2,
+            max_host_buffer_bytes: (conduit_std::SOCKET_MAX_STREAM_BYTES * 2) as u64,
+            implementation_memory_bytes: 256 * 1024,
+            cancellation_ticks: 10_000,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "host-services".to_owned(),
+                accounting: "backend-bounded".to_owned(),
+                bytes: 96 * 1024,
+            },
+            MemoryClaimDocument {
+                category: "pending-operations".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 32 * 1024,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 128 * 1024,
             },
         ],
         checkpoint: None,

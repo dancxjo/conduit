@@ -337,12 +337,6 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
         StandardRepresentation::Domain
     ),
     concrete!(
-        "net/tcp/chunk",
-        "bounded TCP session byte chunk",
-        Network,
-        StandardRepresentation::Structural
-    ),
-    concrete!(
         "net/udp/datagram",
         "bounded addressed UDP datagram",
         Network,
@@ -557,21 +551,6 @@ static SOCKET_SESSION_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
         CanonicalValue::Integer(crate::SOCKET_MAX_SESSIONS as i128),
     ),
 ];
-static TCP_CHUNK_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
-    semantic_field(
-        "session",
-        CanonicalValue::Identifier(Id("net/socket/session")),
-    ),
-    semantic_field("payload", CanonicalValue::Identifier(Id("std/bytes"))),
-    semantic_field(
-        "maximum_bytes",
-        CanonicalValue::Integer(crate::SOCKET_MAX_MESSAGE_BYTES as i128),
-    ),
-    semantic_field(
-        "boundary",
-        CanonicalValue::Identifier(Id("partial-stream-observation")),
-    ),
-];
 static UDP_DATAGRAM_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
     semantic_field(
         "source",
@@ -628,7 +607,6 @@ pub fn standard_type_descriptor(
         "std/integer" => CanonicalValue::Map(INTEGER_DESCRIPTOR_FIELDS),
         "std/format-values" => CanonicalValue::Map(FORMAT_VALUES_DESCRIPTOR_FIELDS),
         "net/socket/session" => CanonicalValue::Map(SOCKET_SESSION_DESCRIPTOR_FIELDS),
-        "net/tcp/chunk" => CanonicalValue::Map(TCP_CHUNK_DESCRIPTOR_FIELDS),
         "net/udp/datagram" => CanonicalValue::Map(UDP_DATAGRAM_DESCRIPTOR_FIELDS),
         "net/socket/result" => CanonicalValue::Map(SOCKET_RESULT_DESCRIPTOR_FIELDS),
         _ => CanonicalValue::Null,

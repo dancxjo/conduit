@@ -128,10 +128,7 @@ fn application_socket_catalog_has_only_the_four_exact_current_operations() {
     assert!(standard_node_contract("net/udp/socket").is_none());
 
     let tcp = standard_node_contract("conduit.host/net/tcp/connect").unwrap();
-    assert_eq!(
-        tcp.inputs[0].value_type.contract_id.as_str(),
-        "net/tcp/chunk"
-    );
+    assert_eq!(tcp.inputs[0].value_type.contract_id.as_str(), "std/bytes");
     assert_eq!(
         tcp.outputs[1].value_type.contract_id.as_str(),
         "net/socket/session"

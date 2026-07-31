@@ -30,6 +30,7 @@ conduit-inspect = { path = "../conduit-inspect" }
 conduit-package = { path = "../conduit-package" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-process = { path = "../conduit-process" }
+conduit-socket = { path = "../conduit-socket" }
 conduit-runtime = { path = "../conduit-runtime" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.149"
@@ -40,6 +41,7 @@ conduit-core = { path = "../conduit-core" }
 
 [dev-dependencies]
 sha2 = "0.10.9"
+conduit-std = { path = "../conduit-std" }
 
 [lints]
 workspace = true

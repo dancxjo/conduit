@@ -315,14 +315,6 @@ const SOCKET_SESSION: TypeContractRef<'static> = TypeContractRef {
         13, 102, 175, 97, 105, 158, 141, 106, 66, 100, 232, 4,
     ]),
 };
-const TCP_CHUNK: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("net/tcp/chunk"),
-    schema_version: 0,
-    semantic_hash: SemanticHash::from_bytes([
-        6, 168, 33, 62, 34, 212, 46, 92, 152, 167, 21, 38, 114, 203, 45, 171, 253, 13, 70, 180,
-        201, 32, 8, 114, 230, 52, 70, 140, 208, 95, 38, 215,
-    ]),
-};
 const UDP_DATAGRAM: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("net/udp/datagram"),
     schema_version: 0,
@@ -466,45 +458,45 @@ const PROCESS_STDERR: PortContract<'static> = port(
 const TCP_TRANSMIT: PortContract<'static> = port(
     "transmit",
     Direction::Input,
-    TCP_CHUNK,
+    BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
 );
 const TCP_RECEIVED: PortContract<'static> = port(
     "received",
     Direction::Output,
-    TCP_CHUNK,
+    BYTES,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
 );
-const SOCKET_SESSION_OUTPUT: PortContract<'static> = port(
+const SOCKET_SESSION_OUTPUT: PortContract<'static> = optional_output(port(
     "session",
     Direction::Output,
     SOCKET_SESSION,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
-);
-const SOCKET_RESULT_OUTPUT: PortContract<'static> = port(
+));
+const SOCKET_RESULT_OUTPUT: PortContract<'static> = optional_output(port(
     "result",
     Direction::Output,
     SOCKET_RESULT,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
-);
-const UDP_DATAGRAM_INPUT: PortContract<'static> = port(
+));
+const UDP_DATAGRAM_INPUT: PortContract<'static> = optional_input(port(
     "datagram",
     Direction::Input,
     UDP_DATAGRAM,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
-);
-const UDP_DATAGRAM_OUTPUT: PortContract<'static> = port(
+));
+const UDP_DATAGRAM_OUTPUT: PortContract<'static> = optional_output(port(
     "datagram",
     Direction::Output,
     UDP_DATAGRAM,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
-);
+));
 
 const VALUE_PARAMETER: CatalogTypeExpression = CatalogTypeExpression::Parameter(Id("value"));
 const NATURAL_EXPRESSION: CatalogTypeExpression = CatalogTypeExpression::Named(Id("std/natural"));

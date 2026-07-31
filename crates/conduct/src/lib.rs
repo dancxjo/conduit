@@ -226,6 +226,10 @@ pub struct Arguments {
     #[arg(long)]
     pub enable_process_exec: bool,
 
+    /// Explicitly install the bounded numeric-loopback socket providers.
+    #[arg(long)]
+    pub enable_socket_loopback: bool,
+
     /// Additive read-only operations.
     #[command(subcommand)]
     pub secondary: Option<SecondaryCommand>,

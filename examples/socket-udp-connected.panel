@@ -1,0 +1,23 @@
+# One bounded connected UDP loopback exchange; datagram boundaries are retained.
+panel 0
+
+node socket : conduit.host/net/udp/connected {
+    network_resource = secret("conduit.resource/socket-loopback")
+    target_grant = secret("conduit.grant/socket-udp-connected")
+    local = "127.0.0.1:0"
+    peer = "127.0.0.1:0"
+    path_mtu_bytes = 1200
+    fragmentation = false
+    maximum_pending_operations = 4
+    maximum_send_bytes = 4096
+    maximum_receive_bytes = 4096
+    maximum_message_bytes = 1200
+    maximum_queued_messages = 4
+    maximum_queue_bytes = 4096
+    maximum_timers = 2
+    maximum_work = 8192
+    maximum_evidence_events = 64
+    deadline_ticks = 1000
+    cleanup_ticks = 100
+    cancellation = "none"
+}
