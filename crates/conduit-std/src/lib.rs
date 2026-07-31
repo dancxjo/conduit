@@ -17,6 +17,7 @@ use conduit_core::{
 };
 
 mod conformance;
+mod data_boundaries;
 mod text_format;
 mod text_lines_join;
 mod types;
@@ -24,6 +25,12 @@ mod types;
 pub use conformance::{
     ConformanceError, DeterministicProvider, FixtureClass, FixtureOutcome, HostedProvider,
     NormalizedEvidence, ProviderProfile, ReferenceProvider, run_catalog_fixture,
+};
+pub use data_boundaries::{
+    DATA_MAX_FIELD_NAME_BYTES, DATA_MAX_FIELD_VALUE_BYTES, DATA_MAX_FRAME_BYTES,
+    DATA_MAX_RECORD_FIELDS, DataBoundaryError, LENGTH_U32BE_PREFIX_BYTES, LengthU32BeDecoder,
+    RequiredField, StructuralDecision, StructuralField, StructuralRejection, decode_utf8,
+    encode_length_u32be, encode_utf8, validate_closed_record,
 };
 pub use text_format::{
     FORMAT_MAX_NAME_BYTES, FORMAT_MAX_OUTPUT_BYTES, FORMAT_MAX_RETAINED_BYTES,
