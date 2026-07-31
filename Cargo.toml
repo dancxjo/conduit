@@ -2,6 +2,7 @@
 members = [
     "crates/conduit-conformance",
     "crates/conduit-compile",
+    "crates/conduit-cache",
     "crates/conduit-core",
     "crates/conduit-diagnostics",
     "crates/conduit-embedded",

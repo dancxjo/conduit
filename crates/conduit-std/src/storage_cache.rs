@@ -7,9 +7,9 @@
 use sha2::{Digest as _, Sha256};
 
 /// Maximum entries in the deterministic reference profile.
-pub const CACHE_MAX_ENTRIES: usize = 8;
+pub const CACHE_MAX_ENTRIES: usize = 4;
 /// Maximum bytes retained for one blob in the reference profile.
-pub const CACHE_MAX_BLOB_BYTES: usize = 65_536;
+pub const CACHE_MAX_BLOB_BYTES: usize = 32_768;
 
 /// Exact persistence requested from a storage provider.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

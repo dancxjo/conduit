@@ -1,0 +1,17 @@
+[package]
+name = "conduit-cache"
+description = "Bounded best-effort evictable blob cache provider for Conduit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-panel = { path = "../conduit-panel" }
+conduit-runtime = { path = "../conduit-runtime" }
+conduit-std = { path = "../conduit-std" }
+
+[lints]
+workspace = true

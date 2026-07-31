@@ -327,6 +327,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-cache"
+version = "0.0.0-dev"
+dependencies = [
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "conduit-std",
+]
+
+[[package]]
 name = "conduit-compile"
 version = "0.0.0-dev"
 dependencies = [
