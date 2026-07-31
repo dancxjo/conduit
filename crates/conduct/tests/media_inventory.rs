@@ -5,7 +5,8 @@ use std::process::{Command, Stdio};
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_media::{
     register_deterministic_codec_providers, register_deterministic_media_providers,
-    register_media_codec_contracts, register_media_contracts,
+    register_ffmpeg_codec_providers, register_media_codec_contracts, register_media_contracts,
+    register_sox_codec_providers,
 };
 use conduit_runtime::{AvailabilityState, Registry};
 
@@ -230,4 +231,122 @@ fn known_codec_contracts_report_missing_and_stale_providers_separately() {
         compile_source(source, &stale).unwrap_err().code(),
         "CND-CMP-006"
     );
+}
+
+#[test]
+fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implementations() {
+    let source = include_str!("../../../examples/media-wave-roundtrip.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_media_providers(&mut registry).unwrap();
+    register_deterministic_codec_providers(&mut registry).unwrap();
+    register_ffmpeg_codec_providers(&mut registry).unwrap();
+    register_sox_codec_providers(&mut registry).unwrap();
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+
+    for (contract, expected_implementations) in [
+        (
+            "conduit.media/container/probe",
+            &[
+                "conduit.media/wave-probe-deterministic",
+                "conduit.media/wave-probe-ffmpeg",
+            ][..],
+        ),
+        (
+            "conduit.media/container/mux",
+            &[
+                "conduit.media/wave-mux-deterministic",
+                "conduit.media/wave-mux-ffmpeg",
+            ][..],
+        ),
+        (
+            "conduit.media/container/demux",
+            &[
+                "conduit.media/wave-demux-deterministic",
+                "conduit.media/wave-demux-ffmpeg",
+            ][..],
+        ),
+        (
+            "conduit.media/audio/decode",
+            &[
+                "conduit.media/pcm-decode-deterministic",
+                "conduit.media/pcm-decode-ffmpeg",
+                "conduit.media/pcm-decode-sox",
+            ][..],
+        ),
+        (
+            "conduit.media/audio/encode",
+            &[
+                "conduit.media/pcm-encode-deterministic",
+                "conduit.media/pcm-encode-ffmpeg",
+                "conduit.media/pcm-encode-sox",
+            ][..],
+        ),
+    ] {
+        let mut implementations = installed
+            .input
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.implementation.semantic_contract.id == contract)
+            .map(|candidate| candidate.implementation.id.as_str())
+            .collect::<Vec<_>>();
+        implementations.sort_unstable();
+        let mut expected = expected_implementations
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        expected.sort_unstable();
+        assert_eq!(implementations, expected, "contract {contract}");
+    }
+}
+
+#[test]
+fn implementation_preference_selects_overlapping_media_providers() {
+    let source = include_str!("../../../examples/media-wave-roundtrip.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_media_providers(&mut registry).unwrap();
+    register_deterministic_codec_providers(&mut registry).unwrap();
+    register_ffmpeg_codec_providers(&mut registry).unwrap();
+    register_sox_codec_providers(&mut registry).unwrap();
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+
+    for (preference, expected_decode, expected_encode) in [
+        (
+            [
+                "conduit.media/pcm-decode-deterministic",
+                "conduit.media/pcm-encode-deterministic",
+            ],
+            "conduit.media/pcm-decode-deterministic",
+            "conduit.media/pcm-encode-deterministic",
+        ),
+        (
+            [
+                "conduit.media/pcm-decode-ffmpeg",
+                "conduit.media/pcm-encode-ffmpeg",
+            ],
+            "conduit.media/pcm-decode-ffmpeg",
+            "conduit.media/pcm-encode-ffmpeg",
+        ),
+        (
+            ["conduit.media/pcm-decode-sox", "conduit.media/pcm-encode-sox"],
+            "conduit.media/pcm-decode-sox",
+            "conduit.media/pcm-encode-sox",
+        ),
+    ] {
+        let mut input = installed.input.clone();
+        input.implementation_preference = preference
+            .iter()
+            .map(|implementation| implementation.to_string())
+            .collect();
+        input.seal().unwrap();
+
+        let document = compile_source(source, &input).unwrap();
+        for (contract, expected) in [
+            ("conduit.media/audio/decode", expected_decode),
+            ("conduit.media/audio/encode", expected_encode),
+        ] {
+            assert!(document.nodes.iter().any(|node| {
+                node.contract.id == contract && node.implementation.id == expected
+            }));
+        }
+    }
 }
