@@ -5,13 +5,13 @@ use std::process::{Command, Stdio};
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_core::NodeContract;
 use conduit_media::{
+    DEMUX_CONTRACT, ENCODE_CONTRACT, MUX_CONTRACT, PROBE_CONTRACT, WAVE_LITERAL_CONTRACT,
     register_deterministic_codec_providers, register_deterministic_media_providers,
-    register_media_codec_contracts, register_media_contracts, DEMUX_CONTRACT, ENCODE_CONTRACT,
-    MUX_CONTRACT, PROBE_CONTRACT, WAVE_LITERAL_CONTRACT,
+    register_media_codec_contracts, register_media_contracts,
 };
 use conduit_runtime::{
-    AvailabilityState, CompiledInHostService, Handler, Registry, RegistryError, RunIo, RuntimeError,
-    Value as RuntimeValue,
+    AvailabilityState, CompiledInHostService, Handler, Registry, RegistryError, RunIo,
+    RuntimeError, Value as RuntimeValue,
 };
 
 fn workspace_file(path: &str) -> PathBuf {
