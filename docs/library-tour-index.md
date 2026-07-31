@@ -108,13 +108,13 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `text/uppercase` | portable-standard | `conduit.std.text` | 1 | tour/lessons/current.json#library.text.uppercase.standalone (required) | tour/lessons/current.json#panels.put-a-panel-in-a-panel (published) |
 | `time/batch` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.batch.standalone (required) | tour/lessons/current.json#library.time.batch.composition (required) |
 | `time/deadline` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.deadline.standalone (required) | tour/lessons/current.json#library.time.deadline.composition (required) |
-| `time/debounce` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.time.debounce.standalone (required) | tour/lessons/current.json#library.time.debounce.composition (required) |
-| `time/delay` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.time.delay.standalone (required) | tour/lessons/current.json#library.time.delay.composition (required) |
+| `time/debounce` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
+| `time/delay` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
 | `time/rate-limit` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.rate-limit.standalone (required) | tour/lessons/current.json#library.time.rate-limit.composition (required) |
 | `time/sample` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.sample.standalone (required) | tour/lessons/current.json#library.time.sample.composition (required) |
-| `time/throttle` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.time.throttle.standalone (required) | tour/lessons/current.json#library.time.throttle.composition (required) |
+| `time/throttle` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
 | `time/ticker` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.ticker.standalone (required) | tour/lessons/current.json#library.time.ticker.composition (required) |
-| `time/timeout` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.time.timeout.standalone (required) | tour/lessons/current.json#library.time.timeout.composition (required) |
+| `time/timeout` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
 | `time/timer` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.timer.standalone (required) | tour/lessons/current.json#library.time.timer.composition (required) |
 | `time/window` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.window.standalone (required) | tour/lessons/current.json#library.time.window.composition (required) |
 | `transport/zenoh` | optional-host-boundary | `conduit.host.transport` | 0 | tour/lessons/current.json#library.transport.zenoh.standalone (required) | tour/lessons/current.json#library.transport.zenoh.composition (required) |

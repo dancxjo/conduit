@@ -315,6 +315,9 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.std/select",
             _,
         ) => Some("library.standard-flow-control"),
+        ("time/delay" | "time/timeout" | "time/debounce" | "time/throttle", _) => {
+            Some("library.explicit-time")
+        }
         (
             "std/record/literal"
             | "std/data/encode-utf8"

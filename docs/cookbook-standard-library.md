@@ -161,7 +161,38 @@ demonstrates why the nodes are separate ordinary graph boundaries.
 
 ---
 
-## 3. State & Memory Nodes
+## 3. Explicit Time Nodes
+
+State: **runnable** on the hosted exact-plan executor. `time/delay`,
+`time/timeout`, `time/debounce`, and `time/throttle` pin the
+`conduit.clock/monotonic-ticks` descriptor, schema, hash, and one-tick
+resolution. Durations are finite, clock discontinuities fail closed, and each
+node owns at most one timer and one retained value.
+
+- delay chooses terminal `drain` or `drop`;
+- timeout is an inactivity boundary reset by each value;
+- debounce names leading or trailing admission, explicit coalescing, and
+  terminal `flush` or `drop`;
+- throttle is either lossless leading admission with `block`, or trailing
+  admission with explicit `coalesce`.
+
+Run the four standalone panels and their checked composition:
+
+```sh
+cargo run -p conduct -- examples/time-delay.panel
+cargo run -p conduct -- examples/time-timeout.panel
+cargo run -p conduct -- examples/time-debounce.panel
+cargo run -p conduct -- examples/time-throttle.panel
+cargo run -p conduct -- examples/time-compose.panel
+```
+
+The composition splits two logical lines, debounces to the trailing value, then
+crosses a lossless leading throttle. Exact execution advances only to a
+plan-retained timer deadline; it never reads ambient wall-clock state.
+
+---
+
+## 4. State & Memory Nodes
 
 ### Counter & Cell State
 
@@ -193,7 +224,7 @@ cord dedup.unique -> sink.bytes { capacity = 16 max_value_bytes = 4096 max_queue
 
 ---
 
-## 4. Resilience & Supervision Nodes
+## 5. Resilience & Supervision Nodes
 
 ### Circuit Breaker & Exponential Backoff
 
@@ -214,7 +245,7 @@ cord backoff_retry.ready -> client.request { capacity = 8 max_value_bytes = 2048
 
 ---
 
-## 5. Hardware & Wireless Nodes
+## 6. Hardware & Wireless Nodes
 
 ### Wi-Fi Station Join
 
@@ -244,7 +275,7 @@ cord button.state -> led.command { capacity = 4 max_value_bytes = 256 max_queued
 
 ---
 
-## 6. Verification Commands
+## 7. Verification Commands
 
 Check contract-only source or run the separately verified runnable example:
 

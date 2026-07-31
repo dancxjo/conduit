@@ -1034,6 +1034,117 @@
       }
     },
     {
+      "id": "library.explicit-time",
+      "chapter": 4,
+      "title": "Explicit bounded time",
+      "prerequisites": [
+        "library.typed-text-format",
+        "platform.value-envelope-clock-feedback"
+      ],
+      "objective": "Run delay, timeout, debounce, and throttle against one exact clock descriptor and inspect their bounded timers, retained values, pressure, and terminal policies.",
+      "prose": "Time is an explicit plan input, not an ambient callback. Each node pins the clock identity, one-tick resolution, finite duration, discontinuity behavior, and at most one timer or retained value.",
+      "vocabulary": [
+        "clock descriptor",
+        "exact deadline",
+        "inactivity timeout",
+        "terminal flush",
+        "explicit coalescing"
+      ],
+      "source": "panel 0\n\nnode source : std/literal { value = \"first\\nsecond\\n\" }\nnode lines : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\nnode settle : time/debounce { clock = ref(\"conduit.clock/monotonic-ticks\") clock_schema_version = 0 clock_hash = bytes(\"6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48\") resolution_ticks = 1 duration_ticks = 3 mode = \"trailing\" loss = \"coalesce\" terminal = \"flush\" maximum_retained = 1 discontinuity = \"fail\" }\nnode limit : time/throttle { clock = ref(\"conduit.clock/monotonic-ticks\") clock_schema_version = 0 clock_hash = bytes(\"6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48\") resolution_ticks = 1 duration_ticks = 3 mode = \"leading\" overflow = \"block\" terminal = \"flush\" maximum_retained = 1 discontinuity = \"fail\" }\nnode join : std/text/join { separator = \"\" maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }\nnode display : display/text\n\ncord source.value -> lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> settle.event { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord settle.settled -> limit.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord limit.admitted -> join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run examples/time-compose.panel",
+      "commands": [
+        "conduct --run examples/time-delay.panel",
+        "conduct --run examples/time-timeout.panel",
+        "conduct --run examples/time-debounce.panel",
+        "conduct --run examples/time-throttle.panel",
+        "conduct --run examples/time-compose.panel"
+      ],
+      "expected_display": "second",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 64,
+        "queue_bytes": 320,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "explicit-time-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "clock",
+          "deadline_tick",
+          "pressure",
+          "retained_values",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "second"
+      },
+      "hints": [
+        "Keep the clock descriptor, schema version, hash, and resolution pinned together.",
+        "Leading throttle plus block pressure is lossless; trailing coalescing must say that it loses intermediate values.",
+        "Terminal flush and drop are distinct semantics and remain visible in the resolved contract."
+      ],
+      "solution": "Use the exact monotonic-ticks clock pin, a finite duration, one retained slot, and an explicit loss, pressure, and terminal policy for every time boundary.",
+      "accessibility": {
+        "non_audio": "An ordered table names the tick, clock, timer deadline, retained-value count, pressure decision, emitted value, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step through exact timer transitions.",
+        "color_independent": "Tick labels, timer markers, pressure words, retained counts, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Four exact-clock nodes provide bounded delay, inactivity timeout, debounce, and throttle behavior.",
+        "what": "Delay retains one value until its deadline; timeout resets on each value and fails on inactivity; debounce admits leading or trailing values; throttle either blocks losslessly or coalesces explicitly.",
+        "when": "Use them when event timing is part of the portable graph semantics and must reproduce under deterministic, browser, and hosted execution.",
+        "wrong": "Ambient wall-clock reads, unpinned clocks, unbounded timers, hidden queues, implicit loss, reversed time, unsupported resolution, and fabricated terminal success fail closed.",
+        "contracts": [
+          {"id":"time/delay","inputs":["value:std/text stream"],"outputs":["value:std/text stream"],"policy":"maximum_pending=1; terminal=drain|drop"},
+          {"id":"time/timeout","inputs":["item:std/text stream"],"outputs":["completed:std/text stream"],"policy":"condition=inactivity; reset=each-value; late=timeout"},
+          {"id":"time/debounce","inputs":["event:std/text stream"],"outputs":["settled:std/text stream"],"policy":"mode=leading|trailing; loss=coalesce; terminal=flush|drop"},
+          {"id":"time/throttle","inputs":["request:std/text stream"],"outputs":["admitted:std/text stream"],"policy":"leading+block or trailing+coalesce; terminal=flush|drop"}
+        ],
+        "editable": [
+          "settle.mode:leading|trailing",
+          "settle.terminal:flush|drop",
+          "limit.mode:leading|trailing"
+        ],
+        "provider": "hosted exact-plan deterministic executor with injected monotonic ticks",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact clock, contract, implementation, artifact, and port bindings",
+          "timer arm and exact deadline wake",
+          "bounded retained-value and pressure decisions",
+          "one exact terminal cause"
+        ],
+        "docs": [
+          "../../spec/046-standard-node-library.md",
+          "../../spec/055-value-envelope-clock-feedback.md",
+          "../../examples/time-delay.panel",
+          "../../examples/time-timeout.panel",
+          "../../examples/time-debounce.panel",
+          "../../examples/time-throttle.panel",
+          "../../examples/time-compose.panel",
+          "../../conformance/c4/standard-node-library.json"
+        ],
+        "scenarios": [
+          {"id":"delay","title":"One-shot delay","panel":"../../examples/time-delay.panel","semantics":"One retained value wakes at its exact deadline and drains under capacity-one block pressure."},
+          {"id":"timeout","title":"Inactivity timeout","panel":"../../examples/time-timeout.panel","semantics":"Each admitted value resets one timer; terminal input completes before the inactivity deadline."},
+          {"id":"debounce","title":"Trailing debounce","panel":"../../examples/time-debounce.panel","semantics":"Intermediate values coalesce into one retained trailing value and terminal flush is explicit."},
+          {"id":"throttle","title":"Lossless throttle","panel":"../../examples/time-throttle.panel","semantics":"Leading admission starts one interval and block pressure leaves later values in bounded input queues."},
+          {"id":"composition","title":"Debounce then throttle","panel":"../../examples/time-compose.panel","semantics":"The trailing settled value crosses a lossless leading throttle with both timer policies visible."}
+        ]
+      }
+    },
+    {
       "id": "platform.value-envelope-clock-feedback",
       "chapter": 4,
       "title": "Bounded value facts, clocks, and feedback",

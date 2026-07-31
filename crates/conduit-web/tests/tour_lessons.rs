@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 23] = [
+const REQUIRED_TOUR_LESSONS: [&str; 24] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -22,6 +22,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 23] = [
     "patchbay.observes-patchbay",
     "library.typed-text-format",
     "library.standard-flow-control",
+    "library.explicit-time",
     "library.explicit-data-boundaries",
     "library.contract-package-imports",
     "platform.value-envelope-clock-feedback",
@@ -264,6 +265,76 @@ fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
     let result: Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(result["ok"], true, "{result}");
     assert_eq!(result["display"], "rightright");
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+}
+
+#[test]
+fn explicit_time_lesson_exposes_clock_timer_loss_and_terminal_facts() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.explicit-time")
+        .expect("explicit time lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "clock",
+        "deadline_tick",
+        "pressure",
+        "retained_values",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "time/debounce",
+            "time/delay",
+            "time/throttle",
+            "time/timeout",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 5);
+    assert!(scenarios.iter().all(|scenario| {
+        scenario["panel"]
+            .as_str()
+            .is_some_and(|panel| panel.starts_with("../../examples/time-"))
+            && scenario["semantics"]
+                .as_str()
+                .is_some_and(|semantics| !semantics.is_empty())
+    }));
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .is_some_and(|text| text.contains("timer") && text.contains("terminal"))
+    );
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(result["display"], "second");
     assert_eq!(result["stdout"], "");
     assert_eq!(result["stderr"], "");
 }

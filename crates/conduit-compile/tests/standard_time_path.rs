@@ -96,6 +96,11 @@ fn all_standard_time_nodes_execute_exactly_with_injected_time() {
             "run/time/throttle",
             "admitted request",
         ),
+        (
+            include_str!("../../../examples/time-compose.panel"),
+            "run/time/composition",
+            "second",
+        ),
     ] {
         let (display, report) = exact_run(source, run_id);
         assert_eq!(display, expected.as_bytes(), "{run_id}");
