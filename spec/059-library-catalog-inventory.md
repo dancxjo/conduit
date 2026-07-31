@@ -10,6 +10,12 @@ descriptors by `cargo xtask catalog-index`; unknown namespaces, duplicate
 active identities, provider bundles for unknown contracts, missing fixture
 owners, and stale generated output fail the gate.
 
+The xtask build treats the catalog and its Tour index as outputs of the exact
+registry build. When either checked artifact is stale, the build regenerates
+both and stops with an instruction to include them in the change. Rebuilding
+then succeeds. A clean checkout therefore cannot compile xtask against changed
+catalog inputs while silently retaining an old checked projection.
+
 Catalog membership means that a contract is known. It does not mean that a
 provider is installed, initialized, current, admitted, or authorized.
 `known_provider_bundles` records immutable implementation and artifact facts.
@@ -59,5 +65,7 @@ installation, loading, enrollment, or authority grant.
   owner/classification, when an active identity is duplicated, when a known
   provider targets no catalog contract, when a fixture owner is missing, or
   when either generated artifact is stale.
+- Building xtask regenerates stale catalog artifacts and fails that build so
+  the resulting source-tree changes cannot be hidden by a successful gate.
 - Patchbay rejects malformed, oversized, duplicate, unknown-class, or
   observation-bearing catalog documents with `CND-PBY-014`.
