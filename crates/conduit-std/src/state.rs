@@ -169,6 +169,11 @@ impl<const N: usize> DeduplicateState<N> {
     }
 
     #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    #[must_use]
     pub const fn retained_bytes(&self) -> u64 {
         self.retained_bytes
     }
@@ -303,6 +308,11 @@ impl<const N: usize> CacheState<N> {
     #[must_use]
     pub const fn len(&self) -> usize {
         self.len
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
     }
 }
 
