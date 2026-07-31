@@ -10,6 +10,7 @@ import init, {
 import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 import { patchbayFeatures } from "./patchbay-features.js";
 import { autoArrangeOperations } from "./patchbay-layout.js";
+import { PatchbayWorkspaceController } from "./patchbay-workspace.js";
 import {
   attachPanelSourceHighlighting,
   configurePanelLanguage,
@@ -253,6 +254,7 @@ function rememberedLayoutOperations(lessonId, view) {
 
 // Initialize React Flow Patchbay Renderer
 let patchbayRenderer = null;
+let workspaceController = null;
 const cyContainer = document.getElementById("cy");
 document.querySelector(".node-controls").hidden =
   !patchbayFeatures.legacyLinePlacement;
@@ -279,6 +281,22 @@ if (cyContainer) {
     }
   });
   patchbayRenderer.init();
+  workspaceController = new PatchbayWorkspaceController({
+    canvasCard: document.querySelector(".canvas-card"),
+    sourceCard: document.querySelector(".source-card"),
+    actionBar: document.querySelector(".primary-actions"),
+    consoleCard: document.querySelector(".console-card"),
+    source,
+    renderer: patchbayRenderer,
+    getContext: () => ({
+      documentName: current?.id || "untitled.panel",
+      revision: patchbayView?.source?.revision || 0,
+      identity: patchbayView?.source?.identity,
+      dirty: Boolean(current && source.value !== current.source),
+      diagnostics: patchbayView?.diagnostics?.length || 0,
+    }),
+  });
+  workspaceController.init();
 }
 
 function updateCytoscapeGraph() {
@@ -287,6 +305,7 @@ function updateCytoscapeGraph() {
   }
   renderStructuredTopology();
   renderDiagnosticConsole();
+  workspaceController?.updateStatus();
 }
 
 function renderDiagnosticConsole() {
@@ -491,6 +510,7 @@ function recordEvidence(event) {
 }
 
 function activeScenario() {
+  if (!scenarioSelect) return null;
   const libraryScenario = current.library?.scenarios?.find(
     (scenario) => scenario.id === scenarioSelect.value,
   );
@@ -648,6 +668,7 @@ function renderTimeline(records) {
 }
 
 function renderExactResultTimeline(value) {
+  if (!executionStory) return;
   const values = document.querySelector("#timeline-values");
   if (value.ok) {
     values.textContent =
@@ -681,6 +702,7 @@ function renderExactResultTimeline(value) {
 
 function configureExecutionStory() {
   stopTimelinePlayback();
+  if (!executionStory) return;
   renderTimeline([]);
   document.querySelector("#timeline-values").textContent =
     "No exact run values yet.";
@@ -808,6 +830,7 @@ function stopActive(cause, message) {
 function show(lesson) {
   stopActive("lesson-changed");
   current = lesson;
+  workspaceController?.setDocument(lesson.id);
   document.querySelector("#title").textContent = lesson.title;
   document.querySelector("#goal").textContent = lesson.objective || lesson.title;
   document.querySelector("#prose").textContent = lesson.prose || "";
@@ -1034,7 +1057,7 @@ source.addEventListener("input", () => {
   check();
 });
 
-scenarioSelect.addEventListener("change", () => {
+scenarioSelect?.addEventListener("change", () => {
   stopActive("scenario-changed");
   const scenario = activeScenario();
   if (!scenario) return;
@@ -1242,47 +1265,49 @@ document.querySelector("#reset").onclick = () => {
   check();
 };
 
-timelinePosition.addEventListener("input", () => {
-  stopTimelinePlayback();
-  selectTimelineRecord(Number(timelinePosition.value));
-});
+if (executionStory) {
+  timelinePosition.addEventListener("input", () => {
+    stopTimelinePlayback();
+    selectTimelineRecord(Number(timelinePosition.value));
+  });
 
-document.querySelector("#timeline-play").onclick = () => {
-  if (timelineRecords.length === 0 || timelineTimer !== null) return;
-  if (timelineCursor >= timelineRecords.length - 1) selectTimelineRecord(0);
-  timelineTimer = setInterval(() => {
-    if (timelineCursor >= timelineRecords.length - 1) {
-      stopTimelinePlayback();
-      return;
-    }
-    selectTimelineRecord(timelineCursor + 1);
-  }, 650);
-};
-document.querySelector("#timeline-pause").onclick = stopTimelinePlayback;
-document.querySelector("#timeline-step").onclick = () => {
-  stopTimelinePlayback();
-  if (timelineRecords.length > 0) selectTimelineRecord(timelineCursor + 1);
-};
-document.querySelector("#timeline-reset").onclick = () => {
-  stopTimelinePlayback();
-  if (timelineRecords.length > 0) selectTimelineRecord(0);
-};
-document.querySelector("#timeline-replay").onclick = () => {
-  stopTimelinePlayback();
-  if (timelineRecords.length === 0) return;
-  selectTimelineRecord(0);
-  document.querySelector("#timeline-play").click();
-};
-executionStory.addEventListener("keydown", (event) => {
-  if (["INPUT", "SELECT", "BUTTON"].includes(event.target.tagName)) return;
-  if (event.key === " ") {
-    event.preventDefault();
+  document.querySelector("#timeline-play").onclick = () => {
+    if (timelineRecords.length === 0 || timelineTimer !== null) return;
+    if (timelineCursor >= timelineRecords.length - 1) selectTimelineRecord(0);
+    timelineTimer = setInterval(() => {
+      if (timelineCursor >= timelineRecords.length - 1) {
+        stopTimelinePlayback();
+        return;
+      }
+      selectTimelineRecord(timelineCursor + 1);
+    }, 650);
+  };
+  document.querySelector("#timeline-pause").onclick = stopTimelinePlayback;
+  document.querySelector("#timeline-step").onclick = () => {
+    stopTimelinePlayback();
+    if (timelineRecords.length > 0) selectTimelineRecord(timelineCursor + 1);
+  };
+  document.querySelector("#timeline-reset").onclick = () => {
+    stopTimelinePlayback();
+    if (timelineRecords.length > 0) selectTimelineRecord(0);
+  };
+  document.querySelector("#timeline-replay").onclick = () => {
+    stopTimelinePlayback();
+    if (timelineRecords.length === 0) return;
+    selectTimelineRecord(0);
     document.querySelector("#timeline-play").click();
-  } else if (event.key === "ArrowRight") {
-    event.preventDefault();
-    document.querySelector("#timeline-step").click();
-  }
-});
+  };
+  executionStory.addEventListener("keydown", (event) => {
+    if (["INPUT", "SELECT", "BUTTON"].includes(event.target.tagName)) return;
+    if (event.key === " ") {
+      event.preventDefault();
+      document.querySelector("#timeline-play").click();
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      document.querySelector("#timeline-step").click();
+    }
+  });
+}
 
 undoResetButton.onclick = () => {
   const recovered = localStorage.getItem(recoveryKey(current.id));
@@ -1315,7 +1340,7 @@ if (requestedLesson) {
 }
 show(current);
 const requestedScenario = pageParameters.get("scenario");
-if (requestedScenario &&
+if (requestedScenario && scenarioSelect &&
     [...(current.library?.scenarios || []), ...(current.platform?.profiles || [])]
       .some((scenario) => scenario.id === requestedScenario)) {
   scenarioSelect.value = requestedScenario;

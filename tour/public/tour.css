@@ -22,6 +22,9 @@
   --patchbay-transition-incomplete: 160ms;
   --patchbay-transition-error: 220ms;
   --patchbay-transition-unresolved: 320ms;
+  --patchbay-workspace-shade: 190ms;
+  --patchbay-workspace-snap: 150ms;
+  --patchbay-workspace-fullscreen: 180ms;
   
   --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
@@ -383,6 +386,10 @@ kbd {
   gap: 1.25rem;
 }
 
+.work-grid > * {
+  min-width: 0;
+}
+
 /* Cytoscape Container */
 .cytoscape-container {
   width: 100%;
@@ -554,6 +561,259 @@ textarea#source::placeholder {
 .panel-token-port {
   font-weight: 500;
   text-underline-offset: 0.18em;
+}
+
+/* Fullscreen topology workspace and the single live source editor window. */
+.patchbay-workspace-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.4rem;
+}
+
+.workspace-mode-status {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.workspace-error-count[data-count="0"] {
+  color: var(--text-muted);
+}
+
+.workspace-error-count:not([data-count="0"]) {
+  color: #fff;
+  border-style: dashed;
+  border-color: #ff1744;
+}
+
+.patchbay-workspace-active {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-rows:
+    auto auto auto auto minmax(12rem, 1fr) auto minmax(0, 7.5rem);
+  gap: 0.5rem;
+  background: var(--bg-dark);
+  animation: patchbay-workspace-enter var(--patchbay-workspace-fullscreen)
+    ease-out both;
+}
+
+.patchbay-workspace-active:fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.patchbay-workspace-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.patchbay-workspace-fallback-active {
+  overflow: hidden;
+}
+
+.patchbay-workspace-active > .primary-actions {
+  padding: 0.4rem;
+  border-radius: 6px;
+  gap: 0.35rem;
+}
+
+.patchbay-workspace-active > patchbay-canvas {
+  display: contents;
+}
+
+.patchbay-workspace-active > .primary-actions .btn {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.patchbay-workspace-active > .cytoscape-container {
+  height: auto;
+  min-height: 12rem;
+}
+
+.patchbay-workspace-active > .structured-topology {
+  max-height: 7.5rem;
+  overflow: auto;
+  margin-top: 0;
+}
+
+.patchbay-workspace-active > .cord-legend {
+  margin: 0;
+}
+
+.patchbay-source-window {
+  transform-origin: top right;
+}
+
+.patchbay-workspace-active > .patchbay-source-window {
+  position: absolute;
+  z-index: 30;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0.6rem;
+  overflow: hidden;
+  border: 2px solid var(--line-hover);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.65);
+  transition:
+    width var(--patchbay-workspace-snap) ease-out,
+    height var(--patchbay-workspace-shade) ease-out,
+    transform var(--patchbay-workspace-snap) ease-out;
+}
+
+.patchbay-workspace-active > .patchbay-source-window.workspace-floating {
+  left: 0;
+  top: 0;
+  width: var(--workspace-window-width);
+  height: var(--workspace-window-height);
+  transform: translate(
+    var(--workspace-window-x),
+    var(--workspace-window-y)
+  );
+}
+
+.patchbay-workspace-active > .patchbay-source-window.workspace-docked {
+  top: var(--workspace-window-safe-top, 6rem);
+  right: 0.75rem;
+  bottom: 0.75rem;
+  width: min(36rem, 42vw);
+  height: auto;
+  transform: none;
+  border-right-width: 4px;
+}
+
+.patchbay-workspace-active > .patchbay-source-window.workspace-shaded {
+  height: 3.35rem;
+  min-height: 3.35rem;
+}
+
+.patchbay-workspace-active > .patchbay-source-window.workspace-hidden {
+  display: none;
+}
+
+.patchbay-workspace-active > .patchbay-source-window.workspace-dragging,
+.patchbay-workspace-active > .patchbay-source-window.workspace-resizing {
+  transition: none;
+  user-select: none;
+}
+
+.patchbay-source-titlebar {
+  min-height: 2.35rem;
+  gap: 0.55rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.workspace-dragging .patchbay-source-titlebar {
+  cursor: grabbing;
+}
+
+.patchbay-source-titlebar h3 {
+  white-space: nowrap;
+}
+
+.patchbay-editor-status {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patchbay-source-titlebar[data-dirty="true"] .patchbay-editor-status::before {
+  content: "● ";
+  color: #fbbf24;
+}
+
+.patchbay-editor-window-controls {
+  display: flex;
+  flex: none;
+  gap: 0.3rem;
+}
+
+.patchbay-editor-window-controls .btn {
+  min-height: 1.75rem;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.7rem;
+}
+
+.patchbay-workspace-active > .patchbay-source-window .panel-source-editor {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  transition:
+    opacity var(--patchbay-workspace-shade) ease-in,
+    clip-path var(--patchbay-workspace-shade) ease-in;
+  clip-path: inset(0);
+}
+
+.patchbay-workspace-active >
+  .patchbay-source-window.workspace-shaded
+  .panel-source-editor {
+  height: 0;
+  min-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  clip-path: inset(0 0 100% 0);
+}
+
+.patchbay-editor-resize-handle {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.1rem;
+  z-index: 3;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  color: var(--text-primary);
+  background: transparent;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.patchbay-editor-resize-handle:focus-visible,
+.patchbay-source-titlebar:focus-visible {
+  outline: 2px solid var(--accent-emerald);
+  outline-offset: 2px;
+}
+
+.patchbay-workspace-console {
+  position: absolute;
+  z-index: 25;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  width: min(46rem, calc(100vw - 1.5rem));
+  max-height: 13rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border: 2px solid var(--line-hover);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes patchbay-workspace-enter {
+  from {
+    opacity: 0.92;
+    transform: scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .panel-token-port-receiving {
   color: var(--panel-input-port);
@@ -1090,7 +1350,10 @@ path.patchbay-smart-cord.compatibility-incompatible {
   .cord-legend-swatch,
   .conduit-faceplate-card,
   .diagnostic-anchor-row,
-  .patchbay-diagnostic-anchor-card {
+  .patchbay-diagnostic-anchor-card,
+  .patchbay-workspace-active,
+  .patchbay-source-window,
+  .patchbay-source-window .panel-source-editor {
     animation: none !important;
     transition: none !important;
   }

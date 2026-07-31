@@ -64,6 +64,7 @@ export class PatchbayCanvasElement extends HTMLElement {
 
 export class PatchbayEditorElement extends HTMLElement {
   connectedCallback() {
+    if (this.querySelector("#source")) return;
     this.innerHTML = `
       <div class="card-header">
         <h3>Source Editor</h3>
