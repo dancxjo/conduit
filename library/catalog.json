@@ -4716,7 +4716,7 @@
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "finite",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
           "loss": "lossless-only"
         }

@@ -243,7 +243,12 @@ fn every_checked_panel_has_one_verified_runnability_state() {
     assert_eq!(inventory.schema, "conduit.panel-runnability");
     assert_eq!(
         inventory.states,
-        ["runnable", "contract-only", "illustrative/unavailable"]
+        [
+            "runnable",
+            "persistent",
+            "contract-only",
+            "illustrative/unavailable"
+        ]
     );
 
     let mut checked_in = BTreeSet::new();
@@ -341,6 +346,18 @@ fn every_checked_panel_has_one_verified_runnability_state() {
             assert!(output.status.success(), "{} must run", entry.path);
             assert_eq!(output.stdout, b"", "{} has clean stdout", entry.path);
             assert_eq!(output.stderr, b"", "{} has clean stderr", entry.path);
+            continue;
+        }
+        if entry.state == "persistent" {
+            assert_eq!(entry.proof, "canonical-file-watch");
+            let checked = Command::new(env!("CARGO_BIN_EXE_conduct"))
+                .current_dir(&root)
+                .arg("--enable-file-watch")
+                .arg("--check")
+                .arg(&entry.path)
+                .output()
+                .expect("persistent panel check executes");
+            assert!(checked.status.success(), "{} resolves exactly", entry.path);
             continue;
         }
         let output = invoke(&root, entry);

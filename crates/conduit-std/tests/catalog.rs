@@ -546,6 +546,8 @@ fn filesystem_contracts_use_opaque_handles_and_exact_bounded_results() {
 
     let watch = standard_node_contract("fs/watch").unwrap();
     assert_eq!(watch.outputs[0].value_type.contract_id.as_str(), "fs/event");
+    assert_eq!(watch.outputs[0].values.as_str(), "zero-or-more");
+    assert_eq!(watch.outputs[0].terminal.as_str(), "open-ended");
     let entry = STANDARD_CATALOG
         .iter()
         .find(|entry| entry.contract.id.as_str() == "fs/watch")

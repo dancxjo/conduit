@@ -12,7 +12,7 @@
     {
       "id": "dir-watcher",
       "title": "Bounded File Watcher",
-      "objective": "Run a bounded initial watch observation",
+      "objective": "Keep a bounded watch live for explicit provider observations",
       "prose": "Runnable in the explicitly selected browser in-memory filesystem profile with finite event and queue bounds.",
       "source_path": "../../examples/dir-watcher.panel",
       "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"}

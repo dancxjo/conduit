@@ -1,4 +1,4 @@
-# Observe one bounded initial event for an opaque provider-owned file resource.
+# Stay live for bounded, explicitly notified events from an opaque provider-owned file resource.
 panel 0
 
 node watcher : fs/watch {

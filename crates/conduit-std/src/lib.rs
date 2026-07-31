@@ -805,7 +805,7 @@ const FS_EVENT_OUTPUT: PortContract<'static> = port(
     Direction::Output,
     FS_EVENT,
     ValueCardinality::ZeroOrMore,
-    TerminalContract::Finite,
+    TerminalContract::OpenEnded,
 );
 const STORAGE_BLOB_INPUT: PortContract<'static> = port(
     "blob",

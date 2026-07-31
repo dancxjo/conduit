@@ -10,11 +10,12 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use conduit_core::{Id, SemanticHash};
+use conduit_core::{Id, SemanticHash, StopPolicy};
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, Handler, Registry, RegistryError, ResolutionError, RunIo, RuntimeError,
-    Value, file_read_contract, file_watch_contract, file_write_contract,
+    CompiledInHostService, Handler, HostedServiceInterest, HostedServiceStep,
+    HostedServiceStepContext, Registry, RegistryError, ResolutionError, RunIo, RuntimeError, Value,
+    file_read_contract, file_watch_contract, file_write_contract,
 };
 use conduit_std::{FlushClaim, PartialWritePolicy, WatchEventKind, WriteMode};
 
@@ -32,6 +33,8 @@ const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
 pub const EXAMPLE_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 pub const EXAMPLE_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
 pub const EXAMPLE_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
+
+const FILESYSTEM_WATCH_HOST_OPERATION: Id<'static> = Id("conduit/filesystem-watch-event");
 
 /// Provider-owned mapping for one opaque semantic resource.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -858,24 +861,32 @@ impl Handler for WriteHandler {
     }
 }
 
-struct WatchHandler;
+/// One exact hosted watch state. The handler emits each bounded provider
+/// observation, then waits for an explicit host notification before polling
+/// again. It never advances the host clock or retains an unbounded history.
+#[derive(Default)]
+struct WatchHandler {
+    filesystem: Option<LinuxFilesystem>,
+    state: Option<LinuxWatchState>,
+}
 
-impl Handler for WatchHandler {
-    fn run(
-        &mut self,
-        node: &Node,
-        inputs: &[Value],
-        _io: &mut RunIo<'_>,
-    ) -> Result<Vec<Value>, RuntimeError> {
-        if !inputs.is_empty() {
-            return Err(RuntimeError::new(
-                "CND-FSH-019",
-                "file watch received hidden inputs",
-            ));
+impl WatchHandler {
+    #[cfg(test)]
+    fn with_filesystem(filesystem: LinuxFilesystem) -> Self {
+        Self {
+            filesystem: Some(filesystem),
+            state: None,
         }
-        validate_watch_config(node)
-            .map_err(|error| RuntimeError::new(error.code, error.message))?;
-        let filesystem = example_filesystem().map_err(runtime_error)?;
+    }
+
+    fn initialize(&mut self, node: &Node) -> Result<LinuxWatchEvent, RuntimeError> {
+        if self.filesystem.is_none() {
+            self.filesystem = Some(example_filesystem().map_err(runtime_error)?);
+        }
+        let filesystem = self
+            .filesystem
+            .as_ref()
+            .expect("watch filesystem is installed before initialization");
         let mut state = filesystem
             .begin_watch(
                 required_reference(node, "resource")?,
@@ -885,10 +896,60 @@ impl Handler for WatchHandler {
         let event = filesystem
             .initial_watch_event(&mut state)
             .map_err(runtime_error)?;
-        Ok(vec![Value {
-            value_type: file_watch_contract().outputs[0].value_type,
-            bytes: watch_event_bytes(&event),
-        }])
+        self.state = Some(state);
+        Ok(event)
+    }
+}
+
+impl Handler for WatchHandler {
+    fn step(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-FSH-019",
+                "file watch received hidden inputs",
+            ));
+        }
+        validate_watch_config(node)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        let event = match self.state.as_mut() {
+            None => Some(self.initialize(node)?),
+            Some(state) => self
+                .filesystem
+                .as_ref()
+                .expect("watch filesystem remains installed while state is live")
+                .poll_watch(state)
+                .map_err(runtime_error)?,
+        };
+        match event {
+            Some(event) => Ok(HostedServiceStep::produced(vec![Value {
+                value_type: file_watch_contract().outputs[0].value_type,
+                bytes: watch_event_bytes(&event),
+            }])),
+            None => Ok(HostedServiceStep::Waiting {
+                interest: HostedServiceInterest::HostOperation {
+                    subject: FILESYSTEM_WATCH_HOST_OPERATION,
+                },
+            }),
+        }
+    }
+
+    fn cancel(&mut self, _node: &Node, _stop: StopPolicy) -> Result<(), RuntimeError> {
+        if let (Some(filesystem), Some(state)) = (&self.filesystem, &mut self.state) {
+            filesystem.cancel_watch(state).map_err(runtime_error)?;
+        }
+        Ok(())
+    }
+
+    fn cleanup(&mut self, _node: &Node) -> Result<(), RuntimeError> {
+        self.state = None;
+        self.filesystem = None;
+        Ok(())
     }
 }
 
@@ -935,7 +996,7 @@ pub fn register_hosted_file_watch_provider(registry: &mut Registry) -> Result<()
         entrypoint: "filesystem-linux-watch",
         source_bytes: include_bytes!("lib.rs"),
         required_authorities: &REQUIRED_AUTHORITIES,
-        factory: || Box::new(WatchHandler),
+        factory: || Box::new(WatchHandler::default()),
         validate_config: validate_watch_config,
     })
 }
@@ -945,7 +1006,18 @@ mod tests {
     use std::os::unix::fs::symlink;
 
     use super::*;
-    use conduit_runtime::AvailabilityState;
+    use bumpalo::Bump;
+    use conduit_compile::{InstalledProfile, compile_source};
+    use conduit_core::{
+        ConfigContract, ConnectionCardinality, Delivery, Direction, LossAcceptance, NodeContract,
+        PlanValidationContext, PortContract, PortFlowConstraints, Presence, ReadyQueueDiscipline,
+        SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, Sensitivity, TemporalContract,
+        TerminalContract, ValueCardinality,
+    };
+    use conduit_runtime::{
+        AvailabilityState, ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState,
+        SchedulerReservation,
+    };
     use conduit_std::{
         FileHandle, FileSlot, MemoryFilesystem, ReadConsistency, ReadRequest, WriteRequest,
     };
@@ -1180,6 +1252,238 @@ mod tests {
             files.poll_watch(&mut watch),
             Err(LinuxFilesystemError::Cancelled)
         );
+    }
+
+    #[test]
+    fn hosted_watch_emits_multiple_real_events_and_waits_for_an_exact_host_wake() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("file");
+        fs::write(&path, b"initial").unwrap();
+        let filesystem = filesystem(binding(
+            EXAMPLE_WATCH_RESOURCE,
+            &path,
+            directory.path(),
+            false,
+            false,
+            true,
+        ));
+        let source = include_str!("../../../examples/dir-watcher.panel");
+        let panel = conduit_panel::parse(source).unwrap();
+        let watcher = panel.nodes.first().unwrap();
+        let mut handler = WatchHandler::with_filesystem(filesystem);
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        let mut display = Vec::new();
+        let mut io = RunIo {
+            input: &mut input,
+            output: &mut output,
+            error: &mut error,
+            display: &mut display,
+        };
+
+        let initial = handler
+            .step(watcher, &[], HostedServiceStepContext { tick: 10 }, &mut io)
+            .unwrap();
+        let HostedServiceStep::Produced { outputs } = initial else {
+            panic!("watch must produce its required initial observation");
+        };
+        assert_eq!(outputs.len(), 1);
+        assert_eq!(outputs[0].bytes[0], 0);
+
+        assert_eq!(
+            handler
+                .step(watcher, &[], HostedServiceStepContext { tick: 10 }, &mut io)
+                .unwrap(),
+            HostedServiceStep::Waiting {
+                interest: HostedServiceInterest::HostOperation {
+                    subject: FILESYSTEM_WATCH_HOST_OPERATION,
+                },
+            }
+        );
+
+        fs::write(&path, b"changed").unwrap();
+        let changed = handler
+            .step(watcher, &[], HostedServiceStepContext { tick: 11 }, &mut io)
+            .unwrap();
+        let HostedServiceStep::Produced { outputs } = changed else {
+            panic!("the exact host wake must permit the next bounded watch observation");
+        };
+        assert_eq!(outputs.len(), 1);
+        assert_eq!(outputs[0].bytes[0], 2);
+
+        handler.cancel(watcher, StopPolicy::Abort).unwrap();
+        assert!(matches!(
+            handler.step(watcher, &[], HostedServiceStepContext { tick: 12 }, &mut io),
+            Err(error) if error.code == LinuxFilesystemError::Cancelled.code()
+        ));
+        handler.cleanup(watcher).unwrap();
+    }
+
+    struct WatchSink;
+
+    impl Handler for WatchSink {
+        fn step(
+            &mut self,
+            _node: &Node,
+            inputs: &[Value],
+            _context: HostedServiceStepContext,
+            _io: &mut RunIo<'_>,
+        ) -> Result<HostedServiceStep, RuntimeError> {
+            if inputs.len() != 1
+                || inputs[0].value_type != file_watch_contract().outputs[0].value_type
+            {
+                return Err(RuntimeError::new(
+                    "CND-FSH-019",
+                    "watch sink received an invalid event",
+                ));
+            }
+            Ok(HostedServiceStep::produced(Vec::new()))
+        }
+    }
+
+    #[test]
+    fn hosted_watch_stays_in_one_exact_session_across_host_wakes_until_abort() {
+        let mut registry = Registry::hosted_primitives();
+        register_hosted_file_watch_provider(&mut registry).unwrap();
+        let event_type = file_watch_contract().outputs[0].value_type;
+        let sink_input = PortContract {
+            id: Id("event"),
+            direction: Direction::Input,
+            value_type: event_type,
+            presence: Presence::Required,
+            connections: ConnectionCardinality::ExactlyOne,
+            values: ValueCardinality::ZeroOrMore,
+            delivery: Delivery::Stream,
+            temporal: TemporalContract::Committed,
+            terminal: TerminalContract::Either,
+            sensitivity: Sensitivity::Restricted,
+            flow: PortFlowConstraints {
+                loss: LossAcceptance::LosslessOnly,
+            },
+        };
+        let sink_contract = Box::leak(Box::new(NodeContract {
+            id: Id("acme/filesystem-watch-sink"),
+            config: ConfigContract { fields: &[] },
+            inputs: Box::leak(Box::new([sink_input])),
+            outputs: &[],
+        }));
+        registry.register_contract_only(sink_contract);
+        registry
+            .register_compiled_in_host_service(CompiledInHostService {
+                contract: sink_contract,
+                implementation_id: "acme/filesystem-watch-sink-hosted",
+                artifact_id: "acme/filesystem-watch-sink-artifact",
+                entrypoint: "filesystem-watch-sink",
+                source_bytes: include_bytes!("lib.rs"),
+                required_authorities: &[],
+                factory: || Box::new(WatchSink),
+                validate_config: |_| Ok(()),
+            })
+            .unwrap();
+        let source = format!(
+            "{}node sink : acme/filesystem-watch-sink\n\
+             cord watcher.event -> sink.event {{ capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }}\n",
+            include_str!("../../../examples/dir-watcher.panel")
+        );
+        let installed = InstalledProfile::observe_registry(&source, &registry).unwrap();
+        let document = compile_source(&source, &installed.input).unwrap();
+        let arena = Bump::new();
+        let plan = document.as_plan(&arena).unwrap();
+        let watch = plan
+            .nodes
+            .iter()
+            .find(|node| node.contract.id.as_str() == "fs/watch")
+            .expect("watch is in the exact plan");
+        assert_eq!(watch.contract.id.as_str(), "fs/watch");
+        assert_eq!(
+            file_watch_contract().outputs[0].terminal.as_str(),
+            "open-ended"
+        );
+        assert_eq!(watch.allocation.timers, 1);
+        assert_eq!(
+            watch
+                .execution_profile
+                .unwrap()
+                .limits
+                .max_pending_operations,
+            1
+        );
+
+        let panel = conduit_panel::parse(&source).unwrap();
+        let resolved = registry.resolve(&panel).unwrap();
+        let bindings = installed.bindings(&plan).unwrap();
+        let grants = installed.grant_observations(&plan).unwrap();
+        let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
+        let mut session = resolved
+            .start_exact_session(
+                &plan,
+                &bindings,
+                ExactRunContext {
+                    semantic_source_hash: plan.source_semantic_hash,
+                    plan_epoch: 217,
+                    run_id: Id("run/filesystem/watch"),
+                    grant_observations: &grants,
+                    validation: PlanValidationContext {
+                        supported_schema_version: plan.schema_version,
+                        now: plan.created_at,
+                    },
+                    scheduler_policy: SchedulerPolicy {
+                        schema_version: SCHEDULER_CONTRACT_VERSION,
+                        ready_queue: ReadyQueueDiscipline::RoundRobin,
+                        max_decisions: 64,
+                        max_tick: 64,
+                        max_consecutive_yields: 8,
+                        max_events: 64,
+                    },
+                    reservation: SchedulerReservation {
+                        available_runtime_memory_bytes: plan.budget.memory_bytes,
+                        executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                    },
+                },
+                &sessions,
+                ExactRunIo::for_plan(&plan).unwrap(),
+            )
+            .unwrap();
+
+        for _ in 0..8 {
+            if session.state() != ExactRunState::Active {
+                break;
+            }
+            session.pump(1).unwrap();
+        }
+        assert_eq!(session.state(), ExactRunState::Waiting);
+        let identity = session.identity().clone();
+        assert_eq!(
+            session
+                .notify_host_operation(Id("conduit/filesystem-other-event"))
+                .unwrap()
+                .state,
+            ExactRunState::Waiting
+        );
+        assert_eq!(
+            session
+                .notify_host_operation(FILESYSTEM_WATCH_HOST_OPERATION)
+                .unwrap()
+                .state,
+            ExactRunState::Active
+        );
+        for _ in 0..8 {
+            if session.state() != ExactRunState::Active {
+                break;
+            }
+            session.pump(1).unwrap();
+        }
+        assert_eq!(session.state(), ExactRunState::Waiting);
+        assert_eq!(session.identity(), &identity);
+
+        session.cancel(StopPolicy::Abort).unwrap();
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
     }
 
     #[test]

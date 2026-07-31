@@ -15,6 +15,8 @@ conduit-std = { path = "../conduit-std" }
 libc = "0.2.183"
 
 [dev-dependencies]
+bumpalo = "3.20.2"
+conduit-compile = { path = "../conduit-compile" }
 tempfile = "3.27.0"
 
 [lints]

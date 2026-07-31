@@ -3274,7 +3274,7 @@
           {
             "id": "standalone-watch",
             "title": "Standalone bounded watch",
-            "explanation": "Emit one initial observation under a pinned clock, finite queue, explicit gap policy, and preserved opaque rename identity.",
+            "explanation": "Stay live after the initial observation for explicitly notified provider events, under a pinned clock, finite queue, explicit gap policy, and preserved opaque rename identity.",
             "source": "panel 0\n\nnode watcher : fs/watch {\n    resource = secret(\"conduit.resource/filesystem-example-watch\")\n    grant = secret(\"conduit.grant/filesystem-watch\")\n    clock = ref(\"conduit.clock/monotonic-ticks\")\n    clock_schema_version = 0\n    clock_hash = bytes(\"6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48\")\n    event_kinds = \"create-change-remove-rename\"\n    emit_initial = true\n    coalescing = \"none\"\n    loss = \"explicit-gap\"\n    queue_capacity = 4\n    maximum_events = 4\n    overflow = \"gap-resync\"\n    rename_identity = \"preserve-handle\"\n    cancellation = \"close\"\n}\n",
             "execution": "run",
             "validation": {

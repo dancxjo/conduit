@@ -1,6 +1,6 @@
 {
   "schema": "conduit.panel-runnability",
-  "states": ["runnable", "contract-only", "illustrative/unavailable"],
+  "states": ["runnable", "persistent", "contract-only", "illustrative/unavailable"],
   "entries": [
     {"path":"conformance/c5/pure-node.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"CONDUIT EXACT SLICE.\n"},
     {"path":"examples/browser-linux-partition.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"BROWSER MEDIA FRAME\n"},
@@ -12,7 +12,7 @@
     {"path":"examples/data-validation.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":""},
     {"path":"examples/data-validation-rejection.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":""},
     {"path":"examples/dhcp-server.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"offered:192.168.4.2:generation=1:expires=3600010"},
-    {"path":"examples/dir-watcher.panel","state":"runnable","profile":"hosted","proof":"canonical-file-watch","expected_stdout":""},
+    {"path":"examples/dir-watcher.panel","state":"persistent","profile":"hosted","proof":"canonical-file-watch"},
     {"path":"examples/file-copier.panel","state":"runnable","profile":"hosted","proof":"canonical-file-write","expected_stdout":""},
     {"path":"examples/filesystem-read.panel","state":"runnable","profile":"hosted","proof":"canonical-file-read","expected_stdout":""},
     {"path":"examples/filesystem-write.panel","state":"runnable","profile":"hosted","proof":"canonical-file-write","expected_stdout":""},

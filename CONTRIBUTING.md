@@ -23,6 +23,15 @@ pulling in another change's cleanup. Fetch and rebase onto current `main`
 immediately before publishing; resolve an overlapping hunk with its owner
 instead of racing or rewriting their branch.
 
+When sharing one checkout, claim a file or hunk before editing it and reread
+`git status --short` before every generated command or commit. Do not reset,
+format, regenerate, stage, or delete another worker's changes. When working
+from separate machines, a small commit is the handoff: fetch, rebase the
+commit onto the current `origin/main`, rerun its focused evidence at that tip,
+and push without force. If two changes overlap, stop at the overlap and agree
+on one combined owner; do not solve a race by replaying a stale fixture or
+rewriting the other branch.
+
 Use the narrowest test that proves the behavior being changed. In particular,
 Tour browser tests cover scenario selection, admitted/rejected outcomes, and
 observable execution. They must not duplicate plan hashes, artifact digests,
@@ -32,6 +41,10 @@ Those facts belong to their exact compiler, artifact, or conformance checks.
 Do not refresh a fixture, generated artifact, or snapshot merely to restore a
 failing assertion. Refresh it only when the intended current producer changed
 and the owning verification demonstrates that the new artifact is required.
+Plan identities, artifact digests, and generated browser payloads are producer
+outputs, not browser-test expectations. Keep presentation tests focused on
+selection, visible state, and admitted outcomes; diagnose an identity drift at
+the owning contract, compiler, or artifact boundary first.
 
 ## Pre-release versions and compatibility
 

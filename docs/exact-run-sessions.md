@@ -76,6 +76,14 @@ the provider's finite timer and wakes the same run later; it must not jump time
 to make a callback look ready. Wrong or late named wakes do not resume another
 provider or another epoch.
 
+`fs/watch` follows the same rule for host I/O: it emits its required initial
+event, then waits for the exact filesystem host-operation notification before
+polling for one more bounded event. A changed file is not a new run and an
+unrelated host wake does nothing. The ordinary finite `conduct run` helper
+cannot own that lifetime, so a persistent watch is resolved and checked by its
+inventory entry while its session, notification, and Abort disposition are
+proved by the hosted lifecycle tests.
+
 Cancellation invokes the provider's bounded stop disposition and cleanup on
 the same scheduler path. Natural completion also runs cleanup before the node
 is terminal. Provider-owned callbacks, queues, timers, tasks, and buffers must
