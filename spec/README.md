@@ -250,6 +250,9 @@ containment program is tracked by
 - [`063-bounded-process-exec.md`](063-bounded-process-exec.md) defines the
   single optional three-stream exec boundary, literal command identity,
   independent output pressure, and finite termination cleanup.
+- [`064-bounded-application-sockets.md`](064-bounded-application-sockets.md)
+  defines four exact bounded TCP and UDP application socket operations without
+  ambient DNS, configuration, firewall, TLS, or HTTP authority.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

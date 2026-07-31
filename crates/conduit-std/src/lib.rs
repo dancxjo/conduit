@@ -20,6 +20,7 @@ mod conformance;
 mod data_boundaries;
 mod filesystem;
 mod process_exec;
+mod socket;
 mod state;
 mod storage_cache;
 mod supervision;
@@ -52,6 +53,13 @@ pub use process_exec::{
     PROCESS_MAX_ENVIRONMENT, PROCESS_MAX_ENVIRONMENT_NAME_BYTES,
     PROCESS_MAX_ENVIRONMENT_VALUE_BYTES, PROCESS_MAX_EVIDENCE_EVENTS, PROCESS_MAX_STREAM_BYTES,
     StdinClosePolicy, TerminationPolicy, run_fake_exec, validate_exec_request,
+};
+pub use socket::{
+    SOCKET_MAX_DATAGRAMS, SOCKET_MAX_EVIDENCE_EVENTS, SOCKET_MAX_MESSAGE_BYTES,
+    SOCKET_MAX_SESSIONS, SOCKET_MAX_STREAM_BYTES, SocketAddress, SocketBuffers, SocketControl,
+    SocketError, SocketEvent, SocketEventKind, SocketLimits, SocketResult, SocketSession,
+    SocketTerminal, TcpOperation, TcpRequest, UdpOperation, UdpRequest, run_tcp_fixture,
+    run_udp_fixture, validate_tcp_request, validate_udp_request,
 };
 pub use state::{
     CacheEntry, CacheInsert, CacheState, CellState, DeduplicateDecision, DeduplicateState,
