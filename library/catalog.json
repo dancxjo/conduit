@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2506,7 +2506,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3376,7 +3376,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4804,7 +4804,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4883,7 +4883,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4962,7 +4962,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9046,7 +9046,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9214,7 +9214,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9312,7 +9312,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9480,7 +9480,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9686,7 +9686,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9929,7 +9929,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10015,7 +10015,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10197,7 +10197,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10283,7 +10283,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10392,7 +10392,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10517,7 +10517,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10624,7 +10624,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12740,7 +12740,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+          "artifact_digest": "sha256:a525931496387de7fa328daeaffe8421f042ff9fc262505b6dffefe6b549a5bd"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13031,37 +13031,37 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/debounce",
       "schema_version": 0,
-      "semantic_hash": "sha256:de187b8a20d045b410cac34dc541a14db626dde90024894516e4e534aeee3adc",
+      "semantic_hash": "sha256:8610dec06124d637b56118e459f7fc64e321f5a5c915be5fe2e068232b1aacb7",
       "ports": [
         {
           "id": "event",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
               "contract": "time/debounce",
               "id": "in",
               "direction": "input",
-              "value_type": "std/text",
+              "value_type": "std/bytes",
               "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
-              "terminal": "finite",
-              "sensitivity": "public",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`time/debounce` names this input port for its contract-specific `event` payload or role.",
@@ -13077,32 +13077,32 @@
         {
           "id": "settled",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
               "contract": "time/debounce",
               "id": "out",
               "direction": "output",
-              "value_type": "std/text",
+              "value_type": "std/bytes",
               "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
-              "connections": "one-or-more",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
-              "terminal": "finite",
-              "sensitivity": "public",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`time/debounce` names this output port for its contract-specific `settled` payload or role.",
@@ -13116,7 +13116,68 @@
           }
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "clock",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "clock_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "clock_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "resolution_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "duration_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "mode",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "loss",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "terminal",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_retained",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
       "compiler_exported": false,
       "known_provider_bundles": [],
@@ -13144,37 +13205,37 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/delay",
       "schema_version": 0,
-      "semantic_hash": "sha256:6900a5c7abe9232da4f58ba37c361bb9d97beee0bd66e9a5841f41e3323ca2b3",
+      "semantic_hash": "sha256:67db8a2da2dd965eaaf853e419456b18921228028524896cd3808ffd93f30b86",
       "ports": [
         {
           "id": "value",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
               "contract": "time/delay",
               "id": "in",
               "direction": "input",
-              "value_type": "std/text",
+              "value_type": "std/bytes",
               "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
-              "terminal": "finite",
-              "sensitivity": "public",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`time/delay` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity.",
@@ -13188,40 +13249,40 @@
           }
         },
         {
-          "id": "delayed",
+          "id": "value",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
               "contract": "time/delay",
               "id": "out",
               "direction": "output",
-              "value_type": "std/text",
+              "value_type": "std/bytes",
               "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
-              "connections": "one-or-more",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
-              "terminal": "finite",
-              "sensitivity": "public",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
-            "reason": "`time/delay` names this output port for its contract-specific `delayed` payload or role.",
+            "reason": "`time/delay` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity.",
             "affected_bindings": [
               "runtime-contract:time/delay",
-              "exact-plan-cord:time/delay.out->time/delay.delayed",
+              "exact-plan-cord:time/delay.out->time/delay.value",
               "conformance-fixture:conformance/c4/standard-node-library.json"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
@@ -13229,7 +13290,56 @@
           }
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "clock",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "clock_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "clock_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "resolution_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "duration_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_pending",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "terminal",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
       "compiler_exported": false,
       "known_provider_bundles": [],
@@ -13521,37 +13631,37 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/throttle",
       "schema_version": 0,
-      "semantic_hash": "sha256:7704da8e6c7c41ffa5f8749297b8e6cc47bd0df461f5e57f6505858798acb823",
+      "semantic_hash": "sha256:3c55293cfcb781261856cf297fbcb37189a378eb558d878de94a012ba3c2679e",
       "ports": [
         {
           "id": "request",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
               "contract": "time/throttle",
               "id": "in",
               "direction": "input",
-              "value_type": "std/text",
+              "value_type": "std/bytes",
               "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
-              "terminal": "finite",
-              "sensitivity": "public",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`time/throttle` names this input port for its contract-specific `request` payload or role.",
@@ -13567,32 +13677,32 @@
         {
           "id": "admitted",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
               "contract": "time/throttle",
               "id": "out",
               "direction": "output",
-              "value_type": "std/text",
+              "value_type": "std/bytes",
               "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
-              "connections": "one-or-more",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
-              "terminal": "finite",
-              "sensitivity": "public",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`time/throttle` names this output port for its contract-specific `admitted` payload or role.",
@@ -13606,7 +13716,68 @@
           }
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "clock",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "clock_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "clock_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "resolution_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "duration_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "mode",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "overflow",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "terminal",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_retained",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
       "compiler_exported": false,
       "known_provider_bundles": [],
@@ -13725,7 +13896,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/timeout",
       "schema_version": 0,
-      "semantic_hash": "sha256:094cf81b11635257e8832a52852bcb9ebb2c01d6227cd6431da26bc2918c0a73",
+      "semantic_hash": "sha256:a5bfb93e7a2a2de7bbb6dc6bf518de2fa5381635a10dd0d8355be7ce725c7b11",
       "ports": [
         {
           "id": "item",
@@ -13812,22 +13983,58 @@
       ],
       "config": [
         {
+          "key": "clock",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "clock_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "clock_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "resolution_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
           "key": "duration_ticks",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "time_basis",
-          "value_type": "std/reference/any",
+          "key": "condition",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "maximum_pending",
-          "value_type": "std/u64",
+          "key": "reset",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "late",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         }
       ],
       "catalog_membership": "portable-catalog",

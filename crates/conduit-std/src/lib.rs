@@ -20,6 +20,7 @@ mod conformance;
 mod data_boundaries;
 mod text_format;
 mod text_lines_join;
+mod time;
 mod types;
 
 pub use conformance::{
@@ -43,6 +44,11 @@ pub use text_lines_join::{
     JOIN_MAX_ITEM_BYTES, JOIN_MAX_ITEMS, JOIN_MAX_OUTPUT_BYTES, JOIN_MAX_SEPARATOR_BYTES,
     LINES_MAX_LINE_BYTES, LINES_MAX_RETAINED_PREFIX_BYTES, LineError, LinesState, Utf8State,
     join_text_into,
+};
+pub use time::{
+    Admission, DebounceMode, DebounceState, OneShotTimer, TIME_MAX_DURATION_TICKS,
+    TIME_MAX_RETAINED_VALUES, TerminalPendingPolicy, ThrottleMode, ThrottleState, TimeError,
+    exact_deadline,
 };
 pub use types::{
     STANDARD_TYPE_CATALOG, StandardRepresentation, StandardTypeDefinition, StandardTypeFamily,
@@ -692,6 +698,59 @@ const TIMED: ConfigContract<'static> = ConfigContract {
         field("maximum_pending", U64),
     ],
 };
+const TIME_DELAY: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("resolution_ticks", U64),
+        field("duration_ticks", U64),
+        field("maximum_pending", U64),
+        field("terminal", TEXT),
+        field("discontinuity", TEXT),
+    ],
+};
+const TIME_TIMEOUT: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("resolution_ticks", U64),
+        field("duration_ticks", U64),
+        field("condition", TEXT),
+        field("reset", TEXT),
+        field("late", TEXT),
+        field("discontinuity", TEXT),
+    ],
+};
+const TIME_DEBOUNCE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("resolution_ticks", U64),
+        field("duration_ticks", U64),
+        field("mode", TEXT),
+        field("loss", TEXT),
+        field("terminal", TEXT),
+        field("maximum_retained", U64),
+        field("discontinuity", TEXT),
+    ],
+};
+const TIME_THROTTLE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("resolution_ticks", U64),
+        field("duration_ticks", U64),
+        field("mode", TEXT),
+        field("overflow", TEXT),
+        field("terminal", TEXT),
+        field("maximum_retained", U64),
+        field("discontinuity", TEXT),
+    ],
+};
 const TRANSFORM: ConfigContract<'static> = ConfigContract {
     fields: &[
         field("implementation", REFERENCE),
@@ -861,6 +920,15 @@ const TIMERS: CatalogLimits = CatalogLimits {
     retries: 0,
     work_per_step: 16,
     evidence_events: 32,
+};
+const TIME_FAMILY_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: TIME_MAX_RETAINED_VALUES as u32,
+    retained_bytes: 65_536,
+    pending_operations: 1,
+    timers: 1,
+    retries: 0,
+    work_per_step: 4,
+    evidence_events: 128,
 };
 const RETRY: CatalogLimits = CatalogLimits {
     retained_values: 4,
@@ -1501,12 +1569,12 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
     generic_entry!(
         "time/delay",
         Time,
-        TIMED,
+        TIME_DELAY,
         &[IN_BYTES],
         &[OUT_BYTES],
         Preserving,
         Monotonic,
-        TIMERS,
+        TIME_FAMILY_LIMITS,
         PURE,
         IDENTITY_GENERIC
     ),
@@ -1521,38 +1589,41 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TIMERS,
         PURE
     ),
-    entry!(
+    generic_entry!(
         "time/timeout",
         Time,
-        TIMED,
+        TIME_TIMEOUT,
         &[named("item", IN_BYTES)],
         &[named("completed", OUT_BYTES)],
         Preserving,
         Monotonic,
-        TIMERS,
-        PURE
+        TIME_FAMILY_LIMITS,
+        PURE,
+        IDENTITY_GENERIC
     ),
-    entry!(
+    generic_entry!(
         "time/debounce",
         Time,
-        TIMED,
+        TIME_DEBOUNCE,
         &[named("event", IN_BYTES)],
         &[named("settled", OUT_BYTES)],
         Preserving,
         Monotonic,
-        TIMERS,
-        PURE
+        TIME_FAMILY_LIMITS,
+        PURE,
+        IDENTITY_GENERIC
     ),
-    entry!(
+    generic_entry!(
         "time/throttle",
         Time,
-        TIMED,
+        TIME_THROTTLE,
         &[named("request", IN_BYTES)],
         &[named("admitted", OUT_BYTES)],
         Preserving,
         Monotonic,
-        TIMERS,
-        PURE
+        TIME_FAMILY_LIMITS,
+        PURE,
+        IDENTITY_GENERIC
     ),
     entry!(
         "time/sample",

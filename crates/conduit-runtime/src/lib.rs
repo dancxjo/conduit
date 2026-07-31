@@ -697,24 +697,6 @@ pub const SELECT_CONTRACT: NodeContract<'static> = NodeContract {
     ],
     outputs: &[named_stream_output("selected")],
 };
-pub const DELAY_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("time/delay"),
-    config: EMPTY_CONFIG,
-    inputs: &[VALUE_TEXT_INPUT],
-    outputs: &[named_text_output("delayed")],
-};
-pub const DEBOUNCE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("time/debounce"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("event")],
-    outputs: &[named_text_output("settled")],
-};
-pub const THROTTLE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("time/throttle"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("request")],
-    outputs: &[named_text_output("admitted")],
-};
 pub const TAKE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("flow/take"),
     config: EMPTY_CONFIG,
@@ -2257,9 +2239,6 @@ impl Default for Registry {
 
         // Discoverable contract-only semantic nodes (no default executable provider)
         let contract_only_list: &[&'static NodeContract<'static>] = &[
-            &DELAY_CONTRACT,
-            &DEBOUNCE_CONTRACT,
-            &THROTTLE_CONTRACT,
             &TAKE_CONTRACT,
             &SKIP_CONTRACT,
             &FILTER_CONTRACT,

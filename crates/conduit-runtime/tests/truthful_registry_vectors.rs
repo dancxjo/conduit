@@ -78,6 +78,7 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "conduit.std/select",
         "flow/fallback",
         "time/delay",
+        "time/timeout",
         "time/debounce",
         "time/throttle",
         "flow/take",
