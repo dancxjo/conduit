@@ -201,7 +201,7 @@ fn ownership(id: &str) -> Result<Ownership, String> {
             classification: "reusable-domain-package",
             package_owner: "conduit.domain.learned",
         }
-    } else if id.starts_with("media/") {
+    } else if id.starts_with("media/") || id.starts_with("conduit.media/") {
         Ownership {
             classification: "reusable-domain-package",
             package_owner: "conduit.domain.media",
@@ -250,6 +250,8 @@ fn fixture(id: &str, classification: &str) -> &'static str {
         "conformance/c5/http-serving.json"
     } else if id == "net/http/fetch" {
         "conformance/c4/http-client.json"
+    } else if id.starts_with("conduit.media/") {
+        "conformance/c4/media-values.json"
     } else if classification == "optional-host-boundary" {
         "conformance/c5/registry-availability.json"
     } else {
@@ -312,6 +314,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "storage/cache/remove",
             _,
         ) => Some("library.evictable-storage-cache"),
+        (id, _) if id.starts_with("conduit.media/") => Some("library.bounded-media-values"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };
@@ -353,7 +356,8 @@ fn validate_semantic_port_inventory(entries: &[Entry]) -> Result<(), String> {
 }
 
 fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
-    let registry = Registry::default();
+    let mut registry = Registry::default();
+    conduit_media::register_media_contracts(&mut registry);
     let standard = conduit_std::STANDARD_CATALOG
         .iter()
         .map(|entry| entry.contract.id.as_str())

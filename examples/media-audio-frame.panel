@@ -1,6 +1,6 @@
 panel 0
 
-node frame : conduit.media/audio-frame/literal
+node frame : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
 node inspect : conduit.media/audio-frame/inspect
 node output : display/text
 

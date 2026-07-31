@@ -7,9 +7,10 @@
 use sha2::{Digest, Sha256};
 
 use conduit_core::{
-    ConfigContract, ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract,
-    PortContract, PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract,
-    TerminalContract, TypeContractRef, ValueCardinality,
+    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
+    ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,
+    PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract, TerminalContract,
+    TypeContractRef, ValueCardinality,
 };
 use conduit_panel::Node;
 use conduit_runtime::{
@@ -20,6 +21,7 @@ use conduit_runtime::{
 pub const MAXIMUM_PLANES: usize = 4;
 pub const MAXIMUM_CHANNELS: u16 = 64;
 pub const MAXIMUM_METADATA_ENTRIES: u16 = 64;
+pub const MAXIMUM_METADATA_BYTES: usize = 64 * 1024;
 pub const MAXIMUM_MEDIA_BYTES: usize = 16 * 1024 * 1024;
 
 pub const AUDIO_FRAME_DESCRIPTOR: &str = "conduit.media/audio-frame|0|s16le,s24le,f32le|rational-time|finite-planes-strides-frames-bytes";
@@ -96,10 +98,20 @@ const TEXT_OUTPUT: [PortContract<'static>; 1] = [PortContract {
         loss: LossAcceptance::LosslessOnly,
     },
 }];
+const FIXTURE_CONFIG: ConfigContract<'static> = ConfigContract {
+    fields: &[ConfigFieldContract {
+        key: Id("fixture"),
+        value_type: TEXT_TYPE,
+        requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Public,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Semantic,
+    }],
+};
 
 pub const AUDIO_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.media/audio-frame/literal"),
-    config: ConfigContract { fields: &[] },
+    config: FIXTURE_CONFIG,
     inputs: &[],
     outputs: &AUDIO_OUTPUT,
 };
@@ -111,7 +123,7 @@ pub const AUDIO_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
 };
 pub const VIDEO_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.media/video-frame/literal"),
-    config: ConfigContract { fields: &[] },
+    config: FIXTURE_CONFIG,
     inputs: &[],
     outputs: &VIDEO_OUTPUT,
 };
@@ -122,18 +134,21 @@ pub const VIDEO_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &TEXT_OUTPUT,
 };
 
-const AUDIO_VALUE: &[u8] = b"CMA0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
-const VIDEO_VALUE: &[u8] = b"CMV0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01synthetic-rgb";
+const AUDIO_VALUE: &[u8] = b"CMA0T\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
+const AUDIO_SILENCE_VALUE: &[u8] = b"CMA0S\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
+const VIDEO_VALUE: &[u8] = b"CMV0R\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01synthetic-rgb";
+const VIDEO_GRAY_VALUE: &[u8] = b"CMV0G\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01synthetic-gray";
 
 struct LiteralHandler {
     value_type: TypeContractRef<'static>,
-    bytes: &'static [u8],
+    primary: (&'static str, &'static [u8]),
+    alternate: (&'static str, &'static [u8]),
 }
 
 impl Handler for LiteralHandler {
     fn run(
         &mut self,
-        _node: &Node,
+        node: &Node,
         inputs: &[Value],
         _io: &mut RunIo<'_>,
     ) -> Result<Vec<Value>, RuntimeError> {
@@ -143,9 +158,19 @@ impl Handler for LiteralHandler {
                 "media literal received hidden input",
             ));
         }
+        let bytes = match node.config("fixture") {
+            Some(name) if name == self.primary.0 => self.primary.1,
+            Some(name) if name == self.alternate.0 => self.alternate.1,
+            _ => {
+                return Err(RuntimeError::new(
+                    "CND-MEDIA-004",
+                    "media fixture selection is invalid",
+                ));
+            }
+        };
         Ok(vec![Value {
             value_type: self.value_type,
-            bytes: self.bytes.to_vec(),
+            bytes: bytes.to_vec(),
         }])
     }
 }
@@ -153,7 +178,8 @@ impl Handler for LiteralHandler {
 struct InspectHandler {
     expected_type: TypeContractRef<'static>,
     magic: &'static [u8; 4],
-    summary: &'static [u8],
+    primary: (u8, &'static [u8]),
+    alternate: (u8, &'static [u8]),
 }
 
 impl Handler for InspectHandler {
@@ -178,9 +204,19 @@ impl Handler for InspectHandler {
                 "media frame representation is invalid",
             ));
         }
+        let summary = match input.bytes.get(4) {
+            Some(marker) if *marker == self.primary.0 => self.primary.1,
+            Some(marker) if *marker == self.alternate.0 => self.alternate.1,
+            _ => {
+                return Err(RuntimeError::new(
+                    "CND-MEDIA-003",
+                    "media frame fixture marker is invalid",
+                ));
+            }
+        };
         Ok(vec![Value {
             value_type: TEXT_TYPE,
-            bytes: self.summary.to_vec(),
+            bytes: summary.to_vec(),
         }])
     }
 }
@@ -188,37 +224,51 @@ impl Handler for InspectHandler {
 fn audio_literal() -> Box<dyn Handler> {
     Box::new(LiteralHandler {
         value_type: AUDIO_FRAME_TYPE,
-        bytes: AUDIO_VALUE,
+        primary: ("tone-s16le-stereo-48000", AUDIO_VALUE),
+        alternate: ("silence-s16le-stereo-48000", AUDIO_SILENCE_VALUE),
     })
 }
 fn video_literal() -> Box<dyn Handler> {
     Box::new(LiteralHandler {
         value_type: VIDEO_FRAME_TYPE,
-        bytes: VIDEO_VALUE,
+        primary: ("rgb24-2x2", VIDEO_VALUE),
+        alternate: ("gray8-2x2", VIDEO_GRAY_VALUE),
     })
 }
 fn audio_inspect() -> Box<dyn Handler> {
     Box::new(InspectHandler {
         expected_type: AUDIO_FRAME_TYPE,
         magic: b"CMA0",
-        summary: b"audio:s16le:48000:stereo:192",
+        primary: (b'T', b"audio:s16le:48000:stereo:192"),
+        alternate: (b'S', b"audio:s16le:48000:stereo:192"),
     })
 }
 fn video_inspect() -> Box<dyn Handler> {
     Box::new(InspectHandler {
         expected_type: VIDEO_FRAME_TYPE,
         magic: b"CMV0",
-        summary: b"video:rgb24:2x2",
+        primary: (b'R', b"video:rgb24:2x2"),
+        alternate: (b'G', b"video:gray8:2x2"),
     })
 }
 
-fn validate_no_config(node: &Node) -> Result<(), ResolutionError> {
-    if node.config.is_empty() {
+fn validate_fixture_config(node: &Node) -> Result<(), ResolutionError> {
+    if node.config.len() == 1
+        && matches!(
+            node.config("fixture"),
+            Some(
+                "tone-s16le-stereo-48000"
+                    | "silence-s16le-stereo-48000"
+                    | "rgb24-2x2"
+                    | "gray8-2x2"
+            )
+        )
+    {
         Ok(())
     } else {
         Err(ResolutionError::new(
             "CND-MEDIA-004",
-            "synthetic media fixture has no configuration",
+            "synthetic media fixture selection is unsupported",
         ))
     }
 }
@@ -239,13 +289,14 @@ pub fn register_deterministic_media_providers(
 ) -> Result<(), RegistryError> {
     register_media_contracts(registry);
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
-    for (contract, implementation_id, artifact_id, entrypoint, factory) in [
+    for (contract, implementation_id, artifact_id, entrypoint, factory, validate_config) in [
         (
             &AUDIO_LITERAL_CONTRACT,
             "conduit.media/audio-literal-deterministic",
             "conduit.media/audio-literal-artifact",
             "media-audio-literal",
             audio_literal as conduit_runtime::HandlerFactory,
+            validate_fixture_config as conduit_runtime::ConfigValidator,
         ),
         (
             &AUDIO_INSPECT_CONTRACT,
@@ -253,6 +304,11 @@ pub fn register_deterministic_media_providers(
             "conduit.media/audio-inspect-artifact",
             "media-audio-inspect",
             audio_inspect as conduit_runtime::HandlerFactory,
+            (|node: &Node| {
+                node.config.is_empty().then_some(()).ok_or_else(|| {
+                    ResolutionError::new("CND-MEDIA-004", "media inspector has no configuration")
+                })
+            }) as conduit_runtime::ConfigValidator,
         ),
         (
             &VIDEO_LITERAL_CONTRACT,
@@ -260,6 +316,7 @@ pub fn register_deterministic_media_providers(
             "conduit.media/video-literal-artifact",
             "media-video-literal",
             video_literal as conduit_runtime::HandlerFactory,
+            validate_fixture_config as conduit_runtime::ConfigValidator,
         ),
         (
             &VIDEO_INSPECT_CONTRACT,
@@ -267,6 +324,11 @@ pub fn register_deterministic_media_providers(
             "conduit.media/video-inspect-artifact",
             "media-video-inspect",
             video_inspect as conduit_runtime::HandlerFactory,
+            (|node: &Node| {
+                node.config.is_empty().then_some(()).ok_or_else(|| {
+                    ResolutionError::new("CND-MEDIA-004", "media inspector has no configuration")
+                })
+            }) as conduit_runtime::ConfigValidator,
         ),
     ] {
         registry.register_compiled_in_host_service(CompiledInHostService {
@@ -277,7 +339,7 @@ pub fn register_deterministic_media_providers(
             source_bytes: include_bytes!("lib.rs"),
             required_authorities: &NO_AUTHORITIES,
             factory,
-            validate_config: validate_no_config,
+            validate_config,
         })?;
     }
     Ok(())
@@ -295,6 +357,9 @@ pub enum MediaReason {
     DescriptorMismatch,
     MetadataOverflow,
     ByteOverflow,
+    DuplicateTimestamp,
+    IncompatibleTimeBase,
+    PacketExtradataMismatch,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -332,6 +397,120 @@ impl MediaTime {
         }
         Ok(())
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ClockCorrelation {
+    pub media_timestamp: i64,
+    pub host_tick: u64,
+    pub uncertainty_ticks: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StreamDescriptor {
+    pub identity: [u8; 32],
+    pub time_base: RationalTimeBase,
+    pub maximum_frames_per_value: u32,
+    pub maximum_value_bytes: usize,
+    pub maximum_metadata_entries: u16,
+    pub maximum_buffered_values: u16,
+}
+
+impl StreamDescriptor {
+    pub fn validate(self) -> Result<(), MediaReason> {
+        self.time_base.validate()?;
+        if self.identity == [0; 32]
+            || self.maximum_frames_per_value == 0
+            || self.maximum_value_bytes == 0
+            || self.maximum_value_bytes > MAXIMUM_MEDIA_BYTES
+            || self.maximum_metadata_entries > MAXIMUM_METADATA_ENTRIES
+            || self.maximum_buffered_values == 0
+        {
+            return Err(MediaReason::ByteOverflow);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct MetadataEntry<'a> {
+    pub key: &'a str,
+    pub value: &'a [u8],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct MediaMetadata<'a> {
+    pub entries: &'a [MetadataEntry<'a>],
+    pub provenance_identity: [u8; 32],
+    pub sensitivity: Sensitivity,
+}
+
+impl MediaMetadata<'_> {
+    pub fn validate(self) -> Result<(), MediaReason> {
+        if self.entries.len() > usize::from(MAXIMUM_METADATA_ENTRIES)
+            || self.provenance_identity == [0; 32]
+        {
+            return Err(MediaReason::MetadataOverflow);
+        }
+        let mut bytes = 0_usize;
+        for entry in self.entries {
+            if entry.key.is_empty()
+                || entry.key.len() > 255
+                || entry.value.len() > MAXIMUM_METADATA_BYTES
+            {
+                return Err(MediaReason::MetadataOverflow);
+            }
+            bytes = bytes
+                .checked_add(entry.key.len())
+                .and_then(|total| total.checked_add(entry.value.len()))
+                .ok_or(MediaReason::MetadataOverflow)?;
+            if bytes > MAXIMUM_METADATA_BYTES {
+                return Err(MediaReason::MetadataOverflow);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct MediaValueHeader<'a> {
+    pub stream: StreamDescriptor,
+    pub time: MediaTime,
+    pub clock_correlation: Option<ClockCorrelation>,
+    pub metadata: MediaMetadata<'a>,
+}
+
+impl MediaValueHeader<'_> {
+    pub fn validate(self) -> Result<(), MediaReason> {
+        self.stream.validate()?;
+        self.time.validate()?;
+        self.metadata.validate()?;
+        if self.stream.time_base != self.time.time_base {
+            return Err(MediaReason::IncompatibleTimeBase);
+        }
+        if let Some(correlation) = self.clock_correlation
+            && correlation.media_timestamp != self.time.timestamp.expect("validated timestamp")
+        {
+            return Err(MediaReason::IncompatibleTimeBase);
+        }
+        Ok(())
+    }
+}
+
+pub fn validate_timestamp_sequence(values: &[MediaTime]) -> Result<(), MediaReason> {
+    let mut previous = None;
+    for value in values {
+        value.validate()?;
+        let timestamp = value.timestamp.expect("validated timestamp");
+        if previous == Some(timestamp) {
+            return Err(MediaReason::DuplicateTimestamp);
+        }
+        if previous.is_some_and(|previous| previous > timestamp) {
+            return Err(MediaReason::IncompatibleTimeBase);
+        }
+        previous = Some(timestamp);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -408,11 +587,13 @@ pub struct PacketDescriptor<'a> {
     pub extradata_identity: [u8; 32],
     pub key: bool,
     pub discontinuity: bool,
+    pub time: MediaTime,
     pub maximum_bytes: usize,
 }
 
 impl PacketDescriptor<'_> {
     pub fn validate(self) -> Result<(), MediaReason> {
+        self.time.validate()?;
         if self.codec.is_empty() || self.profile.is_empty() {
             return Err(MediaReason::UnsupportedFormat);
         }
@@ -459,6 +640,37 @@ pub fn exact_audio_compatibility(
     }
 }
 
+pub fn exact_video_compatibility(
+    producer: VideoDescriptor<'_>,
+    consumer: VideoDescriptor<'_>,
+) -> Result<(), MediaReason> {
+    producer.validate()?;
+    consumer.validate()?;
+    (producer == consumer)
+        .then_some(())
+        .ok_or(MediaReason::DescriptorMismatch)
+}
+
+pub fn exact_packet_compatibility(
+    producer: PacketDescriptor<'_>,
+    consumer: PacketDescriptor<'_>,
+) -> Result<(), MediaReason> {
+    producer.validate()?;
+    consumer.validate()?;
+    if producer.codec != consumer.codec
+        || producer.profile != consumer.profile
+        || producer.extradata_identity != consumer.extradata_identity
+    {
+        return Err(MediaReason::PacketExtradataMismatch);
+    }
+    if producer.maximum_bytes != consumer.maximum_bytes
+        || producer.time.time_base != consumer.time.time_base
+    {
+        return Err(MediaReason::DescriptorMismatch);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -482,6 +694,19 @@ mod tests {
         }
     }
 
+    fn time(timestamp: i64) -> MediaTime {
+        MediaTime {
+            time_base: RationalTimeBase {
+                numerator: 1,
+                denominator: 48_000,
+            },
+            timestamp: Some(timestamp),
+            duration: 192,
+            discontinuity: false,
+            conversion_uncertainty_ticks: 1,
+        }
+    }
+
     #[test]
     fn synthetic_pcm_is_finite_and_exact() {
         assert_eq!(audio().validate(), Ok(()));
@@ -495,23 +720,100 @@ mod tests {
 
     #[test]
     fn time_and_plane_failures_are_explicit() {
-        assert_eq!(
-            MediaTime {
-                time_base: RationalTimeBase {
-                    numerator: 1,
-                    denominator: 48_000,
-                },
-                timestamp: Some(0),
-                duration: 192,
-                discontinuity: false,
-                conversion_uncertainty_ticks: 0,
-            }
-            .validate(),
-            Ok(())
-        );
+        assert_eq!(time(0).validate(), Ok(()));
         let mut oversized = audio();
         oversized.maximum_bytes = 128;
         assert_eq!(oversized.validate(), Err(MediaReason::InvalidPlaneLayout));
+    }
+
+    #[test]
+    fn stream_metadata_time_and_packet_profiles_are_finite_and_exact() {
+        let metadata_entries = [MetadataEntry {
+            key: "source",
+            value: b"synthetic",
+        }];
+        let header = MediaValueHeader {
+            stream: StreamDescriptor {
+                identity: [1; 32],
+                time_base: time(0).time_base,
+                maximum_frames_per_value: 192,
+                maximum_value_bytes: 384,
+                maximum_metadata_entries: 1,
+                maximum_buffered_values: 2,
+            },
+            time: time(0),
+            clock_correlation: Some(ClockCorrelation {
+                media_timestamp: 0,
+                host_tick: 10,
+                uncertainty_ticks: 1,
+            }),
+            metadata: MediaMetadata {
+                entries: &metadata_entries,
+                provenance_identity: [2; 32],
+                sensitivity: Sensitivity::Public,
+            },
+        };
+        assert_eq!(header.validate(), Ok(()));
+        assert_eq!(
+            validate_timestamp_sequence(&[time(0), time(0)]),
+            Err(MediaReason::DuplicateTimestamp)
+        );
+
+        let packet = PacketDescriptor {
+            codec: "pcm-s16le",
+            profile: "stereo-48000",
+            extradata_identity: [3; 32],
+            key: true,
+            discontinuity: false,
+            time: time(0),
+            maximum_bytes: 384,
+        };
+        let mut incompatible = packet;
+        incompatible.extradata_identity = [4; 32];
+        assert_eq!(
+            exact_packet_compatibility(packet, incompatible),
+            Err(MediaReason::PacketExtradataMismatch)
+        );
+    }
+
+    #[test]
+    fn metadata_and_clock_correlation_fail_closed() {
+        let oversized = [MetadataEntry {
+            key: "source",
+            value: &[0; MAXIMUM_METADATA_BYTES + 1],
+        }];
+        assert_eq!(
+            MediaMetadata {
+                entries: &oversized,
+                provenance_identity: [2; 32],
+                sensitivity: Sensitivity::Restricted,
+            }
+            .validate(),
+            Err(MediaReason::MetadataOverflow)
+        );
+
+        let header = MediaValueHeader {
+            stream: StreamDescriptor {
+                identity: [1; 32],
+                time_base: time(0).time_base,
+                maximum_frames_per_value: 192,
+                maximum_value_bytes: 384,
+                maximum_metadata_entries: 0,
+                maximum_buffered_values: 1,
+            },
+            time: time(0),
+            clock_correlation: Some(ClockCorrelation {
+                media_timestamp: 1,
+                host_tick: 10,
+                uncertainty_ticks: 1,
+            }),
+            metadata: MediaMetadata {
+                entries: &[],
+                provenance_identity: [2; 32],
+                sensitivity: Sensitivity::Public,
+            },
+        };
+        assert_eq!(header.validate(), Err(MediaReason::IncompatibleTimeBase));
     }
 
     #[test]
@@ -522,5 +824,20 @@ mod tests {
         assert_eq!(fixture["types"].as_array().unwrap().len(), 6);
         assert_eq!(fixture["positive"].as_array().unwrap().len(), 5);
         assert_eq!(fixture["negative"].as_array().unwrap().len(), 14);
+    }
+
+    #[test]
+    fn semantic_understanding_does_not_install_media_operations() {
+        let source = "panel 0\nnode frame : conduit.media/audio-frame/literal { fixture = \"tone-s16le-stereo-48000\" }\nnode inspect : conduit.media/audio-frame/inspect\ncord frame.frame -> inspect.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+        let panel = conduit_panel::parse(source).unwrap();
+        let mut registry = Registry::default();
+        register_media_contracts(&mut registry);
+        registry.resolve_contracts(&panel).unwrap();
+        assert!(
+            registry
+                .installed_providers()
+                .iter()
+                .all(|provider| { !provider.contract.id.as_str().starts_with("conduit.media/") })
+        );
     }
 }

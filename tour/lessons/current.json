@@ -1098,6 +1098,119 @@
       }
     },
     {
+      "id": "library.bounded-media-values",
+      "chapter": 4,
+      "title": "Bounded media values without hidden codecs",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.value-envelope-clock-feedback"
+      ],
+      "objective": "Run fixed PCM and image frames through ordinary bounded cords while inspecting exact descriptors, rational time, plane and byte ceilings, pressure, cancellation, and terminal evidence.",
+      "prose": "Media values are typed finite data, not ambient codec or device objects. The literal nodes select checked synthetic fixtures; the inspectors accept only the exact audio-frame or video-frame contract and project a deterministic textual descriptor. A host can understand these descriptors while installing no media operation provider.",
+      "vocabulary": [
+        "rational media time",
+        "stream identity",
+        "plane and stride",
+        "channel layout",
+        "pixel format",
+        "explicit adapter"
+      ],
+      "source": "panel 0\n\nnode audio : conduit.media/audio-frame/literal { fixture = \"tone-s16le-stereo-48000\" }\nnode inspect_audio : conduit.media/audio-frame/inspect\nnode video : conduit.media/video-frame/literal { fixture = \"rgb24-2x2\" }\nnode inspect_video : conduit.media/video-frame/inspect\nnode audio_output : display/text\nnode video_output : display/text\n\ncord audio.frame -> inspect_audio.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord video.frame -> inspect_video.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord inspect_audio.summary -> audio_output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord inspect_video.summary -> video_output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct examples/media-frame-compose.panel",
+      "commands": [
+        "conduct --check examples/media-audio-frame.panel",
+        "conduct examples/media-audio-frame.panel",
+        "conduct --check examples/media-frame-compose.panel",
+        "conduct examples/media-frame-compose.panel"
+      ],
+      "expected_display": "audio:s16le:48000:stereo:192video:rgb24:2x2",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 256,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "bounded-media-value-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "stream_identity",
+          "time_base",
+          "timestamp",
+          "duration",
+          "discontinuity",
+          "conversion_uncertainty",
+          "format",
+          "dimensions_frames",
+          "planes_strides",
+          "metadata_bytes",
+          "queue",
+          "pressure",
+          "cancellation",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "audio:s16le:48000:stereo:192video:rgb24:2x2"
+      },
+      "hints": [
+        "Select tone or silence for the audio literal, or RGB24 or gray8 for the image literal; every choice remains a finite checked fixture.",
+        "The media descriptor owns format and layout compatibility; the cord separately owns capacity, byte ceiling, watermarks, and block pressure.",
+        "A different rate, layout, pixel format, time basis, or packet extradata identity needs a separately named adapter. Nothing converts implicitly."
+      ],
+      "solution": "Choose an exact checked fixture, connect matching media ports through capacity-one blocking cords, keep frame and queue byte ceilings visible, and inspect the exact plan and ordered evidence before claiming compatibility or completion.",
+      "accessibility": {
+        "non_audio": "An ordered event table names sequence, node and port, stream identity, rational time base, timestamp, duration, discontinuity, conversion uncertainty, format, dimensions or frame count, planes and strides, metadata and byte ceilings, queue pressure, cancellation, error, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered media event table has focus.",
+        "color_independent": "Format names, numeric bounds, pressure words, cancellation and terminal labels, and ordered table rows duplicate every graph color and motion cue."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Exact finite media values cross ordinary bounded cords without requiring a codec, container, or device provider.",
+        "what": "Audio and video literal nodes emit deterministic checked frames; matching inspectors verify the exact type and finite representation before projecting a textual descriptor.",
+        "when": "Use these contracts as the reusable value boundary for raw audio, image or video, packet, speech, device-I/O, and codec packages that need explicit finite media data.",
+        "wrong": "Zero dimensions, invalid planes or strides, unsupported formats, channel-layout drift, missing or duplicate timestamps, incompatible time bases, packet extradata drift, metadata or byte overflow, pressure, cancellation, and an unavailable provider remain explicit failures with no implicit conversion.",
+        "contracts": [
+          {"id":"conduit.media/audio-frame/literal","kind":"node","outputs":["frame:conduit.media/audio-frame"],"policy":"two fixed checked PCM fixtures; no codec or device"},
+          {"id":"conduit.media/audio-frame/inspect","kind":"node","inputs":["frame:conduit.media/audio-frame"],"outputs":["summary:std/text"],"policy":"exact type and bounded representation"},
+          {"id":"conduit.media/video-frame/literal","kind":"node","outputs":["frame:conduit.media/video-frame"],"policy":"fixed RGB24 or gray8 2x2 image fixture"},
+          {"id":"conduit.media/video-frame/inspect","kind":"node","inputs":["frame:conduit.media/video-frame"],"outputs":["summary:std/text"],"policy":"exact type and bounded representation"}
+        ],
+        "editable": [
+          "audio.fixture:tone-s16le-stereo-48000|silence-s16le-stereo-48000",
+          "video.fixture:rgb24-2x2|gray8-2x2"
+        ],
+        "provider": "deterministic compiled-in fixture provider through the ordinary exact host-service boundary",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact media contract, type descriptor hash, implementation, artifact, and typed port bindings",
+          "stream identity, rational time basis, timestamp, duration, discontinuity, conversion uncertainty, and clock correlation",
+          "finite format, layout, frame or dimension, plane, stride, metadata, value-byte, queue-byte, and buffered-value ceilings",
+          "ordered production, inspection, pressure, cancellation, error, and one exact terminal cause"
+        ],
+        "docs": [
+          "../../spec/066-bounded-media-values.md",
+          "../../conformance/c4/media-values.json",
+          "../../examples/media-audio-frame.panel",
+          "../../examples/media-frame-compose.panel"
+        ],
+        "scenarios": [
+          {"id":"audio-standalone","title":"Synthetic PCM frame","panel":"../../examples/media-audio-frame.panel","semantics":"One exact S16LE stereo frame crosses a capacity-one cord, is inspected, and terminates without a codec or device."},
+          {"id":"audio-video-composition","title":"PCM and image frames together","panel":"../../examples/media-frame-compose.panel","semantics":"Independent exact audio and image types share the ordinary bounded executor while retaining separate descriptors, queues, evidence, and terminal facts."}
+        ]
+      }
+    },
+    {
       "id": "library.standard-flow-control",
       "chapter": 4,
       "title": "Bounded flow control",

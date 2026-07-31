@@ -1,8 +1,8 @@
 panel 0
 
-node audio : conduit.media/audio-frame/literal
+node audio : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
 node inspect_audio : conduit.media/audio-frame/inspect
-node video : conduit.media/video-frame/literal
+node video : conduit.media/video-frame/literal { fixture = "rgb24-2x2" }
 node inspect_video : conduit.media/video-frame/inspect
 node audio_output : display/text
 node video_output : display/text

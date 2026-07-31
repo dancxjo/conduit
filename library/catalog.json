@@ -962,6 +962,234 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "conduit.media/audio-frame/inspect",
+      "public_source_spelling": "conduit.media/audio-frame/inspect",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio-frame/inspect",
+      "schema_version": 0,
+      "semantic_hash": "sha256:d623c8ba3ac1d3b570c7bee5f41a5655dd2c4faf44cb23a1ec9afef01c180978",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "summary",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio-frame/literal",
+      "public_source_spelling": "conduit.media/audio-frame/literal",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio-frame/literal",
+      "schema_version": 0,
+      "semantic_hash": "sha256:1b6a2119cf99defee4da5581621721b0c19ddb3214bdf6d803ece00d63709480",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "fixture",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/video-frame/inspect",
+      "public_source_spelling": "conduit.media/video-frame/inspect",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/video-frame/inspect",
+      "schema_version": 0,
+      "semantic_hash": "sha256:37460e2937f7759fdadcca79cf3834590d2e4917a4453efb40f225582e770d60",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/video-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:7d91b09481aaef99e1d1fd72700a648d3ace319cc9a7ea8b7122ce176deab20f",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "summary",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/video-frame/literal",
+      "public_source_spelling": "conduit.media/video-frame/literal",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/video-frame/literal",
+      "schema_version": 0,
+      "semantic_hash": "sha256:f1ac5b8c3b5d028bf46557d91819c7b930bcdcda3e3af3c5060bf29adf55fdf4",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/video-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:7d91b09481aaef99e1d1fd72700a648d3ace319cc9a7ea8b7122ce176deab20f",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "fixture",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "conduit.std/gate",
       "public_source_spelling": "conduit.std/gate",
       "classification": "portable-standard",

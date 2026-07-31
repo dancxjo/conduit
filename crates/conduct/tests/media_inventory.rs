@@ -1,5 +1,6 @@
+use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_media::register_deterministic_media_providers;
@@ -25,7 +26,8 @@ fn typed_media_contracts_are_sealed_into_the_exact_compile_catalog() {
         .iter()
         .find(|contract| contract.id == "conduit.media/audio-frame/literal")
         .expect("the exact input seals the domain contract");
-    assert!(literal.config.is_empty());
+    assert_eq!(literal.config.len(), 1);
+    assert_eq!(literal.config[0].key, "fixture");
     assert_eq!(literal.outputs.len(), 1);
     assert_eq!(
         literal.outputs[0].value_type.id,
@@ -66,4 +68,27 @@ fn standalone_and_composed_media_panels_run_through_the_canonical_cli() {
         );
         assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
     }
+}
+
+#[test]
+fn media_value_overflow_is_an_explicit_pressure_failure() {
+    let source = include_str!("../../../examples/media-audio-frame.panel")
+        .replacen("max_value_bytes = 64", "max_value_bytes = 4", 1)
+        .replacen("max_queued_bytes = 64", "max_queued_bytes = 4", 1);
+    let mut child = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(source.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(!output.status.success());
+    assert_eq!(output.stdout, b"");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("CND-RUN-004"));
 }

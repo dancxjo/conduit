@@ -15,6 +15,7 @@ bumpalo = "3"
 conduit-cache = { path = "../conduit-cache" }
 conduit-compile = { path = "../conduit-compile" }
 conduit-core = { path = "../conduit-core" }
+conduit-media = { path = "../conduit-media" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-patchbay = { path = "../conduit-patchbay" }
 conduit-runtime = { path = "../conduit-runtime" }
