@@ -1,5 +1,12 @@
 import init, {
   cancel_panel,
+  patchbay_advance_exact_run,
+  patchbay_cancel_exact_run,
+  patchbay_notify_host_operation,
+  patchbay_open_session,
+  patchbay_pump_exact_run,
+  patchbay_session_view,
+  patchbay_start_exact_run,
   run_panel,
   run_panel_exact,
 } from "./conduit_web.js";
@@ -9,6 +16,33 @@ import {
 } from "../../browser/conduit-browser-host.mjs";
 
 let configured = false;
+
+function response(operation, value) {
+  switch (operation) {
+    case "run":
+      return run_panel(value.source);
+    case "cancel":
+      return cancel_panel(value.source);
+    case "run-exact":
+      return run_panel_exact(value.source, value.compileInputJson);
+    case "patchbay-open-session":
+      return patchbay_open_session(value.documentId, value.source);
+    case "patchbay-session-view":
+      return patchbay_session_view(value.sessionId);
+    case "patchbay-start-exact-run":
+      return patchbay_start_exact_run(value.sessionId);
+    case "patchbay-pump-exact-run":
+      return patchbay_pump_exact_run(value.sessionId, value.quantum);
+    case "patchbay-advance-exact-run":
+      return patchbay_advance_exact_run(value.sessionId, value.tick);
+    case "patchbay-notify-host-operation":
+      return patchbay_notify_host_operation(value.sessionId, value.subject);
+    case "patchbay-cancel-exact-run":
+      return patchbay_cancel_exact_run(value.sessionId, value.disposition);
+    default:
+      return undefined;
+  }
+}
 
 async function configure(value) {
   if (configured) return { configured: true };
@@ -33,27 +67,12 @@ globalThis.onmessage = async (event) => {
       globalThis.postMessage({ id, ok: true, value: await configure(value) });
       return;
     }
-    if (operation === "run" && configured) {
+    const result = configured && response(operation, value);
+    if (result !== undefined) {
       globalThis.postMessage({
         id,
         ok: true,
-        value: JSON.parse(run_panel(value.source)),
-      });
-      return;
-    }
-    if (operation === "cancel" && configured) {
-      globalThis.postMessage({
-        id,
-        ok: true,
-        value: JSON.parse(cancel_panel(value.source)),
-      });
-      return;
-    }
-    if (operation === "run-exact" && configured) {
-      globalThis.postMessage({
-        id,
-        ok: true,
-        value: JSON.parse(run_panel_exact(value.source, value.compileInputJson)),
+        value: JSON.parse(result),
       });
       return;
     }

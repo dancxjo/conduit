@@ -26,6 +26,69 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
   expect(failures).toEqual([]);
 });
 
+test("owns an exact Patchbay run session inside the dedicated worker", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+
+  const result = await page.evaluate(async () => {
+    const plan = await fetch("/tour/public/browser-plan.json", { cache: "no-store" })
+      .then((response) => response.json());
+    const wasm = plan.artifacts.find((artifact) => artifact.id === "conduit-web-wasm");
+    const worker = new Worker("/tour/public/tour-worker.mjs", { type: "module" });
+    let nextId = 1;
+    const request = (operation, value) => new Promise((resolve, reject) => {
+      const id = nextId++;
+      const timeout = setTimeout(() => reject(new Error(`worker timeout: ${operation}`)), 10_000);
+      const receive = (event) => {
+        if (event.data?.id !== id) return;
+        clearTimeout(timeout);
+        worker.removeEventListener("message", receive);
+        resolve(event.data);
+      };
+      worker.addEventListener("message", receive);
+      worker.postMessage({ id, operation, value });
+    });
+
+    try {
+      const configured = await request("configure", {
+        wasmUrl: new URL(wasm.path, location.href).href,
+        wasmSha256: wasm.sha256,
+      });
+      const source = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\n" +
+        "node output : display/text\ncord greeting.value -> output.text\n";
+      const opened = await request("patchbay-open-session", {
+        documentId: "tour/worker-exact-session",
+        source,
+      });
+      const sessionId = opened.value?.session_id;
+      const started = await request("patchbay-start-exact-run", { sessionId });
+      const malformed = await request("patchbay-notify-host-operation", {
+        sessionId,
+        subject: "not an exact host operation",
+      });
+      const unrelated = await request("patchbay-notify-host-operation", {
+        sessionId,
+        subject: "conduit/unrelated-host-operation",
+      });
+      const cancelled = await request("patchbay-cancel-exact-run", {
+        sessionId,
+        disposition: "abort",
+      });
+      const viewed = await request("patchbay-session-view", { sessionId });
+      return { configured, opened, started, malformed, unrelated, cancelled, viewed };
+    } finally {
+      worker.terminate();
+    }
+  });
+
+  expect(result.configured).toMatchObject({ ok: true, value: { configured: true } });
+  expect(result.opened.value).toMatchObject({ ok: true, session_id: "tour/worker-exact-session" });
+  expect(result.started.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.malformed.value).toMatchObject({ ok: false, code: "CND-PBY-012" });
+  expect(result.unrelated.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.cancelled.value).toMatchObject({ ok: true, state: "cancelled" });
+  expect(result.viewed.value.view.run.state).toBe("Terminal");
+});
+
 test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");
