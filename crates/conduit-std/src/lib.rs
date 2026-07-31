@@ -18,6 +18,7 @@ use conduit_core::{
 
 mod conformance;
 mod data_boundaries;
+mod filesystem;
 mod state;
 mod supervision;
 mod text_format;
@@ -35,6 +36,12 @@ pub use data_boundaries::{
     LengthU32BeDecoder, RequiredField, StructuralDecision, StructuralField, StructuralRejection,
     decode_utf8, encode_closed_record, encode_length_u32be, encode_utf8, validate_closed_record,
     validate_closed_record_bytes,
+};
+pub use filesystem::{
+    FILESYSTEM_MAX_FILE_BYTES, FILESYSTEM_MAX_FILES, FILESYSTEM_MAX_WATCH_EVENTS, FileHandle,
+    FileSlot, FilesystemError, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
+    ReadRequest, ReadResult, WatchCoalescing, WatchEvent, WatchEventKind, WatchOverflow,
+    WatchRequest, WriteMode, WriteRequest, WriteResult,
 };
 pub use state::{
     CacheEntry, CacheInsert, CacheState, CellState, DeduplicateDecision, DeduplicateState,
@@ -295,6 +302,51 @@ const HTTP_RESPONSE: TypeContractRef<'static> = TypeContractRef {
         0x86, 0xa1,
     ]),
 };
+const FS_RESOURCE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("fs/resource"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x29, 0x1a, 0x75, 0xbb, 0x09, 0x2b, 0x1e, 0x8e, 0xa4, 0x8f, 0xd4, 0xc0, 0x69, 0xf7, 0x5c,
+        0x18, 0xc3, 0xaf, 0xe4, 0x3e, 0xe9, 0x2d, 0x9c, 0xcf, 0xdc, 0x33, 0x04, 0x48, 0x61, 0x7e,
+        0x1c, 0xfc,
+    ]),
+};
+const FS_CHUNK: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("fs/chunk"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x32, 0xa7, 0x02, 0xbb, 0x48, 0x7b, 0xc1, 0x20, 0x5d, 0xa6, 0x91, 0x4d, 0x5b, 0xb7, 0x9a,
+        0x17, 0x65, 0xe3, 0x89, 0xd8, 0xa7, 0xaf, 0x19, 0x4b, 0x7d, 0xbc, 0x67, 0x4c, 0xf6, 0x4f,
+        0x5f, 0x21,
+    ]),
+};
+const FS_READ_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("fs/read-result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x20, 0x29, 0x67, 0xff, 0x2f, 0x91, 0x38, 0xb7, 0xde, 0xf7, 0xb1, 0xf1, 0x85, 0x5c, 0x39,
+        0xd7, 0xde, 0x49, 0xfa, 0x10, 0xae, 0xa0, 0x08, 0x45, 0xc8, 0x8a, 0x85, 0x52, 0xe7, 0xd8,
+        0x76, 0xb9,
+    ]),
+};
+const FS_WRITE_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("fs/write-result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x7c, 0x68, 0xdf, 0x17, 0x52, 0x52, 0x84, 0xfa, 0xf7, 0x52, 0xd4, 0xda, 0x14, 0x56, 0x94,
+        0xe1, 0x1c, 0x5e, 0x3b, 0xc8, 0xf9, 0x83, 0xc2, 0xa9, 0x6d, 0x7f, 0x3b, 0x65, 0x2c, 0x09,
+        0x04, 0x9c,
+    ]),
+};
+const FS_EVENT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("fs/event"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x28, 0x99, 0x14, 0x95, 0x74, 0x29, 0x64, 0x9c, 0x34, 0xec, 0xcc, 0x42, 0x73, 0x72, 0xb6,
+        0xc4, 0x9d, 0x87, 0x99, 0xc6, 0x98, 0xe6, 0x8d, 0xc9, 0x38, 0xf3, 0x2a, 0x92, 0xf6, 0x87,
+        0x19, 0xa6,
+    ]),
+};
 
 const VALUE_PARAMETER: CatalogTypeExpression = CatalogTypeExpression::Parameter(Id("value"));
 const NATURAL_EXPRESSION: CatalogTypeExpression = CatalogTypeExpression::Named(Id("std/natural"));
@@ -553,6 +605,41 @@ const OUT_EVIDENCE_RECORD: PortContract<'static> = port(
     RECORD,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
+);
+const FS_CHUNK_INPUT: PortContract<'static> = port(
+    "chunk",
+    Direction::Input,
+    FS_CHUNK,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const FS_CHUNK_OUTPUT: PortContract<'static> = port(
+    "chunk",
+    Direction::Output,
+    FS_CHUNK,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const FS_READ_RESULT_OUTPUT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    FS_READ_RESULT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const FS_WRITE_RESULT_OUTPUT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    FS_WRITE_RESULT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const FS_EVENT_OUTPUT: PortContract<'static> = port(
+    "event",
+    Direction::Output,
+    FS_EVENT,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
 );
 const CONTROL: PortContract<'static> = port(
     "command",
@@ -945,6 +1032,48 @@ const HOSTED: ConfigContract<'static> = ConfigContract {
         field("maximum_pending", U64),
     ],
 };
+const FILE_READ: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("resource", FS_RESOURCE),
+        protected_field("grant", REFERENCE),
+        field("offset", U64),
+        field("maximum_bytes", U64),
+        field("chunk_bytes", U64),
+        field("consistency", TEXT),
+        field("eof", TEXT),
+        field("cancellation", TEXT),
+    ],
+};
+const FILE_WRITE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("resource", FS_RESOURCE),
+        protected_field("grant", REFERENCE),
+        field("mode", TEXT),
+        field("maximum_bytes", U64),
+        field("partial", TEXT),
+        field("flush", TEXT),
+        field("cleanup", TEXT),
+        field("cancellation", TEXT),
+    ],
+};
+const FILE_WATCH: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("resource", FS_RESOURCE),
+        protected_field("grant", REFERENCE),
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("event_kinds", TEXT),
+        field("emit_initial", BOOL),
+        field("coalescing", TEXT),
+        field("loss", TEXT),
+        field("queue_capacity", U64),
+        field("maximum_events", U64),
+        field("overflow", TEXT),
+        field("rename_identity", TEXT),
+        field("cancellation", TEXT),
+    ],
+};
 const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
     fields: &[
         protected_field("grant", REFERENCE),
@@ -1059,6 +1188,33 @@ const HOST_LIMITS: CatalogLimits = CatalogLimits {
     retries: 0,
     work_per_step: 8,
     evidence_events: 32,
+};
+const FILE_READ_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 2,
+    retained_bytes: FILESYSTEM_MAX_FILE_BYTES as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: 16,
+    evidence_events: 64,
+};
+const FILE_WRITE_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 2,
+    retained_bytes: FILESYSTEM_MAX_FILE_BYTES as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: 16,
+    evidence_events: 64,
+};
+const FILE_WATCH_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: FILESYSTEM_MAX_WATCH_EVENTS as u32,
+    retained_bytes: 16_384,
+    pending_operations: 1,
+    timers: 1,
+    retries: 0,
+    work_per_step: 8,
+    evidence_events: 128,
 };
 const FORMAT_LIMITS: CatalogLimits = CatalogLimits {
     retained_values: 3,
@@ -2004,27 +2160,51 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TIMERS,
         PURE
     ),
-    host_entry!(
-        "fs/read",
-        Boundary,
-        "path",
-        "contents",
-        "host/filesystem-read"
-    ),
-    host_entry!(
-        "fs/write",
-        Boundary,
-        "write",
-        "receipt",
-        "host/filesystem-write"
-    ),
-    host_entry!(
-        "fs/watch",
-        Boundary,
-        "path",
-        "event",
-        "host/filesystem-watch"
-    ),
+    {
+        let mut value = entry!(
+            "fs/read",
+            Boundary,
+            FILE_READ,
+            &[],
+            &[FS_CHUNK_OUTPUT, FS_READ_RESULT_OUTPUT],
+            ProducesDeclaredType,
+            None,
+            FILE_READ_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/filesystem-read"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "fs/write",
+            Boundary,
+            FILE_WRITE,
+            &[FS_CHUNK_INPUT],
+            &[FS_WRITE_RESULT_OUTPUT],
+            ProducesDeclaredType,
+            None,
+            FILE_WRITE_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/filesystem-write"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "fs/watch",
+            Boundary,
+            FILE_WATCH,
+            &[],
+            &[FS_EVENT_OUTPUT],
+            ProducesDeclaredType,
+            Monotonic,
+            FILE_WATCH_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/filesystem-watch"));
+        value
+    },
     host_entry!(
         "storage/blob/read",
         Boundary,

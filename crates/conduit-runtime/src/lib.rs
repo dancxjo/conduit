@@ -661,6 +661,27 @@ fn standard_state_contract(id: &str) -> &'static NodeContract<'static> {
 fn standard_supervision_contract(id: &str) -> &'static NodeContract<'static> {
     conduit_std::standard_node_contract(id).expect("standard supervision contract is published")
 }
+
+/// Current published bounded file-read contract.
+#[must_use]
+pub fn file_read_contract() -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract("fs/read")
+        .expect("standard file-read contract is published")
+}
+
+/// Current published bounded file-write contract.
+#[must_use]
+pub fn file_write_contract() -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract("fs/write")
+        .expect("standard file-write contract is published")
+}
+
+/// Current published bounded file-watch contract.
+#[must_use]
+pub fn file_watch_contract() -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract("fs/watch")
+        .expect("standard file-watch contract is published")
+}
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
     config: EMPTY_CONFIG,
@@ -799,18 +820,6 @@ pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     config: EMPTY_CONFIG,
     inputs: &[],
     outputs: &[named_text_output("failure")],
-};
-pub const FILE_READ_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("fs/read"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("path")],
-    outputs: &[named_text_output("contents")],
-};
-pub const FILE_WRITE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("fs/write"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("contents")],
-    outputs: &[],
 };
 pub const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("storage/blob/store"),
@@ -2606,8 +2615,9 @@ impl Default for Registry {
             &RECORD_CONTRACT,
             &REPLAY_CONTRACT,
             &FAULT_SOURCE_CONTRACT,
-            &FILE_READ_CONTRACT,
-            &FILE_WRITE_CONTRACT,
+            file_read_contract(),
+            file_write_contract(),
+            file_watch_contract(),
             &BLOB_STORE_CONTRACT,
             &KV_STORE_CONTRACT,
             &PROCESS_SPAWN_CONTRACT,
@@ -3042,8 +3052,9 @@ fn validate_standard_literal(
             .map(|(key, value)| Ok((key.clone(), source_value(value)?)))
             .collect::<Result<Vec<_>, LiteralValidationError>>()
             .map(OwnedSemanticValue::Map),
-        ("std/id" | "std/reference/any", SourceValue::Reference(value))
-        | ("std/id" | "std/reference/any", SourceValue::ContractReference(value)) => {
+        ("std/id" | "std/reference/any" | "fs/resource", SourceValue::Reference(value))
+        | ("std/id" | "std/reference/any" | "fs/resource", SourceValue::ContractReference(value)) =>
+        {
             Id::new(value).map_err(|_| LiteralValidationError::InvalidValue)?;
             Ok(OwnedSemanticValue::Identifier(value.clone()))
         }
@@ -3063,7 +3074,6 @@ fn validate_standard_literal(
             | "net/http/response"
             | "net/http/status"
             | "net/http/headers"
-            | "fs/path"
             | "process/exit-status"
             | "crypto/digest",
             SourceValue::Text(value),

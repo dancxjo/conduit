@@ -3,8 +3,8 @@ mod support;
 use conduit_core::{PinnedDescriptor, SemanticHash};
 use conduit_panel::{Node, parse};
 use conduit_runtime::{
-    AvailabilityState, FILE_READ_CONTRACT, Handler, Registry, RunIo, RuntimeError,
-    SourceContractCatalog, Value,
+    AvailabilityState, Handler, Registry, RunIo, RuntimeError, SourceContractCatalog, Value,
+    file_read_contract,
 };
 
 struct DummyHandler;
@@ -235,11 +235,11 @@ fn hosted_primitive_registry_couples_callbacks_to_installed_artifacts() {
 
 #[test]
 fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvable() {
-    let fixture = support::provider(&FILE_READ_CONTRACT, "test/file-read-native");
+    let fixture = support::provider(file_read_contract(), "test/file-read-native");
     let mut registry = Registry::default();
     registry
         .register_executable_provider(
-            &FILE_READ_CONTRACT,
+            file_read_contract(),
             fixture.manifest,
             fixture.artifacts,
             || Box::new(DummyHandler),
@@ -272,7 +272,7 @@ fn cross_contract_semantic_impersonation_is_rejected() {
         .node_schema("std/literal")
         .expect("literal schema");
     let fixture = support::provider_with_contract(
-        &FILE_READ_CONTRACT,
+        file_read_contract(),
         PinnedDescriptor {
             id: conduit_core::Id("std/literal"),
             schema_version: 0,
@@ -284,7 +284,7 @@ fn cross_contract_semantic_impersonation_is_rejected() {
     assert_eq!(
         registry
             .register_executable_provider(
-                &FILE_READ_CONTRACT,
+                file_read_contract(),
                 fixture.manifest,
                 fixture.artifacts,
                 || Box::new(DummyHandler),
@@ -299,9 +299,9 @@ fn cross_contract_semantic_impersonation_is_rejected() {
 #[test]
 fn incompatible_contract_hash_is_rejected() {
     let fixture = support::provider_with_contract(
-        &FILE_READ_CONTRACT,
+        file_read_contract(),
         PinnedDescriptor {
-            id: FILE_READ_CONTRACT.id,
+            id: file_read_contract().id,
             schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([77; 32]),
         },
@@ -311,7 +311,7 @@ fn incompatible_contract_hash_is_rejected() {
     assert_eq!(
         registry
             .register_executable_provider(
-                &FILE_READ_CONTRACT,
+                file_read_contract(),
                 fixture.manifest,
                 fixture.artifacts,
                 || Box::new(DummyHandler),
@@ -325,12 +325,12 @@ fn incompatible_contract_hash_is_rejected() {
 
 #[test]
 fn missing_exact_artifact_is_rejected() {
-    let fixture = support::provider(&FILE_READ_CONTRACT, "test/missing-artifact");
+    let fixture = support::provider(file_read_contract(), "test/missing-artifact");
     let mut registry = Registry::default();
     assert_eq!(
         registry
             .register_executable_provider(
-                &FILE_READ_CONTRACT,
+                file_read_contract(),
                 fixture.manifest,
                 &[],
                 || Box::new(DummyHandler),

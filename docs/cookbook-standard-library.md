@@ -29,7 +29,7 @@ The standard type catalog includes mathematical `std/integer` and
 `std/natural`, fixed-width `std/i8`–`std/i128` and `std/u8`–`std/u128`,
 structural constructors such as `std/option`, `std/result`, `std/list`, and
 `std/map`, operational types, and domain types such as
-`net/http/request` and `fs/path`. Hosts advertise representation limits
+`net/http/request` and opaque `fs/resource` handles. Hosts advertise representation limits
 separately; recognizing `std/integer` does not claim arbitrary-precision
 storage.
 

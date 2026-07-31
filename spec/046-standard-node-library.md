@@ -54,7 +54,8 @@ The standard type catalog publishes meanings independently of representations:
 - time, identity, and operations: `std/duration`, `std/instant`,
   `std/timestamp`, `std/id`, `std/error`, `std/terminal`, `std/health`, and
   `std/progress`;
-- domain types such as `net/ip/address`, `net/http/request`, `fs/path`,
+- domain types such as `net/ip/address`, `net/http/request`, and opaque
+  `fs/resource` handles,
   `process/exit-status`, and `crypto/digest`.
 
 `std/integer` is the mathematical signed integer and `std/natural` is the

@@ -360,10 +360,34 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
         StandardRepresentation::Structural
     ),
     concrete!(
-        "fs/path",
-        "filesystem path",
+        "fs/resource",
+        "opaque scoped filesystem resource handle",
         Filesystem,
         StandardRepresentation::Domain
+    ),
+    concrete!(
+        "fs/chunk",
+        "bounded filesystem byte chunk",
+        Filesystem,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "fs/read-result",
+        "filesystem read terminal result",
+        Filesystem,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "fs/write-result",
+        "filesystem write commit result",
+        Filesystem,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "fs/event",
+        "bounded filesystem watch event",
+        Filesystem,
+        StandardRepresentation::Structural
     ),
     concrete!(
         "process/exit-status",

@@ -1,8 +1,8 @@
 use conduit_std::{
     CatalogError, CatalogTypeExpression, DeterministicProvider, FixtureClass, HostedProvider,
     ProviderProfile, ReferenceProvider, STANDARD_CATALOG, STANDARD_CATALOG_SCHEMA_VERSION,
-    STANDARD_TYPE_CATALOG, StandardFamily, TimeBasis, run_catalog_fixture, standard_type,
-    standard_type_reference, validate_catalog, validate_entry,
+    STANDARD_TYPE_CATALOG, StandardFamily, TimeBasis, run_catalog_fixture, standard_node_contract,
+    standard_type, standard_type_reference, validate_catalog, validate_entry,
 };
 
 #[test]
@@ -311,6 +311,53 @@ fn http_contracts_use_domain_types_without_claiming_a_provider() {
     );
     assert_eq!(serve.host_service.unwrap().as_str(), "host/http-server");
     assert!(serve.required_support.hosted);
+}
+
+#[test]
+fn filesystem_contracts_use_opaque_handles_and_exact_bounded_results() {
+    assert!(standard_type("fs/path").is_none());
+    for id in [
+        "fs/resource",
+        "fs/chunk",
+        "fs/read-result",
+        "fs/write-result",
+        "fs/event",
+    ] {
+        assert!(standard_type_reference(id).is_some(), "{id}");
+    }
+
+    let read = standard_node_contract("fs/read").unwrap();
+    assert!(read.inputs.is_empty());
+    assert_eq!(read.outputs[0].value_type.contract_id.as_str(), "fs/chunk");
+    assert_eq!(
+        read.outputs[1].value_type.contract_id.as_str(),
+        "fs/read-result"
+    );
+    assert_eq!(
+        read.config.fields[0].value_type.contract_id.as_str(),
+        "fs/resource"
+    );
+
+    let write = standard_node_contract("fs/write").unwrap();
+    assert_eq!(write.inputs[0].value_type.contract_id.as_str(), "fs/chunk");
+    assert_eq!(
+        write.outputs[0].value_type.contract_id.as_str(),
+        "fs/write-result"
+    );
+
+    let watch = standard_node_contract("fs/watch").unwrap();
+    assert_eq!(watch.outputs[0].value_type.contract_id.as_str(), "fs/event");
+    let entry = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "fs/watch")
+        .unwrap();
+    assert_eq!(entry.time_basis, TimeBasis::Monotonic);
+    assert_eq!(
+        entry.limits.retained_values,
+        conduit_std::FILESYSTEM_MAX_WATCH_EVENTS as u32
+    );
+    assert_eq!(entry.limits.pending_operations, 1);
+    assert_eq!(entry.limits.timers, 1);
 }
 
 #[test]
