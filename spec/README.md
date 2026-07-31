@@ -269,6 +269,10 @@ containment program is tracked by
 - [`069-bounded-learned-inference.md`](069-bounded-learned-inference.md) defines
   distinct content-addressed model, schema, runtime, device, resource, and
   provider identities with one finite deterministic inference proof.
+- [`070-bounded-spatial-foundation.md`](070-bounded-spatial-foundation.md)
+  defines explicit bounded frames, transforms, stamped values, clock
+  conversion, uncertainty, calibration, lookup, interpolation, and projection
+  without an ambient world or framework identity.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

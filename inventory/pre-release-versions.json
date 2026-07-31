@@ -188,6 +188,7 @@
         "conduit.reference-distribution",
         "conduit.release-capabilities",
         "conduit.rp2040-budget",
+        "conduit.spatial-foundation-conformance",
         "conduit.standard-node-library-fixture",
         "conduit.supervision-fixtures",
         "conduit.text-format-fixture",
