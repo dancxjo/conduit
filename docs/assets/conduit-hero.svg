@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Conduit patchbay</title>
+  <desc id="desc">Typed input is routed through two redundant workers and into an evidence output.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#090d12"/>
+      <stop offset="0.55" stop-color="#111827"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="65%">
+      <stop offset="0" stop-color="#06b6d4" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="9" stdDeviation="12" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="emeraldGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#94a3b8" stroke-opacity=".06"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="420" rx="24" fill="url(#bg)"/>
+  <rect width="1200" height="420" rx="24" fill="url(#glow)"/>
+  <rect x="1" y="1" width="1198" height="418" rx="23" fill="url(#grid)" stroke="#334155"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <text x="54" y="64" fill="#38bdf8" font-size="15" font-weight="700" letter-spacing="3">CONDUIT PATCHBAY</text>
+    <text x="54" y="99" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="24" font-weight="700">typed · bounded · distributed · inspectable</text>
+  </g>
+
+  <!-- Cords sit behind the faceplates. -->
+  <path d="M300 238 C365 238 362 174 430 174" fill="none" stroke="#22d3ee" stroke-width="5" filter="url(#cyanGlow)"/>
+  <path d="M300 238 C365 238 362 306 430 306" fill="none" stroke="#a855f7" stroke-width="5"/>
+  <path d="M750 174 C830 174 820 238 884 238" fill="none" stroke="#10b981" stroke-width="5" filter="url(#emeraldGlow)"/>
+  <path d="M750 306 C830 306 820 238 884 238" fill="none" stroke="#10b981" stroke-width="5" filter="url(#emeraldGlow)"/>
+
+  <!-- Source faceplate -->
+  <g filter="url(#shadow)">
+    <rect x="54" y="170" width="246" height="136" rx="14" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+    <circle cx="78" cy="194" r="6" fill="#38bdf8"/>
+    <text x="96" y="201" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="19" font-weight="700">typed input</text>
+    <path d="M74 218H280" stroke="#334155"/>
+    <text x="76" y="251" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="14">sensor/frame</text>
+    <text x="76" y="278" fill="#67e8f9" font-family="ui-monospace, monospace" font-size="13">capacity  8</text>
+    <circle cx="299" cy="238" r="8" fill="#22d3ee" stroke="#082f49" stroke-width="3"/>
+  </g>
+
+  <!-- Redundant faceplates -->
+  <g filter="url(#shadow)">
+    <rect x="430" y="118" width="320" height="112" rx="14" fill="#0f172a" stroke="#a855f7" stroke-width="2"/>
+    <circle cx="454" cy="142" r="6" fill="#34d399"/>
+    <text x="472" y="149" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="19" font-weight="700">worker / primary</text>
+    <text x="454" y="185" fill="#c084fc" font-family="ui-monospace, monospace" font-size="13">host  linux-a</text>
+    <text x="454" y="207" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="13">provider exact · ready</text>
+    <circle cx="430" cy="174" r="8" fill="#22d3ee" stroke="#082f49" stroke-width="3"/>
+    <circle cx="750" cy="174" r="8" fill="#10b981" stroke="#052e16" stroke-width="3"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="430" y="250" width="320" height="112" rx="14" fill="#0f172a" stroke="#a855f7" stroke-width="2"/>
+    <circle cx="454" cy="274" r="6" fill="#f59e0b"/>
+    <text x="472" y="281" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="19" font-weight="700">worker / alternate</text>
+    <text x="454" y="317" fill="#c084fc" font-family="ui-monospace, monospace" font-size="13">host  edge-b</text>
+    <text x="454" y="339" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="13">finite pool · admitted</text>
+    <circle cx="430" cy="306" r="8" fill="#a855f7" stroke="#3b0764" stroke-width="3"/>
+    <circle cx="750" cy="306" r="8" fill="#10b981" stroke="#052e16" stroke-width="3"/>
+  </g>
+
+  <!-- Evidence faceplate -->
+  <g filter="url(#shadow)">
+    <rect x="884" y="170" width="262" height="136" rx="14" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+    <circle cx="908" cy="194" r="6" fill="#10b981"/>
+    <text x="926" y="201" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="19" font-weight="700">run evidence</text>
+    <path d="M904 218H1126" stroke="#334155"/>
+    <text x="908" y="251" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="14">plan  sealed</text>
+    <text x="908" y="278" fill="#34d399" font-family="ui-monospace, monospace" font-size="13">events  ordered</text>
+    <circle cx="884" cy="238" r="8" fill="#10b981" stroke="#052e16" stroke-width="3"/>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="700">
+    <rect x="341" y="134" width="68" height="24" rx="12" fill="#082f49" stroke="#0e7490"/>
+    <text x="357" y="151" fill="#67e8f9">TEXT</text>
+    <rect x="794" y="134" width="68" height="24" rx="12" fill="#052e16" stroke="#047857"/>
+    <text x="807" y="151" fill="#6ee7b7">VALUE</text>
+  </g>
+</svg>
