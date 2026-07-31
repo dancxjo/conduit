@@ -183,6 +183,7 @@
         "conduit.learned-inference-conformance",
         "conduit.media-codec-conformance",
         "conduit.media-value-conformance",
+        "conduit.netherwick-network",
         "conduit.performance-baseline",
         "conduit.persistent-budget-fixtures",
         "conduit.reference-distribution",
