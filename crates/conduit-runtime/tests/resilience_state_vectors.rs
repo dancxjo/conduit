@@ -20,32 +20,31 @@ impl Handler for Impostor {
 
 #[test]
 fn resilience_callbacks_cannot_claim_behavioral_conformance() {
-    for contract in [&CIRCUIT_BREAKER_CONTRACT] {
-        let mut registry = Registry::default();
-        let fixture = support::provider(
+    let contract = &CIRCUIT_BREAKER_CONTRACT;
+    let mut registry = Registry::default();
+    let fixture = support::provider(
+        contract,
+        &format!("test/{}", contract.id.as_str().replace('/', ".")),
+    );
+    registry
+        .register_executable_provider(
             contract,
-            &format!("test/{}", contract.id.as_str().replace('/', ".")),
-        );
+            fixture.manifest,
+            fixture.artifacts,
+            || Box::new(Impostor),
+            |_| Ok(()),
+        )
+        .unwrap();
+    let availability = registry.node_availability(contract.id.as_str());
+    assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
+    assert_eq!(availability.host_id, None);
+    let panel =
+        conduit_panel::parse(&format!("panel 0\nnode stateful : {}\n", contract.id)).unwrap();
+    assert_eq!(
         registry
-            .register_executable_provider(
-                contract,
-                fixture.manifest,
-                fixture.artifacts,
-                || Box::new(Impostor),
-                |_| Ok(()),
-            )
-            .unwrap();
-        let availability = registry.node_availability(contract.id.as_str());
-        assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
-        assert_eq!(availability.host_id, None);
-        let panel =
-            conduit_panel::parse(&format!("panel 0\nnode stateful : {}\n", contract.id)).unwrap();
-        assert_eq!(
-            registry
-                .resolve(&panel)
-                .expect_err("arbitrary callback is not a compatibility implementation")
-                .code,
-            "CND-IMP-001"
-        );
-    }
+            .resolve(&panel)
+            .expect_err("arbitrary callback is not a compatibility implementation")
+            .code,
+        "CND-IMP-001"
+    );
 }
