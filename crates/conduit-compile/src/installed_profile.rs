@@ -116,25 +116,25 @@ impl InstalledProfile {
                 .then(|| instances.first().cloned())
                 .flatten();
             for installed in matching {
-                let host_service_instances = if installed.implementation
-                    == HostedPrimitiveImplementation::HostedService
-                {
-                    instances
-                        .iter()
-                        .map(|instance| {
-                            let constraints = panel
-                                .nodes
-                                .iter()
-                                .find(|node| {
-                                    node.id == *instance || instance.ends_with(&format!("/{}", node.id))
-                                })
-                                .map_or_else(Vec::new, hosted_service_authority_constraints);
-                            (instance.clone(), constraints)
-                        })
-                        .collect::<Vec<_>>()
-                } else {
-                    Vec::new()
-                };
+                let host_service_instances =
+                    if installed.implementation == HostedPrimitiveImplementation::HostedService {
+                        instances
+                            .iter()
+                            .map(|instance| {
+                                let constraints = panel
+                                    .nodes
+                                    .iter()
+                                    .find(|node| {
+                                        node.id == *instance
+                                            || instance.ends_with(&format!("/{}", node.id))
+                                    })
+                                    .map_or_else(Vec::new, hosted_service_authority_constraints);
+                                (instance.clone(), constraints)
+                            })
+                            .collect::<Vec<_>>()
+                    } else {
+                        Vec::new()
+                    };
                 candidates.push(candidate(
                     installed,
                     stdout_instance.as_deref(),

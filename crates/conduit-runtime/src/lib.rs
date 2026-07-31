@@ -2076,9 +2076,10 @@ impl Registry {
         factory: HandlerFactory,
         validate_config: ConfigValidator,
     ) -> Result<(), RegistryError> {
-        let canonical_target_id = self.resolve_canonical_id(contract.id.as_str())?;
-        let manifest_target_canonical =
-            self.resolve_canonical_id(manifest.semantic_contract.id.as_str())?;
+        let canonical_target_id = self.resolve_canonical_id(contract.id.as_str())?.to_owned();
+        let manifest_target_canonical = self
+            .resolve_canonical_id(manifest.semantic_contract.id.as_str())?
+            .to_owned();
 
         if manifest_target_canonical != canonical_target_id {
             return Err(RegistryError {
@@ -2146,7 +2147,7 @@ impl Registry {
 
         let registered = self
             .nodes
-            .get_mut(canonical_target_id)
+            .get_mut(canonical_target_id.as_str())
             .expect("canonical contract should exist after resolution");
         registered.executables.push(RegisteredExecutable {
             manifest,
@@ -3429,7 +3430,13 @@ impl Registry {
                 )
             })?;
             let executable = if self.allow_installed_resolution {
-                definition.select_executable(&source)
+                definition
+                    .select_executable(&source)
+                    // Preserve the provider's configuration diagnostic when
+                    // every installed implementation rejects this node.
+                    // Registration order is deterministic for one exact
+                    // catalog, and no handler can run after validation fails.
+                    .or_else(|| definition.executables.first())
             } else {
                 None
             };
