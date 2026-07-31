@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2884,7 +2884,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3880,7 +3880,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5408,7 +5408,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5487,7 +5487,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5566,7 +5566,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9795,7 +9795,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9881,7 +9881,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10062,7 +10062,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10187,7 +10187,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10294,7 +10294,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12356,7 +12356,7 @@
         {
           "implementation": "conduit/hosted-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12433,7 +12433,7 @@
         {
           "implementation": "conduit/hosted-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12564,7 +12564,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:b42158b10e31b8ad9a3eb4ea6858eaf595f18b56724ac0044397e12ec2996cae"
+          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
