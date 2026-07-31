@@ -16,6 +16,9 @@ _conduct() {
             ",$1")
                 cmd="conduct"
                 ;;
+            conduct,capsule)
+                cmd="conduct__subcmd__capsule"
+                ;;
             conduct,compile)
                 cmd="conduct__subcmd__compile"
                 ;;
@@ -24,6 +27,21 @@ _conduct() {
                 ;;
             conduct,package)
                 cmd="conduct__subcmd__package"
+                ;;
+            conduct__subcmd__capsule,check)
+                cmd="conduct__subcmd__capsule__subcmd__check"
+                ;;
+            conduct__subcmd__capsule,diff)
+                cmd="conduct__subcmd__capsule__subcmd__diff"
+                ;;
+            conduct__subcmd__capsule,inspect)
+                cmd="conduct__subcmd__capsule__subcmd__inspect"
+                ;;
+            conduct__subcmd__capsule,pack)
+                cmd="conduct__subcmd__capsule__subcmd__pack"
+                ;;
+            conduct__subcmd__capsule,unpack)
+                cmd="conduct__subcmd__capsule__subcmd__unpack"
                 ;;
             conduct__subcmd__package,create)
                 cmd="conduct__subcmd__package__subcmd__create"
@@ -41,7 +59,7 @@ _conduct() {
 
     case "${cmd}" in
         conduct)
-            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --compile-input --compatibility-demo --enable-file-write --enable-file-watch --enable-storage-cache --enable-process-exec --enable-socket-loopback --enable-http-client-loopback --help --version inspect compile package"
+            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --compile-input --compatibility-demo --enable-file-write --enable-file-watch --enable-storage-cache --enable-process-exec --enable-socket-loopback --enable-http-client-loopback --help --version inspect compile package capsule"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -61,6 +79,182 @@ _conduct() {
                     ;;
                 --compile-input)
                     COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule)
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help pack inspect check unpack diff"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule__subcmd__check)
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule__subcmd__diff)
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule__subcmd__inspect)
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule__subcmd__pack)
+            opts="-q -v -h --lock --presentation --references --output --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --lock)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --presentation)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --references)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule__subcmd__unpack)
+            opts="-q -v -h --output-dir --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --output-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
                     return 0
                     ;;
                 *)

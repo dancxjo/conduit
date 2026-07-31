@@ -11,8 +11,12 @@ use clap::Parser;
 use clap::error::ErrorKind;
 use conduct::run_stream::{RUN_CHANNEL_CHUNK_MAX_BYTES, RunNdjsonState};
 use conduct::{
-    Arguments, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat, PackageOperation,
-    SecondaryCommand,
+    Arguments, CapsuleOperation, ColorChoice, DiagnosticFormat, InspectKind, Mode, OutputFormat,
+    PackageOperation, SecondaryCommand,
+};
+use conduit_capsule::{
+    ArtifactReference as CapsuleArtifactReference, CapsuleDocument, InlineDocument,
+    MAXIMUM_AUXILIARY_BYTES, MAXIMUM_CAPSULE_DOCUMENT_BYTES, MAXIMUM_SOURCE_BYTES,
 };
 use conduit_compile::{
     CompileInput, ExactPlanDocument, InstalledProfile, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES,
@@ -105,6 +109,37 @@ struct PackageVerifyResult {
     identity: String,
     selected_objects: usize,
     verified_observations: usize,
+}
+
+#[derive(Serialize)]
+struct CapsuleSummary {
+    identity: String,
+    program_identity: String,
+    source_revision: String,
+    source_semantic_identity: String,
+    artifact_references: usize,
+    has_import_lock: bool,
+    has_presentation: bool,
+}
+
+#[derive(Serialize)]
+struct CapsuleCheckResult {
+    summary: CapsuleSummary,
+    panel_version: u16,
+    definitions: usize,
+    root_nodes: usize,
+    root_cords: usize,
+}
+
+#[derive(Serialize)]
+struct CapsuleDiffResult {
+    same_capsule: bool,
+    same_program: bool,
+    same_source_revision: bool,
+    same_source_semantics: bool,
+    same_import_lock: bool,
+    same_artifact_references: bool,
+    same_presentation: bool,
 }
 
 impl PresentationOptions {
@@ -271,6 +306,13 @@ fn run(
             SecondaryCommand::Package(package) => run_package(
                 &arguments,
                 &package.operation,
+                presentation,
+                environment,
+                stderr_is_terminal,
+            ),
+            SecondaryCommand::Capsule(capsule) => run_capsule(
+                &arguments,
+                &capsule.operation,
                 presentation,
                 environment,
                 stderr_is_terminal,
@@ -1243,6 +1285,290 @@ fn run_package(
         }
     }
     Ok(Completion::Success)
+}
+
+fn run_capsule(
+    arguments: &Arguments,
+    operation: &CapsuleOperation,
+    presentation: PresentationOptions,
+    environment: &EnvironmentPolicy,
+    stderr_is_terminal: bool,
+) -> Result<Completion, CliError> {
+    let started = Instant::now();
+    let status_enabled = !arguments.quiet
+        && arguments.format == OutputFormat::Human
+        && environment.status_enabled(arguments.diagnostic_format, stderr_is_terminal);
+    let (operation_name, subject, human, result) = match operation {
+        CapsuleOperation::Pack(pack) => {
+            let source = read_bounded(&pack.panel, MAXIMUM_SOURCE_BYTES as u64)
+                .map_err(|error| package_input_error(error, presentation))?;
+            let source = String::from_utf8(source).map_err(|_| {
+                capsule_cli_error("CND-CAP-003", "capsule panel is not UTF-8", presentation)
+            })?;
+            let import_lock = pack
+                .lock
+                .as_deref()
+                .map(|path| {
+                    read_inline_document(
+                        path,
+                        "application/vnd.conduit.contract-lock+json",
+                        presentation,
+                    )
+                })
+                .transpose()?;
+            let presentation_document = pack
+                .presentation
+                .as_deref()
+                .map(|path| {
+                    read_inline_document(
+                        path,
+                        "application/vnd.conduit.presentation+json",
+                        presentation,
+                    )
+                })
+                .transpose()?;
+            let references = pack
+                .references
+                .as_deref()
+                .map(|path| {
+                    let bytes = read_bounded(path, MAXIMUM_AUXILIARY_BYTES as u64)
+                        .map_err(|error| package_input_error(error, presentation))?;
+                    serde_json::from_slice::<Vec<CapsuleArtifactReference>>(&bytes).map_err(|_| {
+                        capsule_cli_error(
+                            "CND-CAP-005",
+                            "capsule references are not a valid JSON array",
+                            presentation,
+                        )
+                    })
+                })
+                .transpose()?
+                .unwrap_or_default();
+            let document =
+                CapsuleDocument::new(source, import_lock, presentation_document, references)
+                    .map_err(|error| capsule_library_error(error, presentation))?;
+            let bytes = serde_json::to_vec_pretty(&document).map_err(|_| {
+                capsule_cli_error("CND-CAP-007", "capsule serialization failed", presentation)
+            })?;
+            write_new_file(&pack.output, &bytes)
+                .map_err(|message| capsule_cli_error("CND-IO-002", &message, presentation))?;
+            let summary = capsule_summary(&document);
+            (
+                "capsule-pack",
+                pack.output.display().to_string(),
+                format!(
+                    "packed {}: {}; program {}\n",
+                    pack.output.display(),
+                    summary.identity,
+                    summary.program_identity
+                ),
+                serde_json::to_value(summary).expect("capsule summary serializes"),
+            )
+        }
+        CapsuleOperation::Inspect(inspect) => {
+            let document = read_capsule(&inspect.capsule, presentation)?;
+            let summary = capsule_summary(&document);
+            (
+                "capsule-inspect",
+                inspect.capsule.display().to_string(),
+                format!(
+                    "capsule {}; program {}; source {}; {} references; lock {}; presentation {}\n",
+                    summary.identity,
+                    summary.program_identity,
+                    summary.source_revision,
+                    summary.artifact_references,
+                    summary.has_import_lock,
+                    summary.has_presentation
+                ),
+                serde_json::to_value(summary).expect("capsule summary serializes"),
+            )
+        }
+        CapsuleOperation::Check(check) => {
+            let document = read_capsule(&check.capsule, presentation)?;
+            let panel = parse(&document.source).map_err(|_| {
+                capsule_cli_error(
+                    "CND-CAP-003",
+                    "validated capsule source no longer parses",
+                    presentation,
+                )
+            })?;
+            let result = CapsuleCheckResult {
+                summary: capsule_summary(&document),
+                panel_version: panel.version,
+                definitions: panel.definitions.len(),
+                root_nodes: panel.nodes.len(),
+                root_cords: panel.cords.len(),
+            };
+            (
+                "capsule-check",
+                check.capsule.display().to_string(),
+                format!(
+                    "ok capsule {}; panel v{}; {} definitions; {} root nodes; {} root cords\n",
+                    result.summary.program_identity,
+                    result.panel_version,
+                    result.definitions,
+                    result.root_nodes,
+                    result.root_cords
+                ),
+                serde_json::to_value(result).expect("capsule check serializes"),
+            )
+        }
+        CapsuleOperation::Unpack(unpack) => {
+            let document = read_capsule(&unpack.capsule, presentation)?;
+            fs::create_dir(&unpack.output_dir).map_err(|error| {
+                capsule_cli_error(
+                    "CND-IO-002",
+                    &format!("cannot create capsule output directory: {error}"),
+                    presentation,
+                )
+            })?;
+            write_new_file(
+                &unpack.output_dir.join("main.panel"),
+                document.source.as_bytes(),
+            )
+            .map_err(|message| capsule_cli_error("CND-IO-002", &message, presentation))?;
+            if let Some(lock) = &document.import_lock {
+                write_new_file(
+                    &unpack.output_dir.join("contract-package-lock.json"),
+                    lock.text.as_bytes(),
+                )
+                .map_err(|message| capsule_cli_error("CND-IO-002", &message, presentation))?;
+            }
+            if let Some(workspace) = &document.presentation {
+                write_new_file(
+                    &unpack.output_dir.join("presentation.json"),
+                    workspace.text.as_bytes(),
+                )
+                .map_err(|message| capsule_cli_error("CND-IO-002", &message, presentation))?;
+            }
+            write_new_file(
+                &unpack.output_dir.join("capsule.json"),
+                &serde_json::to_vec_pretty(&document).expect("validated capsule serializes"),
+            )
+            .map_err(|message| capsule_cli_error("CND-IO-002", &message, presentation))?;
+            let summary = capsule_summary(&document);
+            (
+                "capsule-unpack",
+                unpack.output_dir.display().to_string(),
+                format!(
+                    "unpacked {} to {} without fetching or executing artifacts\n",
+                    summary.identity,
+                    unpack.output_dir.display()
+                ),
+                serde_json::to_value(summary).expect("capsule summary serializes"),
+            )
+        }
+        CapsuleOperation::Diff(diff) => {
+            let left = read_capsule(&diff.left, presentation)?;
+            let right = read_capsule(&diff.right, presentation)?;
+            let result = CapsuleDiffResult {
+                same_capsule: left.identity == right.identity,
+                same_program: left.program_identity == right.program_identity,
+                same_source_revision: left.source_revision == right.source_revision,
+                same_source_semantics: left.source_semantic_identity
+                    == right.source_semantic_identity,
+                same_import_lock: left.import_lock == right.import_lock,
+                same_artifact_references: left.artifact_references == right.artifact_references,
+                same_presentation: left.presentation == right.presentation,
+            };
+            (
+                "capsule-diff",
+                format!("{}..{}", diff.left.display(), diff.right.display()),
+                format!(
+                    "capsule={} program={} source-revision={} source-semantics={} lock={} references={} presentation={}\n",
+                    result.same_capsule,
+                    result.same_program,
+                    result.same_source_revision,
+                    result.same_source_semantics,
+                    result.same_import_lock,
+                    result.same_artifact_references,
+                    result.same_presentation
+                ),
+                serde_json::to_value(result).expect("capsule diff serializes"),
+            )
+        }
+    };
+    emit_status(status_enabled, "Capsule", &subject);
+    let completion = match arguments.format {
+        OutputFormat::Human => write_primary(human.as_bytes(), presentation)?,
+        OutputFormat::Json => write_json_primary(
+            &FiniteResult {
+                schema: "conduit.result",
+                schema_version: 0,
+                operation: operation_name,
+                result,
+            },
+            presentation,
+        )?,
+        OutputFormat::Ndjson => unreachable!("validated above"),
+    };
+    if completion == Completion::BrokenPipe {
+        return Ok(completion);
+    }
+    emit_finished(status_enabled, operation_name, started.elapsed(), &subject);
+    Ok(Completion::Success)
+}
+
+fn read_inline_document(
+    path: &std::path::Path,
+    media_type: &str,
+    presentation: PresentationOptions,
+) -> Result<InlineDocument, CliError> {
+    let bytes = read_bounded(path, MAXIMUM_AUXILIARY_BYTES as u64)
+        .map_err(|error| package_input_error(error, presentation))?;
+    let text = String::from_utf8(bytes).map_err(|_| {
+        capsule_cli_error(
+            "CND-CAP-004",
+            "capsule auxiliary document is not UTF-8",
+            presentation,
+        )
+    })?;
+    Ok(InlineDocument::new(media_type, text, "public"))
+}
+
+fn read_capsule(
+    path: &std::path::Path,
+    presentation: PresentationOptions,
+) -> Result<CapsuleDocument, CliError> {
+    let bytes = read_bounded(path, MAXIMUM_CAPSULE_DOCUMENT_BYTES)
+        .map_err(|error| package_input_error(error, presentation))?;
+    let document: CapsuleDocument = serde_json::from_slice(&bytes).map_err(|_| {
+        capsule_cli_error(
+            "CND-CAP-007",
+            "capsule is not valid current JSON",
+            presentation,
+        )
+    })?;
+    document
+        .validate()
+        .map_err(|error| capsule_library_error(error, presentation))?;
+    Ok(document)
+}
+
+fn capsule_summary(document: &CapsuleDocument) -> CapsuleSummary {
+    CapsuleSummary {
+        identity: document.identity.clone(),
+        program_identity: document.program_identity.clone(),
+        source_revision: document.source_revision.clone(),
+        source_semantic_identity: document.source_semantic_identity.clone(),
+        artifact_references: document.artifact_references.len(),
+        has_import_lock: document.import_lock.is_some(),
+        has_presentation: document.presentation.is_some(),
+    }
+}
+
+fn capsule_library_error(
+    error: conduit_capsule::CapsuleError,
+    presentation: PresentationOptions,
+) -> CliError {
+    capsule_cli_error(error.code(), &error.to_string(), presentation)
+}
+
+fn capsule_cli_error(
+    code: &'static str,
+    message: &str,
+    presentation: PresentationOptions,
+) -> CliError {
+    cli_error(simple_diagnostic(code, message), presentation, vec![])
 }
 
 fn package_library_error(

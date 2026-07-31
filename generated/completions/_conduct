@@ -149,6 +149,107 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(capsule)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_conduct__subcmd__capsule_commands" \
+"*::: :->capsule" \
+&& ret=0
+
+    case $state in
+    (capsule)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:conduct-capsule-command-$line[1]:"
+        case $line[1] in
+            (pack)
+_arguments "${_arguments_options[@]}" : \
+'--lock=[]:LOCK:_files' \
+'--presentation=[]:PRESENTATION:_files' \
+'--references=[]:REFERENCES:_files' \
+'--output=[]:CAPSULE:_files' \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':panel:_files' \
+&& ret=0
+;;
+(inspect)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':capsule:_files' \
+&& ret=0
+;;
+(check)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':capsule:_files' \
+&& ret=0
+;;
+(unpack)
+_arguments "${_arguments_options[@]}" : \
+'--output-dir=[]:DIRECTORY:_files' \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':capsule:_files' \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
+'--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
+'--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \
+'(-v)-q[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-v)--quiet[Suppress nonessential status and progress, never values or diagnostics]' \
+'(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
+'--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':left:_files' \
+':right:_files' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
         esac
     ;;
 esac
@@ -160,8 +261,45 @@ _conduct_commands() {
 'inspect:Validate and describe one artifact without executing it' \
 'compile:Compile source against explicit immutable inputs into one exact plan' \
 'package:Create, verify, or extract a bounded content-addressed package' \
+'capsule:Pack, inspect, check, unpack, or diff an authored panel capsule' \
     )
     _describe -t commands 'conduct commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__capsule_commands] )) ||
+_conduct__subcmd__capsule_commands() {
+    local commands; commands=(
+'pack:Create one canonical capsule JSON document without fetching artifacts' \
+'inspect:Validate and describe a capsule without executing its source' \
+'check:Validate the capsule and parse its authored panel offline' \
+'unpack:Write source and optional auxiliary documents to a new directory' \
+'diff:Compare authored, lock, reference, and presentation identities' \
+    )
+    _describe -t commands 'conduct capsule commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__capsule__subcmd__check_commands] )) ||
+_conduct__subcmd__capsule__subcmd__check_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct capsule check commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__capsule__subcmd__diff_commands] )) ||
+_conduct__subcmd__capsule__subcmd__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct capsule diff commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__capsule__subcmd__inspect_commands] )) ||
+_conduct__subcmd__capsule__subcmd__inspect_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct capsule inspect commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__capsule__subcmd__pack_commands] )) ||
+_conduct__subcmd__capsule__subcmd__pack_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct capsule pack commands' commands "$@"
+}
+(( $+functions[_conduct__subcmd__capsule__subcmd__unpack_commands] )) ||
+_conduct__subcmd__capsule__subcmd__unpack_commands() {
+    local commands; commands=()
+    _describe -t commands 'conduct capsule unpack commands' commands "$@"
 }
 (( $+functions[_conduct__subcmd__compile_commands] )) ||
 _conduct__subcmd__compile_commands() {

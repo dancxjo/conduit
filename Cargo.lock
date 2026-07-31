@@ -313,6 +313,7 @@ dependencies = [
  "clap_complete",
  "clap_mangen",
  "conduit-cache",
+ "conduit-capsule",
  "conduit-compile",
  "conduit-core",
  "conduit-diagnostics",

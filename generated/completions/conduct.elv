@@ -43,6 +43,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand inspect 'Validate and describe one artifact without executing it'
             cand compile 'Compile source against explicit immutable inputs into one exact plan'
             cand package 'Create, verify, or extract a bounded content-addressed package'
+            cand capsule 'Pack, inspect, check, unpack, or diff an authored panel capsule'
         }
         &'conduct;inspect'= {
             cand --type 'Select a current artifact kind, or use marker-only detection'
@@ -111,6 +112,82 @@ set edit:completion:arg-completer[conduct] = {|@words|
         }
         &'conduct;package;extract'= {
             cand --output-dir 'Create digest-derived blob paths beneath this directory'
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;capsule'= {
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+            cand pack 'Create one canonical capsule JSON document without fetching artifacts'
+            cand inspect 'Validate and describe a capsule without executing its source'
+            cand check 'Validate the capsule and parse its authored panel offline'
+            cand unpack 'Write source and optional auxiliary documents to a new directory'
+            cand diff 'Compare authored, lock, reference, and presentation identities'
+        }
+        &'conduct;capsule;pack'= {
+            cand --lock 'lock'
+            cand --presentation 'presentation'
+            cand --references 'references'
+            cand --output 'output'
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;capsule;inspect'= {
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;capsule;check'= {
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;capsule;unpack'= {
+            cand --output-dir 'output-dir'
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;capsule;diff'= {
             cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
             cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
             cand --color 'Select diagnostic terminal styling'

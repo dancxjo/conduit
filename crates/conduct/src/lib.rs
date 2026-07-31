@@ -62,6 +62,64 @@ pub enum SecondaryCommand {
     Compile(CompileArguments),
     /// Create, verify, or extract a bounded content-addressed package.
     Package(PackageArguments),
+    /// Pack, inspect, check, unpack, or diff an authored panel capsule.
+    Capsule(CapsuleArguments),
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct CapsuleArguments {
+    #[command(subcommand)]
+    pub operation: CapsuleOperation,
+}
+
+#[derive(Debug, Eq, PartialEq, Subcommand)]
+pub enum CapsuleOperation {
+    /// Create one canonical capsule JSON document without fetching artifacts.
+    Pack(CapsulePackArguments),
+    /// Validate and describe a capsule without executing its source.
+    Inspect(CapsulePathArguments),
+    /// Validate the capsule and parse its authored panel offline.
+    Check(CapsulePathArguments),
+    /// Write source and optional auxiliary documents to a new directory.
+    Unpack(CapsuleUnpackArguments),
+    /// Compare authored, lock, reference, and presentation identities.
+    Diff(CapsuleDiffArguments),
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct CapsulePackArguments {
+    #[arg(value_name = "PANEL")]
+    pub panel: PathBuf,
+    #[arg(long, value_name = "LOCK")]
+    pub lock: Option<PathBuf>,
+    #[arg(long, value_name = "PRESENTATION")]
+    pub presentation: Option<PathBuf>,
+    #[arg(long, value_name = "REFERENCES")]
+    pub references: Option<PathBuf>,
+    #[arg(long, value_name = "CAPSULE")]
+    pub output: PathBuf,
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct CapsulePathArguments {
+    #[arg(value_name = "CAPSULE")]
+    pub capsule: PathBuf,
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct CapsuleUnpackArguments {
+    #[arg(value_name = "CAPSULE")]
+    pub capsule: PathBuf,
+    #[arg(long, value_name = "DIRECTORY")]
+    pub output_dir: PathBuf,
+}
+
+#[derive(Debug, Eq, PartialEq, ClapArgs)]
+pub struct CapsuleDiffArguments {
+    #[arg(value_name = "LEFT")]
+    pub left: PathBuf,
+    #[arg(value_name = "RIGHT")]
+    pub right: PathBuf,
 }
 
 /// Inputs for bounded, non-executing artifact inspection.

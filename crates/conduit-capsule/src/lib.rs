@@ -14,6 +14,7 @@ pub const CAPSULE_SCHEMA_VERSION: u16 = 0;
 pub const MAXIMUM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_AUXILIARY_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_REFERENCES: usize = 256;
+pub const MAXIMUM_CAPSULE_DOCUMENT_BYTES: u64 = 4 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
