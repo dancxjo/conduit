@@ -178,6 +178,7 @@
         "conduit.conformance/security-boundaries",
         "conduit.containment-fixtures",
         "conduit.hazard-closure-fixtures",
+        "conduit.http-client-conformance",
         "conduit.http-serving-fixtures",
         "conduit.performance-baseline",
         "conduit.persistent-budget-fixtures",

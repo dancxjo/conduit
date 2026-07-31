@@ -253,6 +253,9 @@ containment program is tracked by
 - [`064-bounded-application-sockets.md`](064-bounded-application-sockets.md)
   defines four exact bounded TCP and UDP application socket operations without
   ambient DNS, configuration, firewall, TLS, or HTTP authority.
+- [`065-bounded-http-client.md`](065-bounded-http-client.md) defines one
+  bounded outbound HTTP/HTTPS request operation with exact network, authority,
+  TLS, redirect, proxy, cancellation, and terminal boundaries.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

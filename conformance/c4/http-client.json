@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.http-client-conformance",
+  "schema_version": 0,
+  "contract": "conduit.host/net/http/fetch",
+  "providers": ["deterministic", "linux-loopback"],
+  "cases": [
+    {"id": "http-request-response", "class": "success", "expected": "completed"},
+    {"id": "https-request-response", "class": "success", "expected": "completed-secure"},
+    {"id": "method-authority-target", "class": "request", "expected": "preserved"},
+    {"id": "bounded-request-body-stream", "class": "request", "expected": "ordered"},
+    {"id": "bounded-response-body-stream", "class": "response", "expected": "ordered"},
+    {"id": "denied-destination", "class": "authority", "expected": "pre-effect-rejection"},
+    {"id": "stale-dns-observation", "class": "resolution", "expected": "pre-effect-rejection"},
+    {"id": "stale-provider-observation", "class": "resolution", "expected": "pre-effect-rejection"},
+    {"id": "certificate-failure", "class": "tls", "expected": "certificate-failed"},
+    {"id": "hostname-failure", "class": "tls", "expected": "hostname-failed"},
+    {"id": "redirect-disabled", "class": "redirect", "expected": "redirect-returned"},
+    {"id": "redirect-followed", "class": "redirect", "expected": "completed"},
+    {"id": "redirect-loop", "class": "redirect", "expected": "loop"},
+    {"id": "redirect-limit", "class": "redirect", "expected": "limit-exhausted"},
+    {"id": "https-to-http", "class": "tls", "expected": "downgrade-rejected"},
+    {"id": "oversized-request-headers", "class": "pressure", "expected": "header-overflow"},
+    {"id": "oversized-request-body", "class": "pressure", "expected": "body-overflow"},
+    {"id": "oversized-response-headers", "class": "pressure", "expected": "header-overflow"},
+    {"id": "oversized-response-body", "class": "pressure", "expected": "body-overflow"},
+    {"id": "slow-response", "class": "time", "expected": "timed-out"},
+    {"id": "partial-response", "class": "response", "expected": "partial-terminal"},
+    {"id": "cancel-before-send", "class": "cancellation", "expected": "cancelled-uncommitted"},
+    {"id": "cancel-after-send", "class": "cancellation", "expected": "cancelled-committed"},
+    {"id": "unknown-commit", "class": "terminal", "expected": "commit-unknown"},
+    {"id": "connection-pool-exhaustion", "class": "pressure", "expected": "pool-exhausted"},
+    {"id": "proxy-surprise", "class": "proxy", "expected": "binding-rejected"},
+    {"id": "provider-loss", "class": "terminal", "expected": "provider-lost"},
+    {"id": "cleanup", "class": "cleanup", "expected": "bounded-complete"},
+    {"id": "resolver-no-effects", "class": "resolution", "expected": "no-network-operation"},
+    {"id": "linux-loopback-equivalence", "class": "hosted", "expected": "normalized-equivalent"},
+    {"id": "unsupported-host", "class": "availability", "expected": "unsupported"}
+  ],
+  "secret_policy": {
+    "source": "opaque-handles-only",
+    "plan": "opaque-handles-only",
+    "evidence": "no-secret-material",
+    "patchbay": "redacted"
+  },
+  "ambient_inputs": {
+    "dns": "forbidden",
+    "proxy": "forbidden",
+    "credentials": "forbidden",
+    "cookies": "forbidden"
+  }
+}
