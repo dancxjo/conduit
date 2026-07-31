@@ -2307,8 +2307,8 @@
         "nodes.types-mean-promises",
         "platform.workload-admission-deadline"
       ],
-      "objective": "Run one unchanged media graph while comparing exact provider chains across deterministic, Linux/process, browser/WASM, firmware, and describe-only profiles.",
-      "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose profile-appropriate fixture and adapter-aware realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
+      "objective": "Run one unchanged media graph while comparing exact provider chains across deterministic, Linux/process-fixture, browser/WASM-fixture, firmware, and describe-only profiles.",
+      "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose explicitly named fixture and adapter-aware realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
       "vocabulary": [
         "host profile",
         "optional provider",
@@ -2365,7 +2365,7 @@
       "platform": {
         "schema": "conduit.tour-platform-lesson",
         "what": "A provider is selectable only through an exact chain from required contract through behavioral conformance, current host observation, implementation, artifact, adapter, and finite execution bounds.",
-        "when": "Use this chain for optional host services and custom namespaced contracts that must run across native, process, browser/WASM, or constrained provider boundaries.",
+        "when": "Use this chain for optional host services and custom namespaced contracts that must run across native, fixture process, browser/WASM, or constrained provider boundaries.",
         "wrong": "Matching labels, source-language interfaces, stale reports, wrong artifacts, unavailable runtimes, protocol resemblance, hidden queues, and describe-only reports presented as executable fail closed.",
         "editable": [
           "wave.fixture:conduit.media/wave/literal"
@@ -2656,7 +2656,7 @@
         "summary": "One opt-in process node exposes three bounded byte streams while lifecycle and authority remain exact plan and evidence facts.",
         "what": "The node consumes finite stdin chunks and emits independent finite stdout and stderr chunks. Spawn, exit, signal, deadline, cancellation, forced cleanup, provider loss, and overflow are structured lifecycle outcomes.",
         "when": "Use it only when a hosted graph must invoke one explicitly installed executable resource. Publish a separate typed contract for domain tools and keep their byte protocol inside that adapter.",
-        "wrong": "Ambient PATH lookup, shell strings, inherited environment, unbounded output, merged stderr, hidden retries, orphaned children, stale grants, and pretending the generic process node is FFmpeg or SoX all fail the boundary.",
+        "wrong": "Ambient PATH lookup, shell strings, inherited environment, unbounded output, merged stderr, hidden retries, orphaned children, stale grants, and pretending this generic process node is a transport for other media tooling all fail the boundary.",
         "contracts": [
           {
             "id": "conduit.host/process/exec",

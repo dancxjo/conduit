@@ -1334,6 +1334,7 @@ fn register_codec_fixture_provider(
         &'static str,
         &'static str,
         &'static str,
+        &'static [u8],
     )],
 ) -> Result<(), RegistryError> {
     struct FixtureCodecProvider;
@@ -1349,13 +1350,13 @@ fn register_codec_fixture_provider(
         }
     }
     static NO_AUTHORITIES: [conduit_core::SemanticHash; 0] = [];
-    for (contract, implementation_id, artifact_id, entrypoint) in providers {
+    for (contract, implementation_id, artifact_id, entrypoint, source_bytes) in providers {
         registry.register_compiled_in_host_service(CompiledInHostService {
             contract,
             implementation_id,
             artifact_id,
             entrypoint,
-            source_bytes: include_bytes!("../../../crates/conduit-media/src/codec.rs"),
+            source_bytes,
             required_authorities: &NO_AUTHORITIES,
             factory: || Box::new(FixtureCodecProvider),
             validate_config: |_node: &conduit_panel::Node| Ok(()),
@@ -1373,18 +1374,21 @@ fn register_linux_codec_fixture_providers(registry: &mut Registry) -> Result<(),
                 "conduit.media/wave-literal-linux-native-fixture",
                 "conduit.media/wave-literal-linux-native-fixture-artifact",
                 "media-wave-literal-linux-native-fixture",
+                b"conduit.media/wave-literal-linux-native-fixture.source",
             ),
             (
                 &conduit_media::DEMUX_CONTRACT,
                 "conduit.media/wave-demux-linux-native-fixture",
                 "conduit.media/wave-demux-linux-native-fixture-artifact",
                 "media-wave-demux-linux-native-fixture",
+                b"conduit.media/wave-demux-linux-native-fixture.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
                 "conduit.media/pcm-decode-linux-native-fixture",
                 "conduit.media/pcm-decode-linux-native-fixture-artifact",
                 "media-pcm-decode-linux-native-fixture",
+                b"conduit.media/pcm-decode-linux-native-fixture.source",
             ),
         ],
     )
@@ -1399,18 +1403,21 @@ fn register_browser_codec_fixture_providers(registry: &mut Registry) -> Result<(
                 "conduit.media/wave-literal-browser-wasm-fixture",
                 "conduit.media/wave-literal-browser-wasm-fixture-artifact",
                 "media-wave-literal-browser-wasm-fixture",
+                b"conduit.media/wave-literal-browser-wasm-fixture.source",
             ),
             (
                 &conduit_media::DEMUX_CONTRACT,
                 "conduit.media/wave-demux-browser-wasm-fixture",
                 "conduit.media/wave-demux-browser-wasm-fixture-artifact",
                 "media-wave-demux-browser-wasm-fixture",
+                b"conduit.media/wave-demux-browser-wasm-fixture.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
                 "conduit.media/pcm-decode-browser-wasm-fixture",
                 "conduit.media/pcm-decode-browser-wasm-fixture-artifact",
                 "media-pcm-decode-browser-wasm-fixture",
+                b"conduit.media/pcm-decode-browser-wasm-fixture.source",
             ),
         ],
     )
@@ -1427,18 +1434,21 @@ fn register_explicit_adapter_codec_fixture_providers(
                 "conduit.media/wave-literal-explicit-adapter-fixture",
                 "conduit.media/wave-literal-explicit-adapter-fixture-artifact",
                 "media-wave-literal-explicit-adapter-fixture",
+                b"conduit.media/wave-literal-explicit-adapter-fixture.source",
             ),
             (
                 &conduit_media::DEMUX_CONTRACT,
                 "conduit.media/wave-demux-explicit-adapter-fixture",
                 "conduit.media/wave-demux-explicit-adapter-fixture-artifact",
                 "media-wave-demux-explicit-adapter-fixture",
+                b"conduit.media/wave-demux-explicit-adapter-fixture.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
                 "conduit.media/pcm-decode-explicit-adapter-fixture",
                 "conduit.media/pcm-decode-explicit-adapter-fixture-artifact",
                 "media-pcm-decode-explicit-adapter-fixture",
+                b"conduit.media/pcm-decode-explicit-adapter-fixture.source",
             ),
         ],
     )

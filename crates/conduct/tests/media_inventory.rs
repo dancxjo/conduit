@@ -27,6 +27,7 @@ fn register_codec_fixture_provider(
         &'static str,
         &'static str,
         &'static str,
+        &'static [u8],
     )],
 ) -> Result<(), RegistryError> {
     struct MediaCodecFixtureProvider;
@@ -43,13 +44,13 @@ fn register_codec_fixture_provider(
     }
 
     static NO_AUTHORITIES: [conduit_core::SemanticHash; 0] = [];
-    for (contract, implementation_id, artifact_id, entrypoint) in providers {
+    for (contract, implementation_id, artifact_id, entrypoint, source_bytes) in providers {
         registry.register_compiled_in_host_service(CompiledInHostService {
             contract,
             implementation_id,
             artifact_id,
             entrypoint,
-            source_bytes: include_bytes!("../../../crates/conduit-media/src/codec.rs"),
+            source_bytes,
             required_authorities: &NO_AUTHORITIES,
             factory: || Box::new(MediaCodecFixtureProvider),
             validate_config: |_node: &conduit_panel::Node| Ok(()),
@@ -67,36 +68,42 @@ fn register_cross_host_fixture_providers(registry: &mut Registry) -> Result<(), 
                 "conduit.media/wave-literal-cross-host-fixture-alpha",
                 "conduit.media/wave-literal-cross-host-fixture-alpha-artifact",
                 "media-wave-literal-cross-host-fixture-alpha",
+                b"conduit.media/wave-literal-cross-host-fixture-alpha.source",
             ),
             (
                 &PROBE_CONTRACT,
                 "conduit.media/wave-probe-cross-host-fixture-alpha",
                 "conduit.media/wave-probe-cross-host-fixture-alpha-artifact",
                 "media-wave-probe-cross-host-fixture-alpha",
+                b"conduit.media/wave-probe-cross-host-fixture-alpha.source",
             ),
             (
                 &DEMUX_CONTRACT,
                 "conduit.media/wave-demux-cross-host-fixture-alpha",
                 "conduit.media/wave-demux-cross-host-fixture-alpha-artifact",
                 "media-wave-demux-cross-host-fixture-alpha",
+                b"conduit.media/wave-demux-cross-host-fixture-alpha.source",
             ),
             (
                 &MUX_CONTRACT,
                 "conduit.media/wave-mux-cross-host-fixture-alpha",
                 "conduit.media/wave-mux-cross-host-fixture-alpha-artifact",
                 "media-wave-mux-cross-host-fixture-alpha",
+                b"conduit.media/wave-mux-cross-host-fixture-alpha.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
                 "conduit.media/pcm-decode-cross-host-fixture-alpha",
                 "conduit.media/pcm-decode-cross-host-fixture-alpha-artifact",
                 "media-pcm-decode-cross-host-fixture-alpha",
+                b"conduit.media/pcm-decode-cross-host-fixture-alpha.source",
             ),
             (
                 &ENCODE_CONTRACT,
                 "conduit.media/pcm-encode-cross-host-fixture-alpha",
                 "conduit.media/pcm-encode-cross-host-fixture-alpha-artifact",
                 "media-pcm-encode-cross-host-fixture-alpha",
+                b"conduit.media/pcm-encode-cross-host-fixture-alpha.source",
             ),
         ],
     )?;
@@ -108,36 +115,42 @@ fn register_cross_host_fixture_providers(registry: &mut Registry) -> Result<(), 
                 "conduit.media/wave-literal-cross-host-fixture-beta",
                 "conduit.media/wave-literal-cross-host-fixture-beta-artifact",
                 "media-wave-literal-cross-host-fixture-beta",
+                b"conduit.media/wave-literal-cross-host-fixture-beta.source",
             ),
             (
                 &PROBE_CONTRACT,
                 "conduit.media/wave-probe-cross-host-fixture-beta",
                 "conduit.media/wave-probe-cross-host-fixture-beta-artifact",
                 "media-wave-probe-cross-host-fixture-beta",
+                b"conduit.media/wave-probe-cross-host-fixture-beta.source",
             ),
             (
                 &DEMUX_CONTRACT,
                 "conduit.media/wave-demux-cross-host-fixture-beta",
                 "conduit.media/wave-demux-cross-host-fixture-beta-artifact",
                 "media-wave-demux-cross-host-fixture-beta",
+                b"conduit.media/wave-demux-cross-host-fixture-beta.source",
             ),
             (
                 &MUX_CONTRACT,
                 "conduit.media/wave-mux-cross-host-fixture-beta",
                 "conduit.media/wave-mux-cross-host-fixture-beta-artifact",
                 "media-wave-mux-cross-host-fixture-beta",
+                b"conduit.media/wave-mux-cross-host-fixture-beta.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
                 "conduit.media/pcm-decode-cross-host-fixture-beta",
                 "conduit.media/pcm-decode-cross-host-fixture-beta-artifact",
                 "media-pcm-decode-cross-host-fixture-beta",
+                b"conduit.media/pcm-decode-cross-host-fixture-beta.source",
             ),
             (
                 &ENCODE_CONTRACT,
                 "conduit.media/pcm-encode-cross-host-fixture-beta",
                 "conduit.media/pcm-encode-cross-host-fixture-beta-artifact",
                 "media-pcm-encode-cross-host-fixture-beta",
+                b"conduit.media/pcm-encode-cross-host-fixture-beta.source",
             ),
         ],
     )?;
