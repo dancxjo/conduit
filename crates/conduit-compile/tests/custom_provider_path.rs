@@ -57,7 +57,7 @@ fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() 
         .catalog
         .nodes
         .retain(|node| node.id != CUSTOM_CONTRACT.id.as_str());
-    assert_eq!(missing_descriptor.seal().unwrap_err().code(), "CND-CMP-004");
+    assert_eq!(missing_descriptor.seal().unwrap_err().code(), "CND-CMP-002");
     let document = compile_source(SOURCE, &installed.input).unwrap();
     let arena = Bump::new();
     let plan = document.as_plan(&arena).unwrap();

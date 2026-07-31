@@ -13,32 +13,33 @@ use conduit_core::{
     AdministrativeProposal, AdministrativeSubject, AdmittedSupervisionAction, ArtifactDigest,
     ArtifactManifest, ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope,
     AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ClockRounding,
-    ContainmentContext, ContainmentPolicy, ContainmentReason, DeadlineContract, DelegationEnvelope,
-    DelegationPolicy, Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION,
-    EffectClassBinding, EffectClassTraits, EffectCommitProfile, EffectDiscontinuity,
-    EffectFlowBinding, EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan,
-    ExecutionProfile, ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization,
-    FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks,
-    ForeignRetention, GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext,
-    HazardClosureLimits, HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind,
-    HazardProofNode, HazardousHostBinding, HazardousHostProfile, HostCapability,
-    HostDistributionKind, Id, ImplementationConfinement, ImplementationManifest, InhibitLatchState,
-    InhibitObservation, InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef,
-    ManifestEntrypoint, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
-    OperatingEnvelopeLimit, OwnershipModel, PassportStatus, PassportStatusObservation,
-    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion,
-    PlanCompositeMapping, PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure,
-    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
-    PlanSupervisionTarget, PlanValidationContext, PlanWorkload, PolicyBudgetAnchor,
-    PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason,
-    PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract,
-    PoolGenerationReservation, PoolReservationProfile, PoolSupervisionPolicy, Pressure,
-    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
-    ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
-    ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode,
-    RollingLimit, SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
+    ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement, ContainmentContext,
+    ContainmentPolicy, ContainmentReason, DeadlineContract, DelegationEnvelope, DelegationPolicy,
+    Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EffectClassBinding,
+    EffectClassTraits, EffectCommitProfile, EffectDiscontinuity, EffectFlowBinding,
+    EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile,
+    ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy,
+    FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention,
+    GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits,
+    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode,
+    HazardousHostBinding, HazardousHostProfile, HostCapability, HostDistributionKind, Id,
+    ImplementationConfinement, ImplementationManifest, InhibitLatchState, InhibitObservation,
+    InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint,
+    MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit,
+    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion, PlanCompositeMapping,
+    PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure, PlanHostObservation,
+    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
+    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
+    PlanValidationContext, PlanWorkload, PolicyBudgetAnchor, PolicyBudgetAvailability,
+    PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
+    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
+    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
+    ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
+    ReplacementSupport, ReportCapability, ReportMembership, ReportResource, ReportTopology,
+    ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode, RollingLimit,
+    SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
     SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
     ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
     TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation, WorkloadBudget,
@@ -50,11 +51,11 @@ use conduit_core::{
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
     CandidateAuthority, CapabilityPredicate, ExactTopologyView, HostResolverPolicy,
-    LiteralValidationError, OwnedInterfaceContract, OwnedNodeContract, OwnedNodeSchema,
-    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, PlacementCandidate,
-    PlacementRequest, Registry, ResolverTiePolicy, ResourcePredicate, SourceContractCatalog,
-    TopologyPredicate, lower_source, resolve_host_placement, seal_resolved_execution_plan,
-    validate_hosted_execution_plan,
+    LiteralValidationError, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract,
+    OwnedNodeContract, OwnedNodeSchema, OwnedPortContract, OwnedPortReference, OwnedSemanticValue,
+    OwnedTypeReference, PlacementCandidate, PlacementRequest, Registry, ResolverTiePolicy,
+    ResourcePredicate, SourceContractCatalog, TopologyPredicate, lower_source,
+    resolve_host_placement, seal_resolved_execution_plan, validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -929,8 +930,261 @@ pub struct CompileCatalogDocument {
     pub nodes: Vec<PinDocument>,
     pub types: Vec<PinDocument>,
     pub ports: Vec<PinDocument>,
+    pub external_leaf_contracts: Vec<ExternalLeafContractDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub interfaces: Vec<PinDocument>,
+}
+
+/// Complete config-free domain leaf contract sealed into compile input.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalLeafContractDocument {
+    pub id: String,
+    pub config: Vec<ExternalConfigFieldDocument>,
+    pub inputs: Vec<ExternalPortContractDocument>,
+    pub outputs: Vec<ExternalPortContractDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalConfigFieldDocument {
+    pub key: String,
+    pub value_type: PinDocument,
+    pub requirement: String,
+    pub sensitivity: String,
+    pub mutability: String,
+    pub identity: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalPortContractDocument {
+    pub id: String,
+    pub direction: String,
+    pub value_type: PinDocument,
+    pub presence: String,
+    pub connections: String,
+    pub values: String,
+    pub delivery: String,
+    pub temporal: String,
+    pub terminal: String,
+    pub sensitivity: String,
+    pub loss: String,
+}
+
+impl ExternalLeafContractDocument {
+    fn from_contract(contract: &conduit_core::NodeContract<'_>) -> Option<Self> {
+        Some(Self {
+            id: contract.id.as_str().to_owned(),
+            config: contract
+                .config
+                .fields
+                .iter()
+                .copied()
+                .map(ExternalConfigFieldDocument::from_contract)
+                .collect::<Option<_>>()?,
+            inputs: contract
+                .inputs
+                .iter()
+                .map(ExternalPortContractDocument::from_contract)
+                .collect(),
+            outputs: contract
+                .outputs
+                .iter()
+                .map(ExternalPortContractDocument::from_contract)
+                .collect(),
+        })
+    }
+
+    fn to_schema(&self) -> Option<OwnedNodeSchema> {
+        Some(OwnedNodeSchema {
+            id: self.id.clone(),
+            fields: self
+                .config
+                .iter()
+                .map(ExternalConfigFieldDocument::to_owned)
+                .collect::<Option<_>>()?,
+        })
+    }
+
+    fn to_owned(&self) -> Option<OwnedNodeContract> {
+        Some(OwnedNodeContract {
+            id: self.id.clone(),
+            inputs: self
+                .inputs
+                .iter()
+                .map(ExternalPortContractDocument::to_owned)
+                .collect::<Option<_>>()?,
+            outputs: self
+                .outputs
+                .iter()
+                .map(ExternalPortContractDocument::to_owned)
+                .collect::<Option<_>>()?,
+        })
+    }
+}
+
+impl ExternalConfigFieldDocument {
+    fn from_contract(field: ConfigFieldContract<'_>) -> Option<Self> {
+        let requirement = match field.requirement {
+            ConfigRequirement::Required => "required",
+            ConfigRequirement::Optional => "optional",
+            ConfigRequirement::Defaulted(_) => return None,
+        };
+        Some(Self {
+            key: field.key.as_str().to_owned(),
+            value_type: PinDocument {
+                id: field.value_type.contract_id.as_str().to_owned(),
+                schema_version: field.value_type.schema_version,
+                semantic_hash: field.value_type.semantic_hash.to_string(),
+            },
+            requirement: requirement.to_owned(),
+            sensitivity: field.sensitivity.as_str().to_owned(),
+            mutability: field.mutability.as_str().to_owned(),
+            identity: field.identity.as_str().to_owned(),
+        })
+    }
+
+    fn to_owned(&self) -> Option<OwnedConfigFieldSchema> {
+        Some(OwnedConfigFieldSchema {
+            key: self.key.clone(),
+            value_type: OwnedTypeReference {
+                id: self.value_type.id.clone(),
+                schema_version: self.value_type.schema_version,
+                semantic_hash: parse_hash(&self.value_type.semantic_hash).ok()?,
+            },
+            requirement: match self.requirement.as_str() {
+                "required" => OwnedConfigRequirement::Required,
+                "optional" => OwnedConfigRequirement::Optional,
+                _ => return None,
+            },
+            sensitivity: match self.sensitivity.as_str() {
+                "public" => Sensitivity::Public,
+                "restricted" => Sensitivity::Restricted,
+                "secret" => Sensitivity::Secret,
+                _ => return None,
+            },
+            mutability: match self.mutability.as_str() {
+                "pre-start" => ConfigMutability::PreStart,
+                "runtime" => ConfigMutability::Runtime,
+                _ => return None,
+            },
+            identity: match self.identity.as_str() {
+                "semantic" => ConfigIdentity::Semantic,
+                "plan" => ConfigIdentity::Plan,
+                _ => return None,
+            },
+            default_origin: None,
+        })
+    }
+
+    fn to_core(&self) -> Option<ConfigFieldContract<'_>> {
+        let owned = self.to_owned()?;
+        Some(ConfigFieldContract {
+            key: Id::new(&self.key).ok()?,
+            value_type: TypeContractRef {
+                contract_id: Id::new(&self.value_type.id).ok()?,
+                schema_version: self.value_type.schema_version,
+                semantic_hash: parse_hash(&self.value_type.semantic_hash).ok()?,
+            },
+            requirement: match owned.requirement {
+                OwnedConfigRequirement::Required => ConfigRequirement::Required,
+                OwnedConfigRequirement::Optional => ConfigRequirement::Optional,
+                OwnedConfigRequirement::Defaulted(_) => return None,
+            },
+            sensitivity: owned.sensitivity,
+            mutability: owned.mutability,
+            identity: owned.identity,
+        })
+    }
+}
+
+impl ExternalPortContractDocument {
+    fn from_contract(port: &conduit_core::PortContract<'_>) -> Self {
+        Self {
+            id: port.id.as_str().to_owned(),
+            direction: port.direction.as_str().to_owned(),
+            value_type: PinDocument {
+                id: port.value_type.contract_id.as_str().to_owned(),
+                schema_version: port.value_type.schema_version,
+                semantic_hash: port.value_type.semantic_hash.to_string(),
+            },
+            presence: port.presence.as_str().to_owned(),
+            connections: port.connections.as_str().to_owned(),
+            values: port.values.as_str().to_owned(),
+            delivery: port.delivery.as_str().to_owned(),
+            temporal: port.temporal.as_str().to_owned(),
+            terminal: port.terminal.as_str().to_owned(),
+            sensitivity: port.sensitivity.as_str().to_owned(),
+            loss: port.flow.loss.as_str().to_owned(),
+        }
+    }
+
+    fn to_owned(&self) -> Option<OwnedPortContract> {
+        Some(OwnedPortContract {
+            id: self.id.clone(),
+            direction: match self.direction.as_str() {
+                "input" => Direction::Input,
+                "output" => Direction::Output,
+                _ => return None,
+            },
+            value_type: OwnedTypeReference {
+                id: self.value_type.id.clone(),
+                schema_version: self.value_type.schema_version,
+                semantic_hash: parse_hash(&self.value_type.semantic_hash).ok()?,
+            },
+            presence: match self.presence.as_str() {
+                "required" => conduit_core::Presence::Required,
+                "optional" => conduit_core::Presence::Optional,
+                _ => return None,
+            },
+            connections: match self.connections.as_str() {
+                "exactly-one" => conduit_core::ConnectionCardinality::ExactlyOne,
+                "zero-or-one" => conduit_core::ConnectionCardinality::ZeroOrOne,
+                "one-or-more" => conduit_core::ConnectionCardinality::OneOrMore,
+                "zero-or-more" => conduit_core::ConnectionCardinality::ZeroOrMore,
+                _ => return None,
+            },
+            values: match self.values.as_str() {
+                "exactly-one" => conduit_core::ValueCardinality::ExactlyOne,
+                "zero-or-one" => conduit_core::ValueCardinality::ZeroOrOne,
+                "one-or-more" => conduit_core::ValueCardinality::OneOrMore,
+                "zero-or-more" => conduit_core::ValueCardinality::ZeroOrMore,
+                _ => return None,
+            },
+            delivery: match self.delivery.as_str() {
+                "stream" => conduit_core::Delivery::Stream,
+                "latest-state" => conduit_core::Delivery::LatestState,
+                "finite-batch" => conduit_core::Delivery::FiniteBatch,
+                "artifact-reference" => conduit_core::Delivery::ArtifactReference,
+                "control" => conduit_core::Delivery::Control,
+                _ => return None,
+            },
+            temporal: match self.temporal.as_str() {
+                "progressive" => conduit_core::TemporalContract::Progressive,
+                "committed" => conduit_core::TemporalContract::Committed,
+                "atemporal" => conduit_core::TemporalContract::Atemporal,
+                _ => return None,
+            },
+            terminal: match self.terminal.as_str() {
+                "finite" => conduit_core::TerminalContract::Finite,
+                "open-ended" => conduit_core::TerminalContract::OpenEnded,
+                "either" => conduit_core::TerminalContract::Either,
+                _ => return None,
+            },
+            sensitivity: match self.sensitivity.as_str() {
+                "public" => Sensitivity::Public,
+                "restricted" => Sensitivity::Restricted,
+                "secret" => Sensitivity::Secret,
+                _ => return None,
+            },
+            loss: match self.loss.as_str() {
+                "lossless-only" => conduit_core::LossAcceptance::LosslessOnly,
+                "type-contract-defined" => conduit_core::LossAcceptance::TypeContractDefined,
+                _ => return None,
+            },
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1640,6 +1894,7 @@ struct CatalogIdentityProjection<'a> {
     nodes: &'a [PinDocument],
     types: &'a [PinDocument],
     ports: &'a [PinDocument],
+    external_leaf_contracts: &'a [ExternalLeafContractDocument],
 }
 
 /// Returns the finite built-in semantic catalog accepted by the reference
@@ -1739,6 +1994,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?,
+        external_leaf_contracts: Vec::new(),
         interfaces: ["conduit/stream-sink", "conduit/text-processor"]
             .into_iter()
             .map(|id| {
@@ -1776,16 +2032,49 @@ impl<'a> PinnedCatalog<'a> {
     fn exact_pin<'b>(&'b self, pins: &'b [PinDocument], id: &str) -> Option<&'b PinDocument> {
         pins.iter().find(|pin| pin.id == id)
     }
+
+    fn external_contract(&self, id: &str) -> Option<OwnedNodeContract> {
+        self.document
+            .external_leaf_contracts
+            .iter()
+            .find(|contract| contract.id == id)?
+            .to_owned()
+    }
+
+    fn external_type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
+        let used = self
+            .document
+            .external_leaf_contracts
+            .iter()
+            .any(|contract| {
+                contract
+                    .config
+                    .iter()
+                    .any(|field| field.value_type.id == id)
+                    || contract
+                        .inputs
+                        .iter()
+                        .chain(&contract.outputs)
+                        .any(|port| port.value_type.id == id)
+            });
+        let pin = used.then(|| self.exact_pin(&self.document.types, id))??;
+        Some(OwnedTypeReference {
+            id: pin.id.clone(),
+            schema_version: pin.schema_version,
+            semantic_hash: parse_hash(&pin.semantic_hash).ok()?,
+        })
+    }
 }
 
 impl SourceContractCatalog for PinnedCatalog<'_> {
     fn node_schema(&self, id: &str) -> Option<OwnedNodeSchema> {
         let pin = self.exact_pin(&self.document.nodes, id)?;
         let schema = self.registry.node_schema(id).or_else(|| {
-            custom_leaf_id(id).then(|| OwnedNodeSchema {
-                id: id.to_owned(),
-                fields: Vec::new(),
-            })
+            self.document
+                .external_leaf_contracts
+                .iter()
+                .find(|contract| contract.id == id)?
+                .to_schema()
         })?;
         (pin.schema_version == 0 && pin.semantic_hash == schema.semantic_hash().to_string())
             .then_some(schema)
@@ -1793,18 +2082,16 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
 
     fn node_contract(&self, id: &str) -> Option<OwnedNodeContract> {
         let pin = self.exact_pin(&self.document.nodes, id)?;
-        if self.registry.node_contract(id).is_none() && custom_leaf_id(id) {
-            let schema = OwnedNodeSchema {
-                id: id.to_owned(),
-                fields: Vec::new(),
-            };
+        if let Some(contract) = self.external_contract(id) {
+            let schema = self
+                .document
+                .external_leaf_contracts
+                .iter()
+                .find(|document| document.id == id)?
+                .to_schema()?;
             return (pin.schema_version == 0
                 && pin.semantic_hash == schema.semantic_hash().to_string())
-            .then(|| OwnedNodeContract {
-                id: id.to_owned(),
-                inputs: Vec::new(),
-                outputs: Vec::new(),
-            });
+            .then_some(contract);
         }
         let contract = self.registry.node_contract(id)?;
         (pin.schema_version == 0 && pin.semantic_hash == contract.semantic_hash().to_string())
@@ -1820,7 +2107,10 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
 
     fn type_reference(&self, id: &str) -> Option<OwnedTypeReference> {
         let pin = self.exact_pin(&self.document.types, id)?;
-        let reference = self.registry.type_reference(id)?;
+        let reference = self
+            .registry
+            .type_reference(id)
+            .or_else(|| self.external_type_reference(id))?;
         (pin.schema_version == reference.schema_version
             && pin.semantic_hash == reference.semantic_hash.to_string())
         .then_some(reference)
@@ -1862,6 +2152,7 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
         || catalog.nodes.len() > 4096
         || catalog.types.len() > 4096
         || catalog.ports.len() > 4096
+        || catalog.external_leaf_contracts.len() > 4096
     {
         return Err(CompileError::new(CompileReason::InvalidInput));
     }
@@ -1869,13 +2160,49 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
         return Err(CompileError::new(CompileReason::InvalidInput));
     }
     let registry = Registry::default();
+    let mut external_ids = BTreeSet::new();
+    let mut external_types = BTreeSet::new();
+    for contract in &catalog.external_leaf_contracts {
+        if !custom_leaf_id(&contract.id)
+            || registry.node_schema(&contract.id).is_some()
+            || !external_ids.insert(contract.id.as_str())
+            || contract.to_owned().is_none()
+            || contract.to_schema().is_none()
+            || !catalog.nodes.iter().any(|pin| pin.id == contract.id)
+            || contract.inputs.iter().any(|port| port.direction != "input")
+            || contract
+                .outputs
+                .iter()
+                .any(|port| port.direction != "output")
+        {
+            return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        for value_type in contract.config.iter().map(|field| &field.value_type).chain(
+            contract
+                .inputs
+                .iter()
+                .chain(&contract.outputs)
+                .map(|port| &port.value_type),
+        ) {
+            external_types.insert(value_type.id.as_str());
+            if !catalog.types.iter().any(|pin| pin == value_type) {
+                return Err(CompileError::new(CompileReason::InvalidInput));
+            }
+        }
+    }
     let mut ids = BTreeSet::new();
     for pin in &catalog.nodes {
+        let external = external_ids.contains(pin.id.as_str());
         let schema = registry.node_schema(&pin.id).or_else(|| {
-            custom_leaf_id(&pin.id).then(|| OwnedNodeSchema {
-                id: pin.id.clone(),
-                fields: Vec::new(),
-            })
+            external
+                .then(|| {
+                    catalog
+                        .external_leaf_contracts
+                        .iter()
+                        .find(|contract| contract.id == pin.id)
+                        .and_then(ExternalLeafContractDocument::to_schema)
+                })
+                .flatten()
         });
         if !ids.insert(pin.id.as_str())
             || pin.schema_version != 0
@@ -1887,10 +2214,16 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
     ids.clear();
     for pin in &catalog.types {
         if !ids.insert(pin.id.as_str())
-            || registry.type_reference(&pin.id).is_none_or(|reference| {
-                reference.schema_version != pin.schema_version
-                    || reference.semantic_hash.to_string() != pin.semantic_hash
-            })
+            || registry.type_reference(&pin.id).map_or_else(
+                || {
+                    !external_types.contains(pin.id.as_str())
+                        || parse_hash(&pin.semantic_hash).is_err()
+                },
+                |reference| {
+                    reference.schema_version != pin.schema_version
+                        || reference.semantic_hash.to_string() != pin.semantic_hash
+                },
+            )
         {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
@@ -1910,18 +2243,7 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
 }
 
 fn custom_leaf_id(id: &str) -> bool {
-    id.contains('/')
-        && !id.starts_with("conduit/")
-        && !id.starts_with("conduit.host/")
-        && !id.starts_with("std/")
-        && !id.starts_with("io/")
-        && !id.starts_with("text/")
-        && !id.starts_with("net/")
-        && !id.starts_with("fs/")
-        && !id.starts_with("process/")
-        && !id.starts_with("state/")
-        && !id.starts_with("time/")
-        && !id.starts_with("supervision/")
+    id.contains('/') && Id::new(id).is_ok()
 }
 
 fn catalog_identity(catalog: &CompileCatalogDocument) -> Result<String, CompileError> {
@@ -1931,6 +2253,7 @@ fn catalog_identity(catalog: &CompileCatalogDocument) -> Result<String, CompileE
         nodes: &canonical.nodes,
         types: &canonical.types,
         ports: &canonical.ports,
+        external_leaf_contracts: &canonical.external_leaf_contracts,
     })
     .map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
     Ok(format!("sha256:{}", hex(&Sha256::digest(bytes))))
@@ -1940,6 +2263,9 @@ fn canonicalize_catalog(catalog: &mut CompileCatalogDocument) {
     catalog.nodes.sort_by(|left, right| left.id.cmp(&right.id));
     catalog.types.sort_by(|left, right| left.id.cmp(&right.id));
     catalog.ports.sort_by(|left, right| left.id.cmp(&right.id));
+    catalog
+        .external_leaf_contracts
+        .sort_by(|left, right| left.id.cmp(&right.id));
 }
 
 fn resolve_source_graph(input: &CompileInput) -> Result<ModuleGraph, CompileError> {
@@ -2897,15 +3223,44 @@ fn registry_for_catalog(catalog: &CompileCatalogDocument) -> Result<Registry, Co
         {
             continue;
         }
-        if !custom_leaf_id(&pin.id) {
-            return Err(CompileError::new(CompileReason::InvalidInput));
-        }
-        let id: &'static str = Box::leak(pin.id.clone().into_boxed_str());
+        let document: &'static ExternalLeafContractDocument = Box::leak(Box::new(
+            catalog
+                .external_leaf_contracts
+                .iter()
+                .find(|contract| contract.id == pin.id)
+                .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?
+                .clone(),
+        ));
+        let owned: &'static OwnedNodeContract = Box::leak(Box::new(
+            document
+                .to_owned()
+                .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?,
+        ));
+        let inputs = owned
+            .inputs
+            .iter()
+            .map(OwnedPortContract::to_core)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
+        let outputs = owned
+            .outputs
+            .iter()
+            .map(OwnedPortContract::to_core)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
+        let fields = document
+            .config
+            .iter()
+            .map(ExternalConfigFieldDocument::to_core)
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
         let contract = Box::leak(Box::new(conduit_core::NodeContract {
-            id: Id(id),
-            config: conduit_core::ConfigContract { fields: &[] },
-            inputs: &[],
-            outputs: &[],
+            id: Id::new(&owned.id).map_err(|_| CompileError::new(CompileReason::InvalidInput))?,
+            config: conduit_core::ConfigContract {
+                fields: Box::leak(fields.into_boxed_slice()),
+            },
+            inputs: Box::leak(inputs.into_boxed_slice()),
+            outputs: Box::leak(outputs.into_boxed_slice()),
         }));
         let schema = OwnedNodeSchema::from_contract(contract);
         if pin.schema_version != 0 || schema.semantic_hash().to_string() != pin.semantic_hash {
@@ -3064,11 +3419,12 @@ fn rewrite_node_kind(
         return compiled_definition_id(module, kind);
     }
     if let Some((alias, symbol)) = kind.split_once('.') {
-        let import = module
-            .imports
-            .iter()
-            .find(|import| import.alias == alias)
-            .ok_or_else(|| CompileError::new(CompileReason::LoweringFailed))?;
+        let Some(import) = module.imports.iter().find(|import| import.alias == alias) else {
+            return kind
+                .contains('/')
+                .then(|| kind.to_owned())
+                .ok_or_else(|| CompileError::new(CompileReason::LoweringFailed));
+        };
         let imported = modules
             .get(import.canonical_uri.as_str())
             .copied()

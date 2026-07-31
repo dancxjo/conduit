@@ -5,8 +5,9 @@ use crate::{
     BudgetDocument, COMPILE_INPUT_SCHEMA, COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument,
     CompileInput, CompileModuleDocument, CompileSourceLimits, EffectCommitProfileDocument,
     EffectRequirementDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
-    HostCapabilityDocument, HostReportDocument, ImplementationDocument, MemoryClaimDocument,
-    PinDocument, ResourceLeaseDocument, builtin_catalog_document,
+    ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
+    ImplementationDocument, MemoryClaimDocument, PinDocument, ResourceLeaseDocument,
+    builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -15,7 +16,7 @@ use conduit_core::{
 use conduit_panel::parse;
 use conduit_runtime::{
     ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation,
-    InstalledHostedProvider, OwnedNodeSchema, Registry, RuntimeError,
+    InstalledHostedProvider, OwnedNodeSchema, Registry, RuntimeError, SourceContractCatalog,
 };
 
 pub struct InstalledProfile {
@@ -132,11 +133,11 @@ impl InstalledProfile {
                 .contracts()
                 .find(|contract| contract.id.as_str() == contract_id)
                 .expect("candidate contract came from registry");
-            if !catalog
+            let node_missing = !catalog
                 .nodes
                 .iter()
-                .any(|node| node.id == contract.id.as_str())
-            {
+                .any(|node| node.id == contract.id.as_str());
+            if node_missing {
                 catalog.nodes.push(PinDocument {
                     id: contract.id.to_string(),
                     schema_version: 0,
@@ -144,6 +145,22 @@ impl InstalledProfile {
                         .semantic_hash()
                         .to_string(),
                 });
+            }
+            if Registry::default()
+                .node_schema(contract.id.as_str())
+                .is_none()
+            {
+                catalog.external_leaf_contracts.push(
+                    ExternalLeafContractDocument::from_contract(contract).ok_or_else(|| {
+                        RuntimeError::new(
+                            "CND-CMP-002",
+                            format!(
+                                "external contract `{}` has configuration that cannot be sealed",
+                                contract.id.as_str()
+                            ),
+                        )
+                    })?,
+                );
             }
             for value_type in contract
                 .config

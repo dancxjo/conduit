@@ -6,10 +6,282 @@
 
 use sha2::{Digest, Sha256};
 
+use conduit_core::{
+    ConfigContract, ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract,
+    PortContract, PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract,
+    TerminalContract, TypeContractRef, ValueCardinality,
+};
+use conduit_panel::Node;
+use conduit_runtime::{
+    CompiledInHostService, Handler, Registry, RegistryError, ResolutionError, RunIo, RuntimeError,
+    Value,
+};
+
 pub const MAXIMUM_PLANES: usize = 4;
 pub const MAXIMUM_CHANNELS: u16 = 64;
 pub const MAXIMUM_METADATA_ENTRIES: u16 = 64;
 pub const MAXIMUM_MEDIA_BYTES: usize = 16 * 1024 * 1024;
+
+pub const AUDIO_FRAME_DESCRIPTOR: &str = "conduit.media/audio-frame|0|s16le,s24le,f32le|rational-time|finite-planes-strides-frames-bytes";
+pub const VIDEO_FRAME_DESCRIPTOR: &str = "conduit.media/video-frame|0|rgb24,rgba32,gray8,yuv420p|rational-time|finite-dimensions-planes-strides-bytes";
+
+pub const AUDIO_FRAME_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("conduit.media/audio-frame"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x10, 0x7e, 0xf4, 0x1b, 0xaa, 0xa8, 0x1b, 0x35, 0x67, 0x51, 0x3d, 0xd1, 0xd9, 0xf4, 0x04,
+        0xae, 0xe4, 0x83, 0x13, 0x91, 0x46, 0x43, 0xa0, 0x31, 0xfb, 0x97, 0x44, 0xcf, 0x49, 0x84,
+        0x20, 0xea,
+    ]),
+};
+pub const VIDEO_FRAME_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("conduit.media/video-frame"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x7d, 0x91, 0xb0, 0x94, 0x81, 0xaa, 0xef, 0x99, 0xe1, 0xd1, 0xfd, 0x72, 0x70, 0x0a, 0x64,
+        0x8d, 0x3a, 0xce, 0x31, 0x9c, 0xc9, 0xa7, 0xea, 0x8b, 0x71, 0x22, 0xce, 0x17, 0x6d, 0xea,
+        0xb2, 0x0f,
+    ]),
+};
+const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/text"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x94, 0xdf, 0xe2, 0x55, 0x09, 0xfe, 0x62, 0x4d, 0x89, 0x74, 0xb1, 0xdd, 0x44, 0x2e, 0xb7,
+        0xf9, 0x6f, 0x7e, 0x62, 0x1e, 0x6e, 0x71, 0xf0, 0x35, 0xac, 0x6f, 0x08, 0x04, 0x63, 0x61,
+        0x80, 0x72,
+    ]),
+};
+
+const fn port(
+    id: &'static str,
+    direction: Direction,
+    value_type: TypeContractRef<'static>,
+) -> PortContract<'static> {
+    PortContract {
+        id: Id(id),
+        direction,
+        value_type,
+        presence: Presence::Required,
+        connections: ConnectionCardinality::ExactlyOne,
+        values: ValueCardinality::ExactlyOne,
+        delivery: Delivery::Stream,
+        temporal: TemporalContract::Committed,
+        terminal: TerminalContract::Finite,
+        sensitivity: Sensitivity::Public,
+        flow: PortFlowConstraints {
+            loss: LossAcceptance::LosslessOnly,
+        },
+    }
+}
+
+const AUDIO_OUTPUT: [PortContract<'static>; 1] =
+    [port("frame", Direction::Output, AUDIO_FRAME_TYPE)];
+const AUDIO_INPUT: [PortContract<'static>; 1] = [port("frame", Direction::Input, AUDIO_FRAME_TYPE)];
+const VIDEO_OUTPUT: [PortContract<'static>; 1] =
+    [port("frame", Direction::Output, VIDEO_FRAME_TYPE)];
+const VIDEO_INPUT: [PortContract<'static>; 1] = [port("frame", Direction::Input, VIDEO_FRAME_TYPE)];
+const TEXT_OUTPUT: [PortContract<'static>; 1] = [PortContract {
+    id: Id("summary"),
+    direction: Direction::Output,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+}];
+
+pub const AUDIO_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.media/audio-frame/literal"),
+    config: ConfigContract { fields: &[] },
+    inputs: &[],
+    outputs: &AUDIO_OUTPUT,
+};
+pub const AUDIO_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.media/audio-frame/inspect"),
+    config: ConfigContract { fields: &[] },
+    inputs: &AUDIO_INPUT,
+    outputs: &TEXT_OUTPUT,
+};
+pub const VIDEO_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.media/video-frame/literal"),
+    config: ConfigContract { fields: &[] },
+    inputs: &[],
+    outputs: &VIDEO_OUTPUT,
+};
+pub const VIDEO_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.media/video-frame/inspect"),
+    config: ConfigContract { fields: &[] },
+    inputs: &VIDEO_INPUT,
+    outputs: &TEXT_OUTPUT,
+};
+
+const AUDIO_VALUE: &[u8] = b"CMA0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
+const VIDEO_VALUE: &[u8] = b"CMV0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01synthetic-rgb";
+
+struct LiteralHandler {
+    value_type: TypeContractRef<'static>,
+    bytes: &'static [u8],
+}
+
+impl Handler for LiteralHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-MEDIA-001",
+                "media literal received hidden input",
+            ));
+        }
+        Ok(vec![Value {
+            value_type: self.value_type,
+            bytes: self.bytes.to_vec(),
+        }])
+    }
+}
+
+struct InspectHandler {
+    expected_type: TypeContractRef<'static>,
+    magic: &'static [u8; 4],
+    summary: &'static [u8],
+}
+
+impl Handler for InspectHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let [input] = inputs else {
+            return Err(RuntimeError::new(
+                "CND-MEDIA-002",
+                "media inspector requires one frame",
+            ));
+        };
+        if input.value_type != self.expected_type
+            || input.bytes.len() > 64
+            || !input.bytes.starts_with(self.magic)
+        {
+            return Err(RuntimeError::new(
+                "CND-MEDIA-003",
+                "media frame representation is invalid",
+            ));
+        }
+        Ok(vec![Value {
+            value_type: TEXT_TYPE,
+            bytes: self.summary.to_vec(),
+        }])
+    }
+}
+
+fn audio_literal() -> Box<dyn Handler> {
+    Box::new(LiteralHandler {
+        value_type: AUDIO_FRAME_TYPE,
+        bytes: AUDIO_VALUE,
+    })
+}
+fn video_literal() -> Box<dyn Handler> {
+    Box::new(LiteralHandler {
+        value_type: VIDEO_FRAME_TYPE,
+        bytes: VIDEO_VALUE,
+    })
+}
+fn audio_inspect() -> Box<dyn Handler> {
+    Box::new(InspectHandler {
+        expected_type: AUDIO_FRAME_TYPE,
+        magic: b"CMA0",
+        summary: b"audio:s16le:48000:stereo:192",
+    })
+}
+fn video_inspect() -> Box<dyn Handler> {
+    Box::new(InspectHandler {
+        expected_type: VIDEO_FRAME_TYPE,
+        magic: b"CMV0",
+        summary: b"video:rgb24:2x2",
+    })
+}
+
+fn validate_no_config(node: &Node) -> Result<(), ResolutionError> {
+    if node.config.is_empty() {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-MEDIA-004",
+            "synthetic media fixture has no configuration",
+        ))
+    }
+}
+
+pub fn register_media_contracts(registry: &mut Registry) {
+    for contract in [
+        &AUDIO_LITERAL_CONTRACT,
+        &AUDIO_INSPECT_CONTRACT,
+        &VIDEO_LITERAL_CONTRACT,
+        &VIDEO_INSPECT_CONTRACT,
+    ] {
+        registry.register_contract_only(contract);
+    }
+}
+
+pub fn register_deterministic_media_providers(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
+    register_media_contracts(registry);
+    static NO_AUTHORITIES: [SemanticHash; 0] = [];
+    for (contract, implementation_id, artifact_id, entrypoint, factory) in [
+        (
+            &AUDIO_LITERAL_CONTRACT,
+            "conduit.media/audio-literal-deterministic",
+            "conduit.media/audio-literal-artifact",
+            "media-audio-literal",
+            audio_literal as conduit_runtime::HandlerFactory,
+        ),
+        (
+            &AUDIO_INSPECT_CONTRACT,
+            "conduit.media/audio-inspect-deterministic",
+            "conduit.media/audio-inspect-artifact",
+            "media-audio-inspect",
+            audio_inspect as conduit_runtime::HandlerFactory,
+        ),
+        (
+            &VIDEO_LITERAL_CONTRACT,
+            "conduit.media/video-literal-deterministic",
+            "conduit.media/video-literal-artifact",
+            "media-video-literal",
+            video_literal as conduit_runtime::HandlerFactory,
+        ),
+        (
+            &VIDEO_INSPECT_CONTRACT,
+            "conduit.media/video-inspect-deterministic",
+            "conduit.media/video-inspect-artifact",
+            "media-video-inspect",
+            video_inspect as conduit_runtime::HandlerFactory,
+        ),
+    ] {
+        registry.register_compiled_in_host_service(CompiledInHostService {
+            contract,
+            implementation_id,
+            artifact_id,
+            entrypoint,
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &NO_AUTHORITIES,
+            factory,
+            validate_config: validate_no_config,
+        })?;
+    }
+    Ok(())
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MediaReason {

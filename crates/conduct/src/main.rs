@@ -345,6 +345,13 @@ fn run(
         Registry::compatibility_demo()
     } else {
         let mut registry = Registry::hosted_primitives();
+        conduit_media::register_deterministic_media_providers(&mut registry).map_err(|error| {
+            cli_error(
+                simple_diagnostic(error.code, &error.message),
+                presentation,
+                vec![source_document.clone()],
+            )
+        })?;
         conduit_filesystem::register_hosted_file_read_provider(&mut registry).map_err(|error| {
             cli_error(
                 simple_diagnostic(error.code, &error.message),

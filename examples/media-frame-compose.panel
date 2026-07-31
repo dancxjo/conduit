@@ -1,0 +1,13 @@
+panel 0
+
+node audio : conduit.media/audio-frame/literal
+node inspect_audio : conduit.media/audio-frame/inspect
+node video : conduit.media/video-frame/literal
+node inspect_video : conduit.media/video-frame/inspect
+node audio_output : display/text
+node video_output : display/text
+
+cord audio.frame -> inspect_audio.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord video.frame -> inspect_video.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect_audio.summary -> audio_output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect_video.summary -> video_output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

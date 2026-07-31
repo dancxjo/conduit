@@ -319,6 +319,7 @@ dependencies = [
  "conduit-filesystem",
  "conduit-http",
  "conduit-inspect",
+ "conduit-media",
  "conduit-package",
  "conduit-panel",
  "conduit-process",
@@ -439,6 +440,9 @@ dependencies = [
 name = "conduit-media"
 version = "0.0.0-dev"
 dependencies = [
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
  "serde_json",
  "sha2",
 ]
