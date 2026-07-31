@@ -19,6 +19,7 @@ use conduit_core::{
 mod conformance;
 mod data_boundaries;
 mod filesystem;
+mod process_exec;
 mod state;
 mod storage_cache;
 mod supervision;
@@ -43,6 +44,14 @@ pub use filesystem::{
     FileSlot, FilesystemError, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
     ReadRequest, ReadResult, WatchCoalescing, WatchEvent, WatchEventKind, WatchOverflow,
     WatchRequest, WriteMode, WriteRequest, WriteResult,
+};
+pub use process_exec::{
+    EnvironmentAddition, ExecCommand, ExecError, ExecEvent, ExecEventKind, ExecLimits, ExecRequest,
+    ExecResult, ExecTerminal, FakeExecBuffers, FakeExecControl, FakeProgram, OutputStream,
+    PROCESS_MAX_ARGUMENT_BYTES, PROCESS_MAX_ARGUMENTS, PROCESS_MAX_CHUNK_BYTES,
+    PROCESS_MAX_ENVIRONMENT, PROCESS_MAX_ENVIRONMENT_NAME_BYTES,
+    PROCESS_MAX_ENVIRONMENT_VALUE_BYTES, PROCESS_MAX_EVIDENCE_EVENTS, PROCESS_MAX_STREAM_BYTES,
+    StdinClosePolicy, TerminationPolicy, run_fake_exec, validate_exec_request,
 };
 pub use state::{
     CacheEntry, CacheInsert, CacheState, CellState, DeduplicateDecision, DeduplicateState,
@@ -393,6 +402,27 @@ const STORAGE_CACHE_REMOVE_RESULT: TypeContractRef<'static> = TypeContractRef {
         158, 140, 249, 199, 222, 73, 51, 234, 197, 212, 113, 154,
     ]),
 };
+const PROCESS_STDIN: PortContract<'static> = port(
+    "stdin",
+    Direction::Input,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const PROCESS_STDOUT: PortContract<'static> = port(
+    "stdout",
+    Direction::Output,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const PROCESS_STDERR: PortContract<'static> = port(
+    "stderr",
+    Direction::Output,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
 
 const VALUE_PARAMETER: CatalogTypeExpression = CatalogTypeExpression::Parameter(Id("value"));
 const NATURAL_EXPRESSION: CatalogTypeExpression = CatalogTypeExpression::Named(Id("std/natural"));
@@ -1211,6 +1241,32 @@ const STORAGE_CACHE_REMOVE: ConfigContract<'static> = ConfigContract {
         field("cancellation", TEXT),
     ],
 };
+const PROCESS_EXEC: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("program", REFERENCE),
+        field("argv", RECORD),
+        field("environment", RECORD),
+        protected_field("working_resource", REFERENCE),
+        protected_field("grant", REFERENCE),
+        field("stdin_close", TEXT),
+        field("maximum_stdin_bytes", U64),
+        field("maximum_stdout_bytes", U64),
+        field("maximum_stderr_bytes", U64),
+        field("maximum_chunk_bytes", U64),
+        field("maximum_pending_operations", U64),
+        field("maximum_processes", U64),
+        field("maximum_child_processes", U64),
+        field("maximum_descriptors", U64),
+        field("maximum_environment_bytes", U64),
+        field("maximum_work", U64),
+        field("maximum_evidence_events", U64),
+        field("deadline_ticks", U64),
+        field("graceful_signal", U64),
+        field("graceful_ticks", U64),
+        field("forced_ticks", U64),
+        field("cancellation", TEXT),
+    ],
+};
 const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
     fields: &[
         protected_field("grant", REFERENCE),
@@ -1361,6 +1417,15 @@ const STORAGE_CACHE_LIMITS: CatalogLimits = CatalogLimits {
     retries: 0,
     work_per_step: 16,
     evidence_events: 128,
+};
+const PROCESS_EXEC_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 3,
+    retained_bytes: (PROCESS_MAX_STREAM_BYTES * 3) as u64,
+    pending_operations: 3,
+    timers: 2,
+    retries: 0,
+    work_per_step: PROCESS_MAX_CHUNK_BYTES as u32,
+    evidence_events: PROCESS_MAX_EVIDENCE_EVENTS as u32,
 };
 const FORMAT_LIMITS: CatalogLimits = CatalogLimits {
     retained_values: 3,
@@ -2427,20 +2492,21 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         value.host_service = Some(Id("host/storage-cache-remove"));
         value
     },
-    host_entry!(
-        "process/run",
-        Boundary,
-        "invocation",
-        "completion",
-        "host/process"
-    ),
-    host_entry!(
-        "process/stream",
-        Boundary,
-        "stdin",
-        "event",
-        "host/process-stream"
-    ),
+    {
+        let mut value = entry!(
+            "conduit.host/process/exec",
+            Boundary,
+            PROCESS_EXEC,
+            &[PROCESS_STDIN],
+            &[PROCESS_STDOUT, PROCESS_STDERR],
+            Preserving,
+            Monotonic,
+            PROCESS_EXEC_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/process-exec"));
+        value
+    },
     host_entry!(
         "secret/reference",
         Boundary,

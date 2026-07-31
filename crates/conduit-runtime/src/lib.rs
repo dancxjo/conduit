@@ -828,12 +828,6 @@ pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[],
     outputs: &[named_text_output("failure")],
 };
-pub const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("process/run"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("invocation")],
-    outputs: &[named_text_output("completion")],
-};
 pub const GPIO_PIN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("device/gpio/pin"),
     config: EMPTY_CONFIG,
@@ -2626,7 +2620,6 @@ impl Default for Registry {
             file_read_contract(),
             file_write_contract(),
             file_watch_contract(),
-            &PROCESS_SPAWN_CONTRACT,
             &GPIO_PIN_CONTRACT,
             &SERIAL_PORT_CONTRACT,
             standard_state_contract("state/cell"),

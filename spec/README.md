@@ -241,6 +241,15 @@ containment program is tracked by
   freezes current grammar logographic directional declarations, equivalent input
   spellings, canonical migration, explicit cord endpoints, and source-AST
   current-schema identity.
+- [`061-bounded-filesystem.md`](061-bounded-filesystem.md) defines opaque
+  resource handles and finite read, write, and watch boundaries without
+  ambient path semantics.
+- [`062-evictable-blob-cache.md`](062-evictable-blob-cache.md) defines the
+  optional bounded best-effort cache, provider/run-scoped handles, integrity,
+  retention, and explicit eviction outcomes.
+- [`063-bounded-process-exec.md`](063-bounded-process-exec.md) defines the
+  single optional three-stream exec boundary, literal command identity,
+  independent output pressure, and finite termination cleanup.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

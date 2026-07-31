@@ -30,7 +30,7 @@ retains its previously selected `conduit.std/...` identity:
 - `conduit.std/tee`, `conduit.std/merge`, `conduit.std/zip`,
   `conduit.std/gate`, and `conduit.std/select`;
 - `time/delay`, `state/cell`, and `supervision/retry`;
-- `fs/read`, `process/run`, and `net/http/serve`.
+- `fs/read`, `conduit.host/process/exec`, and `net/http/serve`.
 
 Node and type identities occupy distinct grammar and catalog positions. There
 is no compatibility rewrite between the discarded `flow/...` spellings for

@@ -2,8 +2,8 @@ mod support;
 
 use conduit_panel::Node;
 use conduit_runtime::{
-    AvailabilityState, Handler, PROCESS_SPAWN_CONTRACT, Registry, RunIo, RuntimeError, Value,
-    file_read_contract, file_write_contract,
+    AvailabilityState, Handler, Registry, RunIo, RuntimeError, Value, file_read_contract,
+    file_write_contract,
 };
 
 struct Impostor;
@@ -24,7 +24,7 @@ fn file_and_process_callbacks_cannot_claim_boundary_conformance() {
     for contract in [
         file_read_contract(),
         file_write_contract(),
-        &PROCESS_SPAWN_CONTRACT,
+        conduit_std::standard_node_contract("conduit.host/process/exec").unwrap(),
     ] {
         let mut registry = Registry::default();
         let fixture = support::provider(

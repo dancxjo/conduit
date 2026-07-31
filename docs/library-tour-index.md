@@ -4,6 +4,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 | Contract | Class | Package | Provider bundles | Standalone lesson | Composition lesson |
 |---|---|---|---:|---|---|
+| `conduit.host/process/exec` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.conduit.host.process.exec.standalone (required) | tour/lessons/current.json#library.conduit.host.process.exec.composition (required) |
 | `conduit.std/gate` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
 | `conduit.std/merge` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
 | `conduit.std/select` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
@@ -64,8 +65,6 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `net/wifi/join` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.wifi.join.standalone (required) | tour/lessons/current.json#library.net.wifi.join.composition (required) |
 | `net/wifi/scan` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.wifi.scan.standalone (required) | tour/lessons/current.json#library.net.wifi.scan.composition (required) |
 | `observe/log` | implementation-helper | `conduit.testing` | 0 | tour/lessons/current.json#library.observe.log.standalone (required) | tour/lessons/current.json#library.observe.log.composition (required) |
-| `process/run` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.process.run.standalone (required) | tour/lessons/current.json#library.process.run.composition (required) |
-| `process/stream` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.process.stream.standalone (required) | tour/lessons/current.json#library.process.stream.composition (required) |
 | `secret/reference` | optional-host-boundary | `conduit.host.secret` | 0 | tour/lessons/current.json#library.secret.reference.standalone (required) | tour/lessons/current.json#library.secret.reference.composition (required) |
 | `state/cache` | portable-standard | `conduit.std.state` | 1 | tour/lessons/current.json#library.bounded-state (published) | tour/lessons/current.json#library.bounded-state (published) |
 | `state/cell` | portable-standard | `conduit.std.state` | 1 | tour/lessons/current.json#library.bounded-state (published) | tour/lessons/current.json#library.bounded-state (published) |

@@ -97,7 +97,7 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "storage/cache/put",
         "storage/cache/get",
         "storage/cache/remove",
-        "process/run",
+        "conduit.host/process/exec",
         "device/gpio/pin",
         "device/serial/port",
         "state/cell",
@@ -134,7 +134,7 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
 }
 
 #[test]
-fn definitions_do_not_claim_host_support_and_legacy_names_are_absent() {
+fn definitions_do_not_claim_host_support_and_displaced_names_are_absent() {
     let registry = Registry::default();
 
     let http = registry.node_availability("net/http/serve");
@@ -355,6 +355,8 @@ fn discarded_standard_id_is_unsupported_and_never_aliased() {
         "flow/zip",
         "flow/gate",
         "flow/select",
+        "process/run",
+        "process/stream",
     ] {
         let availability = registry.node_availability(discarded);
         assert_eq!(

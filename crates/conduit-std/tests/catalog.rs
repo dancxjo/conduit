@@ -129,6 +129,40 @@ fn standard_nodes_use_the_one_canonical_identity_selected_for_each_contract() {
 }
 
 #[test]
+fn process_exec_replaces_placeholder_shapes_with_three_bounded_byte_ports() {
+    let process = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "conduit.host/process/exec")
+        .expect("current process exec contract");
+    assert_eq!(process.contract.inputs.len(), 1);
+    assert_eq!(process.contract.inputs[0].id.as_str(), "stdin");
+    assert_eq!(
+        process.contract.inputs[0].value_type.contract_id.as_str(),
+        "std/bytes"
+    );
+    assert_eq!(process.contract.outputs.len(), 2);
+    assert_eq!(process.contract.outputs[0].id.as_str(), "stdout");
+    assert_eq!(process.contract.outputs[1].id.as_str(), "stderr");
+    assert!(
+        process
+            .contract
+            .outputs
+            .iter()
+            .all(|port| port.value_type.contract_id.as_str() == "std/bytes")
+    );
+    assert_eq!(
+        process
+            .host_service
+            .expect("optional host boundary")
+            .as_str(),
+        "host/process-exec"
+    );
+    for displaced in ["process/run", "process/stream"] {
+        assert!(standard_node_contract(displaced).is_none(), "{displaced}");
+    }
+}
+
+#[test]
 fn type_universe_is_richer_than_any_host_support_claim() {
     assert_eq!(
         standard_type("std/integer").unwrap().human_name,

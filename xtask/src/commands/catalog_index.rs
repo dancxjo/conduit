@@ -161,7 +161,7 @@ fn ownership(id: &str) -> Result<Ownership, String> {
             classification: "optional-host-boundary",
             package_owner: "conduit.host.storage",
         }
-    } else if id.starts_with("process/") {
+    } else if id.starts_with("process/") || id.starts_with("conduit.host/process/") {
         Ownership {
             classification: "optional-host-boundary",
             package_owner: "conduit.host.process",
