@@ -2278,12 +2278,22 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         run_id: &str,
     ) -> Vec<crate::ExactEvidenceRecord> {
         let events = self.events().copied().collect::<Vec<_>>();
+        self.project_exact_evidence_batch(plan_identity, plan_epoch, run_id, &events)
+    }
+
+    pub(crate) fn project_exact_evidence_batch(
+        &self,
+        plan_identity: &str,
+        plan_epoch: u64,
+        run_id: &str,
+        events: &[SchedulerEvent],
+    ) -> Vec<crate::ExactEvidenceRecord> {
         crate::exact_evidence::project_runtime_exact_evidence(
             &self.runtime,
             plan_identity,
             plan_epoch,
             run_id,
-            &events,
+            events,
         )
     }
 

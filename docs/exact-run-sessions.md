@@ -123,5 +123,12 @@ for an already released cursor receives the first retained cursor as an
 explicit gap; a reader ahead of the run receives the current end cursor. The
 cursor never reuses sequence numbers when resident slots are reclaimed.
 
+The session's `drain_exact_evidence` operation puts the commit before the
+acknowledgement: it projects one bounded batch, passes it to the external
+evidence sink, and releases the resident prefix only when that sink succeeds.
+Sink failure leaves the same cursor and observations available for an explicit
+retry. Patchbay consumes the provider's committed projection; it is never this
+authoritative sink.
+
 Long-lived value reclamation and Patchbay Watches build on this boundary and
 each have their own explicit bounds and lifecycle rules.

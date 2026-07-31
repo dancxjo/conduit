@@ -25,11 +25,12 @@ use conduit_core::{
     resolve_authority,
 };
 use conduit_runtime::{
-    DeterministicExecutor, ExactRunIdentity, ExactRunSession, ExactRunSessionRegistry,
-    ExactRunState, OwnedEventPayload, RuntimeEvidenceContext, RuntimeTimestamp, RuntimeValue,
-    RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind, SchedulerNode,
-    SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
-    record_scheduler_evidence, validate_hosted_execution_plan, validate_runtime_value_for_cord,
+    DeterministicExecutor, ExactEvidenceDrainError, ExactEvidenceSink, ExactRunIdentity,
+    ExactRunSession, ExactRunSessionRegistry, ExactRunState, OwnedEventPayload,
+    RuntimeEvidenceContext, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
+    SchedulerError, SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus,
+    SchedulerStep, SendStatus, StepIo, record_scheduler_evidence, validate_hosted_execution_plan,
+    validate_runtime_value_for_cord,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -722,6 +723,28 @@ fn session(executor: DeterministicExecutor<FixtureNode>) -> ExactRunSession<Fixt
     )
 }
 
+#[derive(Default)]
+struct RecordingExactEvidenceSink {
+    fail: bool,
+    committed: Vec<Vec<conduit_runtime::ExactEvidenceRecord>>,
+}
+
+impl ExactEvidenceSink for RecordingExactEvidenceSink {
+    type Error = ();
+
+    fn commit_exact_evidence(
+        &mut self,
+        _run: &ExactRunIdentity,
+        records: &[conduit_runtime::ExactEvidenceRecord],
+    ) -> Result<(), Self::Error> {
+        if self.fail {
+            return Err(());
+        }
+        self.committed.push(records.to_vec());
+        Ok(())
+    }
+}
+
 #[test]
 fn exact_session_capacity_is_admitted_before_start_and_released_when_admission_ends() {
     let sessions = ExactRunSessionRegistry::new(1, 128).unwrap();
@@ -898,6 +921,72 @@ fn exact_session_releases_only_acknowledged_event_prefixes_with_monotonic_cursor
             run.acknowledge_scheduler_events_through(cursor + 1),
             Err(SchedulerError::InvalidPolicy)
         ));
+    });
+}
+
+#[test]
+fn exact_evidence_drain_commits_before_releasing_the_resident_prefix() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostProgress {
+            remaining: 24,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 24,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(512, 16)).unwrap());
+        let mut evidence_sink = RecordingExactEvidenceSink::default();
+        let mut cursor = 0;
+
+        run.pump(1).unwrap();
+        evidence_sink.fail = true;
+        assert!(matches!(
+            run.drain_exact_evidence(cursor, 16, &mut evidence_sink),
+            Err(ExactEvidenceDrainError::Sink(()))
+        ));
+        assert!(run.scheduler_event_count() > 0);
+        assert_eq!(run.retained_event_cursor(), cursor);
+
+        evidence_sink.fail = false;
+        while run.state() == ExactRunState::Active {
+            let batch = run
+                .drain_exact_evidence(cursor, 16, &mut evidence_sink)
+                .unwrap();
+            assert_eq!(batch.status, EvidenceCursorStatus::Available);
+            assert!(batch.next_cursor > cursor);
+            cursor = batch.next_cursor;
+            assert_eq!(run.scheduler_event_count(), 0);
+            run.pump(1).unwrap();
+        }
+
+        if run.scheduler_event_count() != 0 {
+            let batch = run
+                .drain_exact_evidence(cursor, 16, &mut evidence_sink)
+                .unwrap();
+            assert_eq!(batch.status, EvidenceCursorStatus::Available);
+            cursor = batch.next_cursor;
+        }
+
+        assert!(
+            evidence_sink
+                .committed
+                .iter()
+                .flatten()
+                .any(|record| record.sequence == 0)
+        );
+        assert!(
+            evidence_sink
+                .committed
+                .iter()
+                .flatten()
+                .any(|record| record.terminal_cause.is_some())
+        );
+        assert_eq!(run.scheduler_event_count(), 0);
+        assert_eq!(run.retained_event_cursor(), cursor);
     });
 }
 

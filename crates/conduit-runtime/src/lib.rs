@@ -110,7 +110,8 @@ pub use scheduler::{
     SchedulerSubject, SendStatus, StepIo, ValueStorageUsage, validate_runtime_value_for_cord,
 };
 pub use session::{
-    ExactRunIdentity, ExactRunPump, ExactRunSession, ExactRunSessionRegistry, ExactRunState,
+    ExactEvidenceBatch, ExactEvidenceDrainError, ExactEvidenceSink, ExactRunIdentity, ExactRunPump,
+    ExactRunSession, ExactRunSessionRegistry, ExactRunState,
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_VERSION, LiteralValidationError, LoweredAuthoredNode,
@@ -1910,6 +1911,18 @@ impl ExactHostedRunSession {
         self.session
             .acknowledge_scheduler_events_through(cursor)
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
+    }
+
+    /// Commits one bounded exact-evidence batch and releases its scheduler
+    /// prefix only after the external evidence sink accepts it.
+    pub fn drain_exact_evidence<S: ExactEvidenceSink>(
+        &mut self,
+        cursor: u64,
+        maximum_events: u32,
+        sink: &mut S,
+    ) -> Result<ExactEvidenceBatch, ExactEvidenceDrainError<S::Error>> {
+        self.session
+            .drain_exact_evidence(cursor, maximum_events, sink)
     }
 
     #[must_use]

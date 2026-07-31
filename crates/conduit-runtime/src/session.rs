@@ -6,7 +6,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use conduit_core::{SemanticHash, StopPolicy, TerminalClass};
+use conduit_core::{EvidenceCursorStatus, SemanticHash, StopPolicy, TerminalClass};
 
 use crate::{
     DeterministicExecutor, SchedulerError, SchedulerEventBatch, SchedulerHighWater, SchedulerNode,
@@ -49,6 +49,37 @@ pub struct ExactRunPump {
     /// Fixed hosted-value arena residency after this pump. Portable runs have
     /// no hosted arena and report `None`.
     pub value_storage: Option<ValueStorageUsage>,
+}
+
+/// One bounded exact-evidence projection. The sink owns this batch; the
+/// scheduler retains the underlying observations until commit succeeds.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactEvidenceBatch {
+    pub status: EvidenceCursorStatus,
+    /// Exclusive cursor for the next batch or acknowledgement.
+    pub next_cursor: u64,
+    pub records: Vec<crate::ExactEvidenceRecord>,
+}
+
+/// The authoritative external boundary for retained exact evidence. It is
+/// deliberately not a Patchbay or UI callback: successful commitment is what
+/// permits the scheduler to reuse a resident observation slot.
+pub trait ExactEvidenceSink {
+    type Error;
+
+    fn commit_exact_evidence(
+        &mut self,
+        run: &ExactRunIdentity,
+        records: &[crate::ExactEvidenceRecord],
+    ) -> Result<(), Self::Error>;
+}
+
+/// Failure while draining evidence. Sink failure leaves the exact-run cursor
+/// and resident scheduler observations unchanged for an explicit retry.
+#[derive(Debug)]
+pub enum ExactEvidenceDrainError<E> {
+    Scheduler(SchedulerError),
+    Sink(E),
 }
 
 /// Finite admission controller for concurrently retained exact-run sessions.
@@ -327,6 +358,37 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         cursor: u64,
     ) -> Result<(), SchedulerError> {
         self.executor_mut().acknowledge_events_through(cursor)
+    }
+
+    /// Projects and commits one bounded exact-evidence batch. The scheduler
+    /// acknowledges the batch only after the external sink succeeds, so a
+    /// provider crash or backpressure cannot silently discard observations.
+    pub fn drain_exact_evidence<S: ExactEvidenceSink>(
+        &mut self,
+        cursor: u64,
+        maximum_events: u32,
+        sink: &mut S,
+    ) -> Result<ExactEvidenceBatch, ExactEvidenceDrainError<S::Error>> {
+        let batch = self
+            .read_scheduler_events(cursor, maximum_events)
+            .map_err(ExactEvidenceDrainError::Scheduler)?;
+        let records = self.executor().project_exact_evidence_batch(
+            &self.identity.plan_identity.to_string(),
+            self.identity.plan_epoch,
+            &self.identity.run_id,
+            &batch.events,
+        );
+        if batch.status == EvidenceCursorStatus::Available && !batch.events.is_empty() {
+            sink.commit_exact_evidence(&self.identity, &records)
+                .map_err(ExactEvidenceDrainError::Sink)?;
+            self.acknowledge_scheduler_events_through(batch.next_cursor)
+                .map_err(ExactEvidenceDrainError::Scheduler)?;
+        }
+        Ok(ExactEvidenceBatch {
+            status: batch.status,
+            next_cursor: batch.next_cursor,
+            records,
+        })
     }
 
     #[must_use]
