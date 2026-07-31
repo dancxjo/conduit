@@ -847,7 +847,7 @@ fn host_service_authority(
             "conduit.resource/udp-loopback",
             "conduit.resource/socket-loopback",
         ),
-        "net/http/serve-once" => (
+        "net/http/listen" => (
             "http-loopback-listen",
             "sha256:4848484848484848484848484848484848484848484848484848484848484848",
             "conduit.action/listen",

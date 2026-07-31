@@ -1,0 +1,12 @@
+# One exact bounded loopback HTTP listener. The production provider binds an
+# ephemeral port, serves independently bounded requests, and waits between
+# host readiness notifications until the exact run is stopped.
+panel 0
+
+node server : net/http/listen {
+    listen = "127.0.0.1:0"
+    method = "GET"
+    path = "/health"
+    response = "conduit http ready\n"
+    deadline_ms = "5000"
+}

@@ -246,7 +246,7 @@ fn fixture(id: &str, classification: &str) -> &'static str {
         "conformance/c4/text-format.json"
     } else if id == "supervision/supervisor" || id.starts_with("supervision/") {
         "conformance/c4/supervision.json"
-    } else if id == "net/http/serve-once" {
+    } else if id == "net/http/listen" {
         "conformance/c5/http-serving.json"
     } else if id == "net/http/fetch" {
         "conformance/c4/http-client.json"

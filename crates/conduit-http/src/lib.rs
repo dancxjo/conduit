@@ -17,16 +17,16 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::task::Poll;
-use std::time::{Duration, Instant};
 
 use conduit_core::{
-    Id, PinnedDescriptor, PlanArtifact, ReplacementSupport, SemanticHash, TransitionStateContract,
+    Id, PinnedDescriptor, PlanArtifact, ReplacementSupport, SemanticHash, StopPolicy,
+    TransitionStateContract,
 };
 use conduit_runtime::{
-    CompiledInHostService, ExactHostedServiceBinding, HTTP_SERVE_ONCE_CONTRACT, Handler,
-    HostedDrainObservation, HostedGenerationBinding, HostedTransitionGeneration, Registry,
-    RegistryError, ResolutionError, ResolvedPlacementBinding, RunIo, RuntimeError, Value,
-    hosted_effect_constraint_hash,
+    CompiledInHostService, ExactHostedServiceBinding, HTTP_LISTENER_CONTRACT, Handler,
+    HostedDrainObservation, HostedGenerationBinding, HostedServiceInterest, HostedServiceStep,
+    HostedServiceStepContext, HostedTransitionGeneration, Registry, RegistryError, ResolutionError,
+    ResolvedPlacementBinding, RunIo, RuntimeError, Value, hosted_effect_constraint_hash,
 };
 use rustls::pki_types::CertificateDer;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -2160,14 +2160,14 @@ impl HttpServingBackend for LinuxHttpServingBackend {
 pub fn register_hosted_http_provider(registry: &mut Registry) -> Result<(), RegistryError> {
     static REQUIRED_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x48; 32])];
     registry.register_compiled_in_host_service(CompiledInHostService {
-        contract: &HTTP_SERVE_ONCE_CONTRACT,
-        implementation_id: "conduit/http-linux-serve-once",
-        artifact_id: "conduit/http-linux-serve-once-artifact",
-        entrypoint: "http-linux-serve-once",
+        contract: &HTTP_LISTENER_CONTRACT,
+        implementation_id: "conduit/http-linux-listener",
+        artifact_id: "conduit/http-linux-listener-artifact",
+        entrypoint: "http-linux-listener",
         source_bytes: include_bytes!("lib.rs"),
         required_authorities: &REQUIRED_AUTHORITIES,
-        factory: || Box::new(ServeOnceHandler),
-        validate_config: validate_serve_once_config,
+        factory: || Box::new(HttpListenerHandler::default()),
+        validate_config: validate_http_listener_config,
     })
 }
 
@@ -2737,30 +2737,81 @@ fn required_bytes_config<'a>(
     }
 }
 
-struct ServeOnceHandler;
+const HTTP_LISTENER_HOST_OPERATION: Id<'static> = Id("conduit/http-listener-event");
 
-impl Handler for ServeOnceHandler {
-    fn run(
+enum HttpListenerPhase {
+    Accept,
+    Request { connection: u64 },
+    Respond { response: HttpResponsePart },
+}
+
+/// One persistent exact-run HTTP listener. Each scheduler step admits at most
+/// one connection, reads one bounded request, or writes one bounded response;
+/// readiness is supplied by an exact host-operation wake rather than a local
+/// poll loop or wall-clock sleep.
+struct HttpListenerHandler {
+    exact: Option<ExactHostedServiceBinding>,
+    backend: Option<LinuxHttpServingBackend>,
+    route_path: String,
+    response_body: Vec<u8>,
+    phase: HttpListenerPhase,
+    cancelled: bool,
+}
+
+impl Default for HttpListenerHandler {
+    fn default() -> Self {
+        Self {
+            exact: None,
+            backend: None,
+            route_path: String::new(),
+            response_body: Vec::new(),
+            phase: HttpListenerPhase::Accept,
+            cancelled: false,
+        }
+    }
+}
+
+impl HttpListenerHandler {
+    fn wait() -> HostedServiceStep {
+        HostedServiceStep::Waiting {
+            interest: HostedServiceInterest::HostOperation {
+                subject: HTTP_LISTENER_HOST_OPERATION,
+            },
+        }
+    }
+
+    fn initialize(
         &mut self,
         node: &conduit_panel::Node,
-        inputs: &[Value],
         io: &mut RunIo<'_>,
-    ) -> Result<Vec<Value>, RuntimeError> {
-        if !inputs.is_empty() {
+    ) -> Result<(), RuntimeError> {
+        let exact = self.exact.as_ref().ok_or_else(|| {
+            RuntimeError::new(
+                "CND-HTTP-027",
+                "HTTP listener requires an executor-supplied exact runtime binding",
+            )
+        })?;
+        let [authority] = exact.authorities.as_slice() else {
             return Err(RuntimeError::new(
-                "CND-HTTP-004",
-                "serve-once does not accept hidden value inputs",
+                "CND-HTTP-027",
+                "HTTP listener lacks one exact loopback-listen authority",
+            ));
+        };
+        if authority.action != "conduit.action/listen"
+            || authority.resource_kind != "conduit.resource/tcp-loopback"
+            || authority.resource_id != "conduit.resource/ephemeral-loopback-port"
+            || authority.grant_id != "conduit.grant/http-loopback-listen"
+            || authority.resource_binding_id.is_empty()
+        {
+            return Err(RuntimeError::new(
+                "CND-HTTP-027",
+                "HTTP listener authority does not match the exact loopback binding",
             ));
         }
-        validate_serve_once_config(node)
-            .map_err(|error| RuntimeError::new(error.code, error.message))?;
         let listen = required_config(node, "listen")?;
-        let path = required_config(node, "path")?;
-        let response_body = required_config(node, "response")?.as_bytes().to_vec();
-        let deadline_ms = required_config(node, "deadline_ms")?
+        let deadline_ticks = required_config(node, "deadline_ms")?
             .parse::<u64>()
             .map_err(|_| RuntimeError::new("CND-HTTP-008", "invalid HTTP deadline"))?;
-
         let limits = HttpServiceLimits {
             maximum_request_head_bytes: 4096,
             maximum_request_body_bytes: 4096,
@@ -2774,10 +2825,10 @@ impl Handler for ServeOnceHandler {
             maximum_session_queue_items: 0,
             maximum_session_queue_bytes: 0,
             maximum_evidence_events: 16,
-            header_deadline_ticks: deadline_ms,
-            body_deadline_ticks: deadline_ms,
-            handler_deadline_ticks: deadline_ms,
-            drain_deadline_ticks: deadline_ms,
+            header_deadline_ticks: deadline_ticks,
+            body_deadline_ticks: deadline_ticks,
+            handler_deadline_ticks: deadline_ticks,
+            drain_deadline_ticks: deadline_ticks,
             reserved_memory_bytes: 32 * 1024,
         };
         let descriptor = |id, byte| PinnedDescriptor {
@@ -2795,7 +2846,7 @@ impl Handler for ServeOnceHandler {
                     Sha256::digest(include_bytes!("lib.rs")).into(),
                 ),
             },
-            execution_profile: descriptor("conduit/http-bounded-once", 3),
+            execution_profile: descriptor("conduit/http-bounded-listener", 3),
             listen,
             protocol: HttpProtocol::Http11,
             security: descriptor("conduit.http/plaintext-explicit", 4),
@@ -2829,9 +2880,6 @@ impl Handler for ServeOnceHandler {
         };
         let mut backend =
             LinuxHttpServingBackend::new(capabilities, None).map_err(http_runtime_error)?;
-        // The exact executor has already validated the plan-pinned grant before
-        // constructing this handler. This domain authority mirrors that
-        // admitted decision at the backend boundary; it is not planner input.
         backend
             .bind(
                 &service,
@@ -2847,64 +2895,128 @@ impl Handler for ServeOnceHandler {
         writeln!(io.error, "CND-HTTP-BOUND {address}")
             .and_then(|_| io.error.flush())
             .map_err(|_| RuntimeError::new("CND-HTTP-009", "cannot publish bound address"))?;
-
-        let deadline = Instant::now() + Duration::from_millis(deadline_ms);
-        let connection = poll_http_until(deadline, || backend.poll_accept())?;
-        let request = match poll_http_until(deadline, || backend.poll_exchange(connection))? {
-            HttpExchangeEvent::Request(request) => request,
-            _ => {
-                return Err(RuntimeError::new(
-                    "CND-HTTP-010",
-                    "HTTP exchange ended without a request",
-                ));
-            }
-        };
-        let route = HttpRoute {
-            id: Id("route/checked-in"),
-            order: 0,
-            method: HttpMethod::Get,
-            path_pattern: path,
-        };
-        let matched = match_route(&[route], request.head.method, &request.head.target)
-            .map_err(http_runtime_error)?
-            .is_some();
-        let response = HttpResponsePart {
-            exchange: request.exchange,
-            status: if matched { 200 } else { 404 },
-            headers: vec![HttpHeader {
-                name: "content-type".to_owned(),
-                value: "text/plain; charset=utf-8".to_owned(),
-            }],
-            body: if matched {
-                response_body
-            } else {
-                b"not found\n".to_vec()
-            },
-            terminal: true,
-        };
-        poll_http_until(deadline, || backend.poll_send(connection, &response))?;
-        backend.close(connection).map_err(http_runtime_error)?;
-        Ok(Vec::new())
+        self.route_path = required_config(node, "path")?.to_owned();
+        self.response_body = required_config(node, "response")?.as_bytes().to_vec();
+        self.backend = Some(backend);
+        Ok(())
     }
 }
 
-fn poll_http_until<T>(
-    deadline: Instant,
-    mut operation: impl FnMut() -> Poll<Result<T, HttpReason>>,
-) -> Result<T, RuntimeError> {
-    loop {
-        match operation() {
-            Poll::Ready(result) => return result.map_err(http_runtime_error),
-            Poll::Pending if Instant::now() < deadline => {
-                std::thread::sleep(Duration::from_millis(1));
-            }
-            Poll::Pending => {
-                return Err(RuntimeError::new(
-                    HttpReason::Timeout.code(),
-                    "bounded HTTP operation timed out",
-                ));
+impl Handler for HttpListenerHandler {
+    fn bind_exact(&mut self, binding: ExactHostedServiceBinding) -> Result<(), RuntimeError> {
+        self.exact = Some(binding);
+        Ok(())
+    }
+
+    fn step(
+        &mut self,
+        node: &conduit_panel::Node,
+        inputs: &[Value],
+        _context: HostedServiceStepContext,
+        io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-HTTP-004",
+                "HTTP listener does not accept hidden value inputs",
+            ));
+        }
+        if self.cancelled {
+            return Err(RuntimeError::new(
+                "CND-HTTP-018",
+                "HTTP listener was cancelled",
+            ));
+        }
+        validate_http_listener_config(node)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        if self.backend.is_none() {
+            self.initialize(node, io)?;
+            return Ok(Self::wait());
+        }
+        let backend = self
+            .backend
+            .as_mut()
+            .expect("listener remains initialized while live");
+        match &self.phase {
+            HttpListenerPhase::Accept => match backend.poll_accept() {
+                Poll::Ready(Ok(connection)) => {
+                    self.phase = HttpListenerPhase::Request { connection };
+                    Ok(Self::wait())
+                }
+                Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
+                Poll::Pending => Ok(Self::wait()),
+            },
+            HttpListenerPhase::Request { connection } => match backend.poll_exchange(*connection) {
+                Poll::Ready(Ok(HttpExchangeEvent::Request(request))) => {
+                    let response = HttpResponsePart {
+                        exchange: request.exchange,
+                        status: if request.head.method == HttpMethod::Get
+                            && request.head.target.split('?').next()
+                                == Some(self.route_path.as_str())
+                        {
+                            200
+                        } else {
+                            404
+                        },
+                        headers: vec![HttpHeader {
+                            name: "content-type".to_owned(),
+                            value: "text/plain; charset=utf-8".to_owned(),
+                        }],
+                        body: if request.head.method == HttpMethod::Get
+                            && request.head.target.split('?').next()
+                                == Some(self.route_path.as_str())
+                        {
+                            self.response_body.clone()
+                        } else {
+                            b"not found\n".to_vec()
+                        },
+                        terminal: true,
+                    };
+                    self.phase = HttpListenerPhase::Respond { response };
+                    Ok(Self::wait())
+                }
+                Poll::Ready(Ok(_)) => Err(RuntimeError::new(
+                    "CND-HTTP-010",
+                    "HTTP exchange ended without a request",
+                )),
+                Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
+                Poll::Pending => Ok(Self::wait()),
+            },
+            HttpListenerPhase::Respond { response } => {
+                match backend.poll_send(response.exchange.connection, response) {
+                    Poll::Ready(Ok(())) => {
+                        backend
+                            .close(response.exchange.connection)
+                            .map_err(http_runtime_error)?;
+                        self.phase = HttpListenerPhase::Accept;
+                        Ok(Self::wait())
+                    }
+                    Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
+                    Poll::Pending => Ok(Self::wait()),
+                }
             }
         }
+    }
+
+    fn cancel(
+        &mut self,
+        _node: &conduit_panel::Node,
+        _stop: StopPolicy,
+    ) -> Result<(), RuntimeError> {
+        if let Some(backend) = &mut self.backend {
+            backend.begin_shutdown();
+            backend.finish_shutdown();
+        }
+        self.cancelled = true;
+        Ok(())
+    }
+
+    fn cleanup(&mut self, _node: &conduit_panel::Node) -> Result<(), RuntimeError> {
+        self.backend = None;
+        self.phase = HttpListenerPhase::Accept;
+        self.response_body.clear();
+        self.route_path.clear();
+        Ok(())
     }
 }
 
@@ -2921,7 +3033,7 @@ fn required_config<'a>(node: &'a conduit_panel::Node, key: &str) -> Result<&'a s
     })
 }
 
-fn validate_serve_once_config(node: &conduit_panel::Node) -> Result<(), ResolutionError> {
+fn validate_http_listener_config(node: &conduit_panel::Node) -> Result<(), ResolutionError> {
     let allowed = ["listen", "method", "path", "response", "deadline_ms"];
     if let Some(entry) = node
         .config
@@ -2953,7 +3065,7 @@ fn validate_serve_once_config(node: &conduit_panel::Node) -> Result<(), Resoluti
     if value("method")? != "GET" {
         return Err(ResolutionError {
             code: "CND-HTTP-010",
-            message: "serve-once currently admits only GET".to_owned(),
+            message: "the checked HTTP listener currently admits only GET".to_owned(),
         });
     }
     if !value("path")?.starts_with('/') {
@@ -3088,11 +3200,22 @@ pub fn validate_http_transition(
 
 #[cfg(test)]
 mod tests {
-    use conduit_runtime::{ExactHostedServiceAuthority, ExactHostedServiceBinding};
+    use std::io::{Read, Write};
+    use std::net::TcpStream;
+
+    use bumpalo::Bump;
+    use conduit_compile::{InstalledProfile, compile_source};
+    use conduit_core::{
+        Id, PlanValidationContext, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
+        SchedulerPolicy, StopPolicy,
+    };
+    use conduit_runtime::{
+        ExactHostedServiceAuthority, ExactHostedServiceBinding, ExactRunContext, ExactRunIo,
+        ExactRunSessionRegistry, ExactRunState, Registry, SchedulerReservation,
+    };
 
     use super::{
-        HttpMethod, HttpRoute, Id, bind_exact_http_client, hosted_effect_constraint_hash,
-        match_route,
+        HttpMethod, HttpRoute, bind_exact_http_client, hosted_effect_constraint_hash, match_route,
     };
 
     #[test]
@@ -3181,5 +3304,113 @@ mod tests {
             bind_exact_http_client(&exact, node).unwrap_err().code,
             "CND-HTTP-CL-020"
         );
+    }
+
+    fn pump_until_waiting(session: &mut conduit_runtime::ExactHostedRunSession) {
+        for _ in 0..16 {
+            if session.state() != ExactRunState::Active {
+                break;
+            }
+            session.pump(1).unwrap();
+        }
+        assert_eq!(session.state(), ExactRunState::Waiting);
+    }
+
+    #[test]
+    fn hosted_listener_serves_multiple_requests_in_one_exact_session() {
+        let source = include_str!("../../../examples/http-loopback-listener.panel");
+        let mut registry = Registry::hosted_primitives();
+        super::register_hosted_http_provider(&mut registry).unwrap();
+        let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+        let document = compile_source(source, &installed.input).unwrap();
+        let arena = Bump::new();
+        let plan = document.as_plan(&arena).unwrap();
+        let panel = conduit_panel::parse(source).unwrap();
+        let resolved = registry.resolve(&panel).unwrap();
+        let bindings = installed.bindings(&plan).unwrap();
+        let grants = installed.grant_observations(&plan).unwrap();
+        let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
+        let mut session = resolved
+            .start_exact_session(
+                &plan,
+                &bindings,
+                ExactRunContext {
+                    semantic_source_hash: plan.source_semantic_hash,
+                    plan_epoch: 217,
+                    run_id: Id("run/http/listener"),
+                    grant_observations: &grants,
+                    validation: PlanValidationContext {
+                        supported_schema_version: plan.schema_version,
+                        now: plan.created_at,
+                    },
+                    scheduler_policy: SchedulerPolicy {
+                        schema_version: SCHEDULER_CONTRACT_VERSION,
+                        ready_queue: ReadyQueueDiscipline::RoundRobin,
+                        max_decisions: 64,
+                        max_tick: 64,
+                        max_consecutive_yields: 8,
+                        max_events: 64,
+                    },
+                    reservation: SchedulerReservation {
+                        available_runtime_memory_bytes: plan.budget.memory_bytes,
+                        executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                    },
+                },
+                &sessions,
+                ExactRunIo::for_plan(&plan).unwrap(),
+            )
+            .unwrap();
+        pump_until_waiting(&mut session);
+        let diagnostics = session.with_io(|io| String::from_utf8(io.error().to_vec()).unwrap());
+        let address: std::net::SocketAddr = diagnostics
+            .strip_prefix("CND-HTTP-BOUND ")
+            .and_then(|value| value.trim().parse().ok())
+            .expect("exact session published its loopback address");
+        let identity = session.identity().clone();
+        assert_eq!(
+            session
+                .notify_host_operation(Id("conduit/http-other-event"))
+                .unwrap()
+                .state,
+            ExactRunState::Waiting
+        );
+
+        for path in ["/health", "/missing"] {
+            let mut client = TcpStream::connect(address).unwrap();
+            client
+                .write_all(
+                    format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n")
+                        .as_bytes(),
+                )
+                .unwrap();
+            for _ in 0..3 {
+                assert_eq!(
+                    session
+                        .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                        .unwrap()
+                        .state,
+                    ExactRunState::Active
+                );
+                pump_until_waiting(&mut session);
+            }
+            let mut response = Vec::new();
+            client.read_to_end(&mut response).unwrap();
+            assert!(
+                response.starts_with(if path == "/health" {
+                    b"HTTP/1.1 200 OK\r\n"
+                } else {
+                    b"HTTP/1.1 404 Not Found\r\n"
+                }),
+                "{path} has its exact route result"
+            );
+        }
+        assert_eq!(session.identity(), &identity);
+        session.cancel(StopPolicy::Abort).unwrap();
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
     }
 }

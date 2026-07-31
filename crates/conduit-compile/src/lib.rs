@@ -1927,7 +1927,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "display/text",
             "text/uppercase",
             "supervision/supervisor",
-            "net/http/serve-once",
+            "net/http/listen",
             "fs/chunk/literal",
             "fs/read",
             "fs/write",

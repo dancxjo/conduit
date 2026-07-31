@@ -294,7 +294,7 @@ const FORMAT_VALUES_LITERAL_CONFIG: ConfigContract<'static> = ConfigContract {
         identity: ConfigIdentity::Semantic,
     }],
 };
-const HTTP_SERVE_ONCE_CONFIG: ConfigContract<'static> = ConfigContract {
+const HTTP_LISTENER_CONFIG: ConfigContract<'static> = ConfigContract {
     fields: &[
         ConfigFieldContract {
             key: Id("listen"),
@@ -922,14 +922,14 @@ pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[named_text_input("name")],
     outputs: &[named_text_output("addresses")],
 };
-/// Minimal bounded hosted HTTP service boundary.
+/// Minimal bounded hosted HTTP listener boundary.
 ///
 /// Rich HTTP request/response/route contracts remain in `conduit-http`; this
-/// source-facing node binds exactly one finite route and terminates after one
-/// exchange.
-pub const HTTP_SERVE_ONCE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/http/serve-once"),
-    config: HTTP_SERVE_ONCE_CONFIG,
+/// source-facing node owns one bounded listener for its exact run and waits
+/// between independently bounded exchanges until the run is stopped.
+pub const HTTP_LISTENER_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("net/http/listen"),
+    config: HTTP_LISTENER_CONFIG,
     inputs: &[],
     outputs: &[],
 };
@@ -3411,7 +3411,7 @@ impl Default for Registry {
             &WIFI_STATION_CONTRACT,
             &NETWORK_INTERFACE_CONTRACT,
             &DNS_RESOLVER_CONTRACT,
-            &HTTP_SERVE_ONCE_CONTRACT,
+            &HTTP_LISTENER_CONTRACT,
         ];
 
         for &contract in contract_only_list {
@@ -12928,7 +12928,7 @@ mod tests {
     fn contract_only_http_service_is_not_executable() {
         let panel = parse(
             "panel 0\n\
-             node server : net/http/serve-once {\n\
+             node server : net/http/listen {\n\
                listen = \"127.0.0.1:0\"\n\
                method = \"GET\"\n\
                path = \"/health\"\n\

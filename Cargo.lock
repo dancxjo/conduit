@@ -425,6 +425,8 @@ dependencies = [
 name = "conduit-http"
 version = "0.0.0-dev"
 dependencies = [
+ "bumpalo",
+ "conduit-compile",
  "conduit-core",
  "conduit-panel",
  "conduit-runtime",
