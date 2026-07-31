@@ -37,6 +37,8 @@ Options:
           Explicitly install the bounded example file-write provider
       --enable-file-watch
           Explicitly install the bounded example file-watch provider
+      --enable-storage-cache
+          Explicitly install the bounded evictable blob-cache provider
   -h, --help
           Print help
   -V, --version

@@ -29,6 +29,7 @@ _conduct() {
 '(--compile-input)--compatibility-demo[Run the finite batch compatibility demo instead of an exact plan]' \
 '--enable-file-write[Explicitly install the bounded example file-write provider]' \
 '--enable-file-watch[Explicitly install the bounded example file-watch provider]' \
+'--enable-storage-cache[Explicitly install the bounded evictable blob-cache provider]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

@@ -32,6 +32,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --compatibility-demo 'Run the finite batch compatibility demo instead of an exact plan'
             cand --enable-file-write 'Explicitly install the bounded example file-write provider'
             cand --enable-file-watch 'Explicitly install the bounded example file-watch provider'
+            cand --enable-storage-cache 'Explicitly install the bounded evictable blob-cache provider'
             cand -h 'Print help'
             cand --help 'Print help'
             cand -V 'Print version'
