@@ -171,6 +171,7 @@
       "classification": "current-draft-self-description",
       "validator": "current-schema",
       "markers": [
+        "conduit.application-socket-conformance",
         "conduit.conformance/distributed-cord",
         "conduit.conformance.plan-transitions",
         "conduit.conformance.replicated-pools",
