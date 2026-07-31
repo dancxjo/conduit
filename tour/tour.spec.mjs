@@ -694,6 +694,7 @@ test("projects every authored cord failure family with static reduced-motion cue
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   const cases = [
     {
       state: "wrong-direction",
