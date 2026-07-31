@@ -1,22 +1,37 @@
 panel 0
 
-# The graph stays semantic. A host profile may bind exact providers for these
-# nodes only after current observation and conformance checks.
-node message : std/literal {
-    value = "Custom contracts need exact conformance and explicit adapters.\n"
+node wave : conduit.media/wave/literal {
+  fixture = "silence-pcm-s16le-stereo-48000-192"
+  content_identity = "sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d"
+  maximum_output_bytes = 1024
 }
-node emphasize : text/uppercase
+node probe : conduit.media/container/probe {
+  container = "wave"
+  codec = "pcm-s16le"
+  profile = "stereo-48000-192"
+  extradata_identity = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  profile_identity = "sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979"
+  maximum_input_bytes = 1024
+  maximum_output_bytes = 1024
+  maximum_tracks = 1
+  maximum_packets = 1
+  maximum_reorder_depth = 0
+  maximum_retained_bytes = 1024
+  maximum_metadata_entries = 0
+  maximum_work = 4096
+  flush = "exact-terminal"
+}
 node output : display/text
 
-cord message.value -> emphasize.text {
+cord wave.container -> probe.container {
     capacity = 1
-    max_value_bytes = 128
-    max_queued_bytes = 128
+    max_value_bytes = 1024
+    max_queued_bytes = 1024
     low_watermark = 0
     high_watermark = 1
     pressure = block
 }
-cord emphasize.text -> output.text {
+cord probe.summary -> output.text {
     capacity = 1
     max_value_bytes = 128
     max_queued_bytes = 128
