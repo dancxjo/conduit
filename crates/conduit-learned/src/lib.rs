@@ -203,12 +203,21 @@ const TENSOR_INPUT: [PortContract<'static>; 1] = [port(
     TENSOR_TYPE,
     ConnectionCardinality::ExactlyOne,
 )];
-const SUMMARY_OUTPUT: [PortContract<'static>; 1] = [port(
-    "summary",
-    Direction::Output,
-    TEXT_TYPE,
-    ConnectionCardinality::OneOrMore,
-)];
+const SUMMARY_OUTPUT: [PortContract<'static>; 1] = [PortContract {
+    id: Id("summary"),
+    direction: Direction::Output,
+    value_type: TEXT_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::OneOrMore,
+    values: ValueCardinality::ExactlyOne,
+    delivery: Delivery::FiniteBatch,
+    temporal: TemporalContract::Atemporal,
+    terminal: TerminalContract::Finite,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+}];
 
 pub const MODEL_LITERAL_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("learned/model/literal"),

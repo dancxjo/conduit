@@ -1,0 +1,58 @@
+{
+  "schema": "conduit.learned-inference-conformance",
+  "schema_version": 0,
+  "semantic_model_identity": "sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25",
+  "artifact_identity": "sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c",
+  "graph_identity": "sha256:604a0e059d430170f5d94f7c5275e133b1b4b8ee7f3a890e5b43fdc514c53eb9",
+  "input_schema_identity": "sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988",
+  "output_schema_identity": "sha256:9fa614c446b8791315cee5d015192640aaecbfbb385823dde094a37f19f50ae3",
+  "provider_profile_identity": "sha256:feec98311a5b83c749b82f6ccaadcf5557e7791c94c3f247fc1a3cea7b1c78c9",
+  "binding": {
+    "format": "conduit-fixed-linear",
+    "runtime": "conduit.learned/runtime/rust-fixed-linear",
+    "device": "conduit.learned/device/cpu-reference",
+    "resource": "conduit.learned/resource/cpu-reference-0",
+    "dtype": "i16le",
+    "input_shape": "1x4",
+    "output_shape": "1x2",
+    "layout": "row-major",
+    "state_identity": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "determinism": "exact",
+    "tolerance": "none"
+  },
+  "bounds": {
+    "maximum_batch": 1,
+    "maximum_input_bytes": 64,
+    "maximum_output_bytes": 64,
+    "maximum_retained_bytes": 128,
+    "maximum_state_bytes": 0,
+    "maximum_work": 256
+  },
+  "positive": [
+    "purpose-artifact-runtime-device-resource-provider-distinct",
+    "content-addressed-artifact",
+    "exact-fixed-shape-output",
+    "production-executor",
+    "contract-only-unsupported-host",
+    "custom-namespaced-model-type",
+    "cancelled-terminal"
+  ],
+  "negative": [
+    "wrong-artifact",
+    "wrong-hash",
+    "wrong-format",
+    "shape-mismatch",
+    "dtype-mismatch",
+    "layout-mismatch",
+    "batch-overflow",
+    "output-overflow",
+    "state-mismatch",
+    "unsupported-device",
+    "unsupported-opset",
+    "stale-provider",
+    "nondeterministic-tolerance",
+    "cancellation",
+    "sensitivity-denial",
+    "provider-loss"
+  ]
+}

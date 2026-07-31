@@ -260,6 +260,8 @@ fn fixture(id: &str, classification: &str) -> &'static str {
             | "conduit.media/audio/encode"
     ) {
         "conformance/c4/media-codecs.json"
+    } else if id.starts_with("learned/") {
+        "conformance/c4/learned-inference.json"
     } else if id.starts_with("conduit.media/") {
         "conformance/c4/media-values.json"
     } else if classification == "optional-host-boundary" {
@@ -378,6 +380,7 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     let mut registry = Registry::default();
     conduit_media::register_media_contracts(&mut registry);
     conduit_media::register_media_codec_contracts(&mut registry);
+    conduit_learned::register_learned_contracts(&mut registry);
     let standard = conduit_std::STANDARD_CATALOG
         .iter()
         .map(|entry| entry.contract.id.as_str())

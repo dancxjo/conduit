@@ -180,6 +180,7 @@
         "conduit.hazard-closure-fixtures",
         "conduit.http-client-conformance",
         "conduit.http-serving-fixtures",
+        "conduit.learned-inference-conformance",
         "conduit.media-codec-conformance",
         "conduit.media-value-conformance",
         "conduit.performance-baseline",

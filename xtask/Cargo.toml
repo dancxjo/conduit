@@ -21,6 +21,7 @@ sha2 = "0.10.9"
 hex = "0.4.3"
 conduit-compile = { path = "../crates/conduit-compile" }
 conduit-core = { path = "../crates/conduit-core" }
+conduit-learned = { path = "../crates/conduit-learned" }
 conduit-media = { path = "../crates/conduit-media" }
 conduit-runtime = { path = "../crates/conduit-runtime" }
 conduit-std = { path = "../crates/conduit-std" }
