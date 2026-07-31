@@ -7,6 +7,10 @@ const DEFAULT_WINDOW = Object.freeze({
   width: 520,
   height: 470,
 });
+const DEFAULT_CONSOLE_WINDOW = Object.freeze({
+  mode: "floating", shaded: false, hidden: false,
+  x: 24, y: 330, width: 520, height: 220,
+});
 
 const MINIMUM_WIDTH = 320;
 const MINIMUM_HEIGHT = 220;
@@ -51,9 +55,11 @@ export class PatchbayWorkspaceController {
     this.nativeFullscreen = false;
     this.documentId = "default";
     this.state = { ...DEFAULT_WINDOW };
+    this.consoleState = { ...DEFAULT_CONSOLE_WINDOW };
     this.savedFocus = null;
     this.transitionViewport = null;
     this.drag = null;
+    this.consoleDrag = null;
     this.resize = null;
     this.originalSourceParent = sourceCard.parentNode;
     this.originalSourceNext = sourceCard.nextSibling;
@@ -70,10 +76,14 @@ export class PatchbayWorkspaceController {
     this.enhanceEditorWindow();
     this.fullscreenButton.onclick = () => void this.toggleFullscreen();
     this.showEditorButton.onclick = () => this.showEditor();
+    this.showConsoleButton.onclick = () => this.showConsole();
     this.errorCount.onclick = () => this.toggleDiagnostics();
     this.shadeButton.onclick = () => this.toggleShade();
     this.dockButton.onclick = () => this.toggleDock();
     this.hideButton.onclick = () => this.hideEditor();
+    this.consoleShadeButton.onclick = () => this.toggleConsoleShade();
+    this.consoleDockButton.onclick = () => this.toggleConsoleDock();
+    this.consoleHideButton.onclick = () => this.hideConsole();
     this.resizeHandle.addEventListener("pointerdown", (event) =>
       this.startResize(event)
     );
@@ -83,6 +93,7 @@ export class PatchbayWorkspaceController {
     this.editorHeader.addEventListener("pointerdown", (event) =>
       this.startDrag(event)
     );
+    this.consoleHeader?.addEventListener("pointerdown", (event) => this.startConsoleDrag(event));
     document.addEventListener("fullscreenchange", () =>
       this.handleFullscreenChange()
     );
@@ -128,6 +139,8 @@ export class PatchbayWorkspaceController {
     );
     this.showEditorButton.setAttribute("aria-keyshortcuts", "Alt+Shift+E");
     this.showEditorButton.hidden = true;
+    this.showConsoleButton = button("workspace-show-console", "▤ Show console", "Show the execution result console");
+    this.showConsoleButton.hidden = true;
     this.errorCount = button(
       "workspace-error-count",
       "0 errors",
@@ -144,6 +157,7 @@ export class PatchbayWorkspaceController {
     this.toolbar.append(
       this.fullscreenButton,
       this.showEditorButton,
+      this.showConsoleButton,
       this.errorCount,
       this.workspaceStatus,
     );
@@ -201,12 +215,27 @@ export class PatchbayWorkspaceController {
       "ArrowUp ArrowDown ArrowLeft ArrowRight",
     );
     this.sourceCard.append(this.resizeHandle);
+    if (!this.consoleCard) return;
+    this.consoleCard.id = "patchbay-console-window";
+    this.consoleCard.setAttribute("role", "region");
+    this.consoleHeader = this.consoleCard.querySelector(".card-header");
+    this.consoleHeader.classList.add("patchbay-console-titlebar");
+    this.consoleHeader.tabIndex = 0;
+    this.consoleHeader.setAttribute("aria-label", "Execution result console title bar");
+    this.consoleControls = document.createElement("div");
+    this.consoleControls.className = "patchbay-console-window-controls";
+    this.consoleShadeButton = button("workspace-shade-console", "▴ Shade", "Shade the execution result console");
+    this.consoleDockButton = button("workspace-dock-console", "⇥ Dock", "Dock the execution result console");
+    this.consoleHideButton = button("workspace-hide-console", "× Close", "Close the execution result console");
+    this.consoleControls.append(this.consoleShadeButton, this.consoleDockButton, this.consoleHideButton);
+    this.consoleHeader.append(this.consoleControls);
   }
 
   setDocument(documentId) {
     if (!documentId) return;
     this.documentId = documentId;
     this.state = this.loadState();
+    this.consoleState = this.loadConsoleState();
     if (this.active) {
       this.applyWindowState();
       this.recoverBounds();
@@ -236,6 +265,18 @@ export class PatchbayWorkspaceController {
       y: boundedNumber(stored.y, DEFAULT_WINDOW.y, 0, 100_000),
       width: boundedNumber(stored.width, DEFAULT_WINDOW.width, MINIMUM_WIDTH, 100_000),
       height: boundedNumber(stored.height, DEFAULT_WINDOW.height, MINIMUM_HEIGHT, 100_000),
+    };
+  }
+
+  loadConsoleState() {
+    let stored;
+    try { stored = JSON.parse(sessionStorage.getItem(`${this.storageKey()}/console`) || "null"); } catch { stored = null; }
+    if (!stored || typeof stored !== "object" || Array.isArray(stored)) return { ...DEFAULT_CONSOLE_WINDOW };
+    return { ...DEFAULT_CONSOLE_WINDOW, ...stored,
+      mode: stored.mode === "docked" ? "docked" : "floating",
+      shaded: stored.shaded === true, hidden: stored.hidden === true,
+      width: boundedNumber(stored.width, DEFAULT_CONSOLE_WINDOW.width, MINIMUM_WIDTH, 100_000),
+      height: boundedNumber(stored.height, DEFAULT_CONSOLE_WINDOW.height, MINIMUM_HEIGHT, 100_000),
     };
   }
 
@@ -338,11 +379,13 @@ export class PatchbayWorkspaceController {
     if (this.consoleCard) {
       this.canvasCard.append(this.consoleCard);
       this.consoleCard.classList.add("patchbay-workspace-console");
-      this.consoleCard.hidden = !this.diagnosticsOpen;
+      this.consoleCard.hidden = !this.diagnosticsOpen && this.consoleState.hidden;
     }
     this.canvasCard.append(this.sourceCard);
+    if (this.consoleCard) this.consoleCard.setAttribute("role", "dialog");
     this.sourceCard.setAttribute("role", "dialog");
     this.applyWindowState();
+    this.applyConsoleWindowState();
     this.recoverBounds();
     this.restoreViewport();
     this.fullscreenButton.focus({ preventScroll: true });
@@ -395,6 +438,7 @@ export class PatchbayWorkspaceController {
       "workspace-dragging",
       "workspace-resizing",
     );
+    this.consoleCard?.classList.remove("workspace-floating", "workspace-docked", "workspace-shaded", "workspace-hidden", "workspace-dragging");
     this.sourceCard.style.removeProperty("--workspace-window-x");
     this.sourceCard.style.removeProperty("--workspace-window-y");
     this.sourceCard.style.removeProperty("--workspace-window-width");
@@ -418,7 +462,9 @@ export class PatchbayWorkspaceController {
         this.originalConsoleNext,
       );
     }
+    this.showConsoleButton.hidden = true;
     this.sourceCard.setAttribute("role", "region");
+    this.consoleCard?.setAttribute("role", "region");
     this.restoreViewport();
     const focusTarget = this.savedFocus?.isConnected
       ? this.savedFocus
@@ -480,6 +526,40 @@ export class PatchbayWorkspaceController {
     this.updateStatus();
   }
 
+  applyConsoleWindowState() {
+    if (!this.active || !this.consoleCard) return;
+    const state = this.consoleState;
+    for (const mode of ["floating", "docked", "shaded", "hidden"]) this.consoleCard.classList.remove(`workspace-${mode}`);
+    this.consoleCard.classList.add(`workspace-${state.mode}`);
+    if (state.shaded) this.consoleCard.classList.add("workspace-shaded");
+    if (state.hidden) this.consoleCard.classList.add("workspace-hidden");
+    this.consoleCard.style.setProperty("--workspace-window-x", `${state.x}px`);
+    this.consoleCard.style.setProperty("--workspace-window-y", `${state.y}px`);
+    this.consoleCard.style.setProperty("--workspace-window-width", `${state.width}px`);
+    this.consoleCard.style.setProperty("--workspace-window-height", `${state.height}px`);
+    this.consoleShadeButton.textContent = state.shaded ? "▾ Restore" : "▴ Shade";
+    this.consoleShadeButton.setAttribute("aria-expanded", String(!state.shaded));
+    this.consoleDockButton.textContent = state.mode === "docked" ? "↗ Float" : "⇥ Dock";
+    this.consoleDockButton.setAttribute("aria-pressed", String(state.mode === "docked"));
+    this.showConsoleButton.hidden = !state.hidden;
+  }
+
+  persistConsoleState() { sessionStorage.setItem(`${this.storageKey()}/console`, JSON.stringify(this.consoleState)); }
+  toggleConsoleShade() { if (!this.active) return; this.consoleState.shaded = !this.consoleState.shaded; this.persistConsoleState(); this.applyConsoleWindowState(); }
+  toggleConsoleDock() { if (!this.active) return; this.consoleState.mode = this.consoleState.mode === "docked" ? "floating" : "docked"; this.persistConsoleState(); this.applyConsoleWindowState(); }
+  hideConsole() { if (!this.active) return; this.consoleState.hidden = true; this.diagnosticsOpen = false; this.consoleCard.hidden = false; this.persistConsoleState(); this.applyConsoleWindowState(); this.errorCount.setAttribute("aria-expanded", "false"); this.showConsoleButton.focus({ preventScroll: true }); }
+  showConsole() { if (!this.active) return; this.consoleState.hidden = false; this.diagnosticsOpen = true; this.consoleCard.hidden = false; this.persistConsoleState(); this.applyConsoleWindowState(); this.consoleHideButton.focus({ preventScroll: true }); }
+
+  startConsoleDrag(event) {
+    if (!this.active || this.consoleState.mode !== "floating" || event.button !== 0 || event.target.closest("button")) return;
+    event.preventDefault(); this.consoleHeader.setPointerCapture(event.pointerId);
+    this.consoleDrag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, x: this.consoleState.x, y: this.consoleState.y };
+    this.consoleCard.classList.add("workspace-dragging");
+    const move = (e) => { if (this.consoleDrag?.pointerId === e.pointerId) { this.consoleState.x = this.consoleDrag.x + e.clientX - this.consoleDrag.startX; this.consoleState.y = this.consoleDrag.y + e.clientY - this.consoleDrag.startY; this.consoleCard.style.setProperty("--workspace-window-x", `${this.consoleState.x}px`); this.consoleCard.style.setProperty("--workspace-window-y", `${this.consoleState.y}px`); } };
+    const finish = (e) => { if (e.pointerId !== this.consoleDrag?.pointerId) return; this.consoleHeader.removeEventListener("pointermove", move); this.consoleHeader.removeEventListener("pointerup", finish); this.consoleDrag = null; this.consoleCard.classList.remove("workspace-dragging"); this.persistConsoleState(); };
+    this.consoleHeader.addEventListener("pointermove", move); this.consoleHeader.addEventListener("pointerup", finish); this.consoleHeader.addEventListener("pointercancel", finish);
+  }
+
   toggleShade() {
     if (!this.active) return;
     const wasShaded = this.state.shaded;
@@ -520,6 +600,9 @@ export class PatchbayWorkspaceController {
   toggleDiagnostics() {
     if (!this.active || !this.consoleCard) return;
     this.diagnosticsOpen = !this.diagnosticsOpen;
+    this.consoleState.hidden = !this.diagnosticsOpen;
+    this.persistConsoleState();
+    this.applyConsoleWindowState();
     this.consoleCard.hidden = !this.diagnosticsOpen;
     this.errorCount.setAttribute("aria-expanded", String(this.diagnosticsOpen));
     if (this.diagnosticsOpen) {

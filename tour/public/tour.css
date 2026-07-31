@@ -805,6 +805,43 @@ textarea#source::placeholder {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
 }
 
+.patchbay-workspace-active > .patchbay-workspace-console {
+  left: 0;
+  top: 0;
+  bottom: auto;
+  width: var(--workspace-window-width, min(46rem, calc(100vw - 1.5rem)));
+  height: var(--workspace-window-height, 13rem);
+  max-height: none;
+  overflow: hidden;
+  transition: width var(--patchbay-workspace-snap) ease-out,
+    height var(--patchbay-workspace-shade) ease-out,
+    transform var(--patchbay-workspace-snap) ease-out;
+}
+.patchbay-workspace-active > .patchbay-workspace-console.workspace-floating {
+  transform: translate(var(--workspace-window-x), var(--workspace-window-y));
+}
+.patchbay-workspace-active > .patchbay-workspace-console.workspace-docked {
+  top: auto;
+  right: 0.75rem;
+  left: auto;
+  bottom: 0.75rem;
+  width: min(46rem, 42vw);
+  height: 13rem;
+  transform: none;
+}
+.patchbay-workspace-active > .patchbay-workspace-console.workspace-shaded {
+  height: 3.35rem;
+  min-height: 3.35rem;
+}
+.patchbay-workspace-active > .patchbay-workspace-console.workspace-hidden { display: none; }
+.patchbay-console-titlebar { min-height: 2.35rem; gap: 0.55rem; cursor: grab; touch-action: none; }
+.workspace-dragging .patchbay-console-titlebar { cursor: grabbing; }
+.patchbay-console-window-controls { display: flex; flex: none; gap: 0.3rem; margin-left: auto; }
+.patchbay-console-window-controls .btn { min-height: 1.75rem; padding: 0.15rem 0.45rem; font-size: 0.7rem; }
+.patchbay-workspace-active > .patchbay-workspace-console.workspace-shaded > :not(.card-header) {
+  display: none;
+}
+
 @keyframes patchbay-workspace-enter {
   from {
     opacity: 0.92;
