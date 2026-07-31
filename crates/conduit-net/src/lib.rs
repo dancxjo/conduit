@@ -6,6 +6,13 @@
 //! authority. A Pico W implementation is one optional witness of these
 //! contracts, never their semantic identity.
 
+mod runtime_nodes;
+
+pub use runtime_nodes::{
+    DHCP_SERVER_CONTRACT, DNS_SD_CONTRACT, NETWORK_CONTRACTS, REACHABILITY_CONTRACT,
+    WIFI_AP_CONTRACT, register_deterministic_network_fixture_providers, register_network_contracts,
+};
+
 pub const MAXIMUM_CLIENTS: usize = 8;
 pub const MAXIMUM_NAME_BYTES: usize = 63;
 pub const MAXIMUM_RECORDS: usize = 8;

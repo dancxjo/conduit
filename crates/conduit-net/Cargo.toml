@@ -7,5 +7,10 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-panel = { path = "../conduit-panel" }
+conduit-runtime = { path = "../conduit-runtime" }
+
 [lints]
 workspace = true
