@@ -176,7 +176,14 @@ fn validate(
 
     for entry in &runnability.entries {
         if entry.state == "runnable"
-            && !["canonical-run", "canonical-http-loopback"].contains(&entry.proof.as_str())
+            && ![
+                "canonical-run",
+                "canonical-http-loopback",
+                "canonical-file-read",
+                "canonical-file-write",
+                "canonical-file-watch",
+            ]
+            .contains(&entry.proof.as_str())
         {
             return Err(format!(
                 "runnable example `{}` has no executable proof",
