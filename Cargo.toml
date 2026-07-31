@@ -17,6 +17,7 @@ members = [
     "crates/conduit-patchbay",
     "crates/conduit-process",
     "crates/conduit-socket",
+    "crates/conduit-spatial",
     "crates/conduit-runtime",
     "crates/conduit-std",
     "crates/conduit-zenoh",

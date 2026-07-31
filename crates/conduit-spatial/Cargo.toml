@@ -1,0 +1,19 @@
+[package]
+name = "conduit-spatial"
+description = "Exact bounded spatial values and deterministic transforms for Conduit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-panel = { path = "../conduit-panel" }
+conduit-runtime = { path = "../conduit-runtime" }
+
+[dev-dependencies]
+serde_json = "1.0.149"
+
+[lints]
+workspace = true
