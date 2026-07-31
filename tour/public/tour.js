@@ -279,7 +279,7 @@ if (cyContainer) {
 
 function updateCytoscapeGraph() {
   if (patchbayRenderer && patchbayView) {
-    patchbayRenderer.setViewModel(patchbayView, current.id);
+    patchbayRenderer.setViewModel(patchbayView, current.id, topologyView);
   }
   renderStructuredTopology();
 }
@@ -374,7 +374,7 @@ function openPatchbaySession() {
 
 function autoArrangePatchbay() {
   if (!patchbayView) return false;
-  const operations = autoArrangeOperations(patchbayView);
+  const operations = autoArrangeOperations(patchbayView, topologyView);
   for (let offset = 0; offset < operations.length;
     offset += MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION) {
     const arranged = applyPatchbayOperations(
@@ -816,6 +816,10 @@ function selectCord(cordId) {
   const projection = (patchbayView?.topology?.cords || [])
     .find((candidate) => candidate.id === cordId);
   if (!selectSourceRange("cord", cordId, projection?.source_range)) return;
+  source.setSourceRelatedRanges?.([
+    projection.from_port_range,
+    projection.to_port_range,
+  ]);
   selectedNode = null;
   selectedCord = cordId;
   moveLeftBtn.disabled = true;
@@ -880,6 +884,7 @@ function selectSourceRange(kind, id, range) {
       `CND-PBY-STALE: ${kind} selection was rejected because the source projection is stale.`;
     return false;
   }
+  source.setSourceRelatedRanges?.([]);
   source.setSourceHighlightRange?.(range.start_utf16, range.end_utf16);
   source.setSelectionRange(range.start_utf16, range.end_utf16);
   const line = source.value.slice(0, range.start_utf16).split("\n").length - 1;
@@ -897,6 +902,8 @@ function clearTopologySelection() {
   moveLeftBtn.disabled = true;
   moveRightBtn.disabled = true;
   source.setSourceHighlightRange?.(null, null);
+  source.setSourceRelatedRanges?.([]);
+  patchbayRenderer?.highlightCordEndpoints(null);
 }
 
 function check() {
@@ -1000,10 +1007,12 @@ if (arrangeButton) {
 }
 document.querySelector("#logical-view").onclick = () => {
   topologyView = "logical";
+  updateCytoscapeGraph();
   renderTopology();
 };
 document.querySelector("#expanded-view").onclick = () => {
   topologyView = "expanded";
+  updateCytoscapeGraph();
   renderTopology();
 };
 

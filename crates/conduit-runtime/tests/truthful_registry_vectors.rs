@@ -199,7 +199,16 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
 fn hosted_primitive_registry_couples_callbacks_to_installed_artifacts() {
     let registry = Registry::hosted_primitives();
     let installed = Registry::installed_hosted_providers();
-    assert_eq!(installed.len(), 19);
+    let registered = registry.installed_providers();
+    let installed_identities = installed
+        .iter()
+        .map(|provider| (provider.contract.id.as_str(), provider.manifest.id.as_str()))
+        .collect::<std::collections::BTreeSet<_>>();
+    let registered_identities = registered
+        .iter()
+        .map(|provider| (provider.contract.id.as_str(), provider.manifest.id.as_str()))
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(registered_identities, installed_identities);
     assert!(
         installed
             .iter()

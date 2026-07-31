@@ -1,5 +1,5 @@
-const NODE_WIDTH = 280;
-const LAYER_GAP = 80;
+const NODE_WIDTH = 350;
+const LAYER_GAP = 260;
 const TOP_MARGIN = 40;
 const LEFT_MARGIN = 32;
 const NODE_GAP = 56;
@@ -12,8 +12,26 @@ function compareIds(left, right) {
 
 function nodeHeight(node) {
   const configRows = Object.keys(node.config || {}).length;
-  const portRows = Math.max(node.inputs?.length || 0, node.outputs?.length || 0);
-  return Math.max(160, 132 + Math.max(configRows * 34, portRows * 36));
+  const portRows = (node.inputs?.length || 0) + (node.outputs?.length || 0);
+  const statusRows = [
+    node.availability,
+    node.placement,
+    node.activity,
+  ].filter(Boolean).length;
+  return Math.max(
+    118,
+    76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0),
+  );
+}
+
+function endpointNode(edge, side, view) {
+  if (view !== "logical") return edge[`${side}_node`];
+  const path = edge[`${side}_port_path`];
+  const members = typeof path === "string" ? path.split("/") : [];
+  const portIndex = members.lastIndexOf("port");
+  return members[0] === "root" && portIndex >= 2
+    ? members.slice(1, portIndex).join("/")
+    : null;
 }
 
 function stableNodeIds(nodes) {
@@ -71,13 +89,15 @@ function stronglyConnectedComponents(nodeIds, outgoing) {
   return components;
 }
 
-function componentLayout(nodes, cords) {
+function componentLayout(nodes, cords, view) {
   const nodeIds = stableNodeIds(nodes);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const outgoing = new Map(nodeIds.map((id) => [id, new Set()]));
   for (const cord of cords) {
-    if (outgoing.has(cord.from_node) && outgoing.has(cord.to_node)) {
-      outgoing.get(cord.from_node).add(cord.to_node);
+    const fromNode = endpointNode(cord, "from", view);
+    const toNode = endpointNode(cord, "to", view);
+    if (outgoing.has(fromNode) && outgoing.has(toNode)) {
+      outgoing.get(fromNode).add(toNode);
     }
   }
 
@@ -197,10 +217,12 @@ function componentLayout(nodes, cords) {
  * projected topology. Cycles are condensed before layering, so feedback does
  * not make the arrangement depend on traversal order.
  */
-export function autoArrangeOperations(viewModel) {
-  const nodes = viewModel?.topology?.expanded_nodes || [];
+export function autoArrangeOperations(viewModel, view = "logical") {
+  const nodes = view === "logical"
+    ? viewModel?.topology?.logical_nodes || []
+    : viewModel?.topology?.expanded_nodes || [];
   const cords = viewModel?.topology?.cords || [];
-  const positions = componentLayout(nodes, cords);
+  const positions = componentLayout(nodes, cords, view);
   const maximumNodes = Math.min(
     viewModel?.bounds?.maximum_nodes || positions.size,
     positions.size,

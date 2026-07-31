@@ -1,11 +1,60 @@
 /**
- * Conduit Patchbay Rich Equipment Faceplate Renderer (#90, #99, #91)
+ * Conduit Patchbay UML-style component faceplates.
  *
- * Implements standard customizable equipment faceplate DOM components
- * for ReactFlow projection.
+ * Semantic ports are rendered as declared member rows. React Flow handles live
+ * inside those rows so cord geometry follows the interface declaration rather
+ * than an arbitrary point on the node shell.
  */
 
 const e = window.React.createElement;
+
+function PortRow({ nodeId, port, direction, isPublic, onPortSelect }) {
+  const receiving = direction === "input";
+  const presentationDirection = receiving ? "receiving" : "outgoing";
+  const handle = e(window.ReactFlow.Handle, {
+    id: port.id,
+    type: receiving ? "target" : "source",
+    position: receiving
+      ? window.ReactFlow.Position.Left
+      : window.ReactFlow.Position.Right,
+    className: `jack-handle ${isPublic ? "public-jack-handle" : ""}`,
+    isConnectable: false,
+    "aria-label": port.accessible_label,
+    "data-semantic-path": port.semantic_path,
+  });
+
+  return e("div", {
+    className: `faceplate-member-row faceplate-port-row ${presentationDirection}-jack`,
+    role: "group",
+    "aria-label": port.accessible_label,
+    "data-semantic-path": port.semantic_path,
+    "data-port-direction": presentationDirection,
+  },
+    receiving && e("span", { className: "faceplate-jack-cell receiving-jack-cell" }, handle),
+    e("button", {
+      type: "button",
+      className: `jack-label ${presentationDirection}-port-label nodrag`,
+      title: `${port.accessible_label}; type ${port.type_id}`,
+      "aria-label": `${port.accessible_label}; type ${port.type_id}`,
+      onClick: (event) => {
+        event.stopPropagation();
+        onPortSelect?.(nodeId, port);
+      },
+    }, port.display_label),
+    e("code", { className: "faceplate-member-type" }, port.type_id),
+    e("span", {
+      className: "faceplate-member-state",
+      title: `${port.delivery}; ${port.connections}`,
+    },
+      e("span", {
+        className: `jack-status-dot ${port.connected ? "connected" : ""}`,
+        "aria-hidden": "true",
+      }),
+      port.connected ? "linked" : "open",
+    ),
+    !receiving && e("span", { className: "faceplate-jack-cell outgoing-jack-cell" }, handle),
+  );
+}
 
 export function FaceplateNodeComponent({ data, id }) {
   const {
@@ -27,177 +76,128 @@ export function FaceplateNodeComponent({ data, id }) {
 
   const [expanded, setExpanded] = window.React.useState(true);
   const [configValues, setConfigValues] = window.React.useState(config);
+  const updateNodeInternals = window.ReactFlow.useUpdateNodeInternals();
 
   window.React.useEffect(() => {
     setConfigValues(config);
   }, [config]);
 
-  const handleInputChange = (key, projection, val) => {
+  window.React.useEffect(() => {
+    const frame = window.requestAnimationFrame(() => updateNodeInternals(id));
+    return () => window.cancelAnimationFrame(frame);
+  }, [expanded, id, updateNodeInternals]);
+
+  const handleInputChange = (key, projection, value) => {
     const next = {
       ...configValues,
-      [key]: { ...projection, display_value: val }
+      [key]: { ...projection, display_value: value },
     };
     setConfigValues(next);
-    if (onConfigChange) {
-      onConfigChange(id, key, val, projection.kind);
-    }
+    onConfigChange?.(id, key, value, projection.kind);
   };
 
-  const statusColor = status === "running" ? "#22c55e" : status === "error" ? "#ef4444" : "#94a3b8";
-
-  // ReactFlow owns port geometry. Type and connection facts come from Rust.
-  const inputJacks = inputs.map((port, idx) => {
-    const topOffset = 60 + idx * 36;
-
-    return e("div", {
-      key: port.semantic_path,
-      className: "faceplate-jack receiving-jack",
-      style: { top: `${topOffset}px` },
-      role: "group",
-      "aria-label": port.accessible_label,
-      "data-semantic-path": port.semantic_path,
-      "data-port-direction": "receiving",
+  const configRows = Object.entries(configValues).map(([key, projection]) =>
+    e("div", {
+      key,
+      className: "faceplate-member-row faceplate-config-row",
+      "data-config-key": key,
     },
-      e(window.ReactFlow.Handle, {
-        id: port.id,
-        type: "target",
-        position: window.ReactFlow.Position.Left,
-        className: "jack-handle",
-        isConnectable: false,
-        "aria-label": port.accessible_label,
-        "data-semantic-path": port.semantic_path,
-      }),
-      e("button", {
-        type: "button",
-        className: "jack-label receiving-port-label nodrag",
-        title: `${port.accessible_label}; type ${port.type_id}`,
-        "aria-label": `${port.accessible_label}; type ${port.type_id}`,
-        onClick: (event) => {
-          event.stopPropagation();
-          onPortSelect?.(id, port);
-        },
-      },
-        e("span", {
-          className: "port-display-label",
-          "aria-hidden": "true",
-        }, port.display_label),
-        e("span", {
-          className: "jack-status-dot",
-          style: { background: port.connected ? "#38bdf8" : "#475569" },
-          "aria-hidden": "true",
-        })
-      )
-    );
-  });
-
-  // Build output handles (right)
-  const outputJacks = outputs.map((port, idx) => {
-    const topOffset = 60 + idx * 36;
-
-    return e("div", {
-      key: port.semantic_path,
-      className: "faceplate-jack outgoing-jack",
-      style: { top: `${topOffset}px` },
-      role: "group",
-      "aria-label": port.accessible_label,
-      "data-semantic-path": port.semantic_path,
-      "data-port-direction": "outgoing",
-    },
-      e(window.ReactFlow.Handle, {
-        id: port.id,
-        type: "source",
-        position: window.ReactFlow.Position.Right,
-        className: "jack-handle",
-        isConnectable: false,
-        "aria-label": port.accessible_label,
-        "data-semantic-path": port.semantic_path,
-      }),
-      e("button", {
-        type: "button",
-        className: "jack-label outgoing-port-label nodrag",
-        title: `${port.accessible_label}; type ${port.type_id}`,
-        "aria-label": `${port.accessible_label}; type ${port.type_id}`,
-        onClick: (event) => {
-          event.stopPropagation();
-          onPortSelect?.(id, port);
-        },
-      },
-        e("span", {
-          className: "port-display-label",
-          "aria-hidden": "true",
-        }, port.display_label),
-        e("span", {
-          className: "jack-status-dot",
-          style: { background: port.connected ? "#38bdf8" : "#475569" },
-          "aria-hidden": "true",
-        })
-      )
-    );
-  });
-
-  // Config controls
-  const configFields = Object.keys(configValues).map((key) => {
-    const projection = configValues[key];
-    return e("div", { key, className: "faceplate-control-row" },
-      e("label", { className: "control-label" }, key),
+      e("label", { className: "control-label", htmlFor: `${id}-config-${key}` }, key),
       e("input", {
+        id: `${id}-config-${key}`,
         type: "text",
         className: "control-input nodrag",
         value: projection.display_value,
         readOnly: !projection.editable,
-        onMouseDown: (evt) => evt.stopPropagation(),
-        onChange: (evt) => handleInputChange(key, projection, evt.target.value)
-      })
-    );
-  });
+        onMouseDown: (event) => event.stopPropagation(),
+        onChange: (event) =>
+          handleInputChange(key, projection, event.target.value),
+      }),
+      e("code", { className: "faceplate-member-type" }, projection.kind),
+      e("span", { className: "faceplate-member-state" },
+        projection.editable ? "config" : "fixed",
+      ),
+    )
+  );
+
+  const portRows = [
+    ...inputs.map((port) => e(PortRow, {
+      key: port.semantic_path,
+      nodeId: id,
+      port,
+      direction: "input",
+      isPublic: isComposite,
+      onPortSelect,
+    })),
+    ...outputs.map((port) => e(PortRow, {
+      key: port.semantic_path,
+      nodeId: id,
+      port,
+      direction: "output",
+      isPublic: isComposite,
+      onPortSelect,
+    })),
+  ];
+
+  const statusFacts = [
+    availability && {
+      label: "provider",
+      value: availability.availability_state,
+      title: availability.reason_code,
+    },
+    placement && { label: "placement", value: placement },
+    activity && { label: "execution", value: activity },
+    !activity && status === "error" && { label: "execution", value: "error" },
+  ].filter(Boolean);
 
   return e("div", {
-      className: `conduit-faceplate-card ${status} ${isComposite ? "composite-faceplate" : ""} ${isSelected ? "selected-faceplate" : ""}`,
-      tabIndex: 0,
-      role: "region",
-      "aria-label": `Equipment faceplate ${title}`
-    },
-    // Header
-    e("div", { className: "faceplate-header" },
-      e("div", { className: "faceplate-title-group" },
-        e("span", { className: "status-led", style: { background: statusColor }, title: `Status: ${status}` }),
-        e("strong", { className: "node-title" }, title)
-      ),
+    className: [
+      "conduit-faceplate-card",
+      status,
+      isComposite ? "composite-faceplate" : "",
+      isSelected ? "selected-faceplate" : "",
+    ].filter(Boolean).join(" "),
+    tabIndex: 0,
+    role: "region",
+    "aria-label": `Component faceplate ${title}`,
+  },
+    e("div", { className: "faceplate-header faceplate-compartment" },
+      e("strong", { className: "node-title" }, title),
       e("div", { className: "faceplate-header-actions" },
-        isComposite && e("span", { className: "badge composite-badge" }, "Panel Surface"),
+        isComposite && e("span", { className: "badge composite-badge" }, "public"),
         e("button", {
           className: "btn-icon nodrag",
           title: expanded ? "Collapse Faceplate" : "Expand Faceplate",
-          onClick: () => setExpanded(!expanded)
-        }, expanded ? "▲" : "▼")
-      )
-    ),
-    // Subheader
-    e("div", { className: "faceplate-subhead" },
-      e("code", { className: "kind-tag" }, kind),
-      placement && e("span", { className: "badge placement-tag" }, placement),
-      availability && e("span", {
-        className: "badge availability-tag",
-        title: availability.reason_code,
-      }, availability.availability_state)
-    ),
-    // Body
-    expanded && e("div", { className: "faceplate-body" },
-      configFields,
-      activity && e("div", { className: "faceplate-meter" },
-        e("span", { className: "meter-label" }, "Activity:"),
-        e("span", { className: "sparkline" }, activity)
+          "aria-expanded": String(expanded),
+          onClick: () => setExpanded(!expanded),
+        }, expanded ? "−" : "+"),
       ),
-      // Composite panel inspection action
-      isComposite && e("div", { className: "composite-action-row" },
-        e("button", {
-          className: "btn small secondary nodrag",
-          onClick: () => onOpenNested && onOpenNested(kind)
-        }, "🔍 Inspect Nested Surface")
-      )
     ),
-    // Jacks
-    inputJacks,
-    outputJacks
+    e("div", { className: "faceplate-type-compartment faceplate-compartment" },
+      e("code", { className: "kind-tag" }, kind),
+    ),
+    expanded && configRows.length > 0 && e("div", {
+      className: "faceplate-members-compartment faceplate-config-compartment",
+      "aria-label": "Configuration values",
+    }, configRows),
+    e("div", {
+      className: "faceplate-members-compartment faceplate-port-compartment",
+      "aria-label": "Declared ports",
+    }, portRows),
+    expanded && statusFacts.length > 0 && e("div", {
+      className: "faceplate-status-compartment faceplate-compartment",
+      "aria-label": "Component status",
+    },
+      ...statusFacts.map((fact) =>
+        e("div", { key: `${fact.label}-${fact.value}`, className: "faceplate-status-row" },
+          e("span", { className: "faceplate-status-label" }, fact.label),
+          e("span", { className: "badge availability-tag", title: fact.title }, fact.value),
+        )
+      ),
+      isComposite && e("button", {
+        className: "btn small secondary nodrag faceplate-inspect-action",
+        onClick: () => onOpenNested?.(kind),
+      }, "Inspect surface"),
+    ),
   );
 }

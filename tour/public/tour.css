@@ -1047,14 +1047,13 @@ path.patchbay-smart-cord.compatibility-incompatible {
 }
 
 .conduit-faceplate-card {
-  min-width: 220px;
-  max-width: 320px;
+  width: 350px;
   background: #0f172a;
   border: 2px solid #334155;
-  border-radius: 10px;
+  border-radius: 7px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  padding: 0.75rem;
-  font-family: var(--font-main);
+  overflow: visible;
+  font-family: var(--font-mono);
   color: var(--text-primary);
   position: relative;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1069,7 +1068,7 @@ path.patchbay-smart-cord.compatibility-incompatible {
 
 .conduit-faceplate-card.composite-faceplate {
   border-color: #a855f7;
-  background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+  background: #11152d;
 }
 
 .conduit-faceplate-card.selected-faceplate {
@@ -1077,32 +1076,28 @@ path.patchbay-smart-cord.compatibility-incompatible {
   box-shadow: 0 0 0 3px var(--accent-emerald-glow), 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+.faceplate-compartment + .faceplate-compartment,
+.faceplate-compartment + .faceplate-members-compartment,
+.faceplate-members-compartment + .faceplate-compartment,
+.faceplate-members-compartment + .faceplate-members-compartment {
+  border-top: 1px solid #475569;
+}
+
 .faceplate-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--line-color);
-  padding-bottom: 0.4rem;
-  margin-bottom: 0.4rem;
-}
-
-.faceplate-title-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.status-led {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
-  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0.42rem 0.65rem;
 }
 
 .node-title {
-  font-size: 0.95rem;
-  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-main);
+  font-size: 0.92rem;
+  font-weight: 700;
   color: #f8fafc;
 }
 
@@ -1113,13 +1108,18 @@ path.patchbay-smart-cord.compatibility-incompatible {
 }
 
 .btn-icon {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  width: 1.45rem;
+  height: 1.45rem;
+  display: grid;
+  place-items: center;
+  background: #172033;
+  border: 1px solid #475569;
+  color: #cbd5e1;
   cursor: pointer;
-  padding: 2px 4px;
-  font-size: 0.75rem;
-  border-radius: 4px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 3px;
 }
 
 .btn-icon:hover {
@@ -1127,66 +1127,83 @@ path.patchbay-smart-cord.compatibility-incompatible {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.faceplate-subhead {
+.faceplate-type-compartment {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  min-height: 34px;
+  padding: 0.38rem 0.65rem;
+  background: rgba(15, 23, 42, 0.7);
 }
 
 .kind-tag {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: #38bdf8;
-}
-
-.placement-tag {
-  font-size: 0.65rem;
-  padding: 1px 6px;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  color: #38bdf8;
-  border-radius: 4px;
+  font-size: 0.76rem;
+  color: #7dd3fc;
 }
 
 .composite-badge {
-  background: rgba(168, 85, 247, 0.2);
+  background: rgba(168, 85, 247, 0.12);
   border: 1px solid #a855f7;
   color: #c084fc;
-  font-size: 0.65rem;
-  padding: 1px 6px;
-  border-radius: 4px;
+  font-size: 0.58rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.faceplate-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+.faceplate-members-compartment {
+  display: grid;
 }
 
-.faceplate-control-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+.faceplate-member-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(70px, 0.85fr) minmax(86px, 1fr) 58px 26px;
+  align-items: center;
+  min-height: 38px;
+  border-top: 1px solid rgba(71, 85, 105, 0.55);
+  font-size: 0.7rem;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.faceplate-member-row:first-child {
+  border-top: 0;
+}
+
+.faceplate-config-row {
+  grid-template-columns: minmax(66px, 0.7fr) minmax(112px, 1.3fr) 68px 52px;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.faceplate-port-row.selected-cord-endpoint {
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.72);
+}
+
+.faceplate-port-row.selected-cord-endpoint .jack-label {
+  color: #f8fafc;
+  font-weight: 800;
 }
 
 .control-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
+  overflow: hidden;
+  color: #cbd5e1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .control-input {
   background: #1e293b;
   border: 1px solid var(--line-color);
-  border-radius: 4px;
-  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  padding: 0.24rem 0.36rem;
   color: #f1f5f9;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-family: var(--font-mono);
   width: 100%;
+  min-width: 0;
 }
 
 .control-input:focus {
@@ -1194,80 +1211,73 @@ path.patchbay-smart-cord.compatibility-incompatible {
   outline: none;
 }
 
-.faceplate-meter {
-  display: flex;
+.faceplate-jack-cell {
+  position: relative;
+  align-self: stretch;
+  display: grid;
   align-items: center;
-  justify-content: space-between;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
 }
 
-.meter-label {
-  color: var(--text-muted);
+.receiving-jack-cell {
+  grid-column: 1;
 }
 
-.sparkline {
-  color: var(--accent-emerald);
-}
-
-.composite-action-row {
-  margin-top: 0.3rem;
-}
-
-/* Jack handles */
-.faceplate-jack {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  max-width: calc(100% - 0.6rem);
-  white-space: nowrap;
-}
-
-.receiving-jack {
-  left: 4px;
-}
-
-.outgoing-jack {
-  right: 4px;
-  flex-direction: row-reverse;
+.outgoing-jack-cell {
+  grid-column: 5;
 }
 
 .jack-status-dot {
   display: inline-block;
   width: 6px;
   height: 6px;
+  flex: 0 0 6px;
   border-radius: 50%;
+  background: #475569;
+}
 
+.jack-status-dot.connected {
+  background: #38bdf8;
 }
 
 .jack-handle {
-  width: 12px !important;
-  height: 12px !important;
-  border: 2px solid #0f172a !important;
+  top: 50% !important;
+  width: 13px !important;
+  height: 13px !important;
+  background: #0f172a !important;
+  border: 2px solid #7dd3fc !important;
   border-radius: 50% !important;
   cursor: crosshair !important;
 }
 
+.receiving-jack-cell .jack-handle {
+  left: -7px !important;
+}
+
+.outgoing-jack-cell .jack-handle {
+  right: -7px !important;
+}
+
+.jack-handle.public-jack-handle {
+  width: 17px !important;
+  height: 17px !important;
+  background: #11152d !important;
+  border: 3px double #c084fc !important;
+}
+
 .jack-label {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
   appearance: none;
-  background: rgba(15, 23, 42, 0.9);
+  background: transparent;
   color: inherit;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--line-color);
+  padding: 0 0.2rem;
+  border: 0;
+  border-radius: 2px;
   font-size: 0.7rem;
   font-family: inherit;
-  min-width: 0;
+  text-align: left;
+  text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -1279,23 +1289,80 @@ path.patchbay-smart-cord.compatibility-incompatible {
 
 .receiving-port-label {
   color: var(--panel-input-port);
-  border-style: dashed;
 }
 
 .outgoing-port-label {
   color: var(--panel-output-port);
-  border-style: double;
 }
 
-.port-display-label {
+.faceplate-member-type {
+  grid-column: 3;
+  min-width: 0;
+  overflow: hidden;
+  color: #a7f3d0;
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: visible;
+}
+
+.faceplate-member-state {
+  grid-column: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 0.6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faceplate-status-compartment {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.42rem 0.65rem;
+}
+
+.faceplate-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.faceplate-status-label {
+  color: #94a3b8;
+  font-size: 0.64rem;
+}
+
+.availability-tag {
+  max-width: 190px;
+  overflow: hidden;
+  font-size: 0.6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faceplate-inspect-action {
+  justify-self: start;
+  margin-top: 0.15rem;
+}
+
+.panel-source-endpoint {
+  background: rgba(192, 132, 252, 0.22);
+  outline: 1px solid rgba(216, 180, 254, 0.78);
+  outline-offset: -1px;
+  border-radius: 2px;
 }
 
 @media (forced-colors: active) {
   .receiving-port-label,
   .outgoing-port-label,
-  .jack-handle {
+  .jack-handle,
+  .faceplate-port-row.selected-cord-endpoint,
+  .panel-source-endpoint {
     color: ButtonText;
     border-color: ButtonText !important;
     forced-color-adjust: auto;

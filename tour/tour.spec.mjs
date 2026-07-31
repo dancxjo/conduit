@@ -183,9 +183,24 @@ test("highlights panel source while retaining the native editor surface", async 
   await expect(highlight).toHaveAttribute("aria-hidden", "true");
 });
 
-test("covers Chapters 0-3 and exposes production topology projections", async ({ page }) => {
+test("covers every published chapter and exposes production topology projections", async ({
+  page,
+}) => {
   await page.goto("/tour/public/index.html");
-  await expect(page.locator("#lessons > li")).toHaveCount(21);
+  const lessonCatalog = await page.evaluate(async () => {
+    const response = await fetch("../lessons/current.json", { cache: "no-store" });
+    const catalog = await response.json();
+    return {
+      count: catalog.lessons.length,
+      chapters: [...new Set(catalog.lessons.map((lesson) => lesson.chapter))].sort(
+        (left, right) => left - right,
+      ),
+    };
+  });
+  expect(lessonCatalog.chapters).toEqual(
+    Array.from({ length: lessonCatalog.chapters.at(-1) + 1 }, (_, chapter) => chapter),
+  );
+  await expect(page.locator("#lessons > li")).toHaveCount(lessonCatalog.count);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
@@ -262,8 +277,24 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(receiving).toContainText("> text");
   await expect(outgoing).toContainText("value >");
   expect(
-    await page.locator(".faceplate-jack").allTextContents(),
+    await page.locator(".faceplate-port-row").allTextContents(),
   ).toEqual(expect.not.arrayContaining([expect.stringContaining("<")]));
+  await expect(page.locator(".faceplate-type-compartment")).toHaveCount(2);
+  await expect(page.locator(".faceplate-config-row")).toHaveCount(1);
+  await expect(page.locator(".faceplate-config-row .jack-handle")).toHaveCount(0);
+  await expect(page.locator(".faceplate-port-row")).toHaveCount(2);
+  await expect(receiving.locator("..")).toHaveClass(/faceplate-port-row/);
+  await expect(outgoing.locator("..")).toHaveClass(/faceplate-port-row/);
+  for (const row of await page.locator(".faceplate-port-row").all()) {
+    const rowBox = await row.boundingBox();
+    const handleBox = await row.locator(".jack-handle").boundingBox();
+    expect(rowBox).not.toBeNull();
+    expect(handleBox).not.toBeNull();
+    expect(Math.abs(
+      (rowBox.y + rowBox.height / 2) -
+      (handleBox.y + handleBox.height / 2),
+    )).toBeLessThan(1);
+  }
   await expect(page.locator("#panel-port-list")).toContainText("> text");
   await expect(page.locator("#panel-port-list")).toContainText("value >");
   await expect(page.locator("#panel-connection-list")).toContainText(
@@ -286,7 +317,38 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
     name: "value, outgoing port; type std/text",
     exact: true,
   })).toContainText("value >");
+  const collapsedRow = greeting.locator(".faceplate-port-row");
+  const collapsedHandle = collapsedRow.locator(".jack-handle");
+  const collapsedRowBox = await collapsedRow.boundingBox();
+  const collapsedHandleBox = await collapsedHandle.boundingBox();
+  expect(Math.abs(
+    (collapsedRowBox.y + collapsedRowBox.height / 2) -
+    (collapsedHandleBox.y + collapsedHandleBox.height / 2),
+  )).toBeLessThan(1);
   await greeting.getByTitle("Expand Faceplate").click();
+});
+
+test("renders composite exports as public faceplate ports", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  await page.getByRole("button", { name: "Inside / outside" }).click();
+  const composite = page.locator(".composite-faceplate").first();
+  await expect(composite).toContainText("public");
+  await expect(composite.locator(".public-jack-handle")).toHaveCount(2);
+  await expect(
+    composite.locator(".faceplate-port-row .jack-status-dot.connected"),
+  ).toHaveCount(2);
+  await expect(page.locator(".react-flow__edge")).toHaveCount(2);
+  const publicJack = await composite.locator(".public-jack-handle").first().boundingBox();
+  const internalJack = await page.locator(
+    ".conduit-faceplate-card:not(.composite-faceplate) .jack-handle",
+  ).first().boundingBox();
+  expect(publicJack.width).toBeGreaterThan(internalJack.width);
+  await page.locator("#expanded-view").click();
+  await expect(page.locator(".composite-faceplate")).toHaveCount(0);
+  await expect(page.locator('.react-flow__node[data-id="box.worker"]')).toHaveCount(1);
+  await page.locator(".react-flow__edge").first()
+    .locator(".react-flow__edge-textbg").click();
+  await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
 });
 
 test("keeps semantic port direction redundant across presentation media", async ({ page }) => {
@@ -360,6 +422,12 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
     "Selected cord: cord-0",
   );
   await expect(edge).toHaveClass(/selected/);
+  await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
+  await expect(page.locator(".panel-source-endpoint")).toHaveCount(2);
+  expect(await page.locator(".panel-source-endpoint").allTextContents()).toEqual([
+    "value",
+    "text",
+  ]);
   const highlighted = (
     await page.locator(".panel-source-selection").allTextContents()
   ).join("");
