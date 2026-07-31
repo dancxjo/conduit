@@ -24,6 +24,7 @@ conduit-core = { path = "../crates/conduit-core" }
 conduit-learned = { path = "../crates/conduit-learned" }
 conduit-media = { path = "../crates/conduit-media" }
 conduit-runtime = { path = "../crates/conduit-runtime" }
+conduit-spatial = { path = "../crates/conduit-spatial" }
 conduit-std = { path = "../crates/conduit-std" }
 
 [target.'cfg(unix)'.dependencies]

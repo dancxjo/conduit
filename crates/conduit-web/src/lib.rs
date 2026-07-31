@@ -372,6 +372,8 @@ fn browser_registry() -> Registry {
         .expect("deterministic codec providers have distinct identities");
     conduit_learned::register_deterministic_inference_provider(&mut registry)
         .expect("deterministic inference providers have distinct identities");
+    conduit_spatial::register_deterministic_spatial_provider(&mut registry)
+        .expect("deterministic spatial providers have distinct identities");
     for provider in [
         CompiledInHostService {
             contract: file_read_contract(),

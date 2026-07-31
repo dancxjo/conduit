@@ -50,6 +50,8 @@
     {"path":"examples/socket-tcp-listen.panel","state":"runnable","profile":"hosted","proof":"canonical-socket-loopback","expected_stdout":"bounded socket bytes\n"},
     {"path":"examples/socket-udp-connected.panel","state":"runnable","profile":"hosted","proof":"canonical-socket-loopback","expected_stdout":""},
     {"path":"examples/socket-udp-datagram.panel","state":"runnable","profile":"hosted","proof":"canonical-socket-loopback","expected_stdout":""},
+    {"path":"examples/spatial-transform-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"spatial:point:sensor:[1000,500,10000]:clock/fixture@10:uncertainty=0spatial:point:camera:[1109,719,10330]:clock/fixture@10:uncertainty=0"},
+    {"path":"examples/spatial-transform-interpolate.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"spatial:point:camera:[1010,520,10030]:clock/fixture@11:uncertainty=0"},
     {"path":"examples/state-cache.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"stored,alpha,invalidated,miss"},
     {"path":"examples/state-cell.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"initial,first,second"},
     {"path":"examples/state-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"stored,alpha"},

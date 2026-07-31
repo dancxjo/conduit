@@ -382,6 +382,7 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     conduit_media::register_media_contracts(&mut registry);
     conduit_media::register_media_codec_contracts(&mut registry);
     conduit_learned::register_learned_contracts(&mut registry);
+    conduit_spatial::register_spatial_contracts(&mut registry);
     let standard = conduit_std::STANDARD_CATALOG
         .iter()
         .map(|entry| entry.contract.id.as_str())

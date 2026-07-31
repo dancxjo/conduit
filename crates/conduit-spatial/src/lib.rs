@@ -4,6 +4,16 @@
 //! It does not define robots, commands, a world frame, ambient transform trees,
 //! ROS identities, or another scheduler/event model.
 
+mod runtime_nodes;
+
+pub use runtime_nodes::{
+    APPLY_CONTRACT, COMPOSE_CONTRACT, INTERPOLATE_CONTRACT, INVERT_CONTRACT, PIXEL_DESCRIPTOR,
+    PIXEL_TYPE, POINT_DESCRIPTOR, POINT_INSPECT_CONTRACT, POINT_LITERAL_CONTRACT, POINT_TYPE,
+    PROJECT_CONTRACT, SPATIAL_CONTRACTS, TRANSFORM_DESCRIPTOR, TRANSFORM_LITERAL_CONTRACT,
+    TRANSFORM_TYPE, UNPROJECT_CONTRACT, register_deterministic_spatial_provider,
+    register_spatial_contracts,
+};
+
 pub const MAXIMUM_FRAME_ID_BYTES: usize = 64;
 pub const MAXIMUM_TRANSFORM_EDGES: usize = 16;
 pub const MAXIMUM_HISTORY_VALUES: usize = 8;
@@ -222,16 +232,16 @@ impl Uncertainty {
     };
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Validity {
-    pub clock: &'static str,
+    pub clock: String,
     pub stamp_tick: u64,
     pub valid_from_tick: u64,
     pub valid_until_tick: u64,
 }
 
 impl Validity {
-    fn validate(self) -> Result<(), SpatialReason> {
+    fn validate(&self) -> Result<(), SpatialReason> {
         if self.clock.is_empty()
             || self.valid_from_tick > self.stamp_tick
             || self.stamp_tick > self.valid_until_tick
@@ -287,19 +297,19 @@ pub struct StampedPoint3 {
     pub provenance_identity: [u8; 32],
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Twist3 {
-    pub frame_id: &'static str,
+    pub frame_id: String,
     pub linear_um_per_tick: [i64; 3],
     pub angular_q30_per_tick: [i32; 3],
-    pub clock: &'static str,
+    pub clock: String,
     pub tick: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClockConversion {
-    pub source_clock: &'static str,
-    pub target_clock: &'static str,
+    pub source_clock: String,
+    pub target_clock: String,
     pub source_tick: u64,
     pub target_tick: u64,
     pub uncertainty_ticks: u64,
@@ -307,9 +317,9 @@ pub struct ClockConversion {
 }
 
 pub fn convert_tick(
-    clock: &'static str,
+    clock: &str,
     tick: u64,
-    target_clock: &'static str,
+    target_clock: &str,
     conversion: Option<ClockConversion>,
 ) -> Result<(u64, u64), SpatialReason> {
     if clock == target_clock {
@@ -432,7 +442,7 @@ pub fn compose(
         .expect("sum modulo four is a supported quarter turn"),
         quarter_turns_z: (first.quarter_turns_z + second.quarter_turns_z) % 4,
         validity: Validity {
-            clock: first.validity.clock,
+            clock: first.validity.clock.clone(),
             stamp_tick: first.validity.stamp_tick,
             valid_from_tick: first
                 .validity
@@ -478,7 +488,7 @@ pub fn invert(
         rotation: QuaternionQ30::quarter_turn_z(turns)
             .expect("inverse modulo four is a supported quarter turn"),
         quarter_turns_z: turns,
-        validity: transform.validity,
+        validity: transform.validity.clone(),
         uncertainty: transform.uncertainty,
         calibration_identity: transform.calibration_identity,
         provenance_identity: transform.provenance_identity,
@@ -540,7 +550,7 @@ pub fn interpolate(
         rotation: before.rotation,
         quarter_turns_z: before.quarter_turns_z,
         validity: Validity {
-            clock: before.validity.clock,
+            clock: before.validity.clock.clone(),
             stamp_tick: tick,
             valid_from_tick: start,
             valid_until_tick: end,
@@ -554,9 +564,9 @@ pub fn interpolate(
     })
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PinholeCalibration {
-    pub frame_id: &'static str,
+    pub frame_id: String,
     pub calibration_identity: [u8; 32],
     pub fx_millipixel: i64,
     pub fy_millipixel: i64,
@@ -568,7 +578,7 @@ pub struct PinholeCalibration {
 }
 
 impl PinholeCalibration {
-    fn validate(self, tick: u64) -> Result<(), SpatialReason> {
+    fn validate(&self, tick: u64) -> Result<(), SpatialReason> {
         if self.frame_id.is_empty()
             || self.calibration_identity == [0; 32]
             || self.fx_millipixel <= 0
@@ -598,7 +608,7 @@ pub struct PixelPoint {
 
 pub fn project(
     point: &StampedPoint3,
-    calibration: PinholeCalibration,
+    calibration: &PinholeCalibration,
 ) -> Result<PixelPoint, SpatialReason> {
     calibration.validate(point.tick)?;
     if point.frame_id != calibration.frame_id {
@@ -648,7 +658,7 @@ pub fn project(
 
 pub fn unproject(
     pixel: &PixelPoint,
-    calibration: PinholeCalibration,
+    calibration: &PinholeCalibration,
 ) -> Result<StampedPoint3, SpatialReason> {
     calibration.validate(pixel.tick)?;
     if pixel.frame_id != calibration.frame_id {
@@ -716,7 +726,7 @@ mod tests {
             rotation: QuaternionQ30::IDENTITY,
             quarter_turns_z: 0,
             validity: Validity {
-                clock: "clock/fixture",
+                clock: "clock/fixture".to_owned(),
                 stamp_tick: tick,
                 valid_from_tick: 0,
                 valid_until_tick: 20,
@@ -729,7 +739,7 @@ mod tests {
 
     fn calibration() -> PinholeCalibration {
         PinholeCalibration {
-            frame_id: "camera",
+            frame_id: "camera".to_owned(),
             calibration_identity: CALIBRATION_IDENTITY,
             fx_millipixel: 100_000,
             fy_millipixel: 100_000,
@@ -783,9 +793,9 @@ mod tests {
             uncertainty_um: 0,
             provenance_identity: PROVENANCE_IDENTITY,
         };
-        let pixel = project(&point, calibration()).unwrap();
+        let pixel = project(&point, &calibration()).unwrap();
         assert_eq!((pixel.x_millipixel, pixel.y_millipixel), (330_000, 245_000));
-        assert_eq!(unproject(&pixel, calibration()).unwrap(), point);
+        assert_eq!(unproject(&pixel, &calibration()).unwrap(), point);
     }
 
     #[test]
@@ -813,13 +823,13 @@ mod tests {
             provenance_identity: PROVENANCE_IDENTITY,
         };
         assert_eq!(
-            project(&behind, calibration()),
+            project(&behind, &calibration()),
             Err(SpatialReason::BehindCamera)
         );
         let mut wrong = calibration();
         wrong.calibration_identity = [0; 32];
         assert_eq!(
-            project(&behind, wrong),
+            project(&behind, &wrong),
             Err(SpatialReason::InvalidCalibration)
         );
     }
