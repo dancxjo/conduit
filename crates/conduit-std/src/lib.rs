@@ -19,6 +19,7 @@ use conduit_core::{
 mod conformance;
 mod data_boundaries;
 mod state;
+mod supervision;
 mod text_format;
 mod text_lines_join;
 mod time;
@@ -38,6 +39,11 @@ pub use data_boundaries::{
 pub use state::{
     CacheEntry, CacheInsert, CacheState, CellState, DeduplicateDecision, DeduplicateState,
     STATE_MAX_ENTRIES, STATE_MAX_VALUE_BYTES, StateError, StateIdentity,
+};
+pub use supervision::{
+    AttemptOutcome, BackoffMode, BackoffPolicy, BreakerAdmission, BreakerOutcome, BreakerState,
+    CircuitBreakerState, RetryDecision, RetryPermission, RetryState, SUPERVISION_MAX_ATTEMPTS,
+    SUPERVISION_MAX_DURATION_TICKS, SUPERVISION_MAX_OBSERVATIONS, SupervisionError,
 };
 pub use text_format::{
     FORMAT_MAX_NAME_BYTES, FORMAT_MAX_OUTPUT_BYTES, FORMAT_MAX_RETAINED_BYTES,
