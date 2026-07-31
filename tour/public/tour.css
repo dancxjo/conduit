@@ -1439,6 +1439,17 @@ path.patchbay-smart-cord.compatibility-incompatible {
   border: 3px double #c084fc !important;
 }
 
+.react-flow__edge .react-flow__edgeupdater {
+  pointer-events: none;
+}
+
+.react-flow__edge.selected .react-flow__edgeupdater {
+  pointer-events: all;
+  fill: #0f172a;
+  stroke: #7dd3fc;
+  stroke-width: 2px;
+}
+
 .jack-label {
   grid-column: 2;
   min-width: 0;

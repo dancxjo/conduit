@@ -258,7 +258,10 @@ document.querySelector(".node-controls").hidden =
   !patchbayFeatures.legacyLinePlacement;
 if (cyContainer) {
   patchbayRenderer = new PatchbayReactFlowRenderer(cyContainer, {
-    onTransaction: (operation, options) => applyPatchbayOperations([operation], options),
+    onTransaction: (operation, options) => applyPatchbayOperations(
+      Array.isArray(operation) ? operation : [operation],
+      options,
+    ),
     onNodeSelect: (nodeId) => {
       selectNode(nodeId);
     },
@@ -462,7 +465,7 @@ function applyPatchbayOperations(operations, options = {}) {
   patchbaySourceRevision = transaction.result.source.revision;
   patchbayPresentationRevision = transaction.result.presentation.revision;
   acceptedSource = transaction.result.source.source;
-  if (options.preserveFaceplateFocus) {
+  if (options.preserveFaceplateFocus || options.syncSource) {
     source.value = acceptedSource;
     syncSourceHighlight();
   }

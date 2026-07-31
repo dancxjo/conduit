@@ -8,7 +8,14 @@
 
 const e = window.React.createElement;
 
-function PortRow({ nodeId, port, direction, isPublic, onPortSelect }) {
+function PortRow({
+  nodeId,
+  port,
+  direction,
+  isPublic,
+  isConnectable,
+  onPortSelect,
+}) {
   const receiving = direction === "input";
   const presentationDirection = receiving ? "receiving" : "outgoing";
   const handle = e(window.ReactFlow.Handle, {
@@ -18,7 +25,7 @@ function PortRow({ nodeId, port, direction, isPublic, onPortSelect }) {
       ? window.ReactFlow.Position.Left
       : window.ReactFlow.Position.Right,
     className: `jack-handle ${isPublic ? "public-jack-handle" : ""}`,
-    isConnectable: false,
+    isConnectable,
     "aria-label": port.accessible_label,
     "data-semantic-path": port.semantic_path,
   });
@@ -30,7 +37,9 @@ function PortRow({ nodeId, port, direction, isPublic, onPortSelect }) {
     "data-semantic-path": port.semantic_path,
     "data-port-direction": presentationDirection,
   },
-    receiving && e("span", { className: "faceplate-jack-cell receiving-jack-cell" }, handle),
+    receiving && e("span", {
+      className: "faceplate-jack-cell receiving-jack-cell",
+    }, handle),
     e("button", {
       type: "button",
       className: `jack-label ${presentationDirection}-port-label nodrag`,
@@ -52,7 +61,9 @@ function PortRow({ nodeId, port, direction, isPublic, onPortSelect }) {
       }),
       port.connected ? "linked" : "open",
     ),
-    !receiving && e("span", { className: "faceplate-jack-cell outgoing-jack-cell" }, handle),
+    !receiving && e("span", {
+      className: "faceplate-jack-cell outgoing-jack-cell",
+    }, handle),
   );
 }
 
@@ -130,6 +141,7 @@ export function FaceplateNodeComponent({ data, id }) {
       port,
       direction: "input",
       isPublic: isComposite,
+      isConnectable: data.isConnectable,
       onPortSelect,
     })),
     ...outputs.map((port) => e(PortRow, {
@@ -138,6 +150,7 @@ export function FaceplateNodeComponent({ data, id }) {
       port,
       direction: "output",
       isPublic: isComposite,
+      isConnectable: data.isConnectable,
       onPortSelect,
     })),
   ];

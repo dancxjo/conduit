@@ -37,7 +37,7 @@ export class PatchbayCanvasElement extends HTMLElement {
           <button id="expanded-view" class="toggle-btn" aria-pressed="false">Expanded</button>
         </div>
       </div>
-      <p class="card-subtitle">Drag nodes to adjust presentation layout. Click nodes or cords to inspect typed contracts.</p>
+      <p class="card-subtitle">Drag nodes to adjust presentation layout. Drag from an outgoing jack to a receiving jack to connect; select a cord and drag either end to rewire it.</p>
       <div id="cy" class="cytoscape-container"></div>
       <div class="cord-legend" aria-label="Cord visual language">
         <span class="cord-legend-item"><i class="cord-legend-swatch"></i>Hue: value type</span>
