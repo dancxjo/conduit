@@ -194,33 +194,28 @@ plan-retained timer deadline; it never reads ambient wall-clock state.
 
 ## 4. State & Memory Nodes
 
-### Counter & Cell State
+`state/cell`, `state/deduplicate`, and `state/cache` are **runnable** through
+the hosted exact-plan executor. `state/counter` remains contract-only.
 
-State: **contract-only**; counter and cell providers are not installed.
-```panel
-panel 0
+- cell pins its state schema, optional initial value, emission policy, one-value
+  byte ceiling, reset-to-initial behavior, and restart/checkpoint policy;
+- deduplicate pins collision-safe equality, finite entry and byte windows,
+  FIFO eviction, explicit duplicate drop, reset, and empty restart;
+- cache uses an exact text request schema for `put`, `get`, `invalidate`, and
+  `reset`, plus finite key/value/total byte bounds and FIFO eviction. It has no
+  ambient TTL, persistence, or automatic checkpoint.
 
-node tick_gen : state/counter
-node state_cell : state/cell { initial = "STATE_IDLE" }
-node display : display/text
-
-cord tick_gen.count -> state_cell.update { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
-cord state_cell.current -> display.text { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
+```sh
+cargo run -p conduct -- examples/state-cell.panel
+cargo run -p conduct -- examples/state-deduplicate.panel
+cargo run -p conduct -- examples/state-cache.panel
+cargo run -p conduct -- examples/state-compose.panel
 ```
 
-### Deduplication
-
-State: **contract-only**; stdin and deduplication providers are not installed.
-```panel
-panel 0
-
-node raw_events : io/stdin
-node dedup : state/deduplicate
-node sink : io/stdout
-
-cord raw_events.bytes -> dedup.candidate { capacity = 16 max_value_bytes = 4096 max_queued_bytes = 65536 low_watermark = 4 high_watermark = 16 pressure = drop_disposable }
-cord dedup.unique -> sink.bytes { capacity = 16 max_value_bytes = 4096 max_queued_bytes = 65536 low_watermark = 4 high_watermark = 16 pressure = block }
-```
+The composition suppresses repeated put/get requests before the cache. Both
+state boundaries remain ordinary nodes with independent exact allocations and
+evidence. Restart always returns cell to its configured initial state and
+empties deduplicate/cache state.
 
 ---
 

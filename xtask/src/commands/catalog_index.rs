@@ -318,6 +318,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
         ("time/delay" | "time/timeout" | "time/debounce" | "time/throttle", _) => {
             Some("library.explicit-time")
         }
+        ("state/cell" | "state/deduplicate" | "state/cache", _) => Some("library.bounded-state"),
         (
             "std/record/literal"
             | "std/data/encode-utf8"

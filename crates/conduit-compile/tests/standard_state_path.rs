@@ -98,6 +98,11 @@ fn cell_deduplicate_and_cache_execute_exactly_and_repeat() {
             "run/state/cache",
             "stored,alpha,invalidated,miss",
         ),
+        (
+            include_str!("../../../examples/state-compose.panel"),
+            "run/state/composition",
+            "stored,alpha",
+        ),
     ] {
         let (display, report) = exact_run(source, run_id);
         assert_eq!(display, expected.as_bytes(), "{run_id}");

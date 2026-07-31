@@ -1034,6 +1034,113 @@
       }
     },
     {
+      "id": "library.bounded-state",
+      "chapter": 4,
+      "title": "Bounded in-run state",
+      "prerequisites": [
+        "library.typed-text-format",
+        "nodes.types-mean-promises"
+      ],
+      "objective": "Run a cell, duplicate suppressor, and in-run cache while inspecting their exact state schema, bounds, deterministic eviction, restart, and terminal facts.",
+      "prose": "State is local to one exact run and has a declared shape and ceiling. A cell keeps one current value, deduplicate retains collision-safe identities, and cache retains a finite key/value table; none implies persistence or external storage.",
+      "vocabulary": [
+        "state schema",
+        "generation",
+        "FIFO eviction",
+        "cache hit",
+        "restart policy"
+      ],
+      "source": "panel 0\n\nnode source : std/literal { value = \"put:a=alpha\\nput:a=alpha\\nget:a\\nget:a\\n\" }\nnode lines : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\nnode deduplicate : state/deduplicate { equality = ref(\"conduit.equality/sha256-bytes\") equality_schema_version = 0 equality_hash = bytes(\"a25096b1d49acb2554639f36bd5ce09f1841db665e3d755c2218a8e58741f657\") maximum_entries = 4 maximum_bytes = 128 eviction = \"fifo\" duplicate = \"drop\" reset = \"clear\" terminal = \"complete\" restart = \"empty\" checkpoint = \"unsupported\" }\nnode cache : state/cache { request_schema = ref(\"conduit.cache/text-request\") request_schema_version = 0 request_schema_hash = bytes(\"e0a209f8ddb8a8fb8550743630c7866c03f2dab48704fe66092e23858e41cb29\") key_equality = ref(\"conduit.equality/sha256-bytes\") key_equality_schema_version = 0 key_equality_hash = bytes(\"a25096b1d49acb2554639f36bd5ce09f1841db665e3d755c2218a8e58741f657\") maximum_entries = 4 maximum_key_bytes = 16 maximum_value_bytes = 64 maximum_total_bytes = 64 eviction = \"fifo\" ttl = \"none\" sensitivity = \"preserve\" restart = \"empty\" checkpoint = \"unsupported\" }\nnode join : std/text/join { separator = \",\" maximum_items = 8 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 128 }\nnode display : display/text\n\ncord source.value -> lines.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\ncord lines.line -> deduplicate.candidate { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord deduplicate.unique -> cache.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord cache.response -> join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord join.text -> display.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run examples/state-compose.panel",
+      "commands": [
+        "conduct --run examples/state-cell.panel",
+        "conduct --run examples/state-deduplicate.panel",
+        "conduct --run examples/state-cache.panel",
+        "conduct --run examples/state-compose.panel"
+      ],
+      "expected_display": "stored,alpha",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 64,
+        "queue_bytes": 512,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "bounded-state-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "state_schema",
+          "retained_values",
+          "retained_bytes",
+          "eviction",
+          "hit_miss",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "stored,alpha"
+      },
+      "hints": [
+        "State bounds and restart policy belong to the node contract, while queue pressure remains on each cord.",
+        "Deduplicate uses exact byte equality identities and FIFO count/byte eviction; duplicate drop is explicit.",
+        "The cache is in-run only: TTL and checkpoints are unsupported and restart empties it."
+      ],
+      "solution": "Pin the state or request schema and equality descriptor, choose finite entry and byte ceilings, and declare eviction, reset, restart, checkpoint, sensitivity, and terminal behavior.",
+      "accessibility": {
+        "non_audio": "An ordered table names each value, state generation, retained count and bytes, duplicate decision, cache hit or miss, eviction, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step through exact state transitions.",
+        "color_independent": "Value labels, generation numbers, hit/miss words, eviction ordinals, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Three exact providers expose one-value register state, duplicate suppression, and a bounded in-run cache.",
+        "what": "Cell emits its configured initial and updated values; deduplicate admits only identities outside its finite FIFO window; cache executes explicit put, get, invalidate, and reset requests.",
+        "when": "Use them when state changes graph-visible behavior within a run and must remain bounded, deterministic, inspectable, and disposable at restart.",
+        "wrong": "Unpinned equality, hidden persistence, ambient TTL, automatic checkpointing, unbounded entries or bytes, collision-unsafe comparison, and cross-run retention fail closed.",
+        "contracts": [
+          {"id":"state/cell","inputs":["update:T","command:optional std/text"],"outputs":["current:T"],"policy":"initial or empty; reset=initial; restart=initial; checkpoint=unsupported"},
+          {"id":"state/deduplicate","inputs":["candidate:T"],"outputs":["unique:T"],"policy":"sha256 byte equality; FIFO count/byte window; duplicate=drop; restart=empty"},
+          {"id":"state/cache","inputs":["request:std/text stream"],"outputs":["response:std/text stream"],"policy":"put/get/invalidate/reset; FIFO; ttl=none; sensitivity=preserve; restart=empty"}
+        ],
+        "editable": [
+          "deduplicate.maximum_entries:1..16",
+          "cache.maximum_entries:1..16",
+          "cell.initial:std/text"
+        ],
+        "provider": "hosted exact-plan deterministic executor with in-run caller-bounded state",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact state/equality/request schema and provider bindings",
+          "retained entry and byte high-water facts",
+          "duplicate, hit, miss, update, invalidate, reset, and FIFO eviction decisions",
+          "restart/checkpoint policy and one exact terminal cause"
+        ],
+        "docs": [
+          "../../spec/046-standard-node-library.md",
+          "../../examples/state-cell.panel",
+          "../../examples/state-deduplicate.panel",
+          "../../examples/state-cache.panel",
+          "../../examples/state-compose.panel",
+          "../../conformance/c4/standard-node-library.json"
+        ],
+        "scenarios": [
+          {"id":"cell","title":"Cell updates","panel":"../../examples/state-cell.panel","semantics":"One configured initial value and each admitted update emit in order; restart returns to the initial value."},
+          {"id":"deduplicate","title":"Duplicate suppression","panel":"../../examples/state-deduplicate.panel","semantics":"Collision-safe identities occupy a finite FIFO count/byte window; duplicate drop is explicit."},
+          {"id":"cache","title":"Cache hit and invalidate","panel":"../../examples/state-cache.panel","semantics":"Put, hit, invalidate, and miss transitions remain in-run and bounded by entries and bytes."},
+          {"id":"composition","title":"Deduplicate cache requests","panel":"../../examples/state-compose.panel","semantics":"Duplicate put/get requests are suppressed before the finite cache, making both state boundaries independently visible."}
+        ]
+      }
+    },
+    {
       "id": "library.explicit-time",
       "chapter": 4,
       "title": "Explicit bounded time",
