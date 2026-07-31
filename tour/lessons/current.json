@@ -2307,8 +2307,8 @@
         "nodes.types-mean-promises",
         "platform.workload-admission-deadline"
       ],
-      "objective": "Run one semantic graph while comparing exact provider chains across Linux, browser/WASM, firmware, deterministic, and describe-only profiles.",
-      "prose": "Discovery tells you which contracts and extensions a host understands. Execution additionally needs a fresh available provider, complete satisfaction proof, passing behavioral conformance, exact artifacts, finite bounds, and an explicit adapter when custom type identities differ.",
+      "objective": "Run one unchanged media graph while comparing exact provider chains across deterministic, Linux/process, browser/WASM, firmware, and describe-only profiles.",
+      "prose": "Probe the same semantic `conduit.media/container/probe` contract while hosts choose deterministic, FFmpeg, SoX, and browser/WASM realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
       "vocabulary": [
         "host profile",
         "optional provider",
@@ -2316,14 +2316,14 @@
         "conformance result",
         "explicit adapter"
       ],
-      "source": "panel 0\n\n# The graph stays semantic. A host profile may bind exact providers for these\n# nodes only after current observation and conformance checks.\nnode source : std/literal {\n    value = \"Custom contracts need exact conformance and explicit adapters.\\n\"\n}\nnode emphasize : text/uppercase\nnode output : display/text\n\ncord source.value -> emphasize.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord emphasize.text -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 0\n\nnode wave : conduit.media/wave/literal {\n  fixture = \"silence-pcm-s16le-stereo-48000-192\"\n  content_identity = \"sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d\"\n  maximum_output_bytes = 1024\n}\nnode probe : conduit.media/container/probe {\n  container = \"wave\"\n  codec = \"pcm-s16le\"\n  profile = \"stereo-48000-192\"\n  extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\"\n  maximum_input_bytes = 1024\n  maximum_output_bytes = 1024\n  maximum_tracks = 1\n  maximum_packets = 1\n  maximum_reorder_depth = 0\n  maximum_retained_bytes = 1024\n  maximum_metadata_entries = 0\n  maximum_work = 4096\n  flush = \"exact-terminal\"\n}\nnode output : display/text\n\ncord wave.container -> probe.container {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ncord probe.summary -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run cross-host-provider-conformance.panel",
       "commands": [
         "conduct inspect host-conformance-report.json",
         "conduct --check cross-host-provider-conformance.panel",
         "conduct --run cross-host-provider-conformance.panel"
       ],
-      "expected_display": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n",
+      "expected_display": "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 32,
@@ -2343,14 +2343,14 @@
       },
       "validation": {
         "kind": "display",
-        "value": "CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n"
+        "value": "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes"
       },
       "hints": [
-        "Edit message.value and rerun; the semantic graph does not acquire host authority.",
+        "Edit wave.fixture and rerun; the semantic graph does not acquire host authority.",
         "Step from contract to facets, satisfaction, conformance, bundle, observation, and exact binding.",
         "Compare the adapter-absent and provider-lost cases with the successful Linux and browser cases."
       ],
-      "solution": "Keep profile inventory and current observation separate, validate the complete satisfaction and behavioral proofs, then bind exact artifacts and an explicit tested adapter within finite bounds.",
+      "solution": "Keep profile inventory and current observation separate, validate complete satisfaction and behavioral conformance proofs, then bind exact artifacts and implementation profiles within finite bounds.",
       "accessibility": {
         "non_audio": "The graph is paired with ordered text for profile, inventory, observation, satisfaction, conformance, exact binding, execution, cancellation, and terminal evidence.",
         "reduced_motion": true,
@@ -2368,7 +2368,7 @@
         "when": "Use this chain for optional host services and custom namespaced contracts that must run across native, process, browser/WASM, or constrained provider boundaries.",
         "wrong": "Matching labels, source-language interfaces, stale reports, wrong artifacts, unavailable runtimes, protocol resemblance, hidden queues, and describe-only reports presented as executable fail closed.",
         "editable": [
-          "message.value:std/text"
+          "wave.fixture:conduit.media/wave/literal"
         ],
         "fixture": "../../conformance/c5/cross-host-provider-conformance.json",
         "panel": "../../examples/cross-host-provider-conformance.panel",
@@ -2376,6 +2376,12 @@
           "../../spec/058-cross-host-provider-conformance.md"
         ],
         "profiles": [
+          {
+            "id": "deterministic-host",
+            "fixture_case": "deterministic-pass",
+            "admission": "accepted",
+            "guarantee": "exact-binding"
+          },
           {
             "id": "linux-native",
             "fixture_case": "linux-native-pass",
@@ -2414,7 +2420,7 @@
             "code": "CND-HCF-007"
           }
         ],
-        "authoritative_story": [
+      "authoritative_story": [
           "mandatory host facts remain separate from optional provider inventory and namespaced extensions",
           "fresh provider observation distinguishes linked, uninitialized, available, lost, and stale",
           "offered facets and complete satisfaction proof reject label-only impersonation",
@@ -2466,8 +2472,8 @@
           "descriptor_hash",
           "bounds",
           "decision"
-        ]
-      },
+      ]
+    },
       "validation": {
         "kind": "display",
         "value": "representation boundaries stay explicit"

@@ -5,8 +5,8 @@ use std::process::{Command, Stdio};
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_media::{
     register_deterministic_codec_providers, register_deterministic_media_providers,
-    register_ffmpeg_codec_providers, register_media_codec_contracts, register_media_contracts,
-    register_sox_codec_providers,
+    register_browser_codec_providers, register_ffmpeg_codec_providers,
+    register_media_codec_contracts, register_media_contracts, register_sox_codec_providers,
 };
 use conduit_runtime::{AvailabilityState, Registry};
 
@@ -241,6 +241,7 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
     register_deterministic_codec_providers(&mut registry).unwrap();
     register_ffmpeg_codec_providers(&mut registry).unwrap();
     register_sox_codec_providers(&mut registry).unwrap();
+    register_browser_codec_providers(&mut registry).unwrap();
     let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
 
     for (contract, expected_implementations) in [
@@ -249,6 +250,7 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
             &[
                 "conduit.media/wave-probe-deterministic",
                 "conduit.media/wave-probe-ffmpeg",
+                "conduit.media/wave-probe-browser",
             ][..],
         ),
         (
@@ -271,6 +273,7 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
                 "conduit.media/pcm-decode-deterministic",
                 "conduit.media/pcm-decode-ffmpeg",
                 "conduit.media/pcm-decode-sox",
+                "conduit.media/pcm-decode-browser",
             ][..],
         ),
         (
@@ -279,6 +282,7 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
                 "conduit.media/pcm-encode-deterministic",
                 "conduit.media/pcm-encode-ffmpeg",
                 "conduit.media/pcm-encode-sox",
+                "conduit.media/pcm-encode-browser",
             ][..],
         ),
     ] {
@@ -304,6 +308,7 @@ fn implementation_preference_selects_overlapping_media_providers() {
     register_deterministic_codec_providers(&mut registry).unwrap();
     register_ffmpeg_codec_providers(&mut registry).unwrap();
     register_sox_codec_providers(&mut registry).unwrap();
+    register_browser_codec_providers(&mut registry).unwrap();
     let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
 
     for (preference, expected_decode, expected_encode) in [
@@ -330,6 +335,14 @@ fn implementation_preference_selects_overlapping_media_providers() {
             ],
             "conduit.media/pcm-decode-sox",
             "conduit.media/pcm-encode-sox",
+        ),
+        (
+            [
+                "conduit.media/pcm-decode-browser",
+                "conduit.media/pcm-encode-browser",
+            ],
+            "conduit.media/pcm-decode-browser",
+            "conduit.media/pcm-encode-browser",
         ),
     ] {
         let mut input = installed.input.clone();
