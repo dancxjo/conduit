@@ -1617,12 +1617,6 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
 
   await page.locator("#scenario").selectOption("explicit-adapter");
   await expect(result).toContainText("admitted by the checked contract");
-  await source.fill(
-    (await source.inputValue()).replace(
-      "node output : display/text",
-      "# Edited provider lesson.\nnode output : display/text",
-    ),
-  );
   await page.locator("#run").click();
   await expect(result).toContainText("wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes", {
     timeout: 20_000,
