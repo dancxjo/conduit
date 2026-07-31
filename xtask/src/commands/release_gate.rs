@@ -183,6 +183,7 @@ fn validate(
                 "canonical-file-write",
                 "canonical-file-watch",
                 "canonical-storage-cache",
+                "canonical-process-exec",
             ]
             .contains(&entry.proof.as_str())
         {
