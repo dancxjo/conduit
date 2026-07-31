@@ -101,7 +101,7 @@ fn package(descriptor_hash: String) -> (Vec<u8>, ContractPackageLock) {
 #[test]
 fn import_check_can_succeed_contract_only_without_installing_or_authorizing_a_provider() {
     let source = parse(
-        "panel 3\n\
+        "panel 0\n\
          import example.dev/parts/{probe as inspect}\n\
          node observation : inspect\n",
     )
@@ -142,7 +142,7 @@ fn import_check_can_succeed_contract_only_without_installing_or_authorizing_a_pr
 #[test]
 fn checker_rejects_a_package_descriptor_that_does_not_match_its_known_contract() {
     let source = parse(
-        "panel 3\n\
+        "panel 0\n\
          import example.dev/parts/{probe}\n\
          node observation : probe\n",
     )
@@ -168,7 +168,7 @@ fn checker_rejects_a_package_descriptor_that_does_not_match_its_known_contract()
 #[test]
 fn foreign_owned_import_remains_eligible_for_structural_substitution_without_implements() {
     let source = parse(
-        "panel 3\n\
+        "panel 0\n\
          import example.dev/parts/{probe as foreign}\n\
          node observation : foreign\n",
     )

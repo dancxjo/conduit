@@ -269,7 +269,7 @@ fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
 
 #[test]
 fn contract_package_import_lesson_separates_names_meaning_and_availability() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let lesson = manifest["lessons"]
         .as_array()

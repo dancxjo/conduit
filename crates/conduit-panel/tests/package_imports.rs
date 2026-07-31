@@ -109,7 +109,7 @@ fn seal_manifest(manifest: ContractPackageManifest) -> (Vec<u8>, LockedContractP
 #[test]
 fn parser_preserves_named_aliases_and_exact_source_spans() {
     let panel = parse(
-        "panel 3\n\
+        "panel 0\n\
          import conduit.dev/std/{tee, gate as valve}\n\
          node split : tee\n\
          node check : valve\n",
@@ -135,7 +135,7 @@ fn parser_preserves_named_aliases_and_exact_source_spans() {
 #[test]
 fn exact_lock_resolution_rewrites_only_semantic_references() {
     let panel = parse(
-        "panel 3\n\
+        "panel 0\n\
          import conduit.dev/std/{tee as split, stream}\n\
          node source : split implements stream\n",
     )
@@ -163,7 +163,7 @@ fn exact_lock_resolution_rewrites_only_semantic_references() {
 #[test]
 fn imported_types_lower_in_typed_source_positions_and_local_declarations_win_no_ambiguity() {
     let panel = parse(
-        "panel 3\n\
+        "panel 0\n\
          import conduit.dev/std/{reading as sample}\n\
          composite Envelope(value: sample) {}\n",
     )
@@ -184,7 +184,7 @@ fn imported_types_lower_in_typed_source_positions_and_local_declarations_win_no_
     );
 
     let colliding = parse(
-        "panel 3\n\
+        "panel 0\n\
          import conduit.dev/std/{tee as Part}\n\
          composite Part {}\n",
     )
@@ -205,7 +205,7 @@ fn imported_types_lower_in_typed_source_positions_and_local_declarations_win_no_
 #[test]
 fn qualified_package_alias_resolves_public_exports_but_not_private_surface() {
     let panel = parse(
-        "panel 3\n\
+        "panel 0\n\
          import conduit.dev/std as std\n\
          node split : std.tee\n\
          node check : std.gate\n",
@@ -234,7 +234,7 @@ fn qualified_package_alias_resolves_public_exports_but_not_private_surface() {
 #[test]
 fn duplicate_missing_hidden_and_descriptor_mismatch_fail_deterministically() {
     let duplicate = parse(
-        "panel 3\n\
+        "panel 0\n\
          import conduit.dev/std/{tee as part, gate as part}\n",
     )
     .unwrap_err();
@@ -242,9 +242,9 @@ fn duplicate_missing_hidden_and_descriptor_mismatch_fail_deterministically() {
 
     let (bytes, lock) = artifact(Vec::new());
     for (source, code) in [
-        ("panel 3\nimport conduit.dev/std/{absent}\n", "CND-IPK-004"),
+        ("panel 0\nimport conduit.dev/std/{absent}\n", "CND-IPK-004"),
         (
-            "panel 3\nimport conduit.dev/std/{internal}\n",
+            "panel 0\nimport conduit.dev/std/{internal}\n",
             "CND-IPK-006",
         ),
     ] {
@@ -262,7 +262,7 @@ fn duplicate_missing_hidden_and_descriptor_mismatch_fail_deterministically() {
         assert!(failure.source_span.is_some());
     }
 
-    let panel = parse("panel 3\nimport conduit.dev/std/{tee}\n").unwrap();
+    let panel = parse("panel 0\nimport conduit.dev/std/{tee}\n").unwrap();
     let mut mismatched = lock.clone();
     mismatched.packages[0].exports[0].descriptor_hash = OTHER_HASH.to_owned();
     let failure = resolve_package_imports(
@@ -279,7 +279,7 @@ fn duplicate_missing_hidden_and_descriptor_mismatch_fail_deterministically() {
 
 #[test]
 fn bytes_are_location_independent_and_mutation_or_missing_transitive_data_is_rejected() {
-    let panel = parse("panel 3\nimport conduit.dev/std/{tee}\n").unwrap();
+    let panel = parse("panel 0\nimport conduit.dev/std/{tee}\n").unwrap();
     let (bytes, lock) = artifact(Vec::new());
     let first = resolve_package_imports(
         &panel,
@@ -353,7 +353,7 @@ fn bytes_are_location_independent_and_mutation_or_missing_transitive_data_is_rej
 
 #[test]
 fn package_and_source_import_bounds_fail_before_unbounded_retention() {
-    let panel = parse("panel 3\nimport conduit.dev/std/{tee}\n").unwrap();
+    let panel = parse("panel 0\nimport conduit.dev/std/{tee}\n").unwrap();
     let oversized = vec![b' '; MAXIMUM_CONTRACT_PACKAGE_BYTES + 1];
     let (_, lock) = artifact(Vec::new());
     let failure = resolve_package_imports(
@@ -371,14 +371,14 @@ fn package_and_source_import_bounds_fail_before_unbounded_retention() {
         .map(|index| format!("name{index}"))
         .collect::<Vec<_>>()
         .join(",");
-    let source = format!("panel 3\nimport example.dev/parts/{{{names}}}\n");
+    let source = format!("panel 0\nimport example.dev/parts/{{{names}}}\n");
     let failure = parse(&source).unwrap_err();
     assert_eq!(failure.code, "CND-SEC-001");
 
     let imports = (0..=conduit_panel::MAXIMUM_PACKAGE_IMPORTS)
         .map(|index| format!("import example.dev/parts/{{probe as probe{index}}}\n"))
         .collect::<String>();
-    let failure = parse(&format!("panel 3\n{imports}")).unwrap_err();
+    let failure = parse(&format!("panel 0\n{imports}")).unwrap_err();
     assert_eq!(failure.code, "CND-SEC-001");
 
     let mut oversized_lock = lock;
@@ -448,7 +448,7 @@ fn a_target_that_can_name_both_a_package_and_parent_export_is_ambiguous() {
         draft: 0,
         packages: vec![parent_lock, child_lock],
     };
-    let panel = parse("panel 3\nimport example.dev/std as local\n").unwrap();
+    let panel = parse("panel 0\nimport example.dev/std as local\n").unwrap();
     let failure = resolve_package_imports(
         &panel,
         &lock,
@@ -482,11 +482,11 @@ fn explicit_local_module_closure_resolves_package_names_without_loading_more_sou
     let loader = Loader(BTreeMap::from([
         (
             "mem://fixture/root.panel".to_owned(),
-            "panel 3\nimport \"./child.panel\" as child\nnode root : child.Part\n".to_owned(),
+            "panel 0\nimport \"./child.panel\" as child\nnode root : child.Part\n".to_owned(),
         ),
         (
             "mem://fixture/child.panel".to_owned(),
-            "panel 3\nimport conduit.dev/std/{tee as split}\ncomposite Part {\nnode branch : split\n}\n"
+            "panel 0\nimport conduit.dev/std/{tee as split}\ncomposite Part {\nnode branch : split\n}\n"
                 .to_owned(),
         ),
     ]));
@@ -550,7 +550,7 @@ fn semantic_descriptors_cannot_smuggle_fetch_install_or_authority_instructions()
         draft: 0,
         packages: vec![locked],
     };
-    let panel = parse("panel 3\nimport example.dev/parts/{probe}\n").unwrap();
+    let panel = parse("panel 0\nimport example.dev/parts/{probe}\n").unwrap();
     let failure = resolve_package_imports(
         &panel,
         &lock,

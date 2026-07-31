@@ -1504,7 +1504,7 @@
         "descriptor hash",
         "contract-only"
       ],
-      "source": "panel 3\n\nimport conduit.dev/std/{tee as split}\n\n# The import can check offline while this selected host has no provider.\nnode branch : split\n",
+      "source": "panel 0\n\nimport conduit.dev/std/{tee as split}\n\n# The import can check offline while this selected host has no provider.\nnode branch : split\n",
       "command": "conduct --check contract-package-import.panel",
       "commands": [
         "conduct inspect --type panel alias.panel",
