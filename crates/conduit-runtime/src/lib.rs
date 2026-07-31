@@ -6957,7 +6957,9 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 *self.host_failure.borrow_mut() = Some(error);
                 return;
             }
-            if let Err(error) = handler.cleanup(node) {
+            if stop == conduit_core::StopPolicy::Abort
+                && let Err(error) = handler.cleanup(node)
+            {
                 *self.host_failure.borrow_mut() = Some(error);
             }
         }

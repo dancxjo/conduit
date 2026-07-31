@@ -84,6 +84,15 @@ cannot own that lifetime, so a persistent watch is resolved and checked by its
 inventory entry while its session, notification, and Abort disposition are
 proved by the hosted lifecycle tests.
 
+`net/http/listen` is likewise a live source, not a one-request batch helper.
+Binding, accepting one connection, reading one bounded request, and writing
+one bounded response are distinct nonblocking steps. Between them it retains
+one exact host-operation interest. `Drain` closes admission first, then lets
+an already accepted request reach its declared response and cleanup; `Abort`
+disposes the same bounded remainder immediately. Neither path creates a new
+listener, reuses a completed run, or turns a host readiness callback into
+semantic authority.
+
 Cancellation invokes the provider's bounded stop disposition and cleanup on
 the same scheduler path. Natural completion also runs cleanup before the node
 is terminal. Provider-owned callbacks, queues, timers, tasks, and buffers must

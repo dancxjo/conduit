@@ -2755,6 +2755,7 @@ struct HttpListenerHandler {
     route_path: String,
     response_body: Vec<u8>,
     phase: HttpListenerPhase,
+    quiescing: bool,
     cancelled: bool,
 }
 
@@ -2766,6 +2767,7 @@ impl Default for HttpListenerHandler {
             route_path: String::new(),
             response_body: Vec::new(),
             phase: HttpListenerPhase::Accept,
+            quiescing: false,
             cancelled: false,
         }
     }
@@ -2930,6 +2932,9 @@ impl Handler for HttpListenerHandler {
         validate_http_listener_config(node)
             .map_err(|error| RuntimeError::new(error.code, error.message))?;
         if self.backend.is_none() {
+            if self.quiescing {
+                return Ok(HostedServiceStep::completed(Vec::new()));
+            }
             self.initialize(node, io)?;
             return Ok(Self::wait());
         }
@@ -2938,6 +2943,9 @@ impl Handler for HttpListenerHandler {
             .as_mut()
             .expect("listener remains initialized while live");
         match &self.phase {
+            HttpListenerPhase::Accept if self.quiescing => {
+                Ok(HostedServiceStep::completed(Vec::new()))
+            }
             HttpListenerPhase::Accept => match backend.poll_accept() {
                 Poll::Ready(Ok(connection)) => {
                     self.phase = HttpListenerPhase::Request { connection };
@@ -2989,7 +2997,11 @@ impl Handler for HttpListenerHandler {
                             .close(response.exchange.connection)
                             .map_err(http_runtime_error)?;
                         self.phase = HttpListenerPhase::Accept;
-                        Ok(Self::wait())
+                        if self.quiescing {
+                            Ok(HostedServiceStep::completed(Vec::new()))
+                        } else {
+                            Ok(Self::wait())
+                        }
                     }
                     Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
                     Poll::Pending => Ok(Self::wait()),
@@ -3001,21 +3013,28 @@ impl Handler for HttpListenerHandler {
     fn cancel(
         &mut self,
         _node: &conduit_panel::Node,
-        _stop: StopPolicy,
+        stop: StopPolicy,
     ) -> Result<(), RuntimeError> {
         if let Some(backend) = &mut self.backend {
             backend.begin_shutdown();
-            backend.finish_shutdown();
+            if stop == StopPolicy::Abort {
+                backend.finish_shutdown();
+            }
         }
-        self.cancelled = true;
+        self.quiescing = stop == StopPolicy::Drain;
+        self.cancelled = stop == StopPolicy::Abort;
         Ok(())
     }
 
     fn cleanup(&mut self, _node: &conduit_panel::Node) -> Result<(), RuntimeError> {
+        if let Some(backend) = &mut self.backend {
+            backend.finish_shutdown();
+        }
         self.backend = None;
         self.phase = HttpListenerPhase::Accept;
         self.response_body.clear();
         self.route_path.clear();
+        self.quiescing = false;
         Ok(())
     }
 }
@@ -3316,8 +3335,13 @@ mod tests {
         assert_eq!(session.state(), ExactRunState::Waiting);
     }
 
-    #[test]
-    fn hosted_listener_serves_multiple_requests_in_one_exact_session() {
+    fn start_listener(
+        run_id: Id<'static>,
+    ) -> (
+        conduit_runtime::ExactHostedRunSession,
+        ExactRunSessionRegistry,
+        std::net::SocketAddr,
+    ) {
         let source = include_str!("../../../examples/http-loopback-listener.panel");
         let mut registry = Registry::hosted_primitives();
         super::register_hosted_http_provider(&mut registry).unwrap();
@@ -3337,7 +3361,7 @@ mod tests {
                 ExactRunContext {
                     semantic_source_hash: plan.source_semantic_hash,
                     plan_epoch: 217,
-                    run_id: Id("run/http/listener"),
+                    run_id,
                     grant_observations: &grants,
                     validation: PlanValidationContext {
                         supported_schema_version: plan.schema_version,
@@ -3366,6 +3390,39 @@ mod tests {
             .strip_prefix("CND-HTTP-BOUND ")
             .and_then(|value| value.trim().parse().ok())
             .expect("exact session published its loopback address");
+        (session, sessions, address)
+    }
+
+    fn serve_request(
+        session: &mut conduit_runtime::ExactHostedRunSession,
+        address: std::net::SocketAddr,
+        path: &str,
+    ) -> Vec<u8> {
+        let mut client = TcpStream::connect(address).unwrap();
+        client
+            .write_all(
+                format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n")
+                    .as_bytes(),
+            )
+            .unwrap();
+        for _ in 0..3 {
+            assert_eq!(
+                session
+                    .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                    .unwrap()
+                    .state,
+                ExactRunState::Active
+            );
+            pump_until_waiting(session);
+        }
+        let mut response = Vec::new();
+        client.read_to_end(&mut response).unwrap();
+        response
+    }
+
+    #[test]
+    fn hosted_listener_serves_multiple_requests_in_one_exact_session() {
+        let (mut session, sessions, address) = start_listener(Id("run/http/listener"));
         let identity = session.identity().clone();
         assert_eq!(
             session
@@ -3376,25 +3433,7 @@ mod tests {
         );
 
         for path in ["/health", "/missing"] {
-            let mut client = TcpStream::connect(address).unwrap();
-            client
-                .write_all(
-                    format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n")
-                        .as_bytes(),
-                )
-                .unwrap();
-            for _ in 0..3 {
-                assert_eq!(
-                    session
-                        .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
-                        .unwrap()
-                        .state,
-                    ExactRunState::Active
-                );
-                pump_until_waiting(&mut session);
-            }
-            let mut response = Vec::new();
-            client.read_to_end(&mut response).unwrap();
+            let response = serve_request(&mut session, address, path);
             assert!(
                 response.starts_with(if path == "/health" {
                     b"HTTP/1.1 200 OK\r\n"
@@ -3406,6 +3445,47 @@ mod tests {
         }
         assert_eq!(session.identity(), &identity);
         session.cancel(StopPolicy::Abort).unwrap();
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
+
+    #[test]
+    fn hosted_listener_drain_finishes_an_admitted_request_without_new_admission() {
+        let (mut session, sessions, address) = start_listener(Id("run/http/listener-drain"));
+        let mut client = TcpStream::connect(address).unwrap();
+        assert_eq!(
+            session
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                .unwrap()
+                .state,
+            ExactRunState::Active
+        );
+        pump_until_waiting(&mut session);
+
+        assert_eq!(
+            session.cancel(StopPolicy::Drain).unwrap().state,
+            ExactRunState::Quiescing
+        );
+        assert!(
+            TcpStream::connect(address).is_err(),
+            "drain stops new admission"
+        );
+        client
+            .write_all(b"GET /health HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n")
+            .unwrap();
+        for _ in 0..2 {
+            session
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                .unwrap();
+            session.pump(1).unwrap();
+        }
+        let mut response = Vec::new();
+        client.read_to_end(&mut response).unwrap();
+        assert!(response.starts_with(b"HTTP/1.1 200 OK\r\n"));
         assert_eq!(
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
