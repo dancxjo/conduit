@@ -5,6 +5,8 @@
 //! A resolved service pins every binding and finite limit before a listener
 //! performs I/O.
 
+pub mod client;
+
 use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
