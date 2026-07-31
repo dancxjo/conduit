@@ -52,7 +52,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 133);
+    assert_eq!(projection.entries.len(), 143);
     let media = projection
         .entries
         .iter()
@@ -63,6 +63,18 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     assert_eq!(media.standalone_lesson.status, "published");
     assert_eq!(
         media.current_provider_observation,
+        "not-recorded-in-catalog"
+    );
+    let spatial = projection
+        .entries
+        .iter()
+        .find(|entry| entry.semantic_identity == "spatial/transform/lookup")
+        .unwrap();
+    assert_eq!(spatial.classification, "reusable-domain-package");
+    assert_eq!(spatial.package_owner, "conduit.domain.spatial");
+    assert_eq!(spatial.standalone_lesson.status, "published");
+    assert_eq!(
+        spatial.current_provider_observation,
         "not-recorded-in-catalog"
     );
     let codec = projection
