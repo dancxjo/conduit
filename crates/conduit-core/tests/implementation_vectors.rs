@@ -150,7 +150,7 @@ fn instantiation(profile: &ExecutionProfile<'_>) -> InstantiationContext<'static
     }
 }
 
-fn started<'a>(profile: &'a ExecutionProfile<'a>) -> ImplementationMachine<'a> {
+fn started<'a>(profile: &'a ExecutionProfile<'a>) -> ImplementationMachine {
     let mut machines =
         [ImplementationMachine::instantiate(profile, instantiation(profile)).unwrap()];
     prepare_all(

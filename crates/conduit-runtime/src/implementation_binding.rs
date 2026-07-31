@@ -56,7 +56,7 @@ impl<T> NativeStepBinding<T> {
 impl<T: NativeStepImplementation> NativeStepBinding<T> {
     pub fn step(
         &mut self,
-        machine: &mut ImplementationMachine<'_>,
+        machine: &mut ImplementationMachine,
         maximum_work: u32,
         executor_usage: StepUsage,
     ) -> Result<StepObservation, ImplementationError> {
@@ -111,7 +111,7 @@ impl<T> MessageStepBinding<T> {
 impl<T: MessageStepEndpoint> MessageStepBinding<T> {
     pub fn step(
         &mut self,
-        machine: &mut ImplementationMachine<'_>,
+        machine: &mut ImplementationMachine,
         maximum_work: u32,
         executor_usage: StepUsage,
     ) -> Result<StepObservation, ImplementationError> {
@@ -152,7 +152,7 @@ impl<T: MessageStepEndpoint> MessageStepBinding<T> {
 }
 
 fn observe_owned_reply(
-    machine: &mut ImplementationMachine<'_>,
+    machine: &mut ImplementationMachine,
     reply: &OwnedStepReply,
     executor_usage: StepUsage,
 ) -> Result<StepObservation, ImplementationError> {

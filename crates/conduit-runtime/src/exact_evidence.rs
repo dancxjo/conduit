@@ -1,11 +1,11 @@
 //! Bounded hosted projection of exact executor observations.
 
 use conduit_core::{
-    ExecutionPlan, FlowEventKind, SchedulerDecisionReason, StepOutcomeKind, StopPolicy,
-    TerminalClass,
+    FlowEventKind, SchedulerDecisionReason, StepOutcomeKind, StopPolicy, TerminalClass,
 };
 use serde::Serialize;
 
+use crate::scheduler::RuntimePlan;
 use crate::{SchedulerEvent, SchedulerEventKind, SchedulerSubject};
 
 /// One stable, typed observation from an exact-plan executor run.
@@ -41,8 +41,9 @@ pub struct ExactEvidenceRecord {
     pub processing_latency_ticks: u64,
 }
 
-pub(crate) fn project_exact_evidence(
-    plan: &ExecutionPlan<'_>,
+pub(crate) fn project_runtime_exact_evidence(
+    plan: &RuntimePlan,
+    plan_identity: &str,
     plan_epoch: u64,
     run_id: &str,
     observations: &[SchedulerEvent],
@@ -54,7 +55,7 @@ pub(crate) fn project_exact_evidence(
             let mut record = ExactEvidenceRecord {
                 schema: "conduit.exact-execution-evidence",
                 schema_version: 0,
-                plan_identity: plan.identity.to_string(),
+                plan_identity: plan_identity.to_owned(),
                 plan_epoch,
                 run_id: run_id.to_owned(),
                 sequence: observation.sequence,
@@ -86,17 +87,16 @@ pub(crate) fn project_exact_evidence(
                 SchedulerSubject::Node(index) => {
                     record.subject_kind = "node";
                     if let Some(node) = plan.nodes.get(usize::from(index)) {
-                        record.subject_id = node.instance.as_str().to_owned();
-                        record.node_id = Some(node.instance.as_str().to_owned());
-                        record.semantic_contract_id = Some(node.contract.id.to_string());
+                        record.subject_id = node.instance.clone();
+                        record.node_id = Some(node.instance.clone());
+                        record.semantic_contract_id = Some(node.contract_id.clone());
                         record.semantic_contract_descriptor_hash =
-                            Some(node.contract.semantic_hash.to_string());
-                        record.implementation_id = Some(node.implementation.id.to_string());
-                        record.implementation_identity =
-                            Some(node.implementation.semantic_hash.to_string());
-                        record.artifact_id = Some(node.artifact.to_string());
-                        record.host_id = Some(node.host.to_string());
-                        record.host_observation_id = Some(node.host_observation.to_string());
+                            Some(node.contract_hash.to_string());
+                        record.implementation_id = Some(node.implementation_id.clone());
+                        record.implementation_identity = Some(node.implementation_hash.to_string());
+                        record.artifact_id = Some(node.artifact_id.clone());
+                        record.host_id = Some(node.host_id.clone());
+                        record.host_observation_id = Some(node.host_observation_id.clone());
                     } else {
                         record.subject_id = format!("invalid-node-index/{index}");
                     }
@@ -104,13 +104,13 @@ pub(crate) fn project_exact_evidence(
                 SchedulerSubject::Cord(index) => {
                     record.subject_kind = "cord";
                     if let Some(cord) = plan.cords.get(usize::from(index)) {
-                        record.subject_id = cord.id.to_string();
-                        record.cord_id = Some(cord.id.to_string());
-                        record.from_port =
-                            Some(format!("{}.{}", cord.from.node.as_str(), cord.from.port));
-                        record.to_port =
-                            Some(format!("{}.{}", cord.to.node.as_str(), cord.to.port));
-                        record.pressure = Some(cord.flow.pressure.as_str());
+                        record.subject_id = cord.id.clone();
+                        record.cord_id = Some(cord.id.clone());
+                        let from = &plan.nodes[cord.from_node].instance;
+                        let to = &plan.nodes[cord.to_node].instance;
+                        record.from_port = Some(format!("{from}.{}", cord.from_port));
+                        record.to_port = Some(format!("{to}.{}", cord.to_port));
+                        record.pressure = Some(cord.flow.pressure_name());
                     } else {
                         record.subject_id = format!("invalid-cord-index/{index}");
                     }

@@ -22,7 +22,8 @@ pub struct SchedulerPolicy {
     pub schema_version: u32,
     /// Deterministic ready-queue ordering.
     pub ready_queue: ReadyQueueDiscipline,
-    /// Maximum node decisions before the run must terminate or be renewed.
+    /// Optional lifetime decision ceiling. Zero means the exact session has no
+    /// decision-count deadline; each host pump remains independently bounded.
     pub max_decisions: u64,
     /// Maximum simulated-clock tick accepted by this run.
     pub max_tick: u64,
@@ -38,14 +39,21 @@ impl SchedulerPolicy {
         if self.schema_version != SCHEDULER_CONTRACT_VERSION {
             return Err(SchedulerContractError::UnsupportedVersion);
         }
-        if self.max_decisions == 0
-            || self.max_tick == 0
-            || self.max_consecutive_yields == 0
-            || self.max_events == 0
-        {
+        if self.max_tick == 0 || self.max_consecutive_yields == 0 || self.max_events == 0 {
             return Err(SchedulerContractError::UnboundedPolicy);
         }
         Ok(())
+    }
+
+    /// Returns the optional lifetime decision deadline without conflating it
+    /// with a caller's cooperative pump quantum.
+    #[must_use]
+    pub const fn lifetime_decision_limit(self) -> Option<u64> {
+        if self.max_decisions == 0 {
+            None
+        } else {
+            Some(self.max_decisions)
+        }
     }
 }
 

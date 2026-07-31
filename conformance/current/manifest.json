@@ -2579,7 +2579,7 @@
         {
           "id": "bounded-scheduler",
           "path": "../c4/bounded-scheduler.json",
-          "sha256": "sha256:8d27536caf5409a6c56c3a5653b0d6d1e21f16bc82469b84ec48ce1e328816d2",
+          "sha256": "sha256:b1952d0ffc044511cddeb85bae2fe177050e05db143fabdc01045fa388c33c0b",
           "operation": "bounded-scheduler",
           "requirement_ids": [
             "SCH-001",
@@ -2602,7 +2602,7 @@
           "default_rule": "SCH-004",
           "case_rules": {
             "finite-round-robin-policy": "SCH-005",
-            "zero-decision-policy-rejected": "SCH-012",
+            "unlimited-decision-lifetime-permitted": "SCH-005",
             "pool-populations-reconcile": "SCH-013",
             "pool-population-drift-rejected": "SCH-013",
             "resource-wait-does-not-manufacture-demand": "SCH-013",
@@ -2638,28 +2638,77 @@
           "expected_fields": [
             "expected"
           ]
+        },
+        {
+          "id": "persistent-exact-run",
+          "path": "../c4/persistent-exact-run.json",
+          "sha256": "sha256:c9f12cf131eb5695adf1ccba10ac38ceb30fa62926cf95bae672dab68784a5b8",
+          "operation": "persistent-exact-run",
+          "requirement_ids": [
+            "SCH-002",
+            "SCH-003",
+            "SCH-005",
+            "SCH-006",
+            "SCH-010",
+            "SCH-011",
+            "SCH-012"
+          ],
+          "default_rule": "SCH-006",
+          "case_rules": {
+            "finite-success": "SCH-010",
+            "live-waiting-repeated-pump": "SCH-006",
+            "pump-quantum-yields-control": "SCH-005",
+            "timer-wake-resumes-session": "SCH-006",
+            "host-operation-wake-resumes-session": "SCH-006",
+            "wrong-wake-does-not-resume": "SCH-006",
+            "drain-cancels-active-session": "SCH-010",
+            "abort-cancels-active-session": "SCH-010",
+            "cancellation-deadline-fails-closed": "SCH-010",
+            "session-capacity-exhaustion": "SCH-003",
+            "plan-source-identity-mismatch": "SCH-002",
+            "stale-grant-or-lease-at-start": "SCH-002",
+            "stale-grant-or-lease-at-use": "SCH-002",
+            "pump-after-terminal": "SCH-010",
+            "finalize-before-terminal-rejected": "SCH-010",
+            "source-edit-cannot-mutate-active-epoch": "SCH-012"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
         }
       ],
       "coverage": {
         "positive": [
           "bounded-scheduler#exact-preallocation",
           "bounded-scheduler#two-input-join-atomic",
-          "bounded-scheduler#host-operation-exact-wake"
+          "bounded-scheduler#host-operation-exact-wake",
+          "persistent-exact-run#finite-success",
+          "persistent-exact-run#host-operation-wake-resumes-session"
         ],
         "negative": [
           "bounded-scheduler#allocation-failure-starts-none",
           "bounded-scheduler#zero-progress-node-cannot-monopolize",
-          "bounded-scheduler#pool-population-drift-rejected"
+          "bounded-scheduler#pool-population-drift-rejected",
+          "persistent-exact-run#wrong-wake-does-not-resume",
+          "persistent-exact-run#finalize-before-terminal-rejected"
         ],
         "boundary": [
           "bounded-scheduler#full-blocking-queue",
           "bounded-scheduler#decision-limit-is-terminal",
-          "bounded-scheduler#evidence-capacity-is-terminal"
+          "bounded-scheduler#evidence-capacity-is-terminal",
+          "persistent-exact-run#live-waiting-repeated-pump",
+          "persistent-exact-run#pump-quantum-yields-control"
         ],
         "migration": [
           "bounded-scheduler#no-async-runtime-plan-field",
           "bounded-scheduler#resource-wait-does-not-manufacture-demand",
-          "bounded-scheduler#pool-resource-wait-long-simulation"
+          "bounded-scheduler#pool-resource-wait-long-simulation",
+          "persistent-exact-run#source-edit-cannot-mutate-active-epoch"
         ]
       },
       "reference_tests": [

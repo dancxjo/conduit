@@ -49,7 +49,7 @@ fn profile() -> ExecutionProfile<'static> {
     profile
 }
 
-fn started<'a>(profile: &'a ExecutionProfile<'a>) -> ImplementationMachine<'a> {
+fn started<'a>(profile: &'a ExecutionProfile<'a>) -> ImplementationMachine {
     let mut machines = [ImplementationMachine::instantiate(
         profile,
         InstantiationContext {

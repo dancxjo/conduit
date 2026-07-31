@@ -26,10 +26,10 @@ pub struct HostedPoolStepObservation<'a> {
 /// pool lifecycle observation. The implementation machine is copied first, so
 /// evidence exhaustion or an illegal pool transition cannot partially advance
 /// its lifecycle.
-pub fn observe_pool_step<'pool, 'profile, const SLOTS: usize, const EVIDENCE: usize>(
+pub fn observe_pool_step<'pool, const SLOTS: usize, const EVIDENCE: usize>(
     runtime: &mut HostedPoolRuntime<'pool, SLOTS, EVIDENCE>,
     slot: u16,
-    machine: &mut ImplementationMachine<'profile>,
+    machine: &mut ImplementationMachine,
     outcome: StepOutcome<'_>,
     usage: StepUsage,
     failure_cause: SemanticHash,

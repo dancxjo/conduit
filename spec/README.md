@@ -96,6 +96,10 @@ containment program is tracked by
   freezes atomic runtime preallocation, deterministic round-robin stepping,
   exact queue wakes, staged transactions, cancellation/terminal propagation,
   bounded scheduler evidence, and pool-population reconciliation.
+- [`072-persistent-exact-run-session.md`](072-persistent-exact-run-session.md)
+  freezes explicit Start, owned exact runtime snapshots, bounded cooperative
+  pumping, Waiting/Quiescing/Terminal distinction, exact wakes/cancellation,
+  and terminal-only release.
 - [`024-structural-flow.md`](024-structural-flow.md) freezes explicit
   coupled/isolated fan-out, deterministic merge policies, bounded structural
   nodes and adapters, current plan identity, and the in-plan fallback boundary.

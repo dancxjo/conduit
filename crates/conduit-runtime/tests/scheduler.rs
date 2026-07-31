@@ -24,9 +24,10 @@ use conduit_core::{
     resolve_authority,
 };
 use conduit_runtime::{
-    DeterministicExecutor, OwnedEventPayload, RuntimeEvidenceContext, RuntimeTimestamp,
-    RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind,
-    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    DeterministicExecutor, ExactRunIdentity, ExactRunSession, ExactRunSessionRegistry,
+    ExactRunState, OwnedEventPayload, RuntimeEvidenceContext, RuntimeTimestamp, RuntimeValue,
+    RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind, SchedulerNode,
+    SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
     record_scheduler_evidence, validate_hosted_execution_plan, validate_runtime_value_for_cord,
 };
 
@@ -256,7 +257,7 @@ fn with_plan(
 fn machine<'a>(
     profile: &'a ExecutionProfile<'a>,
     node: &ResolvedPlanNode<'a>,
-) -> ImplementationMachine<'a> {
+) -> ImplementationMachine {
     ImplementationMachine::instantiate(
         profile,
         InstantiationContext {
@@ -316,6 +317,16 @@ enum FixtureNode {
     HostWait {
         waiting: bool,
         done: bool,
+        prepare_count: Rc<Cell<u32>>,
+        start_count: Rc<Cell<u32>>,
+    },
+    TimerWait {
+        waiting: bool,
+        done: bool,
+        prepare_count: Rc<Cell<u32>>,
+        start_count: Rc<Cell<u32>>,
+    },
+    CancellationWait {
         prepare_count: Rc<Cell<u32>>,
         start_count: Rc<Cell<u32>>,
     },
@@ -418,6 +429,15 @@ impl FixtureNode {
                 start_count,
                 ..
             }
+            | Self::TimerWait {
+                prepare_count,
+                start_count,
+                ..
+            }
+            | Self::CancellationWait {
+                prepare_count,
+                start_count,
+            }
             | Self::Fail {
                 prepare_count,
                 start_count,
@@ -454,7 +474,7 @@ impl SchedulerNode for FixtureNode {
         Ok(LifecycleUsage::default())
     }
 
-    fn step(&mut self, io: &mut StepIo<'_, '_>) -> SchedulerStep {
+    fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
         match self {
             Self::Source {
                 next,
@@ -589,6 +609,25 @@ impl SchedulerNode for FixtureNode {
                     SchedulerStep::Progress
                 }
             }
+            Self::TimerWait { waiting, done, .. } => {
+                if *done {
+                    SchedulerStep::Completed
+                } else if !*waiting {
+                    *waiting = true;
+                    io.wait_for_timer(Id("timer/device"), io.tick() + 3)
+                        .unwrap();
+                    SchedulerStep::Pending
+                } else {
+                    *done = true;
+                    io.record_host_progress().unwrap();
+                    SchedulerStep::Progress
+                }
+            }
+            Self::CancellationWait { .. } => {
+                io.wait_for_host_operation(Id("operation/cancellation-wait"))
+                    .unwrap();
+                SchedulerStep::Pending
+            }
             Self::Fail { .. } => SchedulerStep::Failed {
                 code: Id("fixture/node-failed"),
             },
@@ -639,7 +678,7 @@ fn start_executor<'a>(
     source: FixtureNode,
     sink: FixtureNode,
     scheduler_policy: SchedulerPolicy,
-) -> Result<DeterministicExecutor<'a, FixtureNode>, SchedulerError> {
+) -> Result<DeterministicExecutor<FixtureNode>, SchedulerError> {
     let nodes = vec![
         ScheduledNode {
             driver: source,
@@ -663,6 +702,286 @@ fn start_executor<'a>(
         reservation(),
         nodes,
     )
+}
+
+fn session(executor: DeterministicExecutor<FixtureNode>) -> ExactRunSession<FixtureNode> {
+    let registry =
+        ExactRunSessionRegistry::new(1, reservation().available_runtime_memory_bytes).unwrap();
+    ExactRunSession::new(
+        registry
+            .admit(reservation().available_runtime_memory_bytes)
+            .unwrap(),
+        ExactRunIdentity {
+            plan_identity: hash(201),
+            source_semantic_hash: hash(202),
+            plan_epoch: 7,
+            run_id: "fixture/persistent-run".to_owned(),
+        },
+        executor,
+    )
+}
+
+#[test]
+fn exact_session_capacity_is_admitted_before_start_and_released_when_admission_ends() {
+    let sessions = ExactRunSessionRegistry::new(1, 128).unwrap();
+    let first = sessions.admit(128).unwrap();
+    assert_eq!(sessions.active_sessions(), 1);
+    assert_eq!(sessions.reserved_bytes(), 128);
+    assert!(matches!(
+        sessions.admit(1),
+        Err(SchedulerError::AllocationUnavailable)
+    ));
+    drop(first);
+    assert_eq!(sessions.active_sessions(), 0);
+    assert_eq!(sessions.reserved_bytes(), 0);
+    assert!(sessions.admit(128).is_ok());
+}
+
+#[test]
+fn exact_session_terminal_finalization_releases_its_registry_reservation() {
+    with_plan(1, 64, |plan, profile| {
+        let sessions =
+            ExactRunSessionRegistry::new(1, reservation().available_runtime_memory_bytes).unwrap();
+        let source = FixtureNode::HostProgress {
+            remaining: 8,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 8,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run = ExactRunSession::new(
+            sessions
+                .admit(reservation().available_runtime_memory_bytes)
+                .unwrap(),
+            ExactRunIdentity {
+                plan_identity: hash(201),
+                source_semantic_hash: hash(202),
+                plan_epoch: 7,
+                run_id: "fixture/persistent-run".to_owned(),
+            },
+            start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap(),
+        );
+        assert_eq!(sessions.active_sessions(), 1);
+        assert_eq!(
+            run.cancel(StopPolicy::Abort).unwrap().state,
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        assert!(run.finalize().is_ok());
+        assert_eq!(sessions.active_sessions(), 0);
+        assert_eq!(sessions.reserved_bytes(), 0);
+    });
+}
+
+#[test]
+fn dropping_a_nonterminal_session_fails_its_registry_closed() {
+    with_plan(1, 64, |plan, profile| {
+        let sessions =
+            ExactRunSessionRegistry::new(1, reservation().available_runtime_memory_bytes).unwrap();
+        let source = FixtureNode::HostWait {
+            waiting: false,
+            done: false,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::sink(Rc::new(RefCell::new(Vec::new())));
+        let run = ExactRunSession::new(
+            sessions
+                .admit(reservation().available_runtime_memory_bytes)
+                .unwrap(),
+            ExactRunIdentity {
+                plan_identity: hash(201),
+                source_semantic_hash: hash(202),
+                plan_epoch: 7,
+                run_id: "fixture/persistent-run".to_owned(),
+            },
+            start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap(),
+        );
+        drop(run);
+        assert!(sessions.has_abandoned_live_session());
+        assert!(matches!(
+            sessions.admit(reservation().available_runtime_memory_bytes),
+            Err(SchedulerError::AllocationUnavailable)
+        ));
+    });
+}
+
+#[test]
+fn exact_session_waits_across_repeated_pumps_and_wakes_the_same_run() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostWait {
+            waiting: false,
+            done: false,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::sink(Rc::new(RefCell::new(Vec::new())));
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        let identity = run.identity().clone();
+        while run.state() == ExactRunState::Active {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(run.state(), ExactRunState::Waiting);
+        assert_eq!(
+            run.notify_host_operation(Id("operation/wrong"))
+                .unwrap()
+                .state,
+            ExactRunState::Waiting
+        );
+        let decisions = run.high_water().decisions;
+        for _ in 0..100 {
+            assert_eq!(run.pump(1).unwrap().state, ExactRunState::Waiting);
+        }
+        assert_eq!(run.high_water().decisions, decisions);
+        assert_eq!(run.identity(), &identity);
+
+        run.notify_host_operation(Id("operation/device")).unwrap();
+        while run.state() == ExactRunState::Active {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(
+            run.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+        );
+        assert_eq!(run.identity(), &identity);
+    });
+}
+
+#[test]
+fn exact_session_timer_wake_resumes_the_same_waiting_epoch() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::TimerWait {
+            waiting: false,
+            done: false,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::sink(Rc::new(RefCell::new(Vec::new())));
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        let identity = run.identity().clone();
+        while run.state() == ExactRunState::Active {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(run.state(), ExactRunState::Waiting);
+        let deadline = run.next_timer_deadline().expect("timer is retained");
+        assert_eq!(
+            run.advance_to(deadline).unwrap().state,
+            ExactRunState::Active
+        );
+        while run.state() == ExactRunState::Active {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(
+            run.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+        );
+        assert_eq!(run.identity(), &identity);
+    });
+}
+
+#[test]
+fn exact_session_rejects_nonterminal_finalization_without_dropping_the_epoch() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostWait {
+            waiting: false,
+            done: false,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::sink(Rc::new(RefCell::new(Vec::new())));
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        assert!(matches!(run.finalize(), Err(ExactRunState::Active)));
+        assert_eq!(run.identity().plan_epoch, 7);
+        assert_eq!(run.pump(1).unwrap().state, ExactRunState::Active);
+    });
+}
+
+#[test]
+fn exact_session_pump_quantum_and_cancellation_keep_one_epoch() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostWait {
+            waiting: false,
+            done: false,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::sink(Rc::new(RefCell::new(Vec::new())));
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        let first = run.pump(1).unwrap();
+        assert_eq!(first.state, ExactRunState::Active);
+        assert_eq!(first.decisions, 1);
+        assert_eq!(run.identity().plan_epoch, 7);
+
+        let drain = run.cancel(StopPolicy::Drain).unwrap();
+        assert!(matches!(
+            drain.state,
+            ExactRunState::Quiescing | ExactRunState::Terminal(_)
+        ));
+        while matches!(
+            run.state(),
+            ExactRunState::Active | ExactRunState::Quiescing
+        ) {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(
+            run.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+
+        let source = FixtureNode::HostProgress {
+            remaining: 8,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 8,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut aborted =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        assert_eq!(
+            aborted.cancel(StopPolicy::Abort).unwrap().state,
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+    });
+}
+
+#[test]
+fn exact_session_drain_deadline_fails_closed_without_resetting_the_epoch() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::CancellationWait {
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::CancellationWait {
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(256, 2_000)).unwrap());
+        let identity = run.identity().clone();
+        while run.state() == ExactRunState::Active {
+            run.pump(1).unwrap();
+        }
+        assert_eq!(run.state(), ExactRunState::Waiting);
+        assert_eq!(
+            run.cancel(StopPolicy::Drain).unwrap().state,
+            ExactRunState::Quiescing
+        );
+        run.pump(1).unwrap();
+        run.pump(1).unwrap();
+        assert_eq!(run.state(), ExactRunState::Quiescing);
+        let error = run.advance_to(64).unwrap_err();
+        assert_eq!(error.code(), "CND-SCH-012");
+        assert_eq!(run.identity(), &identity);
+    });
 }
 
 #[test]
@@ -1928,4 +2247,32 @@ fn every_deterministic_scheduler_fixture_is_owned_here() {
     assert!(ids.contains(&"two-input-join-atomic"));
     assert!(ids.contains(&"long-run-capacity-invariant"));
     assert!(ids.contains(&"no-async-runtime-plan-field"));
+}
+
+#[test]
+fn every_persistent_exact_run_fixture_is_owned_by_the_session_boundary() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/c4/persistent-exact-run.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["suite"], "conduit.persistent-exact-run");
+    let ids = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(ids.len(), 16);
+    for id in [
+        "live-waiting-repeated-pump",
+        "timer-wake-resumes-session",
+        "host-operation-wake-resumes-session",
+        "wrong-wake-does-not-resume",
+        "drain-cancels-active-session",
+        "abort-cancels-active-session",
+        "finalize-before-terminal-rejected",
+        "source-edit-cannot-mutate-active-epoch",
+    ] {
+        assert!(ids.contains(&id), "fixture must name `{id}`");
+    }
 }

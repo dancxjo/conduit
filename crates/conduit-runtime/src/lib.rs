@@ -45,6 +45,7 @@ mod pool;
 mod resource_effect;
 mod runtime_evidence;
 mod scheduler;
+mod session;
 mod source_lowering;
 mod supervision;
 mod transition;
@@ -107,6 +108,9 @@ pub use scheduler::{
     SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventKind, SchedulerHighWater,
     SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SchedulerSubject,
     SendStatus, StepIo, validate_runtime_value_for_cord,
+};
+pub use session::{
+    ExactRunIdentity, ExactRunPump, ExactRunSession, ExactRunSessionRegistry, ExactRunState,
 };
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_VERSION, LiteralValidationError, LoweredAuthoredNode,
@@ -1318,6 +1322,106 @@ pub struct ExactExecutionReport {
     pub scheduler_events: Vec<SchedulerEvent>,
     pub evidence: Vec<ExactEvidenceRecord>,
     pub evidence_bytes: u64,
+}
+
+/// Hosted exact-run ownership retained across cooperative scheduler turns.
+///
+/// It owns the admitted executor and all implementation state. The host I/O
+/// boundary remains explicitly borrowed from the caller; a later browser-host
+/// adapter supplies its own bounded worker-owned I/O buffers.
+pub struct ExactHostedRunSession<'r, 'i> {
+    session: ExactRunSession<HostedSchedulerDriver<'r, 'i>>,
+    host_failure: Rc<RefCell<Option<RuntimeError>>>,
+}
+
+impl ExactHostedRunSession<'_, '_> {
+    #[must_use]
+    pub fn identity(&self) -> &ExactRunIdentity {
+        self.session.identity()
+    }
+
+    #[must_use]
+    pub fn state(&self) -> ExactRunState {
+        self.session.state()
+    }
+
+    #[must_use]
+    pub fn scheduler_status(&self) -> SchedulerStatus {
+        self.session.scheduler_status()
+    }
+
+    pub fn pump(&mut self, quantum: u64) -> Result<ExactRunPump, RuntimeError> {
+        self.session
+            .pump(quantum)
+            .map_err(|error| self.take_scheduler_error(error))
+    }
+
+    pub fn advance_to(&mut self, tick: u64) -> Result<ExactRunPump, RuntimeError> {
+        self.session
+            .advance_to(tick)
+            .map_err(|error| self.take_scheduler_error(error))
+    }
+
+    pub fn notify_host_operation(
+        &mut self,
+        subject: Id<'static>,
+    ) -> Result<ExactRunPump, RuntimeError> {
+        self.session
+            .notify_host_operation(subject)
+            .map_err(|error| self.take_scheduler_error(error))
+    }
+
+    pub fn cancel(&mut self, stop: conduit_core::StopPolicy) -> Result<ExactRunPump, RuntimeError> {
+        self.session
+            .cancel(stop)
+            .map_err(|error| self.take_scheduler_error(error))
+    }
+
+    #[must_use]
+    pub fn next_timer_deadline(&self) -> Option<u64> {
+        self.session.next_timer_deadline()
+    }
+
+    #[must_use]
+    pub fn allocation(&self) -> SchedulerAllocation {
+        self.session.allocation()
+    }
+
+    /// Runtime budget reserved in the supplied session registry for this run.
+    #[must_use]
+    pub fn reserved_session_bytes(&self) -> u64 {
+        self.session.reserved_session_bytes()
+    }
+
+    #[must_use]
+    pub fn high_water(&self) -> SchedulerHighWater {
+        self.session.high_water()
+    }
+
+    pub fn scheduler_events(&self) -> impl Iterator<Item = &SchedulerEvent> {
+        self.session.scheduler_events()
+    }
+
+    #[must_use]
+    pub fn exact_evidence(&self) -> Vec<ExactEvidenceRecord> {
+        self.session.exact_evidence()
+    }
+
+    /// Releases this hosted session only after the executor reached a terminal
+    /// state. A nonterminal error leaves the session unchanged.
+    pub fn finalize(&mut self) -> Result<(), ExactRunState> {
+        match self.session.finalize() {
+            Ok(_) => Ok(()),
+            Err(state) => Err(state),
+        }
+    }
+
+    fn take_scheduler_error(&self, error: SchedulerError) -> RuntimeError {
+        self.host_failure
+            .borrow_mut()
+            .take()
+            .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
+    }
 }
 
 pub trait Handler {
@@ -4723,14 +4827,19 @@ impl ResolvedPanel<'_> {
         self.run_exact_report_controlled(plan, bindings, context, Some(stop), io)
     }
 
-    fn run_exact_report_controlled<'p, 'r, 'i>(
+    /// Atomically admits and starts one persistent exact-run session. It does
+    /// not execute a node step; callers drive it through bounded `pump` turns.
+    pub fn start_exact_session<'p, 'r, 'i>(
         &self,
         plan: &'p ExecutionPlan<'p>,
         bindings: &ExactHostedBindings,
         context: ExactRunContext<'p>,
-        initial_stop: Option<conduit_core::StopPolicy>,
+        sessions: &ExactRunSessionRegistry,
         io: &'r mut RunIo<'i>,
-    ) -> Result<ExactExecutionReport, RuntimeError> {
+    ) -> Result<ExactHostedRunSession<'r, 'i>, RuntimeError> {
+        let admission = sessions
+            .admit(context.reservation.available_runtime_memory_bytes)
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         validate_hosted_execution_plan(plan, context.validation)
             .map_err(|error| RuntimeError::new(error.code.as_str(), error.to_string()))?;
         validate_use_time_grants(plan, context)?;
@@ -5439,7 +5548,7 @@ impl ResolvedPanel<'_> {
             });
             debug_assert_eq!(scheduled_nodes.len(), node_index + 1);
         }
-        let mut executor = DeterministicExecutor::start(
+        let executor = DeterministicExecutor::start(
             plan,
             context.validation,
             context.scheduler_policy,
@@ -5447,40 +5556,55 @@ impl ResolvedPanel<'_> {
             scheduled_nodes,
         )
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-        if let Some(stop) = initial_stop {
-            executor
-                .cancel(stop)
-                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-        }
-        let status = loop {
-            let status = match executor.run_until_stalled() {
-                Ok(status) => status,
-                Err(error) => {
-                    return Err(host_failure
-                        .borrow_mut()
-                        .take()
-                        .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string())));
-                }
-            };
-            if status != SchedulerStatus::Stalled {
-                break status;
-            }
-            let Some(deadline) = executor.next_timer_deadline() else {
-                break status;
-            };
-            executor
-                .advance_to(deadline)
-                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-        };
-        let allocation = executor.allocation();
-        let high_water = executor.high_water();
-        let scheduler_events: Vec<SchedulerEvent> = executor.events().copied().collect();
-        let evidence = exact_evidence::project_exact_evidence(
-            plan,
-            context.plan_epoch,
-            context.run_id.as_str(),
-            &scheduler_events,
+        let session = ExactRunSession::new(
+            admission,
+            ExactRunIdentity {
+                plan_identity: plan.identity,
+                source_semantic_hash: plan.source_semantic_hash,
+                plan_epoch: context.plan_epoch,
+                run_id: context.run_id.as_str().to_owned(),
+            },
+            executor,
         );
+        Ok(ExactHostedRunSession {
+            session,
+            host_failure,
+        })
+    }
+
+    fn run_exact_report_controlled<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        initial_stop: Option<conduit_core::StopPolicy>,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExactExecutionReport, RuntimeError> {
+        let sessions =
+            ExactRunSessionRegistry::new(1, context.reservation.available_runtime_memory_bytes)
+                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        let mut session = self.start_exact_session(plan, bindings, context, &sessions, io)?;
+        if let Some(stop) = initial_stop {
+            session.cancel(stop)?;
+        }
+        let quantum = context.scheduler_policy.max_decisions.max(1);
+        let status = loop {
+            session.pump(quantum)?;
+            match session.scheduler_status() {
+                SchedulerStatus::Running => continue,
+                SchedulerStatus::Stalled => {
+                    let Some(deadline) = session.next_timer_deadline() else {
+                        break SchedulerStatus::Stalled;
+                    };
+                    session.advance_to(deadline)?;
+                }
+                terminal => break terminal,
+            }
+        };
+        let allocation = session.allocation();
+        let high_water = session.high_water();
+        let scheduler_events: Vec<SchedulerEvent> = session.scheduler_events().copied().collect();
+        let evidence = session.exact_evidence();
         let evidence_bytes = evidence
             .iter()
             .map(|record| {
@@ -5508,10 +5632,6 @@ impl ResolvedPanel<'_> {
                 evidence,
                 evidence_bytes,
             }),
-            SchedulerStatus::Failed(_) => Err(host_failure
-                .borrow_mut()
-                .take()
-                .unwrap_or_else(|| RuntimeError::new("CND-RUN-005", "exact executor run failed"))),
             SchedulerStatus::Cancelled if initial_stop.is_some() => Ok(ExactExecutionReport {
                 summary: ExecutionSummary {
                     nodes_completed: 0,
@@ -5527,6 +5647,10 @@ impl ResolvedPanel<'_> {
             SchedulerStatus::Cancelled => Err(RuntimeError::new(
                 "CND-RUN-006",
                 "exact executor run cancelled",
+            )),
+            SchedulerStatus::Failed(_) => Err(RuntimeError::new(
+                "CND-RUN-005",
+                "exact executor run failed",
             )),
             SchedulerStatus::Running | SchedulerStatus::Stalled | SchedulerStatus::Disconnected => {
                 Err(RuntimeError::new(
@@ -5956,7 +6080,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
         Ok(conduit_core::LifecycleUsage::default())
     }
 
-    fn step(&mut self, io: &mut StepIo<'_, '_>) -> SchedulerStep {
+    fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
         match &mut self.kind {
             HostedNodeKind::Literal { value, emitted } => {
                 if *emitted {
@@ -10851,7 +10975,7 @@ fn supervision_runtime_error(error: conduit_std::SupervisionError) -> RuntimeErr
     RuntimeError::new(error.code(), error.code())
 }
 
-fn recorded_time_progress(io: &mut StepIo<'_, '_>) -> SchedulerStep {
+fn recorded_time_progress(io: &mut StepIo<'_>) -> SchedulerStep {
     if io.record_host_progress().is_ok() {
         SchedulerStep::Progress
     } else {

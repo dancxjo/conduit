@@ -16,7 +16,7 @@ use conduit_core::{
 use conduit_panel::parse;
 use conduit_runtime::{
     AvailabilityState, ExactHostedBinding, ExactHostedBindings, ExactRunContext,
-    HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
+    ExactRunSessionRegistry, HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
 };
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json");
@@ -740,6 +740,48 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
         format.implementation.semantic_hash
     );
     assert_ne!(format.implementation.semantic_hash, plan.identity);
+
+    let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
+    let mut input = &b""[..];
+    let mut session_output = Vec::new();
+    let mut session_error = Vec::new();
+    let mut session_display = Vec::new();
+    let mut session_io = RunIo {
+        input: &mut input,
+        output: &mut session_output,
+        error: &mut session_error,
+        display: &mut session_display,
+    };
+    let mut session = resolved
+        .start_exact_session(
+            &plan,
+            &bindings,
+            context(conduit_core::Id("fixture/format-run")),
+            &sessions,
+            &mut session_io,
+        )
+        .unwrap();
+    assert_eq!(sessions.active_sessions(), 1);
+    assert_eq!(
+        session.high_water().decisions,
+        0,
+        "start must not execute a node step"
+    );
+    while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
+        session.pump(1).unwrap();
+    }
+    assert_eq!(
+        session.state(),
+        conduit_runtime::ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+    );
+    assert_eq!(session.exact_evidence(), report.evidence);
+    assert!(session.finalize().is_ok());
+    assert_eq!(sessions.active_sessions(), 0);
+    drop(session);
+    assert_eq!(
+        session_display,
+        b"Hello, operator. Payload: {status = ready}\n"
+    );
 
     let mut input = &b""[..];
     let mut cancelled_output = Vec::new();

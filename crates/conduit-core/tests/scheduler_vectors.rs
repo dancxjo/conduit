@@ -4,7 +4,7 @@ use conduit_core::{
 };
 
 #[test]
-fn policy_requires_finite_scheduler_owned_bounds() {
+fn policy_keeps_per_pump_bounds_separate_from_optional_lifetime_decisions() {
     let valid = SchedulerPolicy {
         schema_version: SCHEDULER_CONTRACT_VERSION,
         ready_queue: ReadyQueueDiscipline::RoundRobin,
@@ -14,14 +14,12 @@ fn policy_requires_finite_scheduler_owned_bounds() {
         max_events: 1_000,
     };
     assert_eq!(valid.validate(), Ok(()));
-    assert_eq!(
-        SchedulerPolicy {
-            max_decisions: 0,
-            ..valid
-        }
-        .validate(),
-        Err(SchedulerContractError::UnboundedPolicy)
-    );
+    let continuous = SchedulerPolicy {
+        max_decisions: 0,
+        ..valid
+    };
+    assert_eq!(continuous.validate(), Ok(()));
+    assert_eq!(continuous.lifetime_decision_limit(), None);
     assert_eq!(
         SchedulerPolicy {
             schema_version: u32::MAX,
@@ -154,6 +152,7 @@ fn every_portable_scheduler_fixture_is_owned_here() {
     assert_eq!(core_cases, 8);
     for id in [
         "finite-round-robin-policy",
+        "unlimited-decision-lifetime-permitted",
         "pool-populations-reconcile",
         "resource-wait-does-not-manufacture-demand",
         "restart-attempt-budget-terminates",

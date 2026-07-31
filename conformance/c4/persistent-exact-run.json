@@ -1,0 +1,21 @@
+{
+  "suite": "conduit.persistent-exact-run",
+  "cases": [
+    {"id":"finite-success","runner":"deterministic-session","expected":{"terminal":"succeeded","evidence":"normalized"}},
+    {"id":"live-waiting-repeated-pump","runner":"deterministic-session","expected":{"pumps":100,"state":"waiting","terminal":false}},
+    {"id":"pump-quantum-yields-control","runner":"deterministic-session","expected":{"quantum":1,"state":"active","counters":"retained"}},
+    {"id":"timer-wake-resumes-session","runner":"deterministic-session","expected":{"before":"waiting","wake":"timer","after":"active"}},
+    {"id":"host-operation-wake-resumes-session","runner":"deterministic-session","expected":{"before":"waiting","wake":"host-operation","after":"active"}},
+    {"id":"wrong-wake-does-not-resume","runner":"deterministic-session","expected":{"before":"waiting","after":"waiting"}},
+    {"id":"drain-cancels-active-session","runner":"deterministic-session","expected":{"state":"quiescing","terminal":"cancelled"}},
+    {"id":"abort-cancels-active-session","runner":"deterministic-session","expected":{"terminal":"cancelled","discarded":"evidenced"}},
+    {"id":"cancellation-deadline-fails-closed","runner":"deterministic-session","expected":{"error":"CND-SCH-012"}},
+    {"id":"session-capacity-exhaustion","runner":"deterministic-session","expected":{"error":"CND-SCH-005"}},
+    {"id":"plan-source-identity-mismatch","runner":"hosted-session","expected":{"error":"CND-RUN-009"}},
+    {"id":"stale-grant-or-lease-at-start","runner":"hosted-session","expected":{"error":"CND-RUN-010"}},
+    {"id":"stale-grant-or-lease-at-use","runner":"hosted-session","expected":{"error":"CND-RUN-010"}},
+    {"id":"pump-after-terminal","runner":"deterministic-session","expected":{"terminal":"retained"}},
+    {"id":"finalize-before-terminal-rejected","runner":"deterministic-session","expected":{"session":"retained"}},
+    {"id":"source-edit-cannot-mutate-active-epoch","runner":"deterministic-session","expected":{"identity":"pinned"}}
+  ]
+}

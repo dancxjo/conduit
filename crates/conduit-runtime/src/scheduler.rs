@@ -13,8 +13,8 @@ use conduit_core::{
     ImplementationError, ImplementationMachine, InstancePhase, LifecycleUsage, OfferDisposition,
     PlanResourceBudget, PrepareOutcome, Pressure, ReadyQueueDiscipline, SchedulerDecisionReason,
     SchedulerPolicy, SemanticHash, Sensitivity, StepObservation, StepOutcome, StepOutcomeKind,
-    StepUsage, StopPolicy, TerminalClass, ValueEnvelopeReason, WakeInterest, WakeInterestKind,
-    prepare_all, start_all,
+    StepUsage, StopPolicy, TerminalClass, ValueEnvelopeReason, WakeInterestKind, prepare_all,
+    start_all,
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -38,6 +38,305 @@ pub struct RuntimeValueEnvelope {
     pub timestamp_count: u8,
     pub timestamps: [RuntimeTimestamp; conduit_core::MAX_VALUE_CLOCK_DOMAINS],
     pub sensitivity: Sensitivity,
+}
+
+/// Runtime-owned pressure facts. The semantic coalescing relation is checked
+/// while sealing the exact plan; the scheduler needs only the exact bounded
+/// operational behavior after a session starts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum RuntimePressure {
+    Block,
+    Reject,
+    Coalesce,
+    Sample { every: u32, offset: u32 },
+    DropDisposable,
+    Disconnect,
+    Fail,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct RuntimeFlowPolicy {
+    capacity_items: u16,
+    maximum_value_bytes: u32,
+    maximum_queued_bytes: u64,
+    low_watermark_items: u16,
+    high_watermark_items: u16,
+    pressure: RuntimePressure,
+}
+
+impl RuntimeFlowPolicy {
+    fn from_plan(policy: FlowPolicy<'_>) -> Self {
+        let pressure = match policy.pressure {
+            Pressure::Block(_) => RuntimePressure::Block,
+            Pressure::Reject => RuntimePressure::Reject,
+            Pressure::Coalesce { .. } => RuntimePressure::Coalesce,
+            Pressure::Sample(schedule) => RuntimePressure::Sample {
+                every: schedule.every(),
+                offset: schedule.offset(),
+            },
+            Pressure::DropDisposable => RuntimePressure::DropDisposable,
+            Pressure::Disconnect => RuntimePressure::Disconnect,
+            Pressure::Fail => RuntimePressure::Fail,
+        };
+        Self {
+            capacity_items: policy.capacity.items(),
+            maximum_value_bytes: policy.capacity.max_value_bytes(),
+            maximum_queued_bytes: policy.capacity.max_queued_bytes(),
+            low_watermark_items: policy.watermarks.low_items(),
+            high_watermark_items: policy.watermarks.high_items(),
+            pressure,
+        }
+    }
+
+    pub(crate) const fn pressure_name(self) -> &'static str {
+        match self.pressure {
+            RuntimePressure::Block => "block",
+            RuntimePressure::Reject => "reject",
+            RuntimePressure::Coalesce => "coalesce",
+            RuntimePressure::Sample { .. } => "sample",
+            RuntimePressure::DropDisposable => "drop-disposable",
+            RuntimePressure::Disconnect => "disconnect",
+            RuntimePressure::Fail => "fail",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct RuntimeEnvelopePolicy {
+    representation: SemanticHash,
+    maximum_payload_bytes: u32,
+    maximum_envelope_bytes: u32,
+    maximum_fragments: u16,
+    maximum_fragment_bytes: u32,
+    maximum_timestamps: u8,
+    clock_domain_count: u8,
+    identity_allowed: bool,
+    correlation_allowed: bool,
+    causation_allowed: bool,
+    provenance_allowed: bool,
+    sensitivity_ceiling: Sensitivity,
+}
+
+#[derive(Debug)]
+pub(crate) struct RuntimePlanNode {
+    pub(crate) instance: String,
+    pub(crate) contract_id: String,
+    pub(crate) contract_hash: SemanticHash,
+    pub(crate) implementation_id: String,
+    pub(crate) implementation_hash: SemanticHash,
+    pub(crate) artifact_id: String,
+    pub(crate) host_id: String,
+    pub(crate) host_observation_id: String,
+    pub(crate) limits: conduit_core::ExecutionLimits,
+}
+
+#[derive(Debug)]
+pub(crate) struct RuntimePlanCord {
+    pub(crate) id: String,
+    pub(crate) from_node: usize,
+    pub(crate) to_node: usize,
+    pub(crate) from_port: String,
+    pub(crate) to_port: String,
+    pub(crate) flow: RuntimeFlowPolicy,
+    pub(crate) envelope: Option<RuntimeEnvelopePolicy>,
+    pub(crate) queue_memory_bytes: u64,
+}
+
+#[derive(Debug)]
+struct RuntimeFanout {
+    producer_node: usize,
+    mode: FanOutMode,
+    branches: Vec<usize>,
+    shared_handle: bool,
+}
+
+#[derive(Debug)]
+struct RuntimeFeedbackBoundary {
+    maximum_retained_items: u16,
+    maximum_retained_bytes: u64,
+}
+
+/// Exact facts retained by the scheduler after start. It deliberately copies
+/// only runtime-relevant plan data, preserving the full plan's canonical
+/// identity outside the scheduler while allowing the caller's plan arena to
+/// be released immediately after admission.
+#[derive(Debug)]
+pub(crate) struct RuntimePlan {
+    pub(crate) nodes: Vec<RuntimePlanNode>,
+    pub(crate) cords: Vec<RuntimePlanCord>,
+    fanouts: Vec<RuntimeFanout>,
+    feedback_boundaries: Vec<RuntimeFeedbackBoundary>,
+    budget: PlanResourceBudget,
+}
+
+impl RuntimePlan {
+    fn from_exact(plan: &ExecutionPlan<'_>) -> Result<Self, SchedulerError> {
+        let mut nodes = try_vec_capacity(plan.nodes.len())?;
+        for node in plan.nodes {
+            let profile = node.execution_profile.ok_or(SchedulerError::InvalidPlan)?;
+            nodes.push(RuntimePlanNode {
+                instance: copy_runtime_id(node.instance.as_str())?,
+                contract_id: copy_runtime_id(node.contract.id.as_str())?,
+                contract_hash: node.contract.semantic_hash,
+                implementation_id: copy_runtime_id(node.implementation.id.as_str())?,
+                implementation_hash: node.implementation.semantic_hash,
+                artifact_id: copy_runtime_id(node.artifact.as_str())?,
+                host_id: copy_runtime_id(node.host.as_str())?,
+                host_observation_id: copy_runtime_id(node.host_observation.as_str())?,
+                limits: profile.limits,
+            });
+        }
+
+        let mut cords = try_vec_capacity(plan.cords.len())?;
+        for cord in plan.cords {
+            let from_node = nodes
+                .iter()
+                .position(|node| node.instance == cord.from.node.as_str())
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let to_node = nodes
+                .iter()
+                .position(|node| node.instance == cord.to.node.as_str())
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let envelope = match plan
+                .value_envelopes
+                .iter()
+                .find(|policy| policy.cord == cord.id)
+            {
+                Some(policy) => Some(RuntimeEnvelopePolicy {
+                    representation: policy.representation.semantic_hash,
+                    maximum_payload_bytes: policy.maximum_payload_bytes,
+                    maximum_envelope_bytes: policy.maximum_envelope_bytes,
+                    maximum_fragments: policy.maximum_fragments,
+                    maximum_fragment_bytes: policy.maximum_fragment_bytes,
+                    maximum_timestamps: policy.maximum_timestamps,
+                    clock_domain_count: u8::try_from(policy.clock_domains.len())
+                        .map_err(|_| SchedulerError::InvalidPlan)?,
+                    identity_allowed: policy.identity_allowed,
+                    correlation_allowed: policy.correlation_allowed,
+                    causation_allowed: policy.causation_allowed,
+                    provenance_allowed: policy.provenance_allowed,
+                    sensitivity_ceiling: policy.sensitivity_ceiling,
+                }),
+                None => None,
+            };
+            cords.push(RuntimePlanCord {
+                id: copy_runtime_id(cord.id.as_str())?,
+                from_node,
+                to_node,
+                from_port: copy_runtime_id(cord.from.port.as_str())?,
+                to_port: copy_runtime_id(cord.to.port.as_str())?,
+                flow: RuntimeFlowPolicy::from_plan(cord.flow),
+                envelope,
+                queue_memory_bytes: cord.queue_memory_bytes,
+            });
+        }
+
+        let mut fanouts = try_vec_capacity(plan.fanouts.len())?;
+        for fanout in plan.fanouts {
+            let producer_node = nodes
+                .iter()
+                .position(|node| node.instance == fanout.producer.node.as_str())
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let mut branches = try_vec_capacity(fanout.branches.len())?;
+            for branch in fanout.branches {
+                branches.push(
+                    cords
+                        .iter()
+                        .position(|cord| cord.id == branch.as_str())
+                        .ok_or(SchedulerError::InvalidPlan)?,
+                );
+            }
+            fanouts.push(RuntimeFanout {
+                producer_node,
+                mode: fanout.mode,
+                branches,
+                shared_handle: matches!(fanout.duplication, DuplicationRule::SharedHandle),
+            });
+        }
+
+        let mut feedback_boundaries = try_vec_capacity(plan.feedback_boundaries.len())?;
+        for boundary in plan.feedback_boundaries {
+            feedback_boundaries.push(RuntimeFeedbackBoundary {
+                maximum_retained_items: boundary.maximum_retained_items,
+                maximum_retained_bytes: boundary.maximum_retained_bytes,
+            });
+        }
+        Ok(Self {
+            nodes,
+            cords,
+            fanouts,
+            feedback_boundaries,
+            budget: plan.budget,
+        })
+    }
+}
+
+fn runtime_plan_storage_bytes(plan: &ExecutionPlan<'_>) -> Result<u64, SchedulerError> {
+    let node_ids = plan.nodes.iter().try_fold(0_u64, |total, node| {
+        [
+            node.instance.as_str(),
+            node.contract.id.as_str(),
+            node.implementation.id.as_str(),
+            node.artifact.as_str(),
+            node.host.as_str(),
+            node.host_observation.as_str(),
+        ]
+        .into_iter()
+        .try_fold(total, |total, id| {
+            total.checked_add(u64::try_from(id.len()).ok()?)
+        })
+    });
+    let cord_ids = plan.cords.iter().try_fold(0_u64, |total, cord| {
+        [
+            cord.id.as_str(),
+            cord.from.port.as_str(),
+            cord.to.port.as_str(),
+        ]
+        .into_iter()
+        .try_fold(total, |total, id| {
+            total.checked_add(u64::try_from(id.len()).ok()?)
+        })
+    });
+    let fanout_branches = plan.fanouts.iter().try_fold(0_u64, |total, fanout| {
+        total.checked_add(u64::try_from(fanout.branches.len()).ok()?)
+    });
+    [
+        checked_size(
+            u64::try_from(plan.nodes.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?,
+            size_of::<RuntimePlanNode>(),
+        )?,
+        checked_size(
+            u64::try_from(plan.cords.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?,
+            size_of::<RuntimePlanCord>(),
+        )?,
+        checked_size(
+            u64::try_from(plan.fanouts.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?,
+            size_of::<RuntimeFanout>(),
+        )?,
+        checked_size(
+            u64::try_from(plan.feedback_boundaries.len())
+                .map_err(|_| SchedulerError::ArithmeticOverflow)?,
+            size_of::<RuntimeFeedbackBoundary>(),
+        )?,
+        checked_size(
+            fanout_branches.ok_or(SchedulerError::ArithmeticOverflow)?,
+            size_of::<usize>(),
+        )?,
+        node_ids.ok_or(SchedulerError::ArithmeticOverflow)?,
+        cord_ids.ok_or(SchedulerError::ArithmeticOverflow)?,
+    ]
+    .into_iter()
+    .try_fold(0_u64, u64::checked_add)
+    .ok_or(SchedulerError::ArithmeticOverflow)
+}
+
+fn copy_runtime_id(value: &str) -> Result<String, SchedulerError> {
+    let mut owned = String::new();
+    owned
+        .try_reserve_exact(value.len())
+        .map_err(|_| SchedulerError::AllocationFailed)?;
+    owned.push_str(value);
+    Ok(owned)
 }
 
 impl RuntimeValueEnvelope {
@@ -129,6 +428,69 @@ pub fn validate_runtime_value_for_cord(
     Ok(())
 }
 
+fn validate_runtime_value_for_runtime_cord(
+    policy: Option<RuntimeEnvelopePolicy>,
+    value: RuntimeValue,
+) -> Result<(), ValueEnvelopeReason> {
+    let Some(policy) = policy else {
+        return (value.envelope == RuntimeValueEnvelope::EMPTY)
+            .then_some(())
+            .ok_or(ValueEnvelopeReason::UnauthorizedField);
+    };
+    let envelope = value.envelope;
+    if envelope.representation != policy.representation
+        || value.accounted_bytes == 0
+        || value.accounted_bytes > policy.maximum_payload_bytes
+        || envelope.envelope_bytes == 0
+        || envelope.envelope_bytes > policy.maximum_envelope_bytes
+        || envelope.fragment_count == 0
+        || envelope.fragment_count > policy.maximum_fragments
+        || envelope.fragment_bytes < value.accounted_bytes
+        || envelope.fragment_bytes
+            > u32::from(envelope.fragment_count)
+                .checked_mul(policy.maximum_fragment_bytes)
+                .ok_or(ValueEnvelopeReason::InvalidBound)?
+        || envelope.timestamp_count > policy.maximum_timestamps
+        || envelope.timestamp_count > policy.clock_domain_count
+    {
+        return Err(ValueEnvelopeReason::InvalidBound);
+    }
+    if (envelope.identity.is_some() && !policy.identity_allowed)
+        || (envelope.correlation.is_some() && !policy.correlation_allowed)
+        || (envelope.causation.is_some() && !policy.causation_allowed)
+        || (envelope.provenance.is_some() && !policy.provenance_allowed)
+    {
+        return Err(ValueEnvelopeReason::UnauthorizedField);
+    }
+    let zero = SemanticHash::from_bytes([0; 32]);
+    if [
+        envelope.identity,
+        envelope.correlation,
+        envelope.causation,
+        envelope.provenance,
+    ]
+    .into_iter()
+    .flatten()
+    .any(|identity| identity == zero)
+    {
+        return Err(ValueEnvelopeReason::UnauthorizedField);
+    }
+    let timestamp_count = usize::from(envelope.timestamp_count);
+    for (index, timestamp) in envelope.timestamps[..timestamp_count].iter().enumerate() {
+        if usize::from(timestamp.domain_index) >= usize::from(policy.clock_domain_count)
+            || envelope.timestamps[..index]
+                .iter()
+                .any(|prior| prior.domain_index == timestamp.domain_index)
+        {
+            return Err(ValueEnvelopeReason::ClockNotAuthorized);
+        }
+    }
+    if envelope.sensitivity > policy.sensitivity_ceiling {
+        return Err(ValueEnvelopeReason::SensitivityWidening);
+    }
+    Ok(())
+}
+
 /// Opaque executor-mediated value. Payload ownership remains in the exact
 /// representation binding; the cord charges `accounted_bytes` against its
 /// plan-reserved byte arena.
@@ -167,15 +529,15 @@ pub enum SchedulerStep {
 pub trait SchedulerNode {
     fn prepare(&mut self) -> Result<LifecycleUsage, Id<'static>>;
     fn start(&mut self) -> Result<LifecycleUsage, Id<'static>>;
-    fn step(&mut self, io: &mut StepIo<'_, '_>) -> SchedulerStep;
+    fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep;
 
     fn cancel(&mut self, _stop: StopPolicy) {}
 }
 
 /// One already-instantiated driver and its portable implementation validator.
-pub struct ScheduledNode<'p, N> {
+pub struct ScheduledNode<N> {
     pub driver: N,
-    pub machine: ImplementationMachine<'p>,
+    pub machine: ImplementationMachine,
 }
 
 /// Caller-declared host memory available to atomic startup.
@@ -355,8 +717,8 @@ struct QueuedValue {
     bytes: u32,
 }
 
-struct RuntimeCord<'p> {
-    policy: FlowPolicy<'p>,
+struct RuntimeCord {
+    policy: RuntimeFlowPolicy,
     slots: Box<[Option<QueuedValue>]>,
     // This is the exact plan-owned payload reservation. Value handles point to
     // representation-owned storage, but no other queued payload can exist.
@@ -417,9 +779,12 @@ impl CordEventBatch {
     }
 }
 
-impl<'p> RuntimeCord<'p> {
-    fn allocate(policy: FlowPolicy<'p>, queue_memory_bytes: u64) -> Result<Self, SchedulerError> {
-        let slot_count = usize::from(policy.capacity.items());
+impl RuntimeCord {
+    fn allocate(
+        policy: RuntimeFlowPolicy,
+        queue_memory_bytes: u64,
+    ) -> Result<Self, SchedulerError> {
+        let slot_count = usize::from(policy.capacity_items);
         let payload_len =
             usize::try_from(queue_memory_bytes).map_err(|_| SchedulerError::AllocationFailed)?;
         let mut slot_vec = Vec::new();
@@ -478,16 +843,16 @@ impl<'p> RuntimeCord<'p> {
     }
 
     fn can_fit(&self, value: RuntimeValue, extra_items: u16, extra_bytes: u64) -> bool {
-        value.accounted_bytes <= self.policy.capacity.max_value_bytes()
+        value.accounted_bytes <= self.policy.maximum_value_bytes
             && self
                 .len
                 .checked_add(extra_items)
-                .is_some_and(|items| items < self.policy.capacity.items())
+                .is_some_and(|items| items < self.policy.capacity_items)
             && self
                 .queued_bytes
                 .checked_add(extra_bytes)
                 .and_then(|bytes| bytes.checked_add(u64::from(value.accounted_bytes)))
-                .is_some_and(|bytes| bytes <= self.policy.capacity.max_queued_bytes())
+                .is_some_and(|bytes| bytes <= self.policy.maximum_queued_bytes)
     }
 
     fn mark_producer_waiting(&mut self) -> CordEventBatch {
@@ -517,8 +882,8 @@ impl<'p> RuntimeCord<'p> {
         }
         let arrival = self.arrival_sequence;
         self.arrival_sequence = self.arrival_sequence.wrapping_add(1);
-        if let Pressure::Sample(schedule) = self.policy.pressure {
-            if arrival % u64::from(schedule.every()) != u64::from(schedule.offset()) {
+        if let RuntimePressure::Sample { every, offset } = self.policy.pressure {
+            if arrival % u64::from(every) != u64::from(offset) {
                 self.emit_value(
                     &mut events,
                     FlowEventKind::ValueSampledOut,
@@ -528,7 +893,7 @@ impl<'p> RuntimeCord<'p> {
                 return (OfferDisposition::Dropped(value), events);
             }
         }
-        if value.accounted_bytes > self.policy.capacity.max_value_bytes() {
+        if value.accounted_bytes > self.policy.maximum_value_bytes {
             self.emit_value(
                 &mut events,
                 FlowEventKind::ValueRejected,
@@ -537,11 +902,11 @@ impl<'p> RuntimeCord<'p> {
             );
             return (OfferDisposition::Rejected(value), events);
         }
-        let fits = self.len < self.policy.capacity.items()
+        let fits = self.len < self.policy.capacity_items
             && self
                 .queued_bytes
                 .checked_add(u64::from(value.accounted_bytes))
-                .is_some_and(|bytes| bytes <= self.policy.capacity.max_queued_bytes());
+                .is_some_and(|bytes| bytes <= self.policy.maximum_queued_bytes);
         if fits {
             self.push_back(value);
             self.emit_scheduler(
@@ -550,7 +915,7 @@ impl<'p> RuntimeCord<'p> {
                 Some(value.handle),
                 None,
             );
-            if self.len >= self.policy.watermarks.high_items() && !self.pressured {
+            if self.len >= self.policy.high_watermark_items && !self.pressured {
                 self.pressured = true;
                 self.emit(&mut events, FlowEventKind::PressureEntered);
             }
@@ -565,11 +930,11 @@ impl<'p> RuntimeCord<'p> {
             self.emit(&mut events, FlowEventKind::PressureEntered);
         }
         let disposition = match self.policy.pressure {
-            Pressure::Block(_) => {
+            RuntimePressure::Block => {
                 self.producer_waiting = true;
                 OfferDisposition::Pending(value)
             }
-            Pressure::Reject => {
+            RuntimePressure::Reject => {
                 self.emit_value(
                     &mut events,
                     FlowEventKind::ValueRejected,
@@ -578,7 +943,7 @@ impl<'p> RuntimeCord<'p> {
                 );
                 OfferDisposition::Rejected(value)
             }
-            Pressure::Coalesce { .. } => {
+            RuntimePressure::Coalesce => {
                 let Some(target) = coalesce_target else {
                     self.emit_value(
                         &mut events,
@@ -601,7 +966,7 @@ impl<'p> RuntimeCord<'p> {
                 let old = self.slots[slot].expect("coalescing target is occupied");
                 let new_bytes =
                     self.queued_bytes - u64::from(old.bytes) + u64::from(value.accounted_bytes);
-                if new_bytes > self.policy.capacity.max_queued_bytes() {
+                if new_bytes > self.policy.maximum_queued_bytes {
                     self.emit_value(
                         &mut events,
                         FlowEventKind::ValueRejected,
@@ -625,7 +990,7 @@ impl<'p> RuntimeCord<'p> {
                     replaced: old.value,
                 }
             }
-            Pressure::Sample(_) => {
+            RuntimePressure::Sample { .. } => {
                 self.emit_value(
                     &mut events,
                     FlowEventKind::ValueSampledOut,
@@ -634,7 +999,7 @@ impl<'p> RuntimeCord<'p> {
                 );
                 OfferDisposition::Dropped(value)
             }
-            Pressure::DropDisposable => {
+            RuntimePressure::DropDisposable => {
                 self.emit_value(
                     &mut events,
                     FlowEventKind::ValueDroppedDisposable,
@@ -643,12 +1008,12 @@ impl<'p> RuntimeCord<'p> {
                 );
                 OfferDisposition::Dropped(value)
             }
-            Pressure::Disconnect => {
+            RuntimePressure::Disconnect => {
                 self.state = FlowQueueState::Disconnected;
                 self.emit_value(&mut events, FlowEventKind::Disconnected, value.handle, None);
                 OfferDisposition::Disconnected(value)
             }
-            Pressure::Fail => {
+            RuntimePressure::Fail => {
                 self.state = FlowQueueState::Failed;
                 self.emit_value(&mut events, FlowEventKind::Failed, value.handle, None);
                 OfferDisposition::Failed(value)
@@ -675,7 +1040,7 @@ impl<'p> RuntimeCord<'p> {
             Some(entry.value.handle),
             None,
         );
-        if self.pressured && self.len <= self.policy.watermarks.low_items() {
+        if self.pressured && self.len <= self.policy.low_watermark_items {
             self.pressured = false;
             self.emit(&mut events, FlowEventKind::PressureCleared);
         }
@@ -910,27 +1275,33 @@ enum QueueProbe {
     ConsumerEmpty(usize),
 }
 
-#[derive(Clone, Copy, Debug)]
-struct WaitCondition<'p> {
-    interest: WakeInterest<'p>,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WaitSubject {
+    Cord(usize),
+    Named(Id<'static>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct WaitCondition {
+    kind: WakeInterestKind,
+    subject: WaitSubject,
     deadline_tick: Option<u64>,
 }
 
-struct NodeWorkspace<'p> {
+struct NodeWorkspace {
     inputs: Vec<StagedInput>,
     outputs: Vec<StagedOutput>,
     probes: Vec<QueueProbe>,
-    interests: Vec<WaitCondition<'p>>,
-    observed_interests: Vec<WakeInterest<'p>>,
+    interests: Vec<WaitCondition>,
     work_units: u32,
     host_operations: u16,
     domain_evidence: u16,
     fragments: u16,
 }
 
-impl<'p> NodeWorkspace<'p> {
+impl NodeWorkspace {
     fn allocate(
-        machine: ImplementationMachine<'p>,
+        machine: ImplementationMachine,
         interest_capacity: usize,
     ) -> Result<Self, SchedulerError> {
         let limits = machine.profile().limits;
@@ -943,7 +1314,6 @@ impl<'p> NodeWorkspace<'p> {
                     .ok_or(SchedulerError::ArithmeticOverflow)?,
             )?,
             interests: try_vec_capacity(interest_capacity)?,
-            observed_interests: try_vec_capacity(interest_capacity)?,
             work_units: 0,
             host_operations: 0,
             domain_evidence: 0,
@@ -956,7 +1326,6 @@ impl<'p> NodeWorkspace<'p> {
         self.outputs.clear();
         self.probes.clear();
         self.interests.clear();
-        self.observed_interests.clear();
         self.work_units = 0;
         self.host_operations = 0;
         self.domain_evidence = 0;
@@ -975,15 +1344,15 @@ fn try_vec_capacity<T>(capacity: usize) -> Result<Vec<T>, SchedulerError> {
 /// Executor-mediated step view. Reads and writes are staged and either commit
 /// together after a valid progress/completion result or roll back without
 /// changing cord ownership.
-pub struct StepIo<'a, 'p> {
+pub struct StepIo<'a> {
     node: usize,
     tick: u64,
-    plan: &'p ExecutionPlan<'p>,
-    cords: &'a [RuntimeCord<'p>],
-    workspace: &'a mut NodeWorkspace<'p>,
+    plan: &'a RuntimePlan,
+    cords: &'a [RuntimeCord],
+    workspace: &'a mut NodeWorkspace,
 }
 
-impl<'p> StepIo<'_, 'p> {
+impl StepIo<'_> {
     #[must_use]
     pub const fn tick(&self) -> u64 {
         self.tick
@@ -992,8 +1361,6 @@ impl<'p> StepIo<'_, 'p> {
     #[must_use]
     pub fn remaining_work(&self) -> u32 {
         self.plan.nodes[self.node]
-            .execution_profile
-            .expect("schema-3 plan profile")
             .limits
             .max_step_work
             .saturating_sub(self.workspace.work_units)
@@ -1005,13 +1372,7 @@ impl<'p> StepIo<'_, 'p> {
             .work_units
             .checked_add(units)
             .ok_or(SchedulerError::StepContractViolation)?;
-        if next
-            > self.plan.nodes[self.node]
-                .execution_profile
-                .expect("schema-3 plan profile")
-                .limits
-                .max_step_work
-        {
+        if next > self.plan.nodes[self.node].limits.max_step_work {
             return Err(SchedulerError::StepContractViolation);
         }
         self.workspace.work_units = next;
@@ -1025,7 +1386,7 @@ impl<'p> StepIo<'_, 'p> {
             .cords
             .get(cord)
             .ok_or(SchedulerError::PortAccessViolation)?;
-        if plan_cord.to.node != self.plan.nodes[self.node].instance {
+        if plan_cord.to_node != self.node {
             return Err(SchedulerError::PortAccessViolation);
         }
         let offset = self
@@ -1056,10 +1417,10 @@ impl<'p> StepIo<'_, 'p> {
             .cords
             .get(cord)
             .ok_or(SchedulerError::PortAccessViolation)?;
-        if plan_cord.from.node != self.plan.nodes[self.node].instance {
+        if plan_cord.from_node != self.node {
             return Err(SchedulerError::PortAccessViolation);
         }
-        validate_runtime_value_for_cord(self.plan, plan_cord.id, value)
+        validate_runtime_value_for_runtime_cord(plan_cord.envelope, value)
             .map_err(SchedulerError::ValueEnvelope)?;
         if self.cords[cord].state() != FlowQueueState::Active {
             return Ok(SendStatus::Terminated);
@@ -1102,20 +1463,20 @@ impl<'p> StepIo<'_, 'p> {
                     .map_err(|_| SchedulerError::TransactionCapacityExceeded)?,
             )
             .ok_or(SchedulerError::ArithmeticOverflow)?;
-        let sampled_out = matches!(plan_cord.flow.pressure, Pressure::Sample(schedule)
-            if arrival % u64::from(schedule.every()) != u64::from(schedule.offset()));
+        let sampled_out = matches!(plan_cord.flow.pressure, RuntimePressure::Sample { every, offset }
+            if arrival % u64::from(every) != u64::from(offset));
         let fits = self.cords[cord].can_fit(value, staged_items, staged_bytes);
         let (expected, effect) = if sampled_out {
             (SendStatus::Dropped, StagedOutputEffect::Other)
-        } else if value.accounted_bytes > plan_cord.flow.capacity.max_value_bytes() {
+        } else if value.accounted_bytes > plan_cord.flow.maximum_value_bytes {
             (SendStatus::Rejected, StagedOutputEffect::Other)
         } else if fits {
             (SendStatus::Reserved, StagedOutputEffect::Enqueue)
         } else {
             match plan_cord.flow.pressure {
-                Pressure::Block(_) => (SendStatus::WouldBlock, StagedOutputEffect::Other),
-                Pressure::Reject => (SendStatus::Rejected, StagedOutputEffect::Other),
-                Pressure::Coalesce { .. } => {
+                RuntimePressure::Block => (SendStatus::WouldBlock, StagedOutputEffect::Other),
+                RuntimePressure::Reject => (SendStatus::Rejected, StagedOutputEffect::Other),
+                RuntimePressure::Coalesce => {
                     let valid = coalesce_target.is_some_and(|target| {
                         target < self.cords[cord].occupancy_items()
                             && !self.workspace.outputs.iter().any(|output| {
@@ -1130,7 +1491,7 @@ impl<'p> StepIo<'_, 'p> {
                                         bytes.checked_add(u64::from(value.accounted_bytes))
                                     })
                                     .is_some_and(|bytes| {
-                                        bytes <= plan_cord.flow.capacity.max_queued_bytes()
+                                        bytes <= plan_cord.flow.maximum_queued_bytes
                                     })
                             })
                     });
@@ -1140,11 +1501,13 @@ impl<'p> StepIo<'_, 'p> {
                         (SendStatus::Rejected, StagedOutputEffect::Other)
                     }
                 }
-                Pressure::Sample(_) | Pressure::DropDisposable => {
+                RuntimePressure::Sample { .. } | RuntimePressure::DropDisposable => {
                     (SendStatus::Dropped, StagedOutputEffect::Other)
                 }
-                Pressure::Disconnect => (SendStatus::Disconnected, StagedOutputEffect::Terminal),
-                Pressure::Fail => (SendStatus::Failed, StagedOutputEffect::Terminal),
+                RuntimePressure::Disconnect => {
+                    (SendStatus::Disconnected, StagedOutputEffect::Terminal)
+                }
+                RuntimePressure::Fail => (SendStatus::Failed, StagedOutputEffect::Terminal),
             }
         };
         if expected == SendStatus::WouldBlock {
@@ -1182,24 +1545,16 @@ impl<'p> StepIo<'_, 'p> {
             .get(fanout)
             .ok_or(SchedulerError::PortAccessViolation)?;
         if contract.mode != FanOutMode::Coupled
-            || contract.producer.node != self.plan.nodes[self.node].instance
+            || contract.producer_node != self.node
             || contract.branches.len() != branch_values.len()
             || contract.branches.len() != coalesce_targets.len()
         {
             return Err(SchedulerError::PortAccessViolation);
         }
-        if matches!(contract.duplication, DuplicationRule::SharedHandle)
-            && branch_values.windows(2).any(|pair| pair[0] != pair[1])
-        {
+        if contract.shared_handle && branch_values.windows(2).any(|pair| pair[0] != pair[1]) {
             return Err(SchedulerError::StepContractViolation);
         }
-        for (index, branch) in contract.branches.iter().enumerate() {
-            let cord = self
-                .plan
-                .cords
-                .iter()
-                .position(|cord| cord.id == *branch)
-                .ok_or(SchedulerError::PortAccessViolation)?;
+        for (index, &cord) in contract.branches.iter().enumerate() {
             let status = self.send(cord, branch_values[index], coalesce_targets[index])?;
             if status != SendStatus::Reserved {
                 return Ok(status);
@@ -1214,14 +1569,12 @@ impl<'p> StepIo<'_, 'p> {
             .cords
             .get(cord)
             .ok_or(SchedulerError::PortAccessViolation)?;
-        if plan_cord.to.node != self.plan.nodes[self.node].instance {
+        if plan_cord.to_node != self.node {
             return Err(SchedulerError::PortAccessViolation);
         }
         self.wait(WaitCondition {
-            interest: WakeInterest {
-                kind: WakeInterestKind::Input,
-                subject: plan_cord.id,
-            },
+            kind: WakeInterestKind::Input,
+            subject: WaitSubject::Cord(cord),
             deadline_tick: None,
         })
     }
@@ -1232,51 +1585,43 @@ impl<'p> StepIo<'_, 'p> {
             .cords
             .get(cord)
             .ok_or(SchedulerError::PortAccessViolation)?;
-        if plan_cord.from.node != self.plan.nodes[self.node].instance {
+        if plan_cord.from_node != self.node {
             return Err(SchedulerError::PortAccessViolation);
         }
         self.wait(WaitCondition {
-            interest: WakeInterest {
-                kind: WakeInterestKind::Output,
-                subject: plan_cord.id,
-            },
+            kind: WakeInterestKind::Output,
+            subject: WaitSubject::Cord(cord),
             deadline_tick: None,
         })
     }
 
     pub fn wait_for_timer(
         &mut self,
-        subject: Id<'p>,
+        subject: Id<'static>,
         deadline_tick: u64,
     ) -> Result<(), SchedulerError> {
         if deadline_tick <= self.tick {
             return Err(SchedulerError::StepContractViolation);
         }
         self.wait(WaitCondition {
-            interest: WakeInterest {
-                kind: WakeInterestKind::Timer,
-                subject,
-            },
+            kind: WakeInterestKind::Timer,
+            subject: WaitSubject::Named(subject),
             deadline_tick: Some(deadline_tick),
         })
     }
 
-    pub fn wait_for_host_operation(&mut self, subject: Id<'p>) -> Result<(), SchedulerError> {
+    pub fn wait_for_host_operation(&mut self, subject: Id<'static>) -> Result<(), SchedulerError> {
         self.wait(WaitCondition {
-            interest: WakeInterest {
-                kind: WakeInterestKind::HostOperation,
-                subject,
-            },
+            kind: WakeInterestKind::HostOperation,
+            subject: WaitSubject::Named(subject),
             deadline_tick: None,
         })
     }
 
-    pub fn wait_for_cancellation(&mut self, subject: Id<'p>) -> Result<(), SchedulerError> {
+    pub fn wait_for_cancellation(&mut self, subject: Id<'static>) -> Result<(), SchedulerError> {
         self.wait(WaitCondition {
-            interest: WakeInterest {
-                kind: WakeInterestKind::Cancellation,
-                subject,
-            },
+            kind: WakeInterestKind::Cancellation,
+            subject: WaitSubject::Named(subject),
             deadline_tick: None,
         })
     }
@@ -1297,7 +1642,7 @@ impl<'p> StepIo<'_, 'p> {
             .cords
             .get(cord)
             .ok_or(SchedulerError::PortAccessViolation)?;
-        if plan_cord.to.node != self.plan.nodes[self.node].instance {
+        if plan_cord.to_node != self.node {
             return Err(SchedulerError::PortAccessViolation);
         }
         Ok(self.cords[cord].state())
@@ -1310,7 +1655,7 @@ impl<'p> StepIo<'_, 'p> {
             .cords
             .get(cord)
             .ok_or(SchedulerError::PortAccessViolation)?;
-        if plan_cord.from.node != self.plan.nodes[self.node].instance {
+        if plan_cord.from_node != self.node {
             return Err(SchedulerError::PortAccessViolation);
         }
         Ok(self.cords[cord].state())
@@ -1334,11 +1679,7 @@ impl<'p> StepIo<'_, 'p> {
             .fragments
             .checked_add(1)
             .ok_or(SchedulerError::StepContractViolation)?;
-        let limit = self.plan.nodes[self.node]
-            .execution_profile
-            .expect("schema-3 plan profile")
-            .limits
-            .max_fragments_per_step;
+        let limit = self.plan.nodes[self.node].limits.max_fragments_per_step;
         if fragments > limit {
             return Err(SchedulerError::StepContractViolation);
         }
@@ -1346,12 +1687,12 @@ impl<'p> StepIo<'_, 'p> {
         Ok(())
     }
 
-    fn wait(&mut self, condition: WaitCondition<'p>) -> Result<(), SchedulerError> {
+    fn wait(&mut self, condition: WaitCondition) -> Result<(), SchedulerError> {
         if self
             .workspace
             .interests
             .iter()
-            .any(|prior| prior.interest == condition.interest)
+            .any(|prior| prior.kind == condition.kind && prior.subject == condition.subject)
         {
             return Err(SchedulerError::StepContractViolation);
         }
@@ -1452,15 +1793,15 @@ impl FixedEventLog {
 }
 
 /// Single-threaded deterministic executor and simulated clock.
-pub struct DeterministicExecutor<'p, N> {
-    plan: &'p ExecutionPlan<'p>,
+pub struct DeterministicExecutor<N> {
+    runtime: RuntimePlan,
     policy: SchedulerPolicy,
     drivers: Vec<N>,
-    machines: Vec<ImplementationMachine<'p>>,
-    cords: Vec<RuntimeCord<'p>>,
+    machines: Vec<ImplementationMachine>,
+    cords: Vec<RuntimeCord>,
     _feedback_reservations: Vec<FeedbackReservation>,
-    workspaces: Vec<NodeWorkspace<'p>>,
-    waits: Vec<Vec<WaitCondition<'p>>>,
+    workspaces: Vec<NodeWorkspace>,
+    waits: Vec<Vec<WaitCondition>>,
     ready: FixedReadyQueue,
     enqueued: Vec<bool>,
     yields: Vec<u32>,
@@ -1477,14 +1818,14 @@ pub struct DeterministicExecutor<'p, N> {
     cancellation_started: Option<(u64, StopPolicy)>,
 }
 
-impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
+impl<N: SchedulerNode> DeterministicExecutor<N> {
     /// Validate, preallocate, prepare-all, and start-all atomically.
     pub fn start(
-        plan: &'p ExecutionPlan<'p>,
-        validation: conduit_core::PlanValidationContext<'p>,
+        plan: &ExecutionPlan<'_>,
+        validation: conduit_core::PlanValidationContext<'_>,
         policy: SchedulerPolicy,
         reservation: SchedulerReservation,
-        nodes: Vec<ScheduledNode<'p, N>>,
+        nodes: Vec<ScheduledNode<N>>,
     ) -> Result<Self, SchedulerError> {
         policy
             .validate()
@@ -1506,7 +1847,12 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             }
         }
 
-        let allocation = compute_allocation(plan, policy)?;
+        let runtime_storage_bytes = runtime_plan_storage_bytes(plan)?;
+        let mut allocation = compute_allocation(plan, policy)?;
+        allocation.executor_overhead_bytes = allocation
+            .executor_overhead_bytes
+            .checked_add(runtime_storage_bytes)
+            .ok_or(SchedulerError::ArithmeticOverflow)?;
         if allocation.executor_overhead_bytes > reservation.executor_overhead_limit_bytes {
             return Err(SchedulerError::AllocationUnavailable);
         }
@@ -1534,6 +1880,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             return Err(SchedulerError::AllocationExceedsPlan);
         }
 
+        let runtime = RuntimePlan::from_exact(plan)?;
         let mut drivers = Vec::new();
         let mut machines = Vec::new();
         drivers
@@ -1548,16 +1895,16 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         }
         let mut cords = Vec::new();
         cords
-            .try_reserve_exact(plan.cords.len())
+            .try_reserve_exact(runtime.cords.len())
             .map_err(|_| SchedulerError::AllocationFailed)?;
-        for cord in plan.cords {
+        for cord in &runtime.cords {
             cords.push(RuntimeCord::allocate(cord.flow, cord.queue_memory_bytes)?);
         }
         let mut feedback_reservations = Vec::new();
         feedback_reservations
-            .try_reserve_exact(plan.feedback_boundaries.len())
+            .try_reserve_exact(runtime.feedback_boundaries.len())
             .map_err(|_| SchedulerError::AllocationFailed)?;
-        for boundary in plan.feedback_boundaries {
+        for boundary in &runtime.feedback_boundaries {
             let byte_count = usize::try_from(boundary.maximum_retained_bytes)
                 .map_err(|_| SchedulerError::AllocationFailed)?;
             let mut bytes = Vec::new();
@@ -1586,7 +1933,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             .try_reserve_exact(machines.len())
             .map_err(|_| SchedulerError::AllocationFailed)?;
         for machine in &machines {
-            let capacity = interest_capacity(machine.profile())?;
+            let capacity = interest_capacity(machine.profile().limits)?;
             workspaces.push(NodeWorkspace::allocate(*machine, capacity)?);
             waits.push(try_vec_capacity(capacity)?);
         }
@@ -1597,8 +1944,9 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
 
         let event_capacity =
             usize::try_from(policy.max_events).map_err(|_| SchedulerError::AllocationFailed)?;
+        let ready = FixedReadyQueue::allocate(runtime.nodes.len())?;
         let mut executor = Self {
-            plan,
+            runtime,
             policy,
             drivers,
             machines,
@@ -1606,7 +1954,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             _feedback_reservations: feedback_reservations,
             workspaces,
             waits,
-            ready: FixedReadyQueue::allocate(plan.nodes.len())?,
+            ready,
             enqueued,
             yields,
             events: FixedEventLog::allocate(event_capacity)?,
@@ -1671,6 +2019,12 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         self.allocation
     }
 
+    /// Exact aggregate resource budget copied from the admitted plan.
+    #[must_use]
+    pub const fn plan_budget(&self) -> PlanResourceBudget {
+        self.runtime.budget
+    }
+
     #[must_use]
     pub const fn policy(&self) -> SchedulerPolicy {
         self.policy
@@ -1721,6 +2075,22 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         self.events.as_slice().iter().flatten()
     }
 
+    pub(crate) fn project_exact_evidence(
+        &self,
+        plan_identity: &str,
+        plan_epoch: u64,
+        run_id: &str,
+    ) -> Vec<crate::ExactEvidenceRecord> {
+        let events = self.events().copied().collect::<Vec<_>>();
+        crate::exact_evidence::project_runtime_exact_evidence(
+            &self.runtime,
+            plan_identity,
+            plan_epoch,
+            run_id,
+            &events,
+        )
+    }
+
     #[must_use]
     pub fn cord_occupancy(&self, cord: usize) -> Option<(u16, u64, FlowQueueState)> {
         self.cords.get(cord).map(|value| {
@@ -1740,7 +2110,11 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         ) {
             return Ok(self.status);
         }
-        if self.decisions >= self.policy.max_decisions {
+        if self
+            .policy
+            .lifetime_decision_limit()
+            .is_some_and(|limit| self.decisions >= limit)
+        {
             return self.fail(SchedulerError::DecisionLimitExceeded);
         }
         let Some(entry) = self.ready.pop() else {
@@ -1813,7 +2187,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
         self.waits
             .iter()
             .flat_map(|waits| waits.iter())
-            .filter(|wait| wait.interest.kind == WakeInterestKind::Timer)
+            .filter(|wait| wait.kind == WakeInterestKind::Timer)
             .filter_map(|wait| wait.deadline_tick)
             .filter(|deadline| *deadline > self.tick)
             .min()
@@ -1821,11 +2195,11 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
 
     /// Wake a bounded host operation; callback queues remain outside this API
     /// and must fit the implementation profile.
-    pub fn notify_host_operation(&mut self, subject: Id<'p>) -> Result<(), SchedulerError> {
+    pub fn notify_host_operation(&mut self, subject: Id<'static>) -> Result<(), SchedulerError> {
         for index in 0..self.waits.len() {
             let should_wake = self.waits[index].iter().any(|wait| {
-                wait.interest.kind == WakeInterestKind::HostOperation
-                    && wait.interest.subject == subject
+                wait.kind == WakeInterestKind::HostOperation
+                    && wait.subject == WaitSubject::Named(subject)
             });
             if should_wake {
                 self.clear_waits_and_enqueue(index, SchedulerDecisionReason::HostOperationReady)?;
@@ -1887,7 +2261,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             let mut io = StepIo {
                 node,
                 tick: self.tick,
-                plan: self.plan,
+                plan: &self.runtime,
                 cords: &self.cords,
                 workspace: &mut self.workspaces[node],
             };
@@ -1900,25 +2274,23 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             self.validate_coupled_publication(node)?;
         }
         let usage = self.step_usage(node, commit)?;
-        for interest_index in 0..self.workspaces[node].interests.len() {
-            let condition = self.workspaces[node].interests[interest_index];
-            push_bounded(
-                &mut self.workspaces[node].observed_interests,
-                condition.interest,
-            )?;
-        }
-        let outcome = match step {
-            SchedulerStep::Progress => StepOutcome::Progress,
-            SchedulerStep::Pending => {
-                StepOutcome::Pending(&self.workspaces[node].observed_interests)
-            }
-            SchedulerStep::Yielded => StepOutcome::Yielded,
-            SchedulerStep::Completed => StepOutcome::Completed,
-            SchedulerStep::Failed { code } => StepOutcome::Failed { code },
+        let observation = if step == SchedulerStep::Pending {
+            self.validate_runtime_waits(node)?;
+            self.machines[node]
+                .observe_pending_validated(self.workspaces[node].interests.len(), usage)
+                .map_err(map_implementation_error)?
+        } else {
+            let outcome = match step {
+                SchedulerStep::Progress => StepOutcome::Progress,
+                SchedulerStep::Pending => unreachable!("pending is handled above"),
+                SchedulerStep::Yielded => StepOutcome::Yielded,
+                SchedulerStep::Completed => StepOutcome::Completed,
+                SchedulerStep::Failed { code } => StepOutcome::Failed { code },
+            };
+            self.machines[node]
+                .observe_step(outcome, usage)
+                .map_err(map_implementation_error)?
         };
-        let observation = self.machines[node]
-            .observe_step(outcome, usage)
-            .map_err(map_implementation_error)?;
         self.record_observation(
             SchedulerSubject::Node(as_u16(node)?),
             SchedulerEventKind::NodeOutcome {
@@ -1960,6 +2332,23 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             }
             SchedulerStep::Failed { .. } => {
                 return Err(SchedulerError::NodeFailed);
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_runtime_waits(&self, node: usize) -> Result<(), SchedulerError> {
+        for wait in &self.workspaces[node].interests {
+            match wait.subject {
+                WaitSubject::Cord(index) => {
+                    if self.runtime.cords.get(index).is_none() {
+                        return Err(SchedulerError::StepContractViolation);
+                    }
+                }
+                WaitSubject::Named(id) if Id::new(id.as_str()).is_err() => {
+                    return Err(SchedulerError::StepContractViolation);
+                }
+                WaitSubject::Named(_) => {}
             }
         }
         Ok(())
@@ -2019,22 +2408,24 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
     }
 
     fn validate_coupled_publication(&self, node: usize) -> Result<(), SchedulerError> {
-        for fanout in self.plan.fanouts.iter().filter(|fanout| {
-            fanout.mode == FanOutMode::Coupled
-                && fanout.producer.node == self.plan.nodes[node].instance
-        }) {
+        for fanout in self
+            .runtime
+            .fanouts
+            .iter()
+            .filter(|fanout| fanout.mode == FanOutMode::Coupled && fanout.producer_node == node)
+        {
             let mut first = None;
             let mut published = 0_usize;
-            for branch in fanout.branches {
+            for &branch in &fanout.branches {
                 if let Some(output) = self.workspaces[node]
                     .outputs
                     .iter()
-                    .find(|output| self.plan.cords[output.cord].id == *branch)
+                    .find(|output| output.cord == branch)
                 {
                     if output.expected != SendStatus::Reserved {
                         return Err(SchedulerError::StepContractViolation);
                     }
-                    if matches!(fanout.duplication, DuplicationRule::SharedHandle) {
+                    if fanout.shared_handle {
                         if first.is_some_and(|value| value != output.value) {
                             return Err(SchedulerError::StepContractViolation);
                         }
@@ -2153,8 +2544,8 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
     }
 
     fn complete_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
-        for cord in 0..self.plan.cords.len() {
-            if self.plan.cords[cord].from.node == self.plan.nodes[node].instance {
+        for cord in 0..self.runtime.cords.len() {
+            if self.runtime.cords[cord].from_node == node {
                 let events = self.cords[cord].complete_source();
                 self.record_cord_events(cord, events)?;
                 self.wake_for_cord(cord)?;
@@ -2164,17 +2555,16 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
     }
 
     fn wake_for_cord(&mut self, cord: usize) -> Result<(), SchedulerError> {
-        let id = self.plan.cords[cord].id;
         let input_ready = self.cords[cord].occupancy_items() > 0
             || self.cords[cord].state() != FlowQueueState::Active;
         let output_ready = self.cords[cord].state() != FlowQueueState::Active
-            || self.cords[cord].occupancy_items() < self.cords[cord].policy.capacity.items();
+            || self.cords[cord].occupancy_items() < self.cords[cord].policy.capacity_items;
         for index in 0..self.waits.len() {
             let reason = self.waits[index].iter().find_map(|wait| {
-                if wait.interest.subject != id {
+                if wait.subject != WaitSubject::Cord(cord) {
                     return None;
                 }
-                match wait.interest.kind {
+                match wait.kind {
                     WakeInterestKind::Input if input_ready => {
                         Some(SchedulerDecisionReason::InputReady)
                     }
@@ -2194,7 +2584,7 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
     fn wake_due_timers(&mut self) -> Result<(), SchedulerError> {
         for index in 0..self.waits.len() {
             let should_wake = self.waits[index].iter().any(|wait| {
-                wait.interest.kind == WakeInterestKind::Timer
+                wait.kind == WakeInterestKind::Timer
                     && wait
                         .deadline_tick
                         .is_some_and(|deadline| deadline <= self.tick)
@@ -2230,6 +2620,9 @@ impl<'p, N: SchedulerNode> DeterministicExecutor<'p, N> {
             ready_tick: self.tick,
         })?;
         self.enqueued[node] = true;
+        if self.status == SchedulerStatus::Stalled {
+            self.status = SchedulerStatus::Running;
+        }
         self.max_ready_depth = self
             .max_ready_depth
             .max(u32::try_from(self.ready.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?);
@@ -2463,7 +2856,7 @@ fn compute_allocation(
         let profile = node.execution_profile.ok_or(SchedulerError::InvalidPlan)?;
         total
             .checked_add(
-                u64::try_from(interest_capacity(profile)?)
+                u64::try_from(interest_capacity(profile.limits)?)
                     .map_err(|_| SchedulerError::ArithmeticOverflow)?,
             )
             .ok_or(SchedulerError::ArithmeticOverflow)
@@ -2489,7 +2882,7 @@ fn compute_allocation(
         wake_interest_slots
             .checked_mul(3)
             .ok_or(SchedulerError::ArithmeticOverflow)?,
-        size_of::<WaitCondition<'_>>(),
+        size_of::<WaitCondition>(),
     )?;
     let transaction_metadata = checked_size(
         transaction_slots
@@ -2500,15 +2893,15 @@ fn compute_allocation(
     let event_metadata = checked_size(u64::from(event_slots), size_of::<Option<SchedulerEvent>>())?;
     let node_metadata = checked_size(
         u64::from(ready_slots),
-        size_of::<ImplementationMachine<'_>>()
-            + size_of::<NodeWorkspace<'_>>()
-            + size_of::<Vec<WaitCondition<'_>>>()
+        size_of::<ImplementationMachine>()
+            + size_of::<NodeWorkspace>()
+            + size_of::<Vec<WaitCondition>>()
             + size_of::<bool>()
             + size_of::<u32>(),
     )?;
     let cord_metadata = checked_size(
         u64::try_from(plan.cords.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?,
-        size_of::<RuntimeCord<'_>>(),
+        size_of::<RuntimeCord>(),
     )?;
     let startup_scratch = checked_size(
         u64::from(ready_slots),
@@ -2581,13 +2974,11 @@ fn checked_size(count: u64, item_size: usize) -> Result<u64, SchedulerError> {
         .ok_or(SchedulerError::ArithmeticOverflow)
 }
 
-fn interest_capacity(
-    profile: &conduit_core::ExecutionProfile<'_>,
-) -> Result<usize, SchedulerError> {
-    usize::from(profile.limits.max_input_leases)
-        .checked_add(usize::from(profile.limits.max_output_reservations))
-        .and_then(|value| value.checked_add(usize::from(profile.limits.max_pending_operations)))
-        .and_then(|value| value.checked_add(usize::from(profile.limits.max_timers)))
+fn interest_capacity(limits: conduit_core::ExecutionLimits) -> Result<usize, SchedulerError> {
+    usize::from(limits.max_input_leases)
+        .checked_add(usize::from(limits.max_output_reservations))
+        .and_then(|value| value.checked_add(usize::from(limits.max_pending_operations)))
+        .and_then(|value| value.checked_add(usize::from(limits.max_timers)))
         .and_then(|value| value.checked_add(1))
         .ok_or(SchedulerError::ArithmeticOverflow)
 }
@@ -2672,7 +3063,8 @@ mod tests {
         for policy in policies {
             let mut slots = [None];
             let mut core = BoundedFlowQueue::new(&mut slots, policy, facts).unwrap();
-            let mut hosted = RuntimeCord::allocate(policy, 8).unwrap();
+            let mut hosted =
+                RuntimeCord::allocate(RuntimeFlowPolicy::from_plan(policy), 8).unwrap();
             for (sequence, target) in [(0_u64, None), (1, Some(0))] {
                 let value = RuntimeValue {
                     handle: sequence,

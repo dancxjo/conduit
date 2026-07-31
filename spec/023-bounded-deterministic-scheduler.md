@@ -37,8 +37,8 @@ Before calling any node's `prepare`, an executor MUST:
 3. sum every fixed node allocation, exact cord byte reservation, and pool
    worst-case reservation with checked arithmetic;
 4. compute bounded executor overhead for queue slots, ready slots, wait
-   interests, transaction staging, scheduler events, node/cord metadata, and
-   startup scratch;
+   interests, transaction staging, scheduler events, node/cord metadata,
+   owned runtime-plan identity copies, and startup scratch;
 5. prove that executor overhead fits both the host-declared overhead ceiling
    and the uncommitted portion of the plan memory budget;
 6. prove that plan allocations plus overhead fit the caller's complete runtime
@@ -85,9 +85,11 @@ policy's finite consecutive-yield count; exhaustion fails the run with
 progress from monopolizing the executor while permitting bounded compute
 slices.
 
-The scheduler also has finite maximum decisions and simulated-clock tick.
-Exhausting either is terminal and explainable; it is never an invitation to
-allocate a continuation queue.
+The scheduler has a positive simulated-clock tick bound. Its maximum-decision
+field is an optional lifetime deadline: zero means no decision-count deadline,
+while every caller pump remains positive and bounded under specification 072.
+Exhausting a configured decision deadline or clock bound is terminal and
+explainable; neither is an invitation to allocate a continuation queue.
 
 ## Staged port transactions
 
@@ -213,7 +215,7 @@ reconciliation and no-manufactured-demand invariants.
 | Code | Meaning |
 |---|---|
 | `CND-SCH-001` | unsupported or malformed scheduler policy |
-| `CND-SCH-002` | a scheduler-owned limit is zero or unbounded |
+| `CND-SCH-002` | a required scheduler-owned bound is zero or malformed |
 | `CND-SCH-003` | pool populations overflow or do not reconcile |
 | `CND-SCH-004` | plan/node/profile set is invalid or mismatched |
 | `CND-SCH-005` | checked allocation exceeds plan/host reservation or cannot be allocated |

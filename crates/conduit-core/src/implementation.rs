@@ -542,7 +542,7 @@ pub struct LifecycleUsage {
 
 /// Atomically move all instances to prepared, or leave every phase unchanged.
 pub fn prepare_all(
-    machines: &mut [ImplementationMachine<'_>],
+    machines: &mut [ImplementationMachine],
     outcomes: &[PrepareOutcome<'_>],
     usages: &[LifecycleUsage],
 ) -> Result<(), ImplementationError> {
@@ -554,10 +554,9 @@ pub fn prepare_all(
         || outcomes
             .iter()
             .any(|outcome| matches!(outcome, PrepareOutcome::Failed { .. }))
-        || machines
-            .iter()
-            .zip(usages)
-            .any(|(machine, usage)| validate_lifecycle_usage(machine.profile, *usage).is_err())
+        || machines.iter().zip(usages).any(|(machine, usage)| {
+            validate_lifecycle_usage(machine.profile.limits, *usage).is_err()
+        })
     {
         return Err(ImplementationError::PrepareFailed);
     }
@@ -569,17 +568,16 @@ pub fn prepare_all(
 
 /// Start a completely prepared set; partial start is impossible.
 pub fn start_all(
-    machines: &mut [ImplementationMachine<'_>],
+    machines: &mut [ImplementationMachine],
     usages: &[LifecycleUsage],
 ) -> Result<(), ImplementationError> {
     if machines.len() != usages.len()
         || machines
             .iter()
             .any(|machine| machine.phase != InstancePhase::Prepared)
-        || machines
-            .iter()
-            .zip(usages)
-            .any(|(machine, usage)| validate_lifecycle_usage(machine.profile, *usage).is_err())
+        || machines.iter().zip(usages).any(|(machine, usage)| {
+            validate_lifecycle_usage(machine.profile.limits, *usage).is_err()
+        })
     {
         return Err(ImplementationError::IllegalLifecycle);
     }
@@ -590,11 +588,11 @@ pub fn start_all(
 }
 
 fn validate_lifecycle_usage(
-    profile: &ExecutionProfile<'_>,
+    limits: ExecutionLimits,
     usage: LifecycleUsage,
 ) -> Result<(), ImplementationError> {
-    if usage.work_units > profile.limits.max_step_work
-        || usage.scratch_bytes > profile.limits.max_scratch_bytes
+    if usage.work_units > limits.max_step_work
+        || usage.scratch_bytes > limits.max_scratch_bytes
         || usage.pending_operations != 0
     {
         return Err(ImplementationError::StepBoundExceeded);
@@ -694,22 +692,43 @@ impl StepObservation {
     }
 }
 
+/// Exact execution-profile facts retained by a running implementation.
+///
+/// A machine must not retain a borrowed descriptor merely to validate later
+/// lifecycle steps: the selected profile has already been validated and its
+/// runtime-relevant limits and identity are immutable exact-plan facts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExecutionProfileFacts {
+    pub semantic_hash: SemanticHash,
+    pub limits: ExecutionLimits,
+}
+
+impl ExecutionProfileFacts {
+    #[must_use]
+    pub const fn from_profile(profile: &ExecutionProfile<'_>) -> Self {
+        Self {
+            semantic_hash: profile.semantic_hash,
+            limits: profile.limits,
+        }
+    }
+}
+
 /// Lifecycle and step validator shared by every concrete binding.
 #[derive(Clone, Copy, Debug)]
-pub struct ImplementationMachine<'a> {
-    profile: &'a ExecutionProfile<'a>,
+pub struct ImplementationMachine {
+    profile: ExecutionProfileFacts,
     phase: InstancePhase,
     next_sequence: u64,
 }
 
-impl<'a> ImplementationMachine<'a> {
+impl ImplementationMachine {
     pub fn instantiate(
-        profile: &'a ExecutionProfile<'a>,
+        profile: &ExecutionProfile<'_>,
         context: InstantiationContext<'_>,
     ) -> Result<Self, ImplementationError> {
         validate_instantiation(profile, context)?;
         Ok(Self {
-            profile,
+            profile: ExecutionProfileFacts::from_profile(profile),
             phase: InstancePhase::Instantiated,
             next_sequence: 0,
         })
@@ -722,7 +741,7 @@ impl<'a> ImplementationMachine<'a> {
 
     /// Exact plan-pinned profile enforced by this machine.
     #[must_use]
-    pub const fn profile(self) -> &'a ExecutionProfile<'a> {
+    pub const fn profile(self) -> ExecutionProfileFacts {
         self.profile
     }
 
@@ -808,6 +827,49 @@ impl<'a> ImplementationMachine<'a> {
         Ok(StepObservation {
             sequence,
             outcome: kind,
+            observable_operations: usage.observable_operations,
+            domain_evidence: usage.domain_evidence,
+        })
+    }
+
+    /// Records a pending step after the executor has retained and validated
+    /// the named wake interests in its own bounded storage. This avoids making
+    /// an implementation machine borrow scheduler-owned wake identifiers for
+    /// the lifetime of a run while preserving the same lifecycle and usage
+    /// validation as `observe_step`.
+    pub fn observe_pending_validated(
+        &mut self,
+        interest_count: usize,
+        usage: StepUsage,
+    ) -> Result<StepObservation, ImplementationError> {
+        if !matches!(
+            self.phase,
+            InstancePhase::Started | InstancePhase::Draining | InstancePhase::Cancelling
+        ) {
+            return Err(ImplementationError::IllegalLifecycle);
+        }
+        if usage.observable_operations != 0 || interest_count == 0 {
+            return Err(ImplementationError::UnqualifiedPending);
+        }
+        validate_usage(self.profile.limits, usage)?;
+        let maximum = usize::from(self.profile.limits.max_input_leases)
+            .checked_add(usize::from(self.profile.limits.max_output_reservations))
+            .and_then(|value| {
+                value.checked_add(usize::from(self.profile.limits.max_pending_operations))
+            })
+            .and_then(|value| value.checked_add(usize::from(self.profile.limits.max_timers)))
+            .and_then(|value| value.checked_add(1))
+            .ok_or(ImplementationError::StepBoundExceeded)?;
+        if interest_count > maximum {
+            return Err(ImplementationError::StepBoundExceeded);
+        }
+        let sequence = self.next_sequence;
+        self.next_sequence = sequence
+            .checked_add(1)
+            .ok_or(ImplementationError::StepBoundExceeded)?;
+        Ok(StepObservation {
+            sequence,
+            outcome: StepOutcomeKind::Pending,
             observable_operations: usage.observable_operations,
             domain_evidence: usage.domain_evidence,
         })

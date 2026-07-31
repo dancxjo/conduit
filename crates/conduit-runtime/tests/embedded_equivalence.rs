@@ -415,7 +415,7 @@ fn cord<'a>(
 fn machine<'a>(
     profile: &'a ExecutionProfile<'a>,
     node: &ResolvedPlanNode<'a>,
-) -> ImplementationMachine<'a> {
+) -> ImplementationMachine {
     ImplementationMachine::instantiate(
         profile,
         InstantiationContext {
@@ -451,7 +451,7 @@ impl SchedulerNode for DesktopDriver {
         Ok(LifecycleUsage::default())
     }
 
-    fn step(&mut self, io: &mut StepIo<'_, '_>) -> SchedulerStep {
+    fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
         match self {
             Self::Sensor { emitted } => {
                 if *emitted {
@@ -532,7 +532,7 @@ fn desktop_executor<'a>(
     plan: &'a ExecutionPlan<'a>,
     profile: &'a ExecutionProfile<'a>,
     indicator: Rc<Cell<Option<u64>>>,
-) -> DeterministicExecutor<'a, DesktopDriver> {
+) -> DeterministicExecutor<DesktopDriver> {
     DeterministicExecutor::start(
         plan,
         PlanValidationContext {
@@ -583,7 +583,7 @@ struct Normalized {
     succeeded: bool,
 }
 
-fn normalize_desktop(executor: &DeterministicExecutor<'_, DesktopDriver>) -> Normalized {
+fn normalize_desktop(executor: &DeterministicExecutor<DesktopDriver>) -> Normalized {
     let mut normalized = Normalized {
         prepared: 0,
         accepted: Vec::new(),

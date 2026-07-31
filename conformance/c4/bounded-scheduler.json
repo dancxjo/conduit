@@ -2,7 +2,7 @@
   "suite": "conduit.bounded-scheduler",
   "cases": [
     {"id":"finite-round-robin-policy","runner":"core-scheduler","expected":{"valid":true,"discipline":"round-robin"}},
-    {"id":"zero-decision-policy-rejected","runner":"core-scheduler","expected":{"error":"CND-SCH-002"}},
+    {"id":"unlimited-decision-lifetime-permitted","runner":"core-scheduler","expected":{"valid":true,"lifetime_decision_limit":null}},
     {"id":"pool-populations-reconcile","runner":"core-scheduler","expected":{"valid":true,"reserved_total":11}},
     {"id":"pool-population-drift-rejected","runner":"core-scheduler","expected":{"error":"CND-SCH-003"}},
     {"id":"resource-wait-does-not-manufacture-demand","runner":"core-scheduler","expected":{"blocked":4,"runnable":2}},
