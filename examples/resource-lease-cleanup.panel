@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node message : std/literal {
     value = "Leased effect boundaries stay explicit.\n"

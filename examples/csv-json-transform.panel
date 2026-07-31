@@ -1,5 +1,5 @@
 # CSV to JSON transformation pipeline panel.
-panel 3
+panel 0
 
 node input_data : std/literal {
     value = "id,name\n1,alice\n2,bob\n"

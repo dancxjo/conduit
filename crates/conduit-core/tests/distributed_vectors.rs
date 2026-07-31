@@ -5,19 +5,22 @@ use conduit_core::{
     DistributedCordBudget, DistributedCordHandshake, DistributedDelivery,
     DistributedHandshakeContext, DistributedOrdering, DistributedPeerProof,
     DistributedPeerRequirement, DistributedReason, DistributedSessionMachine,
-    DistributedSessionState, EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile,
-    FlowCapacity, FlowPolicy, FlowWatermarks, GrantStatus, HostCapability, Id, InstancePath,
-    MemoryClaim, ObservedGrant, PassportStatus, PassportStatusObservation, PendingControl,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanDiagnosticCode, PlanDistributedCord,
-    PlanHostObservation, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
+    DistributedSessionState, EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EffectCommitProfile,
+    EffectDiscontinuity, EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention, GrantStatus,
+    HostCapability, Id, InstancePath, MemoryClaim, ObservedGrant, PassportStatus,
+    PassportStatusObservation, PendingControl, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanDiagnosticCode, PlanDistributedCord, PlanHostObservation, PlanResourceBinding,
+    PlanResourceBudget, PlanValidationContext, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
     ReceiveDisposition, ReconnectMode, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    ResourceRef, ResourceSelector, ResumeProof, SemanticHash, StopPolicy, TerminalClass,
-    TypeContractRef, WorkloadDelegation, resolve_authority, validate_distributed_binding,
+    ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode, ResumeProof,
+    SemanticHash, StopPolicy, TerminalClass, TypeContractRef, UnknownCommitPolicy,
+    WorkloadDelegation, resolve_authority, validate_distributed_binding,
     validate_distributed_handshake, validate_execution_plan,
 };
 use serde_json::{Value, json};
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/distributed-cord-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/distributed-cord.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const PLAN: SemanticHash = SemanticHash::from_bytes([90; 32]);
 
@@ -28,7 +31,7 @@ const fn hash(byte: u8) -> SemanticHash {
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -62,7 +65,7 @@ fn peer(
         realm_identity: hash(passport_byte.saturating_add(20)),
         entity: Id(entity),
         passport: hash(passport_byte),
-        passport_schema_version: 1,
+        passport_schema_version: 0,
         credential: if entity == "fixture/writer" {
             Id("fixture/writer-credential")
         } else {
@@ -84,7 +87,7 @@ fn peer(
 
 fn binding() -> PlanDistributedCord<'static> {
     let mut value = PlanDistributedCord {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         cord: Id("fixture/remote-cord"),
         writer_port_contract_hash: hash(10),
@@ -93,11 +96,14 @@ fn binding() -> PlanDistributedCord<'static> {
         session: Id("fixture/session"),
         initial_session_epoch: 1,
         backend: pin("fixture/distributed-backend", 40),
-        backend_artifact: None,
-        backend_profile: None,
+        backend_artifact: Some(PlanArtifact {
+            id: Id("artifact/zenoh-rust-1-9-0"),
+            digest: ArtifactDigest::from_bytes([43; 32]),
+        }),
+        backend_profile: Some(pin("conduit/zenoh-hosted-accounted", 44)),
         carrier_security: pin("fixture/mtls-profile", 41),
-        carrier_security_mode: None,
-        carrier_endpoint: None,
+        carrier_security_mode: Some(CarrierSecurityMode::MutualTls),
+        carrier_endpoint: Some("tls/zenoh.example:7447"),
         carrier_binding: Id("fixture/resolved-carrier-binding"),
         delivery: DistributedDelivery::AtLeastOnce,
         acknowledgement: AcknowledgementMode::Cumulative,
@@ -130,7 +136,7 @@ fn binding() -> PlanDistributedCord<'static> {
             reorder_bytes: 160,
             dedup_items: 2,
             maximum_payload_bytes: 64,
-            maximum_frame_bytes: 80,
+            maximum_frame_bytes: 640,
             maximum_unacknowledged: 2,
             maximum_retries: 2,
             maximum_reconnect_attempts: 2,
@@ -150,20 +156,6 @@ fn binding() -> PlanDistributedCord<'static> {
             evidence_bytes: 32,
         },
     };
-    value.identity = value.semantic_hash().unwrap();
-    value
-}
-
-fn binding_v2() -> PlanDistributedCord<'static> {
-    let mut value = binding();
-    value.schema_version = 2;
-    value.backend_artifact = Some(PlanArtifact {
-        id: Id("artifact/zenoh-rust-1-9-0"),
-        digest: ArtifactDigest::from_bytes([43; 32]),
-    });
-    value.backend_profile = Some(pin("conduit/zenoh-hosted-accounted", 44));
-    value.carrier_security_mode = Some(CarrierSecurityMode::MutualTls);
-    value.carrier_endpoint = Some("tls/zenoh.example:7447");
     value.identity = value.semantic_hash().unwrap();
     value
 }
@@ -230,7 +222,7 @@ fn proof(requirement: DistributedPeerRequirement<'static>) -> DistributedPeerPro
 
 fn handshake(binding: PlanDistributedCord<'static>) -> DistributedCordHandshake<'static> {
     DistributedCordHandshake {
-        protocol_version: 1,
+        protocol_version: 0,
         plan_identity: PLAN,
         binding_identity: binding.identity,
         cord: binding.cord,
@@ -435,11 +427,9 @@ fn binding_identity_covers_delivery_and_allocation() {
 }
 
 #[test]
-fn binding_v2_pins_transport_artifact_profile_and_endpoint_without_reinterpreting_v1() {
-    let legacy = binding();
-    validate_distributed_binding(&legacy).expect("frozen schema-1 binding");
-    let exact = binding_v2();
-    validate_distributed_binding(&exact).expect("schema-2 exact transport binding");
+fn binding_pins_transport_artifact_profile_and_endpoint() {
+    let exact = binding();
+    validate_distributed_binding(&exact).expect("current exact transport binding");
 
     let mut changed = exact;
     changed.backend_artifact = Some(PlanArtifact {
@@ -472,7 +462,7 @@ fn binding_v2_pins_transport_artifact_profile_and_endpoint_without_reinterpretin
 fn profile() -> ExecutionProfile<'static> {
     let mut profile = ExecutionProfile {
         id: Id("fixture/distributed-profile"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: ZERO,
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
@@ -507,7 +497,7 @@ fn profile() -> ExecutionProfile<'static> {
 }
 
 #[test]
-fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
+fn current_plan_requires_one_exact_binding_for_each_cross_host_cord() {
     let profile = profile();
     let observations = [
         PlanHostObservation {
@@ -613,6 +603,84 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         audit_id: Id("fixture/network-audit-b"),
         terminal_policy: StopPolicy::Abort,
     };
+    let source_resources = [Id("fixture/network-binding-a")];
+    let sink_resources = [Id("fixture/network-binding-b")];
+    let leases = [
+        ResourceLeaseContract {
+            schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+            id: Id("fixture/network-lease-a"),
+            resource_binding: source_resources[0],
+            holder: source,
+            run: effect_a.audience,
+            epoch: 1,
+            scope: Id("fixture/network-scope-a"),
+            sharing: ResourceSharingMode::Exclusive,
+            reservation: PlanResourceBudget {
+                memory_bytes: 1,
+                ..PlanResourceBudget::ZERO
+            },
+            time_basis: Id("fixture/clock"),
+            issued_at_tick: 10,
+            expires_at_tick: 30,
+            revocation_grace_ticks: 1,
+            cleanup_ticks: 2,
+            maximum_operations: 2,
+            maximum_evidence_events: 4,
+            cleanup_escalation: pin("fixture/network-escalation-a", 94),
+            foreign_retention: ForeignRetention::Unsupported,
+        },
+        ResourceLeaseContract {
+            schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+            id: Id("fixture/network-lease-b"),
+            resource_binding: sink_resources[0],
+            holder: sink,
+            run: effect_b.audience,
+            epoch: 1,
+            scope: Id("fixture/network-scope-b"),
+            sharing: ResourceSharingMode::Exclusive,
+            reservation: PlanResourceBudget {
+                memory_bytes: 1,
+                ..PlanResourceBudget::ZERO
+            },
+            time_basis: Id("fixture/clock"),
+            issued_at_tick: 10,
+            expires_at_tick: 30,
+            revocation_grace_ticks: 1,
+            cleanup_ticks: 2,
+            maximum_operations: 2,
+            maximum_evidence_events: 4,
+            cleanup_escalation: pin("fixture/network-escalation-b", 95),
+            foreign_retention: ForeignRetention::Unsupported,
+        },
+    ];
+    let commit_profiles = [
+        EffectCommitProfile {
+            schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: Id("fixture/network-commit-a"),
+            operation: effect_a.action,
+            resource_lease: leases[0].id,
+            commit_boundary: pin("fixture/network-boundary-a", 96),
+            idempotency: EffectIdempotency::ReconcileBeforeRetry,
+            unknown_commit: UnknownCommitPolicy::Reconcile,
+            discontinuity: EffectDiscontinuity::ReconcileRequired,
+            cleanup: pin("fixture/network-cleanup-a", 97),
+            maximum_attempts: 2,
+            evidence_events_per_attempt: 2,
+        },
+        EffectCommitProfile {
+            schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: Id("fixture/network-commit-b"),
+            operation: effect_b.action,
+            resource_lease: leases[1].id,
+            commit_boundary: pin("fixture/network-boundary-b", 98),
+            idempotency: EffectIdempotency::ReconcileBeforeRetry,
+            unknown_commit: UnknownCommitPolicy::Reconcile,
+            discontinuity: EffectDiscontinuity::ReconcileRequired,
+            cleanup: pin("fixture/network-cleanup-b", 99),
+            maximum_attempts: 2,
+            evidence_events_per_attempt: 2,
+        },
+    ];
     let authority_a = PlanAuthority {
         node: source,
         effect_hash: effect_a.semantic_hash().unwrap(),
@@ -637,7 +705,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
-        commit_profile: None,
+        commit_profile: Some(commit_profiles[0]),
     };
     let authority_b = PlanAuthority {
         node: sink,
@@ -663,27 +731,25 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
-        commit_profile: None,
+        commit_profile: Some(commit_profiles[1]),
     };
     let authorities = [authority_a, authority_b];
     let source_effects = [authority_a.effect_hash];
     let sink_effects = [authority_b.effect_hash];
-    let source_resources = [Id("fixture/network-binding-a")];
-    let sink_resources = [Id("fixture/network-binding-b")];
     let resources = [
         PlanResourceBinding {
             id: source_resources[0],
             node: source,
             resource: resource_a,
             host_observation: observations[0].id,
-            lease: None,
+            lease: Some(leases[0]),
         },
         PlanResourceBinding {
             id: sink_resources[0],
             node: sink,
             resource: resource_b,
             host_observation: observations[1].id,
-            lease: None,
+            lease: Some(leases[1]),
         },
     ];
     let artifacts = [
@@ -735,7 +801,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     ];
     let value_type = TypeContractRef {
         contract_id: Id("fixture/value"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(89),
     };
     let cords = [ResolvedPlanCord {
@@ -763,7 +829,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     distributed.identity = distributed.semantic_hash().unwrap();
     let distributed_cords = [distributed];
     let mut plan = ExecutionPlan {
-        schema_version: 9,
+        schema_version: 0,
         identity: ZERO,
         source_semantic_hash: hash(91),
         resolver: pin("fixture/resolver", 92),
@@ -808,7 +874,7 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     let mut scratch = [ZERO; 64];
     plan.identity = plan.semantic_hash(&mut scratch).unwrap();
     let context = PlanValidationContext {
-        supported_schema_version: 9,
+        supported_schema_version: 0,
         now: AuthorityTime {
             basis: Id("fixture/clock"),
             tick: 20,
@@ -820,7 +886,6 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     );
 
     let mut exact_transport = distributed;
-    exact_transport.schema_version = 2;
     exact_transport.backend_artifact = Some(artifacts[2]);
     exact_transport.backend_profile = Some(pin("conduit/zenoh-hosted-accounted", 44));
     exact_transport.carrier_security_mode = Some(CarrierSecurityMode::MutualTls);
@@ -828,32 +893,19 @@ fn schema_nine_requires_one_exact_binding_for_each_cross_host_cord() {
     exact_transport.identity = exact_transport.semantic_hash().unwrap();
     let exact_transports = [exact_transport];
     let mut current = ExecutionPlan {
-        schema_version: 10,
+        schema_version: 0,
         identity: ZERO,
         distributed_cords: &exact_transports,
         ..plan
     };
     current.identity = current.semantic_hash(&mut scratch).unwrap();
     let current_context = PlanValidationContext {
-        supported_schema_version: 10,
+        supported_schema_version: 0,
         ..context
     };
     assert_eq!(
         validate_execution_plan(&current, current_context, &mut scratch),
         Ok(())
-    );
-
-    let mut wrong_binding_revision = ExecutionPlan {
-        identity: ZERO,
-        distributed_cords: &distributed_cords,
-        ..current
-    };
-    wrong_binding_revision.identity = wrong_binding_revision.semantic_hash(&mut scratch).unwrap();
-    assert_eq!(
-        validate_execution_plan(&wrong_binding_revision, current_context, &mut scratch)
-            .unwrap_err()
-            .code,
-        PlanDiagnosticCode::Distributed(DistributedReason::UnsupportedVersion)
     );
 
     let mut missing = ExecutionPlan {

@@ -7,23 +7,23 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    CompileSourceLimits, DistributionProviderDocument, ExecutionLimitsDocument,
-    ExecutionProfileDocument, HostReportDocument, ImplementationDocument, MemoryClaimDocument,
-    PinDocument, ProviderRequirementDocument, ProviderRiskTraitsDocument,
-    ReferenceDistributionDocument, builtin_catalog_document, compile_source,
+    CompileSourceLimits, DistributionProviderDocument, EffectCommitProfileDocument,
+    ExecutionLimitsDocument, ExecutionProfileDocument, HostReportDocument, ImplementationDocument,
+    MemoryClaimDocument, PinDocument, ProviderRequirementDocument, ProviderRiskTraitsDocument,
+    ReferenceDistributionDocument, ResourceLeaseDocument, builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
     DISTRIBUTION_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
+    IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
 };
 use conduit_panel::parse;
 use conduit_runtime::Registry;
 
 static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
-const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json");
 const SOURCE_LIMIT_FIXTURE: &str =
-    include_str!("../../../conformance/c5/compile-source-limits-v1.json");
+    include_str!("../../../conformance/c5/compile-source-limits.json");
 
 fn command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduct"));
@@ -57,15 +57,65 @@ fn hash(byte: u8) -> String {
 fn pin(id: &str, byte: u8) -> PinDocument {
     PinDocument {
         id: id.to_owned(),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
+}
+
+fn effect_contracts(
+    name: &str,
+    holder: &str,
+    operation: &str,
+    resource_binding: &str,
+) -> (ResourceLeaseDocument, EffectCommitProfileDocument) {
+    let lease_id = format!("fixture/lease-{name}");
+    (
+        ResourceLeaseDocument {
+            schema_version: conduit_core::RESOURCE_LEASE_SCHEMA_VERSION,
+            id: lease_id.clone(),
+            resource_binding: resource_binding.to_owned(),
+            holder: holder.to_owned(),
+            run: "fixture/run".to_owned(),
+            epoch: 0,
+            scope: format!("fixture/scope-{name}"),
+            sharing: "exclusive".to_owned(),
+            maximum_holders: 1,
+            reservation: BudgetDocument {
+                memory_bytes: 1,
+                ..BudgetDocument::default()
+            },
+            time_basis: "clock/compile".to_owned(),
+            issued_at_tick: 10,
+            expires_at_tick: 20,
+            revocation_grace_ticks: 1,
+            cleanup_ticks: 2,
+            maximum_operations: 1,
+            maximum_evidence_events: 4,
+            cleanup_escalation: pin(&format!("fixture/cleanup-{name}"), 200),
+            foreign_retention: "unsupported".to_owned(),
+            foreign_maximum_bytes: 0,
+            foreign_release_ticks: 0,
+        },
+        EffectCommitProfileDocument {
+            schema_version: conduit_core::EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: format!("fixture/commit-profile-{name}"),
+            operation: operation.to_owned(),
+            resource_lease: lease_id,
+            commit_boundary: pin(&format!("fixture/commit-boundary-{name}"), 201),
+            idempotency: "reconcile-before-retry".to_owned(),
+            unknown_commit: "reconcile".to_owned(),
+            discontinuity: "reconcile-required".to_owned(),
+            cleanup: pin(&format!("fixture/commit-cleanup-{name}"), 202),
+            maximum_attempts: 1,
+            evidence_events_per_attempt: 2,
+        },
+    )
 }
 
 fn profile(ordinal: u8) -> ExecutionProfileDocument {
     ExecutionProfileDocument {
         id: format!("fixture/execution-profile-{ordinal}"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(30),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -103,7 +153,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             implementation_version: "1.0.0".to_owned(),
             semantic_contract: PinDocument {
                 id: contract_id.to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: contract_hash.to_string(),
             },
             executor: "native-in-process".to_owned(),
@@ -113,8 +163,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
                 .expect("contract identity has a final path segment")
                 .to_owned(),
             entrypoint_adapter: "conduit/hosted-primitive-step".to_owned(),
-            entrypoint_abi: "conduit/hosted-primitive-v1".to_owned(),
-            runtime_protocol_version: 1,
+            entrypoint_abi: "conduit/hosted-primitive".to_owned(),
+            runtime_protocol_version: 0,
             execution_profile: pin("fixture/execution-profile", 30),
             artifacts: vec![ArtifactReferenceDocument {
                 id: artifact_id.clone(),
@@ -124,8 +174,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             }],
             required_authorities: Vec::new(),
             required_effects: Vec::new(),
-            minimum_plan_version: 1,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            minimum_plan_version: 0,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             minimum_runtime_protocol: 1,
             maximum_runtime_protocol: 1,
             coexistence_memory_bytes: 0,
@@ -172,8 +222,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             supported_executors: vec!["native-in-process".to_owned()],
             supported_targets: Vec::new(),
             supported_abis: Vec::new(),
-            minimum_plan_version: 1,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            minimum_plan_version: 0,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
@@ -309,6 +359,12 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
         .as_str()
         .unwrap()
         .to_owned();
+    let (resource_lease, commit_profile) = effect_contracts(
+        "governed",
+        "root/greeting",
+        "fixture/read",
+        "fixture/device-a",
+    );
     let budget_class = serde_json::to_value(pin("class.executable-installation", 119)).unwrap();
     candidate["authorities"]
         .as_array_mut()
@@ -356,9 +412,11 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
                 "terminal_policy": "abort"
             },
             "status": "active",
+            "resource_lease": resource_lease,
+            "commit_profile": commit_profile,
             "policy_budgets": [{
                 "policy": {
-                    "schema_version": 1,
+                    "schema_version": 0,
                     "identity": "",
                     "descriptor": pin("budget.installation", 120),
                     "owner": pin("owner.site-operations", 121),
@@ -382,7 +440,7 @@ fn exhausted_policy_budget_input(source: &str) -> CompileInput {
                     "maximum_evidence_events": 16
                 },
                 "status": {
-                    "schema_version": 1,
+                    "schema_version": 0,
                     "identity": "",
                     "policy_identity": "",
                     "ledger": pin("ledger.host-installation", 124),
@@ -429,6 +487,8 @@ fn toxic_hazard_input(source: &str) -> CompileInput {
         .unwrap()
         .to_owned();
     let effect_class = pin("class.cli-toxic", 130);
+    let (resource_lease, commit_profile) =
+        effect_contracts("toxic", "root/greeting", "fixture/read", "fixture/device-a");
     candidate["authorities"]
         .as_array_mut()
         .unwrap()
@@ -479,7 +539,9 @@ fn toxic_hazard_input(source: &str) -> CompileInput {
                 "audit_id": "fixture/cli-toxic-audit",
                 "terminal_policy": "abort"
             },
-            "status": "active"
+            "status": "active",
+            "resource_lease": resource_lease,
+            "commit_profile": commit_profile
         }));
     let mut baseline: CompileInput = serde_json::from_value(value).unwrap();
     baseline.seal().unwrap();
@@ -490,7 +552,7 @@ fn toxic_hazard_input(source: &str) -> CompileInput {
         "epoch": 1,
         "plan_subject": plan_subject,
         "policy": {
-            "schema_version": 1,
+            "schema_version": 0,
             "identity": "",
             "descriptor": pin("policy.cli-hazard", 132),
             "permit_class": pin("effect.cli-permit", 133),
@@ -575,9 +637,9 @@ fn compile_emits_only_a_finite_validated_plan_result() {
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
     let result: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(result["schema"], "conduit.result/v1");
+    assert_eq!(result["schema"], "conduit.result");
     assert_eq!(result["operation"], "compile");
-    assert_eq!(result["result"]["schema"], "conduit.execution-plan/v3");
+    assert_eq!(result["result"]["schema"], "conduit.execution-plan");
     assert_eq!(
         result["result"]["unresolved_selectors"],
         serde_json::json!([])

@@ -25,7 +25,7 @@ use conduit_runtime::{
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/sample"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([9; 32]),
 };
 const CLAIMS: [MemoryClaim; 1] = [MemoryClaim {
@@ -54,8 +54,7 @@ const LIMITS: ExecutionLimits = ExecutionLimits {
     implementation_memory_bytes: 320,
     cancellation_ticks: 8,
 };
-const EQUIVALENCE_FIXTURE: &str =
-    include_str!("../../../conformance/c5/embedded-equivalence-v1.json");
+const EQUIVALENCE_FIXTURE: &str = include_str!("../../../conformance/c5/embedded-equivalence.json");
 const STATIC_NODES: [StaticNode<'static>; 3] = [
     StaticNode {
         semantic_path: Id("fixture/sensor"),
@@ -112,7 +111,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -120,7 +119,7 @@ fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
 fn profile() -> ExecutionProfile<'static> {
     let mut profile = ExecutionProfile {
         id: Id("fixture/embedded-equivalence-profile"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: ZERO,
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
@@ -283,7 +282,7 @@ fn with_equivalence_plans(
         ),
     ];
     let mut desktop_plan = ExecutionPlan {
-        schema_version: 3,
+        schema_version: 0,
         identity: ZERO,
         source_semantic_hash: hash(60),
         resolver: pin("fixture/resolver", 61),
@@ -537,7 +536,7 @@ fn desktop_executor<'a>(
     DeterministicExecutor::start(
         plan,
         PlanValidationContext {
-            supported_schema_version: 3,
+            supported_schema_version: 0,
             now: AuthorityTime {
                 basis: Id("clock/monotonic"),
                 tick: 2,

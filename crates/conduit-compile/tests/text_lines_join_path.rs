@@ -215,7 +215,7 @@ fn maximum_join_requeues_fairly_with_lines_under_tiny_steps() {
     assert_eq!(value.replace("\\n", "\n").len(), 1024);
     let separator = "|";
     let source = format!(
-        "panel 3\n{}\n{MAXIMUM_OUTPUT}",
+        "panel 0\n{}\n{MAXIMUM_OUTPUT}",
         maximum_branch("a", &value, separator)
     );
     let mut installed = InstalledProfile::observe(&source).unwrap();
@@ -331,7 +331,7 @@ fn maximum_join_requeues_fairly_with_lines_under_tiny_steps() {
 fn maximum_line_scanning_and_copying_span_bounded_steps() {
     let value = "x".repeat(conduit_std::LINES_MAX_LINE_BYTES);
     let source = format!(
-        "panel 3\n{}\n{MAXIMUM_OUTPUT}",
+        "panel 0\n{}\n{MAXIMUM_OUTPUT}",
         maximum_branch("a", &value, "|")
     );
     let mut installed = InstalledProfile::observe(&source).unwrap();

@@ -8,7 +8,7 @@ use conduit_core::{
     DiagnosticEdit, DiagnosticFix, DiagnosticRelated, DiagnosticSeverity, DiagnosticSpan,
     FixApplicability, ImplementationError, PlanValidationError, ValidationError,
 };
-use conduit_panel::{ModuleResolutionError, ParseError, SourceSchemaError, SourceSpan};
+use conduit_panel::{ModuleResolutionError, ParseError, SourceSpan};
 use conduit_runtime::{LoweringDiagnostic, ResolutionError, RuntimeError};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -485,19 +485,6 @@ pub fn from_parse_error(error: &ParseError, source: &DiagnosticSource) -> OwnedD
     base(error.code, &error.message, Some(primary), fixes)
 }
 
-/// Converts an explicit persisted source-schema selection failure.
-#[must_use]
-pub fn from_source_schema_error(error: &SourceSchemaError) -> OwnedDiagnostic {
-    let mut diagnostic = base(error.code, &error.message, None, Vec::new());
-    diagnostic.arguments.push(OwnedDiagnosticArgument {
-        name: "schema_version".to_owned(),
-        value: OwnedDiagnosticArgumentValue::Public {
-            text: error.schema_version.to_string(),
-        },
-    });
-    diagnostic
-}
-
 /// Converts module resolution failure and import causality.
 #[must_use]
 pub fn from_module_error(
@@ -777,11 +764,11 @@ fn parse_fixes(
             })
             .unwrap_or(primary.byte_end);
         (
-            "use-panel-version-3",
-            "replace the unsupported grammar version with version 3",
+            "use-panel-version-0",
+            "replace the unsupported grammar version with version 0",
             version_start,
             version_end,
-            "3",
+            "0",
         )
     } else if error.message.contains("trailing comma") {
         let comma = source

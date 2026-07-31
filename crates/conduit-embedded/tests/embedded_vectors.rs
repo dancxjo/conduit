@@ -15,7 +15,7 @@ use conduit_embedded::{
     validate_firmware_replacement, validate_static_plan,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/embedded-rp2040-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/embedded-rp2040.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const PLAN_HASH: SemanticHash = SemanticHash::from_bytes([7; 32]);
 
@@ -862,22 +862,22 @@ fn hil_header_and_event_frames_round_trip_exact_attribution() {
 fn pico_report_names_exact_build_pools_and_no_unimplemented_zenoh() {
     const REPORTER: PinnedDescriptor<'static> = PinnedDescriptor {
         id: Id("fixture/rp2040-firmware"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([11; 32]),
     };
     const TRUST: PinnedDescriptor<'static> = PinnedDescriptor {
         id: Id("fixture/firmware-build-trust"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([12; 32]),
     };
     const WIFI: PinnedDescriptor<'static> = PinnedDescriptor {
         id: Id("conduit/host.wifi-network"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([13; 32]),
     };
     const POOL: PinnedDescriptor<'static> = PinnedDescriptor {
         id: Id("fixture/rp2040-fixed-pools"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([14; 32]),
     };
     let capabilities = [ReportCapability {
@@ -906,7 +906,7 @@ fn pico_report_names_exact_build_pools_and_no_unimplemented_zenoh() {
     }];
     let executors = [ExecutorKind::Firmware];
     let targets = [Id("thumbv6m-none-eabi")];
-    let abis = [Id("conduit-static-step-v1")];
+    let abis = [Id("conduit-static-step")];
     let constraints = [profile().identity, SemanticHash::from_bytes([16; 32])];
     let mut report = CapabilityReport {
         schema_version: CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -926,13 +926,20 @@ fn pico_report_names_exact_build_pools_and_no_unimplemented_zenoh() {
         supported_executors: &executors,
         supported_targets: &targets,
         supported_abis: &abis,
-        minimum_plan_version: 3,
-        maximum_plan_version: 9,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &constraints,
     };
     let mut scratch = [ZERO; 8];
     report.identity = report.computed_semantic_hash(&mut scratch).unwrap();
-    validate_capability_report(&report, Id("fixture/boot-ticks"), 12, 9, &mut scratch).unwrap();
+    validate_capability_report(
+        &report,
+        Id("fixture/boot-ticks"),
+        12,
+        conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
+        &mut scratch,
+    )
+    .unwrap();
     assert!(
         report
             .capabilities

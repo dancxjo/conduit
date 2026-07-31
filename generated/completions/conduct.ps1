@@ -43,7 +43,7 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             break
         }
         'conduct;inspect' {
-            [CompletionResult]::new('--type', '--type', [CompletionResultType]::ParameterName, 'Select a frozen artifact kind, or use marker-only detection')
+            [CompletionResult]::new('--type', '--type', [CompletionResultType]::ParameterName, 'Select a current artifact kind, or use marker-only detection')
             [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
             [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
             [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')

@@ -1,0 +1,178 @@
+{
+  "suite": "conduit.node-interface",
+  "schema_version": 0,
+  "portable_limits": {
+    "maximum_members": 64,
+    "maximum_non_port_requirements": 16,
+    "identity_scratch_hashes_per_member": 1,
+    "proof_member_slots_per_member": 1,
+    "proof_hash_slots_per_member": 1
+  },
+  "unlisted_non_port_facets_are_unproven": true,
+  "cases": [
+    {
+      "id": "exact-primitive-boundary",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "compatible",
+        "reason": "node-interface-satisfied"
+      }
+    },
+    {
+      "id": "compatible-directional-refinement",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "compatible",
+        "uses": "port-substitution"
+      }
+    },
+    {
+      "id": "composite-exported-boundary",
+      "runner": "satisfaction",
+      "expected": {
+        "normalized_member_proof": "equal-to-primitive"
+      }
+    },
+    {
+      "id": "optional-member-absent",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "compatible",
+        "reason": "interface-optional-member-absent"
+      }
+    },
+    {
+      "id": "optional-member-present-but-incompatible",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "incompatible",
+        "optional_does_not_weaken_port": true
+      }
+    },
+    {
+      "id": "missing-required-member",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "incompatible",
+        "reason": "node-interface-required-member-missing"
+      }
+    },
+    {
+      "id": "wrong-direction",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "incompatible",
+        "reason": "node-interface-member-wrong-direction"
+      }
+    },
+    {
+      "id": "same-type-incompatible-delivery",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "incompatible",
+        "port_reason": "port-delivery-mismatch"
+      }
+    },
+    {
+      "id": "sensitivity-weakening",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "incompatible",
+        "port_reason": "port-sensitivity-violation"
+      }
+    },
+    {
+      "id": "provider-unavailable",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "indeterminate",
+        "reason": "node-interface-provider-unavailable"
+      }
+    },
+    {
+      "id": "provider-approved-type-refinement",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "compatible",
+        "provider_decision_retained": true
+      }
+    },
+    {
+      "id": "ambiguous-provider-decisions",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "indeterminate",
+        "reason": "node-interface-ambiguous"
+      }
+    },
+    {
+      "id": "authority-effect-widening-rejected",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "incompatible",
+        "reason": "node-interface-requirement-incompatible",
+        "authority_granted": false
+      }
+    },
+    {
+      "id": "extra-concrete-member",
+      "runner": "satisfaction",
+      "expected": {
+        "outcome": "compatible",
+        "hidden_adapter": false
+      }
+    },
+    {
+      "id": "duplicate-interface-member",
+      "runner": "validation",
+      "expected": {
+        "error": "interface-duplicate-member"
+      }
+    },
+    {
+      "id": "revision-or-hash-mismatch",
+      "runner": "identity",
+      "expected": {
+        "error": "interface-reference-mismatch"
+      }
+    },
+    {
+      "id": "member-order-nonsemantic",
+      "runner": "identity",
+      "expected": {
+        "relation": "equal"
+      }
+    },
+    {
+      "id": "semantic-member-change",
+      "runner": "identity",
+      "expected": {
+        "relation": "different"
+      }
+    },
+    {
+      "id": "insufficient-identity-scratch",
+      "runner": "identity",
+      "expected": {
+        "error": "interface-identity-scratch-too-small"
+      }
+    },
+    {
+      "id": "insufficient-proof-scratch",
+      "runner": "satisfaction",
+      "expected": {
+        "error": "interface-proof-member-scratch-too-small"
+      }
+    },
+    {
+      "id": "claim-does-not-prove-deferred-facets",
+      "runner": "boundary",
+      "expected": {
+        "configuration_proven": false,
+        "lifecycle_proven": false,
+        "authority_granted": false,
+        "effects_widened": false
+      }
+    }
+  ]
+}

@@ -75,7 +75,7 @@ fn every_legal_and_illegal_transition_is_exact() {
         }
     }
 
-    let fixture = include_str!("../../../conformance/c2/lifecycle-v1.tsv");
+    let fixture = include_str!("../../../conformance/c2/lifecycle.tsv");
     assert!(fixture.contains("node\tcreated\tpreparing\taccepted"));
     assert!(fixture.contains("composite\tsucceeded\trunning\trejected\tCND-LIF-001"));
     assert!(fixture.contains("run\tcreated\trunning\trejected\tCND-LIF-001"));
@@ -286,7 +286,7 @@ fn terminal_races_have_one_order_independent_answer_and_retain_causes() {
         assert_eq!(retained_pair, retained_reverse);
     }
     assert!(
-        include_str!("../../../conformance/c2/terminal-races-v1.tsv")
+        include_str!("../../../conformance/c2/terminal-races.tsv")
             .contains("failure-during-drain\tnatural-completion,node-failed\tfailed\tabort")
     );
 }

@@ -11,7 +11,7 @@ const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const PLAN: SemanticHash = SemanticHash::from_bytes([3; 32]);
 const VALUE_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([4; 32]),
 };
 const POLICY: EvidencePolicy = EvidencePolicy {
@@ -35,7 +35,7 @@ fn event<'a>(
     payload: EventPayload<'a>,
 ) -> ExecutionEvent<'a> {
     let mut event = ExecutionEvent {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         event_id: Id(id),
         run_id: Id("run/ndjson"),
@@ -155,7 +155,7 @@ fn frozen_ndjson_round_trips_through_owned_and_core_forms() {
     let encoded = encode_event_ndjson(&events).unwrap();
     assert_eq!(
         encoded,
-        include_str!("../../../conformance/c2/execution-event-v1.ndjson")
+        include_str!("../../../conformance/c2/execution-event.ndjson")
     );
     let decoded = decode_event_ndjson(&encoded).unwrap();
     assert_eq!(encode_owned_event_ndjson(&decoded).unwrap(), encoded);
@@ -170,7 +170,7 @@ fn frozen_ndjson_round_trips_through_owned_and_core_forms() {
     malformed.payload = OwnedEventPayload::Reference {
         value_type: OwnedTypeRef {
             id: "fixture/value".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash:
                 "sha256:0404040404040404040404040404040404040404040404040404040404040404".to_owned(),
         },
@@ -185,8 +185,8 @@ fn frozen_ndjson_round_trips_through_owned_and_core_forms() {
     assert!(malformed.as_event(&mut []).is_err());
 
     let with_unknown = encoded.replacen(
-        "\"schema_version\":1,",
-        "\"schema_version\":1,\"unknown\":true,",
+        "\"schema_version\":0,",
+        "\"schema_version\":0,\"unknown\":true,",
         1,
     );
     assert!(decode_event_ndjson(&with_unknown).is_err());

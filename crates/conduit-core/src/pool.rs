@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Current portable replicated-pool contract.
-pub const POOL_CONTRACT_SCHEMA_VERSION: u32 = 1;
+pub const POOL_CONTRACT_SCHEMA_VERSION: u32 = 0;
 
 /// Source-authored admission behavior after exact lowering.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

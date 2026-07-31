@@ -39,7 +39,7 @@ pub enum OutputFormat {
     Ndjson,
 }
 
-/// Frozen artifact marker requested for read-only inspection.
+/// Artifact marker requested for read-only inspection.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
 pub enum InspectKind {
     #[default]
@@ -67,7 +67,7 @@ pub enum SecondaryCommand {
 /// Inputs for bounded, non-executing artifact inspection.
 #[derive(Debug, Eq, PartialEq, ClapArgs)]
 pub struct InspectArguments {
-    /// Select a frozen artifact kind, or use marker-only detection.
+    /// Select a current artifact kind, or use marker-only detection.
     #[arg(long = "type", value_name = "TYPE", value_enum, default_value_t)]
     pub kind: InspectKind,
 
@@ -333,10 +333,9 @@ mod tests {
 
     #[test]
     fn every_progress_conformance_vector_is_enforced() {
-        let fixture: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../conformance/c3/conduct-output-v1.json"
-        ))
-        .unwrap();
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../../conformance/c3/conduct-output.json"))
+                .unwrap();
         for case in fixture["progress_cases"].as_array().unwrap() {
             let total = case["total"].as_u64().unwrap();
             let expected = case["expected"]["accepted"].as_bool().unwrap();

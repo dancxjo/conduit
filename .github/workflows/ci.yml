@@ -48,7 +48,7 @@ jobs:
       - run: bash browser/run-chromium-vectors.sh
       - run: cargo run -p conduct --bin generate-conduct-assets -- --check
       # Workspace tests already execute every manifest reference test.
-      - run: cargo run -p conduit-conformance -- verify-fixtures conformance/v1/manifest.json
+      - run: cargo run -p conduit-conformance -- verify-fixtures conformance/current/manifest.json
       - run: cargo xtask verify-canonical
       - run: cargo xtask performance-gate
       - run: cargo xtask check-python-boundary

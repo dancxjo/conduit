@@ -3,15 +3,15 @@ use conduit_compile::ReferenceDistributionDocument;
 const PROFILES: [(&str, &str); 3] = [
     (
         "hosted",
-        include_str!("../../../distribution/reference-hosted-v1.json"),
+        include_str!("../../../distribution/reference-hosted.json"),
     ),
     (
         "browser",
-        include_str!("../../../distribution/reference-browser-v1.json"),
+        include_str!("../../../distribution/reference-browser.json"),
     ),
     (
         "constrained",
-        include_str!("../../../distribution/reference-constrained-v1.json"),
+        include_str!("../../../distribution/reference-constrained.json"),
     ),
 ];
 

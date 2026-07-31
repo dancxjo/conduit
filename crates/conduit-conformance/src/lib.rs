@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest as _, Sha256};
 
-pub const SUPPORTED_PROTOCOL_VERSION: u32 = 1;
+pub const SUPPORTED_PROTOCOL_VERSION: u32 = 0;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -254,8 +254,8 @@ fn validate_manifest_header(manifest: &Manifest) -> Result<(), HarnessError> {
             manifest.protocol_version, SUPPORTED_PROTOCOL_VERSION
         ));
     }
-    if manifest.fixture_version.is_empty() || manifest.manifest_revision == 0 {
-        return invalid("fixture_version must be non-empty and manifest_revision must be positive");
+    if manifest.fixture_version.is_empty() || manifest.manifest_revision != 0 {
+        return invalid("fixture_version must be non-empty and manifest_revision must be zero");
     }
     if manifest.deterministic_environment.clock.basis.is_empty()
         || !manifest
@@ -281,7 +281,6 @@ fn validate_coverage_shape(suite: &Suite) -> Result<(), HarnessError> {
         ("positive", &suite.coverage.positive),
         ("negative", &suite.coverage.negative),
         ("boundary", &suite.coverage.boundary),
-        ("migration", &suite.coverage.migration),
     ] {
         if values.is_empty() {
             return invalid(format!("suite {} has no {name} coverage", suite.id));
@@ -940,7 +939,7 @@ fn verify_canonical_vectors(loaded: &LoadedManifest) -> Result<(), HarnessError>
     for case in loaded
         .cases
         .iter()
-        .filter(|case| case.operation == "canonical-descriptor-v1")
+        .filter(|case| case.operation == "canonical-descriptor")
     {
         let kind = string_field(&case.input, "kind", &case.request_id)?;
         let schema_version = case
@@ -960,7 +959,7 @@ fn verify_canonical_vectors(loaded: &LoadedManifest) -> Result<(), HarnessError>
             "canonical_hex": encode_hex(&canonical),
             "semantic_hash": format!(
                 "sha256:{:x}",
-                Sha256::digest([b"conduit.semantic-hash/v1\0".as_slice(), &canonical].concat())
+                Sha256::digest([b"conduit.semantic-hash\0".as_slice(), &canonical].concat())
             ),
         });
         let found = differences(&case.expected, &actual, &case.requirement_ids[0]);
@@ -989,7 +988,7 @@ fn verify_canonical_vectors(loaded: &LoadedManifest) -> Result<(), HarnessError>
     for case in loaded
         .cases
         .iter()
-        .filter(|case| case.operation == "canonical-descriptor-rejection-v1")
+        .filter(|case| case.operation == "canonical-descriptor-rejection")
     {
         let kind = string_field(&case.input, "kind", &case.request_id)?;
         let schema_version = case
@@ -1047,7 +1046,7 @@ fn canonical_descriptor(
     body: &Value,
     depth: u32,
 ) -> Result<Vec<u8>, HarnessError> {
-    let mut output = b"CND\x01".to_vec();
+    let mut output = b"CND\x00".to_vec();
     encode_identifier(kind, &mut output)?;
     output.extend_from_slice(&schema_version.to_be_bytes());
     encode_canonical(body, depth, &mut output)?;
@@ -1256,7 +1255,7 @@ mod tests {
 
     fn fixture_manifest() -> LoadedManifest {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        load_manifest(&root.join("conformance/v1/manifest.json")).unwrap()
+        load_manifest(&root.join("conformance/current/manifest.json")).unwrap()
     }
 
     #[test]

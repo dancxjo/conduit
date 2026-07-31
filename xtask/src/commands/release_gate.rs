@@ -3,9 +3,9 @@ use std::{collections::BTreeSet, fs, path::Path, process::Command};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-const CLAIMS_PATH: &str = "release/capabilities-v1.json";
+const CLAIMS_PATH: &str = "release/capabilities.json";
 const MATRIX_PATH: &str = "docs/capability-matrix.md";
-const RUNNABILITY_PATH: &str = "examples/runnability-v1.json";
+const RUNNABILITY_PATH: &str = "examples/runnability.json";
 const DISPOSITION_PATH: &str = ".github/ISSUE_TEMPLATE/accepted-slice.md";
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -108,7 +108,7 @@ fn validate(
     claims: &Claims,
     runnability: &Runnability,
 ) -> Result<(), String> {
-    if claims.schema != "conduit.release-capabilities/v1" {
+    if claims.schema != "conduit.release-capabilities" {
         return Err("unsupported release-capabilities schema".to_owned());
     }
     if claims.version != env!("CARGO_PKG_VERSION") {
@@ -205,7 +205,7 @@ fn validate(
 fn render_matrix(claims: &Claims) -> String {
     let mut output = String::from(
         "# Capability evidence matrix\n\n\
-         This file is generated from `release/capabilities-v1.json` by \
+         This file is generated from `release/capabilities.json` by \
          `cargo xtask release-gate --check`. A status is a claim about one \
          layer only; it must not be promoted across columns.\n\n\
          | Capability | Contract | Reference model | Provider | Host resolvability | Exact binding | Runtime proof | Product presentation |\n\
@@ -283,7 +283,7 @@ pub fn run(
             .filter(|value| !value.is_empty())
             .unwrap_or(git_output(workspace_root, &["rev-parse", "HEAD"])?);
         let evidence = serde_json::json!({
-            "schema": "conduit.release-evidence/v1",
+            "schema": "conduit.release-evidence",
             "version": claims.version,
             "commit": commit,
             "repository": claims.repository,

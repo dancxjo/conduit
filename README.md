@@ -160,8 +160,8 @@ Automatic color honors `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, terminal
 attachment, and `TERM=dumb`. Redirected stderr receives no status animation or
 cursor control, and a downstream closed stdout pipe is treated as normal
 completion. Primary `--format` is separate: check/explain use finite
-`conduit.result/v1` JSON, while run uses ordered, bounded
-`conduit.run/v2` NDJSON. Its `channel_chunk` records preserve compatibility
+`conduit.result` JSON, while run uses ordered, bounded
+`conduit.run` NDJSON. Its `channel_chunk` records preserve compatibility
 stdout/stderr bytes without claiming that implementation write boundaries are
 semantic values. Executor-owned immutable evidence uses a distinct bounded
 `execution_event` record and the plan-visible normative Resonance profile.
@@ -173,11 +173,11 @@ Safely inspect supported artifacts without executing them:
 
 ```sh
 conduct inspect examples/hello.panel
-conduct inspect --format=json conformance/v1/manifest.json
+conduct inspect --format=json conformance/current/manifest.json
 conduct inspect --type=evidence run-events.ndjson
 ```
 
-Inspection uses frozen markers, fixed byte/record/depth/module limits, and
+Inspection uses current markers, fixed byte/record/depth/module limits, and
 structural redaction. It performs no network access, provider discovery,
 secret resolution, authority acquisition, dynamic loading, or artifact
 execution. Source, lowering, exact plans, evidence, diagnostics, content
@@ -216,7 +216,7 @@ system for building long-lived, evolvable arrangements.
 Important parts of that direction include:
 
 - production distributed carriers, including Zenoh, behind the implemented
-  plan-v9 transport-neutral session and bounded backend boundary;
+  current plan transport-neutral session and bounded backend boundary;
 - composable HTTP/HTTPS serving through host backends;
 - standard node libraries and host-service interfaces;
 - port groups and bounded composite replication;
@@ -242,7 +242,7 @@ must not be represented as a supported security profile, autonomous deployment
 platform, or certified safety boundary.
 
 Current public capability claims come from the mechanically checked
-[`release/capabilities-v1.json`](release/capabilities-v1.json), rendered in the
+[`release/capabilities.json`](release/capabilities.json), rendered in the
 [`docs/capability-matrix.md`](docs/capability-matrix.md). The
 [`spec/002-roadmap.md`](spec/002-roadmap.md) records the current production
 dependency graph and brownfield entry gates. Issue state and prose do not
@@ -322,15 +322,15 @@ The complete normative inventory also has a language-neutral NDJSON protocol
 and a hosted Rust reference runner:
 
 ```sh
-cargo run -p conduit-conformance -- audit conformance/v1/manifest.json
-cargo run -p conduit-conformance -- verify-fixtures conformance/v1/manifest.json
-cargo run -p conduit-conformance -- requests conformance/v1/manifest.json
-cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
+cargo run -p conduit-conformance -- audit conformance/current/manifest.json
+cargo run -p conduit-conformance -- verify-fixtures conformance/current/manifest.json
+cargo run -p conduit-conformance -- requests conformance/current/manifest.json
+cargo run -p conduit-conformance -- reference conformance/current/manifest.json
 ```
 
 Third-party implementations consume the `requests` stream and submit matching
 NDJSON to `check-results`; no Rust or repository-specific binding is
 required. See
-[`spec/013-conformance-harness-v1.md`](spec/013-conformance-harness-v1.md).
+[`spec/013-conformance-harness.md`](spec/013-conformance-harness.md).
 
 Conduit is released under the MIT license.

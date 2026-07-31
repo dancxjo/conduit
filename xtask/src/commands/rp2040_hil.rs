@@ -77,7 +77,7 @@ pub fn run(
         let firmware_id =
             current_firmware_identity(workspace_root, "thumbv6m-none-eabi", "release")?;
         let report = json!({
-            "schema": "conduit.rp2040-hil-probe/v1",
+            "schema": "conduit.rp2040-hil-probe",
             "detected": port.is_some(),
             "port": port,
             "expected_firmware_identity": format!("sha256:{}", hex::encode(firmware_id)),
@@ -314,7 +314,7 @@ pub fn run(
         }
 
         let report = json!({
-            "schema": "conduit.rp2040-hil-report/v1",
+            "schema": "conduit.rp2040-hil-report",
             "executed": true,
             "port": port_str,
             "plan_hash": format!("sha256:{}", hex::encode(plan)),

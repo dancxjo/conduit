@@ -8,7 +8,7 @@ use conduit_compile::builtin_catalog_document;
 use conduit_runtime::{OwnedNodeSchema, Registry};
 use serde::Serialize;
 
-const INVENTORY_PATH: &str = "library/catalog-v1.json";
+const INVENTORY_PATH: &str = "library/catalog.json";
 const INDEX_PATH: &str = "docs/library-tour-index.md";
 
 #[derive(Clone, Copy)]
@@ -29,7 +29,7 @@ struct Inventory {
 #[derive(Serialize)]
 struct SourceLoweringRule {
     rule: &'static str,
-    legacy_aliases_active: bool,
+    aliases_active: bool,
 }
 
 #[derive(Serialize)]
@@ -288,17 +288,17 @@ fn ownership(id: &str) -> Result<Ownership, String> {
 
 fn fixture(id: &str, classification: &str) -> &'static str {
     if id == "std/text/lines" || id == "std/text/join" {
-        "conformance/c4/text-lines-join-v1.json"
+        "conformance/c4/text-lines-join.json"
     } else if id == "std/text/format" || id == "std/format-values/literal" {
-        "conformance/c4/text-format-v1.json"
+        "conformance/c4/text-format.json"
     } else if id == "supervision/supervisor" || id.starts_with("supervision/") {
-        "conformance/c4/supervision-v1.json"
+        "conformance/c4/supervision.json"
     } else if id == "net/http/serve-once" {
-        "conformance/c5/http-serving-v1.json"
+        "conformance/c5/http-serving.json"
     } else if classification == "optional-host-boundary" {
-        "conformance/c5/registry-availability-v1.json"
+        "conformance/c5/registry-availability.json"
     } else {
-        "conformance/c4/standard-node-library-v1.json"
+        "conformance/c4/standard-node-library.json"
     }
 }
 
@@ -320,14 +320,14 @@ fn lesson(id: &str, composition: bool) -> Lesson {
     };
     if let Some(artifact) = published {
         return Lesson {
-            artifact: format!("tour/lessons/v1.json#{artifact}"),
+            artifact: format!("tour/lessons/current.json#{artifact}"),
             status: "published",
         };
     }
     let slug = id.replace('/', ".");
     Lesson {
         artifact: format!(
-            "tour/lessons/v1.json#library.{slug}.{}",
+            "tour/lessons/current.json#library.{slug}.{}",
             if composition {
                 "composition"
             } else {
@@ -647,11 +647,11 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
             classification: owner.classification,
             package_owner: owner.package_owner,
             contract_package_artifact: format!(
-                "conduit.contract-package/{}/v1",
+                "conduit.contract-package/{}",
                 owner.package_owner
             ),
             export_path: format!("{}/{}", owner.package_owner, id),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: schema.semantic_hash().to_string(),
             ports,
             config,
@@ -664,7 +664,7 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
             known_provider_bundles: providers.remove(id).unwrap_or_default(),
             current_provider_observation: "not-recorded-in-catalog",
             conformance_fixture_owner: fixture(id, owner.classification),
-            required_result_profile: "conduit.cross-host-provider/v1",
+            required_result_profile: "conduit.cross-host-provider",
             structural_facet_owner: format!("{}/facets", owner.package_owner),
             standalone_lesson: lesson(id, false),
             composition_lesson: lesson(id, true),
@@ -727,11 +727,11 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     }
 
     Ok(Inventory {
-        schema: "conduit.library-catalog/v1",
+        schema: "conduit.library-catalog",
         version: 1,
         source_lowering_rule: SourceLoweringRule {
             rule: "public source spelling equals canonical semantic identity",
-            legacy_aliases_active: false,
+            aliases_active: false,
         },
         entries,
         removals: vec![Removal {

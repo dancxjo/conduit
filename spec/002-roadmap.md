@@ -2,7 +2,7 @@
 
 This document describes the current repository, not historical issue state.
 The mechanically checked capability source is
-[`release/capabilities-v1.json`](../release/capabilities-v1.json), rendered as
+[`release/capabilities.json`](../release/capabilities.json), rendered as
 the [capability evidence matrix](../docs/capability-matrix.md). A closed issue,
 crate name, screenshot, specification, or candidate manifest is not evidence
 that a capability runs.
@@ -30,14 +30,14 @@ owns source semantics, planning, provider availability, or run truth.
 
 | Slice | Current evidence | Claim boundary |
 |---|---|---|
-| Semantic core | `conformance/v1/manifest.json`, `conduit-core` vector tests | Allocator-free semantic and execution contracts, not a hosted provider |
-| Pure hosted/browser node slice | `conformance/c5/pure-node-v1.panel`, `conduit-web/tests/pure_node_proof.rs`, `conduct/tests/runnability_inventory.rs` | Literal, uppercase, stdout, exact plan, bounded scheduler, evidence, and projection |
+| Semantic core | `conformance/current/manifest.json`, `conduit-core` vector tests | Allocator-free semantic and execution contracts, not a hosted provider |
+| Pure hosted/browser node slice | `conformance/c5/pure-node.panel`, `conduit-web/tests/pure_node_proof.rs`, `conduct/tests/runnability_inventory.rs` | Literal, uppercase, stdout, exact plan, bounded scheduler, evidence, and projection |
 | Patchbay editing | `conduit-patchbay/tests/protocol.rs`, `tour/tour.spec.mjs` | Revisioned typed intents over Rust projections; presentation failure remains headless |
-| HTTP serving | `conformance/c5/http-serving-v1.json`, `conduit-http/tests/http_vectors.rs` | One bounded loopback route plus backend/TLS conformance; not public deployment |
-| Zenoh transport | `conformance/c5/zenoh-transport-v1.json`, `conduit-zenoh/tests/transport_vectors.rs` | Hosted loopback and exact transport selection; physical/constrained deployment remains separate |
+| HTTP serving | `conformance/c5/http-serving.json`, `conduit-http/tests/http_vectors.rs` | One bounded loopback route plus backend/TLS conformance; not public deployment |
+| Zenoh transport | `conformance/c5/zenoh-transport.json`, `conduit-zenoh/tests/transport_vectors.rs` | Hosted loopback and exact transport selection; physical/constrained deployment remains separate |
 
 Every checked-in panel has an independent state and executable or rejection
-proof in [`examples/runnability-v1.json`](../examples/runnability-v1.json).
+proof in [`examples/runnability.json`](../examples/runnability.json).
 Lesson completion does not upgrade that state.
 
 ## Availability is layered

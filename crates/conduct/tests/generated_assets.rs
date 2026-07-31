@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const OUTPUT_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-output-v1.json");
-const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection-v1.json");
+const OUTPUT_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-output.json");
+const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection.json");
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")

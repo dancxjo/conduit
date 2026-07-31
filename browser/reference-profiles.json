@@ -1,5 +1,5 @@
 {
-  "schema": "conduit.browser-reference-profiles/v1",
+  "schema": "conduit.browser-reference-profiles",
   "profiles": [
     {"id":"browser-wasm-transform","source":"../examples/browser-wasm-transform.panel","placements":["browser/wasm","deterministic-native-fake"],"same_semantic_contract":true},
     {"id":"browser-linux-media-partition","source":"../examples/browser-linux-partition.panel","placements":["browser/audio-worklet","linux/remote-endpoint"],"carrier":"declared-session","bounded":true},

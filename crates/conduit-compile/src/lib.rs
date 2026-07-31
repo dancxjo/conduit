@@ -15,13 +15,9 @@ use conduit_core::{
     AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ClockRounding,
     ContainmentContext, ContainmentPolicy, ContainmentReason, DeadlineContract, DelegationEnvelope,
     DelegationPolicy, Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V3, EXECUTION_PLAN_SCHEMA_VERSION_V11,
-    EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
-    EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
-    EXECUTION_PLAN_SCHEMA_VERSION_V16, EXECUTION_PLAN_SCHEMA_VERSION_V17,
-    EXECUTION_PLAN_SCHEMA_VERSION_V18, EffectClassBinding, EffectClassTraits, EffectCommitProfile,
-    EffectDiscontinuity, EffectFlowBinding, EffectIdempotency, EffectRequirement, ExecutionLimits,
-    ExecutionPlan, ExecutionProfile, ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization,
+    EffectClassBinding, EffectClassTraits, EffectCommitProfile, EffectDiscontinuity,
+    EffectFlowBinding, EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization,
     FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks,
     ForeignRetention, GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext,
     HazardClosureLimits, HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind,
@@ -48,7 +44,8 @@ use conduit_core::{
     TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation, WorkloadBudget,
     WorkloadCapability, WorkloadContract, WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit,
     analyze_effect_closure, assess_provider_requirement, resolve_authority,
-    validate_administrative_proof, validate_reference_distribution,
+    validate_administrative_proof, validate_effect_commit_profile, validate_reference_distribution,
+    validate_resource_lease,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -56,8 +53,8 @@ use conduit_runtime::{
     LiteralValidationError, OwnedInterfaceContract, OwnedNodeContract, OwnedNodeSchema,
     OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, PlacementCandidate,
     PlacementRequest, Registry, ResolverTiePolicy, ResourcePredicate, SourceContractCatalog,
-    TopologyPredicate, lower_source_v2, lower_source_v4, resolve_host_placement,
-    seal_resolved_execution_plan, validate_hosted_execution_plan,
+    TopologyPredicate, lower_source, resolve_host_placement, seal_resolved_execution_plan,
+    validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -66,18 +63,10 @@ mod installed_profile;
 
 pub use installed_profile::InstalledProfile;
 
-pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input/v2";
-pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 2;
-pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v3";
-pub const ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v4";
-pub const POLICY_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v5";
-pub const HAZARD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v6";
-pub const SUPERVISION_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v7";
-pub const POOL_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v8";
-pub const VALUE_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v9";
-pub const EFFECT_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v10";
-pub const WORKLOAD_PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan/v11";
-pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution/v1";
+pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input";
+pub const COMPILE_INPUT_SCHEMA_VERSION: u16 = 0;
+pub const PLAN_DOCUMENT_SCHEMA: &str = "conduit.execution-plan";
+pub const REFERENCE_DISTRIBUTION_DOCUMENT_SCHEMA: &str = "conduit.reference-distribution";
 pub const MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_ENTRY_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 pub const MAXIMUM_COMPILE_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
@@ -478,6 +467,8 @@ pub struct AuthorityDecisionDocument {
     pub containment: Option<AdministrativeProofDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policy_budgets: Vec<PolicyBudgetBindingDocument>,
+    pub resource_lease: ResourceLeaseDocument,
+    pub commit_profile: EffectCommitProfileDocument,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -957,7 +948,7 @@ pub struct PoolBindingDocument {
     pub child_nodes: u16,
     pub child_cords: u16,
     /// Host-resolved runtime reservation facts. Required for pool plans at
-    /// schema 16; absent only while reading frozen pre-runtime inputs.
+    /// schema 16; absent only while reading current pre-runtime inputs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime: Option<PoolRuntimeBindingDocument>,
 }
@@ -1002,7 +993,7 @@ impl From<PoolReservationProfile> for PoolReservationDocument {
     }
 }
 
-fn pool_runtime_legacy_profile(pool: &PoolBindingDocument) -> PoolReservationDocument {
+fn pool_runtime_mirrored_profile(pool: &PoolBindingDocument) -> PoolReservationDocument {
     let runtime = pool
         .runtime
         .as_ref()
@@ -1021,7 +1012,7 @@ fn pool_runtime_legacy_profile(pool: &PoolBindingDocument) -> PoolReservationDoc
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PoolRuntimeBindingDocument {
-    /// Exact conversion from frozen source milliseconds to the selected
+    /// Exact conversion from current source milliseconds to the selected
     /// monotonic plan time basis.
     pub ticks_per_millisecond: u32,
     pub cleanup_ticks: u64,
@@ -1493,7 +1484,7 @@ impl CompileInput {
             if runtime.ticks_per_millisecond == 0
                 || runtime.cleanup_ticks == 0
                 || runtime.maximum_evidence_events == 0
-                || runtime.per_instance != pool_runtime_legacy_profile(pool)
+                || runtime.per_instance != pool_runtime_mirrored_profile(pool)
                 || runtime.total_reserved.resources != pool.worst_case_budget
             {
                 return Err(CompileError::new(CompileReason::BudgetInvalid));
@@ -1678,7 +1669,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
                 .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
             Ok(PinDocument {
                 id: id.to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: schema.semantic_hash().to_string(),
             })
         })
@@ -1717,7 +1708,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
                 .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
             Ok(PinDocument {
                 id: id.to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: reference.semantic_hash.to_string(),
             })
         })
@@ -1730,7 +1721,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
                     .ok_or_else(|| CompileError::new(CompileReason::InvalidInput))?;
                 Ok(PinDocument {
                     id: id.to_owned(),
-                    schema_version: 1,
+                    schema_version: 0,
                     semantic_hash: contract.semantic_hash.to_string(),
                 })
             })
@@ -1770,7 +1761,7 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
                 fields: Vec::new(),
             })
         })?;
-        (pin.schema_version == 1 && pin.semantic_hash == schema.semantic_hash().to_string())
+        (pin.schema_version == 0 && pin.semantic_hash == schema.semantic_hash().to_string())
             .then_some(schema)
     }
 
@@ -1781,7 +1772,7 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
                 id: id.to_owned(),
                 fields: Vec::new(),
             };
-            return (pin.schema_version == 1
+            return (pin.schema_version == 0
                 && pin.semantic_hash == schema.semantic_hash().to_string())
             .then(|| OwnedNodeContract {
                 id: id.to_owned(),
@@ -1790,14 +1781,14 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
             });
         }
         let contract = self.registry.node_contract(id)?;
-        (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash().to_string())
+        (pin.schema_version == 0 && pin.semantic_hash == contract.semantic_hash().to_string())
             .then_some(contract)
     }
 
     fn interface_contract(&self, id: &str) -> Option<OwnedInterfaceContract> {
         let pin = self.exact_pin(&self.document.interfaces, id)?;
         let contract = self.registry.interface_contract(id)?;
-        (pin.schema_version == 1 && pin.semantic_hash == contract.semantic_hash.to_string())
+        (pin.schema_version == 0 && pin.semantic_hash == contract.semantic_hash.to_string())
             .then_some(contract)
     }
 
@@ -1812,7 +1803,7 @@ impl SourceContractCatalog for PinnedCatalog<'_> {
     fn port_contract(&self, id: &str) -> Option<OwnedPortReference> {
         let pin = self.exact_pin(&self.document.ports, id)?;
         let reference = self.registry.port_contract(id)?;
-        (pin.schema_version == 1 && pin.semantic_hash == reference.semantic_hash.to_string())
+        (pin.schema_version == 0 && pin.semantic_hash == reference.semantic_hash.to_string())
             .then_some(reference)
     }
 
@@ -1861,7 +1852,7 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
             })
         });
         if !ids.insert(pin.id.as_str())
-            || pin.schema_version != 1
+            || pin.schema_version != 0
             || schema.is_none_or(|schema| schema.semantic_hash().to_string() != pin.semantic_hash)
         {
             return Err(CompileError::new(CompileReason::InvalidInput));
@@ -1881,7 +1872,7 @@ fn validate_catalog(catalog: &CompileCatalogDocument) -> Result<(), CompileError
     ids.clear();
     for pin in &catalog.ports {
         if !ids.insert(pin.id.as_str())
-            || pin.schema_version != 1
+            || pin.schema_version != 0
             || registry
                 .port_contract(&pin.id)
                 .is_none_or(|reference| reference.semantic_hash.to_string() != pin.semantic_hash)
@@ -1945,34 +1936,24 @@ fn resolve_source_graph(input: &CompileInput) -> Result<ModuleGraph, CompileErro
     Ok(graph)
 }
 
-struct CompileLoweredSource {
-    topology: conduit_runtime::LoweredSourceV2,
-    supervisions: Vec<conduit_runtime::LoweredSupervisionV3>,
+struct CompileLoweredTopologyBase {
+    topology: conduit_runtime::LoweredTopology,
+    supervisions: Vec<conduit_runtime::LoweredSupervision>,
     semantic_hash: SemanticHash,
 }
 
 fn lower_compile_source(
     graph: &ModuleGraph,
     catalog: &CompileCatalogDocument,
-) -> Result<CompileLoweredSource, CompileError> {
+) -> Result<CompileLoweredTopologyBase, CompileError> {
     let catalog = PinnedCatalog::new(catalog)?;
-    if graph.modules.iter().any(|module| module.panel.version >= 2) {
-        let lowered = lower_source_v4(graph, &catalog)
-            .map_err(|_| CompileError::new(CompileReason::LoweringFailed))?;
-        Ok(CompileLoweredSource {
-            topology: *lowered.v3.topology,
-            supervisions: lowered.v3.supervisions,
-            semantic_hash: lowered.semantic_hash,
-        })
-    } else {
-        let topology = lower_source_v2(graph, &catalog)
-            .map_err(|_| CompileError::new(CompileReason::LoweringFailed))?;
-        Ok(CompileLoweredSource {
-            semantic_hash: topology.semantic_hash,
-            topology,
-            supervisions: Vec::new(),
-        })
-    }
+    let lowered = lower_source(graph, &catalog)
+        .map_err(|_| CompileError::new(CompileReason::LoweringFailed))?;
+    Ok(CompileLoweredTopologyBase {
+        topology: *lowered.supervised.topology,
+        supervisions: lowered.supervised.supervisions,
+        semantic_hash: lowered.semantic_hash,
+    })
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -2391,25 +2372,8 @@ impl ExactPlanDocument {
     /// validates document/schema structure but does not resolve, select,
     /// fetch, provision, or synthesize any binding.
     pub fn as_plan<'a>(&'a self, arena: &'a Bump) -> Result<ExecutionPlan<'a>, CompileError> {
-        let supported_document = (self.schema == PLAN_DOCUMENT_SCHEMA
-            && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V3)
-            || (self.schema == ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V11)
-            || (self.schema == POLICY_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V12)
-            || (self.schema == HAZARD_PLAN_DOCUMENT_SCHEMA
-                && (self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V13
-                    || self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V14))
-            || (self.schema == SUPERVISION_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V15)
-            || (self.schema == POOL_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V16)
-            || (self.schema == VALUE_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V17)
-            || (self.schema == EFFECT_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V18)
-            || (self.schema == WORKLOAD_PLAN_DOCUMENT_SCHEMA
-                && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION);
+        let supported_document = self.schema == PLAN_DOCUMENT_SCHEMA
+            && self.schema_version == EXECUTION_PLAN_SCHEMA_VERSION;
         if !supported_document || !self.unresolved_selectors.is_empty() {
             return Err(CompileError::new(CompileReason::PlanInvalid));
         }
@@ -2776,7 +2740,7 @@ impl ExactPlanDocument {
                     instance: instance(&supervision.instance)?,
                     source_binding_hash: parse_hash(&supervision.source_binding_hash)?,
                     contract: SupervisionContract {
-                        schema_version: 1,
+                        schema_version: 0,
                         id: id(&supervision.id)?,
                         scope: supervision_scope(&supervision.scope)?,
                         subject: instance(&supervision.subject)?,
@@ -2912,7 +2876,7 @@ fn registry_for_catalog(catalog: &CompileCatalogDocument) -> Result<Registry, Co
             outputs: &[],
         }));
         let schema = OwnedNodeSchema::from_contract(contract);
-        if pin.schema_version != 1 || schema.semantic_hash().to_string() != pin.semantic_hash {
+        if pin.schema_version != 0 || schema.semantic_hash().to_string() != pin.semantic_hash {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
         registry.register_contract_only(contract);
@@ -2922,7 +2886,7 @@ fn registry_for_catalog(catalog: &CompileCatalogDocument) -> Result<Registry, Co
 
 fn executable_panel(
     graph: &ModuleGraph,
-    lowered_supervisions: &[conduit_runtime::LoweredSupervisionV3],
+    lowered_supervisions: &[conduit_runtime::LoweredSupervision],
 ) -> Result<conduit_panel::Panel, CompileError> {
     let modules = graph
         .modules
@@ -3016,7 +2980,7 @@ fn executable_panel(
 fn annotate_supervisions(
     bindings: &mut [conduit_panel::SupervisionBinding],
     owner_path: &str,
-    lowered: &[conduit_runtime::LoweredSupervisionV3],
+    lowered: &[conduit_runtime::LoweredSupervision],
 ) -> Result<(), CompileError> {
     for binding in bindings {
         let path = format!("{owner_path}/supervision/{}", binding.subject);
@@ -3102,7 +3066,7 @@ fn compiled_definition_id(
 
 fn compile_topology(
     topology: &ExactTopologyView,
-    lowered: &CompileLoweredSource,
+    lowered: &CompileLoweredTopologyBase,
     input: &CompileInput,
 ) -> Result<ExactPlanDocument, CompileError> {
     let arena = Bump::new();
@@ -3138,7 +3102,7 @@ fn compile_topology(
             instance: instance(&node.instance)?,
             semantic_contract: PinnedDescriptor {
                 id: id(&node.contract_id)?,
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: node.contract_hash,
             },
             candidates: arena.alloc_slice_copy(&candidates),
@@ -3229,20 +3193,33 @@ fn compile_topology(
             let binding = authority
                 .binding
                 .ok_or_else(|| CompileError::new(CompileReason::ResolutionFailed))?;
-            if !required_resources.contains(&authority.capability.resource.id) {
-                if resource_bindings
-                    .iter()
-                    .any(|resource| resource.id == authority.capability.resource.id)
+            let resource_index = if let Some(index) = resource_bindings
+                .iter()
+                .position(|resource| resource.id == authority.capability.resource.id)
+            {
+                if resource_bindings[index].node != instance_path
+                    || resource_bindings[index].resource != authority.capability.resource
                 {
                     return Err(CompileError::new(CompileReason::PlanInvalid));
                 }
+                index
+            } else {
                 resource_bindings.push(PlanResourceBinding {
                     id: authority.capability.resource.id,
                     node: instance_path,
                     resource: authority.capability.resource,
                     host_observation: candidate.report.id,
-                    lease: None,
+                    lease: Some(authority.resource_lease),
                 });
+                resource_bindings.len() - 1
+            };
+            if resource_bindings[resource_index].lease.is_some()
+                && resource_bindings[resource_index].lease != Some(authority.resource_lease)
+            {
+                return Err(CompileError::new(CompileReason::PlanInvalid));
+            }
+            resource_bindings[resource_index].lease = Some(authority.resource_lease);
+            if !required_resources.contains(&authority.capability.resource.id) {
                 required_resources.push(authority.capability.resource.id);
             }
             required_effects.push(authority.effect_hash);
@@ -3257,7 +3234,7 @@ fn compile_topology(
                 administrative_subject: authority.administrative_subject,
                 containment: authority.containment,
                 policy_budgets: authority.policy_budgets,
-                commit_profile: None,
+                commit_profile: Some(authority.commit_profile),
             });
         }
         nodes.push(ResolvedPlanNode {
@@ -3563,7 +3540,7 @@ fn compile_topology(
             instance: instance(&binding.instance)?,
             source_binding_hash: parse_hash(&binding.source_binding_hash)?,
             contract: SupervisionContract {
-                schema_version: 1,
+                schema_version: 0,
                 id: id(&binding.id)?,
                 scope: supervision_scope(&binding.scope)?,
                 subject: instance(&binding.subject)?,
@@ -3588,8 +3565,8 @@ fn compile_topology(
     }
     // This v1 compile-input/document workflow has no field for live
     // distributed-session requirements. Fail closed instead of emitting an
-    // older plan schema whose cross-host cord would have hidden transport
-    // semantics. A planner using the core schema-9 API must supply an exact
+    // plan whose cross-host cord would have hidden transport semantics. A
+    // planner using the current core API must supply an exact
     // `PlanDistributedCord` for each such cord.
     if cords.iter().any(|cord| {
         let writer = nodes.iter().find(|node| node.instance == cord.from.node);
@@ -3615,27 +3592,7 @@ fn compile_topology(
             )
         })
         .transpose()?;
-    let plan_schema_version = if !instance_pools.is_empty() {
-        EXECUTION_PLAN_SCHEMA_VERSION_V16
-    } else if !supervisions.is_empty() {
-        EXECUTION_PLAN_SCHEMA_VERSION_V15
-    } else if hazard_closure.is_some_and(|closure| !closure.hazardous_hosts.is_empty()) {
-        EXECUTION_PLAN_SCHEMA_VERSION_V14
-    } else if hazard_closure.is_some() {
-        EXECUTION_PLAN_SCHEMA_VERSION_V13
-    } else if plan_authorities
-        .iter()
-        .any(|authority| !authority.policy_budgets.is_empty())
-    {
-        EXECUTION_PLAN_SCHEMA_VERSION_V12
-    } else if plan_authorities
-        .iter()
-        .any(|authority| authority.containment.is_some())
-    {
-        EXECUTION_PLAN_SCHEMA_VERSION_V11
-    } else {
-        EXECUTION_PLAN_SCHEMA_VERSION_V3
-    };
+    let plan_schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
     let mut plan = ExecutionPlan {
         schema_version: plan_schema_version,
         identity: SemanticHash::from_bytes([0; 32]),
@@ -3723,6 +3680,8 @@ struct PreparedAuthority<'a> {
     administrative_subject: Option<AdministrativeSubject<'a>>,
     containment: Option<AdministrativeProof<'a>>,
     policy_budgets: &'a [PlanPolicyBudget<'a>],
+    resource_lease: ResourceLeaseContract<'a>,
+    commit_profile: EffectCommitProfile<'a>,
 }
 
 fn prepare_candidate<'a>(
@@ -3857,6 +3816,20 @@ fn prepare_candidate<'a>(
                 .iter()
                 .map(policy_budget_binding)
                 .collect::<Result<Vec<_>, CompileError>>()?;
+            let resource_lease = resource_lease(&authority.resource_lease)?;
+            validate_resource_lease(resource_lease)
+                .map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
+            let commit_profile = effect_commit_profile(&authority.commit_profile)?;
+            validate_effect_commit_profile(commit_profile, resource_lease)
+                .map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
+            if resource_lease.resource_binding != capability.resource.id
+                || resource_lease.holder != effect.requester
+                || resource_lease.run != effect.audience
+                || resource_lease.time_basis != capability.time_basis
+                || commit_profile.operation != effect.action
+            {
+                return Err(CompileError::new(CompileReason::InvalidInput));
+            }
             Ok(PreparedAuthority {
                 requirement: parse_hash(&authority.requirement)?,
                 effect_hash,
@@ -3868,6 +3841,8 @@ fn prepare_candidate<'a>(
                 administrative_subject,
                 containment,
                 policy_budgets: arena.alloc_slice_copy(&policy_budgets),
+                resource_lease,
+                commit_profile,
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
@@ -4155,7 +4130,7 @@ fn resolver_policy<'a>(
         policy_hash: parse_hash(&input.resolver_policy_hash)?,
         time_basis: id(&input.time_basis)?,
         current_tick: input.current_tick,
-        plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+        plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
         trusted_reporters: arena.alloc_slice_copy(&trusted_reporters),
         trusted_report_trust: arena.alloc_slice_copy(&report_trust),
         required_realm: input.required_realm.as_deref().map(id).transpose()?,
@@ -4249,6 +4224,19 @@ fn seal_authority_decision(document: &mut AuthorityDecisionDocument) -> Result<(
             }
         }
         _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+    }
+    let lease = resource_lease(&document.resource_lease)?;
+    validate_resource_lease(lease).map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
+    let commit_profile = effect_commit_profile(&document.commit_profile)?;
+    validate_effect_commit_profile(commit_profile, lease)
+        .map_err(|_| CompileError::new(CompileReason::InvalidInput))?;
+    if document.effect.resource_id.as_deref() != Some(&document.resource_lease.resource_binding)
+        || document.effect.requester != document.resource_lease.holder
+        || document.effect.audience != document.resource_lease.run
+        || document.capability.time_basis != document.resource_lease.time_basis
+        || document.effect.action != document.commit_profile.operation
+    {
+        return Err(CompileError::new(CompileReason::InvalidInput));
     }
     match document.status.as_str() {
         "active" | "revoked" => Ok(()),
@@ -5847,25 +5835,7 @@ fn plan_document(
         })
         .collect();
     Ok(ExactPlanDocument {
-        schema: if plan.schema_version >= 19 {
-            WORKLOAD_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 18 {
-            EFFECT_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 17 {
-            VALUE_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 16 {
-            POOL_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 15 {
-            SUPERVISION_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 13 {
-            HAZARD_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 12 {
-            POLICY_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else if plan.schema_version >= 11 {
-            ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA.to_owned()
-        } else {
-            PLAN_DOCUMENT_SCHEMA.to_owned()
-        },
+        schema: PLAN_DOCUMENT_SCHEMA.to_owned(),
         schema_version: plan.schema_version,
         identity: plan.identity.to_string(),
         source_semantic_hash: plan.source_semantic_hash.to_string(),
@@ -7096,7 +7066,7 @@ fn content_hash(source: &str) -> String {
 fn plan_group_path(logical_path: &str) -> String {
     let digest = Sha256::digest(
         [
-            b"conduit/plan-port-group/v1\0".as_slice(),
+            b"conduit/plan-port-group\0".as_slice(),
             logical_path.as_bytes(),
         ]
         .concat(),
@@ -7107,7 +7077,7 @@ fn plan_group_path(logical_path: &str) -> String {
 fn plan_pool_path(logical_path: &str) -> String {
     let digest = Sha256::digest(
         [
-            b"conduit/plan-instance-pool/v1\0".as_slice(),
+            b"conduit/plan-instance-pool\0".as_slice(),
             logical_path.as_bytes(),
         ]
         .concat(),
@@ -7118,7 +7088,7 @@ fn plan_pool_path(logical_path: &str) -> String {
 fn plan_group_member_id(member: &conduit_runtime::LoweredGroupPort) -> String {
     let digest = Sha256::digest(
         [
-            b"conduit/plan-port-group-member/v1\0".as_slice(),
+            b"conduit/plan-port-group-member\0".as_slice(),
             member.member.as_bytes(),
         ]
         .concat(),
@@ -7134,7 +7104,7 @@ fn plan_group_template_hash(member: &conduit_runtime::LoweredGroupPort) -> Seman
     let maximum = member.group_maximum.to_be_bytes();
     let digest = Sha256::digest(
         [
-            b"conduit/plan-port-group-template/v1\0".as_slice(),
+            b"conduit/plan-port-group-template\0".as_slice(),
             member.logical_group_path.as_bytes(),
             b"\0",
             member.group_id.as_bytes(),
@@ -7768,8 +7738,110 @@ mod tests {
     fn pin_doc(id: &str, byte: u8) -> PinDocument {
         PinDocument {
             id: id.to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(byte),
+        }
+    }
+
+    fn current_effect_contracts(
+        holder: &str,
+        operation: &str,
+        resource_binding: &str,
+        run: &str,
+        byte: u8,
+    ) -> (ResourceLeaseDocument, EffectCommitProfileDocument) {
+        let lease_id = format!("fixture/lease-{byte}");
+        (
+            ResourceLeaseDocument {
+                schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+                id: lease_id.clone(),
+                resource_binding: resource_binding.to_owned(),
+                holder: holder.to_owned(),
+                run: run.to_owned(),
+                epoch: 0,
+                scope: format!("fixture/scope-{byte}"),
+                sharing: "exclusive".to_owned(),
+                maximum_holders: 1,
+                reservation: BudgetDocument {
+                    memory_bytes: 1,
+                    ..BudgetDocument::default()
+                },
+                time_basis: "clock/compile".to_owned(),
+                issued_at_tick: 10,
+                expires_at_tick: 20,
+                revocation_grace_ticks: 1,
+                cleanup_ticks: 2,
+                maximum_operations: 4,
+                maximum_evidence_events: 8,
+                cleanup_escalation: pin_doc("fixture/cleanup-escalation", byte),
+                foreign_retention: "unsupported".to_owned(),
+                foreign_maximum_bytes: 0,
+                foreign_release_ticks: 0,
+            },
+            EffectCommitProfileDocument {
+                schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+                id: format!("fixture/effect-profile-{byte}"),
+                operation: operation.to_owned(),
+                resource_lease: lease_id,
+                commit_boundary: pin_doc("fixture/commit-boundary", byte.wrapping_add(1)),
+                idempotency: "reconcile-before-retry".to_owned(),
+                unknown_commit: "reconcile".to_owned(),
+                discontinuity: "reconcile-required".to_owned(),
+                cleanup: pin_doc("fixture/cleanup", byte.wrapping_add(2)),
+                maximum_attempts: 2,
+                evidence_events_per_attempt: 2,
+            },
+        )
+    }
+
+    fn hazardous_host_doc() -> HazardousHostBindingDocument {
+        HazardousHostBindingDocument {
+            host: "host-local".to_owned(),
+            profile: HazardousHostProfileDocument {
+                schema_version: conduit_core::HAZARDOUS_HOST_PROFILE_SCHEMA_VERSION,
+                identity: hash(0),
+                descriptor: pin_doc("profile.fixture-hazardous-host", 147),
+                safe_state: pin_doc("domain.fixture-safe-state", 148),
+                inhibit_boundary: pin_doc("host.fixture-inhibit", 149),
+                watchdog: pin_doc("host.fixture-watchdog", 150),
+                effect_boundary: pin_doc("host.fixture-effect-boundary", 151),
+                command_effect_class: pin_doc("effect.fixture-command", 152),
+                clear_effect_class: pin_doc("effect.fixture-clear", 153),
+                clear_operation: pin_doc("operation.fixture-clear", 154),
+                clear_ceremony: pin_doc("ceremony.fixture-physical", 155),
+                time_basis: "clock/compile".to_owned(),
+                maximum_command_horizon_ticks: 5,
+                maximum_observation_age_ticks: 10,
+                maximum_evidence_records: 16,
+                require_physical_presence_to_clear: true,
+                require_isolated_implementation: true,
+                envelope: vec![OperatingEnvelopeLimitDocument {
+                    dimension: pin_doc("domain.fixture-axis", 156),
+                    minimum: -5,
+                    maximum: 5,
+                }],
+            },
+            observation: InhibitObservationDocument {
+                schema_version: conduit_core::INHIBIT_OBSERVATION_SCHEMA_VERSION,
+                identity: hash(0),
+                profile_identity: hash(0),
+                host: "host-local".to_owned(),
+                safe_state: pin_doc("domain.fixture-safe-state", 148),
+                inhibit_boundary: pin_doc("host.fixture-inhibit", 149),
+                watchdog: pin_doc("host.fixture-watchdog", 150),
+                effect_boundary: pin_doc("host.fixture-effect-boundary", 151),
+                time_basis: "clock/compile".to_owned(),
+                observed_at_tick: 10,
+                valid_until_tick: 15,
+                latch_generation: 1,
+                latch_state: "safe-disarmed".to_owned(),
+                independent_from_plan: true,
+                local_safe_path: true,
+                survives_executor_loss: true,
+                survives_partition: true,
+                graph_cannot_replace: true,
+                confinement: "effect-boundary-enforced".to_owned(),
+            },
         }
     }
 
@@ -7805,7 +7877,7 @@ mod tests {
         let subject = administrative_subject_doc();
         let approver = administrative_principal_doc("approver", "key.approver", 105);
         let policy = ContainmentPolicyDocument {
-            schema_version: 1,
+            schema_version: 0,
             identity: String::new(),
             descriptor: pin_doc("policy.containment", 106),
             effect_class: effect_class.clone(),
@@ -7839,7 +7911,7 @@ mod tests {
             ceremony: None,
         };
         let proposal = AdministrativeProposalDocument {
-            schema_version: 1,
+            schema_version: 0,
             identity: String::new(),
             id: "proposal.one".to_owned(),
             effect_class,
@@ -7856,7 +7928,7 @@ mod tests {
             expires_at_tick: 19,
         };
         let approval = AdministrativeApprovalDocument {
-            schema_version: 1,
+            schema_version: 0,
             identity: String::new(),
             id: "approval.one".to_owned(),
             proposal_identity: String::new(),
@@ -7873,7 +7945,7 @@ mod tests {
             policy,
             approvals: vec![approval],
             commit: AdministrativeCommitDocument {
-                schema_version: 1,
+                schema_version: 0,
                 identity: String::new(),
                 id: "commit.one".to_owned(),
                 proposal_identity: String::new(),
@@ -7883,7 +7955,7 @@ mod tests {
                 committed_at_tick: 11,
             },
             execution: AdministrativeExecutionDocument {
-                schema_version: 1,
+                schema_version: 0,
                 identity: String::new(),
                 id: "execution.one".to_owned(),
                 proposal_identity: String::new(),
@@ -7900,7 +7972,7 @@ mod tests {
     fn policy_budget_binding_doc(resource_class: PinDocument) -> PolicyBudgetBindingDocument {
         PolicyBudgetBindingDocument {
             policy: PersistentBudgetPolicyDocument {
-                schema_version: 1,
+                schema_version: 0,
                 identity: String::new(),
                 descriptor: pin_doc("budget.installation", 120),
                 owner: pin_doc("owner.site-operations", 121),
@@ -7924,7 +7996,7 @@ mod tests {
                 maximum_evidence_events: 16,
             },
             status: PolicyBudgetStatusDocument {
-                schema_version: 1,
+                schema_version: 0,
                 identity: String::new(),
                 policy_identity: String::new(),
                 ledger: pin_doc("ledger.host-installation", 124),
@@ -7950,7 +8022,7 @@ mod tests {
     fn profile_doc(ordinal: u8) -> ExecutionProfileDocument {
         ExecutionProfileDocument {
             id: format!("fixture/execution-profile-{ordinal}"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(30),
             boundedness: "hard".to_owned(),
             cancellation: "bounded".to_owned(),
@@ -7978,14 +8050,14 @@ mod tests {
                 implementation_version: "1.0.0".to_owned(),
                 semantic_contract: PinDocument {
                     id: contract_id.to_owned(),
-                    schema_version: 1,
+                    schema_version: 0,
                     semantic_hash: contract_hash.to_string(),
                 },
                 executor: "native-in-process".to_owned(),
                 entrypoint_name: "run".to_owned(),
                 entrypoint_adapter: "conduit/native-step".to_owned(),
-                entrypoint_abi: "conduit/native-v1".to_owned(),
-                runtime_protocol_version: 1,
+                entrypoint_abi: "conduit/native".to_owned(),
+                runtime_protocol_version: 0,
                 execution_profile: pin_doc("fixture/execution-profile", 30),
                 artifacts: vec![ArtifactReferenceDocument {
                     id: artifact_id.clone(),
@@ -7995,8 +8067,8 @@ mod tests {
                 }],
                 required_authorities: Vec::new(),
                 required_effects: Vec::new(),
-                minimum_plan_version: 1,
-                maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+                minimum_plan_version: 0,
+                maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
                 minimum_runtime_protocol: 1,
                 maximum_runtime_protocol: 1,
                 coexistence_memory_bytes: 0,
@@ -8043,8 +8115,8 @@ mod tests {
                 supported_executors: vec!["native-in-process".to_owned()],
                 supported_targets: Vec::new(),
                 supported_abis: Vec::new(),
-                minimum_plan_version: 1,
-                maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+                minimum_plan_version: 0,
+                maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
                 current_constraints: Vec::new(),
             },
             allocation: BudgetDocument {
@@ -8125,7 +8197,7 @@ mod tests {
     }
 
     fn supervision_binding(
-        lowered: &CompileLoweredSource,
+        lowered: &CompileLoweredTopologyBase,
         allocation_memory_bytes: u64,
     ) -> SupervisionBindingDocument {
         SupervisionBindingDocument {
@@ -8268,8 +8340,8 @@ mod tests {
         let mut document = compile_panel(&panel, &input).unwrap();
         let cord = document.cords.first_mut().unwrap();
         cord.queue_memory_bytes += u64::from(cord.capacity_items) * 16;
-        document.schema = VALUE_PLAN_DOCUMENT_SCHEMA.to_owned();
-        document.schema_version = EXECUTION_PLAN_SCHEMA_VERSION_V17;
+        document.schema = PLAN_DOCUMENT_SCHEMA.to_owned();
+        document.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
         document.value_envelopes = vec![ValueEnvelopePolicyDocument {
             cord: cord.id.clone(),
             representation: pin_doc("fixture/value-bytes", 211),
@@ -8331,8 +8403,8 @@ mod tests {
     }
 
     #[test]
-    fn typed_supervision_compiles_to_schema_15_and_round_trips_exactly() {
-        let source = "panel 3\n\
+    fn typed_supervision_compiles_and_round_trips_exactly() {
+        let source = "panel 0\n\
             node subject : std/literal { value = \"primary\" }\n\
             node subject_sink : display/text\n\
             node fallback : std/literal { value = \"fallback\" }\n\
@@ -8346,9 +8418,9 @@ mod tests {
         topology_panel.supervisions.clear();
         let mut input = compile_input(source, &topology_panel);
         for candidate in &mut input.candidates {
-            candidate.implementation.minimum_plan_version = 1;
+            candidate.implementation.minimum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
             candidate.implementation.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
-            candidate.host_report.minimum_plan_version = 1;
+            candidate.host_report.minimum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
             candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
         }
         input.seal().unwrap();
@@ -8360,8 +8432,8 @@ mod tests {
         input.seal().unwrap();
 
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema, SUPERVISION_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V15);
+        assert_eq!(plan.schema, PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         assert_eq!(plan.supervisions.len(), 1);
         assert_eq!(plan.supervisions[0].subject, "root/subject");
         assert_eq!(plan.supervisions[0].handler, "root/handler");
@@ -8467,7 +8539,7 @@ mod tests {
 
     #[test]
     fn composite_expansion_retains_logical_membership_and_exports() {
-        let source = "panel 3\n\
+        let source = "panel 0\n\
              composite fixture/uppercase {\n\
                node upper : text/uppercase\n\
                export > text = upper.text\n\
@@ -8490,7 +8562,7 @@ mod tests {
 
     #[test]
     fn explicit_module_closure_and_selected_root_compile_without_io() {
-        let child = "panel 3\n\
+        let child = "panel 0\n\
                      composite fixture/pipeline {\n\
                        node source : std/literal { value = \"module\" }\n\
                        node upper : text/uppercase using ready\n\
@@ -8498,7 +8570,7 @@ mod tests {
                        cord source.value -> upper.text\n\
                        cord upper.text -> sink.text\n\
                      }\n";
-        let entry = "panel 3\n\
+        let entry = "panel 0\n\
                      import \"./child.panel\" as child\n\
                      composite fixture/app {\n\
                        node pipeline : child.fixture/pipeline\n\
@@ -8738,6 +8810,13 @@ mod tests {
             })
             .unwrap();
         let host = candidate.host_report.host.clone();
+        let (resource_lease, commit_profile) = current_effect_contracts(
+            "root/greeting",
+            "fixture/read",
+            "fixture/device-a",
+            "fixture/run",
+            101,
+        );
         candidate.authorities.push(AuthorityDecisionDocument {
             requirement: hash(101),
             effect_hash: String::new(),
@@ -8785,6 +8864,8 @@ mod tests {
             administrative_subject: None,
             containment: None,
             policy_budgets: Vec::new(),
+            resource_lease,
+            commit_profile,
         });
         input.seal().unwrap();
 
@@ -8801,8 +8882,8 @@ mod tests {
         plan.validate().unwrap();
 
         let mut effect_plan = plan.clone();
-        effect_plan.schema = EFFECT_PLAN_DOCUMENT_SCHEMA.to_owned();
-        effect_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION_V18;
+        effect_plan.schema = PLAN_DOCUMENT_SCHEMA.to_owned();
+        effect_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
         let authority_node = effect_plan.authorities[0].node.clone();
         let resource_id = effect_plan.authorities[0].binding.resource_id.clone();
         let resource_index = effect_plan
@@ -8837,7 +8918,7 @@ mod tests {
             maximum_evidence_events: 4,
             cleanup_escalation: PinDocument {
                 id: "fixture/force-close".to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(102),
             },
             foreign_retention: "unsupported".to_owned(),
@@ -8851,7 +8932,7 @@ mod tests {
             resource_lease: lease_id,
             commit_boundary: PinDocument {
                 id: "fixture/read-commit".to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(103),
             },
             idempotency: "reconcile-before-retry".to_owned(),
@@ -8859,7 +8940,7 @@ mod tests {
             discontinuity: "reconcile-required".to_owned(),
             cleanup: PinDocument {
                 id: "fixture/read-cleanup".to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(104),
             },
             maximum_attempts: 2,
@@ -8877,7 +8958,7 @@ mod tests {
         let encoded = serde_json::to_vec(&effect_plan).unwrap();
         let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, effect_plan);
-        assert_eq!(decoded.schema, EFFECT_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(decoded.schema, PLAN_DOCUMENT_SCHEMA);
 
         let finite_work = WorkloadBudgetDocument {
             work_units: Some(100),
@@ -8893,7 +8974,7 @@ mod tests {
             transition_overlap_work_units: Some(20),
         };
         let mut workload_plan = effect_plan.clone();
-        workload_plan.schema = WORKLOAD_PLAN_DOCUMENT_SCHEMA.to_owned();
+        workload_plan.schema = PLAN_DOCUMENT_SCHEMA.to_owned();
         workload_plan.schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
         workload_plan.workloads = vec![PlanWorkloadDocument {
             contract: WorkloadContractDocument {
@@ -8931,7 +9012,7 @@ mod tests {
         let encoded = serde_json::to_vec(&workload_plan).unwrap();
         let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, workload_plan);
-        assert_eq!(decoded.schema, WORKLOAD_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(decoded.schema, PLAN_DOCUMENT_SCHEMA);
 
         let mut missing_commit = effect_plan.clone();
         missing_commit.authorities[0].commit_profile = None;
@@ -9009,6 +9090,13 @@ mod tests {
         let host = candidate.host_report.host.clone();
         let effect_class = pin_doc("effect.admin", 101);
         let (subject, proof) = administrative_proof_doc(effect_class.clone());
+        let (resource_lease, commit_profile) = current_effect_contracts(
+            "root/greeting",
+            "fixture/read",
+            "fixture/device-a",
+            "fixture/run",
+            111,
+        );
         candidate.authorities.push(AuthorityDecisionDocument {
             requirement: hash(111),
             effect_hash: String::new(),
@@ -9056,11 +9144,13 @@ mod tests {
             administrative_subject: Some(subject),
             containment: Some(proof),
             policy_budgets: Vec::new(),
+            resource_lease,
+            commit_profile,
         });
         input.seal().unwrap();
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema, ADMINISTRATIVE_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V11);
+        assert_eq!(plan.schema, PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         assert!(plan.authorities[0].containment.is_some());
         plan.validate().unwrap();
 
@@ -9099,6 +9189,13 @@ mod tests {
         candidate.host_report.maximum_plan_version = EXECUTION_PLAN_SCHEMA_VERSION;
         let host = candidate.host_report.host.clone();
         let budget_class = pin_doc("class.executable-installation", 119);
+        let (resource_lease, commit_profile) = current_effect_contracts(
+            "root/greeting",
+            "fixture/read",
+            "fixture/device-a",
+            "fixture/run",
+            126,
+        );
         candidate.authorities.push(AuthorityDecisionDocument {
             requirement: hash(126),
             effect_hash: String::new(),
@@ -9146,11 +9243,13 @@ mod tests {
             administrative_subject: None,
             containment: None,
             policy_budgets: vec![policy_budget_binding_doc(budget_class)],
+            resource_lease,
+            commit_profile,
         });
         input.seal().unwrap();
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema, POLICY_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V12);
+        assert_eq!(plan.schema, PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         assert_eq!(plan.authorities[0].policy_budgets.len(), 1);
         plan.validate().unwrap();
 
@@ -9194,6 +9293,13 @@ mod tests {
             id: present_class.id.clone(),
             semantic_hash: present_class.semantic_hash.clone(),
         };
+        let (resource_lease, commit_profile) = current_effect_contracts(
+            "root/greeting",
+            "fixture/read",
+            "fixture/device-a",
+            "fixture/run",
+            142,
+        );
         candidate.authorities.push(AuthorityDecisionDocument {
             requirement: hash(142),
             effect_hash: String::new(),
@@ -9241,6 +9347,8 @@ mod tests {
             administrative_subject: None,
             containment: None,
             policy_budgets: Vec::new(),
+            resource_lease,
+            commit_profile,
         });
         input.seal().unwrap();
         let baseline = compile_panel(&panel, &input).unwrap();
@@ -9313,7 +9421,7 @@ mod tests {
             flows: Vec::new(),
             permits: Vec::new(),
             decision_identity: hash(146),
-            hazardous_hosts: Vec::new(),
+            hazardous_hosts: vec![hazardous_host_doc()],
         };
         seal_hazard_closure(&mut closure).unwrap();
         {
@@ -9338,71 +9446,15 @@ mod tests {
         input.hazard_closure = Some(closure);
         input.seal().unwrap();
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema, HAZARD_PLAN_DOCUMENT_SCHEMA);
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V13);
+        assert_eq!(plan.schema, PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         assert!(plan.hazard_closure.is_some());
         plan.validate().unwrap();
 
         let mut hazardous = input.clone();
-        hazardous
-            .hazard_closure
-            .as_mut()
-            .unwrap()
-            .hazardous_hosts
-            .push(HazardousHostBindingDocument {
-                host: "host-local".to_owned(),
-                profile: HazardousHostProfileDocument {
-                    schema_version: conduit_core::HAZARDOUS_HOST_PROFILE_SCHEMA_VERSION,
-                    identity: hash(0),
-                    descriptor: pin_doc("profile.fixture-hazardous-host", 147),
-                    safe_state: pin_doc("domain.fixture-safe-state", 148),
-                    inhibit_boundary: pin_doc("host.fixture-inhibit", 149),
-                    watchdog: pin_doc("host.fixture-watchdog", 150),
-                    effect_boundary: pin_doc("host.fixture-effect-boundary", 151),
-                    command_effect_class: pin_doc("effect.fixture-command", 152),
-                    clear_effect_class: pin_doc("effect.fixture-clear", 153),
-                    clear_operation: pin_doc("operation.fixture-clear", 154),
-                    clear_ceremony: pin_doc("ceremony.fixture-physical", 155),
-                    time_basis: "clock/compile".to_owned(),
-                    maximum_command_horizon_ticks: 5,
-                    maximum_observation_age_ticks: 10,
-                    maximum_evidence_records: 16,
-                    require_physical_presence_to_clear: true,
-                    require_isolated_implementation: true,
-                    envelope: vec![OperatingEnvelopeLimitDocument {
-                        dimension: pin_doc("domain.fixture-axis", 156),
-                        minimum: -5,
-                        maximum: 5,
-                    }],
-                },
-                observation: InhibitObservationDocument {
-                    schema_version: conduit_core::INHIBIT_OBSERVATION_SCHEMA_VERSION,
-                    identity: hash(0),
-                    profile_identity: hash(0),
-                    host: "host-local".to_owned(),
-                    safe_state: pin_doc("domain.fixture-safe-state", 148),
-                    inhibit_boundary: pin_doc("host.fixture-inhibit", 149),
-                    watchdog: pin_doc("host.fixture-watchdog", 150),
-                    effect_boundary: pin_doc("host.fixture-effect-boundary", 151),
-                    time_basis: "clock/compile".to_owned(),
-                    observed_at_tick: 10,
-                    valid_until_tick: 15,
-                    latch_generation: 1,
-                    latch_state: "safe-disarmed".to_owned(),
-                    independent_from_plan: true,
-                    local_safe_path: true,
-                    survives_executor_loss: true,
-                    survives_partition: true,
-                    graph_cannot_replace: true,
-                    confinement: "effect-boundary-enforced".to_owned(),
-                },
-            });
         hazardous.seal().unwrap();
         let hazardous_plan = compile_panel(&panel, &hazardous).unwrap();
-        assert_eq!(
-            hazardous_plan.schema_version,
-            EXECUTION_PLAN_SCHEMA_VERSION_V14
-        );
+        assert_eq!(hazardous_plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         let hazardous_arena = Bump::new();
         let hazardous_core = hazardous_plan.as_plan(&hazardous_arena).unwrap();
         let stale = validate_hosted_execution_plan(
@@ -9562,7 +9614,7 @@ mod tests {
         input.seal().unwrap();
 
         let plan = compile_panel(&panel, &input).unwrap();
-        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION_V16);
+        assert_eq!(plan.schema_version, EXECUTION_PLAN_SCHEMA_VERSION);
         assert_eq!(plan.instance_pools.len(), 1);
         assert_eq!(plan.instance_pools[0].maximum_live, 2);
         assert_eq!(plan.instance_pools[0].maximum_queued, 2);
@@ -9571,7 +9623,7 @@ mod tests {
         assert_eq!(runtime.idle_timeout_ticks, 5000);
         assert_eq!(runtime.generation_reserved_slots, 4);
         plan.validate().unwrap();
-        assert_eq!(plan.schema, POOL_PLAN_DOCUMENT_SCHEMA);
+        assert_eq!(plan.schema, PLAN_DOCUMENT_SCHEMA);
         let encoded = serde_json::to_vec(&plan).unwrap();
         let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
         decoded.validate().unwrap();

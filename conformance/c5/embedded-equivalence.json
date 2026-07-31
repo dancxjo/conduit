@@ -1,0 +1,26 @@
+{
+  "fixture_version": "conduit.embedded-equivalence",
+  "cases": [
+    {
+      "id": "same-plan-normalized-equivalence",
+      "runner": "desktop-embedded-equivalence",
+      "expected": {
+        "same_source_semantic_hash": true,
+        "distinct_exact_execution_plan_hashes": true,
+        "firmware_bound_to_rp2040_plan_hash": true,
+        "normalized_lifecycle_values_pressure_terminal_equal": true
+      }
+    },
+    {
+      "id": "same-plan-abort-cancellation-equivalence",
+      "runner": "desktop-embedded-equivalence",
+      "expected": {
+        "same_source_semantic_hash": true,
+        "distinct_exact_execution_plan_hashes": true,
+        "firmware_bound_to_rp2040_plan_hash": true,
+        "desktop_status": "cancelled",
+        "embedded_status": "cancelled"
+      }
+    }
+  ]
+}

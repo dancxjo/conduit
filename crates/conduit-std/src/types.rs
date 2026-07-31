@@ -448,7 +448,7 @@ static FORMAT_VALUES_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
     semantic_field("supported_kinds", CanonicalValue::Set(FORMAT_VALUE_KINDS)),
     semantic_field(
         "encoding",
-        CanonicalValue::Identifier(Id("conduit-format-values-v1")),
+        CanonicalValue::Identifier(Id("conduit-format-values")),
     ),
     semantic_field(
         "unsupported_kind",
@@ -469,7 +469,7 @@ pub fn standard_type_descriptor(
     };
     CanonicalDescriptor {
         kind: definition.id,
-        schema_version: 1,
+        schema_version: 0,
         body,
     }
 }
@@ -495,7 +495,7 @@ pub fn standard_type_reference(id: &str) -> Option<TypeContractRef<'static>> {
     let descriptor = standard_type_descriptor(definition);
     Some(TypeContractRef {
         contract_id: definition.id,
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: descriptor
             .semantic_hash()
             .expect("standard type descriptor is canonical"),

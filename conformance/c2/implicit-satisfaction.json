@@ -1,0 +1,30 @@
+{
+  "suite": "conduit.implicit-satisfaction",
+  "schema_version": 0,
+  "cases": [
+    {"id":"directional-structural-port-success","runner":"proof","expected":{"outcome":"compatible","plan_recorded":true}},
+    {"id":"exact-nominal-success","runner":"proof","expected":{"outcome":"compatible","method":"exact-nominal"}},
+    {"id":"same-shape-different-semantics-rejected","runner":"proof","expected":{"outcome":"incompatible","shape_inference":false}},
+    {"id":"missing-provider-indeterminate","runner":"proof","expected":{"outcome":"indeterminate","reason":"satisfaction-provider-unavailable"}},
+    {"id":"stale-provider-indeterminate","runner":"proof","expected":{"outcome":"indeterminate","reason":"satisfaction-provider-stale"}},
+    {"id":"stale-host-report-indeterminate","runner":"proof","expected":{"outcome":"indeterminate","reason":"satisfaction-host-observation-stale"}},
+    {"id":"deterministic-policy-selection","runner":"selection","expected":{"outcome":"compatible","order_independent":true}},
+    {"id":"unresolved-candidate-ambiguity","runner":"selection","expected":{"outcome":"indeterminate","reason":"satisfaction-ambiguous"}},
+    {"id":"explicit-adapter-required","runner":"proof","expected":{"outcome":"incompatible","implicit_application":false}},
+    {"id":"sensitivity-violation","runner":"proof","expected":{"outcome":"incompatible","obligation":"sensitivity"}},
+    {"id":"ownership-lifetime-violation","runner":"proof","expected":{"outcome":"incompatible","obligation":"ownership-lifetime"}},
+    {"id":"delivery-violation","runner":"proof","expected":{"outcome":"incompatible","obligation":"delivery"}},
+    {"id":"temporal-violation","runner":"proof","expected":{"outcome":"incompatible","obligation":"temporal"}},
+    {"id":"cardinality-violation","runner":"proof","expected":{"outcome":"incompatible","obligation":"value-cardinality"}},
+    {"id":"linux-capability-success","runner":"proof","expected":{"outcome":"compatible","role":"host-capability"}},
+    {"id":"pico-capability-success","runner":"proof","expected":{"outcome":"compatible","role":"host-capability"}},
+    {"id":"distinct-host-realizations","runner":"identity","expected":{"proofs":"distinct","semantic_requirement":"equal"}},
+    {"id":"shuffled-facets-and-obligations","runner":"identity","expected":{"relation":"equal"}},
+    {"id":"proof-identity-mutation-rejected","runner":"validation","expected":{"error":"identity-mismatch"}},
+    {"id":"proof-operand-omission-rejected","runner":"validation","expected":{"error":"missing-obligation"}},
+    {"id":"source-identity-stable-across-realizations","runner":"plan","expected":{"source_relation":"equal","plan_relation":"different"}},
+    {"id":"proof-grants-no-authority","runner":"boundary","expected":{"authority_granted":false}},
+    {"id":"proof-performs-no-provisioning","runner":"boundary","expected":{"host_mutated":false}},
+    {"id":"proof-does-not-select-plan-epoch","runner":"boundary","expected":{"plan_mutated":false}}
+  ]
+}

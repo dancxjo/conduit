@@ -8,7 +8,7 @@ use conduit_rp2040_hil::{
 };
 use sha2::{Digest, Sha256};
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/rp2040-firmware-hil-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/rp2040-firmware-hil.json");
 
 #[test]
 fn rp2040_link_contract_places_boot2_before_the_application() {
@@ -79,7 +79,7 @@ fn linked_firmware_path_matches_the_physical_hil_oracle() {
             );
             assert_eq!(
                 report.supported_abis,
-                &[conduit_core::Id("conduit-static-step-v1")]
+                &[conduit_core::Id("conduit-static-step")]
             );
             report.identity
         }),

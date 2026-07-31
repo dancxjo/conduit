@@ -3,9 +3,9 @@
 These sealed JSON documents describe Conduit's safe reference provider
 inventory:
 
-- `reference-hosted-v1.json`;
-- `reference-browser-v1.json`;
-- `reference-constrained-v1.json`.
+- `reference-hosted.json`;
+- `reference-browser.json`;
+- `reference-constrained.json`.
 
 Each profile pins the genesis profile, control recorder, provider-enablement
 class and operation, finite limits, and every provider's exact descriptor,
@@ -21,5 +21,5 @@ artifact, or authority requirements.
 
 Deliberately enabling a dangerous provider requires the bounded,
 artifact-pinned, independently approved operation in
-[`spec/044-safe-genesis-and-distribution-v1.md`](../spec/044-safe-genesis-and-distribution-v1.md).
+[`spec/044-safe-genesis-and-distribution.md`](../spec/044-safe-genesis-and-distribution.md).
 Provider enablement grants no effects.

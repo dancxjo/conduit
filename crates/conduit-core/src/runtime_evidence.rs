@@ -5,7 +5,7 @@ use crate::{
     validate_stream_contract,
 };
 
-pub const RUNTIME_EVIDENCE_POLICY_VERSION: u32 = 1;
+pub const RUNTIME_EVIDENCE_POLICY_VERSION: u32 = 0;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeEvidenceMode {

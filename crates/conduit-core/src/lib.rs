@@ -94,13 +94,12 @@ pub use diagnostic::{
 };
 pub use distributed::{
     AcknowledgementMode, CarrierSecurityMode, DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION,
-    DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1, DISTRIBUTED_CORD_PROTOCOL_VERSION,
-    DisconnectPolicy, DistributedAuthorityContext, DistributedCordBudget, DistributedCordHandshake,
-    DistributedDelivery, DistributedEvidence, DistributedEvidenceKind, DistributedHandshakeContext,
-    DistributedIdentityError, DistributedOrdering, DistributedPeerProof,
-    DistributedPeerRequirement, DistributedReason, DistributedSessionMachine,
-    DistributedSessionState, PendingControl, PlanDistributedCord, ReceiveDisposition,
-    ReconnectMode, ResumeProof, validate_distributed_authority_at_use,
+    DISTRIBUTED_CORD_PROTOCOL_VERSION, DisconnectPolicy, DistributedAuthorityContext,
+    DistributedCordBudget, DistributedCordHandshake, DistributedDelivery, DistributedEvidence,
+    DistributedEvidenceKind, DistributedHandshakeContext, DistributedIdentityError,
+    DistributedOrdering, DistributedPeerProof, DistributedPeerRequirement, DistributedReason,
+    DistributedSessionMachine, DistributedSessionState, PendingControl, PlanDistributedCord,
+    ReceiveDisposition, ReconnectMode, ResumeProof, validate_distributed_authority_at_use,
     validate_distributed_binding, validate_distributed_handshake,
 };
 pub use evidence::{
@@ -110,16 +109,7 @@ pub use evidence::{
     validate_event_stream, validate_execution_event,
 };
 pub use execution_plan::{
-    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V1,
-    EXECUTION_PLAN_SCHEMA_VERSION_V2, EXECUTION_PLAN_SCHEMA_VERSION_V3,
-    EXECUTION_PLAN_SCHEMA_VERSION_V4, EXECUTION_PLAN_SCHEMA_VERSION_V5,
-    EXECUTION_PLAN_SCHEMA_VERSION_V6, EXECUTION_PLAN_SCHEMA_VERSION_V7,
-    EXECUTION_PLAN_SCHEMA_VERSION_V8, EXECUTION_PLAN_SCHEMA_VERSION_V9,
-    EXECUTION_PLAN_SCHEMA_VERSION_V10, EXECUTION_PLAN_SCHEMA_VERSION_V11,
-    EXECUTION_PLAN_SCHEMA_VERSION_V12, EXECUTION_PLAN_SCHEMA_VERSION_V13,
-    EXECUTION_PLAN_SCHEMA_VERSION_V14, EXECUTION_PLAN_SCHEMA_VERSION_V15,
-    EXECUTION_PLAN_SCHEMA_VERSION_V16, EXECUTION_PLAN_SCHEMA_VERSION_V17,
-    EXECUTION_PLAN_SCHEMA_VERSION_V18, ExecutionPlan, PinnedDescriptor, PlanArtifact,
+    ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, PinnedDescriptor, PlanArtifact,
     PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
     PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
     PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPoolRuntime,
@@ -698,7 +688,7 @@ mod tests {
 
     const TEXT: TypeContractRef<'static> = TypeContractRef {
         contract_id: Id("std/text"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([
             0x23, 0xf6, 0xb8, 0xc6, 0xd7, 0x84, 0x79, 0x9a, 0x10, 0x09, 0xbd, 0x45, 0x32, 0x26,
             0x67, 0x0d, 0xdd, 0x91, 0x80, 0xe0, 0x06, 0xd4, 0xc2, 0x32, 0x70, 0x55, 0xcb, 0xf3,

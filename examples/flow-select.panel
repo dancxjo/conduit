@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node first : std/literal {
     value = ""

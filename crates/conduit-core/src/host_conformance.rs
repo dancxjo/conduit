@@ -13,8 +13,8 @@ use crate::{
     Id, MapField, PinnedDescriptor, SatisfactionProof, SemanticHash, validate_satisfaction_proof,
 };
 
-pub const HOST_CONFORMANCE_PROFILE_SCHEMA_VERSION: u32 = 1;
-pub const PROVIDER_CONFORMANCE_RESULT_SCHEMA_VERSION: u32 = 1;
+pub const HOST_CONFORMANCE_PROFILE_SCHEMA_VERSION: u32 = 0;
+pub const PROVIDER_CONFORMANCE_RESULT_SCHEMA_VERSION: u32 = 0;
 pub const MAXIMUM_HOST_MANDATORY_FACTS: usize = 16;
 pub const MAXIMUM_HOST_OPTIONAL_PROVIDERS: usize = 32;
 pub const MAXIMUM_HOST_EXTENSIONS: usize = 32;
@@ -279,7 +279,7 @@ impl ProviderObservation<'_> {
         ];
         CanonicalDescriptor {
             kind: Id("conduit/provider-observation"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&fields),
         }
         .semantic_hash()
@@ -730,7 +730,7 @@ pub fn bind_provider<'a>(
 fn pin_valid(pin: PinnedDescriptor<'_>) -> bool {
     !pin.id.as_str().is_empty()
         && pin.id.as_str().contains('/')
-        && pin.schema_version > 0
+        && pin.schema_version == 0
         && pin.semantic_hash != SemanticHash::from_bytes([0; 32])
 }
 
@@ -833,7 +833,7 @@ fn hash_fields(
 ) -> Result<SemanticHash, HostConformanceIdentityError> {
     CanonicalDescriptor {
         kind: Id(kind),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()

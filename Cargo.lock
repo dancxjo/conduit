@@ -306,7 +306,7 @@ dependencies = [
 
 [[package]]
 name = "conduct"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "bumpalo",
  "clap",
@@ -327,7 +327,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-compile"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "bumpalo",
  "conduit-core",
@@ -341,7 +341,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-conformance"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "serde",
  "serde_json",
@@ -350,7 +350,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-core"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "serde_json",
  "sha2",
@@ -358,7 +358,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-diagnostics"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-panel",
@@ -370,7 +370,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-embedded"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "serde_json",
@@ -378,7 +378,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-http"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-panel",
@@ -394,7 +394,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-inspect"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-conformance",
  "conduit-core",
@@ -409,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-package"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-inspect",
@@ -420,7 +420,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-panel"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "serde_json",
@@ -429,7 +429,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-patchbay"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-panel",
@@ -440,7 +440,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-rp2040-hil"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-embedded",
@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-runtime"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-embedded",
@@ -474,7 +474,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-std"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "serde_json",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-web"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "bumpalo",
  "conduit-compile",
@@ -497,7 +497,7 @@ dependencies = [
 
 [[package]]
 name = "conduit-zenoh"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-runtime",
@@ -3253,7 +3253,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.0.0-dev"
 dependencies = [
  "clap",
  "conduit-compile",

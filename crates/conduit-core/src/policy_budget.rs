@@ -14,7 +14,7 @@ use crate::{
     validate_administrative_proof,
 };
 
-pub const POLICY_BUDGET_SCHEMA_VERSION: u32 = 1;
+pub const POLICY_BUDGET_SCHEMA_VERSION: u32 = 0;
 pub const MAX_POLICY_BUDGET_BINDINGS: usize = 8;
 
 /// Durable scope that cannot be replaced by a workload epoch or realm.
@@ -1326,7 +1326,7 @@ fn optional_u64_value(value: Option<u64>) -> CanonicalValue<'static> {
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
-    pin.schema_version > 0 && Id::new(pin.id.as_str()).is_ok()
+    pin.schema_version == 0 && Id::new(pin.id.as_str()).is_ok()
 }
 
 const fn semantic<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> {

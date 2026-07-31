@@ -10,8 +10,8 @@ use crate::{
     SemanticHash, TerminalClass, TypeContractRef,
 };
 
-/// Version of the execution-profile descriptor frozen by specification 022.
-pub const EXECUTION_PROFILE_SCHEMA_VERSION: u32 = 1;
+/// Version of the execution-profile descriptor current by specification 022.
+pub const EXECUTION_PROFILE_SCHEMA_VERSION: u32 = 0;
 
 /// Strength of the complete dependency-stack bound claimed by an implementation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1248,7 +1248,7 @@ fn hash_representation(
     ];
     CanonicalDescriptor {
         kind: Id("conduit/value-representation"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&fields),
     }
     .semantic_hash()
@@ -1268,7 +1268,7 @@ fn hash_memory_claim(value: MemoryClaim) -> Result<SemanticHash, CanonicalError<
     ];
     CanonicalDescriptor {
         kind: Id("conduit/implementation-memory-claim"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&fields),
     }
     .semantic_hash()
@@ -1283,5 +1283,5 @@ fn semantic<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> {
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
-    Id::new(pin.id.as_str()).is_ok() && pin.schema_version > 0
+    Id::new(pin.id.as_str()).is_ok() && pin.schema_version == 0
 }

@@ -9,7 +9,7 @@ use conduit_package::{
 };
 use sha2::{Digest as _, Sha256};
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json");
 static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 
 fn digest(bytes: &[u8]) -> String {
@@ -179,7 +179,7 @@ fn package_case(id: &str) {
             let mut object = object("execution-plan", b"plan", false);
             object.identity = Some(PackageObjectIdentity {
                 kind: "execution-plan".to_owned(),
-                schema_version: 2,
+                schema_version: 0,
                 semantic_identity: digest(b"semantic plan"),
             });
             let manifest = sealed(vec![object]);

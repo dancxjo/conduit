@@ -9,7 +9,7 @@ lint:
 
 test:
     cargo test --workspace
-    cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
+    cargo run -p conduit-conformance -- reference conformance/current/manifest.json
     python3 conformance/c1/verify_canonical_v1.py
 
 embedded:

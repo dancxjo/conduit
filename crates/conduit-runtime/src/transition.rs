@@ -402,7 +402,7 @@ fn inhibit_decision_identity(
     binding: Option<HazardousHostBinding<'_>>,
 ) -> SemanticHash {
     let mut digest = Sha256::new();
-    digest.update(b"conduit/transition-inhibit-decision/v1");
+    digest.update(b"conduit/transition-inhibit-decision");
     digest.update(transition.as_bytes());
     if let Some(binding) = binding {
         digest.update([1]);

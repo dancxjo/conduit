@@ -67,7 +67,7 @@ export class PatchbayEditorElement extends HTMLElement {
     this.innerHTML = `
       <div class="card-header">
         <h3>Source Editor</h3>
-        <span class="badge lang-badge">.panel v1</span>
+        <span class="badge lang-badge">.panel 0</span>
       </div>
       <label for="source" class="sr-only">Real .panel source</label>
       <div class="panel-source-editor">

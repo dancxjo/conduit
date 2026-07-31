@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use serde_json::{Value, json};
 
 pub fn run(workspace_root: &Path, profile: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let fixture_path = workspace_root.join("conformance/c5/adversarial-containment-v1.json");
+    let fixture_path = workspace_root.join("conformance/c5/adversarial-containment.json");
     if !fixture_path.exists() {
         return Err(format!("Fixture missing: {}", fixture_path.display()).into());
     }
@@ -41,7 +41,7 @@ pub fn run(workspace_root: &Path, profile: &str) -> Result<(), Box<dyn std::erro
     }
 
     let report = json!({
-        "schema": "conduit.adversarial-profile-report/v1",
+        "schema": "conduit.adversarial-profile-report",
         "profile": profile,
         "fixture_seed": fixture.get("seed"),
         "cases": cases,

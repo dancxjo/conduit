@@ -23,7 +23,7 @@ it does not identify an installed speech implementation.
 Declare reusable named interfaces using the `interface` keyword in `.panel` source files:
 
 ```panel
-panel 3
+panel 0
 
 interface speech/recognizer {
   > audio : std/text

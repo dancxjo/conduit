@@ -1,5 +1,5 @@
 # Local Ollama LLM text generation request via HTTP client.
-panel 3
+panel 0
 
 node prompt_template : std/literal {
     value = "{{\"model\": \"{model}\", \"prompt\": \"{prompt}\", \"stream\": false}}"

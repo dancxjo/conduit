@@ -1,5 +1,5 @@
 # HTTP webhook relay panel.
-panel 3
+panel 0
 
 node receiver : conduit/http-server {
     port = 8080

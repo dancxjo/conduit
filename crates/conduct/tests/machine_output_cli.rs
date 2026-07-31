@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Write as _};
 use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};
 
-const OUTPUT_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-output-v1.json");
+const OUTPUT_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-output.json");
 
 fn command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduct"));
@@ -54,10 +54,13 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
     assert!(check.stderr.is_empty());
     assert_clean_machine_stdout(&check.stdout);
     let check: serde_json::Value = serde_json::from_slice(&check.stdout).unwrap();
-    assert_eq!(check["schema"], "conduit.result/v1");
-    assert_eq!(check["schema_version"], 1);
+    assert_eq!(check["schema"], "conduit.result");
+    assert_eq!(check["schema_version"], 0);
     assert_eq!(check["operation"], "check");
-    assert_eq!(check["result"]["panel_version"], 3);
+    assert_eq!(
+        check["result"]["panel_version"],
+        conduit_panel::SOURCE_AST_SCHEMA_VERSION
+    );
     assert_eq!(check["result"]["root_nodes"], 3);
     assert_eq!(check["result"]["root_cords"], 2);
 
@@ -66,8 +69,8 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
     assert!(explain.stderr.is_empty());
     assert_clean_machine_stdout(&explain.stdout);
     let explain: serde_json::Value = serde_json::from_slice(&explain.stdout).unwrap();
-    assert_eq!(explain["schema"], "conduit.result/v1");
-    assert_eq!(explain["schema_version"], 1);
+    assert_eq!(explain["schema"], "conduit.result");
+    assert_eq!(explain["schema_version"], 0);
     assert_eq!(explain["operation"], "explain");
     assert_eq!(explain["result"]["nodes"].as_array().unwrap().len(), 3);
     assert_eq!(explain["result"]["cords"].as_array().unwrap().len(), 2);
@@ -85,8 +88,8 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .collect();
     assert!(records.len() > 2);
     for (sequence, record) in records.iter().enumerate() {
-        assert_eq!(record["schema"], "conduit.run/v2");
-        assert_eq!(record["schema_version"], 2);
+        assert_eq!(record["schema"], "conduit.run");
+        assert_eq!(record["schema_version"], 0);
         assert_eq!(record["sequence"], sequence);
     }
     assert_eq!(records[0]["record"], "channel_chunk");
@@ -101,7 +104,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         assert_eq!(record["record"], "exact_execution_evidence");
         assert_eq!(
             record["evidence"]["schema"],
-            "conduit.exact-execution-evidence/v1"
+            "conduit.exact-execution-evidence"
         );
     }
     let summary = records.last().unwrap();
@@ -121,7 +124,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .take()
         .unwrap()
         .write_all(
-            b"panel 3\nnode message : std/literal { value = \"semantic error\\n\" }\n\
+            b"panel 0\nnode message : std/literal { value = \"semantic error\\n\" }\n\
               node encoded : text/encode-utf8\n\
               node sink : io/stderr\n\
               cord message.value -> encoded.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
@@ -216,7 +219,7 @@ fn every_result_and_diagnostic_format_combination_keeps_streams_separate() {
                         .stdin
                         .take()
                         .unwrap()
-                        .write_all(b"panel 3\ncord missing.value absent.text\n")?;
+                        .write_all(b"panel 0\ncord missing.value absent.text\n")?;
                     child.wait_with_output()
                 })
                 .unwrap();
@@ -224,7 +227,7 @@ fn every_result_and_diagnostic_format_combination_keeps_streams_separate() {
             assert!(output.stdout.is_empty(), "{mode}/{format}");
             if diagnostic_format == "json" {
                 let diagnostic: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
-                assert_eq!(diagnostic["schema_version"], 1);
+                assert_eq!(diagnostic["schema_version"], 0);
                 assert_eq!(diagnostic["code"], "CND-SRC-001");
             } else {
                 assert!(String::from_utf8_lossy(&output.stderr).contains("CND-SRC-001"));
@@ -284,7 +287,7 @@ fn quiet_verbosity_and_malformed_options_preserve_required_output() {
                 .stdin
                 .take()
                 .unwrap()
-                .write_all(b"panel 3\ncord a.value b.text\n")?;
+                .write_all(b"panel 0\ncord a.value b.text\n")?;
             child.wait_with_output()
         })
         .unwrap();

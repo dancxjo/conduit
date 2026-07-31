@@ -356,7 +356,7 @@ impl PortContract<'_> {
         ];
         CanonicalDescriptor {
             kind: Id("conduit/port-contract"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&fields),
         }
         .write_canonical(sink)

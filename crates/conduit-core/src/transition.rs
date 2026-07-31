@@ -12,7 +12,7 @@ use crate::{
     InstancePath, MapField, PinnedDescriptor, PlanResourceBudget, ReplacementSupport, SemanticHash,
 };
 
-pub const PLAN_TRANSITION_SCHEMA_VERSION: u32 = 1;
+pub const PLAN_TRANSITION_SCHEMA_VERSION: u32 = 0;
 pub const MAX_TRANSITION_OPTIONAL_CHANGES: usize = 16;
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -1593,7 +1593,7 @@ fn descriptor_hash(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind,
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()
@@ -1608,5 +1608,5 @@ fn semantic<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    !value.id.as_str().is_empty() && value.schema_version > 0 && value.semantic_hash != ZERO
+    !value.id.as_str().is_empty() && value.schema_version == 0 && value.semantic_hash != ZERO
 }

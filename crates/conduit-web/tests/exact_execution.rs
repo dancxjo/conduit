@@ -2,7 +2,7 @@ mod support;
 
 use conduit_web::{run_panel, run_panel_exact};
 
-const SOURCE: &str = "panel 3\n\
+const SOURCE: &str = "panel 0\n\
 node greeting : std/literal { value = \"Hello from Conduit.\\n\" }\n\
 node shout : text/uppercase\n\
 node output : display/text\n\
@@ -50,7 +50,7 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
         result["evidence_bytes"]
     );
     assert!(evidence.iter().all(|event| {
-        event["schema"] == "conduit.exact-execution-evidence/v1"
+        event["schema"] == "conduit.exact-execution-evidence"
             && event["plan_epoch"] == 1
             && event["run_id"] == "conduit/browser-run"
     }));

@@ -1,5 +1,5 @@
 # Scheduled bounded backup pipeline panel.
-panel 3
+panel 0
 
 node trigger : std/counter
 node reader : std/file-read {

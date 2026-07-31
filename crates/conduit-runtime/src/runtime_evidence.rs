@@ -434,7 +434,7 @@ fn build_event(
             }
         });
     let mut event = OwnedExecutionEvent {
-        schema_version: 1,
+        schema_version: 0,
         identity: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
             .to_owned(),
         event_id: event_id(sequence),
@@ -523,7 +523,7 @@ fn runtime_payload(observation: &SchedulerEvent) -> OwnedEventPayload {
     OwnedEventPayload::InlinePublic {
         value_type: OwnedTypeRef {
             id: "conduit/runtime-observation".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: RUNTIME_OBSERVATION_TYPE_HASH.to_owned(),
         },
         bytes,
@@ -559,7 +559,7 @@ fn push_summary(
     let sequence = u64::try_from(output.len()).map_err(|_| RuntimeEvidenceError::InvalidEvent)?;
     let tick = i64::try_from(tick).map_err(|_| RuntimeEvidenceError::InvalidObservation)?;
     let mut event = OwnedExecutionEvent {
-        schema_version: 1,
+        schema_version: 0,
         identity: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
             .to_owned(),
         event_id: event_id(sequence),
@@ -653,7 +653,7 @@ fn binding_payload(binding: &str) -> OwnedEventPayload {
     OwnedEventPayload::InlinePublic {
         value_type: OwnedTypeRef {
             id: "conduit/runtime-binding".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: RUNTIME_BINDING_TYPE_HASH.to_owned(),
         },
         bytes: binding.as_bytes().to_vec(),
@@ -664,7 +664,7 @@ fn authority_binding_payload() -> OwnedEventPayload {
     OwnedEventPayload::Redacted {
         value_type: OwnedTypeRef {
             id: "conduit/runtime-authority-binding".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: RUNTIME_AUTHORITY_BINDING_TYPE_HASH.to_owned(),
         },
         sensitivity: "secret".to_owned(),

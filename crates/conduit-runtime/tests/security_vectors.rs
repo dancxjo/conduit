@@ -17,8 +17,8 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/security-boundaries-v1.json");
-const EVENT: &str = include_str!("../../../conformance/c2/execution-event-v1.ndjson");
+const FIXTURE: &str = include_str!("../../../conformance/c5/security-boundaries.json");
+const EVENT: &str = include_str!("../../../conformance/c2/execution-event.ndjson");
 
 #[derive(Deserialize)]
 struct Fixture {
@@ -46,7 +46,7 @@ fn artifact_manifest(bytes: &[u8]) -> ArtifactManifest<'static> {
     let mut digest = [0_u8; 32];
     digest.copy_from_slice(&Sha256::digest(bytes));
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id("fixture/security-blob"),
         digest: ArtifactDigest::from_bytes(digest),
@@ -137,19 +137,19 @@ fn panel_result(id: &str) -> Value {
     let source = match id {
         "oversized-panel-source" => "x".repeat(MAXIMUM_PANEL_SOURCE_BYTES + 1),
         "panel-token-flood" => {
-            let mut source = "panel 3\n".to_owned();
+            let mut source = "panel 0\n".to_owned();
             source.push_str(&"a ".repeat(MAXIMUM_PANEL_TOKENS));
             source
         }
         "recursive-source-value" => {
             let depth = usize::from(MAXIMUM_SOURCE_VALUE_DEPTH);
             format!(
-                "panel 3\nnode n : std/literal {{ value = {}0{} }}",
+                "panel 0\nnode n : std/literal {{ value = {}0{} }}",
                 "list(".repeat(depth),
                 ")".repeat(depth)
             )
         }
-        "hostile-diagnostic-text-is-escaped" => "panel 3\n\u{1b}".to_owned(),
+        "hostile-diagnostic-text-is-escaped" => "panel 0\n\u{1b}".to_owned(),
         _ => panic!("unknown panel case {id}"),
     };
     match parse(&source) {

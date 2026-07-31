@@ -16,7 +16,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -24,7 +24,7 @@ fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
 fn descriptor(id: &'static str, byte: u8) -> DescriptorRef<'static> {
     DescriptorRef {
         kind: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -34,7 +34,7 @@ fn satisfaction<'a>(
     obligations: &'a [SatisfactionObligation<'a>],
 ) -> SatisfactionProof<'a> {
     let mut proof = SatisfactionProof {
-        schema_version: 1,
+        schema_version: 0,
         identity: hash(0),
         role: SatisfactionRole::Implementation,
         method: SatisfactionMethod::ProviderRule,
@@ -97,7 +97,7 @@ fn profile<'a>(
     inventory: &'a [ProviderInventory<'a>],
     extensions: &'a [HostExtension<'a>],
 ) -> HostConformanceProfile<'a> {
-    let mandatory = Box::leak(Box::new([pin("conduit/host/minimal-execution-v1", 1)]));
+    let mandatory = Box::leak(Box::new([pin("conduit/host/minimal-execution", 1)]));
     let mut profile = HostConformanceProfile {
         schema_version: HOST_CONFORMANCE_PROFILE_SCHEMA_VERSION,
         identity: hash(0),
@@ -142,7 +142,7 @@ fn result<'a>(
 ) -> ProviderConformanceResult<'a> {
     let facets = Box::leak(Box::new([pin("acme/facet/weather-reading", 16)]));
     let mut result = ProviderConformanceResult {
-        schema_version: 1,
+        schema_version: 0,
         identity: hash(0),
         required_contract: contract,
         implementation: pin("acme/implementation/weather", 12),
@@ -206,9 +206,9 @@ fn bind<'a>(
 
 #[test]
 fn required_cross_host_fixture_inventory_is_frozen() {
-    let fixture = include_str!("../../../conformance/c5/cross-host-provider-conformance-v1.json");
+    let fixture = include_str!("../../../conformance/c5/cross-host-provider-conformance.json");
     let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
-    assert_eq!(value["suite"], "conduit.cross-host-provider-conformance/v1");
+    assert_eq!(value["suite"], "conduit.cross-host-provider-conformance");
     assert_eq!(value["cases"].as_array().unwrap().len(), 24);
     for required in [
         "linux-native-pass",

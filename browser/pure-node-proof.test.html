@@ -18,8 +18,8 @@ globalThis.addEventListener("unhandledrejection", (event) => fail(event.reason))
 try {
   await init();
   const [source, profile] = await Promise.all([
-    fetch("../conformance/c5/pure-node-v1.panel").then((response) => response.text()),
-    fetch("../conformance/c5/pure-node-v1-profile.json").then((response) => response.json()),
+    fetch("../conformance/c5/pure-node.panel").then((response) => response.text()),
+    fetch("../conformance/c5/pure-node-profile.json").then((response) => response.json()),
   ]);
   const run = JSON.parse(run_panel(source));
   assert(run.ok, `WASM exact run failed: ${run.code ?? run.diagnostic}`);

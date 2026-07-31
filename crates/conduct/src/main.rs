@@ -371,7 +371,7 @@ fn run(
             serde_json::from_slice::<CompileInput>(&input_bytes).map_err(|_| {
                 package_error(
                     "CND-CMP-002",
-                    "compile input is not valid conduit.compile-input/v2 JSON",
+                    "compile input is not valid conduit.compile-input JSON",
                     presentation,
                 )
             })?,
@@ -437,8 +437,8 @@ fn run(
                 )?,
                 OutputFormat::Json => write_json_primary(
                     &FiniteResult {
-                        schema: "conduit.result/v1",
-                        schema_version: 1,
+                        schema: "conduit.result",
+                        schema_version: 0,
                         operation: "check",
                         result: CheckResult {
                             panel_version: panel.version,
@@ -470,8 +470,8 @@ fn run(
                 OutputFormat::Human => write_primary(resolved.explain().as_bytes(), presentation)?,
                 OutputFormat::Json => write_json_primary(
                     &FiniteResult::<ResolvedPanelView> {
-                        schema: "conduit.result/v1",
-                        schema_version: 1,
+                        schema: "conduit.result",
+                        schema_version: 0,
                         operation: "explain",
                         result: resolved.view(),
                     },
@@ -808,8 +808,8 @@ fn run_inspect(
         OutputFormat::Human => write_primary(report.render_human().as_bytes(), presentation)?,
         OutputFormat::Json => write_json_primary(
             &FiniteResult {
-                schema: "conduit.result/v1",
-                schema_version: 1,
+                schema: "conduit.result",
+                schema_version: 0,
                 operation: "inspect",
                 result: report,
             },
@@ -859,7 +859,7 @@ fn run_compile(
     let input: CompileInput = serde_json::from_slice(&input_bytes).map_err(|_| {
         package_error(
             "CND-CMP-002",
-            "compile input is not valid conduit.compile-input/v2 JSON",
+            "compile input is not valid conduit.compile-input JSON",
             presentation,
         )
     })?;
@@ -916,8 +916,8 @@ fn run_compile(
         }
         OutputFormat::Json => write_json_primary(
             &FiniteResult {
-                schema: "conduit.result/v1",
-                schema_version: 1,
+                schema: "conduit.result",
+                schema_version: 0,
                 operation: "compile",
                 result: plan,
             },
@@ -958,7 +958,7 @@ fn run_package(
                 serde_json::from_slice(&manifest_bytes).map_err(|_| {
                     package_error(
                         conduit_package::PackageReason::MalformedManifest.code(),
-                        "package manifest is not valid conduit.package/v1 JSON",
+                        "package manifest is not valid conduit.package JSON",
                         presentation,
                     )
                 })?;
@@ -1011,8 +1011,8 @@ fn run_package(
                 )?,
                 OutputFormat::Json => write_json_primary(
                     &FiniteResult {
-                        schema: "conduit.result/v1",
-                        schema_version: 1,
+                        schema: "conduit.result",
+                        schema_version: 0,
                         operation: "package-create",
                         result,
                     },
@@ -1094,8 +1094,8 @@ fn run_package(
                 )?,
                 OutputFormat::Json => write_json_primary(
                     &FiniteResult {
-                        schema: "conduit.result/v1",
-                        schema_version: 1,
+                        schema: "conduit.result",
+                        schema_version: 0,
                         operation: "package-verify",
                         result,
                     },
@@ -1147,8 +1147,8 @@ fn run_package(
                 )?,
                 OutputFormat::Json => write_json_primary(
                     &FiniteResult {
-                        schema: "conduit.result/v1",
-                        schema_version: 1,
+                        schema: "conduit.result",
+                        schema_version: 0,
                         operation: "package-extract",
                         result,
                     },
@@ -1606,8 +1606,7 @@ mod tests {
     #[test]
     fn every_presentation_conformance_vector_is_enforced() {
         let fixture: serde_json::Value =
-            serde_json::from_str(include_str!("../../../conformance/c3/conduct-cli-v1.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../../../conformance/c3/conduct-cli.json")).unwrap();
 
         for case in fixture["presentation_cases"].as_array().unwrap() {
             let case_id = case["id"].as_str().unwrap();
@@ -1715,8 +1714,8 @@ mod tests {
                 .all(|line| line.len() < RUN_CHANNEL_RECORD_MAX_BYTES)
         );
         for (sequence, record) in records.iter().enumerate() {
-            assert_eq!(record["schema"], "conduit.run/v2");
-            assert_eq!(record["schema_version"], 2);
+            assert_eq!(record["schema"], "conduit.run");
+            assert_eq!(record["schema_version"], 0);
             assert_eq!(record["sequence"], sequence);
             assert_eq!(record["record"], "channel_chunk");
             assert!(record.get("value").is_none());

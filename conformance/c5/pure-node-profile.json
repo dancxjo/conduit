@@ -1,0 +1,48 @@
+{
+  "schema": "conduit.pure-node-proof-profile",
+  "schema_version": 0,
+  "source": "pure-node.panel",
+  "expected_stdout_utf8": "CONDUIT EXACT SLICE.\n",
+  "normalized_evidence_sha256": "sha256:fa6d1407b0f8954d28bd7d4b9e4f702aab014620b73aac18a4f211f0e5c54706",
+  "plan_epoch": 1,
+  "bounds": {
+    "cords": 3,
+    "queue_items": 3,
+    "queue_payload_bytes": 192,
+    "value_bytes": 64,
+    "stdout_bytes": 64,
+    "scheduler_decisions": 256,
+    "scheduler_ticks": 512,
+    "scheduler_events": 128,
+    "evidence_bytes": 262144
+  },
+  "required_evidence_fields": [
+    "plan_identity",
+    "plan_epoch",
+    "run_id",
+    "sequence",
+    "node_id",
+    "cord_id",
+    "from_port",
+    "to_port",
+    "implementation_id",
+    "implementation_identity",
+    "artifact_id",
+    "host_id",
+    "host_observation_id",
+    "pressure",
+    "terminal_cause"
+  ],
+  "profiles": {
+    "hosted": {
+      "binding_authority": "compiled-in-installed-profile",
+      "executor": "deterministic-executor",
+      "run_id": "conduit/conduct-run"
+    },
+    "browser": {
+      "binding_authority": "compiled-in-installed-profile",
+      "executor": "deterministic-executor",
+      "run_id": "conduit/browser-run"
+    }
+  }
+}

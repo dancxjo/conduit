@@ -1,13 +1,13 @@
 use conduit_core::{
-    ArtifactDigest, ArtifactManifest, ArtifactProvenance, AuthorityTime,
-    CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, CompatibilityOutcome, DescriptorRef,
-    ExecutionPlan, ExecutorKind, ExplicitSatisfactionRequirement, Id, ImplementationManifest,
-    InstancePath, ManifestArtifactRef, ManifestEntrypoint, PassportStatus,
-    PassportStatusObservation, PinnedDescriptor, PlanArtifact, PlanHostObservation,
-    PlanResourceBudget, PlanValidationContext, ReportCapability, ReportMembership, ReportResource,
-    ReproducibilityClaim, ResolvedPlanNode, ResourceRef, SatisfactionFacet, SatisfactionMethod,
-    SatisfactionObligation, SatisfactionPin, SatisfactionProof, SatisfactionReason,
-    SatisfactionRole, SemanticHash,
+    ArtifactDigest, ArtifactManifest, ArtifactProvenance, AuthorityTime, BoundednessProfile,
+    CAPABILITY_REPORT_SCHEMA_VERSION, CancellationGuarantee, CapabilityReport,
+    CompatibilityOutcome, DescriptorRef, ExecutionLimits, ExecutionPlan, ExecutionProfile,
+    ExecutorKind, ExplicitSatisfactionRequirement, Id, ImplementationManifest, InstancePath,
+    ManifestArtifactRef, ManifestEntrypoint, PassportStatus, PassportStatusObservation,
+    PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext,
+    ReportCapability, ReportMembership, ReportResource, ReproducibilityClaim, ResolvedPlanNode,
+    ResourceRef, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation, SatisfactionPin,
+    SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
 };
 use conduit_rp2040_hil::FIRMWARE_IDENTITY;
 use conduit_runtime::{
@@ -17,9 +17,8 @@ use conduit_runtime::{
 };
 use serde_json::Value;
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/host-resolution-v1.json");
-const RP2040_TRUTH_FIXTURE: &str =
-    include_str!("../../../conformance/c5/rp2040-firmware-hil-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/host-resolution.json");
+const RP2040_TRUTH_FIXTURE: &str = include_str!("../../../conformance/c5/rp2040-firmware-hil.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const CONTRACT: PinnedDescriptor<'static> = pin("fixture/wifi-network", 1);
 const PROFILE: PinnedDescriptor<'static> = pin("fixture/execution-profile", 2);
@@ -76,7 +75,7 @@ static BROWSER_IMPLEMENTATIONS: [&str; 7] = [
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([byte; 32]),
     }
 }
@@ -114,7 +113,7 @@ const fn budget(memory_bytes: u64, cpu_units: u32, transports: u16) -> PlanResou
 
 fn artifact(id: &'static str, digest: ArtifactDigest) -> ArtifactManifest<'static> {
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: Id(id),
         digest,
@@ -148,7 +147,7 @@ fn implementation(
     authorities: &'static [SemanticHash],
 ) -> ImplementationManifest<'static> {
     let mut manifest = ImplementationManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: Id(id),
         implementation_version: "1",
@@ -156,9 +155,9 @@ fn implementation(
         executor,
         entrypoint: ManifestEntrypoint {
             name: Id("run"),
-            adapter: Id("conduit-step-v1"),
+            adapter: Id("conduit-step"),
             abi: Id("fixture-abi-v1"),
-            protocol_version: 1,
+            protocol_version: 0,
         },
         execution_profile: PROFILE,
         artifacts: core::slice::from_ref(artifact),
@@ -166,8 +165,8 @@ fn implementation(
         provided_interfaces: &[],
         required_authorities: authorities,
         required_effects: &[],
-        minimum_plan_version: 1,
-        maximum_plan_version: 8,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,
         replacement: conduit_core::ReplacementSupport::Cold,
@@ -209,8 +208,8 @@ fn report<'a>(
         supported_executors: executors,
         supported_targets: &[],
         supported_abis: &[],
-        minimum_plan_version: 1,
-        maximum_plan_version: 8,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &[],
     };
     let mut scratch = [ZERO; 8];
@@ -227,7 +226,7 @@ fn policy(
         policy_hash: ZERO,
         time_basis: Id("fixture/clock"),
         current_tick: 20,
-        plan_version: 1,
+        plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         trusted_reporters: &[REPORTER],
         trusted_report_trust: &[TRUST.semantic_hash],
         required_realm: None,
@@ -329,7 +328,7 @@ fn generic_rp2040_rejections(
             policy_hash: ZERO,
             time_basis: Id("clock/boot-ticks"),
             current_tick: 20,
-            plan_version: 8,
+            plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
             trusted_reporters: &trusted_reporters,
             trusted_report_trust: &trusted_report_trust,
             required_realm: None,
@@ -377,7 +376,7 @@ fn pico_w_wifi_requirement_succeeds_resolution() {
         let wifi = [CapabilityPredicate {
             interface: PinnedDescriptor {
                 id: Id("conduit/host.wifi-network"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: SemanticHash::from_bytes([201; 32]),
             },
             mode: Id("ap"),
@@ -408,7 +407,7 @@ fn pico_w_wifi_requirement_succeeds_resolution() {
             policy_hash: ZERO,
             time_basis: Id("clock/boot-ticks"),
             current_tick: 20,
-            plan_version: 8,
+            plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
             trusted_reporters: &trusted_reporters,
             trusted_report_trust: &trusted_report_trust,
             required_realm: None,
@@ -662,7 +661,7 @@ fn resolver_never_enrolls_prompts_or_mutates_membership_inputs() {
     assert_eq!(authenticated_policy.policy_hash, original_policy_hash);
 
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c2/realms-passports-v1.json"
+        "../../../conformance/c2/realms-passports.json"
     ))
     .unwrap();
     let expected = fixture["cases"]
@@ -911,7 +910,7 @@ fn browser_placements_use_generic_resolution_and_partition_with_linux() {
     conduit_panel::parse(source)
         .expect("browser/Linux reference panel uses ordinary bounded source");
     let fixture: Value =
-        serde_json::from_str(include_str!("../../../conformance/c5/browser-host-v1.json")).unwrap();
+        serde_json::from_str(include_str!("../../../conformance/c5/browser-host.json")).unwrap();
     let expected = fixture["cases"]
         .as_array()
         .unwrap()
@@ -1019,6 +1018,39 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
         id: LINUX_REF.id,
         digest: LINUX_REF.digest,
     }];
+    let mut execution_profile = ExecutionProfile {
+        id: PROFILE.id,
+        schema_version: 0,
+        semantic_hash: ZERO,
+        boundedness: BoundednessProfile::Hard,
+        cancellation: CancellationGuarantee::Bounded,
+        step_bound_enforced: true,
+        limits: ExecutionLimits {
+            max_step_work: 1,
+            max_transactions: 1,
+            cancellation_ticks: 1,
+            max_retained_values: 0,
+            max_retained_bytes: 0,
+            max_scratch_bytes: 0,
+            max_input_leases: 0,
+            max_input_bytes: 0,
+            max_output_reservations: 0,
+            max_output_bytes: 0,
+            max_fragments_per_step: 0,
+            max_pending_operations: 0,
+            max_timers: 0,
+            max_child_tasks: 0,
+            max_host_buffer_bytes: 0,
+            max_foreign_queue_items: 0,
+            max_foreign_queue_bytes: 0,
+            max_checkpoint_bytes: 0,
+            implementation_memory_bytes: 0,
+        },
+        representations: &[],
+        memory_claims: &[],
+        checkpoint: None,
+    };
+    execution_profile.semantic_hash = execution_profile.computed_semantic_hash(&mut []).unwrap();
     let nodes = [ResolvedPlanNode {
         instance: forward[0].instance,
         contract: CONTRACT,
@@ -1028,7 +1060,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
             semantic_hash: linux.identity,
         },
         lifecycle_policy: pin("fixture/lifecycle", 50),
-        execution_profile: None,
+        execution_profile: Some(&execution_profile),
         artifact: LINUX_REF.id,
         host_observation: linux_report.id,
         host: linux_report.host,
@@ -1037,7 +1069,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
         required_effects: &[],
     }];
     let mut plan = ExecutionPlan {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         source_semantic_hash: SemanticHash::from_bytes([51; 32]),
         resolver: RESOLVER,
@@ -1078,7 +1110,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
             &first,
             &plan,
             PlanValidationContext {
-                supported_schema_version: 1,
+                supported_schema_version: 0,
                 now: AuthorityTime {
                     basis: Id("fixture/clock"),
                     tick: 20,
@@ -1233,7 +1265,7 @@ fn every_candidate_rejection_is_retained_without_host_mutation() {
 #[test]
 fn c5_fixture_owns_host_network_wifi_and_no_provisioning_boundaries() {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(fixture["suite"], "conduit.host-resolution/v1");
+    assert_eq!(fixture["suite"], "conduit.host-resolution");
     let cases = fixture["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 58);
     for required in [
@@ -1305,7 +1337,7 @@ fn structural_capability_matching_retains_the_directional_proof_and_policy() {
         offered_hash: SemanticHash::from_bytes([62; 32]),
     }];
     let mut proof = SatisfactionProof {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         role: SatisfactionRole::HostCapability,
         method: SatisfactionMethod::StructuralFacets,
@@ -1322,7 +1354,7 @@ fn structural_capability_matching_retains_the_directional_proof_and_policy() {
         provider: Some(SatisfactionPin {
             descriptor: DescriptorRef {
                 kind: Id("fixture/wifi-profile-provider"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: SemanticHash::from_bytes([63; 32]),
             },
         }),
@@ -1330,7 +1362,7 @@ fn structural_capability_matching_retains_the_directional_proof_and_policy() {
         policy: Some(SatisfactionPin {
             descriptor: DescriptorRef {
                 kind: Id("fixture/resolver-policy"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: resolver_policy.policy_hash,
             },
         }),
@@ -1468,7 +1500,7 @@ fn exclusive_resource_candidates_are_bound_once() {
 #[test]
 fn plan_transition_exclusive_resource_case_executes_the_real_resolver() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/plan-transitions-v1.json"
+        "../../../conformance/c5/plan-transitions.json"
     ))
     .unwrap();
     for case in fixture["cases"].as_array().unwrap() {

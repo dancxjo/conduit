@@ -1,0 +1,112 @@
+{
+  "fixture_version": "conduit.rp2040-firmware-hil",
+  "cases": [
+    {
+      "id": "linked-firmware-stream-matches-hil-oracle",
+      "runner": "conduit-rp2040-hil/firmware_contract",
+      "expected": {
+        "same_firmware_path": true,
+        "exact_rp2040_plan_hash": true,
+        "build_input_identity": true,
+        "fresh_capability_report_identity": true,
+        "values": ["0000002a", "01"],
+        "pressure_entered": true,
+        "pressure_cleared": true,
+        "terminal": "succeeded"
+      }
+    },
+    {
+      "id": "generic-report-excludes-unlinked-radio-services",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "wifi": false,
+        "ap": false,
+        "cyw43": false,
+        "zenoh_pico": false
+      }
+    },
+    {
+      "id": "pico-w-report-includes-radio-services",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "wifi": true,
+        "ap": true,
+        "cyw43": true,
+        "zenoh_pico": true,
+        "capability_count": 5
+      }
+    },
+    {
+      "id": "pico-w-report-binds-pico-w-board-profile",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "pico_w_board_profile": true,
+        "executor_profile": true,
+        "firmware": true,
+        "constraint_count": 3
+      }
+    },
+    {
+      "id": "generic-report-binds-board-firmware-and-executor-profile",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "board_profile": true,
+        "executor_profile": true,
+        "firmware": true,
+        "constraint_count": 3
+      }
+    },
+    {
+      "id": "generic-report-has-bounded-resource-shape",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "memory_bytes": 65536,
+        "timers": 4,
+        "transports": 1,
+        "resources": 1
+      }
+    },
+    {
+      "id": "forged-generic-report-identity-rejected",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "reason": "CND-HST-004"
+      }
+    },
+    {
+      "id": "stale-generic-report-rejected",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "reason": "CND-HST-002"
+      }
+    },
+    {
+      "id": "future-generic-report-rejected",
+      "runner": "conduit-rp2040-hil/capability_truth",
+      "expected": {
+        "reason": "CND-HST-006"
+      }
+    },
+    {
+      "id": "generic-rp2040-wifi-resolution-rejected",
+      "runner": "conduit-runtime/host_resolution",
+      "expected": {
+        "reason": "CND-RES-012"
+      }
+    },
+    {
+      "id": "mismatched-board-reporter-rejected",
+      "runner": "conduit-runtime/host_resolution",
+      "expected": {
+        "reason": "CND-RES-005"
+      }
+    },
+    {
+      "id": "mismatched-firmware-reporter-rejected",
+      "runner": "conduit-runtime/host_resolution",
+      "expected": {
+        "reason": "CND-RES-005"
+      }
+    }
+  ]
+}

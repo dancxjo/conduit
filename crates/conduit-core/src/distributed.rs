@@ -16,13 +16,10 @@ use crate::{
 };
 
 /// Version of the distributed-cord session contract.
-pub const DISTRIBUTED_CORD_PROTOCOL_VERSION: u16 = 1;
-/// Original transport-neutral plan binding.
-pub const DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1: u32 = 1;
-/// Binding revision that pins the selected artifact, execution profile, and
-/// carrier protection/endpoint without changing the version-1 envelope
-/// protocol.
-pub const DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION: u32 = 2;
+pub const DISTRIBUTED_CORD_PROTOCOL_VERSION: u16 = 0;
+/// Current binding schema pins the selected artifact, execution profile, and
+/// carrier protection and endpoint.
+pub const DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION: u32 = 0;
 
 /// Plan-pinned carrier protection, distinct from Conduit realm/passport and
 /// authority checks.
@@ -220,12 +217,12 @@ pub struct PlanDistributedCord<'a> {
     pub session: Id<'a>,
     pub initial_session_epoch: u64,
     pub backend: PinnedDescriptor<'a>,
-    /// Exact selected backend artifact. Absent only in frozen binding schema 1.
+    /// Exact selected backend artifact.
     pub backend_artifact: Option<PlanArtifact<'a>>,
     /// Exact bounded host-operation profile. Absent only in schema 1.
     pub backend_profile: Option<PinnedDescriptor<'a>>,
     pub carrier_security: PinnedDescriptor<'a>,
-    /// Explicit selected protection. Absent only in frozen schema 1.
+    /// Explicit selected protection.
     pub carrier_security_mode: Option<CarrierSecurityMode>,
     /// Exact resolved carrier endpoint. It remains carrier-owned text rather
     /// than a semantic Conduit identifier. Absent only in schema 1.
@@ -266,62 +263,6 @@ impl PlanDistributedCord<'_> {
             .map_or(CanonicalValue::Null, |fields| CanonicalValue::Map(fields));
         let budget = distributed_budget_fields(self.budget);
         let allocation = resource_budget_fields(self.allocation);
-        if self.schema_version == DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1 {
-            return CanonicalDescriptor {
-                kind: Id("conduit/distributed-cord-binding"),
-                schema_version: self.schema_version,
-                body: CanonicalValue::Map(&[
-                    field("cord", CanonicalValue::Identifier(self.cord)),
-                    field(
-                        "writer_port_contract_hash",
-                        CanonicalValue::Bytes(self.writer_port_contract_hash.as_bytes()),
-                    ),
-                    field(
-                        "reader_port_contract_hash",
-                        CanonicalValue::Bytes(self.reader_port_contract_hash.as_bytes()),
-                    ),
-                    field("flow", CanonicalValue::Map(&flow)),
-                    field("session", CanonicalValue::Identifier(self.session)),
-                    field(
-                        "initial_session_epoch",
-                        CanonicalValue::Integer(i128::from(self.initial_session_epoch)),
-                    ),
-                    field("backend", CanonicalValue::Map(&backend)),
-                    field("carrier_security", CanonicalValue::Map(&carrier_security)),
-                    field(
-                        "carrier_binding",
-                        CanonicalValue::Identifier(self.carrier_binding),
-                    ),
-                    field(
-                        "delivery",
-                        CanonicalValue::Identifier(Id(self.delivery.as_str())),
-                    ),
-                    field(
-                        "acknowledgement",
-                        CanonicalValue::Identifier(Id(self.acknowledgement.as_str())),
-                    ),
-                    field(
-                        "ordering",
-                        CanonicalValue::Identifier(Id(self.ordering.as_str())),
-                    ),
-                    field(
-                        "reconnect",
-                        CanonicalValue::Identifier(Id(self.reconnect.as_str())),
-                    ),
-                    field(
-                        "disconnect",
-                        CanonicalValue::Identifier(Id(self.disconnect.as_str())),
-                    ),
-                    field("writer", CanonicalValue::Map(&writer)),
-                    field("reader", CanonicalValue::Map(&reader)),
-                    field("federation_policy", federation),
-                    field("budget", CanonicalValue::Map(&budget)),
-                    field("allocation", CanonicalValue::Map(&allocation)),
-                ]),
-            }
-            .semantic_hash()
-            .map_err(DistributedIdentityError::Canonical);
-        }
         let backend_artifact = self.backend_artifact.as_ref();
         let backend_profile = backend_profile
             .as_ref()
@@ -537,17 +478,10 @@ pub enum DistributedIdentityError {
 pub fn validate_distributed_binding(
     binding: &PlanDistributedCord<'_>,
 ) -> Result<(), DistributedReason> {
-    if !(DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1..=DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION)
-        .contains(&binding.schema_version)
-    {
+    if binding.schema_version != DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION {
         return Err(DistributedReason::UnsupportedVersion);
     }
-    let v1_shape = binding.schema_version == DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1
-        && binding.backend_artifact.is_none()
-        && binding.backend_profile.is_none()
-        && binding.carrier_security_mode.is_none()
-        && binding.carrier_endpoint.is_none();
-    let v2_shape = binding.schema_version == DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION
+    let current_shape = binding.schema_version == DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION
         && binding.backend_artifact.is_some_and(|artifact| {
             valid_id(artifact.id) && artifact.digest != ArtifactDigest::from_bytes([0; 32])
         })
@@ -561,7 +495,7 @@ pub fn validate_distributed_binding(
         || !valid_id(binding.carrier_binding)
         || !valid_pin(binding.backend)
         || !valid_pin(binding.carrier_security)
-        || (!v1_shape && !v2_shape)
+        || !current_shape
         || binding.initial_session_epoch == 0
         || !valid_peer(binding.writer)
         || !valid_peer(binding.reader)
@@ -1126,7 +1060,7 @@ fn valid_peer(value: DistributedPeerRequirement<'_>) -> bool {
         && valid_id(value.credential)
         && valid_id(value.key)
         && valid_id(value.audience)
-        && value.passport_schema_version > 0
+        && value.passport_schema_version == 0
         && value.credential_epoch > 0
         && value.key_epoch > 0
         && valid_pin(value.status_reporter)
@@ -1142,7 +1076,7 @@ fn valid_id(value: Id<'_>) -> bool {
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
     valid_id(value.id)
-        && value.schema_version > 0
+        && value.schema_version == 0
         && value.semantic_hash != SemanticHash::from_bytes([0; 32])
 }
 

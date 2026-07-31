@@ -1,6 +1,6 @@
 # Capability evidence matrix
 
-This file is generated from `release/capabilities-v1.json` by `cargo xtask release-gate --check`. A status is a claim about one layer only; it must not be promoted across columns.
+This file is generated from `release/capabilities.json` by `cargo xtask release-gate --check`. A status is a claim about one layer only; it must not be promoted across columns.
 
 | Capability | Contract | Reference model | Provider | Host resolvability | Exact binding | Runtime proof | Product presentation |
 |---|---|---|---|---|---|---|---|

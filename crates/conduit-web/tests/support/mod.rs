@@ -8,7 +8,7 @@ use conduit_compile::{
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
+    EXECUTION_PLAN_SCHEMA_VERSION, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
 };
 use conduit_panel::parse;
 use conduit_runtime::Registry;
@@ -20,7 +20,7 @@ fn hash(byte: u8) -> String {
 fn pin(id: &str, byte: u8) -> PinDocument {
     PinDocument {
         id: id.to_owned(),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -28,7 +28,7 @@ fn pin(id: &str, byte: u8) -> PinDocument {
 fn profile(ordinal: u8) -> ExecutionProfileDocument {
     ExecutionProfileDocument {
         id: format!("fixture/browser-execution-profile-{ordinal}"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: String::new(),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -70,14 +70,14 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             implementation_version: "1.0.0".to_owned(),
             semantic_contract: PinDocument {
                 id: contract_id.to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: contract_hash.to_string(),
             },
             executor: "wasm-component".to_owned(),
             entrypoint_name: name.to_owned(),
             entrypoint_adapter: "conduit/hosted-primitive-step".to_owned(),
-            entrypoint_abi: "conduit/hosted-primitive-v1".to_owned(),
-            runtime_protocol_version: 1,
+            entrypoint_abi: "conduit/hosted-primitive".to_owned(),
+            runtime_protocol_version: 0,
             execution_profile: pin("fixture/browser-execution-profile", 30),
             artifacts: vec![ArtifactReferenceDocument {
                 id: artifact_id.clone(),
@@ -87,8 +87,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             }],
             required_authorities: Vec::new(),
             required_effects: Vec::new(),
-            minimum_plan_version: 1,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            minimum_plan_version: 0,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             minimum_runtime_protocol: 1,
             maximum_runtime_protocol: 1,
             coexistence_memory_bytes: 0,
@@ -135,8 +135,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             supported_executors: vec!["wasm-component".to_owned()],
             supported_targets: vec!["wasm32-unknown-unknown".to_owned()],
             supported_abis: vec!["wasm-bindgen".to_owned()],
-            minimum_plan_version: 1,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            minimum_plan_version: 0,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {

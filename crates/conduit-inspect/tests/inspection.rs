@@ -4,8 +4,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use conduit_core::{
     ArtifactDigest, ArtifactLocation, ArtifactLocationKind, ArtifactManifest, ArtifactProvenance,
-    AuthorityTime, BlockingFairness, CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, Direction,
-    EntityPassport, ExecutionPlan, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, Id,
+    AuthorityTime, BlockingFairness, BoundednessProfile, CAPABILITY_REPORT_SCHEMA_VERSION,
+    CancellationGuarantee, CapabilityReport, Direction, EntityPassport, ExecutionLimits,
+    ExecutionPlan, ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, Id,
     InstancePath, KeyProtection, MembershipCredential, PassportStatus, PassportStatusObservation,
     PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext,
     Pressure, PublicKeyRef, REALM_SCHEMA_VERSION, RealmDescriptor, ReportMembership,
@@ -18,17 +19,17 @@ use conduit_inspect::{
     inspect_execution_plan, inspect_lowered_source,
 };
 use conduit_package::{PackageLimits, PackageManifest, PackageObject, encode_package};
-use conduit_runtime::LoweredSourceV2;
+use conduit_runtime::{LoweredSource, LoweredSupervisedTopology, LoweredTopology};
 use sha2::Digest as _;
 
-const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection-v1.json");
-const REALM_FIXTURE: &str = include_str!("../../../conformance/c2/realms-passports-v1.json");
+const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection.json");
+const REALM_FIXTURE: &str = include_str!("../../../conformance/c2/realms-passports.json");
 static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const DIGEST: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const VALUE_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([10; 32]),
 };
 
@@ -39,7 +40,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -107,7 +108,7 @@ fn package_inspection_validates_metadata_without_executing_objects() {
 #[test]
 fn artifact_manifest_inspection_exposes_license_provenance_and_remote_hint_without_fetching() {
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO_HASH,
         id: Id("fixture/artifact"),
         digest: ArtifactDigest::from_bytes([31; 32]),
@@ -190,8 +191,8 @@ fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
         supported_executors: &[ExecutorKind::WasmComponent],
         supported_targets: &[Id("wasm32-unknown-unknown")],
         supported_abis: &[Id("component-v1")],
-        minimum_plan_version: 1,
-        maximum_plan_version: 8,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &[],
     };
     let mut scratch = [ZERO_HASH; 3];
@@ -317,13 +318,46 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         cpu_units: 1,
         ..PlanResourceBudget::ZERO
     };
+    let mut execution_profile = ExecutionProfile {
+        id: Id("fixture/execution-profile"),
+        schema_version: 0,
+        semantic_hash: ZERO_HASH,
+        boundedness: BoundednessProfile::Hard,
+        cancellation: CancellationGuarantee::Bounded,
+        step_bound_enforced: true,
+        limits: ExecutionLimits {
+            max_step_work: 1,
+            max_retained_values: 0,
+            max_retained_bytes: 0,
+            max_scratch_bytes: 0,
+            max_input_leases: 0,
+            max_input_bytes: 0,
+            max_output_reservations: 0,
+            max_output_bytes: 0,
+            max_transactions: 1,
+            max_fragments_per_step: 0,
+            max_pending_operations: 0,
+            max_timers: 0,
+            max_child_tasks: 0,
+            max_host_buffer_bytes: 0,
+            max_foreign_queue_items: 0,
+            max_foreign_queue_bytes: 0,
+            max_checkpoint_bytes: 0,
+            implementation_memory_bytes: 0,
+            cancellation_ticks: 1,
+        },
+        representations: &[],
+        memory_claims: &[],
+        checkpoint: None,
+    };
+    execution_profile.semantic_hash = execution_profile.computed_semantic_hash(&mut []).unwrap();
     let nodes = [
         ResolvedPlanNode {
             instance: InstancePath::new("root/source").unwrap(),
             contract: pin("fixture/contract", 6),
             implementation: pin("fixture/implementation", 7),
             lifecycle_policy: pin("fixture/lifecycle", 8),
-            execution_profile: None,
+            execution_profile: Some(&execution_profile),
             artifact: Id("artifact/a"),
             host_observation: Id("observation/a"),
             host: Id("host/a"),
@@ -336,7 +370,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
             contract: pin("fixture/contract", 6),
             implementation: pin("fixture/implementation", 7),
             lifecycle_policy: pin("fixture/lifecycle", 8),
-            execution_profile: None,
+            execution_profile: Some(&execution_profile),
             artifact: Id("artifact/a"),
             host_observation: Id("observation/a"),
             host: Id("host/a"),
@@ -371,7 +405,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         queue_memory_bytes: 8,
     }];
     let mut plan = ExecutionPlan {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO_HASH,
         source_semantic_hash: hash(1),
         resolver: pin("fixture/resolver", 2),
@@ -415,7 +449,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
 #[test]
 fn panel_detection_is_comment_safe_and_never_reproduces_secrets() {
     let source = br#"# comment
-panel 3
+panel 0
 node value : std/literal { value = secret("credential/material") }
 "#;
     let report = inspect_bytes(
@@ -434,7 +468,7 @@ node value : std/literal { value = secret("credential/material") }
 
 #[test]
 fn evidence_and_diagnostics_validate_without_reproducing_payloads() {
-    let evidence = include_bytes!("../../../conformance/c2/execution-event-v1.ndjson");
+    let evidence = include_bytes!("../../../conformance/c2/execution-event.ndjson");
     let report = inspect_bytes(
         evidence,
         RequestedKind::Auto,
@@ -447,7 +481,7 @@ fn evidence_and_diagnostics_validate_without_reproducing_payloads() {
     assert_eq!(report.redacted_fields, 1);
     assert!(!report.render_human().contains("[104,101"));
 
-    let diagnostic = br#"{"schema_version":1,"code":"CND-TST-001","severity":"error","message":"must not echo secret","arguments":[{"name":"token","value":{"disposition":"redacted","sensitivity":"secret","value_type":"fixture/token"}}]}"#;
+    let diagnostic = br#"{"schema_version":0,"code":"CND-TST-001","severity":"error","message":"must not echo secret","arguments":[{"name":"token","value":{"disposition":"redacted","sensitivity":"secret","value_type":"fixture/token"}}]}"#;
     let report = inspect_bytes(
         diagnostic,
         RequestedKind::Diagnostic,
@@ -463,7 +497,7 @@ fn evidence_and_diagnostics_validate_without_reproducing_payloads() {
 #[test]
 fn type_detection_and_allocation_limits_fail_closed() {
     let ambiguous =
-        br#"{"suite":"fixture/v1","schema_version":1,"code":"CND-TST-001","severity":"error"}"#;
+        br#"{"suite":"fixture/v1","schema_version":0,"code":"CND-TST-001","severity":"error"}"#;
     assert_eq!(
         inspect_bytes(
             ambiguous,
@@ -491,7 +525,7 @@ fn type_detection_and_allocation_limits_fail_closed() {
         ..InspectLimits::default()
     };
     assert_eq!(
-        inspect_bytes(b"panel 3\n", RequestedKind::Auto, None, small)
+        inspect_bytes(b"panel 0\n", RequestedKind::Auto, None, small)
             .unwrap_err()
             .code,
         "CND-INSP-005"
@@ -500,7 +534,7 @@ fn type_detection_and_allocation_limits_fail_closed() {
         max_records: 1,
         ..InspectLimits::default()
     };
-    let evidence = include_bytes!("../../../conformance/c2/execution-event-v1.ndjson");
+    let evidence = include_bytes!("../../../conformance/c2/execution-event.ndjson");
     assert_eq!(
         inspect_bytes(evidence, RequestedKind::Evidence, None, records)
             .unwrap_err()
@@ -528,7 +562,7 @@ fn nested_malformed_and_extension_conflicts_are_bounded() {
     );
     assert_eq!(
         inspect_bytes(
-            b"panel 3\n",
+            b"panel 0\n",
             RequestedKind::Panel,
             Some("ndjson"),
             InspectLimits::default()
@@ -552,7 +586,7 @@ fn nested_malformed_and_extension_conflicts_are_bounded() {
 
 #[test]
 fn host_conformance_report_separates_profile_providers_extensions_and_binding_chain() {
-    let bytes = include_bytes!("../../../examples/host-conformance-report-v1.json");
+    let bytes = include_bytes!("../../../examples/host-conformance-report.json");
     let report = inspect_bytes(
         bytes,
         RequestedKind::Auto,
@@ -600,7 +634,7 @@ fn host_conformance_report_separates_profile_providers_extensions_and_binding_ch
 fn typed_plan_validation_reports_budgets_and_staleness_without_loading_artifacts() {
     with_minimal_plan(|plan| {
         let context = PlanValidationContext {
-            supported_schema_version: 1,
+            supported_schema_version: 0,
             now: time(20),
         };
         let report =
@@ -617,7 +651,7 @@ fn typed_plan_validation_reports_budgets_and_staleness_without_loading_artifacts
         );
 
         let stale = PlanValidationContext {
-            supported_schema_version: 1,
+            supported_schema_version: 0,
             now: time(100),
         };
         assert_eq!(
@@ -649,9 +683,9 @@ fn typed_plan_validation_reports_budgets_and_staleness_without_loading_artifacts
 
 #[test]
 fn typed_lowering_retains_its_distinct_identity() {
-    let source = LoweredSourceV2 {
-        schema_version: 2,
-        source_ast_schema_version: 2,
+    let topology = LoweredTopology {
+        schema_version: 0,
+        source_ast_schema_version: 0,
         root_selection: None,
         nodes: Vec::new(),
         cords: Vec::new(),
@@ -661,6 +695,21 @@ fn typed_lowering_retains_its_distinct_identity() {
         bindings: Vec::new(),
         group_ports: Vec::new(),
         pools: Vec::new(),
+        source_map: Vec::new(),
+        semantic_hash: hash(9),
+    };
+    let source = LoweredSource {
+        schema_version: 0,
+        source_ast_schema_version: 0,
+        supervised: Box::new(LoweredSupervisedTopology {
+            schema_version: 0,
+            source_ast_schema_version: 0,
+            topology: Box::new(topology),
+            supervisions: Vec::new(),
+            source_map: Vec::new(),
+            semantic_hash: hash(8),
+        }),
+        interface_proofs: Vec::new(),
         source_map: Vec::new(),
         semantic_hash: hash(9),
     };
@@ -677,7 +726,8 @@ fn typed_lowering_retains_its_distinct_identity() {
 
 #[test]
 fn local_manifest_references_are_digest_verified_without_running_tests() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance/v1/manifest.json");
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance/current/manifest.json");
     let report = inspect_conformance_manifest_path(&path, InspectLimits::default()).unwrap();
     assert_eq!(report.kind, ArtifactKind::ConformanceManifest);
     assert!(report.counts["verified_artifacts"] > 0);
@@ -689,10 +739,10 @@ fn module_graph_and_reference_traversal_limits_are_enforced() {
     let directory = temporary_directory();
     let panel_root = directory.join("panels");
     std::fs::create_dir_all(&panel_root).unwrap();
-    std::fs::write(panel_root.join("child.panel"), b"panel 3\n").unwrap();
+    std::fs::write(panel_root.join("child.panel"), b"panel 0\n").unwrap();
     std::fs::write(
         panel_root.join("root.panel"),
-        b"panel 3\nimport \"./child.panel\" as child\n",
+        b"panel 0\nimport \"./child.panel\" as child\n",
     )
     .unwrap();
 
@@ -725,10 +775,10 @@ fn module_graph_and_reference_traversal_limits_are_enforced() {
         "CND-SRC-003"
     );
 
-    std::fs::write(directory.join("outside.panel"), b"panel 3\n").unwrap();
+    std::fs::write(directory.join("outside.panel"), b"panel 0\n").unwrap();
     std::fs::write(
         panel_root.join("escape.panel"),
-        b"panel 3\nimport \"../outside.panel\" as outside\n",
+        b"panel 0\nimport \"../outside.panel\" as outside\n",
     )
     .unwrap();
     assert_eq!(
@@ -757,9 +807,9 @@ fn manifest_digest_and_path_mutations_fail_closed() {
     let digest = format!("sha256:{:x}", sha2::Sha256::digest(case_bytes));
     let manifest = |path: &str, digest: &str| {
         serde_json::json!({
-            "fixture_version": "conduit.conformance/v1",
-            "manifest_revision": 1,
-            "protocol_version": 1,
+            "fixture_version": "conduit.conformance",
+            "manifest_revision": 0,
+            "protocol_version": 0,
             "deterministic_environment": {
                 "clock": {"basis": "fixture/clock", "tick": 1},
                 "seed": 1,
@@ -832,7 +882,7 @@ fn manifest_digest_and_path_mutations_fail_closed() {
 
 #[test]
 fn evidence_version_and_record_mutations_are_rejected() {
-    let evidence = include_str!("../../../conformance/c2/execution-event-v1.ndjson");
+    let evidence = include_str!("../../../conformance/c2/execution-event.ndjson");
     let mut lines = evidence.lines();
     let mut first: serde_json::Value = serde_json::from_str(lines.next().unwrap()).unwrap();
     first["schema_version"] = serde_json::json!(2);
@@ -876,14 +926,14 @@ fn fixture_bytes(case: &serde_json::Value) -> Vec<u8> {
     match case["input"].as_str().unwrap() {
         "$HELLO_PANEL" => include_bytes!("../../../examples/hello.panel").to_vec(),
         "$EVIDENCE" => {
-            include_bytes!("../../../conformance/c2/execution-event-v1.ndjson").to_vec()
+            include_bytes!("../../../conformance/c2/execution-event.ndjson").to_vec()
         }
-        "$DIAGNOSTIC" => br#"{"schema_version":1,"code":"CND-TST-001","severity":"error","message":"sensitive prose","arguments":[{"name":"token","value":{"disposition":"redacted","sensitivity":"secret","value_type":"fixture/token"}}]}"#.to_vec(),
+        "$DIAGNOSTIC" => br#"{"schema_version":0,"code":"CND-TST-001","severity":"error","message":"sensitive prose","arguments":[{"name":"token","value":{"disposition":"redacted","sensitivity":"secret","value_type":"fixture/token"}}]}"#.to_vec(),
         "$CONFORMANCE_JSON" => {
-            include_bytes!("../../../conformance/c3/diagnostics-v1.json").to_vec()
+            include_bytes!("../../../conformance/c3/diagnostics.json").to_vec()
         }
         "$CONFORMANCE_TSV" => {
-            include_bytes!("../../../conformance/c2/execution-plan-v1.tsv").to_vec()
+            include_bytes!("../../../conformance/c2/execution-plan.tsv").to_vec()
         }
         "$NATIVE_SCRIPT" => b"#!/bin/sh\nexit 99\n".to_vec(),
         value => value.as_bytes().to_vec(),
@@ -977,35 +1027,33 @@ fn every_serialized_inspection_conformance_vector_executes() {
             let (bytes, requested) = match limit {
                 "max_input_bytes" => {
                     limits.max_input_bytes = 3;
-                    (b"panel 3\n".to_vec(), RequestedKind::Auto)
+                    (b"panel 0\n".to_vec(), RequestedKind::Auto)
                 }
                 "max_record_bytes" => {
                     limits.max_record_bytes = 16;
                     (
-                        include_bytes!("../../../conformance/c2/execution-event-v1.ndjson")
-                            .to_vec(),
+                        include_bytes!("../../../conformance/c2/execution-event.ndjson").to_vec(),
                         RequestedKind::Evidence,
                     )
                 }
                 "max_records" => {
                     limits.max_records = 1;
                     (
-                        include_bytes!("../../../conformance/c2/execution-event-v1.ndjson")
-                            .to_vec(),
+                        include_bytes!("../../../conformance/c2/execution-event.ndjson").to_vec(),
                         RequestedKind::Evidence,
                     )
                 }
                 "max_json_depth" => {
                     limits.max_json_depth = 2;
                     (
-                        br#"{"schema_version":1,"code":"CND-TST-001","severity":"error","related":[{"label":"x"}]}"#.to_vec(),
+                        br#"{"schema_version":0,"code":"CND-TST-001","severity":"error","related":[{"label":"x"}]}"#.to_vec(),
                         RequestedKind::Diagnostic,
                     )
                 }
                 "max_collection_items" => {
                     limits.max_collection_items = 2;
                     (
-                        br#"{"schema_version":1,"code":"CND-TST-001","severity":"error","message":"x"}"#.to_vec(),
+                        br#"{"schema_version":0,"code":"CND-TST-001","severity":"error","message":"x"}"#.to_vec(),
                         RequestedKind::Diagnostic,
                     )
                 }

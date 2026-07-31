@@ -9,12 +9,9 @@ use conduit_diagnostics::{
     OwnedDiagnosticArgument, OwnedDiagnosticArgumentValue, OwnedDiagnosticEdit, OwnedDiagnosticFix,
     OwnedDiagnosticSeverity, OwnedDiagnosticSpan, OwnedFixApplicability, PlanDiagnosticContext,
     TerminalColor, TerminalVerbosity, check_fix, from_implementation_error, from_lowering_error,
-    from_module_error, from_parse_error, from_plan_error, from_source_schema_error,
-    from_validation_error, render_terminal,
+    from_module_error, from_parse_error, from_plan_error, from_validation_error, render_terminal,
 };
-use conduit_panel::{
-    LoadedModule, ModuleLoader, SourceSpan, parse, resolve_modules, semantic_source_hash_version,
-};
+use conduit_panel::{LoadedModule, ModuleLoader, SourceSpan, parse, resolve_modules};
 use conduit_runtime::{LoweringDiagnostic, OwnedTypeReference, SourceOrigin};
 use serde_json::Value;
 
@@ -33,7 +30,7 @@ impl ModuleLoader for MemoryLoader {
 fn resolver_and_plan_failures_have_structured_adapters() {
     let root = DiagnosticSource::new(
         "mem://fixture/root.panel",
-        b"panel 3\nimport \"./missing.panel\" as missing\n".as_slice(),
+        b"panel 0\nimport \"./missing.panel\" as missing\n".as_slice(),
     );
     let module_error = resolve_modules(
         "mem://fixture/root.panel",
@@ -111,18 +108,9 @@ fn resolver_and_plan_failures_have_structured_adapters() {
 }
 
 #[test]
-fn unsupported_source_schema_has_a_structured_adapter() {
-    let panel = parse("panel 3\nnode app : fixture/handler\n").unwrap();
-    let error = semantic_source_hash_version(&panel, 99).unwrap_err();
-    let diagnostic = from_source_schema_error(&error);
-    assert_eq!(diagnostic.code, "CND-SRC-011");
-    assert_eq!(diagnostic.arguments[0].name, "schema_version");
-}
-
-#[test]
 fn every_normative_diagnostic_vector_is_valid_lossless_and_renderable() {
     let suite: Value =
-        serde_json::from_str(include_str!("../../../conformance/c3/diagnostics-v1.json")).unwrap();
+        serde_json::from_str(include_str!("../../../conformance/c3/diagnostics.json")).unwrap();
     for case in suite["cases"].as_array().unwrap() {
         let id = case["id"].as_str().unwrap();
         let diagnostic: conduit_diagnostics::OwnedDiagnostic =
@@ -198,7 +186,7 @@ fn every_normative_diagnostic_vector_is_valid_lossless_and_renderable() {
 fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
     let arrow_source = DiagnosticSource::new(
         "mem://fixture/arrow.panel",
-        b"panel 3\ncord microphone.audio tts.text\n".as_slice(),
+        b"panel 0\ncord microphone.audio tts.text\n".as_slice(),
     );
     let arrow = from_parse_error(
         &parse(std::str::from_utf8(&arrow_source.bytes).unwrap()).unwrap_err(),
@@ -207,16 +195,16 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
     assert_eq!(arrow.fixes[0].id, "insert-cord-arrow");
 
     let version_source =
-        DiagnosticSource::new("mem://fixture/version.panel", b"panel 4\n".as_slice());
+        DiagnosticSource::new("mem://fixture/version.panel", b"panel 99\n".as_slice());
     let version = from_parse_error(
         &parse(std::str::from_utf8(&version_source.bytes).unwrap()).unwrap_err(),
         &version_source,
     );
-    assert_eq!(version.fixes[0].id, "use-panel-version-3");
+    assert_eq!(version.fixes[0].id, "use-panel-version-0");
 
     let comma_source = DiagnosticSource::new(
         "mem://fixture/comma.panel",
-        b"panel 3\nnode value : fixture/all { items = list(true, ) }\n".as_slice(),
+        b"panel 0\nnode value : fixture/all { items = list(true, ) }\n".as_slice(),
     );
     let comma = from_parse_error(
         &parse(std::str::from_utf8(&comma_source.bytes).unwrap()).unwrap_err(),
@@ -226,14 +214,14 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let secret_source = DiagnosticSource::new(
         "mem://fixture/secret.panel",
-        b"panel 3\nnode value : fixture/secret { token = \"do-not-echo\" }\n".as_slice(),
+        b"panel 0\nnode value : fixture/secret { token = \"do-not-echo\" }\n".as_slice(),
     );
     let secret_error = LoweringDiagnostic {
         code: "CND-LWR-009",
         semantic_path: "mem://fixture/secret.panel/node/value/config/token".to_owned(),
         expected_contract: Some(Box::new(OwnedTypeReference {
             id: "fixture/secret-ref".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([0x11; 32]),
         })),
         origin: Some(Box::new(SourceOrigin {
@@ -255,7 +243,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let source = DiagnosticSource::new(
         "mem://fixture/mismatch.panel",
-        b"panel 3\ncord microphone.audio -> tts.text\n".as_slice(),
+        b"panel 0\ncord microphone.audio -> tts.text\n".as_slice(),
     );
     let adapter = from_validation_error(
         ValidationError {
@@ -289,7 +277,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 fn terminal_color_and_plain_snapshots_are_exact() {
     let source = DiagnosticSource::new(
         "mem://fixture/root.panel",
-        b"panel 3\ncord microphone.audio -> tts.text\n".as_slice(),
+        b"panel 0\ncord microphone.audio -> tts.text\n".as_slice(),
     );
     let diagnostic = from_validation_error(
         ValidationError {
@@ -368,7 +356,7 @@ fn json_redaction_fix_freshness_and_non_utf8_offsets_are_lossless() {
     );
 
     let diagnostic = conduit_diagnostics::OwnedDiagnostic {
-        schema_version: 1,
+        schema_version: 0,
         code: "CND-SRC-001".to_owned(),
         severity: OwnedDiagnosticSeverity::Error,
         message: "input contains an invalid byte".to_owned(),

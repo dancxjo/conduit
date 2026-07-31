@@ -18,15 +18,15 @@ use conduit_panel::{
     LoadedModule, ModuleLoader, Panel, SourceValue, parse_document, resolve_modules,
 };
 use conduit_runtime::{
-    LoweredConfigValue, LoweredSourceV2, OwnedEventPayload, OwnedExecutionEvent,
-    decode_event_ndjson, validate_hosted_execution_plan,
+    LoweredConfigValue, LoweredSource, OwnedEventPayload, OwnedExecutionEvent, decode_event_ndjson,
+    validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest as _, Sha256};
 
-pub const INSPECTION_SCHEMA: &str = "conduit.inspection/v1";
-pub const INSPECTION_SCHEMA_VERSION: u16 = 1;
+pub const INSPECTION_SCHEMA: &str = "conduit.inspection";
+pub const INSPECTION_SCHEMA_VERSION: u16 = 0;
 
 /// Fixed resource ceilings applied before artifact-specific validation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -213,7 +213,7 @@ pub fn inspect_bytes(
             _ => {
                 return Err(failure(
                     "CND-INSP-003",
-                    "explicit conformance type conflicts with the frozen input marker",
+                    "explicit conformance type conflicts with the current input marker",
                 ));
             }
         },
@@ -223,7 +223,7 @@ pub fn inspect_bytes(
             if detected != kind {
                 return Err(failure(
                     "CND-INSP-003",
-                    "explicit artifact type conflicts with the frozen input marker",
+                    "explicit artifact type conflicts with the current input marker",
                 ));
             }
         }
@@ -244,7 +244,7 @@ pub fn inspect_bytes(
         | ArtifactKind::CapabilityReport
         | ArtifactKind::EntityPassport => Err(failure(
             "CND-INSP-008",
-            "this semantic kind has no frozen standalone byte encoding; use its typed inspection adapter",
+            "this semantic kind has no current standalone byte encoding; use its typed inspection adapter",
         )),
     }
 }
@@ -453,16 +453,23 @@ pub fn inspect_conformance_manifest_path(
 
 /// Inspect a typed lowered source without defining a replacement wire format.
 pub fn inspect_lowered_source(
-    source: &LoweredSourceV2,
+    document: &LoweredSource,
     content_digest: &str,
     limits: InspectLimits,
 ) -> Result<InspectionReport, InspectionError> {
-    if source.schema_version != 2 || source.source_ast_schema_version != 2 {
+    if document.schema_version != 0
+        || document.source_ast_schema_version != 0
+        || document.supervised.schema_version != 0
+        || document.supervised.source_ast_schema_version != 0
+        || document.supervised.topology.schema_version != 0
+        || document.supervised.topology.source_ast_schema_version != 0
+    {
         return Err(failure(
             "CND-LWR-011",
             "unsupported lowered/source-AST schema combination",
         ));
     }
+    let source = &document.supervised.topology;
     require_digest(content_digest, "content digest")?;
     let structural_items = [
         source.nodes.len(),
@@ -557,9 +564,9 @@ pub fn inspect_lowered_source(
     stable_references(&mut references);
     Ok(base_report(
         ArtifactKind::LoweredSource,
-        source.schema_version.into(),
+        document.schema_version.into(),
         content_digest.to_owned(),
-        Some(source.semantic_hash.to_string()),
+        Some(document.semantic_hash.to_string()),
         counts,
         budgets,
         references,
@@ -1321,7 +1328,7 @@ fn panel_report<'a>(
         ArtifactKind::PanelSource,
         entry.version.into(),
         content_digest(entry_bytes),
-        Some(conduit_panel::semantic_source_hash_v2(entry)),
+        Some(conduit_panel::semantic_source_hash(entry)),
         counts,
         BTreeMap::new(),
         references,
@@ -1487,9 +1494,9 @@ fn inspect_conformance_manifest(
     let value = parse_json(bytes, limits)?;
     let manifest: Manifest = serde_json::from_value(value)
         .map_err(|error| failure("CND-INSP-006", format!("malformed manifest: {error}")))?;
-    if manifest.fixture_version != "conduit.conformance/v1"
-        || manifest.manifest_revision == 0
-        || manifest.protocol_version != 1
+    if manifest.fixture_version != "conduit.conformance"
+        || manifest.manifest_revision != 0
+        || manifest.protocol_version != 0
     {
         return Err(failure(
             "CND-INSP-004",
@@ -1554,7 +1561,7 @@ fn inspect_conformance_cases(
         counts.insert("cases".to_owned(), lines.saturating_sub(1) as u64);
         return Ok(base_report(
             ArtifactKind::ConformanceCases,
-            1,
+            0,
             content_digest(bytes),
             None,
             counts,
@@ -1572,6 +1579,22 @@ fn inspect_conformance_cases(
         .get("suite")
         .and_then(Value::as_str)
         .ok_or_else(|| failure("CND-INSP-006", "conformance fixture has no suite marker"))?;
+    let schema_version = object
+        .get("schema_version")
+        .map(|value| {
+            value
+                .as_u64()
+                .and_then(|version| u32::try_from(version).ok())
+                .filter(|version| *version == 0)
+                .ok_or_else(|| {
+                    failure(
+                        "CND-INSP-004",
+                        "unsupported conformance fixture schema version",
+                    )
+                })
+        })
+        .transpose()?
+        .unwrap_or(0);
     let mut cases = 0_usize;
     for (name, value) in object {
         if name == "suite" || name == "measurement" {
@@ -1590,7 +1613,7 @@ fn inspect_conformance_cases(
     counts.insert("cases".to_owned(), cases as u64);
     Ok(base_report(
         ArtifactKind::ConformanceCases,
-        schema_suffix_version(suite)?,
+        schema_version,
         content_digest(bytes),
         None,
         counts,
@@ -1675,8 +1698,8 @@ fn inspect_host_conformance_report(
     let document: HostConformanceReportDocument =
         serde_json::from_value(parse_json(bytes, limits)?)
             .map_err(|error| failure("CND-INSP-006", format!("invalid host report: {error}")))?;
-    if document.schema != "conduit.host-conformance-report/v1"
-        || document.schema_version != 1
+    if document.schema != "conduit.host-conformance-report"
+        || document.schema_version != 0
         || document.profile_id.is_empty()
         || document.mandatory_facts.is_empty()
         || !matches!(
@@ -1896,7 +1919,7 @@ fn detect_kind(bytes: &[u8], limits: InspectLimits) -> Result<ArtifactKind, Insp
     }
     Err(failure(
         "CND-INSP-001",
-        "input has no supported frozen magic, schema, or version marker",
+        "input has no supported current magic, schema, or version marker",
     ))
 }
 
@@ -1932,11 +1955,11 @@ fn detect_json_object(value: &Value) -> Result<ArtifactKind, InspectionError> {
     }
     if let Some(schema) = object.get("schema").and_then(Value::as_str) {
         match schema {
-            "conduit.lowered-source/v2" => candidates.push(ArtifactKind::LoweredSource),
-            "conduit.host-conformance-report/v1" => {
+            "conduit.lowered-source" => candidates.push(ArtifactKind::LoweredSource),
+            "conduit.host-conformance-report" => {
                 candidates.push(ArtifactKind::HostConformanceReport);
             }
-            "conduit.execution-plan/v1" | "conduit.execution-plan/v2" => {
+            "conduit.execution-plan" => {
                 candidates.push(ArtifactKind::ExecutionPlan);
             }
             _ => {}
@@ -1948,7 +1971,7 @@ fn detect_json_object(value: &Value) -> Result<ArtifactKind, InspectionError> {
         [kind] => Ok(*kind),
         [] => Err(failure(
             "CND-INSP-001",
-            "JSON input has no supported frozen schema marker",
+            "JSON input has no supported current schema marker",
         )),
         _ => Err(failure(
             "CND-INSP-002",
@@ -2124,14 +2147,6 @@ fn enforce_collection_bound(
         ));
     }
     Ok(())
-}
-
-fn schema_suffix_version(schema: &str) -> Result<u32, InspectionError> {
-    schema
-        .rsplit_once("/v")
-        .or_else(|| schema.rsplit_once("-v"))
-        .and_then(|(_, version)| version.parse().ok())
-        .ok_or_else(|| failure("CND-INSP-004", "unsupported or absent schema version"))
 }
 
 fn content_digest(bytes: &[u8]) -> String {

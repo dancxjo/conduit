@@ -7,7 +7,7 @@ use conduit_std::{
 
 #[test]
 fn complete_catalog_is_allocator_free_typed_and_bounded() {
-    assert_eq!(STANDARD_CATALOG_SCHEMA_VERSION, 1);
+    assert_eq!(STANDARD_CATALOG_SCHEMA_VERSION, 0);
     assert!(STANDARD_CATALOG.len() >= 90);
     for entry in STANDARD_CATALOG {
         validate_entry(entry)
@@ -149,19 +149,47 @@ fn type_universe_is_richer_than_any_host_support_claim() {
 }
 
 #[test]
+fn every_published_port_uses_the_current_exact_type_identity() {
+    let mut mismatches = Vec::new();
+    for entry in STANDARD_CATALOG {
+        for port in entry
+            .contract
+            .inputs
+            .iter()
+            .chain(entry.contract.outputs.iter())
+        {
+            let Some(current) = standard_type_reference(port.value_type.contract_id.as_str())
+            else {
+                continue;
+            };
+            if port.value_type != current {
+                mismatches.push(format!(
+                    "{}.{}: actual {}, current {}",
+                    entry.contract.id,
+                    port.id,
+                    port.value_type.semantic_hash,
+                    current.semantic_hash
+                ));
+            }
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}
+
+#[test]
 fn formatter_types_have_exact_finite_descriptors() {
     let expected = [
         (
             "std/text",
-            "sha256:79dd1d77e2cf6459bc3a8f96c65a915adc10db516dcac039f781bee5c1cab5ab",
+            "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
         ),
         (
             "std/integer",
-            "sha256:161d9106bcff3ea645da0f89570c1c43fe87a50299f2725720dc5c75f10cd12e",
+            "sha256:80507f9fff165bd9b71aa2a86951032dcd7e8e50fd652fd52fcbbab9b68474be",
         ),
         (
             "std/format-values",
-            "sha256:ba23e276b70b1b0c747d2b4ada100d72fa5b3874e4fa2baa250cf07149795cc0",
+            "sha256:b67782bd64f1199515f7931fd39d9beacadab91c78fe66752712024ba15beb2e",
         ),
     ];
     for (id, hash) in expected {
@@ -299,10 +327,10 @@ fn every_time_state_boundary_and_adapter_fact_is_enforced() {
 #[test]
 fn catalog_manifest_maps_every_contract_to_required_fixture_classes() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c4/standard-catalog-v1.json"
+        "../../../conformance/c4/standard-catalog.json"
     ))
     .unwrap();
-    assert_eq!(fixture["schema"], "conduit.standard-catalog/v1");
+    assert_eq!(fixture["schema"], "conduit.standard-catalog");
     let classes = fixture["required_fixture_classes"].as_array().unwrap();
     assert_eq!(
         classes,
@@ -358,7 +386,7 @@ fn deterministic_and_hosted_profiles_emit_equivalent_normalized_evidence() {
 #[test]
 fn text_format_fixture_and_contract_freeze_the_final_typed_shape() {
     let fixture: serde_json::Value =
-        serde_json::from_str(include_str!("../../../conformance/c4/text-format-v1.json")).unwrap();
+        serde_json::from_str(include_str!("../../../conformance/c4/text-format.json")).unwrap();
     let cases = fixture["cases"].as_array().unwrap();
     let ids = cases
         .iter()
@@ -521,10 +549,8 @@ fn run_text_format_boundary_case(case: &serde_json::Value) {
 
 #[test]
 fn text_lines_join_fixture_freezes_semantics_and_boundaries() {
-    let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c4/text-lines-join-v1.json"
-    ))
-    .unwrap();
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../conformance/c4/text-lines-join.json")).unwrap();
     let ids = fixture["cases"]
         .as_array()
         .unwrap()

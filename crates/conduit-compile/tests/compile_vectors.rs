@@ -10,7 +10,7 @@ use conduit_compile::{
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V3, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, ReadyQueueDiscipline,
+    EXECUTION_PLAN_SCHEMA_VERSION, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, ReadyQueueDiscipline,
     SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash,
 };
 use conduit_panel::parse;
@@ -19,10 +19,10 @@ use conduit_runtime::{
     HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json");
 const SOURCE_LIMIT_FIXTURE: &str =
-    include_str!("../../../conformance/c5/compile-source-limits-v1.json");
-const SOURCE: &str = "panel 3\n\
+    include_str!("../../../conformance/c5/compile-source-limits.json");
+const SOURCE: &str = "panel 0\n\
 node source : std/literal { value = \"hello\" }\n\
 node upper : text/uppercase using ready\n\
 node sink : display/text\n\
@@ -36,7 +36,7 @@ fn hash(byte: u8) -> String {
 fn pin(id: &str, byte: u8) -> PinDocument {
     PinDocument {
         id: id.to_owned(),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -44,7 +44,7 @@ fn pin(id: &str, byte: u8) -> PinDocument {
 fn profile(ordinal: u8) -> ExecutionProfileDocument {
     ExecutionProfileDocument {
         id: format!("fixture/execution-profile-{ordinal}"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(30),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -82,14 +82,14 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             implementation_version: "1.0.0".to_owned(),
             semantic_contract: PinDocument {
                 id: contract_id.to_owned(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: contract_hash.to_string(),
             },
             executor: "native-in-process".to_owned(),
             entrypoint_name: "run".to_owned(),
             entrypoint_adapter: "conduit/native-step".to_owned(),
-            entrypoint_abi: "conduit/native-v1".to_owned(),
-            runtime_protocol_version: 1,
+            entrypoint_abi: "conduit/native".to_owned(),
+            runtime_protocol_version: 0,
             execution_profile: pin("fixture/execution-profile", 30),
             artifacts: vec![ArtifactReferenceDocument {
                 id: artifact_id.clone(),
@@ -99,8 +99,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             }],
             required_authorities: Vec::new(),
             required_effects: Vec::new(),
-            minimum_plan_version: 1,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            minimum_plan_version: 0,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             minimum_runtime_protocol: 1,
             maximum_runtime_protocol: 1,
             coexistence_memory_bytes: 0,
@@ -147,8 +147,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             supported_executors: vec!["native-in-process".to_owned()],
             supported_targets: Vec::new(),
             supported_abis: Vec::new(),
-            minimum_plan_version: 1,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            minimum_plan_version: 0,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
@@ -251,7 +251,7 @@ fn compile_case(id: &str) {
             let plan = compile_source(SOURCE, &input(SOURCE)).unwrap();
             assert!(plan.unresolved_selectors.is_empty());
             assert_eq!(plan.nodes.len(), 3);
-            assert_eq!(plan.schema, "conduit.execution-plan/v3");
+            assert_eq!(plan.schema, "conduit.execution-plan");
             assert!(
                 plan.nodes
                     .iter()
@@ -380,7 +380,7 @@ fn compile_source_limit_case(id: &str) -> serde_json::Value {
             });
         }
         "schema-one-requires-explicit-limit-migration" => {
-            sealed.schema = "conduit.compile-input/v1".to_owned();
+            sealed.schema = "conduit.compile-input".to_owned();
             sealed.schema_version = 1;
         }
         other => panic!("compile source-limit case `{other}` is not implemented"),

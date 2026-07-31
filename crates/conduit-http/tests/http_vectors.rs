@@ -26,7 +26,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use tempfile::tempdir;
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/http-serving-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/http-serving.json");
 
 #[derive(Deserialize)]
 struct Fixture {
@@ -47,14 +47,14 @@ fn hash(byte: u8) -> SemanticHash {
 fn descriptor(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
 
 fn capabilities(mode: HttpSecurityMode) -> HttpServingCapabilities {
     HttpServingCapabilities {
-        profile_version: 1,
+        profile_version: conduit_http::HTTP_PROFILE_VERSION,
         plaintext: mode == HttpSecurityMode::Plaintext,
         direct_tls: mode == HttpSecurityMode::DirectTls,
         trusted_proxy_tls: mode == HttpSecurityMode::TrustedProxyTls,

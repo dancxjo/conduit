@@ -11,8 +11,8 @@ use crate::{
     validate_envelope, validate_stream_contract,
 };
 
-pub const CHECKPOINT_SCHEMA_VERSION: u32 = 1;
-pub const JOB_CONTRACT_VERSION: u32 = 1;
+pub const CHECKPOINT_SCHEMA_VERSION: u32 = 0;
+pub const JOB_CONTRACT_VERSION: u32 = 0;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeliveryClaim {
@@ -1210,7 +1210,7 @@ fn valid_state_ref(state: CheckpointStateRef<'_>) -> bool {
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
-    valid_id(pin.id) && pin.schema_version > 0
+    valid_id(pin.id) && pin.schema_version == 0
 }
 
 fn valid_id(id: Id<'_>) -> bool {
@@ -1229,7 +1229,7 @@ fn hash_state_ref(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind: Id("conduit/checkpoint-state-ref"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic("bytes", CanonicalValue::Integer(i128::from(state.bytes))),
             semantic(
@@ -1267,7 +1267,7 @@ fn compatibility_hash(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind: Id("conduit/checkpoint-compatibility"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic("artifact", CanonicalValue::Bytes(artifact.as_bytes())),
             semantic(
@@ -1292,7 +1292,7 @@ fn hash_validation_policy(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind: Id("conduit/result-validation-policy"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic(
                 "validator_id",

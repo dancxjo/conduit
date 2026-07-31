@@ -7,7 +7,7 @@ use crate::{
     PinnedDescriptor, SemanticHash, Sensitivity, TypeContractRef, validate_execution_event,
 };
 
-pub const RESONANCE_CONTRACT_VERSION: u32 = 1;
+pub const RESONANCE_CONTRACT_VERSION: u32 = 0;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EventClass {
@@ -157,7 +157,7 @@ pub struct EvidenceStreamExtension<'a> {
     pub integrity: SemanticHash,
 }
 
-/// Extend frozen ExecutionEvent v1 without changing its identity or semantics.
+/// Extend current ExecutionEvent v1 without changing its identity or semantics.
 pub fn extend_execution_event<'a>(
     event: ExecutionEvent<'a>,
     policy: EvidencePolicy,
@@ -480,7 +480,7 @@ pub fn validate_stream_contract(
     if Id::new(contract.id.as_str()).is_err()
         || contract.payload_type.validate().is_err()
         || Id::new(contract.provider.id.as_str()).is_err()
-        || contract.provider.schema_version == 0
+        || contract.provider.schema_version != 0
         || contract
             .recording_authority
             .is_some_and(|id| Id::new(id.as_str()).is_err())
@@ -541,9 +541,9 @@ pub fn validate_projection(value: ProjectionContract<'_>) -> Result<(), Resonanc
     if Id::new(value.id.as_str()).is_err()
         || Id::new(value.stream.as_str()).is_err()
         || Id::new(value.logic.id.as_str()).is_err()
-        || value.logic.schema_version == 0
+        || value.logic.schema_version != 0
         || Id::new(value.snapshot_contract.id.as_str()).is_err()
-        || value.snapshot_contract.schema_version == 0
+        || value.snapshot_contract.schema_version != 0
         || value.maximum_state_bytes == 0
         || value.maximum_rebuild_events == 0
     {

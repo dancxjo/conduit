@@ -29,7 +29,7 @@ use rustls::pki_types::CertificateDer;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use sha2::{Digest, Sha256};
 
-pub const HTTP_PROFILE_VERSION: u16 = 1;
+pub const HTTP_PROFILE_VERSION: u16 = 0;
 pub const HTTP_BACKEND_CONTRACT_ID: &str = "conduit/http-serving-backend";
 pub const HTTP_LINUX_IMPLEMENTATION_ID: &str = "conduit/http.linux-rustls";
 pub const HTTP_IN_MEMORY_IMPLEMENTATION_ID: &str = "conduit/http.in-memory";
@@ -347,7 +347,7 @@ impl ResolvedHttpService<'_> {
     #[must_use]
     pub fn computed_identity(&self) -> SemanticHash {
         let mut hash = Sha256::new();
-        hash.update(b"conduit.resolved-http-service/v1\0");
+        hash.update(b"conduit.resolved-http-service\0");
         hash.update(self.service.id.as_str().as_bytes());
         hash.update(self.service.schema_version.to_be_bytes());
         hash.update(self.service.semantic_hash.as_bytes());
@@ -2158,7 +2158,7 @@ pub fn register_hosted_http_provider(registry: &mut Registry) -> Result<(), Regi
     static REQUIRED_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x48; 32])];
     registry.register_compiled_in_host_service(CompiledInHostService {
         contract: &HTTP_SERVE_ONCE_CONTRACT,
-        implementation_id: "conduit/http-linux-serve-once-v1",
+        implementation_id: "conduit/http-linux-serve-once",
         artifact_id: "conduit/http-linux-serve-once-artifact",
         entrypoint: "http-linux-serve-once",
         source_bytes: include_bytes!("lib.rs"),
@@ -2213,7 +2213,7 @@ impl Handler for ServeOnceHandler {
         };
         let descriptor = |id, byte| PinnedDescriptor {
             id: Id(id),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([byte; 32]),
         };
         let mut service = ResolvedHttpService {

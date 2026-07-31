@@ -62,7 +62,7 @@ fn inspect_panel_human_json_stdin_and_explicit_type_agree() {
     assert!(human.status.success());
     assert!(human.stderr.is_empty());
     let human = String::from_utf8(human.stdout).unwrap();
-    assert!(human.starts_with("panel-source v3: valid\n"));
+    assert!(human.starts_with("panel-source v0: valid\n"));
     assert!(human.contains("identity sha256:"));
     assert!(human.contains("nodes 3"));
 
@@ -82,10 +82,10 @@ fn inspect_panel_human_json_stdin_and_explicit_type_agree() {
     assert!(explicit.stderr.is_empty());
     let automatic: serde_json::Value = serde_json::from_slice(&automatic.stdout).unwrap();
     let explicit: serde_json::Value = serde_json::from_slice(&explicit.stdout).unwrap();
-    assert_eq!(automatic["schema"], "conduit.result/v1");
+    assert_eq!(automatic["schema"], "conduit.result");
     assert_eq!(automatic["operation"], "inspect");
     assert_eq!(automatic["result"], explicit["result"]);
-    assert_eq!(automatic["result"]["schema"], "conduit.inspection/v1");
+    assert_eq!(automatic["result"]["schema"], "conduit.inspection");
     assert_eq!(automatic["result"]["kind"], "panel-source");
 
     let source = std::fs::read(&example).unwrap();
@@ -100,19 +100,19 @@ fn inspect_panel_human_json_stdin_and_explicit_type_agree() {
 fn evidence_diagnostic_and_conformance_kinds_keep_machine_streams_clean() {
     for (path, expected_kind) in [
         (
-            root().join("conformance/c2/execution-event-v1.ndjson"),
+            root().join("conformance/c2/execution-event.ndjson"),
             "execution-evidence",
         ),
         (
-            root().join("conformance/c3/diagnostics-v1.json"),
+            root().join("conformance/c3/diagnostics.json"),
             "conformance-cases",
         ),
         (
-            root().join("conformance/c2/execution-plan-v1.tsv"),
+            root().join("conformance/c2/execution-plan.tsv"),
             "conformance-cases",
         ),
         (
-            root().join("conformance/v1/manifest.json"),
+            root().join("conformance/current/manifest.json"),
             "conformance-manifest",
         ),
     ] {
@@ -129,7 +129,7 @@ fn evidence_diagnostic_and_conformance_kinds_keep_machine_streams_clean() {
         assert_eq!(result["result"]["kind"], expected_kind);
     }
 
-    let diagnostic = br#"{"schema_version":1,"code":"CND-TST-001","severity":"error","message":"sensitive prose","arguments":[{"name":"token","value":{"disposition":"redacted","sensitivity":"secret","value_type":"fixture/token"}}]}"#;
+    let diagnostic = br#"{"schema_version":0,"code":"CND-TST-001","severity":"error","message":"sensitive prose","arguments":[{"name":"token","value":{"disposition":"redacted","sensitivity":"secret","value_type":"fixture/token"}}]}"#;
     let path = temporary("json", diagnostic);
     let output = command()
         .args([
@@ -152,7 +152,7 @@ fn evidence_diagnostic_and_conformance_kinds_keep_machine_streams_clean() {
 
 #[test]
 fn unresolved_selectors_and_secrets_are_reported_without_resolution_or_disclosure() {
-    let source = br#"panel 3
+    let source = br#"panel 0
 node app : fixture/handler using ready {
     credential = secret("canary-secret-material")
 }
@@ -194,7 +194,7 @@ fn unknown_polyglot_malformed_oversized_and_type_conflicts_fail_closed() {
         ),
         (
             "json",
-            br#"{"suite":"fixture/v1","schema_version":1,"code":"CND-TST-001","severity":"error"}"#
+            br#"{"suite":"fixture/v1","schema_version":0,"code":"CND-TST-001","severity":"error"}"#
                 .to_vec(),
             &["inspect", "--diagnostic-format=json"],
             "CND-INSP-002",
@@ -207,13 +207,13 @@ fn unknown_polyglot_malformed_oversized_and_type_conflicts_fail_closed() {
         ),
         (
             "ndjson",
-            b"panel 3\n".to_vec(),
+            b"panel 0\n".to_vec(),
             &["inspect", "--type=panel", "--diagnostic-format=json"],
             "CND-INSP-003",
         ),
         (
             "json",
-            br#"{"schema":"conduit.execution-plan/v1","schema_version":1}"#.to_vec(),
+            br#"{"schema":"conduit.execution-plan","schema_version":0}"#.to_vec(),
             &[
                 "inspect",
                 "--type=execution-plan",

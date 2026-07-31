@@ -14,7 +14,7 @@ use conduit_core::{
 };
 use serde_json::{Value, json};
 
-const FIXTURE: &str = include_str!("../../../conformance/c4/inhibit-plane-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c4/inhibit-plane.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 
 fn hash(byte: u8) -> SemanticHash {
@@ -24,7 +24,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -558,7 +558,7 @@ fn clear_case(
 #[test]
 fn every_inhibit_fixture_is_independently_dispatched() {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(fixture["suite"], "conduit.inhibit-plane/v1");
+    assert_eq!(fixture["suite"], "conduit.inhibit-plane");
     assert!(
         fixture["claim_boundary"]
             .as_str()

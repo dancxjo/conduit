@@ -23,7 +23,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -1289,8 +1289,11 @@ fn run_simple_fixture(scenario: &str) -> Result<&'static str, HazardClosureReaso
         });
     }
     if scenario == "permit-budget-mismatch" {
-        all[0].effect.policy_budget_class = Some(pin("budget.other", 142));
-        all[0].effect_hash = all[0].effect.semantic_hash().unwrap();
+        all[0].effect.policy_budget_class = Some(pin("fixture/budget-other", 142));
+        all[0].effect_hash = all[0]
+            .effect
+            .semantic_hash()
+            .unwrap_or_else(|error| panic!("{scenario}: {error:?}"));
     }
     let selected = match scenario {
         "isolated-network" => &all[..1],
@@ -1637,10 +1640,8 @@ fn run_fixture(scenario: &str) -> Result<&'static str, HazardClosureReason> {
 
 #[test]
 fn every_hazard_closure_fixture_executes_independently() {
-    let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c2/hazard-closure-v1.json"
-    ))
-    .unwrap();
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../conformance/c2/hazard-closure.json")).unwrap();
     let cases = fixture["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 22);
     for case in cases {

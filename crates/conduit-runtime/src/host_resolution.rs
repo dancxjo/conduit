@@ -2,11 +2,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
     ArtifactManifest, CanonicalDescriptor, CanonicalError, CanonicalValue, CapabilityReport,
-    CompatibilityOutcome, FieldDisposition, HostReportReason, Id, ImplementationManifest,
-    InstancePath, ManifestReason, MapField, PinnedDescriptor, PlanResourceBudget,
-    ReplacementSupport, ReportCapability, ReportResource, ReportTopology, SatisfactionProof,
-    SatisfactionReason, SatisfactionRole, SemanticHash, validate_artifact_manifest,
-    validate_capability_report, validate_implementation_manifest, validate_satisfaction_proof,
+    CompatibilityOutcome, EXECUTION_PLAN_SCHEMA_VERSION, FieldDisposition, HostReportReason, Id,
+    ImplementationManifest, InstancePath, ManifestReason, MapField, PinnedDescriptor,
+    PlanResourceBudget, ReplacementSupport, ReportCapability, ReportResource, ReportTopology,
+    SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
+    validate_artifact_manifest, validate_capability_report, validate_implementation_manifest,
+    validate_satisfaction_proof,
 };
 use core::convert::Infallible;
 use sha2::{Digest, Sha256};
@@ -124,7 +125,7 @@ impl HostResolverPolicy<'_> {
                 ];
                 CanonicalDescriptor {
                     kind: Id("conduit/trusted-host-reporter"),
-                    schema_version: 1,
+                    schema_version: 0,
                     body: CanonicalValue::Map(&fields),
                 }
                 .semantic_hash()
@@ -216,7 +217,7 @@ impl HostResolverPolicy<'_> {
         ];
         CanonicalDescriptor {
             kind: Id("conduit/host-resolver-policy"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&fields),
         }
         .semantic_hash()
@@ -351,7 +352,7 @@ impl ResolvedPlacement {
     #[must_use]
     pub fn computed_identity(&self) -> SemanticHash {
         let mut digest = Sha256::new();
-        hash_field(&mut digest, b"kind", b"conduit/resolved-placement-v1");
+        hash_field(&mut digest, b"kind", b"conduit/resolved-placement");
         hash_field(&mut digest, b"resolver-id", self.resolver_id.as_bytes());
         hash_field(
             &mut digest,
@@ -590,8 +591,8 @@ pub fn resolve_host_placement(
     requests: &[PlacementRequest<'_>],
     policy: HostResolverPolicy<'_>,
 ) -> Result<ResolvedPlacement, ResolutionFailure> {
-    if policy.plan_version == 0
-        || policy.resolver.schema_version == 0
+    if policy.plan_version != EXECUTION_PLAN_SCHEMA_VERSION
+        || policy.resolver.schema_version != 0
         || Id::new(policy.resolver.id.as_str()).is_err()
         || policy.computed_semantic_hash().ok() != Some(policy.policy_hash)
     {

@@ -78,9 +78,9 @@ Compatibility is directional. A claim states which consumer accepts which
 producer, which implementation satisfies which contract, or which runtime
 executes which plan.
 
-The version 1 query roles, three-valued outcomes, backward/forward definitions,
+The current form query roles, three-valued outcomes, backward/forward definitions,
 substitution variance, and exact migration identity are normative in
-[`004-directional-compatibility-v1.md`](004-directional-compatibility-v1.md).
+[`004-directional-compatibility.md`](004-directional-compatibility.md).
 
 Breaking changes include:
 
@@ -104,8 +104,8 @@ They include every fact affecting validation, resolution, authority, resource
 use, or execution.
 
 The baseline digest is algorithm-qualified SHA-256. Canonical descriptor form
-version 1 and its frozen cross-language vectors are defined by
-[`003-canonical-descriptor-v1.md`](003-canonical-descriptor-v1.md). A plan
+current form and its current cross-language vectors are defined by
+[`003-canonical-descriptor.md`](003-canonical-descriptor.md). A plan
 records every exact semantic hash that influenced it.
 
 ## Contracts
@@ -279,7 +279,7 @@ incomplete.
 
 ## C1 exit
 
-Canonical descriptor form version 1 and directional compatibility algebra
-version 1 are stable with frozen fixtures. The remaining meta-model sections
+Canonical descriptor form current form and directional compatibility algebra
+current form are stable with current fixtures. The remaining meta-model sections
 stay candidate until their owning semantic, planning, evidence, and packaging
 specifications stabilize.

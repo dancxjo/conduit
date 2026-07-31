@@ -14,15 +14,15 @@ include!(concat!(env!("OUT_DIR"), "/firmware_identity.rs"));
 
 pub type ReferenceStorage = EmbeddedStorage<3, 2, 4, 2, 16, 64, 4, 4>;
 pub const PLAN_HASH: SemanticHash = SemanticHash::from_bytes([
-    154, 65, 61, 157, 190, 9, 134, 255, 20, 228, 123, 218, 124, 237, 112, 66, 65, 219, 150, 38, 20,
-    41, 211, 195, 153, 152, 206, 249, 31, 169, 105, 79,
+    0xf9, 0x14, 0x52, 0xe1, 0x4b, 0x4e, 0x13, 0x64, 0x1b, 0x73, 0x02, 0xe8, 0x6a, 0x0b, 0xe1, 0xec,
+    0xfb, 0xd7, 0x46, 0x5d, 0x3c, 0x57, 0x04, 0xf7, 0xdc, 0x49, 0x55, 0xa9, 0x55, 0xab, 0x8c, 0x6c,
 ]);
 /// Identity of the generic RP2040 board profile implemented by this artifact.
 ///
 /// This profile deliberately does not identify a Pico W or its CYW43 radio.
 pub const GENERIC_RP2040_BOARD_PROFILE: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("conduit/board.rp2040-generic"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
         48, 7, 31, 188, 116, 146, 112, 76, 78, 248, 103, 199, 60, 133, 163, 94, 176, 13, 182, 55,
         152, 215, 186, 1, 209, 45, 185, 134, 65, 89, 253, 23,
@@ -32,7 +32,7 @@ pub const GENERIC_RP2040_BOARD_PROFILE: PinnedDescriptor<'static> = PinnedDescri
 /// Identity of the Raspberry Pi Pico W board profile (RP2040 microcontroller + CYW43439 Wi-Fi).
 pub const PICO_W_BOARD_PROFILE: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("conduit/board.pico-w"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
         101, 112, 105, 99, 111, 119, 45, 98, 111, 97, 114, 100, 45, 112, 114, 111, 102, 105, 108,
         101, 45, 118, 49, 45, 115, 101, 109, 97, 110, 116, 105, 99,
@@ -45,7 +45,7 @@ pub const PICO_W_CAPABILITIES: [ReportCapability<'static>; 5] = [
     ReportCapability {
         interface: PinnedDescriptor {
             id: Id("conduit/host.wifi-network"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([201; 32]),
         },
         mode: Id("ap"),
@@ -56,7 +56,7 @@ pub const PICO_W_CAPABILITIES: [ReportCapability<'static>; 5] = [
     ReportCapability {
         interface: PinnedDescriptor {
             id: Id("conduit/host.wifi-network"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([201; 32]),
         },
         mode: Id("sta"),
@@ -67,7 +67,7 @@ pub const PICO_W_CAPABILITIES: [ReportCapability<'static>; 5] = [
     ReportCapability {
         interface: PinnedDescriptor {
             id: Id("conduit/host.tcp-socket"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([204; 32]),
         },
         mode: Id("client"),
@@ -78,7 +78,7 @@ pub const PICO_W_CAPABILITIES: [ReportCapability<'static>; 5] = [
     ReportCapability {
         interface: PinnedDescriptor {
             id: Id("conduit/host.udp-socket"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([206; 32]),
         },
         mode: Id("bound"),
@@ -89,7 +89,7 @@ pub const PICO_W_CAPABILITIES: [ReportCapability<'static>; 5] = [
     ReportCapability {
         interface: PinnedDescriptor {
             id: Id("conduit/transport.zenoh-pico"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([208; 32]),
         },
         mode: Id("session"),
@@ -201,7 +201,7 @@ pub fn with_capability_report<R>(
         },
         descriptor: PinnedDescriptor {
             id: Id("conduit/rp2040-fixed-pools"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: selected.identity,
         },
         capacity: FIXED_EXECUTOR_BUDGET,
@@ -209,7 +209,7 @@ pub fn with_capability_report<R>(
     }];
     let executors = [ExecutorKind::Firmware];
     let targets = [Id("thumbv6m-none-eabi")];
-    let abis = [Id("conduit-static-step-v1")];
+    let abis = [Id("conduit-static-step")];
     let constraints = [
         GENERIC_RP2040_BOARD_PROFILE.semantic_hash,
         selected.identity,
@@ -222,12 +222,12 @@ pub fn with_capability_report<R>(
         host: Id("conduit/rp2040-generic"),
         reporter: PinnedDescriptor {
             id: Id("conduit/rp2040-generic-firmware"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: FIRMWARE_IDENTITY,
         },
         trust: PinnedDescriptor {
             id: Id("conduit/linked-firmware-trust"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([16; 32]),
         },
         membership: None,
@@ -241,8 +241,8 @@ pub fn with_capability_report<R>(
         supported_executors: &executors,
         supported_targets: &targets,
         supported_abis: &abis,
-        minimum_plan_version: 3,
-        maximum_plan_version: 9,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &constraints,
     };
     let mut scratch = [SemanticHash::from_bytes([0; 32]); 8];
@@ -253,7 +253,7 @@ pub fn with_capability_report<R>(
         &report,
         Id("clock/boot-ticks"),
         observed_at_tick,
-        9,
+        conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         &mut scratch,
     )
     .expect("fresh fixed capability report");
@@ -272,7 +272,7 @@ pub fn with_pico_w_capability_report<R>(
         },
         descriptor: PinnedDescriptor {
             id: Id("conduit/pico-w-fixed-pools"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: selected.identity,
         },
         capacity: FIXED_EXECUTOR_BUDGET,
@@ -280,7 +280,7 @@ pub fn with_pico_w_capability_report<R>(
     }];
     let executors = [ExecutorKind::Firmware];
     let targets = [Id("thumbv6m-none-eabi")];
-    let abis = [Id("conduit-static-step-v1")];
+    let abis = [Id("conduit-static-step")];
     let constraints = [
         PICO_W_BOARD_PROFILE.semantic_hash,
         selected.identity,
@@ -293,12 +293,12 @@ pub fn with_pico_w_capability_report<R>(
         host: Id("conduit/pico-w"),
         reporter: PinnedDescriptor {
             id: Id("conduit/pico-w-firmware"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: FIRMWARE_IDENTITY,
         },
         trust: PinnedDescriptor {
             id: Id("conduit/linked-firmware-trust"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([16; 32]),
         },
         membership: None,
@@ -312,8 +312,8 @@ pub fn with_pico_w_capability_report<R>(
         supported_executors: &executors,
         supported_targets: &targets,
         supported_abis: &abis,
-        minimum_plan_version: 3,
-        maximum_plan_version: 9,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &constraints,
     };
     let mut scratch = [SemanticHash::from_bytes([0; 32]); 32];
@@ -324,7 +324,7 @@ pub fn with_pico_w_capability_report<R>(
         &report,
         Id("clock/boot-ticks"),
         observed_at_tick,
-        9,
+        conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         &mut scratch,
     )
     .expect("fresh fixed capability report");

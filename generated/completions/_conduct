@@ -43,7 +43,7 @@ _conduct() {
         case $line[2] in
             (inspect)
 _arguments "${_arguments_options[@]}" : \
-'--type=[Select a frozen artifact kind, or use marker-only detection]:TYPE:(auto panel lowered-source execution-plan evidence diagnostic conformance package)' \
+'--type=[Select a current artifact kind, or use marker-only detection]:TYPE:(auto panel lowered-source execution-plan evidence diagnostic conformance package)' \
 '--format=[Select human, finite JSON, or streaming NDJSON primary output]:FORMAT:(human json ndjson)' \
 '--diagnostic-format=[Select human or lossless JSON diagnostics on stderr]:DIAGNOSTIC_FORMAT:(human json)' \
 '--color=[Select diagnostic terminal styling]:COLOR:(auto always never)' \

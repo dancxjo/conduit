@@ -9,7 +9,7 @@ use core::fmt;
 use crate::{Id, InstancePath, SemanticHash, StopPolicy, TerminalCauseCode, TerminalClass};
 
 /// Version of the portable supervision observation and decision contract.
-pub const SUPERVISION_CONTRACT_VERSION: u32 = 1;
+pub const SUPERVISION_CONTRACT_VERSION: u32 = 0;
 
 /// The three mechanisms that must not be collapsed into a generic error port.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

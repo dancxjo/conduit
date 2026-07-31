@@ -8,7 +8,7 @@ use conduit_runtime::{
     NativeStepBinding, NativeStepImplementation, OwnedStepOutcome, OwnedStepReply,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c4/implementation-step-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c4/implementation-step.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const LIMITS: ExecutionLimits = ExecutionLimits {
     max_step_work: 4,
@@ -35,7 +35,7 @@ const LIMITS: ExecutionLimits = ExecutionLimits {
 fn profile() -> ExecutionProfile<'static> {
     let mut profile = ExecutionProfile {
         id: Id("fixture/adapter-profile"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: ZERO,
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
@@ -56,7 +56,7 @@ fn started<'a>(profile: &'a ExecutionProfile<'a>) -> ImplementationMachine<'a> {
             instance: InstancePath::new("root/node").unwrap(),
             implementation: PinnedDescriptor {
                 id: Id("fixture/implementation"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: SemanticHash::from_bytes([3; 32]),
             },
             artifact: Id("artifact/a"),
@@ -107,7 +107,7 @@ impl MessageStepEndpoint for MessageUppercase {
         assert_eq!(
             request,
             ForeignStepRequest {
-                protocol_version: 1,
+                protocol_version: 0,
                 sequence: 0,
                 maximum_work: 4
             }
@@ -130,7 +130,7 @@ fn direct_native_and_message_bindings_have_equivalent_semantics_and_evidence() {
     let mut native = NativeStepBinding::new(NativeUppercase::default());
     let mut message = MessageStepBinding::new(MessageUppercase {
         output: String::new(),
-        protocol_version: 1,
+        protocol_version: 0,
     });
 
     let executor_usage = StepUsage {
@@ -153,7 +153,7 @@ fn foreign_protocol_version_is_rejected_before_step_evidence() {
     let mut machine = started(&profile);
     let mut message = MessageStepBinding::new(MessageUppercase {
         output: String::new(),
-        protocol_version: 2,
+        protocol_version: 1,
     });
     assert_eq!(
         message.step(&mut machine, 4, StepUsage::default()),

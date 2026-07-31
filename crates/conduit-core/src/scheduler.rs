@@ -3,7 +3,7 @@
 use core::fmt;
 
 /// Version of the deterministic scheduler contract.
-pub const SCHEDULER_CONTRACT_VERSION: u32 = 1;
+pub const SCHEDULER_CONTRACT_VERSION: u32 = 0;
 
 /// Fixed ordering used whenever more than one node is runnable.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

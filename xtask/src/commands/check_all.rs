@@ -48,6 +48,9 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
         workspace_root,
     )?;
 
+    println!("\n=== Running check-all step: xtask pre-release-version-gate ===");
+    crate::commands::pre_release_version_gate::run(workspace_root)?;
+
     run_step(
         "library catalog index gate",
         &["cargo", "xtask", "catalog-index", "--check"],

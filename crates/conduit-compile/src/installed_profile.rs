@@ -3,13 +3,14 @@ use std::collections::BTreeMap;
 use crate::{
     ArtifactDocument, ArtifactReferenceDocument, AuthorityDecisionDocument, AuthorityGrantDocument,
     BudgetDocument, COMPILE_INPUT_SCHEMA, COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument,
-    CompileInput, CompileModuleDocument, CompileSourceLimits, EffectRequirementDocument,
-    ExecutionLimitsDocument, ExecutionProfileDocument, HostCapabilityDocument, HostReportDocument,
-    ImplementationDocument, MemoryClaimDocument, PinDocument, builtin_catalog_document,
+    CompileInput, CompileModuleDocument, CompileSourceLimits, EffectCommitProfileDocument,
+    EffectRequirementDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
+    HostCapabilityDocument, HostReportDocument, ImplementationDocument, MemoryClaimDocument,
+    PinDocument, ResourceLeaseDocument, builtin_catalog_document,
 };
 use conduit_core::{
-    ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION_V3, ExecutionPlan,
-    ExecutorKind, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
+    ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
+    IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
 };
 use conduit_panel::parse;
 use conduit_runtime::{
@@ -130,7 +131,7 @@ impl InstalledProfile {
             }
             catalog.nodes.push(PinDocument {
                 id: contract.id.to_string(),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: OwnedNodeSchema::from_contract(contract)
                     .semantic_hash()
                     .to_string(),
@@ -325,7 +326,7 @@ fn candidate(
             entrypoint_adapter: manifest.entrypoint.adapter.to_string(),
             entrypoint_abi: manifest.entrypoint.abi.to_string(),
             runtime_protocol_version: manifest.entrypoint.protocol_version,
-            execution_profile: pin("conduit/hosted-primitive-profile-v1", 30),
+            execution_profile: pin("conduit/hosted-primitive-profile", 30),
             artifacts: vec![ArtifactReferenceDocument {
                 id: artifact.id.to_string(),
                 digest: artifact.digest.to_string(),
@@ -339,7 +340,7 @@ fn candidate(
                 .collect(),
             required_effects: Vec::new(),
             minimum_plan_version: manifest.minimum_plan_version,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             minimum_runtime_protocol: manifest.minimum_runtime_protocol,
             maximum_runtime_protocol: manifest.maximum_runtime_protocol,
             coexistence_memory_bytes: manifest.coexistence_memory_bytes,
@@ -377,7 +378,7 @@ fn candidate(
         host_report: HostReportDocument {
             schema_version: conduit_core::CAPABILITY_REPORT_SCHEMA_VERSION,
             identity: String::new(),
-            id: "conduit/conduct-host-observation-v1".to_owned(),
+            id: "conduit/conduct-host-observation".to_owned(),
             host: "conduit/conduct-host".to_owned(),
             reporter: pin("conduit/conduct-host-reporter", 50),
             trust: pin("conduit/local-build-trust", 51),
@@ -401,7 +402,7 @@ fn candidate(
             supported_targets: Vec::new(),
             supported_abis: Vec::new(),
             minimum_plan_version: manifest.minimum_plan_version,
-            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION_V3,
+            maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
@@ -437,6 +438,12 @@ fn candidate(
 
 fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument {
     let host = "conduit/conduct-host";
+    let (resource_lease, commit_profile) = effect_contracts(
+        "stdout-write",
+        instance,
+        "conduit.action/write",
+        "conduit.resource/stdout",
+    );
     AuthorityDecisionDocument {
         requirement: "sha256:8d4cf343da90c32b69b7f9037f5a687f5dd3e2afcd08cfdc3f73c7232f7e0801"
             .to_owned(),
@@ -485,11 +492,19 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
         administrative_subject: None,
         containment: None,
         policy_budgets: Vec::new(),
+        resource_lease,
+        commit_profile,
     }
 }
 
 fn host_service_authority(instance: &str) -> AuthorityDecisionDocument {
     let host = "conduit/conduct-host";
+    let (resource_lease, commit_profile) = effect_contracts(
+        "http-loopback-listen",
+        instance,
+        "conduit.action/listen",
+        "conduit.resource/ephemeral-loopback-port",
+    );
     AuthorityDecisionDocument {
         requirement: "sha256:4848484848484848484848484848484848484848484848484848484848484848"
             .to_owned(),
@@ -538,13 +553,65 @@ fn host_service_authority(instance: &str) -> AuthorityDecisionDocument {
         administrative_subject: None,
         containment: None,
         policy_budgets: Vec::new(),
+        resource_lease,
+        commit_profile,
     }
+}
+
+fn effect_contracts(
+    name: &str,
+    holder: &str,
+    operation: &str,
+    resource_binding: &str,
+) -> (ResourceLeaseDocument, EffectCommitProfileDocument) {
+    let lease_id = format!("conduit.lease/{name}");
+    (
+        ResourceLeaseDocument {
+            schema_version: conduit_core::RESOURCE_LEASE_SCHEMA_VERSION,
+            id: lease_id.clone(),
+            resource_binding: resource_binding.to_owned(),
+            holder: holder.to_owned(),
+            run: "conduit/conduct-run".to_owned(),
+            epoch: 0,
+            scope: format!("conduit.scope/{name}"),
+            sharing: "exclusive".to_owned(),
+            maximum_holders: 1,
+            reservation: BudgetDocument {
+                memory_bytes: 1,
+                ..BudgetDocument::default()
+            },
+            time_basis: "clock/conduct-host".to_owned(),
+            issued_at_tick: 10,
+            expires_at_tick: 20,
+            revocation_grace_ticks: 1,
+            cleanup_ticks: 2,
+            maximum_operations: 1024,
+            maximum_evidence_events: 2048,
+            cleanup_escalation: pin(&format!("conduit.cleanup/{name}"), 71),
+            foreign_retention: "unsupported".to_owned(),
+            foreign_maximum_bytes: 0,
+            foreign_release_ticks: 0,
+        },
+        EffectCommitProfileDocument {
+            schema_version: conduit_core::EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: format!("conduit.effect-profile/{name}"),
+            operation: operation.to_owned(),
+            resource_lease: lease_id,
+            commit_boundary: pin(&format!("conduit.commit/{name}"), 72),
+            idempotency: "reconcile-before-retry".to_owned(),
+            unknown_commit: "reconcile".to_owned(),
+            discontinuity: "reconcile-required".to_owned(),
+            cleanup: pin(&format!("conduit.cleanup-profile/{name}"), 73),
+            maximum_attempts: 1,
+            evidence_events_per_attempt: 2,
+        },
+    )
 }
 
 fn execution_profile() -> ExecutionProfileDocument {
     ExecutionProfileDocument {
-        id: "conduit/hosted-primitive-profile-v1".to_owned(),
-        schema_version: 1,
+        id: "conduit/hosted-primitive-profile".to_owned(),
+        schema_version: 0,
         semantic_hash: String::new(),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -575,8 +642,8 @@ fn structural_flow_execution_profile() -> ExecutionProfileDocument {
     const RETAINED_BYTES: u64 = 2 * 1024;
     const MEMORY_BYTES: u64 = 8 * 1024;
     ExecutionProfileDocument {
-        id: "conduit/hosted-structural-flow-profile-v1".to_owned(),
-        schema_version: 1,
+        id: "conduit/hosted-structural-flow-profile".to_owned(),
+        schema_version: 0,
         semantic_hash: String::new(),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -614,8 +681,8 @@ fn structural_flow_execution_profile() -> ExecutionProfileDocument {
 
 fn format_execution_profile() -> ExecutionProfileDocument {
     ExecutionProfileDocument {
-        id: "conduit/hosted-format-profile-v1".to_owned(),
-        schema_version: 1,
+        id: "conduit/hosted-format-profile".to_owned(),
+        schema_version: 0,
         semantic_hash: String::new(),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -666,8 +733,8 @@ fn buffered_text_execution_profile() -> ExecutionProfileDocument {
     const SCRATCH_BYTES: u64 = conduit_std::JOIN_MAX_OUTPUT_BYTES as u64;
     const MEMORY_BYTES: u64 = 128 * 1024;
     ExecutionProfileDocument {
-        id: "conduit/hosted-buffered-text-profile-v1".to_owned(),
-        schema_version: 1,
+        id: "conduit/hosted-buffered-text-profile".to_owned(),
+        schema_version: 0,
         semantic_hash: String::new(),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -711,8 +778,8 @@ fn buffered_text_execution_profile() -> ExecutionProfileDocument {
 
 fn host_service_execution_profile() -> ExecutionProfileDocument {
     ExecutionProfileDocument {
-        id: "conduit/hosted-primitive-profile-v1".to_owned(),
-        schema_version: 1,
+        id: "conduit/hosted-primitive-profile".to_owned(),
+        schema_version: 0,
         semantic_hash: String::new(),
         boundedness: "hard".to_owned(),
         cancellation: "bounded".to_owned(),
@@ -758,7 +825,7 @@ fn executor_name(executor: ExecutorKind) -> &'static str {
 fn pin(id: &str, byte: u8) -> PinDocument {
     PinDocument {
         id: id.to_owned(),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([byte; 32]).to_string(),
     }
 }

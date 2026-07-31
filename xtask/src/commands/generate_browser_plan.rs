@@ -46,7 +46,7 @@ pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error:
     }
 
     let identity_input = json!({
-        "schema": "conduit.tour-browser-plan/v1",
+        "schema": "conduit.tour-browser-plan",
         "implementation_id": "conduit/tour-production-wasm-worker",
         "semantic_contract": "conduit/tour-panel-run",
         "placement": "dedicated-worker",
@@ -61,7 +61,7 @@ pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error:
         map.insert("plan_identity".to_string(), json!(plan_identity));
         map.insert(
             "observation_id".to_string(),
-            json!("conduit/tour-static-browser-observation-v1"),
+            json!("conduit/tour-static-browser-observation"),
         );
         map.insert(
             "bounds".to_string(),

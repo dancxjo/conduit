@@ -147,6 +147,35 @@ function chooseLabelPoint(points, obstacles, clearance = LABEL_CLEARANCE) {
   return bestCandidate?.point ?? null;
 }
 
+function nudgeLabelOffNodes(point, obstacles) {
+  const expanded = obstacles.map((rect) => ({
+    left: rect.left - 96,
+    right: rect.right + 96,
+    top: rect.top - 18,
+    bottom: rect.bottom + 18,
+  }));
+  let adjusted = { ...point };
+  for (let iteration = 0; iteration < expanded.length * 2; iteration += 1) {
+    const collision = expanded.find((rect) => pointInRect(adjusted, rect, true));
+    if (!collision) break;
+    const candidates = [
+      { x: collision.left - 1, y: adjusted.y },
+      { x: collision.right + 1, y: adjusted.y },
+      { x: adjusted.x, y: collision.top - 1 },
+      { x: adjusted.x, y: collision.bottom + 1 },
+    ];
+    candidates.sort((a, b) => {
+      const collisionsA = expanded.filter((rect) => pointInRect(a, rect, true)).length;
+      const collisionsB = expanded.filter((rect) => pointInRect(b, rect, true)).length;
+      const distanceA = Math.abs(a.x - adjusted.x) + Math.abs(a.y - adjusted.y);
+      const distanceB = Math.abs(b.x - adjusted.x) + Math.abs(b.y - adjusted.y);
+      return collisionsA - collisionsB || distanceA - distanceB;
+    });
+    adjusted = candidates[0];
+  }
+  return adjusted;
+}
+
 function pointOnCubicBezier(t, p0, c1, c2, p1) {
   const oneMinusT = 1 - t;
   const a = oneMinusT ** 3;
@@ -330,8 +359,10 @@ function catmullRomToSmoothPath(points, tension = FLOWINESS) {
 
 function nodeRectangle(node) {
   const position = node.positionAbsolute || node.position || { x: 0, y: 0 };
-  const width = node.width || (node.__rf && node.__rf.width) || 0;
-  const height = node.height || (node.__rf && node.__rf.height) || 0;
+  const width = node.width || node.measured?.width ||
+    (node.__rf && node.__rf.width) || Number.parseFloat(node.style?.width) || 0;
+  const height = node.height || node.measured?.height ||
+    (node.__rf && node.__rf.height) || Number.parseFloat(node.style?.height) || 0;
   if (!width || !height) return null;
   return {
     left: position.x,
@@ -491,15 +522,21 @@ export function PatchbaySmartEdge(props) {
     return e(window.ReactFlow.SmoothStepEdge, props);
   }
 
-  const labelPoint = routed.label || routed.points[Math.floor(routed.points.length / 2)];
+  const labelObstacles = nodes.map(nodeRectangle).filter(Boolean);
+  const chosenLabelPoint = chooseLabelPoint(routed.points, labelObstacles)
+    || routed.label
+    || routed.points[Math.floor(routed.points.length / 2)];
+  const labelPoint = nudgeLabelOffNodes(chosenLabelPoint, labelObstacles);
   return e(window.React.Fragment, null,
     e("path", {
       id: props.id,
-      className: `react-flow__edge-path patchbay-smart-cord ${props.data?.presentationClass || ""}`,
+      className: "react-flow__edge-path",
       d: routed.path,
       style: props.style,
       markerEnd: props.markerEnd,
       markerStart: props.markerStart,
+      "data-source-node": props.source,
+      "data-target-node": props.target,
       fill: "none",
     }),
     props.label ? e(window.ReactFlow.EdgeText, {

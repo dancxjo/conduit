@@ -1,15 +1,15 @@
 use conduct::run_stream::{
     RUN_CHANNEL_CHUNK_MAX_BYTES, RUN_CHANNEL_CHUNK_MAX_HEX_BYTES, RUN_CHANNEL_RECORD_MAX_BYTES,
     RUN_STREAM_SCHEMA, RUN_STREAM_SCHEMA_VERSION, RUN_STRUCTURED_RECORD_MAX_BYTES,
-    RUN_SUMMARY_RECORD_MAX_BYTES, RunNdjsonState, RunStreamVersionError,
+    RUN_SUMMARY_RECORD_MAX_BYTES, RunNdjsonState, RunStreamSchemaError,
     validate_run_stream_version,
 };
 use conduit_runtime::OwnedExecutionEvent;
 
-const FIXTURE: &str = include_str!("../../../conformance/c3/conduct-run-stream-v2.json");
+const FIXTURE: &str = include_str!("../../../conformance/c3/conduct-run-stream.json");
 
 #[test]
-fn frozen_versions_limits_and_direct_records_match_the_implementation() {
+fn current_version_limits_and_direct_records_match_the_implementation() {
     let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
     let limits = &fixture["limits"];
     assert_eq!(limits["decoded_chunk_bytes"], RUN_CHANNEL_CHUNK_MAX_BYTES);
@@ -33,8 +33,7 @@ fn frozen_versions_limits_and_direct_records_match_the_implementation() {
     for case in fixture["version_cases"].as_array().unwrap() {
         let expected = match case["expected"]["reason"].as_str() {
             None => Ok(()),
-            Some("withdrawn-v1") => Err(RunStreamVersionError::WithdrawnV1),
-            Some("unsupported-version") => Err(RunStreamVersionError::Unsupported),
+            Some("unsupported-version") => Err(RunStreamSchemaError::Unsupported),
             reason => panic!("unexpected fixture reason {reason:?}"),
         };
         assert_eq!(
@@ -62,7 +61,7 @@ fn frozen_versions_limits_and_direct_records_match_the_implementation() {
     assert!(channel.get("node").is_none());
     assert!(channel.get("port").is_none());
 
-    let first_event = include_str!("../../../conformance/c2/execution-event-v1.ndjson")
+    let first_event = include_str!("../../../conformance/c2/execution-event.ndjson")
         .lines()
         .next()
         .unwrap();

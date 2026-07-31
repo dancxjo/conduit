@@ -14,7 +14,7 @@ use crate::{
     validate_administrative_proof,
 };
 
-pub const HAZARD_CLOSURE_POLICY_SCHEMA_VERSION: u32 = 1;
+pub const HAZARD_CLOSURE_POLICY_SCHEMA_VERSION: u32 = 0;
 pub const MAX_HAZARD_CLASSES: usize = 32;
 pub const MAX_HAZARD_RULES: usize = 16;
 pub const MAX_HAZARD_PATTERNS: usize = 8;
@@ -1023,7 +1023,7 @@ fn match_scope_identity(
     }
     semantic_hash_with_hash_set(
         Id("conduit/hazard-permit-scope"),
-        1,
+        0,
         &[semantic(
             "rule_identity",
             CanonicalValue::Bytes(rule.identity.as_bytes()),
@@ -1077,14 +1077,14 @@ fn closure_identity(
     }
     let effect_set = semantic_hash_with_hash_set(
         Id("conduit/hazard-effect-set"),
-        1,
+        0,
         &[],
         Id("effects"),
         &effects[..effect_count],
     )?;
     semantic_hash_with_hash_set(
         Id("conduit/hazard-closure-subject"),
-        1,
+        0,
         &[
             semantic("effects", CanonicalValue::Bytes(effect_set.as_bytes())),
             semantic("epoch", CanonicalValue::Integer(i128::from(context.epoch))),
@@ -1153,7 +1153,7 @@ fn decision_identity(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     semantic_hash_with_hash_set(
         Id("conduit/hazard-closure-decision"),
-        1,
+        0,
         &[
             semantic("policy", CanonicalValue::Bytes(policy.as_bytes())),
             semantic("closure", CanonicalValue::Bytes(closure.as_bytes())),
@@ -1316,7 +1316,7 @@ impl ToxicCombinationRule<'_> {
         )?;
         semantic_hash_with_hash_set(
             Id("conduit/toxic-combination-rule"),
-            1,
+            0,
             &[
                 semantic("descriptor", CanonicalValue::Bytes(descriptor.as_bytes())),
                 semantic(
@@ -1347,7 +1347,7 @@ impl HazardClosurePolicy<'_> {
         let permit_class = hash_pin(self.permit_class)?;
         let rule_set = semantic_hash_with_hash_set(
             Id("conduit/toxic-rule-set"),
-            1,
+            0,
             &[],
             Id("rules"),
             &rules[..self.rules.len()],
@@ -1570,7 +1570,7 @@ fn resource_matches(required: ResourceSelector<'_>, actual: ResourceSelector<'_>
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
     Id::new(pin.id.as_str()).is_ok()
-        && pin.schema_version > 0
+        && pin.schema_version == 0
         && pin.semantic_hash != SemanticHash::from_bytes([0; 32])
 }
 
@@ -1623,7 +1623,7 @@ fn descriptor_hash(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind,
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()

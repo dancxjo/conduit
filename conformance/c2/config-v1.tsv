@@ -1,6 +1,0 @@
-# case	mode	supplied	value_sensitivity	outcome	code	field_descriptor_hash	contract_descriptor_hash
-canonical_default	omitted	-	public	compatible	-	sha256:113ecabecaae48917220e64b8bfc272551bed5fe44dd44ef7533c03b4fab1f13	sha256:29cbc2d6d6583da26c94abb8be9ea38daa46fc2163aa42c38cac3cc895a62102
-explicit_default	pre-start	neutral	public	compatible	-	sha256:113ecabecaae48917220e64b8bfc272551bed5fe44dd44ef7533c03b4fab1f13	sha256:29cbc2d6d6583da26c94abb8be9ea38daa46fc2163aa42c38cac3cc895a62102
-secret_value	pre-start	fixture-secret	secret	compatible	-	-	-
-pre_start_mutation	runtime	changed	public	incompatible	CND-CFG-012	-	-
-secret_to_public	pre-start	fixture-secret	secret	incompatible	CND-CFG-011	-	-

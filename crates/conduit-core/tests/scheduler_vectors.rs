@@ -24,7 +24,7 @@ fn policy_requires_finite_scheduler_owned_bounds() {
     );
     assert_eq!(
         SchedulerPolicy {
-            schema_version: 2,
+            schema_version: u32::MAX,
             ..valid
         }
         .validate(),
@@ -149,7 +149,7 @@ fn restart_decisions_use_current_explicit_state_and_terminate() {
 
 #[test]
 fn every_portable_scheduler_fixture_is_owned_here() {
-    let fixture = include_str!("../../../conformance/c4/bounded-scheduler-v1.json");
+    let fixture = include_str!("../../../conformance/c4/bounded-scheduler.json");
     let core_cases = fixture.matches("\"runner\":\"core-scheduler\"").count();
     assert_eq!(core_cases, 8);
     for id in [

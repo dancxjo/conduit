@@ -108,18 +108,16 @@ pub use scheduler::{
     SendStatus, StepIo, validate_runtime_value_for_cord,
 };
 pub use source_lowering::{
-    ConfigProvenance, LOWERED_SOURCE_SCHEMA_V1, LOWERED_SOURCE_SCHEMA_V2, LOWERED_SOURCE_SCHEMA_V3,
-    LOWERED_SOURCE_SCHEMA_V4, LiteralValidationError, LoweredBindingV2, LoweredCompositeChildV2,
-    LoweredCompositeV2, LoweredConfigEntry, LoweredConfigValue, LoweredCordV2, LoweredExportV2,
-    LoweredGroupPort, LoweredInterfaceMemberProofV4, LoweredInterfaceProofV4, LoweredNode,
-    LoweredNodeV2, LoweredPool, LoweredRootSelectionV2, LoweredSource, LoweredSourceV2,
-    LoweredSourceV3, LoweredSourceV4, LoweredSupervisionV3, LoweringDiagnostic,
-    OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract, OwnedInterfaceMember,
-    OwnedNodeContract, OwnedNodeSchema, OwnedPortContract, OwnedPortReference, OwnedSemanticValue,
-    OwnedTypeReference, SOURCE_AST_SCHEMA_V2, SOURCE_AST_SCHEMA_V3, SOURCE_AST_SCHEMA_V4,
-    SOURCE_AST_SCHEMA_V5, SourceContractCatalog, SourceMapEntry, SourceOrigin,
-    VersionedLoweredSource, lower_source, lower_source_v2, lower_source_v3, lower_source_v4,
-    lower_source_version, migrate_lowered_source_v1,
+    ConfigProvenance, LOWERED_SOURCE_SCHEMA_VERSION, LiteralValidationError, LoweredAuthoredNode,
+    LoweredBinding, LoweredComposite, LoweredCompositeChild, LoweredConfigEntry,
+    LoweredConfigValue, LoweredCord, LoweredExport, LoweredGroupPort, LoweredInterfaceMemberProof,
+    LoweredInterfaceProof, LoweredNode, LoweredPool, LoweredRootSelection, LoweredSource,
+    LoweredSupervisedTopology, LoweredSupervision, LoweredTopology, LoweredTopologyBase,
+    LoweringDiagnostic, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract,
+    OwnedInterfaceMember, OwnedNodeContract, OwnedNodeSchema, OwnedPortContract,
+    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_VERSION,
+    SourceContractCatalog, SourceMapEntry, SourceOrigin, lower_source, lower_source_base,
+    lower_supervision, lower_topology,
 };
 pub use supervision::BoundedSupervisionRuntime;
 pub use transition::{
@@ -130,11 +128,9 @@ pub use transition::{
 };
 pub use transport::{
     CarrierSecurityCapabilities, CarrierSecurityMode, DISTRIBUTED_ENVELOPE_FIXED_BYTES,
-    DISTRIBUTED_ENVELOPE_V2_FIXED_BYTES, DISTRIBUTED_ENVELOPE_VERSION,
-    DISTRIBUTED_ENVELOPE_VERSION_V1, DISTRIBUTED_ENVELOPE_VERSION_V2, DecodedDistributedEnvelope,
-    ResolvedTransportSelection, TransportCapabilities, TransportReason, TransportTransition,
-    decode_distributed_envelope, decode_distributed_envelope_v2, encode_distributed_envelope,
-    encode_distributed_envelope_v2, validate_transport_selection, validate_transport_transition,
+    DISTRIBUTED_ENVELOPE_VERSION, DecodedDistributedEnvelope, ResolvedTransportSelection,
+    TransportCapabilities, TransportReason, TransportTransition, decode_distributed_envelope,
+    encode_distributed_envelope, validate_transport_selection, validate_transport_transition,
 };
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
@@ -180,47 +176,47 @@ pub fn validate_hosted_execution_plan(
 
 const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/text"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0x79, 0xdd, 0x1d, 0x77, 0xe2, 0xcf, 0x64, 0x59, 0xbc, 0x3a, 0x8f, 0x96, 0xc6, 0x5a, 0x91,
-        0x5a, 0xdc, 0x10, 0xdb, 0x51, 0x6d, 0xca, 0xc0, 0x39, 0xf7, 0x81, 0xbe, 0xe5, 0xc1, 0xca,
-        0xb5, 0xab,
+        0x94, 0xdf, 0xe2, 0x55, 0x09, 0xfe, 0x62, 0x4d, 0x89, 0x74, 0xb1, 0xdd, 0x44, 0x2e, 0xb7,
+        0xf9, 0x6f, 0x7e, 0x62, 0x1e, 0x6e, 0x71, 0xf0, 0x35, 0xac, 0x6f, 0x08, 0x04, 0x63, 0x61,
+        0x80, 0x72,
     ]),
 };
 const BYTES_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/bytes"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0x7b, 0xe7, 0xdf, 0x9a, 0x17, 0xc7, 0x5a, 0x28, 0xc8, 0xb5, 0xdf, 0x5f, 0xa6, 0xea, 0x6a,
-        0x85, 0x9d, 0x88, 0x86, 0x69, 0x91, 0x3d, 0x83, 0x6d, 0xe2, 0xc6, 0x14, 0x1c, 0x8d, 0x19,
-        0xd4, 0x53,
+        0xf8, 0x55, 0x1a, 0x62, 0x9e, 0x94, 0xf0, 0xd3, 0x66, 0x2f, 0x02, 0x78, 0x1d, 0x17, 0x63,
+        0xdb, 0x29, 0xdf, 0x21, 0xce, 0x97, 0x7a, 0x90, 0xf5, 0xc7, 0x43, 0x76, 0x59, 0x9b, 0x21,
+        0x90, 0x74,
     ]),
 };
 const FORMAT_VALUES_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/format-values"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0xba, 0x23, 0xe2, 0x76, 0xb7, 0x0b, 0x1b, 0x0c, 0x74, 0x7d, 0x2b, 0x4a, 0xda, 0x10, 0x0d,
-        0x72, 0xfa, 0x5b, 0x38, 0x74, 0xe4, 0xfa, 0x2b, 0xaa, 0x25, 0x0c, 0xf0, 0x71, 0x49, 0x79,
-        0x5c, 0xc0,
+        0xb6, 0x77, 0x82, 0xbd, 0x64, 0xf1, 0x19, 0x95, 0x15, 0xf7, 0x93, 0x1f, 0xd3, 0x9d, 0x9b,
+        0xea, 0xca, 0xda, 0xb9, 0x1c, 0x78, 0xfe, 0x66, 0x75, 0x27, 0x12, 0x02, 0x4b, 0xa1, 0x5b,
+        0xeb, 0x2e,
     ]),
 };
 const TERMINAL_OBSERVATION_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/terminal"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0xfb, 0xab, 0x7e, 0x8b, 0xbc, 0x24, 0xca, 0x50, 0xa4, 0xb3, 0x73, 0x91, 0x1e, 0x8f, 0xf2,
-        0xee, 0xa9, 0xac, 0xb9, 0x23, 0x27, 0xd9, 0xa4, 0x57, 0xa2, 0x4b, 0x05, 0x20, 0x5d, 0x13,
-        0x4d, 0x1c,
+        0x56, 0xda, 0xdf, 0x89, 0x31, 0xf2, 0xe4, 0x26, 0xf8, 0xfa, 0x83, 0xbb, 0xb3, 0x4b, 0x30,
+        0x1d, 0x13, 0xd0, 0xee, 0xc0, 0x8e, 0xd7, 0xcc, 0x98, 0x3d, 0x8a, 0x8a, 0xaa, 0xac, 0x18,
+        0xfe, 0x4a,
     ]),
 };
 const SUPERVISION_DECISION_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("supervision/decision"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0x81, 0xca, 0x8b, 0xc6, 0xdd, 0x48, 0xc4, 0x68, 0x84, 0x32, 0x8a, 0x30, 0x22, 0xae, 0x41,
-        0xc0, 0xd1, 0x98, 0x2a, 0x1a, 0x04, 0x51, 0x15, 0xf2, 0xed, 0x5d, 0x89, 0xba, 0xc6, 0x7c,
-        0xb2, 0x46,
+        0x81, 0x6e, 0x12, 0x35, 0xc6, 0x5e, 0xc7, 0xfc, 0xc4, 0xc3, 0xa3, 0x82, 0xa0, 0xa2, 0x95,
+        0x08, 0x22, 0x54, 0xd7, 0x79, 0x69, 0x68, 0x7f, 0x76, 0x91, 0x65, 0x57, 0x43, 0xe6, 0x8b,
+        0x34, 0xe4,
     ]),
 };
 const EMPTY_CONFIG: ConfigContract<'static> = ConfigContract { fields: &[] };
@@ -1235,7 +1231,7 @@ impl Registry {
     ) -> Result<(), RegistryError> {
         let source_digest = ArtifactDigest::from_bytes(Sha256::digest(service.source_bytes).into());
         let mut artifact = ArtifactManifest {
-            schema_version: 1,
+            schema_version: 0,
             identity: SemanticHash::from_bytes([0; 32]),
             id: Id(service.artifact_id),
             digest: source_digest,
@@ -1245,7 +1241,7 @@ impl Registry {
                 message: "linked host-service artifact is too large".to_owned(),
             })?,
             target: Some(Id(std::env::consts::ARCH)),
-            abi: Some(Id("conduit/rust-in-process-v1")),
+            abi: Some(Id("conduit/rust-in-process")),
             provenance: ArtifactProvenance {
                 builder: Id("conduit/rustc-workspace-build"),
                 source_digest,
@@ -1280,27 +1276,27 @@ impl Registry {
             required: true,
         }]));
         let mut manifest = ImplementationManifest {
-            schema_version: 1,
+            schema_version: 0,
             identity: SemanticHash::from_bytes([0; 32]),
             id: Id(service.implementation_id),
             implementation_version: "1",
             semantic_contract: PinnedDescriptor {
                 id: service.contract.id,
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: OwnedNodeSchema::from_contract(service.contract).semantic_hash(),
             },
             executor: ExecutorKind::NativeInProcess,
             entrypoint: ManifestEntrypoint {
                 name: Id(service.entrypoint),
                 adapter: Id("conduit/host-service-step"),
-                abi: Id("conduit/host-service-v1"),
-                protocol_version: 1,
+                abi: Id("conduit/host-service"),
+                protocol_version: 0,
             },
             execution_profile: PinnedDescriptor {
-                id: Id("conduit/hosted-primitive-profile-v1"),
-                schema_version: 1,
+                id: Id("conduit/hosted-primitive-profile"),
+                schema_version: 0,
                 semantic_hash: SemanticHash::from_bytes(
-                    Sha256::digest(b"conduit/hosted-primitive-profile/v1").into(),
+                    Sha256::digest(b"conduit/hosted-primitive-profile").into(),
                 ),
             },
             artifacts: references,
@@ -1308,7 +1304,7 @@ impl Registry {
             provided_interfaces: &[],
             required_authorities: service.required_authorities,
             required_effects: &[],
-            minimum_plan_version: 1,
+            minimum_plan_version: 0,
             maximum_plan_version: u32::MAX,
             minimum_runtime_protocol: 1,
             maximum_runtime_protocol: 1,
@@ -1692,14 +1688,14 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
         let source_hash: [u8; 32] = Sha256::digest(source_bytes).into();
         let artifact_digest = ArtifactDigest::from_bytes(source_hash);
         let mut artifact = ArtifactManifest {
-            schema_version: 1,
+            schema_version: 0,
             identity: SemanticHash::from_bytes([0; 32]),
             id: Id("conduit/hosted-primitives-artifact"),
             digest: artifact_digest,
             media_type: "application/vnd.conduit.compiled-in-provider",
             byte_size: u64::try_from(source_bytes.len()).expect("source length fits u64"),
             target: Some(Id(std::env::consts::ARCH)),
-            abi: Some(Id("conduit/rust-in-process-v1")),
+            abi: Some(Id("conduit/rust-in-process")),
             provenance: ArtifactProvenance {
                 builder: Id("conduit/rustc-workspace-build"),
                 source_digest: artifact_digest,
@@ -1725,7 +1721,7 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
         let artifacts: &'static [&'static ArtifactManifest<'static>] =
             Box::leak(Box::new([artifact]));
         let profile_hash =
-            SemanticHash::from_bytes(Sha256::digest(b"conduit/hosted-primitive-profile/v1").into());
+            SemanticHash::from_bytes(Sha256::digest(b"conduit/hosted-primitive-profile").into());
 
         let lines_contract = conduit_std::standard_node_contract("std/text/lines")
             .expect("lines is in the standard catalog");
@@ -1878,7 +1874,7 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
             .map(
                 |(contract, entrypoint, implementation, factory, validate_config)| {
                     let implementation_id: &'static str =
-                        Box::leak(format!("conduit/hosted-{entrypoint}-v1").into_boxed_str());
+                        Box::leak(format!("conduit/hosted-{entrypoint}").into_boxed_str());
                     let artifact_references = Box::leak(Box::new([ManifestArtifactRef {
                         id: artifact.id,
                         digest: artifact.digest,
@@ -1886,25 +1882,25 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                         required: true,
                     }]));
                     let mut manifest = ImplementationManifest {
-                        schema_version: 1,
+                        schema_version: 0,
                         identity: SemanticHash::from_bytes([0; 32]),
                         id: Id(implementation_id),
                         implementation_version: "1",
                         semantic_contract: PinnedDescriptor {
                             id: contract.id,
-                            schema_version: 1,
+                            schema_version: 0,
                             semantic_hash: OwnedNodeSchema::from_contract(contract).semantic_hash(),
                         },
                         executor: ExecutorKind::NativeInProcess,
                         entrypoint: ManifestEntrypoint {
                             name: Id(entrypoint),
                             adapter: Id("conduit/hosted-primitive-step"),
-                            abi: Id("conduit/hosted-primitive-v1"),
-                            protocol_version: 1,
+                            abi: Id("conduit/hosted-primitive"),
+                            protocol_version: 0,
                         },
                         execution_profile: PinnedDescriptor {
-                            id: Id("conduit/hosted-primitive-profile-v1"),
-                            schema_version: 1,
+                            id: Id("conduit/hosted-primitive-profile"),
+                            schema_version: 0,
                             semantic_hash: profile_hash,
                         },
                         artifacts: artifact_references,
@@ -1912,7 +1908,7 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                         provided_interfaces: &[],
                         required_authorities: &[],
                         required_effects: &[],
-                        minimum_plan_version: 1,
+                        minimum_plan_version: 0,
                         maximum_plan_version: u32::MAX,
                         minimum_runtime_protocol: 1,
                         maximum_runtime_protocol: 1,
@@ -2150,7 +2146,7 @@ impl Default for Registry {
         };
         let mut stream_sink = OwnedInterfaceContract {
             id: "conduit/stream-sink".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             members: vec![stream_sink_member],
             semantic_hash: SemanticHash::from_bytes([0; 32]),
         };
@@ -2189,7 +2185,7 @@ impl Default for Registry {
         };
         let mut text_processor = OwnedInterfaceContract {
             id: "conduit/text-processor".to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             members: vec![text_processor_in, text_processor_out],
             semantic_hash: SemanticHash::from_bytes([0; 32]),
         };
@@ -2585,7 +2581,7 @@ impl TypeContractProvider for BuiltinTypeProvider {
     fn provider_descriptor(&self) -> DescriptorRef<'static> {
         DescriptorRef {
             kind: Id("conduit/builtin-type-provider"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([0x24; 32]),
         }
     }
@@ -3494,11 +3490,7 @@ pub struct ExactTopologySupervision {
 impl ResolvedPanel<'_> {
     /// Returns only semantic/source topology needed before exact host binding.
     pub fn exact_topology(&self) -> Result<ExactTopologyView, ResolutionError> {
-        let source_hash = if self.source.version >= 2 {
-            conduit_panel::semantic_source_hash_v3(self.source)
-        } else {
-            conduit_panel::semantic_source_hash_v2(self.source)
-        };
+        let source_hash = conduit_panel::semantic_source_hash(self.source);
         let source_semantic_hash = semantic_hash_text(&source_hash).ok_or_else(|| {
             ResolutionError::new("CND-CMP-002", "semantic source hash is malformed")
         })?;
@@ -5768,7 +5760,7 @@ fn composite_definition_hash(
     ];
     CanonicalDescriptor {
         kind: Id("conduit/composite-definition-ref"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&fields),
     }
     .semantic_hash()
@@ -6703,7 +6695,7 @@ impl Handler for Supervisor {
     ) -> Result<Vec<Value>, RuntimeError> {
         Err(RuntimeError::new(
             "CND-SUP-015",
-            "typed supervisors run through the bounded supervision scheduler, not the legacy one-shot executor",
+            "typed supervisors run through the bounded supervision scheduler, not the displaced one-shot executor",
         ))
     }
 }
@@ -6836,7 +6828,7 @@ mod tests {
     fn format_uses_typed_inputs_named_indexed_and_escaped_placeholders() {
         let panel = parse(
             r#"
-                panel 3
+                panel 0
                 node template : std/literal {
                     value = "{worker} = {{status: {1}; count={2}}}"
                 }
@@ -6877,7 +6869,7 @@ mod tests {
     fn format_rejects_missing_and_extra_values_at_execution() {
         let panel = parse(
             r#"
-                panel 3
+                panel 0
                 node template : std/literal {
                     value = "{} {}"
                 }
@@ -6966,7 +6958,7 @@ mod tests {
     fn resolves_explains_and_runs_a_panel() {
         let panel = parse(
             r#"
-                panel 3
+                panel 0
                 node greeting : std/literal {
                     value = "Hello from Conduit.\n"
                 }
@@ -7007,7 +6999,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_implementations() {
-        let panel = parse("panel 3\nnode mystery : example/missing").expect("panel parses");
+        let panel = parse("panel 0\nnode mystery : example/missing").expect("panel parses");
         let error = Registry::compatibility_demo()
             .resolve(&panel)
             .expect_err("missing implementation");
@@ -7017,11 +7009,11 @@ mod tests {
     #[test]
     fn source_only_module_group_and_pool_forms_require_explicit_lowering() {
         for source in [
-            "panel 3\nimport \"./child.panel\" as child",
-            "panel 3\nport-group > routes : fixture/request indexed max 8",
-            "panel 3\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
-            "panel 3\nnode app { node child : std/literal }\nroot app",
-            "panel 3\nnode source : std/literal using ready",
+            "panel 0\nimport \"./child.panel\" as child",
+            "panel 0\nport-group > routes : fixture/request indexed max 8",
+            "panel 0\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
+            "panel 0\nnode app { node child : std/literal }\nroot app",
+            "panel 0\nnode source : std/literal using ready",
         ] {
             let panel = parse(source).expect("source form parses");
             let error = Registry::compatibility_demo()
@@ -7034,7 +7026,7 @@ mod tests {
     #[test]
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
-            "panel 3\nnode a : io/stdin\nnode b : io/stdout\n\
+            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
              cord a.bytes -> b.bytes {\n\
                pressure = sample\n\
                sample_every = 2\n\
@@ -7047,7 +7039,7 @@ mod tests {
         assert_eq!(error.code, "CND-FLW-002");
 
         let coalesce = parse(
-            "panel 3\nnode a : io/stdin\nnode b : io/stdout\n\
+            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
              cord a.bytes -> b.bytes {\n\
                pressure = coalesce\n\
                coalescer = conduit/replace-latest\n\
@@ -7065,7 +7057,7 @@ mod tests {
     fn stdin_is_an_explicit_source_node() {
         let panel = parse(
             r#"
-                panel 3
+                panel 0
                 node input : io/stdin
                 node output : io/stdout
                 cord input.bytes -> output.bytes
@@ -7094,7 +7086,7 @@ mod tests {
     fn nested_composites_bind_parameters_export_ports_and_preserve_views() {
         let panel = parse(
             r#"
-                panel 3
+                panel 0
                 composite example/literal-line {
                     node source : std/literal
                     export text > = source.value
@@ -7150,7 +7142,7 @@ mod tests {
     fn composite_boundary_is_substitutable_for_primitive_inputs_and_outputs() {
         let panel = parse(
             r#"
-                panel 3
+                panel 0
                 composite example/uppercase {
                     node worker : text/uppercase
                     export > text = worker.text
@@ -7187,7 +7179,7 @@ mod tests {
     #[test]
     fn contract_only_http_service_is_not_executable() {
         let panel = parse(
-            "panel 3\n\
+            "panel 0\n\
              node server : net/http/serve-once {\n\
                listen = \"127.0.0.1:0\"\n\
                method = \"GET\"\n\
@@ -7213,14 +7205,14 @@ mod tests {
         let registry = Registry::compatibility_demo();
         for (source, source_code, runtime_code) in [
             (
-                "panel 3\ncomposite example/a { node b : example/b }\n\
+                "panel 0\ncomposite example/a { node b : example/b }\n\
                  composite example/b { node a : example/a }\n\
                  node root : example/a",
                 None,
                 Some("CND-CMP-005"),
             ),
             (
-                "panel 3\ncomposite example/a {\n\
+                "panel 0\ncomposite example/a {\n\
                    node source : io/stdin\n\
                    export bytes > = source.bytes\n\
                    export bytes > = source.bytes\n\
@@ -7229,7 +7221,7 @@ mod tests {
                 None,
             ),
             (
-                "panel 3\ncomposite example/a {\n\
+                "panel 0\ncomposite example/a {\n\
                    node source : io/stdin\n\
                    export bytes > = missing.bytes\n\
                  }\nnode root : example/a",
@@ -7237,7 +7229,7 @@ mod tests {
                 None,
             ),
             (
-                "panel 3\ncomposite example/a {\n\
+                "panel 0\ncomposite example/a {\n\
                    node source : io/stdin\n\
                    export > bytes = source.bytes\n\
                  }\nnode root : example/a",
@@ -7245,7 +7237,7 @@ mod tests {
                 Some("CND-CMP-003"),
             ),
             (
-                "panel 3\ncomposite example/a {\n\
+                "panel 0\ncomposite example/a {\n\
                    node source : std/literal\n\
                    export value > = source.value\n\
                    bind value = source.missing\n\
@@ -7254,7 +7246,7 @@ mod tests {
                 Some("CND-CMP-003"),
             ),
             (
-                "panel 3\ncomposite example/a {\n\
+                "panel 0\ncomposite example/a {\n\
                    node source : io/stdin\n\
                    export bytes > = source.bytes\n\
                  }\nnode root : example/a\nnode sink : io/stdout\n\

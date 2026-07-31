@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node text_pipeline implements conduit/text-processor {
   node processor : text/uppercase

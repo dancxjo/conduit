@@ -10,7 +10,7 @@ use conduit_core::{
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
-const TRANSITION_FIXTURE: &str = include_str!("../../../conformance/c5/plan-transitions-v1.json");
+const TRANSITION_FIXTURE: &str = include_str!("../../../conformance/c5/plan-transitions.json");
 
 const fn hash(byte: u8) -> SemanticHash {
     SemanticHash::from_bytes([byte; 32])
@@ -19,7 +19,7 @@ const fn hash(byte: u8) -> SemanticHash {
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }

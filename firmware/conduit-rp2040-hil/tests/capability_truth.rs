@@ -5,7 +5,7 @@ use conduit_rp2040_hil::{
 };
 use serde_json::Value;
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/rp2040-firmware-hil-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/rp2040-firmware-hil.json");
 
 fn expected(id: &str) -> Value {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
@@ -120,9 +120,14 @@ fn forged_generic_report_identity_is_rejected() {
         let mut forged = report;
         forged.identity = SemanticHash::from_bytes([0; 32]);
         let mut scratch = [SemanticHash::from_bytes([0; 32]); 8];
-        let reason =
-            validate_capability_report(&forged, Id("clock/boot-ticks"), 10, 9, &mut scratch)
-                .unwrap_err();
+        let reason = validate_capability_report(
+            &forged,
+            Id("clock/boot-ticks"),
+            10,
+            conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
+            &mut scratch,
+        )
+        .unwrap_err();
         assert_eq!(reason, HostReportReason::IdentityMismatch);
         assert_eq!(
             serde_json::json!({"reason": reason.code()}),
@@ -135,9 +140,14 @@ fn forged_generic_report_identity_is_rejected() {
 fn stale_generic_report_is_rejected() {
     with_capability_report(10, |report| {
         let mut scratch = [SemanticHash::from_bytes([0; 32]); 8];
-        let reason =
-            validate_capability_report(&report, Id("clock/boot-ticks"), 1_011, 9, &mut scratch)
-                .unwrap_err();
+        let reason = validate_capability_report(
+            &report,
+            Id("clock/boot-ticks"),
+            1_011,
+            conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
+            &mut scratch,
+        )
+        .unwrap_err();
         assert_eq!(reason, HostReportReason::Stale);
         assert_eq!(
             serde_json::json!({"reason": reason.code()}),
@@ -150,9 +160,14 @@ fn stale_generic_report_is_rejected() {
 fn future_generic_report_is_rejected() {
     with_capability_report(10, |report| {
         let mut scratch = [SemanticHash::from_bytes([0; 32]); 8];
-        let reason =
-            validate_capability_report(&report, Id("clock/boot-ticks"), 9, 9, &mut scratch)
-                .unwrap_err();
+        let reason = validate_capability_report(
+            &report,
+            Id("clock/boot-ticks"),
+            9,
+            conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
+            &mut scratch,
+        )
+        .unwrap_err();
         assert_eq!(reason, HostReportReason::NotYetObserved);
         assert_eq!(
             serde_json::json!({"reason": reason.code()}),

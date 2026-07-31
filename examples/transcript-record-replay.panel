@@ -1,5 +1,5 @@
 # Chat transcript recording and replay pipeline.
-panel 3
+panel 0
 
 node input_stream : io/stdin
 node decoder : text/decode-utf8

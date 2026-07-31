@@ -20,8 +20,8 @@ use conduit_runtime::{
     CarrierSecurityMode, DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,
     HostedDistributedEvidence, OutboundDistributedFrame, ReceivedDistributedFrame,
     ResolvedPlacementBinding, ResolvedTransportSelection, TransportCapabilities, TransportReason,
-    decode_distributed_envelope, decode_distributed_envelope_v2, encode_distributed_envelope,
-    encode_distributed_envelope_v2, received_evidence_kind, validate_transport_selection,
+    decode_distributed_envelope, encode_distributed_envelope, received_evidence_kind,
+    validate_transport_selection,
 };
 use serde_json::json;
 use zenoh::Wait;
@@ -33,8 +33,8 @@ use zenoh::sample::{Locality, Sample};
 pub const ZENOH_TRANSPORT_CONTRACT_ID: &str = "conduit/distributed-cord-transport";
 pub const ZENOH_HOSTED_IMPLEMENTATION_ID: &str = "conduit/transport.zenoh-rust";
 pub const ZENOH_PICO_IMPLEMENTATION_ID: &str = "conduit/transport.zenoh-pico";
-pub const FIRMWARE_HOST_SERVICE_ADAPTER_ID: &str = "conduit/embedded-host-service-v1";
-pub const FIRMWARE_MESSAGE_ABI_ID: &str = "conduit/ffi-message-v1";
+pub const FIRMWARE_HOST_SERVICE_ADAPTER_ID: &str = "conduit/embedded-host-service";
+pub const FIRMWARE_MESSAGE_ABI_ID: &str = "conduit/ffi-message";
 pub const ZENOH_LIVE_EVENT_PROVIDER_CAPABILITIES: EventProviderCapabilities =
     EventProviderCapabilities {
         ephemeral: false,
@@ -576,11 +576,7 @@ impl DistributedCordBackend for ZenohDistributedCordBackend {
             return self.reject(Some(frame), Some(DistributedReason::EpochMismatch), None);
         }
         let mut bytes = vec![0_u8; binding.budget.maximum_frame_bytes as usize];
-        let encoded = if frame.value_envelope.is_some() {
-            encode_distributed_envelope_v2(self.plan_identity, binding, frame, &mut bytes)
-        } else {
-            encode_distributed_envelope(self.plan_identity, binding, frame, &mut bytes)
-        };
+        let encoded = encode_distributed_envelope(self.plan_identity, binding, frame, &mut bytes);
         let used = match encoded {
             Ok(used) => used,
             Err(reason) => return self.reject(Some(frame), None, Some(reason)),
@@ -650,11 +646,7 @@ impl DistributedCordBackend for ZenohDistributedCordBackend {
             }
         };
         let bytes = sample.payload().to_bytes();
-        let decoded_result = if bytes.get(4..6) == Some(&[0, 2]) {
-            decode_distributed_envelope_v2(&bytes, self.plan_identity, binding)
-        } else {
-            decode_distributed_envelope(&bytes, self.plan_identity, binding)
-        };
+        let decoded_result = decode_distributed_envelope(&bytes, self.plan_identity, binding);
         let decoded = match decoded_result {
             Ok(decoded) => decoded,
             Err(reason) => return self.reject(None, None, Some(reason)),

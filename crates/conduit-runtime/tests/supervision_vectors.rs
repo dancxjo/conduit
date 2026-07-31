@@ -1,20 +1,20 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
-    AdmittedSupervisionAction, CanonicalDescriptor, CanonicalValue,
-    EXECUTION_PLAN_SCHEMA_VERSION_V15, EvidenceCursor, EvidenceCursorStatus, FailurePlane,
-    FieldDisposition, Id, InstancePath, MapField, PlanResourceBudget, RecoveryBudget,
-    RetryDeclaration, SUPERVISION_CONTRACT_VERSION, SemanticHash, StandardNodeContract,
-    StandardNodeKind, StandardNodeLimits, StopPolicy, SupervisionActionKind,
-    SupervisionAffectedScope, SupervisionCauseRef, SupervisionContract, SupervisionDecision,
-    SupervisionEvidenceKind, SupervisionFailureMode, SupervisionHostProfile, SupervisionLimits,
-    SupervisionReason, SupervisionScope, TerminalCauseCode, TerminalClass, TerminalContext,
-    TerminalObservation, TerminalPhase, classify_evidence_cursor, minimum_supervision_allocation,
-    nearest_supervision_boundary, outward_handler_observation, select_terminal_observation,
-    validate_standard_supervisor, validate_supervision_allocation, validate_supervision_nesting,
+    AdmittedSupervisionAction, CanonicalDescriptor, CanonicalValue, EXECUTION_PLAN_SCHEMA_VERSION,
+    EvidenceCursor, EvidenceCursorStatus, FailurePlane, FieldDisposition, Id, InstancePath,
+    MapField, PlanResourceBudget, RecoveryBudget, RetryDeclaration, SUPERVISION_CONTRACT_VERSION,
+    SemanticHash, StandardNodeContract, StandardNodeKind, StandardNodeLimits, StopPolicy,
+    SupervisionActionKind, SupervisionAffectedScope, SupervisionCauseRef, SupervisionContract,
+    SupervisionDecision, SupervisionEvidenceKind, SupervisionFailureMode, SupervisionHostProfile,
+    SupervisionLimits, SupervisionReason, SupervisionScope, TerminalCauseCode, TerminalClass,
+    TerminalContext, TerminalObservation, TerminalPhase, classify_evidence_cursor,
+    minimum_supervision_allocation, nearest_supervision_boundary, outward_handler_observation,
+    select_terminal_observation, validate_standard_supervisor, validate_supervision_allocation,
+    validate_supervision_nesting,
 };
 use conduit_panel::{LoadedModule, ModuleLoader, parse, resolve_modules};
-use conduit_runtime::{BoundedSupervisionRuntime, Registry, lower_source_v3};
+use conduit_runtime::{BoundedSupervisionRuntime, Registry, lower_supervision};
 use serde_json::{Value, json};
 
 const ACTIONS: [AdmittedSupervisionAction<'static>; 7] = [
@@ -206,8 +206,8 @@ impl ModuleLoader for MemoryLoader {
     }
 }
 
-fn panel_v2_source() -> &'static str {
-    "panel 2\n\
+fn current_panel_source() -> &'static str {
+    "panel 0\n\
      node subject : std/literal { value = \"work\" }\n\
      node encoded : text/encode-utf8\n\
      node sink : io/stdout\n\
@@ -217,14 +217,14 @@ fn panel_v2_source() -> &'static str {
      supervise subject with handler\n"
 }
 
-fn lower_panel_v2() -> conduit_runtime::LoweredSourceV3 {
+fn lower_current_panel() -> conduit_runtime::LoweredSupervisedTopology {
     let uri = "mem://supervision/entry.panel";
     let loader = MemoryLoader(BTreeMap::from([(
         uri.to_owned(),
-        panel_v2_source().to_owned(),
+        current_panel_source().to_owned(),
     )]));
     let graph = resolve_modules(uri, None, &loader).unwrap();
-    lower_source_v3(&graph, &Registry::default()).unwrap()
+    lower_supervision(&graph, &Registry::default()).unwrap()
 }
 
 fn action_identity(action: AdmittedSupervisionAction<'_>) -> SemanticHash {
@@ -235,7 +235,7 @@ fn action_identity(action: AdmittedSupervisionAction<'_>) -> SemanticHash {
     };
     CanonicalDescriptor {
         kind: Id("conduit/test-supervision-action"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             field(
                 "kind",
@@ -661,13 +661,9 @@ fn execute_case(id: &str) -> Value {
                 BoundedSupervisionRuntime::new(base, SupervisionHostProfile::Hosted).unwrap();
             code(runtime.submit_terminal(expired).unwrap_err())
         }
-        "panel-v1-supervise-rejected" => {
-            let error = parse(&panel_v2_source().replacen("panel 2", "panel 1", 1)).unwrap_err();
-            json!({"code":error.code})
-        }
-        "panel-v2-supervision-lowers" => {
-            let lowered = lower_panel_v2();
-            assert_eq!(lowered.source_ast_schema_version, 3);
+        "panel-supervision-lowers" => {
+            let lowered = lower_current_panel();
+            assert_eq!(lowered.source_ast_schema_version, 0);
             json!({"bindings":lowered.supervisions.len()})
         }
         "exact-plan-resources-required" => {
@@ -732,13 +728,13 @@ fn execute_case(id: &str) -> Value {
             json!({"redacted":true})
         }
         "source-self-supervision-rejected" => {
-            let source = "panel 2\nnode subject : std/literal { value = \"x\" }\nsupervise subject with subject\n";
+            let source = "panel 0\nnode subject : std/literal { value = \"x\" }\nsupervise subject with subject\n";
             let error = parse(source).unwrap_err();
             json!({"code":error.code})
         }
-        "compile-roundtrip-schema-15" => {
-            assert_eq!(EXECUTION_PLAN_SCHEMA_VERSION_V15, 15);
-            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION_V15})
+        "compile-roundtrip" => {
+            assert_eq!(EXECUTION_PLAN_SCHEMA_VERSION, 0);
+            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION})
         }
         "browser-profile-explicit-action" => {
             let mut runtime =
@@ -851,11 +847,11 @@ fn execute_case(id: &str) -> Value {
 #[test]
 fn every_supervision_fixture_executes_independently() {
     let fixture: Value =
-        serde_json::from_str(include_str!("../../../conformance/c4/supervision-v1.json")).unwrap();
-    assert_eq!(fixture["schema"], "conduit.supervision-fixtures/v1");
+        serde_json::from_str(include_str!("../../../conformance/c4/supervision.json")).unwrap();
+    assert_eq!(fixture["schema"], "conduit.supervision-fixtures");
     assert_eq!(fixture["contract_version"], SUPERVISION_CONTRACT_VERSION);
     let cases = fixture["cases"].as_array().unwrap();
-    assert_eq!(cases.len(), 49);
+    assert_eq!(cases.len(), 48);
     let mut seen = BTreeSet::new();
     for case in cases {
         let id = case["id"].as_str().unwrap();
@@ -867,9 +863,9 @@ fn every_supervision_fixture_executes_independently() {
 
 #[test]
 fn supervisor_type_descriptors_are_canonical_and_resolvable() {
-    let source = panel_v2_source();
+    let source = current_panel_source();
     let mut panel = parse(source).unwrap();
-    let lowered = lower_panel_v2();
+    let lowered = lower_current_panel();
     panel.supervisions[0].resolved_identity =
         Some(lowered.supervisions[0].semantic_hash.to_string());
     let topology = Registry::compatibility_demo()

@@ -11,7 +11,7 @@ test("executes browser-host vectors without engine-name branches", async ({ page
   await expect(page.locator("#result")).toHaveText("ok", { timeout: 20_000 });
   const result = await page.evaluate(() => globalThis.__conduitBrowserResults);
   const fixture = await page.evaluate(async () =>
-    fetch("/conformance/c5/browser-host-v1.json").then((response) => response.json()));
+    fetch("/conformance/c5/browser-host.json").then((response) => response.json()));
   const fixtureCase = (id) =>
     fixture.cases.find((entry) => entry.id === id)?.expected;
 

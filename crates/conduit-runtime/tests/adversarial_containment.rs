@@ -30,7 +30,7 @@ use conduit_core::{
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/adversarial-containment-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/adversarial-containment.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 
 #[derive(Deserialize)]
@@ -182,7 +182,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -470,7 +470,7 @@ fn distributed_peer(
         realm_identity: hash(byte + 10),
         entity: Id(entity),
         passport: hash(byte + 20),
-        passport_schema_version: 1,
+        passport_schema_version: 0,
         credential: Id(if byte == 1 {
             "credential.writer"
         } else {
@@ -493,7 +493,7 @@ fn distributed_peer(
 fn distributed_binding() -> PlanDistributedCord<'static> {
     let capacity = FlowCapacity::new(2, 64, 128).unwrap();
     let mut binding = PlanDistributedCord {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         cord: Id("cord.adversarial"),
         writer_port_contract_hash: hash(90),
@@ -615,7 +615,7 @@ fn hazardous_profile() -> HazardousHostProfile<'static> {
     static ENVELOPE: [OperatingEnvelopeLimit<'static>; 1] = [OperatingEnvelopeLimit {
         dimension: PinnedDescriptor {
             id: Id("domain.limit"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([50; 32]),
         },
         minimum: 0,
@@ -931,7 +931,7 @@ fn signed_artifact() -> (
     }];
     static TRUSTED: [Id<'static>; 1] = [Id("signer.online")];
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: Id("artifact.fixture"),
         digest: ArtifactDigest::from_bytes([72; 32]),

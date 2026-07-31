@@ -1,0 +1,24 @@
+{
+  "suite": "security-boundaries",
+  "schema": "conduit.conformance/security-boundaries",
+  "protocol_version": 0,
+  "cases": [
+    {"id": "oversized-panel-source", "operation": "panel", "expected": {"accepted": false, "reason": "CND-SEC-001"}},
+    {"id": "panel-token-flood", "operation": "panel", "expected": {"accepted": false, "reason": "CND-SEC-001"}},
+    {"id": "recursive-source-value", "operation": "panel", "expected": {"accepted": false, "reason": "CND-SEC-002"}},
+    {"id": "hostile-diagnostic-text-is-escaped", "operation": "panel", "expected": {"accepted": false, "reflected_control_bytes": 0}},
+    {"id": "oversized-evidence-stream", "operation": "evidence", "expected": {"accepted": false, "limit": "input-bytes"}},
+    {"id": "oversized-evidence-record", "operation": "evidence", "expected": {"accepted": false, "limit": "record-bytes"}},
+    {"id": "evidence-record-flood", "operation": "evidence", "expected": {"accepted": false, "limit": "records"}},
+    {"id": "oversized-inline-evidence-payload", "operation": "evidence", "expected": {"accepted": false, "limit": "inline-payload-bytes"}},
+    {"id": "evidence-derivation-flood", "operation": "evidence", "expected": {"accepted": false, "limit": "derivations"}},
+    {"id": "oversized-evidence-string", "operation": "evidence", "expected": {"accepted": false, "limit": "string-bytes"}},
+    {"id": "malformed-evidence-json", "operation": "evidence", "expected": {"accepted": false, "reason": "json"}},
+    {"id": "artifact-digest-mismatch-is-terminal", "operation": "artifact", "expected": {"accepted": false, "reason": "CND-ART-002", "terminal": true}},
+    {"id": "artifact-rejection-reflects-no-payload", "operation": "artifact", "expected": {"accepted": false, "reflected_payload_bytes": 0}},
+    {"id": "verified-owned-artifact-handoff", "operation": "artifact", "expected": {"accepted": true, "loader_bytes": 12}},
+    {"id": "package-declared-length-overflow", "operation": "package", "expected": {"accepted": false, "reason": "CND-PKG-007"}},
+    {"id": "package-trailing-bytes", "operation": "package", "expected": {"accepted": false, "reason": "CND-PKG-008"}},
+    {"id": "archive-or-decompression-input-is-not-a-package", "operation": "package", "expected": {"accepted": false, "reason": "CND-PKG-008"}}
+  ]
+}

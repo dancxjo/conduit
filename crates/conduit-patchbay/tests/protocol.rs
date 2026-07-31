@@ -1,16 +1,16 @@
 use conduit_patchbay::{
-    EditOperation, EditRequest, HostConformanceProjectionInput, NodePosition, PATCHBAY_PROTOCOL_V1,
-    PlanSnapshot, PoolProjectionInput, ProjectionLog, ProjectionUpdate, RunSnapshot, RunState,
-    SubjectPath, Workspace, project_host_conformance, project_library_catalog, project_pool,
-    project_supervision,
+    EditOperation, EditRequest, HostConformanceProjectionInput, NodePosition,
+    PATCHBAY_PROTOCOL_VERSION, PlanSnapshot, PoolProjectionInput, ProjectionLog, ProjectionUpdate,
+    RunSnapshot, RunState, SubjectPath, Workspace, project_host_conformance,
+    project_library_catalog, project_pool, project_supervision,
 };
 
-const SOURCE: &str = "panel 3\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
-const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol-v1.json");
+const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
+const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol.json");
 
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
     EditRequest {
-        protocol_version: PATCHBAY_PROTOCOL_V1,
+        protocol_version: PATCHBAY_PROTOCOL_VERSION,
         document_id: workspace.source().document_id.clone(),
         expected_source_revision: workspace.source().revision,
         expected_presentation_revision: workspace.presentation().revision,
@@ -21,8 +21,8 @@ fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest
 #[test]
 fn library_catalog_projection_keeps_provider_bundles_separate_from_observation() {
     let projection =
-        project_library_catalog(include_str!("../../../library/catalog-v1.json")).unwrap();
-    assert_eq!(projection.schema, "conduit.library-catalog/v1");
+        project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
+    assert_eq!(projection.schema, "conduit.library-catalog");
     assert_eq!(projection.entries.len(), 114);
     let literal = projection
         .entries
@@ -51,7 +51,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
 #[test]
 fn library_catalog_projection_rejects_duplicate_and_observation_claims() {
     let mut document: serde_json::Value =
-        serde_json::from_str(include_str!("../../../library/catalog-v1.json")).unwrap();
+        serde_json::from_str(include_str!("../../../library/catalog.json")).unwrap();
     let first = document["entries"][0]["semantic_identity"]
         .as_str()
         .unwrap()
@@ -61,7 +61,7 @@ fn library_catalog_projection_rejects_duplicate_and_observation_claims() {
     assert_eq!(error.code, "CND-PBY-014");
 
     let mut document: serde_json::Value =
-        serde_json::from_str(include_str!("../../../library/catalog-v1.json")).unwrap();
+        serde_json::from_str(include_str!("../../../library/catalog.json")).unwrap();
     document["entries"][0]["current_provider_observation"] = "available".into();
     let error = project_library_catalog(&document.to_string()).unwrap_err();
     assert_eq!(error.code, "CND-PBY-014");
@@ -78,14 +78,14 @@ fn host_projection_keeps_contract_inventory_observation_and_exact_binding_separa
     let hash = |byte| SemanticHash::from_bytes([byte; 32]);
     let pin = |id, byte| PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     };
     let profile_pin = pin("acme/profile/linux", 1);
     let contract = pin("acme/contract/weather", 2);
     let bundle = pin("acme/provider/weather", 3);
     let adapter = pin("acme/adapter/celsius-to-kelvin", 4);
-    let mandatory = [pin("conduit/host/minimal-execution-v1", 5)];
+    let mandatory = [pin("conduit/host/minimal-execution", 5)];
     let providers = [ProviderInventory {
         contract,
         provider_bundle: bundle,
@@ -96,7 +96,7 @@ fn host_projection_keeps_contract_inventory_observation_and_exact_binding_separa
         descriptor: adapter,
     }];
     let profile = HostConformanceProfile {
-        schema_version: 1,
+        schema_version: 0,
         identity: profile_pin.semantic_hash,
         id: profile_pin.id,
         class: HostClass::LinuxHosted,
@@ -127,7 +127,7 @@ fn host_projection_keeps_contract_inventory_observation_and_exact_binding_separa
         maximum_evidence_events: 8,
     };
     let conformance = ProviderConformanceResult {
-        schema_version: 1,
+        schema_version: 0,
         identity: hash(11),
         required_contract: contract,
         implementation,
@@ -260,7 +260,7 @@ fn stale_or_invalid_transactions_are_atomic() {
 fn protocol_version_and_unknown_visual_subject_fail_closed() {
     let mut workspace = Workspace::new("tour/hello", SOURCE).expect("source parses");
     let unsupported = EditRequest {
-        protocol_version: 2,
+        protocol_version: PATCHBAY_PROTOCOL_VERSION.saturating_add(1),
         ..request(&workspace, Vec::new())
     };
     assert_eq!(
@@ -371,17 +371,17 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         instance: InstancePath::new("greeting").unwrap(),
         contract: PinnedDescriptor {
             id: Id("std/literal"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(2),
         },
         implementation: PinnedDescriptor {
             id: Id("std/literal.native"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(3),
         },
         lifecycle_policy: PinnedDescriptor {
             id: Id("conduit/lifecycle"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(4),
         },
         execution_profile: None,
@@ -397,7 +397,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         cord: Id("cord/value"),
         representation: PinnedDescriptor {
             id: Id("representation/bytes"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(10),
         },
         maximum_payload_bytes: 64,
@@ -443,7 +443,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         replay_gap: FeedbackReplayGapPolicy::Fail,
         cancellation: PinnedDescriptor {
             id: Id("cancellation/bounded"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(11),
         },
         terminal: FeedbackTerminalPolicy::DropRetained,
@@ -453,7 +453,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         id: Id("fixture/output"),
     };
     let lease = ResourceLeaseContract {
-        schema_version: 1,
+        schema_version: 0,
         id: Id("lease/output"),
         resource_binding: Id("resource/output"),
         holder: nodes[0].instance,
@@ -474,7 +474,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         maximum_evidence_events: 4,
         cleanup_escalation: PinnedDescriptor {
             id: Id("cleanup/force-close"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(12),
         },
         foreign_retention: ForeignRetention::Unsupported,
@@ -546,13 +546,13 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         containment: None,
         policy_budgets: &[],
         commit_profile: Some(EffectCommitProfile {
-            schema_version: 1,
+            schema_version: 0,
             id: Id("commit/write"),
             operation: effect.action,
             resource_lease: lease.id,
             commit_boundary: PinnedDescriptor {
                 id: Id("commit/fsync"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(15),
             },
             idempotency: EffectIdempotency::ReconcileBeforeRetry,
@@ -560,7 +560,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
             discontinuity: EffectDiscontinuity::ReconcileRequired,
             cleanup: PinnedDescriptor {
                 id: Id("cleanup/unlink"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(16),
             },
             maximum_attempts: 2,
@@ -612,12 +612,12 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         },
     }];
     let plan = ExecutionPlan {
-        schema_version: 19,
+        schema_version: 0,
         identity: hash(1),
         source_semantic_hash: hash(5),
         resolver: PinnedDescriptor {
             id: Id("resolver/test"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(6),
         },
         resolver_policy_hash: hash(7),
@@ -703,7 +703,7 @@ fn workspace_semantic_does_not_emit_contract_only_by_default() {
 
 #[test]
 fn typed_source_edits_are_atomic_and_history_is_finite() {
-    let source = "panel 3\n\
+    let source = "panel 0\n\
 node greeting : std/literal {\n\
   value = \"hello\"\n\
 }\n\
@@ -834,7 +834,7 @@ fn supervision_projection_retains_exact_origins_actions_rejection_and_gap() {
         requires_new_epoch: true,
     }];
     let contract = SupervisionContract {
-        schema_version: 1,
+        schema_version: 0,
         id: Id("supervision.subject"),
         scope: SupervisionScope::Child,
         subject: InstancePath::new("root/subject").unwrap(),

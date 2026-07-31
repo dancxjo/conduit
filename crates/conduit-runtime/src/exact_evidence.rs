@@ -50,8 +50,8 @@ pub(crate) fn project_exact_evidence(
         .filter(|observation| retained(observation.kind))
         .map(|observation| {
             let mut record = ExactEvidenceRecord {
-                schema: "conduit.exact-execution-evidence/v1",
-                schema_version: 1,
+                schema: "conduit.exact-execution-evidence",
+                schema_version: 0,
                 plan_identity: plan.identity.to_string(),
                 plan_epoch,
                 run_id: run_id.to_owned(),

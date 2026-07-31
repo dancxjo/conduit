@@ -19,7 +19,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -597,7 +597,7 @@ fn control_evidence_has_an_identity_distinct_from_every_authorization_stage() {
 #[test]
 fn every_containment_fixture_case_executes_independently() {
     let fixture: serde_json::Value =
-        serde_json::from_str(include_str!("../../../conformance/c2/containment-v1.json")).unwrap();
+        serde_json::from_str(include_str!("../../../conformance/c2/containment.json")).unwrap();
     let cases = fixture["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 33);
     for case in cases {

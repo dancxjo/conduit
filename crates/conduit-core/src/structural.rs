@@ -293,7 +293,7 @@ mod tests {
 
     const TYPE: TypeContractRef<'static> = TypeContractRef {
         contract_id: Id("fixture/timestamp"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([7; 32]),
     };
 

@@ -1,5 +1,5 @@
 # Network health monitor panel with circuit breaker and backoff.
-panel 3
+panel 0
 
 node probe_ping : std/udp-socket {
     port = 53

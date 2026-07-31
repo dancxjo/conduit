@@ -1,5 +1,5 @@
 # A finite proof of typed resolution and execution.
-panel 3
+panel 0
 
 node greeting : std/literal {
     value = "Hello from Conduit.\n"

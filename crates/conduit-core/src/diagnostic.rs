@@ -1,7 +1,7 @@
 //! Allocator-free structured diagnostics.
 
 /// Structured diagnostic schema version.
-pub const DIAGNOSTIC_SCHEMA_VERSION: u32 = 1;
+pub const DIAGNOSTIC_SCHEMA_VERSION: u32 = 0;
 
 /// Stable diagnostic severity.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
