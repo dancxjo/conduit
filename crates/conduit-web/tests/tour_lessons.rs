@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 28] = [
+const REQUIRED_TOUR_LESSONS: [&str; 29] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -26,6 +26,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 28] = [
     "library.bounded-supervision",
     "library.explicit-time",
     "library.explicit-data-boundaries",
+    "library.bounded-process-exec",
     "library.bounded-filesystem",
     "library.evictable-storage-cache",
     "library.contract-package-imports",
@@ -905,6 +906,89 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         ]
         .into_iter()
         .collect()
+    );
+}
+
+#[test]
+fn bounded_process_lesson_is_selectable_and_honest_about_browser_support() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-process-exec")
+        .expect("bounded process lesson is selectable");
+    assert_eq!(lesson["runnability"]["state"], "contract-only");
+    assert_eq!(lesson["runnability"]["proof"], "resolver-rejection");
+    assert_eq!(lesson["expected_diagnostic"], "CND-IMP-001");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.host/process/exec",
+            "io/stderr-stream",
+            "io/stdin-stream",
+            "io/stdout-stream",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "executable_resource",
+        "argv",
+        "stream",
+        "spawn",
+        "exit",
+        "signal",
+        "cancellation",
+        "cleanup",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .unwrap()
+            .contains("ordered text table")
+    );
+
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 5);
+    let scenario_ids = scenarios
+        .iter()
+        .map(|scenario| scenario["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "standalone",
+        "independent-streams",
+        "cancel-and-cleanup",
+        "typed-adapter",
+        "browser-unsupported",
+    ] {
+        assert!(scenario_ids.contains(required));
+    }
+    assert_eq!(
+        scenarios
+            .iter()
+            .find(|scenario| scenario["id"] == "browser-unsupported")
+            .unwrap()["diagnostic"],
+        "CND-IMP-001"
     );
 }
 

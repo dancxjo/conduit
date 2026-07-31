@@ -429,6 +429,98 @@ mod tests {
         assert_eq!(validate_exec_request(&request), Ok(()));
     }
 
+    fn terminal(program: FakeProgram, control: FakeExecControl) -> Result<ExecTerminal, ExecError> {
+        let request = request(&[]);
+        let mut stdout = [0; 64];
+        let mut stderr = [0; 64];
+        let mut events = [ExecEvent {
+            sequence: 0,
+            tick: 0,
+            kind: ExecEventKind::SpawnCommitted,
+            bytes: 0,
+        }; 16];
+        run_fake_exec(
+            &request,
+            program,
+            FakeExecBuffers {
+                stdin: b"payload",
+                stdout: &mut stdout,
+                stderr: &mut stderr,
+                events: &mut events,
+            },
+            control,
+        )
+        .map(|result| result.terminal)
+    }
+
+    #[test]
+    fn deterministic_terminal_matrix_is_explicit() {
+        assert_eq!(
+            terminal(FakeProgram::Exit(0), FakeExecControl::default()),
+            Ok(ExecTerminal::Exited(0))
+        );
+        assert_eq!(
+            terminal(FakeProgram::Exit(7), FakeExecControl::default()),
+            Ok(ExecTerminal::Exited(7))
+        );
+        assert_eq!(
+            terminal(FakeProgram::Signal(9), FakeExecControl::default()),
+            Ok(ExecTerminal::Signaled(9))
+        );
+        assert_eq!(
+            terminal(FakeProgram::SpawnFailure, FakeExecControl::default()),
+            Err(ExecError::SpawnFailed)
+        );
+        assert_eq!(
+            terminal(
+                FakeProgram::Echo,
+                FakeExecControl {
+                    cancel_before_spawn: true,
+                    ..FakeExecControl::default()
+                },
+            ),
+            Err(ExecError::CancelledBeforeSpawn)
+        );
+        assert_eq!(
+            terminal(
+                FakeProgram::Echo,
+                FakeExecControl {
+                    deadline_after_spawn: true,
+                    ..FakeExecControl::default()
+                },
+            ),
+            Ok(ExecTerminal::DeadlineExceeded { forced: false })
+        );
+
+        let mut request = request(&[]);
+        request.limits.maximum_stdout_bytes = 3;
+        let mut stdout = [0; 64];
+        let mut stderr = [0; 64];
+        let mut events = [ExecEvent {
+            sequence: 0,
+            tick: 0,
+            kind: ExecEventKind::SpawnCommitted,
+            bytes: 0,
+        }; 16];
+        let overflow = run_fake_exec(
+            &request,
+            FakeProgram::Echo,
+            FakeExecBuffers {
+                stdin: b"payload",
+                stdout: &mut stdout,
+                stderr: &mut stderr,
+                events: &mut events,
+            },
+            FakeExecControl::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            overflow.terminal,
+            ExecTerminal::OutputOverflow(OutputStream::Stdout)
+        );
+        assert!(overflow.cleanup_complete);
+    }
+
     #[test]
     fn stdout_and_stderr_remain_independent() {
         let request = request(&[]);

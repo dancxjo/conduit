@@ -1,0 +1,42 @@
+# A higher-level adapter owns its semantic identity and keeps process bytes internal.
+panel 0
+
+composite example/bounded-process-echo {
+    node child : conduit.host/process/exec {
+        program = ref("conduit.executable/process-fixture")
+        argv = record()
+        environment = record(LANG="C")
+        working_resource = secret("conduit.resource/process-working-root")
+        grant = secret("conduit.grant/process-exec")
+        stdin_close = "close-after-input"
+        maximum_stdin_bytes = 4096
+        maximum_stdout_bytes = 4096
+        maximum_stderr_bytes = 4096
+        maximum_chunk_bytes = 1024
+        maximum_pending_operations = 3
+        maximum_processes = 1
+        maximum_child_processes = 0
+        maximum_descriptors = 3
+        maximum_environment_bytes = 16
+        maximum_work = 4096
+        maximum_evidence_events = 64
+        deadline_ticks = 1000
+        graceful_signal = 9
+        graceful_ticks = 1
+        forced_ticks = 1
+        cancellation = "none"
+    }
+
+    export > request = child.stdin
+    export response > = child.stdout
+    export diagnostic > = child.stderr
+}
+
+node input : io/stdin-stream
+node adapter : example/bounded-process-echo
+node output : io/stdout-stream
+node errors : io/stderr-stream
+
+cord input.bytes -> adapter.request { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+cord adapter.response -> output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+cord adapter.diagnostic -> errors.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }

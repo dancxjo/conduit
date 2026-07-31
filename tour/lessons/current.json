@@ -2134,6 +2134,177 @@
       }
     },
     {
+      "id": "library.bounded-process-exec",
+      "chapter": 4,
+      "title": "Bounded process execution",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.resource-lease-effect-commit",
+        "platform.workload-admission-deadline"
+      ],
+      "objective": "Inspect one exact, opt-in process boundary with three bounded byte streams and explicit spawn, exit, deadline, cancellation, cleanup, authority, and terminal evidence.",
+      "prose": "Process execution is one optional host boundary, not a shell and not a substitute for a semantic node. The program is an installed executable resource; argv is a bounded literal vector; environment and working resource are explicit; stdin, stdout, and stderr remain independent bounded byte streams. Spawn, exit, signal, cancellation, deadline, and cleanup are lifecycle evidence rather than a fourth data stream.",
+      "vocabulary": [
+        "literal argv",
+        "executable resource",
+        "independent stderr",
+        "spawn commit",
+        "forced cleanup",
+        "provider loss"
+      ],
+      "source": "panel 0\n\nnode child : conduit.host/process/exec {\n    program = ref(\"conduit.executable/process-fixture\")\n    argv = record()\n    environment = record(LANG=\"C\")\n    working_resource = secret(\"conduit.resource/process-working-root\")\n    grant = secret(\"conduit.grant/process-exec\")\n    stdin_close = \"close-after-input\"\n    maximum_stdin_bytes = 4096\n    maximum_stdout_bytes = 4096\n    maximum_stderr_bytes = 4096\n    maximum_chunk_bytes = 1024\n    maximum_pending_operations = 3\n    maximum_processes = 1\n    maximum_child_processes = 0\n    maximum_descriptors = 3\n    maximum_environment_bytes = 16\n    maximum_work = 4096\n    maximum_evidence_events = 64\n    deadline_ticks = 1000\n    graceful_signal = 9\n    graceful_ticks = 1\n    forced_ticks = 1\n    cancellation = \"none\"\n}\n",
+      "command": "conduct --enable-process-exec examples/process-exec.panel",
+      "commands": [
+        "conduct --enable-process-exec --check examples/process-exec.panel",
+        "conduct --enable-process-exec examples/process-exec.panel",
+        "conduct --enable-process-exec examples/process-exec-streams.panel",
+        "conduct --enable-process-exec examples/process-exec-adapter.panel"
+      ],
+      "expected_diagnostic": "CND-IMP-001",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 1000,
+        "queue_bytes": 4096,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "process-boundary-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "provider_state",
+          "executable_resource",
+          "grant",
+          "argv",
+          "stream",
+          "queue",
+          "pressure",
+          "spawn",
+          "exit",
+          "signal",
+          "cancellation",
+          "cleanup",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-IMP-001"
+      },
+      "hints": [
+        "Metacharacters in argv are literal bytes because no shell or PATH lookup exists at this boundary.",
+        "stdout and stderr have separate cords, queue bounds, pressure, overflow, and terminal evidence.",
+        "The browser has no process provider; export the panel to an explicitly enabled hosted Conduct profile."
+      ],
+      "solution": "Bind one installed executable resource and matching grant, state finite argv, environment, stream, work, deadline, cancellation, and cleanup bounds, and keep any higher-level semantic adapter as a separately named composite with process bytes internal.",
+      "accessibility": {
+        "non_audio": "An ordered text table names provider availability, executable resource, grant, argv entries, stdin close, each stream and queue, spawn, exit or signal, cancellation escalation, cleanup, error, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus ArrowRight to inspect the ordered process-boundary evidence when the lesson story has focus.",
+        "color_independent": "Stream names, sequence numbers, bounds, lifecycle words, errors, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection",
+        "reason": "Browsers do not expose the installed process provider; hosted execution requires the explicit --enable-process-exec gate."
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "One opt-in process node exposes three bounded byte streams while lifecycle and authority remain exact plan and evidence facts.",
+        "what": "The node consumes finite stdin chunks and emits independent finite stdout and stderr chunks. Spawn, exit, signal, deadline, cancellation, forced cleanup, provider loss, and overflow are structured lifecycle outcomes.",
+        "when": "Use it only when a hosted graph must invoke one explicitly installed executable resource. Publish a separate typed contract for domain tools and keep their byte protocol inside that adapter.",
+        "wrong": "Ambient PATH lookup, shell strings, inherited environment, unbounded output, merged stderr, hidden retries, orphaned children, stale grants, and pretending the generic process node is FFmpeg or SoX all fail the boundary.",
+        "contracts": [
+          {
+            "id": "conduit.host/process/exec",
+            "kind": "node",
+            "instance": "child",
+            "inputs": ["stdin:std/bytes stream"],
+            "outputs": ["stdout:std/bytes stream", "stderr:std/bytes stream"],
+            "descriptor_hash": "sha256:2bcc2f8d263ff184a7e9d99d758668ad07e2c5ccd6d83cc233ae565174ab59d1"
+          },
+          {
+            "id": "io/stdin-stream",
+            "kind": "node",
+            "instance": "input",
+            "outputs": ["bytes:std/bytes stream"],
+            "descriptor_hash": "sha256:ebe45c2574bbf84e385337f4c1bff4d843d0282cfbc561e4b26f9597eacce881"
+          },
+          {
+            "id": "io/stdout-stream",
+            "kind": "node",
+            "instance": "output",
+            "inputs": ["bytes:std/bytes stream"],
+            "descriptor_hash": "sha256:1861ffaa4298954bff3057d178e8914bfccf3e9d1905432592871c36c30b73ad"
+          },
+          {
+            "id": "io/stderr-stream",
+            "kind": "node",
+            "instance": "errors",
+            "inputs": ["bytes:std/bytes stream"],
+            "descriptor_hash": "sha256:234b8039c076c4c4d8e981404b14490d60743ca4f47133a7302c418847ec540f"
+          }
+        ],
+        "editable": [
+          "child.argv:bounded literal record",
+          "child.maximum_stdout_bytes:1..65536",
+          "child.maximum_stderr_bytes:1..65536",
+          "child.deadline_ticks:1..10000",
+          "child.cancellation:none|before-spawn|after-spawn"
+        ],
+        "provider": "explicit opt-in Linux hosted provider; deliberately unavailable in browsers",
+        "profile": "hosted-exact-process",
+        "expected_evidence": [
+          "contract known, provider enabled, fresh capacity report, exact executable resource, active grant, and admitted lease",
+          "literal argv and redacted environment plus bounded stdin, stdout, stderr, work, deadline, process, descriptor, and evidence ceilings",
+          "ordered spawn commit, stdin close, independent stream pressure, exit or signal, cancellation escalation, child cleanup, and one exact terminal cause",
+          "browser provider omission as CND-IMP-001 without emulation or ambient fallback"
+        ],
+        "docs": [
+          "../../spec/063-bounded-process-exec.md",
+          "../../examples/process-exec.panel",
+          "../../examples/process-exec-streams.panel",
+          "../../examples/process-exec-cancel.panel",
+          "../../examples/process-exec-adapter.panel"
+        ],
+        "scenarios": [
+          {
+            "id": "standalone",
+            "title": "Standalone literal argv and stdin",
+            "panel": "../../examples/process-exec.panel",
+            "semantics": "The exact provider receives literal argv and closes stdin after the bounded input stream."
+          },
+          {
+            "id": "independent-streams",
+            "title": "Independent stdout and stderr",
+            "panel": "../../examples/process-exec-streams.panel",
+            "semantics": "Each output retains its own cord, byte ceiling, pressure, overflow, and terminal evidence."
+          },
+          {
+            "id": "cancel-and-cleanup",
+            "title": "Cancellation after spawn",
+            "panel": "../../examples/process-exec-cancel.panel",
+            "semantics": "The provider records cancellation, bounded escalation, forced termination when required, and complete child cleanup."
+          },
+          {
+            "id": "typed-adapter",
+            "title": "Separately named higher-level adapter",
+            "panel": "../../examples/process-exec-adapter.panel",
+            "semantics": "The composite owns example/bounded-process-echo while the generic process byte protocol remains internal."
+          },
+          {
+            "id": "browser-unsupported",
+            "title": "Browser provider unavailable",
+            "diagnostic": "CND-IMP-001",
+            "semantics": "The browser fails closed because no process provider is installed; it does not emulate or forward execution."
+          }
+        ]
+      }
+    },
+    {
       "id": "library.bounded-filesystem",
       "chapter": 4,
       "title": "Bounded file boundaries",

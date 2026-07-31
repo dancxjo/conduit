@@ -289,6 +289,13 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             Some("library.bounded-filesystem")
         }
         (
+            "conduit.host/process/exec"
+            | "io/stdin-stream"
+            | "io/stdout-stream"
+            | "io/stderr-stream",
+            _,
+        ) => Some("library.bounded-process-exec"),
+        (
             "storage/blob/literal"
             | "storage/cache/put"
             | "storage/cache/get"

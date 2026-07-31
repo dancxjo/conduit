@@ -4,7 +4,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 | Contract | Class | Package | Provider bundles | Standalone lesson | Composition lesson |
 |---|---|---|---:|---|---|
-| `conduit.host/process/exec` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.conduit.host.process.exec.standalone (required) | tour/lessons/current.json#library.conduit.host.process.exec.composition (required) |
+| `conduit.host/process/exec` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `conduit.std/gate` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
 | `conduit.std/merge` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
 | `conduit.std/select` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
@@ -42,11 +42,11 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `fs/watch` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
 | `fs/write` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
 | `io/stderr` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stderr.standalone (required) | tour/lessons/current.json#library.io.stderr.composition (required) |
-| `io/stderr-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stderr-stream.standalone (required) | tour/lessons/current.json#library.io.stderr-stream.composition (required) |
+| `io/stderr-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `io/stdin` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stdin.standalone (required) | tour/lessons/current.json#library.io.stdin.composition (required) |
-| `io/stdin-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stdin-stream.standalone (required) | tour/lessons/current.json#library.io.stdin-stream.composition (required) |
+| `io/stdin-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `io/stdout` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#welcome.hello-panel (published) | tour/lessons/current.json#platform.cross-host-provider-conformance (published) |
-| `io/stdout-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stdout-stream.standalone (required) | tour/lessons/current.json#library.io.stdout-stream.composition (required) |
+| `io/stdout-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `net/bridge` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.bridge.standalone (required) | tour/lessons/current.json#library.net.bridge.composition (required) |
 | `net/dhcp/client` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.dhcp.client.standalone (required) | tour/lessons/current.json#library.net.dhcp.client.composition (required) |
 | `net/dhcp/server` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.dhcp.server.standalone (required) | tour/lessons/current.json#library.net.dhcp.server.composition (required) |

@@ -284,6 +284,33 @@ fn read_bounded(mut reader: impl Read, maximum: usize) -> io::Result<Vec<u8>> {
     Ok(bytes)
 }
 
+fn collect_stdin_chunks<'a>(
+    chunks: impl IntoIterator<Item = &'a [u8]>,
+    maximum_chunk: usize,
+    maximum_total: usize,
+) -> Result<Vec<u8>, RuntimeError> {
+    let mut stdin = Vec::with_capacity(maximum_total.min(PROCESS_MAX_CHUNK_BYTES));
+    for chunk in chunks {
+        if chunk.len() > maximum_chunk {
+            return Err(runtime_error(
+                "CND-EXEC-006",
+                "process stdin chunk exceeds its exact byte ceiling",
+            ));
+        }
+        let next_len = stdin.len().checked_add(chunk.len()).ok_or_else(|| {
+            runtime_error("CND-EXEC-006", "process stdin byte accounting overflowed")
+        })?;
+        if next_len > maximum_total {
+            return Err(runtime_error(
+                "CND-EXEC-006",
+                "process stdin stream exceeds its exact byte ceiling",
+            ));
+        }
+        stdin.extend_from_slice(chunk);
+    }
+    Ok(stdin)
+}
+
 struct ProcessHandler;
 
 impl Handler for ProcessHandler {
@@ -295,18 +322,18 @@ impl Handler for ProcessHandler {
     ) -> Result<Vec<Value>, RuntimeError> {
         validate_config(node).map_err(|error| runtime_error(error.code, error.message))?;
         let contract = contract();
-        let input = inputs
-            .first()
-            .filter(|input| input.value_type == contract.inputs[0].value_type)
-            .ok_or_else(|| runtime_error("CND-EXEC-006", "process stdin is missing"))?;
         let maximum_stdin = required_usize(node, "maximum_stdin_bytes")
             .map_err(|error| runtime_error(error.code, error.message))?;
-        if input.bytes.len() > maximum_stdin {
-            return Err(runtime_error(
-                "CND-EXEC-006",
-                "process stdin exceeds its exact byte ceiling",
-            ));
-        }
+        let maximum_chunk = required_usize(node, "maximum_chunk_bytes")
+            .map_err(|error| runtime_error(error.code, error.message))?;
+        let stdin = collect_stdin_chunks(
+            inputs
+                .iter()
+                .filter(|input| input.value_type == contract.inputs[0].value_type)
+                .map(|input| input.bytes.as_slice()),
+            maximum_chunk,
+            maximum_stdin,
+        )?;
         if node.config("cancellation") == Some("cancel-before-spawn") {
             return Err(runtime_error(
                 "CND-EXEC-009",
@@ -374,10 +401,9 @@ impl Handler for ProcessHandler {
             .map_err(|error| runtime_error(error.code, error.message))?;
         let started = Instant::now();
         let (stdout, stderr, timed_out) = thread::scope(|scope| {
-            let input = input.bytes.as_slice();
             let writer = scope.spawn(move || {
                 let mut child_stdin = child_stdin;
-                child_stdin.write_all(input)?;
+                child_stdin.write_all(&stdin)?;
                 child_stdin.flush()
             });
             let stdout_reader = scope.spawn(move || read_bounded(child_stdout, maximum_stdout));
@@ -550,6 +576,30 @@ pub fn fixture_entrypoint() -> Option<ExitCode> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stdin_collection_accepts_empty_and_multiple_bounded_chunks() {
+        assert_eq!(
+            collect_stdin_chunks(std::iter::empty(), 4, 8).unwrap(),
+            Vec::<u8>::new()
+        );
+        assert_eq!(
+            collect_stdin_chunks([b"ab".as_slice(), b"cd".as_slice()], 2, 4).unwrap(),
+            b"abcd"
+        );
+        assert_eq!(
+            collect_stdin_chunks([b"abc".as_slice()], 2, 4)
+                .expect_err("oversized chunk is rejected")
+                .code,
+            "CND-EXEC-006"
+        );
+        assert_eq!(
+            collect_stdin_chunks([b"ab".as_slice(), b"cd".as_slice()], 2, 3)
+                .expect_err("oversized stream is rejected")
+                .code,
+            "CND-EXEC-006"
+        );
+    }
 
     #[test]
     fn provider_description_redacts_resources_and_environment_values() {
