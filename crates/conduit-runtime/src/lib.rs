@@ -51,6 +51,7 @@ mod supervision;
 mod transition;
 mod transport;
 mod type_registry;
+mod watch;
 mod workload;
 
 pub use artifact_verification::{
@@ -141,6 +142,9 @@ pub use transport::{
 pub use type_registry::{
     ProviderTypeDecision, TypeComparisonStrategy, TypeContractDescription, TypeContractProvider,
     TypeRegistry, TypeRegistryError, TypeSatisfactionReport,
+};
+pub use watch::{
+    ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject, ExactWatchUsage,
 };
 pub use workload::{
     LinuxWorkloadObservation, WorkloadRunEvidence, observe_linux_workload,
@@ -1804,11 +1808,13 @@ pub struct ExactHostedRunSession {
     session: ExactRunSession<HostedSchedulerDriver<'static, 'static>>,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
     io: Rc<RefCell<ExactRunIo>>,
+    watches: Rc<RefCell<watch::HostedWatchRuntime>>,
 }
 
 type StartedHostedSession<'r, 'i> = (
     ExactRunSession<HostedSchedulerDriver<'r, 'i>>,
     Rc<RefCell<Option<RuntimeError>>>,
+    Rc<RefCell<watch::HostedWatchRuntime>>,
 );
 
 impl ExactHostedRunSession {
@@ -1930,6 +1936,36 @@ impl ExactHostedRunSession {
         self.session
             .read_exact_evidence(cursor, maximum_events)
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
+    }
+
+    /// Attaches one exact-plan-admitted structural Watch. Public material is
+    /// copied into its fixed preview buffer; protected material remains
+    /// redacted until a later exact reveal-authority boundary authorizes it.
+    pub fn attach_watch(&mut self, watch_id: &str) -> Result<(), RuntimeError> {
+        self.watches.borrow_mut().attach(watch_id)
+    }
+
+    /// Stops future observation without mutating the run or discarding the
+    /// Watch's already retained bounded window.
+    pub fn detach_watch(&mut self, watch_id: &str) -> Result<(), RuntimeError> {
+        self.watches.borrow_mut().detach(watch_id)
+    }
+
+    /// Reads one bounded caller-owned Watch delta from its isolated window.
+    pub fn read_watch(
+        &self,
+        watch_id: &str,
+        cursor: u64,
+        maximum_records: u32,
+    ) -> Result<ExactWatchBatch, RuntimeError> {
+        self.watches
+            .borrow()
+            .read(watch_id, cursor, maximum_records)
+    }
+
+    #[must_use]
+    pub fn watch_usage(&self) -> ExactWatchUsage {
+        self.watches.borrow().usage()
     }
 
     pub fn acknowledge_scheduler_events_through(
@@ -5483,7 +5519,7 @@ impl ResolvedPanel<'_> {
             ));
         }
         let io = Rc::new(RefCell::new(io));
-        let (session, host_failure) = self.start_exact_session_with_io(
+        let (session, host_failure, watches) = self.start_exact_session_with_io(
             plan,
             bindings,
             context,
@@ -5494,6 +5530,7 @@ impl ResolvedPanel<'_> {
             session,
             host_failure,
             io,
+            watches,
         })
     }
 
@@ -5591,7 +5628,7 @@ impl ResolvedPanel<'_> {
                 || source.from_port.value_type != planned.from.value_type
                 || source.to_port.value_type != planned.to.value_type
                 || expected_flow != planned.flow
-                || source.max_queued_bytes != planned.queue_memory_bytes
+                || source.max_queued_bytes != planned.flow.capacity.max_queued_bytes()
             {
                 return Err(RuntimeError::new(
                     "CND-RUN-009",
@@ -5611,6 +5648,7 @@ impl ResolvedPanel<'_> {
             maximum_value_store_bytes,
             maximum_value_store_slots,
         )?));
+        let watches = Rc::new(RefCell::new(watch::HostedWatchRuntime::from_plan(plan)?));
         let host_failure = Rc::new(RefCell::new(None));
         let mut scheduled_nodes = Vec::with_capacity(plan.nodes.len());
         for (node_index, planned) in plan.nodes.iter().enumerate() {
@@ -6206,6 +6244,7 @@ impl ResolvedPanel<'_> {
                 driver: HostedSchedulerDriver {
                     kind,
                     store: Rc::clone(&store),
+                    watches: Rc::clone(&watches),
                     io: io.clone(),
                     in_cords,
                     out_cords,
@@ -6239,7 +6278,7 @@ impl ResolvedPanel<'_> {
             },
             executor,
         );
-        Ok((session, host_failure))
+        Ok((session, host_failure, watches))
     }
 
     fn run_exact_report_controlled<'p, 'r, 'i>(
@@ -6254,7 +6293,7 @@ impl ResolvedPanel<'_> {
             ExactRunSessionRegistry::new(1, context.reservation.available_runtime_memory_bytes)
                 .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         let borrowed_io = Rc::new(RefCell::new(io));
-        let (mut session, host_failure) = self.start_exact_session_with_io(
+        let (mut session, host_failure, _watches) = self.start_exact_session_with_io(
             plan,
             bindings,
             context,
@@ -7128,6 +7167,7 @@ fn stage_validation_output(
 struct HostedSchedulerDriver<'r, 'i> {
     kind: HostedNodeKind,
     store: Rc<RefCell<HostValueStore>>,
+    watches: Rc<RefCell<watch::HostedWatchRuntime>>,
     io: HostedRunIo<'r, 'i>,
     in_cords: Vec<usize>,
     out_cords: Vec<usize>,
@@ -7187,6 +7227,11 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
             return Err(Id("conduit/host-service-use-time-stale"));
         }
         Ok(())
+    }
+
+    fn observe_committed_value(&mut self, cord: usize, value: RuntimeValue, tick: u64) {
+        let store = self.store.borrow();
+        self.watches.borrow_mut().observe(cord, value, tick, &store);
     }
 
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {

@@ -2011,3 +2011,32 @@ fn current_plan_pins_value_clock_and_feedback_facts() {
         assert_eq!(error.collection, PlanCollection::FeedbackBoundaries);
     });
 }
+
+#[test]
+fn current_plan_admits_a_watch_for_the_exact_cord_type_without_an_envelope() {
+    with_plan(|base, scratch| {
+        let value_type = base.cords[0].from.value_type;
+        let watches = [WatchAdmission {
+            id: Id("watch/plain-cord"),
+            subject: WatchSubject::Cord(base.cords[0].id),
+            representation: PinnedDescriptor {
+                id: value_type.contract_id,
+                schema_version: value_type.schema_version,
+                semantic_hash: value_type.semantic_hash,
+            },
+            maximum_preview_bytes: base.cords[0].flow.capacity.max_value_bytes(),
+            maximum_history: 1,
+            minimum_tick_interval: 1,
+            retention: WatchRetention::Latest,
+            sensitivity_ceiling: Sensitivity::Public,
+            reveal_action: None,
+        }];
+        let mut watched = ExecutionPlan {
+            identity: ZERO_HASH,
+            watch_admissions: &watches,
+            ..base
+        };
+        watched.identity = watched.semantic_hash(scratch).unwrap();
+        validate_execution_plan(&watched, context(10), scratch).unwrap();
+    });
+}

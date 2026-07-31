@@ -6,17 +6,18 @@ use conduit_compile::{
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
     CompileSourceLimits, ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
     HostReportDocument, ImplementationDocument, InstalledProfile, MemoryClaimDocument, PinDocument,
-    builtin_catalog_document, compile_source,
+    WatchAdmissionDocument, builtin_catalog_document, compile_source,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, ReadyQueueDiscipline,
-    SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash,
+    EXECUTION_PLAN_SCHEMA_VERSION, EvidenceCursorStatus, IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
+    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash,
 };
 use conduit_panel::parse;
 use conduit_runtime::{
     AvailabilityState, ExactHostedBinding, ExactHostedBindings, ExactRunContext, ExactRunIo,
-    ExactRunSessionRegistry, HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
+    ExactRunSessionRegistry, ExactWatchMaterial, HostedPrimitiveImplementation, Registry, RunIo,
+    SchedulerReservation,
 };
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json");
@@ -821,7 +822,36 @@ node sink : display/text\n\
 cord source.value -> sink.text\n";
 
     let installed = InstalledProfile::observe(SOURCE).unwrap();
-    let document = compile_source(SOURCE, &installed.input).unwrap();
+    let mut document = compile_source(SOURCE, &installed.input).unwrap();
+    let watched_cord = document.cords[0].id.clone();
+    let representation = PinDocument {
+        id: document.cords[0].from.value_type_id.clone(),
+        schema_version: document.cords[0].from.value_type_schema_version,
+        semantic_hash: document.cords[0].from.value_type_semantic_hash.clone(),
+    };
+    document.watch_admissions = vec![WatchAdmissionDocument {
+        id: "watch/owned-source".to_owned(),
+        subject_kind: "cord".to_owned(),
+        cord: Some(watched_cord),
+        node: None,
+        port: None,
+        direction: None,
+        representation,
+        maximum_preview_bytes: 5,
+        maximum_history: 1,
+        minimum_tick_interval: 1,
+        retention: "latest".to_owned(),
+        sensitivity_ceiling: "public".to_owned(),
+        reveal_action: None,
+    }];
+    document.identity = {
+        let arena = Bump::new();
+        let plan = document.as_plan(&arena).unwrap();
+        let mut scratch =
+            vec![SemanticHash::from_bytes([0; 32]); plan.validation_scratch_count().unwrap()];
+        plan.semantic_hash(&mut scratch).unwrap().to_string()
+    };
+    document.validate().unwrap();
     let sessions = ExactRunSessionRegistry::new(1, document.budget.memory_bytes).unwrap();
     let mut session = {
         let arena = Bump::new();
@@ -862,6 +892,8 @@ cord source.value -> sink.text\n";
             .unwrap()
     };
     assert_eq!(session.high_water().decisions, 0);
+    let exact_identity = session.identity().clone();
+    session.attach_watch("watch/owned-source").unwrap();
     let mut last_pump = None;
     while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
         last_pump = Some(session.pump(1, &[]).unwrap());
@@ -874,6 +906,23 @@ cord source.value -> sink.text\n";
         session.with_io(|io| io.display().to_vec()),
         b"owned session"
     );
+    assert_eq!(session.identity(), &exact_identity);
+    let watched = session.read_watch("watch/owned-source", 0, 1).unwrap();
+    assert_eq!(watched.status, EvidenceCursorStatus::Available);
+    assert_eq!(watched.records.len(), 1);
+    assert_eq!(watched.records[0].watch_id, "watch/owned-source");
+    assert_eq!(watched.records[0].original_bytes, 13);
+    assert_eq!(
+        watched.records[0].material,
+        ExactWatchMaterial::Preview(b"owned".to_vec())
+    );
+    assert!(watched.records[0].truncated);
+    assert!(watched.records[0].content_hash.is_some());
+    assert_eq!(session.watch_usage().attached_slots, 1);
+    assert_eq!(session.watch_usage().retained_observations, 1);
+    session.detach_watch("watch/owned-source").unwrap();
+    assert_eq!(session.watch_usage().attached_slots, 0);
+    assert_eq!(session.watch_usage().retained_observations, 1);
     let values = last_pump
         .expect("active hosted session completed through at least one pump")
         .value_storage

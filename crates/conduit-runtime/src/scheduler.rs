@@ -551,6 +551,11 @@ pub trait SchedulerNode {
         Ok(())
     }
 
+    /// Receives a best-effort observation only after a real cord publication
+    /// commits. Implementations must keep this infallible and isolated: it
+    /// cannot change the publication disposition, queue pressure, or demand.
+    fn observe_committed_value(&mut self, _cord: usize, _value: RuntimeValue, _tick: u64) {}
+
     /// Begins one bounded reconciliation of implementation-owned value
     /// storage. Portable drivers have no external value arena by default.
     fn begin_value_reconciliation(&mut self) {}
@@ -596,6 +601,7 @@ pub struct SchedulerAllocation {
     pub pool_memory_bytes: u64,
     pub event_stream_memory_bytes: u64,
     pub job_memory_bytes: u64,
+    pub watch_memory_bytes: u64,
     pub planned_memory_bytes: u64,
     pub planned_evidence_bytes: u64,
     pub queue_payload_bytes: u64,
@@ -2753,6 +2759,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
                 | OfferDisposition::Terminated(_) => {}
             }
             if committed_publication {
+                self.drivers[node].observe_committed_value(output.cord, output.value, self.tick);
                 for input_index in 0..self.workspaces[node].inputs.len() {
                     let input = self.workspaces[node].inputs[input_index];
                     self.record_observation(
@@ -3098,6 +3105,7 @@ fn compute_allocation(
             .map(|stream| stream.allocation.memory_bytes),
     )?;
     let job_memory_bytes = sum_memory(plan.jobs.iter().map(|job| job.allocation.memory_bytes))?;
+    let watch_memory_bytes = crate::watch::planned_watch_memory_bytes(plan)?;
     let planned_memory_bytes = [
         node_memory_bytes,
         cord_memory_bytes,
@@ -3105,6 +3113,7 @@ fn compute_allocation(
         pool_memory_bytes,
         event_stream_memory_bytes,
         job_memory_bytes,
+        watch_memory_bytes,
     ]
     .into_iter()
     .try_fold(0_u64, u64::checked_add)
@@ -3204,6 +3213,7 @@ fn compute_allocation(
         pool_memory_bytes,
         event_stream_memory_bytes,
         job_memory_bytes,
+        watch_memory_bytes,
         planned_memory_bytes,
         planned_evidence_bytes,
         queue_payload_bytes: queue_payload_bytes.ok_or(SchedulerError::ArithmeticOverflow)?,

@@ -17,7 +17,7 @@ use crate::{
     PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
     PoolReservationProfile, PoolSupervisionPolicy, Pressure, ResolvedAuthorityBinding,
     ResourceLeaseContract, ResourceLeaseReason, RetentionPolicy, RuntimeEvidencePolicy,
-    SatisfactionProof, SatisfactionRole, SemanticHash, StopPolicy, SubscriberCoupling,
+    SatisfactionProof, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling,
     SupervisionActionKind, SupervisionContract, TypeContractRef, ValueEnvelopePolicy,
     ValueEnvelopeReason, WATCH_ADMISSION_SCHEMA_VERSION, WatchAdmission, WatchAdmissionReason,
     WatchSubject, WorkloadCapability, WorkloadContract, WorkloadLimit, admit_workload,
@@ -1920,11 +1920,28 @@ pub fn validate_execution_plan(
                 .value_envelopes
                 .iter()
                 .find(|policy| policy.cord == cord.id);
-            if envelope.is_none_or(|policy| {
-                policy.representation != admission.representation
-                    || admission.maximum_preview_bytes > policy.maximum_payload_bytes
-                    || admission.sensitivity_ceiling > policy.sensitivity_ceiling
-            }) {
+            let (representation_matches, maximum_payload_bytes, sensitivity_ceiling) =
+                if let Some(policy) = envelope {
+                    (
+                        policy.representation == admission.representation,
+                        policy.maximum_payload_bytes,
+                        policy.sensitivity_ceiling,
+                    )
+                } else {
+                    (
+                        admission.representation.id == cord.from.value_type.contract_id
+                            && admission.representation.schema_version
+                                == cord.from.value_type.schema_version
+                            && admission.representation.semantic_hash
+                                == cord.from.value_type.semantic_hash,
+                        cord.flow.capacity.max_value_bytes(),
+                        Sensitivity::Public,
+                    )
+                };
+            if !representation_matches
+                || admission.maximum_preview_bytes > maximum_payload_bytes
+                || admission.sensitivity_ceiling > sensitivity_ceiling
+            {
                 return Err(indexed(
                     PlanDiagnosticCode::WatchAdmission(WatchAdmissionReason::InvalidBound),
                     PlanCollection::WatchAdmissions,
