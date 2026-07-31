@@ -72,6 +72,9 @@ export function FaceplateNodeComponent({ data, id }) {
     onConfigChange,
     onOpenNested,
     onPortSelect,
+    validity = "valid",
+    diagnosticIds = [],
+    diagnosticAnchors = [],
   } = data;
 
   const [expanded, setExpanded] = window.React.useState(true);
@@ -149,6 +152,32 @@ export function FaceplateNodeComponent({ data, id }) {
     activity && { label: "execution", value: activity },
     !activity && status === "error" && { label: "execution", value: "error" },
   ].filter(Boolean);
+  const anchorRows = diagnosticAnchors.map((anchor) =>
+    e("div", {
+      key: anchor.id,
+      className: "faceplate-member-row diagnostic-anchor-row",
+      role: "note",
+      "aria-label": `Rejected authored endpoint ${anchor.label}`,
+      "data-diagnostic-anchor": anchor.id,
+    },
+      anchor.side === "to" && e(window.ReactFlow.Handle, {
+        id: anchor.id,
+        type: "target",
+        position: window.ReactFlow.Position.Left,
+        isConnectable: false,
+        className: "patchbay-diagnostic-anchor-handle",
+      }),
+      e("strong", { className: "diagnostic-x", "aria-hidden": "true" }, "×"),
+      e("span", null, anchor.label),
+      anchor.side === "from" && e(window.ReactFlow.Handle, {
+        id: anchor.id,
+        type: "source",
+        position: window.ReactFlow.Position.Right,
+        isConnectable: false,
+        className: "patchbay-diagnostic-anchor-handle",
+      }),
+    )
+  );
 
   return e("div", {
     className: [
@@ -156,10 +185,14 @@ export function FaceplateNodeComponent({ data, id }) {
       status,
       isComposite ? "composite-faceplate" : "",
       isSelected ? "selected-faceplate" : "",
+      `faceplate-validity-${validity}`,
     ].filter(Boolean).join(" "),
     tabIndex: 0,
     role: "region",
-    "aria-label": `Component faceplate ${title}`,
+    "aria-label": [
+      `Component faceplate ${title}`,
+      validity !== "valid" ? `${validity}; ${diagnosticIds.length} diagnostics` : "",
+    ].filter(Boolean).join(", "),
   },
     e("div", { className: "faceplate-header faceplate-compartment" },
       e("strong", { className: "node-title" }, title),
@@ -175,6 +208,11 @@ export function FaceplateNodeComponent({ data, id }) {
     ),
     e("div", { className: "faceplate-type-compartment faceplate-compartment" },
       e("code", { className: "kind-tag" }, kind),
+      validity !== "valid" && e(
+        "span",
+        { className: `badge faceplate-validity-badge validity-${validity}` },
+        validity,
+      ),
     ),
     expanded && configRows.length > 0 && e("div", {
       className: "faceplate-members-compartment faceplate-config-compartment",
@@ -183,7 +221,7 @@ export function FaceplateNodeComponent({ data, id }) {
     e("div", {
       className: "faceplate-members-compartment faceplate-port-compartment",
       "aria-label": "Declared ports",
-    }, portRows),
+    }, [...portRows, ...anchorRows]),
     expanded && statusFacts.length > 0 && e("div", {
       className: "faceplate-status-compartment faceplate-compartment",
       "aria-label": "Component status",

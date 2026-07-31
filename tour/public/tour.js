@@ -282,6 +282,47 @@ function updateCytoscapeGraph() {
     patchbayRenderer.setViewModel(patchbayView, current.id, topologyView);
   }
   renderStructuredTopology();
+  renderDiagnosticConsole();
+}
+
+function renderDiagnosticConsole() {
+  const consoleList = document.querySelector("#diagnostic-console");
+  if (!consoleList) return;
+  consoleList.replaceChildren();
+  for (const diagnostic of patchbayView?.diagnostics || []) {
+    const item = document.createElement("li");
+    item.dataset.diagnosticId = diagnostic.id;
+    item.dataset.diagnosticState = diagnostic.state;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `diagnostic-console-button diagnostic-${diagnostic.state}`;
+    button.textContent = `${diagnostic.code}: ${diagnostic.explanation}`;
+    button.setAttribute(
+      "aria-label",
+      `${diagnostic.severity} ${diagnostic.code}; ${diagnostic.explanation}`,
+    );
+    button.onclick = () => selectDiagnostic(diagnostic);
+    item.append(button);
+    consoleList.append(item);
+  }
+}
+
+function selectDiagnostic(diagnostic) {
+  const cord = diagnostic.targets.find((target) => target.kind === "cord");
+  const node = diagnostic.targets.find((target) => target.kind === "node");
+  if (cord) {
+    selectCord(cord.id);
+  } else if (node) {
+    selectNode(node.id);
+  } else {
+    selectSourceRange(
+      "diagnostic",
+      diagnostic.id,
+      diagnostic.primary_range,
+    );
+  }
+  result.textContent =
+    `${diagnostic.code}: ${diagnostic.message}\n${diagnostic.explanation}`;
 }
 
 function renderStructuredTopology() {
@@ -316,20 +357,27 @@ function renderStructuredTopology() {
     }
   }
   for (const cord of patchbayView?.topology?.cords || []) {
+    const diagnostic = (patchbayView?.diagnostics || []).find((candidate) =>
+      candidate.targets.some(
+        (target) => target.kind === "cord" && target.id === cord.id,
+      )
+    );
     const item = document.createElement("li");
     item.dataset.fromPortPath = cord.from_port_path;
     item.dataset.toPortPath = cord.to_port_path;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "structured-topology-button";
+    const from = `${cord.from_node || "unfinished"}.${cord.from_port || "…"}`;
+    const to = `${cord.to_node || "unfinished"}.${cord.to_port || "…"}`;
     button.textContent =
-      `${cord.from_node}.${cord.from_port} > → > ${cord.to_node}.${cord.to_port} — ` +
-      `${cord.value_type}; ${cord.pressure}`;
+      `${from} > → > ${to} — ${diagnostic?.code || "valid"}; ` +
+      `${diagnostic?.explanation || `${cord.value_type}; ${cord.pressure}`}`;
     button.setAttribute(
       "aria-label",
-      `${cord.from_node}, ${cord.from_port}, outgoing port, to ` +
-      `${cord.to_node}, ${cord.to_port}, receiving port; ` +
-      `${cord.value_type}; ${cord.pressure}`,
+      `${from}, authored source endpoint, to ${to}, authored destination endpoint; ` +
+      `${diagnostic?.code || "valid"}; ` +
+      `${diagnostic?.explanation || `${cord.value_type}; ${cord.pressure}`}`,
     );
     button.onclick = () => selectCord(cord.id);
     item.append(button);
@@ -418,6 +466,8 @@ function applyPatchbayOperations(operations, options = {}) {
     syncSourceHighlight();
   }
   positions = transaction.result.presentation.node_positions;
+  runButton.disabled =
+    current?.runnability?.state !== "runnable" || !patchbayView.plan;
   rememberLayout(current.id, positions, patchbayView);
   if (!options.preserveFaceplateFocus && !options.skipRender) {
     updateCytoscapeGraph();
@@ -824,7 +874,7 @@ function selectCord(cordId) {
   selectedCord = cordId;
   moveLeftBtn.disabled = true;
   moveRightBtn.disabled = true;
-  const provenance = projection.source_range.provenance === "authored"
+  const provenance = projection.source_range?.provenance === "authored"
     ? ""
     : " (derived edge; revealing authored owner)";
   selectedNodeLabel.textContent = `Selected cord: ${cordId}${provenance}`;
@@ -934,6 +984,8 @@ function check() {
   }
   updateCytoscapeGraph();
   renderTopology();
+  runButton.disabled =
+    current?.runnability?.state !== "runnable" || !patchbayView?.plan;
 }
 
 function renderTopology() {
@@ -1042,6 +1094,11 @@ async function run() {
   if (current.runnability?.state !== "runnable") {
     result.textContent =
       `${current.runnability.code}: ${current.runnability.reason}`;
+    return;
+  }
+  if (!patchbayView?.plan) {
+    result.textContent =
+      "CND-PBY-NO-PLAN: no exact plan exists for the current source revision.";
     return;
   }
   stopActive("superseded");

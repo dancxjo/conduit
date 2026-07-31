@@ -304,307 +304,627 @@ fn authoritative_patchbay_view(
     high_water: Option<conduit_patchbay::PatchbayHighWaterProjection>,
     evidence: &[serde_json::Value],
 ) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
-    let panel = conduit_panel::parse(&workspace.source().source).map_err(|error| {
-        conduit_patchbay::ProtocolError {
-            code: "CND-PBY-004",
-            message: "Patchbay source projection failed parser validation".to_owned(),
-            diagnostics: vec![error.to_string()],
-            disposition: conduit_patchbay::EditDisposition::Rejected,
-        }
-    })?;
+    let document = conduit_panel::parse_document(&workspace.source().source);
+    let recovered = conduit_panel::recover_document(&workspace.source().source);
     let registry = conduit_runtime::Registry::hosted_primitives();
-    let resolved = registry
-        .resolve(&panel)
-        .map_err(|error| conduit_patchbay::ProtocolError {
-            code: "CND-PBY-010",
-            message: "Patchbay source projection failed resolver validation".to_owned(),
-            diagnostics: vec![format!("{}: {}", error.code, error.message)],
-            disposition: conduit_patchbay::EditDisposition::Rejected,
-        })?;
-    let resolved_view = resolved.view();
-    let plan = exact_plan.or_else(|| exact_plan_snapshot(&workspace.source().source));
     let semantic = workspace.semantic_with_lookup(|id| availability_projection(&registry, id));
     let bounds = conduit_patchbay::PatchbayProjectionBounds::default();
     let source_text = workspace.source().source.as_str();
     let source_revision = workspace.source().revision;
-    let mut expanded_nodes = resolved_view
-        .nodes
-        .iter()
-        .map(|node| {
-            project_resolved_node(
-                node,
-                &semantic,
-                plan.as_ref(),
-                run.as_ref(),
-                BTreeMap::new(),
-            )
-        })
-        .collect::<Vec<_>>();
-    let expanded_by_id = expanded_nodes
-        .iter()
-        .map(|node| (node.id.clone(), node.clone()))
-        .collect::<BTreeMap<_, _>>();
-    let mut logical_nodes = panel
-        .nodes
-        .iter()
-        .map(|source_node| {
+    let mut diagnostics = Vec::new();
+    let mut diagnostic_anchors = Vec::new();
+    let mut logical_nodes = Vec::new();
+    let mut cords = Vec::new();
+
+    if let Some(panel) = document.ast.as_ref() {
+        for source_node in &panel.nodes {
+            let node_range = declaration_source_range(
+                source_text,
+                source_node.source_span,
+                "node",
+                source_revision,
+                "authored",
+            );
+            let contract = registry.authored_node_view(panel, &source_node.kind);
+            let mut diagnostic_ids = Vec::new();
+            let duplicate = panel
+                .nodes
+                .iter()
+                .filter(|candidate| candidate.id == source_node.id)
+                .count()
+                > 1;
+            let validity = if duplicate {
+                let id = add_patchbay_diagnostic(
+                    &mut diagnostics,
+                    source_revision,
+                    "CND-ID-002",
+                    "error",
+                    "invalid",
+                    format!("duplicate node id `{}`", source_node.id),
+                    "Each authored node identity must be unique.",
+                    node_range.clone(),
+                    vec![("node", source_node.id.as_str())],
+                );
+                diagnostic_ids.push(id);
+                "invalid"
+            } else if contract.is_none() {
+                let id = add_patchbay_diagnostic(
+                    &mut diagnostics,
+                    source_revision,
+                    "CND-IMP-001",
+                    "error",
+                    "unresolved",
+                    format!("unknown or unresolved contract `{}`", source_node.kind),
+                    "No ports, provider, placement, or plan are inferred for an unresolved contract.",
+                    node_range.clone(),
+                    vec![("node", source_node.id.as_str())],
+                );
+                diagnostic_ids.push(id);
+                "unresolved"
+            } else {
+                "valid"
+            };
+            let (inputs, outputs) = contract.as_ref().map_or_else(
+                || (Vec::new(), Vec::new()),
+                |contract| {
+                    (
+                        contract
+                            .inputs
+                            .iter()
+                            .map(|port| project_authored_port(&source_node.id, port, "input"))
+                            .collect(),
+                        contract
+                            .outputs
+                            .iter()
+                            .map(|port| project_authored_port(&source_node.id, port, "output"))
+                            .collect(),
+                    )
+                },
+            );
             let config = source_node
                 .config
                 .iter()
-                .map(|entry| (entry.key.clone(), project_config_value(&entry.value)))
-                .collect::<BTreeMap<_, _>>();
-            if let Some(node) = expanded_by_id.get(&source_node.id) {
-                let mut node = node.clone();
-                node.contract_id.clone_from(&source_node.kind);
-                node.config = config;
-                node.source_range = declaration_source_range(
-                    source_text,
-                    source_node.source_span,
-                    "node",
-                    source_revision,
-                    "authored",
-                );
-                node
-            } else {
-                let composite = resolved_view
-                    .composites
-                    .iter()
-                    .find(|composite| composite.path == source_node.id);
-                let mut inputs = Vec::new();
-                let mut outputs = Vec::new();
-                if let Some(composite) = composite {
-                    for export in &composite.exports {
-                        let target = expanded_by_id.get(&export.target_node);
-                        let target_port = target.and_then(|node| {
-                            if export.direction == "input" {
-                                node.inputs
-                                    .iter()
-                                    .find(|port| port.id == export.target_port)
-                            } else {
-                                node.outputs
-                                    .iter()
-                                    .find(|port| port.id == export.target_port)
-                            }
-                        });
-                        let projected = conduit_patchbay::PatchbayPortProjection {
-                            id: export.id.clone(),
-                            semantic_path: format!(
-                                "root/{}/port/{}/{}",
-                                source_node.id,
-                                if export.direction == "input" {
-                                    "receiving"
-                                } else {
-                                    "outgoing"
-                                },
-                                export.id
-                            ),
-                            direction: export.direction.to_owned(),
-                            display_label: if export.direction == "input" {
-                                format!("> {}", export.id)
-                            } else {
-                                format!("{} >", export.id)
-                            },
-                            accessible_label: format!(
-                                "{}, {} port",
-                                export.id,
-                                if export.direction == "input" {
-                                    "receiving"
-                                } else {
-                                    "outgoing"
-                                }
-                            ),
-                            type_id: target_port
-                                .map_or("unknown", |port| port.type_id.as_str())
-                                .to_owned(),
-                            delivery: target_port
-                                .map_or("unknown", |port| port.delivery.as_str())
-                                .to_owned(),
-                            connections: target_port
-                                .map_or("unknown", |port| port.connections.as_str())
-                                .to_owned(),
-                            connected: panel.cords.iter().any(|cord| {
-                                if export.direction == "input" {
-                                    cord.to.node == source_node.id && cord.to.port == export.id
-                                } else {
-                                    cord.from.node == source_node.id && cord.from.port == export.id
-                                }
-                            }),
-                        };
-                        if export.direction == "input" {
-                            inputs.push(projected);
-                        } else {
-                            outputs.push(projected);
-                        }
-                    }
-                }
-                conduit_patchbay::PatchbayNodeProjection {
-                    id: source_node.id.clone(),
-                    semantic_id: format!("root/{}", source_node.id),
-                    contract_id: source_node.kind.clone(),
-                    source_range: declaration_source_range(
+                .map(|entry| {
+                    let mut projection = project_config_value(&entry.value);
+                    projection.source_range = source_range_for_span(
                         source_text,
-                        source_node.source_span,
-                        "node",
+                        entry.source_span,
                         source_revision,
-                        "authored",
-                    ),
-                    inputs,
-                    outputs,
-                    config,
-                    availability: availability_projection(&registry, &source_node.kind),
-                    // Exact plans produced from InstalledProfile carry a
-                    // deterministic compile input, not an independently
-                    // observed host-placement fact. Keep the plan artifact
-                    // visible without promoting its synthetic host report to
-                    // authoritative Patchbay topology.
-                    placement: None,
-                    activity: None,
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-    for expanded in &mut expanded_nodes {
-        if let Some(logical) = logical_nodes
-            .iter()
-            .find(|logical| logical.id == expanded.id)
-        {
-            expanded.config.clone_from(&logical.config);
-        }
-    }
-    let mut cords = resolved_view
-        .cords
-        .iter()
-        .map(|cord| {
-            let producer_type = expanded_by_id
-                .get(&cord.from_node)
-                .and_then(|node| node.outputs.iter().find(|port| port.id == cord.from_port))
-                .map(|port| port.type_id.clone())
-                .unwrap_or_else(|| "unknown".to_owned());
-            let consumer_type = expanded_by_id
-                .get(&cord.to_node)
-                .and_then(|node| node.inputs.iter().find(|port| port.id == cord.to_port))
-                .map(|port| port.type_id.clone())
-                .unwrap_or_else(|| "unknown".to_owned());
-            let source_cord = panel
-                .cords
-                .iter()
-                .find(|source_cord| source_cord.id == cord.id);
-            let source_range = source_cord.and_then(|source_cord| {
-                declaration_source_range(
-                    source_text,
-                    source_cord.source_span,
-                    "cord",
-                    source_revision,
-                    "authored",
-                )
+                        "authored-config",
+                    );
+                    (entry.key.clone(), projection)
+                })
+                .collect();
+            logical_nodes.push(conduit_patchbay::PatchbayNodeProjection {
+                id: source_node.id.clone(),
+                semantic_id: format!("root/{}", source_node.id),
+                contract_id: Some(source_node.kind.clone()),
+                source_range: node_range,
+                inputs,
+                outputs,
+                config,
+                availability: contract
+                    .as_ref()
+                    .map(|_| availability_projection(&registry, &source_node.kind)),
+                validity: validity.to_owned(),
+                diagnostic_ids,
+                placement: None,
+                activity: None,
             });
-            let endpoint_ranges = source_cord
-                .and_then(|source_cord| cord_endpoint_member_offsets(source_text, source_cord));
+        }
+        for source_cord in &panel.cords {
+            let source_range = declaration_source_range(
+                source_text,
+                source_cord.source_span,
+                "cord",
+                source_revision,
+                "authored",
+            );
+            let endpoint_ranges = cord_endpoint_member_offsets(source_text, source_cord);
             let from_port_range = endpoint_ranges.and_then(|(from, _)| {
                 source_range_from_offsets(source_text, from, source_revision, "authored-endpoint")
             });
             let to_port_range = endpoint_ranges.and_then(|(_, to)| {
                 source_range_from_offsets(source_text, to, source_revision, "authored-endpoint")
             });
-            conduit_patchbay::PatchbayCordProjection {
-                id: cord.id.clone(),
-                from_node: cord.from_node.clone(),
-                from_port: cord.from_port.clone(),
-                from_port_path: source_cord.map_or_else(
-                    || format!("root/{}/port/outgoing/{}", cord.from_node, cord.from_port),
-                    |source| {
-                        format!(
-                            "root/{}/port/outgoing/{}",
-                            source.from.node, source.from.port
-                        )
-                    },
-                ),
+            let assessment = registry.assess_authored_cord(panel, source_cord);
+            let mut diagnostic_ids = Vec::new();
+            if assessment.state != "valid" {
+                let invalid_field = (assessment.state == "invalid-bounds")
+                    .then(|| invalid_cord_field(source_text, source_cord, source_revision))
+                    .flatten();
+                let config_target = invalid_field
+                    .as_ref()
+                    .map(|(id, _)| id.clone())
+                    .unwrap_or_default();
+                let mut targets = vec![
+                    ("cord", source_cord.id.as_str()),
+                    ("node", source_cord.from.node.as_str()),
+                    ("port", source_cord.from.port.as_str()),
+                    ("node", source_cord.to.node.as_str()),
+                    ("port", source_cord.to.port.as_str()),
+                ];
+                if !config_target.is_empty() {
+                    targets.push(("config", config_target.as_str()));
+                }
+                let id = add_patchbay_diagnostic(
+                    &mut diagnostics,
+                    source_revision,
+                    assessment.code,
+                    "error",
+                    assessment.state,
+                    assessment.message.clone(),
+                    assessment.explanation.clone(),
+                    invalid_field
+                        .map(|(_, range)| range)
+                        .or_else(|| to_port_range.clone())
+                        .or_else(|| source_range.clone()),
+                    targets,
+                );
+                diagnostic_ids.push(id);
+            }
+            let from_direction = projected_port_direction(
+                &logical_nodes,
+                &source_cord.from.node,
+                &source_cord.from.port,
+            );
+            let to_direction = projected_port_direction(
+                &logical_nodes,
+                &source_cord.to.node,
+                &source_cord.to.port,
+            );
+            let from_needs_anchor = from_direction.as_deref() != Some("output");
+            let to_needs_anchor = to_direction.as_deref() != Some("input");
+            let from_anchor = from_needs_anchor.then(|| {
+                add_diagnostic_anchor(
+                    &mut diagnostic_anchors,
+                    source_cord,
+                    "from",
+                    Some(source_cord.from.node.clone()),
+                    from_port_range.clone(),
+                )
+            });
+            let to_anchor = to_needs_anchor.then(|| {
+                add_diagnostic_anchor(
+                    &mut diagnostic_anchors,
+                    source_cord,
+                    "to",
+                    Some(source_cord.to.node.clone()),
+                    to_port_range.clone(),
+                )
+            });
+            cords.push(conduit_patchbay::PatchbayCordProjection {
+                id: source_cord.id.clone(),
+                from_node: Some(source_cord.from.node.clone()),
+                from_port: Some(source_cord.from.port.clone()),
+                from_port_path: Some(format!(
+                    "root/{}/port/{}/{}",
+                    source_cord.from.node,
+                    direction_path(from_direction.as_deref()),
+                    source_cord.from.port
+                )),
                 from_port_range,
-                to_node: cord.to_node.clone(),
-                to_port: cord.to_port.clone(),
-                to_port_path: source_cord.map_or_else(
-                    || format!("root/{}/port/receiving/{}", cord.to_node, cord.to_port),
-                    |source| format!("root/{}/port/receiving/{}", source.to.node, source.to.port),
-                ),
+                to_node: Some(source_cord.to.node.clone()),
+                to_port: Some(source_cord.to.port.clone()),
+                to_port_path: Some(format!(
+                    "root/{}/port/{}/{}",
+                    source_cord.to.node,
+                    direction_path(to_direction.as_deref()),
+                    source_cord.to.port
+                )),
                 to_port_range,
-                value_type: producer_type.clone(),
-                compatibility: conduit_patchbay::CompatibilityProof {
-                    compatible: true,
-                    code: "CND-TYP-EXACT".to_owned(),
-                    producer_type: Some(producer_type),
-                    consumer_type: Some(consumer_type),
-                    candidate_plan_identity: plan.as_ref().map(|plan| plan.identity.clone()),
-                    plan_disposition: "observed-active-plan".to_owned(),
-                },
-                capacity_items: cord.capacity_items,
-                max_value_bytes: cord.max_value_bytes,
-                max_queued_bytes: cord.max_queued_bytes,
-                low_watermark_items: cord.low_watermark_items,
-                high_watermark_items: cord.high_watermark_items,
-                pressure: cord.pressure.clone(),
+                value_type: assessment.producer_type.clone(),
+                compatibility: Some(conduit_patchbay::CompatibilityProof {
+                    compatible: assessment.state == "valid",
+                    code: assessment.code.to_owned(),
+                    producer_type: assessment.producer_type,
+                    consumer_type: assessment.consumer_type,
+                    candidate_plan_identity: None,
+                    plan_disposition: if assessment.state == "valid" {
+                        "candidate-only"
+                    } else {
+                        "unavailable"
+                    }
+                    .to_owned(),
+                }),
+                capacity_items: Some(source_cord.capacity_items),
+                max_value_bytes: Some(source_cord.max_value_bytes),
+                max_queued_bytes: Some(source_cord.max_queued_bytes),
+                low_watermark_items: Some(source_cord.low_watermark_items),
+                high_watermark_items: Some(source_cord.high_watermark_items),
+                pressure: Some(source_cord.pressure.to_string()),
                 source_range,
                 high_water_items: None,
+                validity: assessment.state.to_owned(),
+                diagnostic_ids,
+                from_anchor,
+                to_anchor,
+                expanded_from_node: None,
+                expanded_from_port: None,
+                expanded_to_node: None,
+                expanded_to_port: None,
+            });
+        }
+    } else {
+        let empty_panel = conduit_panel::parse("panel 0\n").expect("empty current panel parses");
+        let recovery_panel = panel_without_recovered_cords(source_text, &recovered);
+        for recovered_node in &recovered.nodes {
+            let Some(id) = recovered_node.id.as_ref() else {
+                continue;
+            };
+            let range = source_range_for_recovered_span(
+                source_text,
+                recovered_node.source_span,
+                source_revision,
+                "recovered-node",
+            );
+            let contract = recovered_node.kind.as_deref().and_then(|kind| {
+                registry.authored_node_view(recovery_panel.as_ref().unwrap_or(&empty_panel), kind)
+            });
+            let duplicate = recovered
+                .nodes
+                .iter()
+                .filter(|candidate| candidate.id.as_deref() == Some(id.as_str()))
+                .count()
+                > 1;
+            let (validity, diagnostic_ids) = if duplicate {
+                (
+                    "invalid",
+                    vec![add_patchbay_diagnostic(
+                        &mut diagnostics,
+                        source_revision,
+                        "CND-ID-002",
+                        "error",
+                        "invalid",
+                        format!("duplicate node id `{id}`"),
+                        "Each authored node identity must be unique.",
+                        range.clone(),
+                        vec![("node", id.as_str())],
+                    )],
+                )
+            } else if !recovered_node.complete {
+                (
+                    "incomplete",
+                    vec![add_patchbay_diagnostic(
+                        &mut diagnostics,
+                        source_revision,
+                        "CND-PNL-RECOVER",
+                        "pending",
+                        "incomplete",
+                        format!("incomplete authored node `{id}`"),
+                        "This provisional faceplate contains only facts recoverable from the current source.",
+                        range.clone(),
+                        vec![("node", id.as_str())],
+                    )],
+                )
+            } else if contract.is_none() {
+                (
+                    "unresolved",
+                    vec![add_patchbay_diagnostic(
+                        &mut diagnostics,
+                        source_revision,
+                        "CND-IMP-001",
+                        "error",
+                        "unresolved",
+                        format!(
+                            "unknown or unresolved contract `{}`",
+                            recovered_node.kind.as_deref().unwrap_or("")
+                        ),
+                        "No ports, provider, placement, or plan are inferred for an unresolved contract.",
+                        range.clone(),
+                        vec![("node", id.as_str())],
+                    )],
+                )
+            } else {
+                ("valid", Vec::new())
+            };
+            let (inputs, outputs) = contract.as_ref().map_or_else(
+                || (Vec::new(), Vec::new()),
+                |contract| {
+                    (
+                        contract
+                            .inputs
+                            .iter()
+                            .map(|port| project_authored_port(id, port, "input"))
+                            .collect(),
+                        contract
+                            .outputs
+                            .iter()
+                            .map(|port| project_authored_port(id, port, "output"))
+                            .collect(),
+                    )
+                },
+            );
+            logical_nodes.push(conduit_patchbay::PatchbayNodeProjection {
+                id: id.clone(),
+                semantic_id: format!("source/{id}"),
+                contract_id: recovered_node.kind.clone(),
+                source_range: range,
+                inputs,
+                outputs,
+                config: BTreeMap::new(),
+                availability: recovered_node.kind.as_deref().and_then(|kind| {
+                    contract
+                        .as_ref()
+                        .map(|_| availability_projection(&registry, kind))
+                }),
+                validity: validity.to_owned(),
+                diagnostic_ids,
+                placement: None,
+                activity: None,
+            });
+        }
+        for recovered_cord in &recovered.cords {
+            if recovered_cord.from.node.is_none() {
+                continue;
             }
-        })
-        .collect::<Vec<_>>();
-    for node in &mut expanded_nodes {
-        for port in &mut node.inputs {
-            port.connected = cords
-                .iter()
-                .any(|cord| cord.to_node == node.id && cord.to_port == port.id);
-        }
-        for port in &mut node.outputs {
-            port.connected = cords
-                .iter()
-                .any(|cord| cord.from_node == node.id && cord.from_port == port.id);
-        }
-    }
-    for node in &mut logical_nodes {
-        for port in &mut node.inputs {
-            port.connected = panel
-                .cords
-                .iter()
-                .any(|cord| cord.to.node == node.id && cord.to.port == port.id);
-        }
-        for port in &mut node.outputs {
-            port.connected = panel
-                .cords
-                .iter()
-                .any(|cord| cord.from.node == node.id && cord.from.port == port.id);
-        }
-    }
-    let mut composites = resolved_view
-        .composites
-        .iter()
-        .map(|composite| conduit_patchbay::PatchbayCompositeProjection {
-            id: composite.path.clone(),
-            definition: composite.definition.clone(),
-            members: composite
-                .children
-                .iter()
-                .map(|child| child.path.clone())
-                .collect(),
-            exports: composite
-                .exports
-                .iter()
-                .map(|export| conduit_patchbay::PatchbayExportProjection {
-                    direction: export.direction.to_owned(),
-                    id: export.id.clone(),
-                    target_node: export.target_node.clone(),
-                    target_port: export.target_port.clone(),
+            let source_range = source_range_for_recovered_span(
+                source_text,
+                recovered_cord.source_span,
+                source_revision,
+                "recovered-cord",
+            );
+            let from_port_range = recovered_cord.from.source_span.and_then(|span| {
+                source_range_for_recovered_span(
+                    source_text,
+                    span,
+                    source_revision,
+                    "recovered-endpoint",
+                )
+            });
+            let to_port_range = recovered_cord.to.source_span.and_then(|span| {
+                source_range_for_recovered_span(
+                    source_text,
+                    span,
+                    source_revision,
+                    "recovered-endpoint",
+                )
+            });
+            let authored = recovered_cord_as_authored(source_text, recovered_cord);
+            let assessment = authored
+                .as_ref()
+                .zip(recovery_panel.as_ref())
+                .map(|(cord, panel)| registry.assess_authored_cord(panel, cord));
+            let validity = assessment
+                .as_ref()
+                .map_or("incomplete", |assessment| assessment.state);
+            let (code, severity, message, explanation) =
+                assessment.as_ref().map_or_else(
+                    || {
+                        (
+                            "CND-PNL-RECOVER",
+                            "pending",
+                            "incomplete authored cord".to_owned(),
+                            "The recovered endpoint is a diagnostic anchor, not a synthetic semantic port."
+                                .to_owned(),
+                        )
+                    },
+                    |assessment| {
+                        (
+                            assessment.code,
+                            "error",
+                            assessment.message.clone(),
+                            assessment.explanation.clone(),
+                        )
+                    },
+                );
+            let invalid_field = assessment
+                .as_ref()
+                .filter(|assessment| assessment.state == "invalid-bounds")
+                .and(authored.as_ref())
+                .and_then(|cord| invalid_cord_field(source_text, cord, source_revision));
+            let config_target = invalid_field
+                .as_ref()
+                .map(|(id, _)| id.clone())
+                .unwrap_or_default();
+            let mut diagnostic_targets = vec![("cord", recovered_cord.id.as_str())];
+            if !config_target.is_empty() {
+                diagnostic_targets.push(("config", config_target.as_str()));
+            }
+            let diagnostic_ids = (validity != "valid")
+                .then(|| {
+                    add_patchbay_diagnostic(
+                        &mut diagnostics,
+                        source_revision,
+                        code,
+                        severity,
+                        validity,
+                        message,
+                        explanation,
+                        invalid_field
+                            .map(|(_, range)| range)
+                            .or_else(|| to_port_range.clone())
+                            .or_else(|| source_range.clone()),
+                        diagnostic_targets,
+                    )
                 })
-                .collect(),
+                .into_iter()
+                .collect::<Vec<_>>();
+            let from_direction = match (&recovered_cord.from.node, &recovered_cord.from.port) {
+                (Some(node), Some(port)) => projected_port_direction(&logical_nodes, node, port),
+                _ => None,
+            };
+            let to_direction = match (&recovered_cord.to.node, &recovered_cord.to.port) {
+                (Some(node), Some(port)) => projected_port_direction(&logical_nodes, node, port),
+                _ => None,
+            };
+            let from_anchor = (from_direction.as_deref() != Some("output")).then(|| {
+                add_recovered_anchor(
+                    &mut diagnostic_anchors,
+                    recovered_cord,
+                    "from",
+                    recovered_cord.from.node.clone(),
+                    from_port_range.clone(),
+                )
+            });
+            let to_anchor = (to_direction.as_deref() != Some("input")).then(|| {
+                add_recovered_anchor(
+                    &mut diagnostic_anchors,
+                    recovered_cord,
+                    "to",
+                    recovered_cord.to.node.clone(),
+                    to_port_range.clone(),
+                )
+            });
+            cords.push(conduit_patchbay::PatchbayCordProjection {
+                id: recovered_cord.id.clone(),
+                from_node: recovered_cord.from.node.clone(),
+                from_port: recovered_cord.from.port.clone(),
+                from_port_path: recovered_cord
+                    .from
+                    .node
+                    .as_ref()
+                    .zip(recovered_cord.from.port.as_ref())
+                    .map(|(node, port)| {
+                        format!(
+                            "root/{node}/port/{}/{port}",
+                            direction_path(from_direction.as_deref())
+                        )
+                    }),
+                from_port_range,
+                to_node: recovered_cord.to.node.clone(),
+                to_port: recovered_cord.to.port.clone(),
+                to_port_path: recovered_cord
+                    .to
+                    .node
+                    .as_ref()
+                    .zip(recovered_cord.to.port.as_ref())
+                    .map(|(node, port)| {
+                        format!(
+                            "root/{node}/port/{}/{port}",
+                            direction_path(to_direction.as_deref())
+                        )
+                    }),
+                to_port_range,
+                value_type: assessment
+                    .as_ref()
+                    .and_then(|assessment| assessment.producer_type.clone()),
+                compatibility: assessment.as_ref().map(|assessment| {
+                    conduit_patchbay::CompatibilityProof {
+                        compatible: assessment.state == "valid",
+                        code: assessment.code.to_owned(),
+                        producer_type: assessment.producer_type.clone(),
+                        consumer_type: assessment.consumer_type.clone(),
+                        candidate_plan_identity: None,
+                        plan_disposition: if assessment.state == "valid" {
+                            "candidate-only"
+                        } else {
+                            "unavailable"
+                        }
+                        .to_owned(),
+                    }
+                }),
+                capacity_items: authored.as_ref().map(|cord| cord.capacity_items),
+                max_value_bytes: authored.as_ref().map(|cord| cord.max_value_bytes),
+                max_queued_bytes: authored.as_ref().map(|cord| cord.max_queued_bytes),
+                low_watermark_items: authored.as_ref().map(|cord| cord.low_watermark_items),
+                high_watermark_items: authored.as_ref().map(|cord| cord.high_watermark_items),
+                pressure: authored.as_ref().map(|cord| cord.pressure.to_string()),
+                source_range,
+                high_water_items: None,
+                validity: validity.to_owned(),
+                diagnostic_ids,
+                from_anchor,
+                to_anchor,
+                expanded_from_node: None,
+                expanded_from_port: None,
+                expanded_to_node: None,
+                expanded_to_port: None,
+            });
+        }
+        if let Some(error) = document.diagnostics.first().filter(|_| {
+            recovered.nodes.iter().any(|node| !node.complete)
+                || recovered.cords.iter().any(|cord| !cord.complete)
+        }) {
+            add_patchbay_diagnostic(
+                &mut diagnostics,
+                source_revision,
+                error.code,
+                "pending",
+                "incomplete",
+                error.to_string(),
+                "The current source is incomplete; only bounded Rust-recovered facts are shown.",
+                parse_error_source_range(source_text, error, source_revision),
+                vec![("source", workspace.source().document_id.as_str())],
+            );
+        }
+    }
+
+    mark_connected_ports(&mut logical_nodes, &cords);
+    let resolved = document
+        .ast
+        .as_ref()
+        .and_then(|panel| registry.resolve(panel).ok());
+    let resolved_view = resolved.as_ref().map(conduit_runtime::ResolvedPanel::view);
+    if let Some(view) = resolved_view.as_ref() {
+        for cord in &mut cords {
+            if let Some(expanded) = view.cords.iter().find(|candidate| candidate.id == cord.id) {
+                cord.expanded_from_node = Some(expanded.from_node.clone());
+                cord.expanded_from_port = Some(expanded.from_port.clone());
+                cord.expanded_to_node = Some(expanded.to_node.clone());
+                cord.expanded_to_port = Some(expanded.to_port.clone());
+            }
+        }
+    }
+    let plan = resolved_view
+        .as_ref()
+        .and_then(|_| exact_plan.or_else(|| exact_plan_snapshot(source_text)));
+    let matching_run = run.filter(|run| {
+        plan.as_ref().is_some_and(|plan| {
+            run.plan_identity == plan.identity
+                && workspace.source().semantic_hash.as_deref()
+                    == Some(run.source_semantic_hash.as_str())
         })
-        .collect::<Vec<_>>();
+    });
+    let mut expanded_nodes = resolved_view.as_ref().map_or_else(Vec::new, |view| {
+        view.nodes
+            .iter()
+            .map(|node| {
+                project_resolved_node(
+                    node,
+                    &semantic,
+                    plan.as_ref(),
+                    matching_run.as_ref(),
+                    BTreeMap::new(),
+                )
+            })
+            .collect()
+    });
+    let mut composites = resolved_view.as_ref().map_or_else(Vec::new, |view| {
+        view.composites
+            .iter()
+            .map(|composite| conduit_patchbay::PatchbayCompositeProjection {
+                id: composite.path.clone(),
+                definition: composite.definition.clone(),
+                members: composite
+                    .children
+                    .iter()
+                    .map(|child| child.path.clone())
+                    .collect(),
+                exports: composite
+                    .exports
+                    .iter()
+                    .map(|export| conduit_patchbay::PatchbayExportProjection {
+                        direction: export.direction.to_owned(),
+                        id: export.id.clone(),
+                        target_node: export.target_node.clone(),
+                        target_port: export.target_port.clone(),
+                    })
+                    .collect(),
+            })
+            .collect()
+    });
     let mut truncated = logical_nodes.len() > bounds.maximum_nodes
         || expanded_nodes.len() > bounds.maximum_nodes
         || cords.len() > bounds.maximum_cords
         || composites.len() > bounds.maximum_composites
+        || diagnostics.len() > bounds.maximum_diagnostics
         || evidence.len() > bounds.maximum_evidence_events;
     logical_nodes.truncate(bounds.maximum_nodes);
     expanded_nodes.truncate(bounds.maximum_nodes);
     cords.truncate(bounds.maximum_cords);
     composites.truncate(bounds.maximum_composites);
+    diagnostics.truncate(bounds.maximum_diagnostics);
     for node in logical_nodes.iter_mut().chain(expanded_nodes.iter_mut()) {
         truncated |= node.inputs.len() > bounds.maximum_ports_per_node
             || node.outputs.len() > bounds.maximum_ports_per_node
@@ -630,23 +950,407 @@ fn authoritative_patchbay_view(
         semantic,
         presentation: workspace.presentation().clone(),
         plan,
-        run,
-        high_water,
-        evidence: evidence
-            .iter()
-            .take(bounds.maximum_evidence_events)
-            .cloned()
-            .collect(),
+        run: matching_run.clone(),
+        high_water: matching_run.as_ref().and(high_water),
+        evidence: if matching_run.is_some() {
+            evidence
+        } else {
+            &[]
+        }
+        .iter()
+        .take(bounds.maximum_evidence_events)
+        .cloned()
+        .collect(),
         topology: conduit_patchbay::PatchbayTopologyProjection {
             contract_imports: Vec::new(),
             logical_nodes,
             expanded_nodes,
             cords,
             composites,
+            diagnostic_anchors,
+            source_state: if document.ast.is_none()
+                && recovered.nodes.iter().all(|node| node.complete)
+                && recovered.cords.iter().all(|cord| cord.complete)
+            {
+                "invalid"
+            } else {
+                match recovered.state {
+                    conduit_panel::RecoveredDocumentState::Exact if diagnostics.is_empty() => {
+                        "exact"
+                    }
+                    conduit_panel::RecoveredDocumentState::Exact
+                    | conduit_panel::RecoveredDocumentState::Invalid => "invalid",
+                    conduit_panel::RecoveredDocumentState::Partial => "partial",
+                }
+            }
+            .to_owned(),
         },
+        diagnostics,
         bounds,
-        truncated,
+        truncated: truncated || recovered.recovery_limited,
     })
+}
+
+fn project_authored_port(
+    node_id: &str,
+    port: &conduit_runtime::ResolvedPortView,
+    direction: &str,
+) -> conduit_patchbay::PatchbayPortProjection {
+    let presentation_direction = if direction == "input" {
+        "receiving"
+    } else {
+        "outgoing"
+    };
+    conduit_patchbay::PatchbayPortProjection {
+        id: port.id.clone(),
+        semantic_path: format!("root/{node_id}/port/{presentation_direction}/{}", port.id),
+        direction: direction.to_owned(),
+        display_label: if direction == "input" {
+            format!("> {}", port.id)
+        } else {
+            format!("{} >", port.id)
+        },
+        accessible_label: format!("{}, {presentation_direction} port", port.id),
+        type_id: port.type_id.clone(),
+        delivery: port.delivery.to_owned(),
+        connections: port.connections.to_owned(),
+        connected: false,
+        source_range: None,
+        validity: "valid".to_owned(),
+        diagnostic_ids: Vec::new(),
+    }
+}
+
+fn projected_port_direction(
+    nodes: &[conduit_patchbay::PatchbayNodeProjection],
+    node_id: &str,
+    port_id: &str,
+) -> Option<String> {
+    let node = nodes.iter().find(|node| node.id == node_id)?;
+    if node.inputs.iter().any(|port| port.id == port_id) {
+        Some("input".to_owned())
+    } else if node.outputs.iter().any(|port| port.id == port_id) {
+        Some("output".to_owned())
+    } else {
+        None
+    }
+}
+
+fn direction_path(direction: Option<&str>) -> &'static str {
+    match direction {
+        Some("input") => "receiving",
+        Some("output") => "outgoing",
+        _ => "unresolved",
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn add_patchbay_diagnostic(
+    diagnostics: &mut Vec<conduit_patchbay::PatchbayDiagnosticProjection>,
+    source_revision: u64,
+    code: &str,
+    severity: &str,
+    state: &str,
+    message: impl Into<String>,
+    explanation: impl Into<String>,
+    primary_range: Option<conduit_patchbay::SourceRangeProjection>,
+    targets: Vec<(&str, &str)>,
+) -> String {
+    let id = format!("diagnostic/{source_revision}/{}/{code}", diagnostics.len());
+    diagnostics.push(conduit_patchbay::PatchbayDiagnosticProjection {
+        id: id.clone(),
+        code: code.to_owned(),
+        severity: severity.to_owned(),
+        state: state.to_owned(),
+        message: message.into(),
+        explanation: explanation.into(),
+        primary_range,
+        related_ranges: Vec::new(),
+        targets: targets
+            .into_iter()
+            .map(
+                |(kind, id)| conduit_patchbay::PatchbayDiagnosticTargetProjection {
+                    kind: kind.to_owned(),
+                    id: id.to_owned(),
+                },
+            )
+            .collect(),
+    });
+    id
+}
+
+fn add_diagnostic_anchor(
+    anchors: &mut Vec<conduit_patchbay::PatchbayDiagnosticAnchorProjection>,
+    cord: &conduit_panel::Cord,
+    side: &str,
+    owner_node: Option<String>,
+    source_range: Option<conduit_patchbay::SourceRangeProjection>,
+) -> String {
+    let endpoint = if side == "from" { &cord.from } else { &cord.to };
+    let id = format!("diagnostic-anchor/{}/{side}", cord.id);
+    anchors.push(conduit_patchbay::PatchbayDiagnosticAnchorProjection {
+        id: id.clone(),
+        cord_id: cord.id.clone(),
+        side: side.to_owned(),
+        label: format!("{}.{}", endpoint.node, endpoint.port),
+        owner_node,
+        source_range,
+    });
+    id
+}
+
+fn add_recovered_anchor(
+    anchors: &mut Vec<conduit_patchbay::PatchbayDiagnosticAnchorProjection>,
+    cord: &conduit_panel::RecoveredCord,
+    side: &str,
+    owner_node: Option<String>,
+    source_range: Option<conduit_patchbay::SourceRangeProjection>,
+) -> String {
+    let endpoint = if side == "from" { &cord.from } else { &cord.to };
+    let id = format!("diagnostic-anchor/{}/{side}", cord.id);
+    let label = match (&endpoint.node, &endpoint.port) {
+        (Some(node), Some(port)) => format!("{node}.{port}"),
+        (Some(node), None) => format!("{node}.…"),
+        _ => "unfinished endpoint".to_owned(),
+    };
+    anchors.push(conduit_patchbay::PatchbayDiagnosticAnchorProjection {
+        id: id.clone(),
+        cord_id: cord.id.clone(),
+        side: side.to_owned(),
+        label,
+        owner_node,
+        source_range,
+    });
+    id
+}
+
+fn panel_without_recovered_cords(
+    source: &str,
+    recovered: &conduit_panel::RecoveredDocument,
+) -> Option<conduit_panel::Panel> {
+    let mut without_cords = source.as_bytes().to_vec();
+    for cord in &recovered.cords {
+        for byte in without_cords.get_mut(cord.source_span.start..cord.source_span.end)? {
+            if *byte != b'\n' {
+                *byte = b' ';
+            }
+        }
+    }
+    conduit_panel::parse(std::str::from_utf8(&without_cords).ok()?).ok()
+}
+
+fn recovered_cord_as_authored(
+    source: &str,
+    recovered: &conduit_panel::RecoveredCord,
+) -> Option<conduit_panel::Cord> {
+    let from = conduit_panel::Endpoint {
+        node: recovered.from.node.clone()?,
+        port: recovered.from.port.clone()?,
+    };
+    let to = conduit_panel::Endpoint {
+        node: recovered.to.node.clone()?,
+        port: recovered.to.port.clone()?,
+    };
+    let declaration = source.get(recovered.source_span.start..recovered.source_span.end)?;
+    let capacity_items = authored_numeric_field::<u16>(declaration, "capacity").unwrap_or(8);
+    let max_value_bytes =
+        authored_numeric_field::<u32>(declaration, "max_value_bytes").unwrap_or(65_536);
+    let max_queued_bytes = authored_numeric_field::<u64>(declaration, "max_queued_bytes")
+        .unwrap_or(u64::from(capacity_items) * u64::from(max_value_bytes));
+    let high_watermark_items =
+        authored_numeric_field::<u16>(declaration, "high_watermark").unwrap_or(capacity_items);
+    let low_watermark_items = authored_numeric_field::<u16>(declaration, "low_watermark")
+        .unwrap_or(high_watermark_items.saturating_sub(1));
+    let pressure_name = authored_field(declaration, "pressure").unwrap_or("block");
+    let pressure = match pressure_name {
+        "block" => conduit_panel::SourcePressure::Block,
+        "reject" => conduit_panel::SourcePressure::Reject,
+        "drop_disposable" | "drop-disposable" => conduit_panel::SourcePressure::DropDisposable,
+        "disconnect" => conduit_panel::SourcePressure::Disconnect,
+        "fail" => conduit_panel::SourcePressure::Fail,
+        "coalesce" => conduit_panel::SourcePressure::Coalesce {
+            relation: authored_field(declaration, "coalescer")?.to_owned(),
+        },
+        "sample" => conduit_panel::SourcePressure::Sample {
+            every: authored_numeric_field(declaration, "sample_every")?,
+            offset: authored_numeric_field(declaration, "sample_offset").unwrap_or(0),
+        },
+        _ => return None,
+    };
+    Some(conduit_panel::Cord {
+        id: recovered.id.clone(),
+        from,
+        to,
+        capacity_items,
+        max_value_bytes,
+        max_queued_bytes,
+        low_watermark_items,
+        high_watermark_items,
+        pressure,
+        source_span: conduit_panel::SourceSpan {
+            line: recovered.source_span.line,
+            column: recovered.source_span.column,
+            end_line: recovered.source_span.end_line,
+            end_column: recovered.source_span.end_column,
+        },
+    })
+}
+
+fn authored_numeric_field<T>(source: &str, key: &str) -> Option<T>
+where
+    T: std::str::FromStr,
+{
+    authored_field(source, key)?.parse().ok()
+}
+
+fn authored_field<'a>(source: &'a str, key: &str) -> Option<&'a str> {
+    let mut search = 0;
+    while let Some(relative) = source.get(search..)?.find(key) {
+        let start = search + relative;
+        let before_ok = start == 0
+            || !source
+                .as_bytes()
+                .get(start - 1)
+                .is_some_and(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'));
+        let after = start + key.len();
+        let after_ok = !source
+            .as_bytes()
+            .get(after)
+            .is_some_and(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'));
+        if before_ok && after_ok {
+            let tail = source.get(after..)?;
+            let equals = tail.find('=')?;
+            let value = tail.get(equals + 1..)?.trim_start();
+            let end = value
+                .find(|character: char| character.is_whitespace() || character == '}')
+                .unwrap_or(value.len());
+            return value.get(..end).filter(|value| !value.is_empty());
+        }
+        search = after;
+    }
+    None
+}
+
+fn invalid_cord_field(
+    source: &str,
+    cord: &conduit_panel::Cord,
+    source_revision: u64,
+) -> Option<(String, conduit_patchbay::SourceRangeProjection)> {
+    let key = if cord.capacity_items == 0 {
+        "capacity"
+    } else if cord.max_value_bytes == 0 {
+        "max_value_bytes"
+    } else if cord.max_queued_bytes == 0 || cord.max_queued_bytes < u64::from(cord.max_value_bytes)
+    {
+        "max_queued_bytes"
+    } else if cord.high_watermark_items == 0 || cord.high_watermark_items > cord.capacity_items {
+        "high_watermark"
+    } else if cord.low_watermark_items >= cord.high_watermark_items {
+        "low_watermark"
+    } else if matches!(
+        cord.pressure,
+        conduit_panel::SourcePressure::Sample { every: 0, .. }
+    ) {
+        "sample_every"
+    } else {
+        return None;
+    };
+    let declaration_start =
+        source_range_for_span(source, cord.source_span, source_revision, "authored-cord")?
+            .start_byte;
+    let declaration = source.get(declaration_start..)?;
+    let key_relative = declaration.find(key)?;
+    let tail = declaration.get(key_relative + key.len()..)?;
+    let equals = tail.find('=')?;
+    let value = tail.get(equals + 1..)?;
+    let leading = value.len() - value.trim_start().len();
+    let value = value.trim_start();
+    let value_end = value
+        .find(|character: char| character.is_whitespace() || character == '}')
+        .unwrap_or(value.len());
+    let start = declaration_start + key_relative;
+    let end = declaration_start + key_relative + key.len() + equals + 1 + leading + value_end;
+    Some((
+        format!("{}/{}", cord.id, key),
+        source_range_from_offsets(source, (start, end), source_revision, "authored-cord-field")?,
+    ))
+}
+
+fn mark_connected_ports(
+    nodes: &mut [conduit_patchbay::PatchbayNodeProjection],
+    cords: &[conduit_patchbay::PatchbayCordProjection],
+) {
+    for node in nodes {
+        for port in &mut node.inputs {
+            port.connected = cords.iter().any(|cord| {
+                cord.to_node.as_deref() == Some(node.id.as_str())
+                    && cord.to_port.as_deref() == Some(port.id.as_str())
+            });
+        }
+        for port in &mut node.outputs {
+            port.connected = cords.iter().any(|cord| {
+                cord.from_node.as_deref() == Some(node.id.as_str())
+                    && cord.from_port.as_deref() == Some(port.id.as_str())
+            });
+        }
+    }
+}
+
+fn source_range_for_recovered_span(
+    source: &str,
+    span: conduit_panel::Span,
+    source_revision: u64,
+    provenance: &str,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    source_range_from_offsets(source, (span.start, span.end), source_revision, provenance)
+}
+
+fn source_range_for_span(
+    source: &str,
+    span: conduit_panel::SourceSpan,
+    source_revision: u64,
+    provenance: &str,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    fn byte_offset(source: &str, line: usize, column: usize) -> Option<usize> {
+        if line == 0 || column == 0 {
+            return None;
+        }
+        let mut byte = 0;
+        for _ in 1..line {
+            byte += source.get(byte..)?.find('\n')? + 1;
+        }
+        let line_end = source[byte..]
+            .find('\n')
+            .map_or(source.len(), |relative| byte + relative);
+        let relative = source[byte..line_end]
+            .char_indices()
+            .nth(column - 1)
+            .map_or(line_end - byte, |(relative, _)| relative);
+        Some(byte + relative)
+    }
+    source_range_from_offsets(
+        source,
+        (
+            byte_offset(source, span.line, span.column)?,
+            byte_offset(source, span.end_line, span.end_column)?,
+        ),
+        source_revision,
+        provenance,
+    )
+}
+
+fn parse_error_source_range(
+    source: &str,
+    error: &conduit_panel::ParseError,
+    source_revision: u64,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    let span = conduit_panel::SourceSpan {
+        line: error.line,
+        column: error.column,
+        end_line: error.line,
+        end_column: error.column.saturating_add(1),
+    };
+    source_range_for_span(source, span, source_revision, "parser-diagnostic")
 }
 
 fn project_resolved_node(
@@ -679,12 +1383,15 @@ fn project_resolved_node(
             delivery: port.delivery.to_owned(),
             connections: port.connections.to_owned(),
             connected: false,
+            source_range: None,
+            validity: "valid".to_owned(),
+            diagnostic_ids: Vec::new(),
         }
     };
     conduit_patchbay::PatchbayNodeProjection {
         id: node.id.clone(),
         semantic_id: format!("root/{}", node.id),
-        contract_id: node.contract_id.clone(),
+        contract_id: Some(node.contract_id.clone()),
         source_range: None,
         inputs: node
             .inputs
@@ -697,19 +1404,23 @@ fn project_resolved_node(
             .map(|port| project_port(port, "output"))
             .collect(),
         config,
-        availability: semantic
-            .availabilities
-            .iter()
-            .find(|availability| availability.contract_id == node.contract_id)
-            .cloned()
-            .unwrap_or_else(|| conduit_patchbay::NodeAvailabilityProjection {
-                contract_id: node.contract_id.clone(),
-                availability_state: "unsupported".to_owned(),
-                reason_code: "CND-AVL-006".to_owned(),
-                implementation_id: None,
-                host_id: None,
-                rejection_reasons: vec!["no authoritative availability observation".to_owned()],
-            }),
+        availability: Some(
+            semantic
+                .availabilities
+                .iter()
+                .find(|availability| availability.contract_id == node.contract_id)
+                .cloned()
+                .unwrap_or_else(|| conduit_patchbay::NodeAvailabilityProjection {
+                    contract_id: node.contract_id.clone(),
+                    availability_state: "unsupported".to_owned(),
+                    reason_code: "CND-AVL-006".to_owned(),
+                    implementation_id: None,
+                    host_id: None,
+                    rejection_reasons: vec!["no authoritative availability observation".to_owned()],
+                }),
+        ),
+        validity: "valid".to_owned(),
+        diagnostic_ids: Vec::new(),
         // Placement is an observed host fact, not something the presentation
         // layer may infer from an exact plan compiled against InstalledProfile.
         placement: None,
@@ -800,6 +1511,9 @@ fn project_config_value(
         kind: kind.to_owned(),
         display_value,
         editable,
+        source_range: None,
+        validity: "valid".to_owned(),
+        diagnostic_ids: Vec::new(),
     }
 }
 
@@ -1923,6 +2637,222 @@ cord box.uppercased -> sink.text\n";
                 .unwrap()
                 .len(),
             1_024
+        );
+    }
+
+    #[test]
+    fn invalid_direction_lesson_projects_authored_graph_without_a_plan() {
+        let source = "panel 0\n\
+node first : std/literal { value = \"First.\\n\" }\n\
+node second : std/literal { value = \"Second.\\n\" }\n\
+cord first.value -> second.value {\n\
+  capacity = 1\n\
+  max_value_bytes = 1024\n\
+  max_queued_bytes = 1024\n\
+  low_watermark = 0\n\
+  high_watermark = 1\n\
+  pressure = block\n\
+}\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/invalid-direction".to_owned(),
+            source.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            opened["view"]["topology"]["cords"][0]["validity"],
+            "wrong-direction"
+        );
+        assert!(
+            opened["view"]["topology"]["cords"][0]["to_anchor"]
+                .as_str()
+                .is_some()
+        );
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"][1]["outputs"][0]["id"],
+            "value"
+        );
+        assert_eq!(opened["view"]["diagnostics"][0]["code"], "CND-CMP-003");
+        assert!(
+            opened["view"]["diagnostics"][0]["explanation"]
+                .as_str()
+                .unwrap()
+                .contains("Outgoing port used as destination")
+        );
+        assert!(opened["view"].get("plan").is_none());
+        assert!(opened["view"].get("run").is_none());
+        assert!(
+            opened["view"]
+                .get("evidence")
+                .is_none_or(|evidence| evidence.as_array().is_some_and(Vec::is_empty)),
+            "a check diagnostic is not execution evidence"
+        );
+    }
+
+    #[test]
+    fn incomplete_source_commits_current_revision_and_preserves_layout() {
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/incomplete-edit".to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .unwrap();
+        assert_eq!(opened["ok"], true);
+        let moved = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": "test/incomplete-edit",
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{"MoveNode": {
+                "node_id": "greeting",
+                "position": {"x": 77, "y": 88}
+            }}]
+        });
+        let moved: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/incomplete-edit".to_owned(),
+            moved.to_string(),
+        ))
+        .unwrap();
+        assert_eq!(moved["ok"], true);
+        let incomplete = "panel 0\nnode greeting : std/literal {\n value =\nnode preserved :";
+        let replacement = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": "test/incomplete-edit",
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 1,
+            "operations": [{"ReplaceSource": {"source": incomplete}}]
+        });
+        let edited: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/incomplete-edit".to_owned(),
+            replacement.to_string(),
+        ))
+        .unwrap();
+        assert_eq!(edited["ok"], true, "{edited}");
+        assert_eq!(edited["result"]["source"]["revision"], 1);
+        assert!(edited["result"]["source"].get("semantic_hash").is_none());
+        assert!(edited["result"]["source"]["identity"].as_str().is_some());
+        assert_eq!(edited["view"]["topology"]["source_state"], "partial");
+        assert_eq!(
+            edited["view"]["presentation"]["node_positions"]["greeting"]["x"],
+            77
+        );
+        assert!(
+            edited["view"]["topology"]["logical_nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|node| node["id"] == "greeting" && node["validity"] == "incomplete")
+        );
+        assert!(edited["view"].get("plan").is_none());
+    }
+
+    #[test]
+    fn authored_cord_failures_have_distinct_truthful_states() {
+        let cases = [
+            (
+                "receiving-source",
+                "node a : display/text\nnode b : display/text\ncord a.text -> b.text\n",
+                "wrong-direction",
+            ),
+            (
+                "unknown-node",
+                "node b : display/text\ncord missing.value -> b.text\n",
+                "unresolved",
+            ),
+            (
+                "unknown-port",
+                "node a : std/literal\nnode b : display/text\ncord a.missing -> b.text\n",
+                "unresolved",
+            ),
+            (
+                "incompatible",
+                "node a : std/literal\nnode b : io/stdout\ncord a.value -> b.bytes\n",
+                "incompatible",
+            ),
+            (
+                "bounds",
+                "node a : std/literal\nnode b : display/text\n\
+                 cord a.value -> b.text { capacity = 1 max_value_bytes = 8 \
+                 max_queued_bytes = 8 low_watermark = 0 high_watermark = 2 pressure = block }\n",
+                "invalid-bounds",
+            ),
+        ];
+        for (id, body, expected) in cases {
+            let source = format!("panel 0\n{body}");
+            let opened: Value = serde_json::from_str(&patchbay_open_session(
+                format!("test/cord-state-{id}"),
+                source.clone(),
+            ))
+            .unwrap();
+            assert_eq!(opened["ok"], true, "{id}: {opened}");
+            assert_eq!(
+                opened["view"]["topology"]["cords"][0]["validity"], expected,
+                "{id}: {opened}"
+            );
+            if expected == "invalid-bounds" {
+                assert!(
+                    opened["view"]["diagnostics"][0]["targets"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|target| {
+                            target["kind"] == "config"
+                                && target["id"]
+                                    .as_str()
+                                    .is_some_and(|value| value.ends_with("/high_watermark"))
+                        }),
+                    "{id}: {opened}"
+                );
+                let range = &opened["view"]["diagnostics"][0]["primary_range"];
+                let start = range["start_byte"].as_u64().unwrap() as usize;
+                let end = range["end_byte"].as_u64().unwrap() as usize;
+                assert!(source[start..end].starts_with("high_watermark"));
+            }
+            assert!(opened["view"].get("plan").is_none(), "{id}: {opened}");
+        }
+    }
+
+    #[test]
+    fn trivia_edit_rebases_diagnostic_ranges_to_the_new_revision() {
+        let source = "panel 0\nnode a : std/literal\nnode b : std/literal\n\
+                      cord a.value -> b.value\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/diagnostic-revision".to_owned(),
+            source.to_owned(),
+        ))
+        .unwrap();
+        let replacement = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": "test/diagnostic-revision",
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{"ReplaceSource": {
+                "source": format!("# formatting only\n{source}")
+            }}]
+        });
+        let edited: Value = serde_json::from_str(&patchbay_apply_transaction(
+            "test/diagnostic-revision".to_owned(),
+            replacement.to_string(),
+        ))
+        .unwrap();
+        assert_eq!(edited["ok"], true, "{edited}");
+        assert_eq!(
+            edited["view"]["diagnostics"][0]["primary_range"]["source_revision"],
+            1
+        );
+        assert!(
+            edited["view"]["diagnostics"][0]["primary_range"]["start_byte"]
+                .as_u64()
+                .unwrap()
+                > opened["view"]["diagnostics"][0]["primary_range"]["start_byte"]
+                    .as_u64()
+                    .unwrap()
         );
     }
 }

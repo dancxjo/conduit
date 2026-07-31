@@ -4419,7 +4419,7 @@
         {
           "id": "patchbay-protocol",
           "path": "../c8/patchbay-protocol.json",
-          "sha256": "sha256:d937b840eea6bf87899885ccc50ccf13f933c0bdc5165a086c858fd5c73a5288",
+          "sha256": "sha256:49c0d4ed9ef725d59673ef22661a74f997fab32fab9bcafee7aedc146fc64ebc",
           "operation": "patchbay-protocol",
           "requirement_ids": [
             "PBY-001",
@@ -4435,7 +4435,7 @@
           "case_rules": {
             "source-edit-creates-new-semantic-revision": "PBY-002",
             "stale-edit-is-atomic-conflict": "PBY-003",
-            "invalid-source-is-atomic-diagnostic": "PBY-004",
+            "invalid-source-is-current-diagnostic": "PBY-004",
             "run-remains-pinned-while-source-changes": "PBY-005",
             "logical-and-expanded-subjects-are-distinct": "PBY-006",
             "projection-gap-requires-resync": "PBY-007",
@@ -4465,12 +4465,12 @@
         "positive": [
           "patchbay-protocol#move-only-preserves-semantic-identity",
           "patchbay-protocol#source-edit-creates-new-semantic-revision",
+          "patchbay-protocol#invalid-source-is-current-diagnostic",
           "patchbay-protocol#typed-connect-validates-through-resolver",
           "patchbay-protocol#authoritative-view-has-no-browser-inference"
         ],
         "negative": [
           "patchbay-protocol#stale-edit-is-atomic-conflict",
-          "patchbay-protocol#invalid-source-is-atomic-diagnostic",
           "patchbay-protocol#protocol-version-mismatch-fails-closed",
           "patchbay-protocol#persistent-session-rejects-stale-concurrent-revision",
           "patchbay-protocol#incompatible-connection-is-atomic",

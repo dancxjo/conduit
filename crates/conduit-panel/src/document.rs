@@ -45,6 +45,48 @@ pub struct SourceDocument {
     pub diagnostics: Vec<ParseError>,
 }
 
+/// Bounded source facts recoverable without claiming a complete semantic AST.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveredDocument {
+    pub nodes: Vec<RecoveredNode>,
+    pub cords: Vec<RecoveredCord>,
+    pub state: RecoveredDocumentState,
+    pub recovery_limited: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RecoveredDocumentState {
+    Exact,
+    Invalid,
+    Partial,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveredNode {
+    pub id: Option<String>,
+    pub kind: Option<String>,
+    pub source_span: Span,
+    pub id_span: Option<Span>,
+    pub kind_span: Option<Span>,
+    pub complete: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveredEndpoint {
+    pub node: Option<String>,
+    pub port: Option<String>,
+    pub source_span: Option<Span>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveredCord {
+    pub id: String,
+    pub from: RecoveredEndpoint,
+    pub to: RecoveredEndpoint,
+    pub source_span: Span,
+    pub complete: bool,
+}
+
 impl SourceDocument {
     /// Returns the exact original UTF-8 bytes.
     #[must_use]
@@ -76,6 +118,19 @@ pub fn parse_document(source: &str) -> SourceDocument {
 /// Parses a lossless document with an explicit root selection.
 #[must_use]
 pub fn parse_document_with_root(source: &str, selected_root: Option<&str>) -> SourceDocument {
+    if source.len() > crate::MAXIMUM_PANEL_SOURCE_BYTES {
+        return SourceDocument {
+            source: source.to_owned(),
+            tokens: Vec::new(),
+            ast: None,
+            diagnostics: vec![ParseError {
+                code: "CND-SEC-001",
+                line: 1,
+                column: 1,
+                message: "panel source byte limit exceeded".to_owned(),
+            }],
+        };
+    }
     let tokens = lossless_tokens(source);
     match parse_with_root(source, selected_root) {
         Ok(panel) => SourceDocument {
@@ -90,6 +145,233 @@ pub fn parse_document_with_root(source: &str, selected_root: Option<&str>) -> So
             ast: None,
             diagnostics: vec![error],
         },
+    }
+}
+
+/// Recovers bounded authored node and cord declarations for editor
+/// presentation. Recovery never produces a [`Panel`] and is never executable.
+#[must_use]
+pub fn recover_document(source: &str) -> RecoveredDocument {
+    if source.len() > crate::MAXIMUM_PANEL_SOURCE_BYTES {
+        return RecoveredDocument {
+            nodes: Vec::new(),
+            cords: Vec::new(),
+            state: RecoveredDocumentState::Partial,
+            recovery_limited: true,
+        };
+    }
+    let parsed = parse_document(source);
+    let exact = parsed.ast.is_some();
+    let mut nodes = Vec::new();
+    let mut cords = Vec::new();
+    let mut offset = 0;
+    for line in source.split_inclusive('\n') {
+        let line_without_newline = line.strip_suffix('\n').unwrap_or(line);
+        let content = line_without_newline.trim_start();
+        let leading = line_without_newline.len() - content.len();
+        if content.starts_with('#') {
+            offset += line.len();
+            continue;
+        }
+        if declaration_keyword(content, "node") {
+            if nodes.len() >= 1_024 {
+                return RecoveredDocument {
+                    nodes,
+                    cords,
+                    state: RecoveredDocumentState::Partial,
+                    recovery_limited: true,
+                };
+            }
+            let start = offset + leading;
+            let end = declaration_end(source, start);
+            let header_end = source[start..end]
+                .find(['{', '\n'])
+                .map_or(end, |relative| start + relative);
+            let header = &source[start + "node".len()..header_end];
+            let (id, id_span) = next_source_word(source, start + "node".len(), header);
+            let colon = header.find(':');
+            let (kind, kind_span) = colon.map_or((None, None), |relative| {
+                let kind_start = start + "node".len() + relative + 1;
+                next_source_word(source, kind_start, &source[kind_start..header_end])
+            });
+            let complete =
+                id_span.is_some() && kind_span.is_some() && braces_complete(&source[start..end]);
+            nodes.push(RecoveredNode {
+                id,
+                kind,
+                source_span: span_for_bytes(source, start, end),
+                id_span,
+                kind_span,
+                complete,
+            });
+        } else if declaration_keyword(content, "cord") {
+            if cords.len() >= 4_096 {
+                return RecoveredDocument {
+                    nodes,
+                    cords,
+                    state: RecoveredDocumentState::Partial,
+                    recovery_limited: true,
+                };
+            }
+            let start = offset + leading;
+            let end = declaration_end(source, start);
+            let header_end = source[start..end]
+                .find(['{', '\n'])
+                .map_or(end, |relative| start + relative);
+            let header_start = start + "cord".len();
+            let header = source[header_start..header_end].trim();
+            let header_offset = source[header_start..header_end]
+                .find(header)
+                .map_or(header_start, |relative| header_start + relative);
+            let (from_text, to_text) = header
+                .split_once("->")
+                .map_or((header, ""), |(from, to)| (from.trim(), to.trim()));
+            let from_offset = header_offset + header.find(from_text).unwrap_or(0);
+            let to_offset = header
+                .find("->")
+                .map(|arrow| {
+                    let suffix = &header[arrow + 2..];
+                    header_offset + arrow + 2 + suffix.find(to_text).unwrap_or(0)
+                })
+                .unwrap_or(header_end);
+            let from = recovered_endpoint(source, from_text, from_offset);
+            let to = recovered_endpoint(source, to_text, to_offset);
+            let complete = from.node.is_some()
+                && from.port.is_some()
+                && to.node.is_some()
+                && to.port.is_some()
+                && header.contains("->")
+                && braces_complete(&source[start..end]);
+            cords.push(RecoveredCord {
+                id: format!("cord-{}", cords.len()),
+                from,
+                to,
+                source_span: span_for_bytes(source, start, end),
+                complete,
+            });
+        }
+        offset += line.len();
+    }
+    RecoveredDocument {
+        nodes,
+        cords,
+        state: if exact {
+            RecoveredDocumentState::Exact
+        } else if parsed
+            .diagnostics
+            .first()
+            .is_some_and(|diagnostic| diagnostic.line >= source.lines().count().saturating_sub(1))
+        {
+            RecoveredDocumentState::Partial
+        } else {
+            RecoveredDocumentState::Invalid
+        },
+        recovery_limited: false,
+    }
+}
+
+fn declaration_keyword(source: &str, keyword: &str) -> bool {
+    source == keyword
+        || source
+            .strip_prefix(keyword)
+            .and_then(|tail| tail.chars().next())
+            .is_some_and(char::is_whitespace)
+}
+
+fn next_source_word(source: &str, base: usize, fragment: &str) -> (Option<String>, Option<Span>) {
+    let trimmed = fragment.trim_start();
+    let leading = fragment.len() - trimmed.len();
+    let word = trimmed
+        .split(|character: char| character.is_whitespace() || matches!(character, ':' | '{' | '}'))
+        .next()
+        .unwrap_or("");
+    if word.is_empty() {
+        return (None, None);
+    }
+    let start = base + leading;
+    let end = start + word.len();
+    (
+        Some(word.to_owned()),
+        Some(span_for_bytes(source, start, end)),
+    )
+}
+
+fn recovered_endpoint(source: &str, spelling: &str, start: usize) -> RecoveredEndpoint {
+    let source_span =
+        (!spelling.is_empty()).then(|| span_for_bytes(source, start, start + spelling.len()));
+    let mut members = spelling.splitn(2, '.');
+    let node = members
+        .next()
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    let port = members
+        .next()
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    RecoveredEndpoint {
+        node,
+        port,
+        source_span,
+    }
+}
+
+fn declaration_end(source: &str, start: usize) -> usize {
+    let tail = &source[start..];
+    let Some(open) = tail.find('{') else {
+        return tail
+            .find('\n')
+            .map_or(source.len(), |relative| start + relative);
+    };
+    let mut depth = 0_u32;
+    let mut quoted = false;
+    let mut escaped = false;
+    for (relative, character) in tail[open..].char_indices() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == '"' {
+                quoted = false;
+            }
+            continue;
+        }
+        match character {
+            '"' => quoted = true,
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return start + open + relative + character.len_utf8();
+                }
+            }
+            _ => {}
+        }
+    }
+    source.len()
+}
+
+fn braces_complete(source: &str) -> bool {
+    !source.contains('{') || source.trim_end().ends_with('}')
+}
+
+fn span_for_bytes(source: &str, start: usize, end: usize) -> Span {
+    let location = |byte: usize| {
+        let prefix = &source[..byte.min(source.len())];
+        let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+        let line_start = prefix.rfind('\n').map_or(0, |index| index + 1);
+        let column = prefix[line_start..].chars().count() + 1;
+        (line, column)
+    };
+    let (line, column) = location(start);
+    let (end_line, end_column) = location(end);
+    Span {
+        start,
+        end,
+        line,
+        column,
+        end_line,
+        end_column,
     }
 }
 
@@ -500,4 +782,51 @@ fn text(output: &mut String, value: &str) {
 
 fn field(output: &mut String, name: &str, value: impl std::fmt::Display) {
     write!(output, "{name}:{value};").expect("write to String");
+}
+
+#[cfg(test)]
+mod recovery_tests {
+    use super::*;
+
+    #[test]
+    fn incomplete_typing_preserves_every_recoverable_authored_identity() {
+        let prefix = "panel 0\nnode stable : std/literal { value = \"ok\" }\nnode greeting :";
+        for suffix in ["", " std/lit", " std/literal {", " std/literal {\n value ="] {
+            let recovered = recover_document(&format!("{prefix}{suffix}"));
+            assert!(
+                recovered
+                    .nodes
+                    .iter()
+                    .any(|node| node.id.as_deref() == Some("stable"))
+            );
+            assert!(
+                recovered
+                    .nodes
+                    .iter()
+                    .any(|node| node.id.as_deref() == Some("greeting"))
+            );
+            assert!(!recovered.recovery_limited);
+        }
+    }
+
+    #[test]
+    fn partial_cord_retains_only_authored_endpoint_facts() {
+        let recovered =
+            recover_document("panel 0\nnode source : std/literal\ncord source.value -> sink.\n");
+        assert_eq!(recovered.cords.len(), 1);
+        assert_eq!(recovered.cords[0].from.node.as_deref(), Some("source"));
+        assert_eq!(recovered.cords[0].from.port.as_deref(), Some("value"));
+        assert_eq!(recovered.cords[0].to.node.as_deref(), Some("sink"));
+        assert_eq!(recovered.cords[0].to.port, None);
+        assert!(!recovered.cords[0].complete);
+    }
+
+    #[test]
+    fn recovery_fails_closed_at_the_source_bound() {
+        let source = "x".repeat(crate::MAXIMUM_PANEL_SOURCE_BYTES + 1);
+        let recovered = recover_document(&source);
+        assert!(recovered.recovery_limited);
+        assert!(recovered.nodes.is_empty());
+        assert!(recovered.cords.is_empty());
+    }
 }

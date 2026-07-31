@@ -11,8 +11,9 @@ mod modules;
 mod packages;
 
 pub use document::{
-    CstToken, CstTokenKind, SOURCE_AST_SCHEMA_VERSION, SourceDocument, Span, parse_document,
-    parse_document_with_root, semantic_source_hash,
+    CstToken, CstTokenKind, RecoveredCord, RecoveredDocument, RecoveredDocumentState,
+    RecoveredEndpoint, RecoveredNode, SOURCE_AST_SCHEMA_VERSION, SourceDocument, Span,
+    parse_document, parse_document_with_root, recover_document, semantic_source_hash,
 };
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,

@@ -18,6 +18,7 @@ function classToken(value) {
 }
 
 function pressureFamily(pressure) {
+  if (typeof pressure !== "string") return "unknown";
   const normalized = pressure.toLowerCase();
   for (const policy of [
     "drop-disposable",
@@ -34,6 +35,9 @@ function pressureFamily(pressure) {
 }
 
 function typePresentation(valueType) {
+  if (typeof valueType !== "string") {
+    return { color: "#94a3b8", family: "unknown" };
+  }
   const normalized = valueType.toLowerCase();
   if (normalized.includes("text") || normalized.includes("utf")) {
     return { color: "#34d399", family: "text" };
@@ -61,7 +65,8 @@ function edgePresentation(edge) {
   const policy = pressureFamily(edge.pressure);
   const valueType = typePresentation(edge.value_type);
   const compatible = edge.compatibility?.compatible === true;
-  const capacityTier = edge.capacity_items <= 1
+  const capacity = Number.isFinite(edge.capacity_items) ? edge.capacity_items : 0;
+  const capacityTier = capacity <= 1
     ? "single"
     : edge.capacity_items <= 4
       ? "small"
@@ -71,14 +76,21 @@ function edgePresentation(edge) {
   const lossClass = ["coalesce", "sample", "drop-disposable"].includes(policy)
     ? "lossy"
     : "lossless";
-  const thresholdRatio = edge.high_watermark_items / edge.capacity_items;
+  const thresholdRatio = capacity > 0 ? edge.high_watermark_items / capacity : 1;
   const thresholdClass = thresholdRatio <= 0.5
     ? "early"
     : thresholdRatio < 1
       ? "graduated"
       : "full";
-  const strokeWidth = 2 + Math.min(2.5, Math.log2(edge.capacity_items + 1) * 0.45);
-  const color = compatible ? valueType.color : "#fb7185";
+  const strokeWidth = edge.validity === "valid"
+    ? 2 + Math.min(2.5, Math.log2(capacity + 1) * 0.45)
+    : 4;
+  const invalid = edge.validity !== "valid";
+  const color = invalid ? "#ff1744" : compatible ? valueType.color : "#fb7185";
+  const stateLabel = invalid
+    ? `× ${edge.validity.replaceAll("-", " ")} ×`
+    : `${edge.value_type} · ${edge.capacity_items} slots · ` +
+      `${edge.low_watermark_items}↗${edge.high_watermark_items} · ${edge.pressure}`;
 
   return {
     color,
@@ -86,22 +98,31 @@ function edgePresentation(edge) {
     className: [
       `pressure-${policy}`,
       `pressure-${lossClass}`,
-      `value-type-${classToken(edge.value_type)}`,
+      `value-type-${classToken(edge.value_type || "unknown")}`,
       `type-family-${valueType.family}`,
       `capacity-${capacityTier}`,
       `threshold-${thresholdClass}`,
       compatible ? "compatibility-compatible" : "compatibility-incompatible",
+      invalid ? "cord-diagnostic-error" : "",
+      `cord-validity-${classToken(edge.validity || "unresolved")}`,
     ].join(" "),
-    label: `${edge.value_type} · ${edge.capacity_items} slots · ` +
-      `${edge.low_watermark_items}↗${edge.high_watermark_items} · ${edge.pressure}`,
+    label: stateLabel,
   };
 }
 
-function endpointForView(edge, side, view) {
+function endpointForView(edge, side, view, anchors, projectedNodeIds) {
+  const anchorId = edge[`${side}_anchor`];
+  if (anchorId) {
+    const anchor = anchors.find((candidate) => candidate.id === anchorId);
+    if (anchor?.owner_node && projectedNodeIds.has(anchor.owner_node)) {
+      return { node: anchor.owner_node, port: anchor.id };
+    }
+    return { node: anchorId, port: "diagnostic-anchor" };
+  }
   if (view !== "logical") {
     return {
-      node: edge[`${side}_node`],
-      port: edge[`${side}_port`],
+      node: edge[`expanded_${side}_node`] || edge[`${side}_node`],
+      port: edge[`expanded_${side}_port`] || edge[`${side}_port`],
     };
   }
   const path = edge[`${side}_port_path`];
@@ -156,6 +177,23 @@ export class PatchbayReactFlowRenderer {
     this.viewModel = viewModel;
     this.lessonId = lessonId;
     this.topologyView = topologyView;
+    const renderIdentity = JSON.stringify([
+      viewModel?.source?.identity,
+      viewModel?.source?.revision,
+      viewModel?.presentation?.identity,
+      viewModel?.plan?.identity,
+      viewModel?.run?.run_id,
+      topologyView,
+      (viewModel?.diagnostics || []).map((diagnostic) => diagnostic.id),
+      (viewModel?.topology?.cords || []).map((cord) => [
+        cord.id,
+        cord.validity,
+        cord.from_anchor,
+        cord.to_anchor,
+      ]),
+    ]);
+    if (renderIdentity === this.lastRenderIdentity) return;
+    this.lastRenderIdentity = renderIdentity;
     this.renderFlow();
   }
 
@@ -186,8 +224,10 @@ export class PatchbayReactFlowRenderer {
       ? this.topologyView === "logical"
         ? [cord.from_port_path, cord.to_port_path]
         : [
-            `root/${cord.from_node}/port/outgoing/${cord.from_port}`,
-            `root/${cord.to_node}/port/receiving/${cord.to_port}`,
+            `root/${cord.expanded_from_node || cord.from_node}/port/outgoing/` +
+              `${cord.expanded_from_port || cord.from_port}`,
+            `root/${cord.expanded_to_node || cord.to_node}/port/receiving/` +
+              `${cord.expanded_to_port || cord.to_port}`,
           ]
       : []
     );
@@ -251,16 +291,23 @@ export class PatchbayReactFlowRenderer {
       ? viewModel.topology?.logical_nodes || []
       : viewModel.topology?.expanded_nodes || [];
     const projectedNodeIds = new Set(projectedNodes.map((node) => node.id));
+    const diagnosticAnchors = viewModel.topology?.diagnostic_anchors || [];
     const projectedEdges = (viewModel.topology?.cords || [])
       .map((edge) => ({
         edge,
-        source: endpointForView(edge, "from", this.topologyView),
-        target: endpointForView(edge, "to", this.topologyView),
+        source: endpointForView(
+          edge, "from", this.topologyView, diagnosticAnchors, projectedNodeIds,
+        ),
+        target: endpointForView(
+          edge, "to", this.topologyView, diagnosticAnchors, projectedNodeIds,
+        ),
       }))
       .filter(({ source, target }) =>
         source && target &&
-        projectedNodeIds.has(source.node) &&
-        projectedNodeIds.has(target.node)
+        (projectedNodeIds.has(source.node) ||
+          diagnosticAnchors.some((anchor) => anchor.id === source.node)) &&
+        (projectedNodeIds.has(target.node) ||
+          diagnosticAnchors.some((anchor) => anchor.id === target.node))
       );
     const nodePositions = viewModel.presentation?.node_positions || {};
     const positionForNode = (nodeId, index) =>
@@ -301,6 +348,11 @@ export class PatchbayReactFlowRenderer {
         outputs: node.outputs || [],
         status: node.activity || "idle",
         activity: node.activity,
+        validity: node.validity,
+        diagnosticIds: node.diagnostic_ids || [],
+        diagnosticAnchors: diagnosticAnchors.filter(
+          (anchor) => anchor.owner_node === node.id,
+        ),
         isComposite: compositeIds.has(node.id),
         isSelected: node.id === this.selectedNodeId,
         onConfigChange: (nodeId, key, value, kind) =>
@@ -320,7 +372,24 @@ export class PatchbayReactFlowRenderer {
         selectable: true,
       };
     });
+    const standaloneAnchors = diagnosticAnchors
+      .filter((anchor) => !anchor.owner_node || !projectedNodeIds.has(anchor.owner_node))
+      .map((anchor, index) => ({
+        id: anchor.id,
+        type: "diagnosticAnchor",
+        position: {
+          x: 450 + (index % 2) * 300,
+          y: 130 + Math.floor(index / 2) * 130,
+        },
+        data: anchor,
+        draggable: false,
+        selectable: true,
+      }));
+    nodes.push(...standaloneAnchors);
 
+    const emphasizedDiagnosticCord = projectedEdges.find(
+      ({ edge }) => edge.validity !== "valid",
+    )?.edge.id;
     const edges = projectedEdges.map(({ edge, source, target }) => {
       const presentation = edgePresentation(edge);
       const edgeType = patchbayFeatures.legacyLinePlacement && this.legacySmartEdge
@@ -340,7 +409,11 @@ export class PatchbayReactFlowRenderer {
           width: 18,
           height: 18,
         },
-        className: `patchbay-smart-cord ${presentation.className}`,
+        className: [
+          "patchbay-smart-cord",
+          presentation.className,
+          edge.id === emphasizedDiagnosticCord ? "diagnostic-emphasized" : "",
+        ].join(" "),
         data: {
           presentationClass: `patchbay-smart-cord ${presentation.className}`,
         },
@@ -365,6 +438,7 @@ export class PatchbayReactFlowRenderer {
         labelBgBorderRadius: 4,
         animated: false,
         selected: edge.id === this.selectedCordId,
+        ariaLabel: `${edge.id}: ${presentation.label}`,
       };
     });
     this.renderedCordIds = edges.map((edge) => edge.id);
@@ -376,7 +450,29 @@ export class PatchbayReactFlowRenderer {
       { className: "react-flow-node-shell" },
       e(FaceplateNodeComponent, { id: data.id, data }),
     );
-    const nodeTypes = { faceplate: FaceplateNode };
+    const DiagnosticAnchorNode = ({ data }) => e(
+      "div",
+      {
+        className: "patchbay-diagnostic-anchor-card",
+        role: "note",
+        "aria-label": `Unresolved authored endpoint ${data.label}`,
+      },
+      e(window.ReactFlow.Handle, {
+        id: "diagnostic-anchor",
+        type: data.side === "from" ? "source" : "target",
+        position: data.side === "from"
+          ? window.ReactFlow.Position.Right
+          : window.ReactFlow.Position.Left,
+        isConnectable: false,
+        className: "patchbay-diagnostic-anchor-handle",
+      }),
+      e("strong", { "aria-hidden": "true" }, "×"),
+      e("span", null, data.label),
+    );
+    const nodeTypes = {
+      faceplate: FaceplateNode,
+      diagnosticAnchor: DiagnosticAnchorNode,
+    };
 
     const edgeTypes = {};
     if (patchbayFeatures.legacyLinePlacement && this.legacySmartEdge) {
