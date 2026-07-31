@@ -12,6 +12,7 @@ members = [
     "crates/conduit-inspect",
     "crates/conduit-learned",
     "crates/conduit-media",
+    "crates/conduit-net",
     "crates/conduit-package",
     "crates/conduit-panel",
     "crates/conduit-patchbay",
