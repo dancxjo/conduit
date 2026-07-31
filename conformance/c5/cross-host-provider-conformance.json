@@ -2,8 +2,8 @@
   "suite": "conduit.cross-host-provider-conformance",
   "schema_version": 0,
   "cases": [
-    {"id":"linux-native-fixture-pass","profile":"linux-hosted","provider_state":"available","boundary":"native","type_relation":"exact","expected":"bound","reason":"HCF-001"},
-    {"id":"browser-wasm-fixture-pass","profile":"browser-wasm","provider_state":"available","boundary":"wasm-browser","type_relation":"exact","expected":"bound","reason":"HCF-001"},
+    {"id":"provider-fixture-alpha-pass","profile":"deterministic-test","provider_state":"available","boundary":"native","type_relation":"exact","expected":"bound","reason":"HCF-001"},
+    {"id":"provider-fixture-beta-pass","profile":"deterministic-test","provider_state":"available","boundary":"native","type_relation":"exact","expected":"bound","reason":"HCF-001"},
     {"id":"firmware-honest-unsupported","profile":"constrained-firmware","provider_state":"known-unsupported","boundary":"firmware-ffi","type_relation":"exact","expected":"CND-HCF-005","reason":"HCF-002"},
     {"id":"deterministic-pass","profile":"deterministic-test","provider_state":"available","boundary":"native","type_relation":"exact","expected":"bound","reason":"HCF-001"},
     {"id":"describe-only-not-executable","profile":"describe-only","provider_state":"available","boundary":"native","type_relation":"exact","expected":"CND-HCF-003","reason":"HCF-002"},

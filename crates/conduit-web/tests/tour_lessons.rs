@@ -1303,24 +1303,24 @@ fn cross_host_profile_registry(profile: &str) -> Registry {
             conduit_media::register_deterministic_codec_providers(&mut registry)
                 .expect("deterministic codec providers are available");
         }
-        "linux-native-fixture" | "explicit-adapter-fixture" => {
+        "provider-fixture-alpha" | "explicit-adapter-fixture" => {
             conduit_media::register_deterministic_media_providers(&mut registry)
                 .expect("deterministic media providers are available");
             conduit_media::register_media_codec_contracts(&mut registry);
-            if profile == "linux-native-fixture" {
-                register_linux_codec_fixture_providers(&mut registry)
-                    .expect("linux codec fixture providers are available");
+            if profile == "provider-fixture-alpha" {
+                register_provider_fixture_alpha_codec_providers(&mut registry)
+                    .expect("provider fixture alpha is available");
             } else {
                 register_explicit_adapter_codec_fixture_providers(&mut registry)
                     .expect("explicit adapter codec fixture providers are available");
             }
         }
-        "browser-wasm-fixture" => {
+        "provider-fixture-beta" => {
             conduit_media::register_deterministic_media_providers(&mut registry)
                 .expect("deterministic media providers are available");
             conduit_media::register_media_codec_contracts(&mut registry);
-            register_browser_codec_fixture_providers(&mut registry)
-                .expect("browser codec fixture providers are available");
+            register_provider_fixture_beta_codec_providers(&mut registry)
+                .expect("provider fixture beta is available");
         }
         other => panic!("unknown cross-host profile {other}"),
     }
@@ -1365,59 +1365,63 @@ fn register_codec_fixture_provider(
     Ok(())
 }
 
-fn register_linux_codec_fixture_providers(registry: &mut Registry) -> Result<(), RegistryError> {
+fn register_provider_fixture_alpha_codec_providers(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
     register_codec_fixture_provider(
         registry,
         &[
             (
                 &conduit_media::WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-linux-native-fixture",
-                "conduit.media/wave-literal-linux-native-fixture-artifact",
-                "media-wave-literal-linux-native-fixture",
-                b"conduit.media/wave-literal-linux-native-fixture.source",
+                "conduit.media/wave-literal-provider-fixture-alpha",
+                "conduit.media/wave-literal-provider-fixture-alpha-artifact",
+                "media-wave-literal-provider-fixture-alpha",
+                b"conduit.media/wave-literal-provider-fixture-alpha.source",
             ),
             (
                 &conduit_media::DEMUX_CONTRACT,
-                "conduit.media/wave-demux-linux-native-fixture",
-                "conduit.media/wave-demux-linux-native-fixture-artifact",
-                "media-wave-demux-linux-native-fixture",
-                b"conduit.media/wave-demux-linux-native-fixture.source",
+                "conduit.media/wave-demux-provider-fixture-alpha",
+                "conduit.media/wave-demux-provider-fixture-alpha-artifact",
+                "media-wave-demux-provider-fixture-alpha",
+                b"conduit.media/wave-demux-provider-fixture-alpha.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-linux-native-fixture",
-                "conduit.media/pcm-decode-linux-native-fixture-artifact",
-                "media-pcm-decode-linux-native-fixture",
-                b"conduit.media/pcm-decode-linux-native-fixture.source",
+                "conduit.media/pcm-decode-provider-fixture-alpha",
+                "conduit.media/pcm-decode-provider-fixture-alpha-artifact",
+                "media-pcm-decode-provider-fixture-alpha",
+                b"conduit.media/pcm-decode-provider-fixture-alpha.source",
             ),
         ],
     )
 }
 
-fn register_browser_codec_fixture_providers(registry: &mut Registry) -> Result<(), RegistryError> {
+fn register_provider_fixture_beta_codec_providers(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
     register_codec_fixture_provider(
         registry,
         &[
             (
                 &conduit_media::WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-browser-wasm-fixture",
-                "conduit.media/wave-literal-browser-wasm-fixture-artifact",
-                "media-wave-literal-browser-wasm-fixture",
-                b"conduit.media/wave-literal-browser-wasm-fixture.source",
+                "conduit.media/wave-literal-provider-fixture-beta",
+                "conduit.media/wave-literal-provider-fixture-beta-artifact",
+                "media-wave-literal-provider-fixture-beta",
+                b"conduit.media/wave-literal-provider-fixture-beta.source",
             ),
             (
                 &conduit_media::DEMUX_CONTRACT,
-                "conduit.media/wave-demux-browser-wasm-fixture",
-                "conduit.media/wave-demux-browser-wasm-fixture-artifact",
-                "media-wave-demux-browser-wasm-fixture",
-                b"conduit.media/wave-demux-browser-wasm-fixture.source",
+                "conduit.media/wave-demux-provider-fixture-beta",
+                "conduit.media/wave-demux-provider-fixture-beta-artifact",
+                "media-wave-demux-provider-fixture-beta",
+                b"conduit.media/wave-demux-provider-fixture-beta.source",
             ),
             (
                 &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-browser-wasm-fixture",
-                "conduit.media/pcm-decode-browser-wasm-fixture-artifact",
-                "media-pcm-decode-browser-wasm-fixture",
-                b"conduit.media/pcm-decode-browser-wasm-fixture.source",
+                "conduit.media/pcm-decode-provider-fixture-beta",
+                "conduit.media/pcm-decode-provider-fixture-beta-artifact",
+                "media-pcm-decode-provider-fixture-beta",
+                b"conduit.media/pcm-decode-provider-fixture-beta.source",
             ),
         ],
     )
@@ -1465,17 +1469,9 @@ fn cross_host_media_bindings(
         });
     let profile_observation = match profile {
         "deterministic-host" => ("conduit/conduct-host-observation", "conduit/conduct-host"),
-        "linux-native-fixture" => (
-            "conduit/cross-host/linux-native-fixture-observation",
-            "conduit/cross-host/linux-native-fixture",
-        ),
-        "browser-wasm-fixture" => (
-            "conduit/cross-host/browser-wasm-fixture-observation",
-            "conduit/cross-host/browser-wasm-fixture",
-        ),
-        "explicit-adapter-fixture" => (
-            "conduit/cross-host/explicit-adapter-fixture-observation",
-            "conduit/cross-host/explicit-adapter-fixture",
+        "provider-fixture-alpha" | "provider-fixture-beta" | "explicit-adapter-fixture" => (
+            "conduit/cross-host/provider-fixture-observation",
+            "conduit/cross-host/provider-fixture-host",
         ),
         _ => panic!("unknown cross-host profile {profile}"),
     };
@@ -1583,8 +1579,8 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         accepted_profile_ids,
         [
             "deterministic-host",
-            "linux-native-fixture",
-            "browser-wasm-fixture",
+            "provider-fixture-alpha",
+            "provider-fixture-beta",
             "explicit-adapter-fixture"
         ]
         .into_iter()
@@ -1592,7 +1588,7 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         .collect()
     );
     assert!(accepted_boundaries.contains("native"));
-    assert!(accepted_boundaries.contains("wasm-browser"));
+    assert_eq!(accepted_boundaries, ["native"].into_iter().collect());
     assert!(accepted_type_relations.contains("exact"));
     assert!(accepted_type_relations.contains("different-explicit-adapter"));
     assert_eq!(rejected_profile_codes.len(), 3);
@@ -1611,50 +1607,61 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     let deterministic_bindings = accepted_profile_bindings
         .get("deterministic-host")
         .expect("deterministic-host profile is accepted");
-    let linux_bindings = accepted_profile_bindings
-        .get("linux-native-fixture")
-        .expect("linux-native-fixture profile is accepted");
-    let browser_bindings = accepted_profile_bindings
-        .get("browser-wasm-fixture")
-        .expect("browser-wasm-fixture profile is accepted");
+    let fixture_alpha_bindings = accepted_profile_bindings
+        .get("provider-fixture-alpha")
+        .expect("provider fixture alpha is accepted");
+    let fixture_beta_bindings = accepted_profile_bindings
+        .get("provider-fixture-beta")
+        .expect("provider fixture beta is accepted");
     let explicit_bindings = accepted_profile_bindings
         .get("explicit-adapter-fixture")
         .expect("explicit-adapter-fixture profile is accepted");
     let deterministic_decode = deterministic_bindings["conduit.media/audio/decode"]
         .0
         .clone();
-    let linux_decode = linux_bindings["conduit.media/audio/decode"].0.clone();
-    let browser_decode = browser_bindings["conduit.media/audio/decode"].0.clone();
+    let fixture_alpha_decode = fixture_alpha_bindings["conduit.media/audio/decode"]
+        .0
+        .clone();
+    let fixture_beta_decode = fixture_beta_bindings["conduit.media/audio/decode"]
+        .0
+        .clone();
     let explicit_decode = explicit_bindings["conduit.media/audio/decode"].0.clone();
     let deterministic_artifact = deterministic_bindings["conduit.media/audio/decode"]
         .2
         .clone();
-    let linux_artifact = linux_bindings["conduit.media/audio/decode"].2.clone();
-    let browser_artifact = browser_bindings["conduit.media/audio/decode"].2.clone();
+    let fixture_alpha_artifact = fixture_alpha_bindings["conduit.media/audio/decode"]
+        .2
+        .clone();
+    let fixture_beta_artifact = fixture_beta_bindings["conduit.media/audio/decode"]
+        .2
+        .clone();
     let explicit_artifact = explicit_bindings["conduit.media/audio/decode"].2.clone();
     let deterministic_observation = deterministic_bindings["conduit.media/audio/decode"]
         .3
         .clone();
-    let linux_observation = linux_bindings["conduit.media/audio/decode"].3.clone();
-    let browser_observation = browser_bindings["conduit.media/audio/decode"].3.clone();
+    let fixture_alpha_observation = fixture_alpha_bindings["conduit.media/audio/decode"]
+        .3
+        .clone();
+    let fixture_beta_observation = fixture_beta_bindings["conduit.media/audio/decode"]
+        .3
+        .clone();
     let explicit_observation = explicit_bindings["conduit.media/audio/decode"].3.clone();
-    assert_ne!(deterministic_decode, linux_decode);
-    assert_ne!(deterministic_decode, browser_decode);
-    assert_ne!(linux_decode, browser_decode);
-    assert_ne!(linux_decode, explicit_decode);
-    assert_ne!(deterministic_artifact, linux_artifact);
-    assert_ne!(deterministic_artifact, browser_artifact);
-    assert_ne!(linux_artifact, browser_artifact);
+    assert_ne!(deterministic_decode, fixture_alpha_decode);
+    assert_ne!(deterministic_decode, fixture_beta_decode);
+    assert_ne!(fixture_alpha_decode, fixture_beta_decode);
+    assert_ne!(fixture_alpha_decode, explicit_decode);
+    assert_ne!(deterministic_artifact, fixture_alpha_artifact);
+    assert_ne!(deterministic_artifact, fixture_beta_artifact);
+    assert_ne!(fixture_alpha_artifact, fixture_beta_artifact);
     assert_ne!(explicit_artifact, deterministic_artifact);
-    assert_ne!(explicit_artifact, linux_artifact);
-    assert_ne!(explicit_artifact, browser_artifact);
+    assert_ne!(explicit_artifact, fixture_alpha_artifact);
+    assert_ne!(explicit_artifact, fixture_beta_artifact);
     assert!(!deterministic_observation.is_empty());
-    assert_ne!(linux_observation, deterministic_observation);
-    assert_ne!(browser_observation, deterministic_observation);
+    assert_ne!(fixture_alpha_observation, deterministic_observation);
+    assert_ne!(fixture_beta_observation, deterministic_observation);
     assert_ne!(explicit_observation, deterministic_observation);
-    assert_ne!(linux_observation, browser_observation);
-    assert_ne!(linux_observation, explicit_observation);
-    assert_ne!(browser_observation, explicit_observation);
+    assert_eq!(fixture_alpha_observation, fixture_beta_observation);
+    assert_eq!(fixture_alpha_observation, explicit_observation);
     let deterministic_contract_hashes: BTreeSet<_> = deterministic_bindings
         .iter()
         .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
@@ -1666,11 +1673,11 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
             .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
             .collect()
     );
-    let linux_contract_hashes: BTreeSet<_> = linux_bindings
+    let fixture_alpha_contract_hashes: BTreeSet<_> = fixture_alpha_bindings
         .iter()
         .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
         .collect();
-    let browser_contract_hashes: BTreeSet<_> = browser_bindings
+    let fixture_beta_contract_hashes: BTreeSet<_> = fixture_beta_bindings
         .iter()
         .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
         .collect();
@@ -1678,8 +1685,8 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         deterministic_contract_hashes.len(),
         deterministic_bindings.len()
     );
-    assert_eq!(linux_contract_hashes, deterministic_contract_hashes);
-    assert_eq!(browser_contract_hashes, deterministic_contract_hashes);
+    assert_eq!(fixture_alpha_contract_hashes, deterministic_contract_hashes);
+    assert_eq!(fixture_beta_contract_hashes, deterministic_contract_hashes);
     let fields = lesson["presentation"]["patchbay_fields"]
         .as_array()
         .unwrap()

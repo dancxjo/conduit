@@ -211,8 +211,8 @@ fn required_cross_host_fixture_inventory_is_frozen() {
     assert_eq!(value["suite"], "conduit.cross-host-provider-conformance");
     assert_eq!(value["cases"].as_array().unwrap().len(), 24);
     for required in [
-        "linux-native-fixture-pass",
-        "browser-wasm-fixture-pass",
+        "provider-fixture-alpha-pass",
+        "provider-fixture-beta-pass",
         "firmware-honest-unsupported",
         "deterministic-pass",
         "describe-only-not-executable",

@@ -6271,7 +6271,7 @@
         {
           "id": "cross-host-provider-conformance",
           "path": "../c5/cross-host-provider-conformance.json",
-          "sha256": "sha256:ed5a7edf9efd24ca1ee336a431857fd00c9ae427bffbc19e874269225d011ba3",
+          "sha256": "sha256:65272673a4828c618bc92eabc66de17dcb95ca0dd99c241778473c5758ed0213",
           "operation": "cross-host-provider-conformance",
           "requirement_ids": [
             "HCF-001",
@@ -6320,8 +6320,8 @@
       ],
       "coverage": {
         "positive": [
-          "cross-host-provider-conformance#linux-native-fixture-pass",
-          "cross-host-provider-conformance#browser-wasm-fixture-pass",
+          "cross-host-provider-conformance#provider-fixture-alpha-pass",
+          "cross-host-provider-conformance#provider-fixture-beta-pass",
           "cross-host-provider-conformance#deterministic-pass",
           "cross-host-provider-conformance#explicit-adapter-fixture-pass"
         ],

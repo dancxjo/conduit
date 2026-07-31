@@ -2307,7 +2307,7 @@
         "nodes.types-mean-promises",
         "platform.workload-admission-deadline"
       ],
-      "objective": "Run one unchanged media graph while comparing exact provider chains across deterministic, Linux/process-fixture, browser/WASM-fixture, firmware, and describe-only profiles.",
+      "objective": "Run one unchanged media graph while comparing deterministic and explicitly named fixture provider chains, plus honest unavailable profiles.",
       "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose explicitly named fixture and adapter-aware realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
       "vocabulary": [
         "host profile",
@@ -2348,7 +2348,7 @@
       "hints": [
         "Edit wave.fixture and rerun; the semantic graph does not acquire host authority.",
         "Step from contract to facets, satisfaction, conformance, bundle, observation, and exact binding.",
-        "Compare the adapter-absent and provider-lost cases with the successful Linux and browser cases."
+        "Compare the adapter-absent and provider-lost cases with the accepted provider fixture cases."
       ],
       "solution": "Keep profile inventory and current observation separate, validate complete satisfaction and behavioral conformance proofs, then bind exact artifacts and implementation profiles within finite bounds.",
       "accessibility": {
@@ -2365,7 +2365,7 @@
       "platform": {
         "schema": "conduit.tour-platform-lesson",
         "what": "A provider is selectable only through an exact chain from required contract through behavioral conformance, current host observation, implementation, artifact, adapter, and finite execution bounds.",
-        "when": "Use this chain for optional host services and custom namespaced contracts that must run across native, fixture process, browser/WASM, or constrained provider boundaries.",
+        "when": "Use this chain for optional host services and custom namespaced contracts while keeping fixture selection distinct from proof of a real host boundary.",
         "wrong": "Matching labels, source-language interfaces, stale reports, wrong artifacts, unavailable runtimes, protocol resemblance, hidden queues, and describe-only reports presented as executable fail closed.",
         "editable": [
           "wave.fixture:conduit.media/wave/literal"
@@ -2383,14 +2383,14 @@
             "guarantee": "exact-binding"
           },
           {
-            "id": "linux-native-fixture",
-            "fixture_case": "linux-native-fixture-pass",
+            "id": "provider-fixture-alpha",
+            "fixture_case": "provider-fixture-alpha-pass",
             "admission": "accepted",
             "guarantee": "exact-binding"
           },
           {
-            "id": "browser-wasm-fixture",
-            "fixture_case": "browser-wasm-fixture-pass",
+            "id": "provider-fixture-beta",
+            "fixture_case": "provider-fixture-beta-pass",
             "admission": "accepted",
             "guarantee": "exact-binding"
           },
