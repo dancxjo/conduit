@@ -285,13 +285,19 @@ fn every_checked_panel_has_one_verified_runnability_state() {
         ));
         fs::write(&path, lesson["source"].as_str().expect("lesson source"))
             .expect("exported lesson can be written");
-        let checked = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        let mut check_command = Command::new(env!("CARGO_BIN_EXE_conduct"));
+        let mut run_command = Command::new(env!("CARGO_BIN_EXE_conduct"));
+        if id == "library.evictable-storage-cache" {
+            check_command.arg("--enable-storage-cache");
+            run_command.arg("--enable-storage-cache");
+        }
+        let checked = check_command
             .arg("--check")
             .arg(&path)
             .output()
             .expect("canonical check executes");
         assert!(checked.status.success(), "{id} exported source checks");
-        let ran = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        let ran = run_command
             .arg(&path)
             .output()
             .expect("canonical default run executes");
