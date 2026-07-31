@@ -372,6 +372,40 @@ function nodeRectangle(node) {
   };
 }
 
+function endpointEscapePoint(point, node, position) {
+  if (!node) return point;
+  const rect = nodeRectangle(node);
+  if (!rect) return point;
+
+  // React Flow places a handle on the faceplate edge. Start routing just
+  // outside that faceplate so the endpoint node can remain an obstacle too.
+  // This prevents a cord from leaving one port and later crossing behind a
+  // different part of its own node.
+  const direction = position || [
+    ["left", Math.abs(point.x - rect.left)],
+    ["right", Math.abs(point.x - rect.right)],
+    ["top", Math.abs(point.y - rect.top)],
+    ["bottom", Math.abs(point.y - rect.bottom)],
+  ].sort((a, b) => a[1] - b[1])[0][0];
+  const distance = NODE_CLEARANCE + GRID;
+  if (direction === "left") return { x: rect.left - distance, y: point.y };
+  if (direction === "right") return { x: rect.right + distance, y: point.y };
+  if (direction === "top") return { x: point.x, y: rect.top - distance };
+  return { x: point.x, y: rect.bottom + distance };
+}
+
+function endpointAwareRoute(routed, source, target) {
+  if (!routed) return null;
+  const points = simplify([source, ...routed.points, target]);
+  const interiorPath = routed.path.replace(/^M\s+[^A-Za-z]+/, "");
+  return {
+    path: `M ${source.x} ${source.y} L ${routed.points[0].x} ${routed.points[0].y} ` +
+      `${interiorPath} L ${target.x} ${target.y}`,
+    points,
+    label: routed.label,
+  };
+}
+
 function routeAroundNodesWithMargin(source, target, nodes, endpointNodeIds, margin) {
   const obstacles = nodes
     .filter((node) => !endpointNodeIds.includes(node.id))
@@ -481,30 +515,47 @@ function routeAroundNodesWithMargin(source, target, nodes, endpointNodeIds, marg
  * Computes a bounded orthogonal A* route around measured node rectangles.
  * Expands the search envelope in stages until a collision-free route is found.
  */
-export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
+export function routeAroundNodes(
+  source,
+  target,
+  nodes,
+  endpointNodeIds = [],
+  endpointPositions = {},
+) {
+  const sourceNode = nodes.find((node) => node.id === endpointNodeIds[0]);
+  const targetNode = nodes.find((node) => node.id === endpointNodeIds[1]);
+  const routeSource = endpointEscapePoint(
+    source,
+    sourceNode,
+    endpointPositions.source,
+  );
+  const routeTarget = endpointEscapePoint(
+    target,
+    targetNode,
+    endpointPositions.target,
+  );
   for (let envelope = SEARCH_MARGIN; envelope <= SEARCH_MARGIN * 4; envelope += 64) {
     const routed = routeAroundNodesWithMargin(
-      source,
-      target,
+      routeSource,
+      routeTarget,
       nodes,
-      endpointNodeIds,
+      [],
       envelope,
     );
     if (routed) {
-      return routed;
+      return endpointAwareRoute(routed, source, target);
     }
   }
   const fallback = routeAroundBounds(
-    source,
-    target,
+    routeSource,
+    routeTarget,
     nodes
-      .filter((node) => !endpointNodeIds.includes(node.id))
       .map(nodeRectangle)
       .filter(Boolean)
       .map((rect) => inflatedRect(rect, NODE_CLEARANCE + SEARCH_MARGIN)),
   );
   if (fallback) {
-    return fallback;
+    return endpointAwareRoute(fallback, source, target);
   }
   return null;
 }
@@ -516,6 +567,7 @@ export function PatchbaySmartEdge(props) {
     { x: props.targetX, y: props.targetY },
     nodes,
     [props.source, props.target],
+    { source: props.sourcePosition, target: props.targetPosition },
   );
 
   if (!routed) {

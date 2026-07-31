@@ -1214,12 +1214,7 @@ test("routes cords through free space by default and keeps labels off node faces
     const totalLength = path.getTotalLength();
     if (!Number.isFinite(totalLength) || totalLength <= 0) return false;
     const sampleCount = 240;
-    const endpointIds = new Set([
-      path.dataset.sourceNode,
-      path.dataset.targetNode,
-    ].filter(Boolean));
     const nodes = Array.from(document.querySelectorAll(".react-flow__node"))
-      .filter((node) => !endpointIds.has(node.dataset.id))
       .map((node) => {
         const bounds = node.getBoundingClientRect();
         return {
@@ -1231,7 +1226,9 @@ test("routes cords through free space by default and keeps labels off node faces
       });
     for (let index = 0; index <= sampleCount; index += 1) {
       const ratio = index / sampleCount;
-      if (ratio < 0.05 || ratio > 0.95) continue;
+      // Only the short lead from a handle to the outside of its own faceplate
+      // may touch an endpoint node.
+      if (ratio < 0.03 || ratio > 0.97) continue;
       const point = path.getPointAtLength(totalLength * ratio);
       const screenPoint = point.matrixTransform(path.getScreenCTM());
       const hits = nodes.some((bounds) =>
@@ -1268,12 +1265,7 @@ test("routes cords through free space by default and keeps labels off node faces
       const totalLength = path.getTotalLength();
       if (!Number.isFinite(totalLength) || totalLength <= 0) return false;
       const sampleCount = 280;
-      const endpointIds = new Set([
-        path.dataset.sourceNode,
-        path.dataset.targetNode,
-      ].filter(Boolean));
       const nodes = Array.from(document.querySelectorAll(".react-flow__node"))
-        .filter((node) => !endpointIds.has(node.dataset.id))
         .map((node) => {
           const bounds = node.getBoundingClientRect();
           return {
@@ -1285,7 +1277,7 @@ test("routes cords through free space by default and keeps labels off node faces
         });
       for (let index = 0; index <= sampleCount; index += 1) {
         const ratio = index / sampleCount;
-        if (ratio < 0.05 || ratio > 0.95) continue;
+        if (ratio < 0.03 || ratio > 0.97) continue;
         const point = path.getPointAtLength(totalLength * ratio);
         const screenPoint = point.matrixTransform(path.getScreenCTM());
         const hits = nodes.some((bounds) =>
