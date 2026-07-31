@@ -1740,7 +1740,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Preserving,
         None,
         BUFFERED,
-        PURE,
+        FORMAT_SUPPORT,
         CELL_GENERIC
     ),
     entry!(
@@ -1774,7 +1774,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Preserving,
         None,
         BUFFERED,
-        PURE,
+        FORMAT_SUPPORT,
         IDENTITY_GENERIC
     ),
     entry!(
@@ -1786,7 +1786,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         ExplicitAdapter,
         None,
         BUFFERED,
-        PURE
+        FORMAT_SUPPORT
     ),
     entry!(
         "state/history",

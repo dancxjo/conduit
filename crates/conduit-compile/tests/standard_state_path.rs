@@ -80,6 +80,59 @@ fn exact_run(source: &str, run_id: &'static str) -> (Vec<u8>, ExactExecutionRepo
     (display, report)
 }
 
+fn cancel_exact(source: &str, run_id: &'static str) -> ExactExecutionReport {
+    let installed = InstalledProfile::observe(source).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+    let panel = conduit_panel::parse(source).unwrap();
+    let registry = Registry::hosted_primitives();
+    let resolved = registry.resolve(&panel).unwrap();
+    let bindings = installed.bindings(&plan).unwrap();
+    let mut input = &b""[..];
+    let mut output = Vec::new();
+    let mut error = Vec::new();
+    let mut display = Vec::new();
+    let report = resolved
+        .cancel_exact_report(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 128,
+                run_id: Id(run_id),
+                validation: PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 256,
+                    max_tick: 512,
+                    max_consecutive_yields: 8,
+                    max_events: 256,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            conduit_core::StopPolicy::Abort,
+            &mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+                display: &mut display,
+            },
+        )
+        .unwrap();
+    assert!(output.is_empty());
+    assert!(error.is_empty());
+    assert!(display.is_empty());
+    report
+}
+
 #[test]
 fn cell_deduplicate_and_cache_execute_exactly_and_repeat() {
     for (source, run_id, expected) in [
@@ -176,6 +229,48 @@ fn state_contracts_do_not_claim_an_uninstalled_provider() {
         assert_eq!(
             hosted.node_availability(id).state,
             AvailabilityState::ProviderAvailable
+        );
+    }
+}
+
+#[test]
+fn cell_get_reset_and_abort_cancellation_are_explicit() {
+    let cell = include_str!("../../../examples/state-cell.panel")
+        .replace("maximum_items = 4", "maximum_items = 8")
+        .replace(
+            "node join :",
+            "node command_source : std/literal { value = \"get\\nreset\\n\" }\n\
+             node commands : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\n\
+             node join :",
+        )
+        .replace(
+            "cord cell.current ->",
+            "cord command_source.value -> commands.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
+             cord commands.line -> cell.command { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
+             cord cell.current ->",
+        );
+    assert_eq!(
+        exact_run(&cell, "run/state/cell-get-reset").0,
+        b"initial,initial,initial,first,second"
+    );
+
+    for (source, run_id) in [
+        (
+            include_str!("../../../examples/state-cell.panel"),
+            "run/state/cell-cancel",
+        ),
+        (
+            include_str!("../../../examples/state-deduplicate.panel"),
+            "run/state/deduplicate-cancel",
+        ),
+        (
+            include_str!("../../../examples/state-cache.panel"),
+            "run/state/cache-cancel",
+        ),
+    ] {
+        assert_eq!(
+            cancel_exact(source, run_id).terminal,
+            TerminalClass::Cancelled
         );
     }
 }
