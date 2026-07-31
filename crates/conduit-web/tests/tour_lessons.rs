@@ -1303,11 +1303,11 @@ fn cross_host_profile_registry(profile: &str) -> Registry {
             conduit_media::register_deterministic_codec_providers(&mut registry)
                 .expect("deterministic codec providers are available");
         }
-        "linux-native" | "explicit-adapter" => {
+        "linux-native-fixture" | "explicit-adapter-fixture" => {
             conduit_media::register_deterministic_media_providers(&mut registry)
                 .expect("deterministic media providers are available");
             conduit_media::register_media_codec_contracts(&mut registry);
-            if profile == "linux-native" {
+            if profile == "linux-native-fixture" {
                 register_linux_codec_fixture_providers(&mut registry)
                     .expect("linux codec fixture providers are available");
             } else {
@@ -1315,7 +1315,7 @@ fn cross_host_profile_registry(profile: &str) -> Registry {
                     .expect("explicit adapter codec fixture providers are available");
             }
         }
-        "browser-wasm" => {
+        "browser-wasm-fixture" => {
             conduit_media::register_deterministic_media_providers(&mut registry)
                 .expect("deterministic media providers are available");
             conduit_media::register_media_codec_contracts(&mut registry);
@@ -1464,9 +1464,18 @@ fn cross_host_media_bindings(
     });
     let profile_observation = match profile {
         "deterministic-host" => ("conduit/conduct-host-observation", "conduit/conduct-host"),
-        "linux-native" => ("conduit/cross-host/linux-native-observation", "conduit/cross-host/linux-native"),
-        "browser-wasm" => ("conduit/cross-host/browser-wasm-observation", "conduit/cross-host/browser-wasm"),
-        "explicit-adapter" => ("conduit/cross-host/explicit-adapter-observation", "conduit/cross-host/explicit-adapter"),
+        "linux-native-fixture" => (
+            "conduit/cross-host/linux-native-fixture-observation",
+            "conduit/cross-host/linux-native-fixture",
+        ),
+        "browser-wasm-fixture" => (
+            "conduit/cross-host/browser-wasm-fixture-observation",
+            "conduit/cross-host/browser-wasm-fixture",
+        ),
+        "explicit-adapter-fixture" => (
+            "conduit/cross-host/explicit-adapter-fixture-observation",
+            "conduit/cross-host/explicit-adapter-fixture",
+        ),
         _ => panic!("unknown cross-host profile {profile}"),
     };
     installed.input.candidates.iter_mut().for_each(|candidate| {
@@ -1571,9 +1580,9 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         accepted_profile_ids,
         [
             "deterministic-host",
-            "linux-native",
-            "browser-wasm",
-            "explicit-adapter"
+            "linux-native-fixture",
+            "browser-wasm-fixture",
+            "explicit-adapter-fixture"
         ]
         .into_iter()
         .map(str::to_owned)
@@ -1603,14 +1612,14 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         .get("deterministic-host")
         .expect("deterministic-host profile is accepted");
     let linux_bindings = accepted_profile_bindings
-        .get("linux-native")
-        .expect("linux-native profile is accepted");
+        .get("linux-native-fixture")
+        .expect("linux-native-fixture profile is accepted");
     let browser_bindings = accepted_profile_bindings
-        .get("browser-wasm")
-        .expect("browser-wasm profile is accepted");
+        .get("browser-wasm-fixture")
+        .expect("browser-wasm-fixture profile is accepted");
     let explicit_bindings = accepted_profile_bindings
-        .get("explicit-adapter")
-        .expect("explicit-adapter profile is accepted");
+        .get("explicit-adapter-fixture")
+        .expect("explicit-adapter-fixture profile is accepted");
     let deterministic_decode = deterministic_bindings["conduit.media/audio/decode"]
         .0
         .clone();

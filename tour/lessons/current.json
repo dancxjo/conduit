@@ -2383,14 +2383,14 @@
             "guarantee": "exact-binding"
           },
           {
-            "id": "linux-native",
-            "fixture_case": "linux-native-pass",
+            "id": "linux-native-fixture",
+            "fixture_case": "linux-native-fixture-pass",
             "admission": "accepted",
             "guarantee": "exact-binding"
           },
           {
-            "id": "browser-wasm",
-            "fixture_case": "browser-wasm-pass",
+            "id": "browser-wasm-fixture",
+            "fixture_case": "browser-wasm-fixture-pass",
             "admission": "accepted",
             "guarantee": "exact-binding"
           },
@@ -2407,8 +2407,8 @@
             "code": "CND-HCF-003"
           },
           {
-            "id": "explicit-adapter",
-            "fixture_case": "explicit-adapter-pass",
+            "id": "explicit-adapter-fixture",
+            "fixture_case": "explicit-adapter-fixture-pass",
             "admission": "accepted",
             "guarantee": "exact-adapter"
           },

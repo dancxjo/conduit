@@ -211,8 +211,8 @@ fn required_cross_host_fixture_inventory_is_frozen() {
     assert_eq!(value["suite"], "conduit.cross-host-provider-conformance");
     assert_eq!(value["cases"].as_array().unwrap().len(), 24);
     for required in [
-        "linux-native-pass",
-        "browser-wasm-pass",
+        "linux-native-fixture-pass",
+        "browser-wasm-fixture-pass",
         "firmware-honest-unsupported",
         "deterministic-pass",
         "describe-only-not-executable",
@@ -223,7 +223,7 @@ fn required_cross_host_fixture_inventory_is_frozen() {
         "fabricated-observation",
         "label-only-false-satisfaction",
         "custom-type-incompatible",
-        "explicit-adapter-pass",
+        "explicit-adapter-fixture-pass",
         "adapter-not-published",
         "wrong-artifact-digest",
         "protocol-mismatch",

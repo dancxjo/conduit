@@ -6295,7 +6295,7 @@
             "fabricated-observation": "HCF-003",
             "label-only-false-satisfaction": "HCF-004",
             "custom-type-incompatible": "HCF-005",
-            "explicit-adapter-pass": "HCF-005",
+            "explicit-adapter-fixture-pass": "HCF-005",
             "adapter-not-published": "HCF-005",
             "failed-conformance": "HCF-006",
             "stale-conformance": "HCF-006",
@@ -6320,10 +6320,10 @@
       ],
       "coverage": {
         "positive": [
-          "cross-host-provider-conformance#linux-native-pass",
-          "cross-host-provider-conformance#browser-wasm-pass",
+          "cross-host-provider-conformance#linux-native-fixture-pass",
+          "cross-host-provider-conformance#browser-wasm-fixture-pass",
           "cross-host-provider-conformance#deterministic-pass",
-          "cross-host-provider-conformance#explicit-adapter-pass"
+          "cross-host-provider-conformance#explicit-adapter-fixture-pass"
         ],
         "negative": [
           "cross-host-provider-conformance#firmware-honest-unsupported",
