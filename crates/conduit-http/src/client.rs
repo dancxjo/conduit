@@ -4,6 +4,16 @@
 //! numeric endpoint, network, authority, TLS, proxy, grant, observation, and
 //! limit facts before this code may commit an effect.
 
+use std::fs::File;
+use std::io::{BufReader, Read, Write};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
+
+use rustls::pki_types::{CertificateDer, ServerName};
+use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
+
 use crate::HttpMethod;
 
 pub const MAXIMUM_CLIENT_CONNECTIONS: u16 = 8;
@@ -235,6 +245,17 @@ pub struct ClientResult {
     pub redirects: u16,
     pub commit: CommitState,
     pub cleanup_completed: bool,
+}
+
+/// Opaque host-side trust bundle handle. Its path is never part of semantic
+/// request values or normalized evidence.
+pub struct ClientTrustHandle(PathBuf);
+
+impl ClientTrustHandle {
+    #[must_use]
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self(path.into())
+    }
 }
 
 fn terminal_result(
@@ -566,8 +587,404 @@ pub fn run_deterministic_client(
     )
 }
 
+enum ClientIo {
+    Plain(TcpStream),
+    Tls(Box<StreamOwned<ClientConnection, TcpStream>>),
+}
+
+impl Read for ClientIo {
+    fn read(&mut self, destination: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Plain(stream) => stream.read(destination),
+            Self::Tls(stream) => stream.read(destination),
+        }
+    }
+}
+
+impl Write for ClientIo {
+    fn write(&mut self, source: &[u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Plain(stream) => stream.write(source),
+            Self::Tls(stream) => stream.write(source),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            Self::Plain(stream) => stream.flush(),
+            Self::Tls(stream) => stream.flush(),
+        }
+    }
+}
+
+fn endpoint_address(endpoint: NumericEndpoint) -> SocketAddr {
+    let ip = if endpoint.address[..12] == [0; 12] {
+        IpAddr::V4(Ipv4Addr::new(
+            endpoint.address[12],
+            endpoint.address[13],
+            endpoint.address[14],
+            endpoint.address[15],
+        ))
+    } else {
+        IpAddr::V6(Ipv6Addr::from(endpoint.address))
+    };
+    SocketAddr::new(ip, endpoint.port)
+}
+
+fn method_name(method: HttpMethod) -> &'static str {
+    match method {
+        HttpMethod::Get => "GET",
+        HttpMethod::Head => "HEAD",
+        HttpMethod::Post => "POST",
+        HttpMethod::Put => "PUT",
+        HttpMethod::Patch => "PATCH",
+        HttpMethod::Delete => "DELETE",
+        HttpMethod::Options => "OPTIONS",
+    }
+}
+
+fn encode_request(
+    request: ClientRequest<'_>,
+    maximum_header_bytes: usize,
+) -> Result<Vec<u8>, ClientTerminal> {
+    if request.headers.iter().any(|header| {
+        header.name.eq_ignore_ascii_case("host")
+            || header.name.eq_ignore_ascii_case("content-length")
+            || header.name.eq_ignore_ascii_case("connection")
+            || header.name.contains(['\r', '\n'])
+            || header.value.contains(['\r', '\n'])
+    }) {
+        return Err(ClientTerminal::HeaderOverflow);
+    }
+    let mut bytes = Vec::with_capacity(
+        maximum_header_bytes
+            .min(256_usize.saturating_add(request.body.len()))
+            .saturating_add(request.body.len()),
+    );
+    write!(
+        bytes,
+        "{} {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\nContent-Length: {}\r\n",
+        method_name(request.method),
+        request.target,
+        request.authority,
+        request.body.len()
+    )
+    .map_err(|_| ClientTerminal::WorkOverflow)?;
+    for header in request.headers {
+        write!(bytes, "{}: {}\r\n", header.name, header.value)
+            .map_err(|_| ClientTerminal::WorkOverflow)?;
+    }
+    bytes.extend_from_slice(b"\r\n");
+    let header_len = bytes.len();
+    if header_len > maximum_header_bytes {
+        return Err(ClientTerminal::HeaderOverflow);
+    }
+    bytes.extend_from_slice(request.body);
+    Ok(bytes)
+}
+
+fn load_client_config(handle: &ClientTrustHandle) -> Result<ClientConfig, ClientTerminal> {
+    let file = File::open(&handle.0).map_err(|_| ClientTerminal::CertificateFailed)?;
+    let certificates = rustls_pemfile::certs(&mut BufReader::new(file))
+        .collect::<Result<Vec<CertificateDer<'static>>, _>>()
+        .map_err(|_| ClientTerminal::CertificateFailed)?;
+    let mut roots = RootCertStore::empty();
+    for certificate in certificates {
+        roots
+            .add(certificate)
+            .map_err(|_| ClientTerminal::CertificateFailed)?;
+    }
+    if roots.is_empty() {
+        return Err(ClientTerminal::CertificateFailed);
+    }
+    Ok(ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth())
+}
+
+fn open_client_io(
+    binding: ClientBinding<'_>,
+    request: ClientRequest<'_>,
+    trust: Option<&ClientTrustHandle>,
+) -> Result<ClientIo, ClientTerminal> {
+    let timeout = Duration::from_millis(binding.limits.deadline_ticks);
+    let socket = TcpStream::connect_timeout(&endpoint_address(binding.endpoint), timeout)
+        .map_err(|_| ClientTerminal::ProviderLost)?;
+    socket
+        .set_read_timeout(Some(timeout))
+        .and_then(|()| socket.set_write_timeout(Some(timeout)))
+        .map_err(|_| ClientTerminal::ProviderLost)?;
+    if request.scheme == ClientScheme::Http {
+        return Ok(ClientIo::Plain(socket));
+    }
+    let trust = trust.ok_or(ClientTerminal::CertificateFailed)?;
+    let server_name = ServerName::try_from(request.authority.to_owned())
+        .map_err(|_| ClientTerminal::HostnameFailed)?;
+    let connection = ClientConnection::new(Arc::new(load_client_config(trust)?), server_name)
+        .map_err(|_| ClientTerminal::CertificateFailed)?;
+    Ok(ClientIo::Tls(Box::new(StreamOwned::new(
+        connection, socket,
+    ))))
+}
+
+fn parse_response(
+    raw: &[u8],
+    binding: ClientBinding<'_>,
+    body_output: &mut [u8],
+) -> Result<(u16, usize, usize), ClientTerminal> {
+    let boundary = raw
+        .windows(4)
+        .position(|window| window == b"\r\n\r\n")
+        .ok_or(ClientTerminal::PartialResponse)?;
+    let header_end = boundary + 4;
+    if header_end > binding.limits.maximum_response_header_bytes {
+        return Err(ClientTerminal::HeaderOverflow);
+    }
+    let head =
+        std::str::from_utf8(&raw[..boundary]).map_err(|_| ClientTerminal::PartialResponse)?;
+    let mut lines = head.split("\r\n");
+    let status = lines
+        .next()
+        .and_then(|line| line.split_ascii_whitespace().nth(1))
+        .and_then(|value| value.parse::<u16>().ok())
+        .ok_or(ClientTerminal::PartialResponse)?;
+    let mut header_count = 0_u16;
+    let mut content_length = None;
+    for line in lines {
+        let (name, value) = line
+            .split_once(':')
+            .ok_or(ClientTerminal::PartialResponse)?;
+        header_count = header_count
+            .checked_add(1)
+            .ok_or(ClientTerminal::HeaderOverflow)?;
+        if name.eq_ignore_ascii_case("content-length") {
+            content_length = Some(
+                value
+                    .trim()
+                    .parse::<usize>()
+                    .map_err(|_| ClientTerminal::PartialResponse)?,
+            );
+        }
+    }
+    if header_count > binding.limits.maximum_response_headers {
+        return Err(ClientTerminal::HeaderOverflow);
+    }
+    let body = &raw[header_end..];
+    if content_length.is_some_and(|expected| expected != body.len()) {
+        return Err(ClientTerminal::PartialResponse);
+    }
+    if body.len() > binding.limits.maximum_response_body_bytes || body.len() > body_output.len() {
+        return Err(ClientTerminal::BodyOverflow);
+    }
+    body_output[..body.len()].copy_from_slice(body);
+    Ok((status, header_count as usize, body.len()))
+}
+
+/// Execute one numeric-address Linux HTTP/1.1 request. This provider performs
+/// no DNS, proxy discovery, cookie lookup, credential lookup, or retry.
+pub fn run_linux_client(
+    binding: ClientBinding<'_>,
+    request: ClientRequest<'_>,
+    trust: Option<&ClientTrustHandle>,
+    body_output: &mut [u8],
+    evidence: &mut [Option<ClientEvidence>],
+) -> ClientResult {
+    let fixture = DeterministicExchange {
+        responses: &[],
+        fault: ClientFault::None,
+        observed_proxy: binding.proxy_resource,
+    };
+    let mut validation_body = [];
+    let mut validation_evidence = [None; 2];
+    let validation = run_deterministic_client(
+        binding,
+        request,
+        fixture,
+        &mut validation_body,
+        &mut validation_evidence,
+    );
+    if validation.terminal != ClientTerminal::Completed {
+        return validation;
+    }
+
+    let mut used = 0;
+    let base = ClientEvidence {
+        kind: ClientEvidenceKind::Admitted,
+        status: 0,
+        bytes: 0,
+        redirect: 0,
+        terminal: None,
+        commit: CommitState::NotCommitted,
+    };
+    if push_evidence(
+        evidence,
+        &mut used,
+        binding.limits.maximum_evidence_events,
+        base,
+    )
+    .is_err()
+    {
+        return terminal_result(
+            ClientTerminal::EvidenceOverflow,
+            None,
+            0,
+            0,
+            CommitState::NotCommitted,
+        );
+    }
+    let request_bytes = match encode_request(request, binding.limits.maximum_request_header_bytes) {
+        Ok(bytes) => bytes,
+        Err(terminal) => {
+            return terminal_result(terminal, None, 0, 0, CommitState::NotCommitted);
+        }
+    };
+    let mut io = match open_client_io(binding, request, trust) {
+        Ok(io) => io,
+        Err(terminal) => {
+            return terminal_result(terminal, None, 0, 0, CommitState::NotCommitted);
+        }
+    };
+    if io
+        .write_all(&request_bytes)
+        .and_then(|()| io.flush())
+        .is_err()
+    {
+        return terminal_result(
+            ClientTerminal::CommitUnknown,
+            None,
+            0,
+            0,
+            CommitState::Unknown,
+        );
+    }
+    if push_evidence(
+        evidence,
+        &mut used,
+        binding.limits.maximum_evidence_events,
+        ClientEvidence {
+            kind: ClientEvidenceKind::RequestCommitted,
+            bytes: request.body.len(),
+            commit: CommitState::Committed,
+            ..base
+        },
+    )
+    .is_err()
+    {
+        return terminal_result(
+            ClientTerminal::EvidenceOverflow,
+            None,
+            0,
+            0,
+            CommitState::Committed,
+        );
+    }
+
+    let read_ceiling = binding
+        .limits
+        .maximum_response_header_bytes
+        .saturating_add(binding.limits.maximum_response_body_bytes);
+    let mut raw = Vec::with_capacity(read_ceiling.min(64 * 1024));
+    match Read::by_ref(&mut io)
+        .take(u64::try_from(read_ceiling.saturating_add(1)).unwrap_or(u64::MAX))
+        .read_to_end(&mut raw)
+    {
+        Ok(_) if raw.len() <= read_ceiling => {}
+        Ok(_) => {
+            return terminal_result(
+                ClientTerminal::BodyOverflow,
+                None,
+                0,
+                0,
+                CommitState::Committed,
+            );
+        }
+        Err(error)
+            if matches!(
+                error.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+            ) =>
+        {
+            return terminal_result(ClientTerminal::TimedOut, None, 0, 0, CommitState::Committed);
+        }
+        Err(_) => {
+            return terminal_result(
+                if request.scheme == ClientScheme::Https {
+                    ClientTerminal::CertificateFailed
+                } else {
+                    ClientTerminal::ProviderLost
+                },
+                None,
+                0,
+                0,
+                CommitState::Committed,
+            );
+        }
+    }
+    let (status, _, body_bytes) = match parse_response(&raw, binding, body_output) {
+        Ok(response) => response,
+        Err(terminal) => {
+            return terminal_result(terminal, None, 0, 0, CommitState::Committed);
+        }
+    };
+    if push_evidence(
+        evidence,
+        &mut used,
+        binding.limits.maximum_evidence_events,
+        ClientEvidence {
+            kind: ClientEvidenceKind::ResponseHead,
+            status,
+            commit: CommitState::Committed,
+            ..base
+        },
+    )
+    .is_err()
+    {
+        return terminal_result(
+            ClientTerminal::EvidenceOverflow,
+            Some(status),
+            body_bytes,
+            0,
+            CommitState::Committed,
+        );
+    }
+    for chunk in body_output[..body_bytes].chunks(binding.limits.maximum_body_chunk_bytes) {
+        if push_evidence(
+            evidence,
+            &mut used,
+            binding.limits.maximum_evidence_events,
+            ClientEvidence {
+                kind: ClientEvidenceKind::ResponseBodyChunk,
+                status,
+                bytes: chunk.len(),
+                commit: CommitState::Committed,
+                ..base
+            },
+        )
+        .is_err()
+        {
+            return terminal_result(
+                ClientTerminal::EvidenceOverflow,
+                Some(status),
+                body_bytes,
+                0,
+                CommitState::Committed,
+            );
+        }
+    }
+    terminal_result(
+        ClientTerminal::Completed,
+        Some(status),
+        body_bytes,
+        0,
+        CommitState::Committed,
+    )
+}
+
 #[cfg(test)]
 mod tests {
+    use std::net::TcpListener;
+    use std::thread;
+
     use super::*;
 
     fn binding() -> ClientBinding<'static> {
@@ -799,5 +1216,42 @@ mod tests {
             .terminal,
             ClientTerminal::EvidenceOverflow
         );
+    }
+
+    #[test]
+    fn linux_client_uses_a_numeric_loopback_without_ambient_proxy_or_dns() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0_u8; 1024];
+            let read = stream.read(&mut request).unwrap();
+            assert!(request[..read].starts_with(b"GET /health HTTP/1.1\r\nHost: service.test\r\n"));
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nready")
+                .unwrap();
+        });
+
+        let mut exact = binding();
+        exact.endpoint.address[12..].copy_from_slice(&[127, 0, 0, 1]);
+        exact.endpoint.port = address.port();
+        let mut body = [0_u8; 32];
+        let mut evidence = [None; 16];
+        let result = run_linux_client(
+            exact,
+            request(ClientScheme::Http),
+            None,
+            &mut body,
+            &mut evidence,
+        );
+        server.join().unwrap();
+
+        assert_eq!(result.terminal, ClientTerminal::Completed);
+        assert_eq!(result.status, Some(200));
+        assert_eq!(&body[..result.response_bytes], b"ready");
+        assert!(evidence.iter().flatten().any(|event| {
+            event.kind == ClientEvidenceKind::RequestCommitted
+                && event.commit == CommitState::Committed
+        }));
     }
 }
