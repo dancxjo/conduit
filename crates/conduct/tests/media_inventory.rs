@@ -4,8 +4,8 @@ use std::process::{Command, Stdio};
 
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_media::{
-    register_deterministic_codec_providers, register_deterministic_media_providers,
-    register_browser_codec_providers, register_ffmpeg_codec_providers,
+    register_browser_codec_providers, register_deterministic_codec_providers,
+    register_deterministic_media_providers, register_ffmpeg_codec_providers,
     register_media_codec_contracts, register_media_contracts, register_sox_codec_providers,
 };
 use conduit_runtime::{AvailabilityState, Registry};
