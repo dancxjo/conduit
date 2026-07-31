@@ -22,8 +22,9 @@ use conduit_core::{
     NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph, PlanNode, PortContract,
     PortFlowConstraints, Presence, Pressure, ReplacementSupport, ResolvedPlanNode, SampleSchedule,
     SchedulerPolicy, SemanticHash, Sensitivity, TemporalContract, TerminalClass, TerminalContract,
-    TraitProof, TypeContractRef, ValueCardinality, validate_artifact_manifest,
-    validate_implementation_manifest, validate_plan_graph,
+    TraitProof, TypeContractRef, ValueCardinality, assess_port_connection,
+    assess_type_contract_exact, validate_artifact_manifest, validate_implementation_manifest,
+    validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
@@ -1583,6 +1584,237 @@ impl Registry {
                 compatibility_executable: None,
             },
         );
+    }
+
+    /// Returns semantic port metadata known for one authored contract without
+    /// requiring the surrounding graph to resolve.
+    #[must_use]
+    pub fn authored_node_view(&self, panel: &Panel, contract_id: &str) -> Option<AuthoredNodeView> {
+        fn project(
+            registry: &Registry,
+            panel: &Panel,
+            contract_id: &str,
+            visiting: &mut Vec<String>,
+        ) -> Option<AuthoredNodeView> {
+            if let Some(registered) = registry.get_registered_node(contract_id) {
+                return Some(AuthoredNodeView {
+                    contract_id: registered.contract.id.as_str().to_owned(),
+                    inputs: registered
+                        .contract
+                        .inputs
+                        .iter()
+                        .map(resolved_port_view)
+                        .collect(),
+                    outputs: registered
+                        .contract
+                        .outputs
+                        .iter()
+                        .map(resolved_port_view)
+                        .collect(),
+                });
+            }
+            if visiting.iter().any(|candidate| candidate == contract_id) {
+                return None;
+            }
+            let definition = panel
+                .definitions
+                .iter()
+                .find(|definition| definition.id == contract_id)?;
+            visiting.push(contract_id.to_owned());
+            let mut inputs = Vec::new();
+            let mut outputs = Vec::new();
+            for export in &definition.exports {
+                let target = definition
+                    .nodes
+                    .iter()
+                    .find(|child| child.id == export.target.node)
+                    .and_then(|child| project(registry, panel, &child.kind, visiting))
+                    .and_then(|child| {
+                        let ports = match export.direction {
+                            ExportDirection::Input => child.inputs,
+                            ExportDirection::Output => child.outputs,
+                        };
+                        ports.into_iter().find(|port| port.id == export.target.port)
+                    });
+                let mut view = target.unwrap_or_else(|| ResolvedPortView {
+                    id: export.target.port.clone(),
+                    type_id: "unresolved-composite-export".to_owned(),
+                    delivery: "unknown",
+                    connections: "unknown",
+                });
+                view.id.clone_from(&export.id);
+                match export.direction {
+                    ExportDirection::Input => inputs.push(view),
+                    ExportDirection::Output => outputs.push(view),
+                }
+            }
+            visiting.pop();
+            Some(AuthoredNodeView {
+                contract_id: contract_id.to_owned(),
+                inputs,
+                outputs,
+            })
+        }
+        project(self, panel, contract_id, &mut Vec::new())
+    }
+
+    /// Checks one complete authored cord and reports an element-scoped result
+    /// even when another cord prevents whole-graph resolution.
+    #[must_use]
+    pub fn assess_authored_cord(&self, panel: &Panel, cord: &Cord) -> AuthoredCordAssessment {
+        let unique_node = |id: &str| {
+            let mut matches = panel.nodes.iter().filter(|node| node.id == id);
+            let first = matches.next();
+            (first, matches.next().is_none())
+        };
+        let (from_node, from_unique) = unique_node(&cord.from.node);
+        let (to_node, to_unique) = unique_node(&cord.to.node);
+        if !from_unique || !to_unique {
+            return authored_cord_failure(
+                "invalid",
+                "CND-ID-002",
+                "a cord endpoint names a duplicate node",
+                "Duplicate node identities prevent this endpoint from naming one authored node.",
+            );
+        }
+        let Some(from_node) = from_node else {
+            return authored_cord_failure(
+                "unresolved",
+                "CND-ID-003",
+                format!("unknown source node `{}`", cord.from.node),
+                "The cord source names no authored node in the current revision.",
+            );
+        };
+        let Some(to_node) = to_node else {
+            return authored_cord_failure(
+                "unresolved",
+                "CND-ID-003",
+                format!("unknown destination node `{}`", cord.to.node),
+                "The cord destination names no authored node in the current revision.",
+            );
+        };
+        let Some(from_view) = self.authored_node_view(panel, &from_node.kind) else {
+            return authored_cord_failure(
+                "unresolved",
+                "CND-IMP-001",
+                format!("unresolved source contract `{}`", from_node.kind),
+                "The source contract is not known, so no output port is inferred.",
+            );
+        };
+        let Some(to_view) = self.authored_node_view(panel, &to_node.kind) else {
+            return authored_cord_failure(
+                "unresolved",
+                "CND-IMP-001",
+                format!("unresolved destination contract `{}`", to_node.kind),
+                "The destination contract is not known, so no receiving port is inferred.",
+            );
+        };
+        if !from_view
+            .outputs
+            .iter()
+            .any(|port| port.id == cord.from.port)
+        {
+            let wrong_direction = from_view
+                .inputs
+                .iter()
+                .any(|port| port.id == cord.from.port);
+            return authored_cord_failure(
+                if wrong_direction {
+                    "wrong-direction"
+                } else {
+                    "unresolved"
+                },
+                "CND-CMP-003",
+                format!(
+                    "invalid source endpoint `{}.{}`",
+                    cord.from.node, cord.from.port
+                ),
+                if wrong_direction {
+                    "Receiving port used as a source; a cord must begin at an outgoing port."
+                } else {
+                    "The explicit source port is unknown or is not exported by this contract."
+                },
+            );
+        }
+        if !to_view.inputs.iter().any(|port| port.id == cord.to.port) {
+            let wrong_direction = to_view.outputs.iter().any(|port| port.id == cord.to.port);
+            return authored_cord_failure(
+                if wrong_direction {
+                    "wrong-direction"
+                } else {
+                    "unresolved"
+                },
+                "CND-CMP-003",
+                format!(
+                    "dangling or wrong-direction port mapping `{}.{}`",
+                    cord.to.node, cord.to.port
+                ),
+                if wrong_direction {
+                    "Outgoing port used as destination; a cord must terminate at a receiving port."
+                } else {
+                    "The explicit destination port is unknown or is not exported by this contract."
+                },
+            );
+        }
+        if let Err(error) = resolve_flow(cord) {
+            return authored_cord_failure(
+                "invalid-bounds",
+                error.code,
+                error.message,
+                "The authored capacity, watermarks, byte limits, or pressure policy is invalid.",
+            );
+        }
+        let from_contract = self.get_registered_node(&from_node.kind).and_then(|node| {
+            node.contract
+                .outputs
+                .iter()
+                .find(|port| port.id.as_str() == cord.from.port)
+        });
+        let to_contract = self.get_registered_node(&to_node.kind).and_then(|node| {
+            node.contract
+                .inputs
+                .iter()
+                .find(|port| port.id.as_str() == cord.to.port)
+        });
+        if let (Some(producer), Some(consumer)) = (from_contract, to_contract) {
+            let decision = assess_port_connection(
+                *consumer,
+                *producer,
+                assess_type_contract_exact(consumer.value_type, producer.value_type),
+            );
+            if decision.outcome != CompatibilityOutcome::Compatible {
+                return AuthoredCordAssessment {
+                    state: "incompatible",
+                    code: "CND-TYP-001",
+                    message: format!(
+                        "complete PortContracts are incompatible: {}",
+                        decision.reason.as_str()
+                    ),
+                    explanation:
+                        "The complete directional PortContracts are incompatible even if their payload names look similar."
+                            .to_owned(),
+                    producer_type: Some(producer.value_type.contract_id.as_str().to_owned()),
+                    consumer_type: Some(consumer.value_type.contract_id.as_str().to_owned()),
+                };
+            }
+            return AuthoredCordAssessment {
+                state: "valid",
+                code: "CND-TYP-EXACT",
+                message: "complete PortContracts are compatible".to_owned(),
+                explanation: "The authored output-to-input connection is compatible.".to_owned(),
+                producer_type: Some(producer.value_type.contract_id.as_str().to_owned()),
+                consumer_type: Some(consumer.value_type.contract_id.as_str().to_owned()),
+            };
+        }
+        AuthoredCordAssessment {
+            state: "valid",
+            code: "CND-TYP-EXACT",
+            message: "authored composite boundary directions are valid".to_owned(),
+            explanation: "The authored connection uses exported source and destination ports."
+                .to_owned(),
+            producer_type: None,
+            consumer_type: None,
+        }
     }
 
     /// Returns the availability state for a contract id at tick 100.
@@ -3661,6 +3893,43 @@ pub struct ResolvedPortView {
     pub type_id: String,
     pub delivery: &'static str,
     pub connections: &'static str,
+}
+
+/// Contract facts which are authoritative before a whole authored graph
+/// resolves. This contains no implementation, placement, or plan facts.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AuthoredNodeView {
+    pub contract_id: String,
+    pub inputs: Vec<ResolvedPortView>,
+    pub outputs: Vec<ResolvedPortView>,
+}
+
+/// Element-scoped result of checking one authored cord independently of the
+/// rest of the source graph.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AuthoredCordAssessment {
+    pub state: &'static str,
+    pub code: &'static str,
+    pub message: String,
+    pub explanation: String,
+    pub producer_type: Option<String>,
+    pub consumer_type: Option<String>,
+}
+
+fn authored_cord_failure(
+    state: &'static str,
+    code: &'static str,
+    message: impl Into<String>,
+    explanation: impl Into<String>,
+) -> AuthoredCordAssessment {
+    AuthoredCordAssessment {
+        state,
+        code,
+        message: message.into(),
+        explanation: explanation.into(),
+        producer_type: None,
+        consumer_type: None,
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

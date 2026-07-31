@@ -230,7 +230,10 @@ fn move_only_changes_presentation_identity() {
 #[test]
 fn source_edit_changes_semantics_but_not_an_existing_run() {
     let mut workspace = Workspace::new("tour/hello", SOURCE).expect("source parses");
-    let old = workspace.semantic().source_semantic_hash;
+    let old = workspace
+        .semantic()
+        .source_semantic_hash
+        .expect("valid fixture has a semantic identity");
     let plan = PlanSnapshot {
         identity: "sha256:plan".to_owned(),
         source_semantic_hash: old.clone(),
@@ -256,13 +259,13 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
             }],
         ))
         .expect("source edit applies");
-    assert_ne!(result.semantic.source_semantic_hash, old);
+    assert_ne!(result.semantic.source_semantic_hash, Some(old.clone()));
     assert_eq!(run.source_semantic_hash, old);
     assert_eq!(run.plan_identity, "sha256:plan");
 }
 
 #[test]
-fn stale_or_invalid_transactions_are_atomic() {
+fn stale_transactions_reject_while_raw_invalid_source_becomes_current() {
     let mut workspace = Workspace::new("tour/hello", SOURCE).expect("source parses");
     let stale = EditRequest {
         expected_source_revision: 1,
@@ -272,17 +275,20 @@ fn stale_or_invalid_transactions_are_atomic() {
         workspace.apply(stale).expect_err("stale rejected").code,
         "CND-PBY-003"
     );
-    let before = workspace.source().clone();
-    let error = workspace
+    let result = workspace
         .apply(request(
             &workspace,
             vec![EditOperation::ReplaceSource {
                 source: "panel nope".to_owned(),
             }],
         ))
-        .expect_err("invalid source rejected");
-    assert_eq!(error.code, "CND-PBY-004");
-    assert_eq!(workspace.source(), &before);
+        .expect("raw editor source commits independently of semantic validity");
+    assert_eq!(result.source.revision, 1);
+    assert_eq!(result.source.semantic_hash, None);
+    assert!(!result.compatibility.compatible);
+    assert_eq!(result.compatibility.code, "CND-SRC-001");
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(workspace.source(), &result.source);
 }
 
 #[test]
@@ -350,7 +356,7 @@ fn fixture_names_each_required_protocol_boundary() {
         "move-only-preserves-semantic-identity",
         "source-edit-creates-new-semantic-revision",
         "stale-edit-is-atomic-conflict",
-        "invalid-source-is-atomic-diagnostic",
+        "invalid-source-is-current-diagnostic",
         "run-remains-pinned-while-source-changes",
         "logical-and-expanded-subjects-are-distinct",
         "projection-gap-requires-resync",

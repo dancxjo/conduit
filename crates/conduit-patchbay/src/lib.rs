@@ -417,7 +417,11 @@ pub struct SourceSnapshot {
     pub document_id: String,
     pub revision: u64,
     pub source: String,
-    pub semantic_hash: String,
+    /// Exact identity of the current UTF-8 source, including trivia.
+    pub identity: String,
+    /// Semantic identity exists only when the current source parses.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub semantic_hash: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -451,7 +455,8 @@ pub struct NodeAvailabilityProjection {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SemanticSnapshot {
-    pub source_semantic_hash: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_semantic_hash: Option<String>,
     pub descriptor_identity: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub availabilities: Vec<NodeAvailabilityProjection>,
@@ -475,6 +480,8 @@ pub struct PatchbayViewModel {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub evidence: Vec<serde_json::Value>,
     pub topology: PatchbayTopologyProjection,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub diagnostics: Vec<PatchbayDiagnosticProjection>,
     pub bounds: PatchbayProjectionBounds,
     pub truncated: bool,
 }
@@ -523,6 +530,10 @@ pub struct PatchbayTopologyProjection {
     pub expanded_nodes: Vec<PatchbayNodeProjection>,
     pub cords: Vec<PatchbayCordProjection>,
     pub composites: Vec<PatchbayCompositeProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub diagnostic_anchors: Vec<PatchbayDiagnosticAnchorProjection>,
+    /// `exact`, `invalid`, or `partial` for the current source revision.
+    pub source_state: String,
 }
 
 /// Checked source alias alongside its immutable semantic identity.
@@ -555,13 +566,18 @@ pub fn project_contract_imports(
 pub struct PatchbayNodeProjection {
     pub id: String,
     pub semantic_id: String,
-    pub contract_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_range: Option<SourceRangeProjection>,
     pub inputs: Vec<PatchbayPortProjection>,
     pub outputs: Vec<PatchbayPortProjection>,
     pub config: BTreeMap<String, PatchbayConfigProjection>,
-    pub availability: NodeAvailabilityProjection,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub availability: Option<NodeAvailabilityProjection>,
+    pub validity: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub diagnostic_ids: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub placement: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -573,6 +589,11 @@ pub struct PatchbayConfigProjection {
     pub kind: String,
     pub display_value: String,
     pub editable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_range: Option<SourceRangeProjection>,
+    pub validity: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub diagnostic_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -589,33 +610,103 @@ pub struct PatchbayPortProjection {
     pub delivery: String,
     pub connections: String,
     pub connected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_range: Option<SourceRangeProjection>,
+    pub validity: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub diagnostic_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PatchbayCordProjection {
     pub id: String,
-    pub from_node: String,
-    pub from_port: String,
-    pub from_port_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_node: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_port: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_port_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_port_range: Option<SourceRangeProjection>,
-    pub to_node: String,
-    pub to_port: String,
-    pub to_port_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_node: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_port: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_port_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to_port_range: Option<SourceRangeProjection>,
-    pub value_type: String,
-    pub compatibility: CompatibilityProof,
-    pub capacity_items: u16,
-    pub max_value_bytes: u32,
-    pub max_queued_bytes: u64,
-    pub low_watermark_items: u16,
-    pub high_watermark_items: u16,
-    pub pressure: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<CompatibilityProof>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub capacity_items: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_value_bytes: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_queued_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub low_watermark_items: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub high_watermark_items: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pressure: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_range: Option<SourceRangeProjection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub high_water_items: Option<u16>,
+    pub validity: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub diagnostic_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_anchor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_anchor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expanded_from_node: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expanded_from_port: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expanded_to_node: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expanded_to_port: Option<String>,
+}
+
+/// A presentation endpoint for authored syntax which does not resolve to a
+/// semantic/runtime port. It is deliberately separate from node ports.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayDiagnosticAnchorProjection {
+    pub id: String,
+    pub cord_id: String,
+    pub side: String,
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_node: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_range: Option<SourceRangeProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayDiagnosticTargetProjection {
+    pub kind: String,
+    pub id: String,
+}
+
+/// One Rust-authored, element-scoped diagnostic for the current source.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayDiagnosticProjection {
+    pub id: String,
+    pub code: String,
+    pub severity: String,
+    pub state: String,
+    pub message: String,
+    pub explanation: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_range: Option<SourceRangeProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub related_ranges: Vec<SourceRangeProjection>,
+    pub targets: Vec<PatchbayDiagnosticTargetProjection>,
 }
 
 /// Exact authored range for one projected topology item.
@@ -1555,20 +1646,12 @@ impl Workspace {
         let document_id = document_id.into();
         let source = source.into();
         let document = conduit_panel::parse_document(&source);
-        let semantic_hash = document.semantic_hash().ok_or_else(|| ProtocolError {
-            code: "CND-PBY-004",
-            message: "initial source must parse".to_owned(),
-            diagnostics: document
-                .diagnostics
-                .iter()
-                .map(ToString::to_string)
-                .collect(),
-            disposition: EditDisposition::Rejected,
-        })?;
+        let semantic_hash = document.semantic_hash();
         let presentation = presentation_snapshot(&document_id, 0, BTreeMap::new());
         let source = SourceSnapshot {
             document_id,
             revision: 0,
+            identity: exact_source_identity(&source),
             source,
             semantic_hash,
         };
@@ -1723,25 +1806,18 @@ impl Workspace {
         let mut candidate_source = self.source.clone();
         let mut positions = self.presentation.node_positions.clone();
         let mut source_changed = false;
+        let mut source_replaced = false;
         let mut presentation_changed = false;
         for operation in request.operations {
             match operation {
                 EditOperation::ReplaceSource { source } => {
                     let document = conduit_panel::parse_document(&source);
-                    let semantic_hash = document.semantic_hash().ok_or_else(|| ProtocolError {
-                        code: "CND-PBY-004",
-                        message: "source edit did not parse; transaction was not applied"
-                            .to_owned(),
-                        diagnostics: document
-                            .diagnostics
-                            .iter()
-                            .map(ToString::to_string)
-                            .collect(),
-                        disposition: EditDisposition::Rejected,
-                    })?;
+                    let semantic_hash = document.semantic_hash();
+                    candidate_source.identity = exact_source_identity(&source);
                     candidate_source.source = source;
                     candidate_source.semantic_hash = semantic_hash;
                     source_changed = true;
+                    source_replaced = true;
                 }
                 EditOperation::MoveNode { node_id, position } => {
                     let document = conduit_panel::parse_document(&candidate_source.source);
@@ -1843,22 +1919,68 @@ impl Workspace {
                 }
             }
         }
+        let mut diagnostics = Vec::new();
         let compatibility = if source_changed {
             let document = conduit_panel::parse_document(&candidate_source.source);
-            candidate_source.semantic_hash =
-                document.semantic_hash().ok_or_else(|| ProtocolError {
-                    code: "CND-PBY-004",
-                    message: "candidate source did not parse; transaction was not applied"
-                        .to_owned(),
-                    diagnostics: document
+            candidate_source.identity = exact_source_identity(&candidate_source.source);
+            candidate_source.semantic_hash = document.semantic_hash();
+            if source_replaced {
+                if let Some(error) = document.diagnostics.first() {
+                    diagnostics = document
                         .diagnostics
                         .iter()
                         .take(MAXIMUM_PATCHBAY_DIAGNOSTICS)
                         .map(ToString::to_string)
-                        .collect(),
-                    disposition: EditDisposition::Rejected,
-                })?;
-            validate(&candidate_source.source)?
+                        .collect();
+                    CompatibilityProof {
+                        compatible: false,
+                        code: error.code.to_owned(),
+                        producer_type: None,
+                        consumer_type: None,
+                        candidate_plan_identity: None,
+                        plan_disposition: "unavailable".to_owned(),
+                    }
+                } else {
+                    match validate(&candidate_source.source) {
+                        Ok(proof) => proof,
+                        Err(error) => {
+                            let fallback = error.to_string();
+                            diagnostics = error
+                                .diagnostics
+                                .into_iter()
+                                .take(MAXIMUM_PATCHBAY_DIAGNOSTICS)
+                                .collect();
+                            if diagnostics.is_empty() {
+                                diagnostics.push(fallback);
+                            }
+                            CompatibilityProof {
+                                compatible: false,
+                                code: error.code.to_owned(),
+                                producer_type: None,
+                                consumer_type: None,
+                                candidate_plan_identity: None,
+                                plan_disposition: "unavailable".to_owned(),
+                            }
+                        }
+                    }
+                }
+            } else {
+                if candidate_source.semantic_hash.is_none() {
+                    return Err(ProtocolError {
+                        code: "CND-PBY-004",
+                        message: "typed source edit did not parse; transaction was not applied"
+                            .to_owned(),
+                        diagnostics: document
+                            .diagnostics
+                            .iter()
+                            .take(MAXIMUM_PATCHBAY_DIAGNOSTICS)
+                            .map(ToString::to_string)
+                            .collect(),
+                        disposition: EditDisposition::Rejected,
+                    });
+                }
+                validate(&candidate_source.source)?
+            }
         } else {
             CompatibilityProof {
                 compatible: true,
@@ -1892,7 +2014,7 @@ impl Workspace {
                 source: self.source.revision,
                 presentation: self.presentation.revision,
             },
-            diagnostics: Vec::new(),
+            diagnostics,
             compatibility,
             disposition: EditDisposition::Committed,
         })
@@ -2029,4 +2151,11 @@ fn presentation_snapshot(
         node_positions,
         identity,
     }
+}
+
+fn exact_source_identity(source: &str) -> String {
+    format!(
+        "sha256:{:x}",
+        Sha256::digest([b"conduit.patchbay-source\0".as_slice(), source.as_bytes()].concat())
+    )
 }

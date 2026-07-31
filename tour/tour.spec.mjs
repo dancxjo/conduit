@@ -598,6 +598,183 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await expect(page.locator(".cord-legend-item")).toHaveCount(4);
 });
 
+test("renders the direction lesson as an invalid authored graph", async ({ page }) => {
+  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+
+  await expect(page.locator('.react-flow__node[data-id="first"]')).toBeVisible();
+  await expect(page.locator('.react-flow__node[data-id="second"]')).toBeVisible();
+  await expect(
+    page.locator('[data-id="second"] [data-port-direction="outgoing"]'),
+  ).toContainText("value >");
+  const edge = page.locator(".patchbay-smart-cord");
+  await expect(edge).toHaveCount(1);
+  await expect(edge).toHaveClass(/cord-diagnostic-error/);
+  await expect(edge).toHaveClass(/cord-validity-wrong-direction/);
+  await expect(edge.locator(".react-flow__edge-path")).toHaveCSS(
+    "stroke",
+    "rgb(255, 23, 68)",
+  );
+  await expect(edge.locator(".react-flow__edge-text")).toContainText(
+    "× wrong direction ×",
+  );
+  await expect(page.locator(".diagnostic-anchor-row")).toContainText(
+    "second.value",
+  );
+  const diagnostic = page.locator("#diagnostic-console").getByRole("button", {
+    name: /CND-CMP-003/,
+  });
+  await expect(diagnostic).toContainText(
+    "Outgoing port used as destination",
+  );
+  await diagnostic.click();
+  await expect(page.locator("#result")).toContainText(
+    "a cord must terminate at a receiving port",
+  );
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected cord: cord-0",
+  );
+  await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
+  await expect(page.locator(".panel-source-selection")).toContainText(
+    "cord first.value -> second.value",
+  );
+  await expect(page.locator("#plan")).toContainText(
+    "No Rust-resolved plan for this source yet.",
+  );
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator("#evidence")).not.toContainText('"event_kind"');
+});
+
+test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  const original = await source.inputValue();
+  const destinationInvalid = "panel 0\n" +
+    "node greeting : std/literal { value = \"invalid\" }\n" +
+    "node output : display/text\n" +
+    "cord greeting.value -> greeting.value\n";
+  await source.fill(destinationInvalid);
+  await expect(source).toHaveValue(/greeting\.value -> greeting\.value/);
+  await expect(page.locator(".patchbay-smart-cord")).toHaveClass(
+    /cord-validity-wrong-direction/,
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#run")).toBeDisabled();
+
+  const incomplete = `${original}\nnode provisional :`;
+  await source.fill(incomplete);
+  await expect(page.locator('[data-id="greeting"]')).toBeVisible();
+  await expect(page.locator('[data-id="output"]')).toBeVisible();
+  await expect(page.locator('[data-id="provisional"]')).toHaveClass(
+    /react-flow__node/,
+  );
+  await expect(
+    page.locator('[data-id="provisional"] .conduit-faceplate-card'),
+  ).toHaveClass(/faceplate-validity-incomplete/, { timeout: 20_000 });
+  await expect(page.locator("#run")).toBeDisabled();
+
+  await source.fill(`${original}\nnode provisional : missing/contract\n`);
+  await expect(
+    page.locator('[data-id="provisional"] .conduit-faceplate-card'),
+  ).toHaveClass(/faceplate-validity-unresolved/, { timeout: 20_000 });
+  await expect(page.locator("#diagnostic-console")).toContainText(
+    "No ports, provider, placement, or plan are inferred",
+  );
+
+  await source.fill(original);
+  await expect(page.locator(".patchbay-smart-cord")).toHaveClass(
+    /cord-validity-valid/,
+    { timeout: 20_000 },
+  );
+  await expect(page.locator('[data-id="greeting"]')).toBeVisible();
+  await expect(page.locator("#run")).toBeEnabled();
+});
+
+test("projects every authored cord failure family with static reduced-motion cues", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  const cases = [
+    {
+      state: "wrong-direction",
+      panel: "panel 0\nnode a : display/text\nnode b : display/text\ncord a.text -> b.text\n",
+    },
+    {
+      state: "unresolved",
+      panel: "panel 0\nnode b : display/text\ncord missing.value -> b.text\n",
+    },
+    {
+      state: "incompatible",
+      panel: "panel 0\nnode a : std/literal\nnode b : io/stdout\ncord a.value -> b.bytes\n",
+    },
+    {
+      state: "invalid-bounds",
+      panel: "panel 0\nnode a : std/literal\nnode b : display/text\n" +
+        "cord a.value -> b.text { capacity = 1 max_value_bytes = 8 " +
+        "max_queued_bytes = 8 low_watermark = 0 high_watermark = 2 pressure = block }\n",
+    },
+  ];
+  for (const fixture of cases) {
+    await source.fill(fixture.panel);
+    await expect(source).toHaveValue(fixture.panel);
+    const edge = page.locator(".patchbay-smart-cord");
+    await expect(edge).toHaveClass(
+      new RegExp(`cord-validity-${fixture.state}`),
+      { timeout: 20_000 },
+    );
+    await expect(edge.locator(".react-flow__edge-text")).toContainText("×");
+    await expect(edge.locator(".react-flow__edge-path")).toHaveCSS(
+      "animation-name",
+      "none",
+    );
+    const dash = await edge.locator(".react-flow__edge-path").evaluate(
+      (element) => getComputedStyle(element).strokeDasharray,
+    );
+    expect(dash).not.toBe("none");
+    await expect(page.locator("#run")).toBeDisabled();
+  }
+});
+
+test("emphasizes one of several diagnostics without replaying unchanged checks", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await source.fill(
+    "panel 0\n" +
+    "node a : std/literal\n" +
+    "node b : std/literal\n" +
+    "node c : std/literal\n" +
+    "cord a.value -> b.value\n" +
+    "cord b.value -> c.value\n",
+  );
+  const edges = page.locator(".patchbay-smart-cord");
+  await expect(edges).toHaveCount(2);
+  await expect(edges.filter({ has: page.locator(".react-flow__edge-path") })).toHaveCount(2);
+  await expect(page.locator(".patchbay-smart-cord.diagnostic-emphasized")).toHaveCount(1);
+  await expect(
+    page.locator(".patchbay-smart-cord:not(.diagnostic-emphasized)")
+      .locator(".react-flow__edge-path"),
+  ).toHaveCSS("animation-name", "none");
+
+  const emphasizedPath = page.locator(
+    ".patchbay-smart-cord.diagnostic-emphasized .react-flow__edge-path",
+  );
+  await page.waitForTimeout(250);
+  const before = await emphasizedPath.evaluate((element) => ({
+    currentTime: element.getAnimations()[0]?.currentTime ?? 0,
+    geometry: element.getAttribute("d"),
+  }));
+  await page.locator("#check").click();
+  await page.waitForTimeout(120);
+  const after = await emphasizedPath.evaluate((element) => ({
+    currentTime: element.getAnimations()[0]?.currentTime ?? 0,
+    geometry: element.getAttribute("d"),
+  }));
+  expect(after.currentTime).toBeGreaterThan(before.currentTime);
+  expect(after.geometry).toBe(before.geometry);
+  await expect(page.locator("#diagnostic-console li")).toHaveCount(2);
+});
+
 test("routes cords through free space and keeps labels off node faces", async ({ page }) => {
   await page.addInitScript(() => {
     window.CONDUIT_PATCHBAY_FEATURES = { legacyLinePlacement: true };
