@@ -3,17 +3,145 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use conduit_compile::{InstalledProfile, compile_source};
+use conduit_core::NodeContract;
 use conduit_media::{
-    register_browser_codec_providers, register_deterministic_codec_providers,
-    register_deterministic_media_providers, register_ffmpeg_codec_providers,
-    register_media_codec_contracts, register_media_contracts, register_sox_codec_providers,
+    register_deterministic_codec_providers, register_deterministic_media_providers,
+    register_media_codec_contracts, register_media_contracts, DEMUX_CONTRACT, ENCODE_CONTRACT,
+    MUX_CONTRACT, PROBE_CONTRACT, WAVE_LITERAL_CONTRACT,
 };
-use conduit_runtime::{AvailabilityState, Registry};
+use conduit_runtime::{
+    AvailabilityState, CompiledInHostService, Handler, Registry, RegistryError, RunIo, RuntimeError,
+    Value as RuntimeValue,
+};
 
 fn workspace_file(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .join(path)
+}
+
+fn register_codec_fixture_provider(
+    registry: &mut Registry,
+    providers: &[(
+        &'static NodeContract<'static>,
+        &'static str,
+        &'static str,
+        &'static str,
+    )],
+) -> Result<(), RegistryError> {
+    struct MediaCodecFixtureProvider;
+
+    impl Handler for MediaCodecFixtureProvider {
+        fn run(
+            &mut self,
+            _node: &conduit_panel::Node,
+            _inputs: &[RuntimeValue],
+            _io: &mut RunIo<'_>,
+        ) -> Result<Vec<RuntimeValue>, RuntimeError> {
+            Ok(Vec::new())
+        }
+    }
+
+    static NO_AUTHORITIES: [conduit_core::SemanticHash; 0] = [];
+    for (contract, implementation_id, artifact_id, entrypoint) in providers {
+        registry.register_compiled_in_host_service(CompiledInHostService {
+            contract,
+            implementation_id,
+            artifact_id,
+            entrypoint,
+            source_bytes: include_bytes!("../../../crates/conduit-media/src/codec.rs"),
+            required_authorities: &NO_AUTHORITIES,
+            factory: || Box::new(MediaCodecFixtureProvider),
+            validate_config: |_node: &conduit_panel::Node| Ok(()),
+        })?;
+    }
+    Ok(())
+}
+
+fn register_cross_host_fixture_providers(registry: &mut Registry) -> Result<(), RegistryError> {
+    register_codec_fixture_provider(
+        registry,
+        &[
+            (
+                &WAVE_LITERAL_CONTRACT,
+                "conduit.media/wave-literal-cross-host-fixture-alpha",
+                "conduit.media/wave-literal-cross-host-fixture-alpha-artifact",
+                "media-wave-literal-cross-host-fixture-alpha",
+            ),
+            (
+                &PROBE_CONTRACT,
+                "conduit.media/wave-probe-cross-host-fixture-alpha",
+                "conduit.media/wave-probe-cross-host-fixture-alpha-artifact",
+                "media-wave-probe-cross-host-fixture-alpha",
+            ),
+            (
+                &DEMUX_CONTRACT,
+                "conduit.media/wave-demux-cross-host-fixture-alpha",
+                "conduit.media/wave-demux-cross-host-fixture-alpha-artifact",
+                "media-wave-demux-cross-host-fixture-alpha",
+            ),
+            (
+                &MUX_CONTRACT,
+                "conduit.media/wave-mux-cross-host-fixture-alpha",
+                "conduit.media/wave-mux-cross-host-fixture-alpha-artifact",
+                "media-wave-mux-cross-host-fixture-alpha",
+            ),
+            (
+                &conduit_media::DECODE_CONTRACT,
+                "conduit.media/pcm-decode-cross-host-fixture-alpha",
+                "conduit.media/pcm-decode-cross-host-fixture-alpha-artifact",
+                "media-pcm-decode-cross-host-fixture-alpha",
+            ),
+            (
+                &ENCODE_CONTRACT,
+                "conduit.media/pcm-encode-cross-host-fixture-alpha",
+                "conduit.media/pcm-encode-cross-host-fixture-alpha-artifact",
+                "media-pcm-encode-cross-host-fixture-alpha",
+            ),
+        ],
+    )?;
+    register_codec_fixture_provider(
+        registry,
+        &[
+            (
+                &WAVE_LITERAL_CONTRACT,
+                "conduit.media/wave-literal-cross-host-fixture-beta",
+                "conduit.media/wave-literal-cross-host-fixture-beta-artifact",
+                "media-wave-literal-cross-host-fixture-beta",
+            ),
+            (
+                &PROBE_CONTRACT,
+                "conduit.media/wave-probe-cross-host-fixture-beta",
+                "conduit.media/wave-probe-cross-host-fixture-beta-artifact",
+                "media-wave-probe-cross-host-fixture-beta",
+            ),
+            (
+                &DEMUX_CONTRACT,
+                "conduit.media/wave-demux-cross-host-fixture-beta",
+                "conduit.media/wave-demux-cross-host-fixture-beta-artifact",
+                "media-wave-demux-cross-host-fixture-beta",
+            ),
+            (
+                &MUX_CONTRACT,
+                "conduit.media/wave-mux-cross-host-fixture-beta",
+                "conduit.media/wave-mux-cross-host-fixture-beta-artifact",
+                "media-wave-mux-cross-host-fixture-beta",
+            ),
+            (
+                &conduit_media::DECODE_CONTRACT,
+                "conduit.media/pcm-decode-cross-host-fixture-beta",
+                "conduit.media/pcm-decode-cross-host-fixture-beta-artifact",
+                "media-pcm-decode-cross-host-fixture-beta",
+            ),
+            (
+                &ENCODE_CONTRACT,
+                "conduit.media/pcm-encode-cross-host-fixture-beta",
+                "conduit.media/pcm-encode-cross-host-fixture-beta-artifact",
+                "media-pcm-encode-cross-host-fixture-beta",
+            ),
+        ],
+    )?;
+    Ok(())
 }
 
 #[test]
@@ -239,9 +367,7 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
     let mut registry = Registry::hosted_primitives();
     register_deterministic_media_providers(&mut registry).unwrap();
     register_deterministic_codec_providers(&mut registry).unwrap();
-    register_ffmpeg_codec_providers(&mut registry).unwrap();
-    register_sox_codec_providers(&mut registry).unwrap();
-    register_browser_codec_providers(&mut registry).unwrap();
+    register_cross_host_fixture_providers(&mut registry).unwrap();
     let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
 
     for (contract, expected_implementations) in [
@@ -249,40 +375,40 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
             "conduit.media/container/probe",
             &[
                 "conduit.media/wave-probe-deterministic",
-                "conduit.media/wave-probe-ffmpeg",
-                "conduit.media/wave-probe-browser",
+                "conduit.media/wave-probe-cross-host-fixture-alpha",
+                "conduit.media/wave-probe-cross-host-fixture-beta",
             ][..],
         ),
         (
             "conduit.media/container/mux",
             &[
                 "conduit.media/wave-mux-deterministic",
-                "conduit.media/wave-mux-ffmpeg",
+                "conduit.media/wave-mux-cross-host-fixture-alpha",
+                "conduit.media/wave-mux-cross-host-fixture-beta",
             ][..],
         ),
         (
             "conduit.media/container/demux",
             &[
                 "conduit.media/wave-demux-deterministic",
-                "conduit.media/wave-demux-ffmpeg",
+                "conduit.media/wave-demux-cross-host-fixture-alpha",
+                "conduit.media/wave-demux-cross-host-fixture-beta",
             ][..],
         ),
         (
             "conduit.media/audio/decode",
             &[
                 "conduit.media/pcm-decode-deterministic",
-                "conduit.media/pcm-decode-ffmpeg",
-                "conduit.media/pcm-decode-sox",
-                "conduit.media/pcm-decode-browser",
+                "conduit.media/pcm-decode-cross-host-fixture-alpha",
+                "conduit.media/pcm-decode-cross-host-fixture-beta",
             ][..],
         ),
         (
             "conduit.media/audio/encode",
             &[
                 "conduit.media/pcm-encode-deterministic",
-                "conduit.media/pcm-encode-ffmpeg",
-                "conduit.media/pcm-encode-sox",
-                "conduit.media/pcm-encode-browser",
+                "conduit.media/pcm-encode-cross-host-fixture-alpha",
+                "conduit.media/pcm-encode-cross-host-fixture-beta",
             ][..],
         ),
     ] {
@@ -306,9 +432,7 @@ fn implementation_preference_selects_overlapping_media_providers() {
     let mut registry = Registry::hosted_primitives();
     register_deterministic_media_providers(&mut registry).unwrap();
     register_deterministic_codec_providers(&mut registry).unwrap();
-    register_ffmpeg_codec_providers(&mut registry).unwrap();
-    register_sox_codec_providers(&mut registry).unwrap();
-    register_browser_codec_providers(&mut registry).unwrap();
+    register_cross_host_fixture_providers(&mut registry).unwrap();
     let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
 
     for (preference, expected_decode, expected_encode) in [
@@ -322,27 +446,19 @@ fn implementation_preference_selects_overlapping_media_providers() {
         ),
         (
             [
-                "conduit.media/pcm-decode-ffmpeg",
-                "conduit.media/pcm-encode-ffmpeg",
+                "conduit.media/pcm-decode-cross-host-fixture-alpha",
+                "conduit.media/pcm-encode-cross-host-fixture-alpha",
             ],
-            "conduit.media/pcm-decode-ffmpeg",
-            "conduit.media/pcm-encode-ffmpeg",
+            "conduit.media/pcm-decode-cross-host-fixture-alpha",
+            "conduit.media/pcm-encode-cross-host-fixture-alpha",
         ),
         (
             [
-                "conduit.media/pcm-decode-sox",
-                "conduit.media/pcm-encode-sox",
+                "conduit.media/pcm-decode-cross-host-fixture-beta",
+                "conduit.media/pcm-encode-cross-host-fixture-beta",
             ],
-            "conduit.media/pcm-decode-sox",
-            "conduit.media/pcm-encode-sox",
-        ),
-        (
-            [
-                "conduit.media/pcm-decode-browser",
-                "conduit.media/pcm-encode-browser",
-            ],
-            "conduit.media/pcm-decode-browser",
-            "conduit.media/pcm-encode-browser",
+            "conduit.media/pcm-decode-cross-host-fixture-beta",
+            "conduit.media/pcm-encode-cross-host-fixture-beta",
         ),
     ] {
         let mut input = installed.input.clone();
