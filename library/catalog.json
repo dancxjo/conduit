@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2506,7 +2506,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3376,7 +3376,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4804,7 +4804,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4883,7 +4883,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4962,7 +4962,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8004,7 +8004,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.state",
       "export_path": "conduit.std.state/state/cache",
       "schema_version": 0,
-      "semantic_hash": "sha256:d8ca299a994a7ef0d3a03b99b3c7d49ccfc616edd6149de81ab23f3b98794d83",
+      "semantic_hash": "sha256:e93f65688fc02f44ef3c253aabe7219891e5c16f0436f2cabdf2ed8eceadffca",
       "ports": [
         {
           "id": "request",
@@ -8014,11 +8014,11 @@
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -8030,18 +8030,19 @@
               "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
               "terminal": "finite",
-              "sensitivity": "public",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`state/cache` names this input port for its contract-specific `request` payload or role.",
             "affected_bindings": [
               "runtime-contract:state/cache",
               "exact-plan-cord:state/cache.in->state/cache.request",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-cache"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -8054,12 +8055,12 @@
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -8070,29 +8071,127 @@
               "type_schema_version": 0,
               "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
               "presence": "required",
-              "connections": "one-or-more",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
               "terminal": "finite",
-              "sensitivity": "public",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`state/cache` names this output port for its contract-specific `response` payload or role.",
             "affected_bindings": [
               "runtime-contract:state/cache",
               "exact-plan-cord:state/cache.out->state/cache.response",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-cache"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
           }
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "request_schema",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "request_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "request_schema_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "key_equality",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "key_equality_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "key_equality_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "maximum_entries",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_key_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_value_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_total_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "eviction",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "ttl",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "sensitivity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "restart",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "checkpoint",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-state-cache",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -8117,7 +8216,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.state",
       "export_path": "conduit.std.state/state/cell",
       "schema_version": 0,
-      "semantic_hash": "sha256:16c7765f44f758cac7609612e5517b900b4896675379a2983e7788c4074ceefa",
+      "semantic_hash": "sha256:f8eedfa61b0f51acb40bb69e8c584c5085af0c4fa27d325ed663469b79fcfcc0",
       "ports": [
         {
           "id": "update",
@@ -8127,11 +8226,11 @@
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -8143,18 +8242,61 @@
               "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
               "terminal": "finite",
-              "sensitivity": "public",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`state/cell` names this input port for its contract-specific `update` payload or role.",
             "affected_bindings": [
               "runtime-contract:state/cell",
               "exact-plan-cord:state/cell.in->state/cell.update",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-cell"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "command",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "optional",
+          "connections": "zero-or-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "state/cell",
+              "id": "control",
+              "direction": "input",
+              "value_type": "std/text",
+              "type_schema_version": 0,
+              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "presence": "optional",
+              "connections": "zero-or-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`state/cell` receives explicit typed control commands separately from its data ports.",
+            "affected_bindings": [
+              "runtime-contract:state/cell",
+              "exact-plan-cord:state/cell.control->state/cell.command",
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-cell"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -8167,12 +8309,12 @@
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -8183,29 +8325,103 @@
               "type_schema_version": 0,
               "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
               "presence": "required",
-              "connections": "one-or-more",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
               "terminal": "finite",
-              "sensitivity": "public",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`state/cell` names this output port for its contract-specific `current` payload or role.",
             "affected_bindings": [
               "runtime-contract:state/cell",
               "exact-plan-cord:state/cell.out->state/cell.current",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-cell"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
           }
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "state_schema",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "state_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "state_schema_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "initialization",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "initial",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_value_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "emission",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "reset",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "terminal",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "restart",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "checkpoint",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-state-cell",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -8516,7 +8732,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.state",
       "export_path": "conduit.std.state/state/deduplicate",
       "schema_version": 0,
-      "semantic_hash": "sha256:9ecf02d64103c530ed6fc28b33db7e1990e3c4c3dac4e6d3a1dca81e3f93b89e",
+      "semantic_hash": "sha256:d45b14223b172744b66ff37f55be46ee50f7601795a191fbda38be03f1c8417b",
       "ports": [
         {
           "id": "candidate",
@@ -8526,11 +8742,11 @@
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -8542,18 +8758,19 @@
               "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
               "terminal": "finite",
-              "sensitivity": "public",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`state/deduplicate` names this input port for its contract-specific `candidate` payload or role.",
             "affected_bindings": [
               "runtime-contract:state/deduplicate",
               "exact-plan-cord:state/deduplicate.in->state/deduplicate.candidate",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-deduplicate"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -8566,12 +8783,12 @@
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -8582,29 +8799,103 @@
               "type_schema_version": 0,
               "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
               "presence": "required",
-              "connections": "one-or-more",
-              "values": "exactly-one",
-              "delivery": "finite-batch",
-              "temporal": "atemporal",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
               "terminal": "finite",
-              "sensitivity": "public",
+              "sensitivity": "restricted",
               "loss": "lossless-only"
             },
             "reason": "`state/deduplicate` names this output port for its contract-specific `unique` payload or role.",
             "affected_bindings": [
               "runtime-contract:state/deduplicate",
               "exact-plan-cord:state/deduplicate.out->state/deduplicate.unique",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-state-deduplicate"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
           }
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "equality",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "equality_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "equality_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "maximum_entries",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "eviction",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "duplicate",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "reset",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "terminal",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "restart",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "checkpoint",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-state-deduplicate",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -9046,7 +9337,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9214,7 +9505,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9312,7 +9603,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9480,7 +9771,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9686,7 +9977,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9929,7 +10220,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10015,7 +10306,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10197,7 +10488,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10283,7 +10574,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10392,7 +10683,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10517,7 +10808,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10624,7 +10915,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12740,7 +13031,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13186,7 +13477,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13356,7 +13647,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13802,7 +14093,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14069,7 +14360,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
+          "artifact_digest": "sha256:0dfc0046666c133560f9a7924434e7ec940ff14b0a00c2d1affd255d0d2d871c"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

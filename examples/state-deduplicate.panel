@@ -1,0 +1,24 @@
+panel 0
+
+node source : std/literal { value = "one\none\ntwo\none\n" }
+node lines : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+node deduplicate : state/deduplicate {
+    equality = ref("conduit.equality/sha256-bytes")
+    equality_schema_version = 0
+    equality_hash = bytes("a25096b1d49acb2554639f36bd5ce09f1841db665e3d755c2218a8e58741f657")
+    maximum_entries = 2
+    maximum_bytes = 64
+    eviction = "fifo"
+    duplicate = "drop"
+    reset = "clear"
+    terminal = "complete"
+    restart = "empty"
+    checkpoint = "unsupported"
+}
+node join : std/text/join { separator = "," maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }
+node display : display/text
+
+cord source.value -> lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord lines.line -> deduplicate.candidate { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord deduplicate.unique -> join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

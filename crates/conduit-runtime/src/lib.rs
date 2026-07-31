@@ -609,6 +609,21 @@ const TIME_CLOCK_HASH: &[u8; 32] = &[
     0x6b, 0x9c, 0x68, 0x72, 0x26, 0xd4, 0xa1, 0x96, 0x5e, 0x78, 0x0b, 0x63, 0xb4, 0xbd, 0xc0, 0x92,
     0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
 ];
+const STATE_TEXT_SCHEMA_DESCRIPTOR: &str = "conduit.state/text-register";
+const STATE_TEXT_SCHEMA_HASH: &[u8; 32] = &[
+    0x69, 0xd3, 0xf4, 0xd8, 0xd5, 0x37, 0x41, 0xfd, 0x07, 0x5b, 0xe4, 0xe6, 0x75, 0x5a, 0xf9, 0xbe,
+    0x19, 0xdb, 0x95, 0x1a, 0x50, 0x65, 0xb8, 0x9b, 0xe5, 0xa2, 0xe8, 0x7c, 0x77, 0x55, 0x56, 0x5e,
+];
+const STATE_EQUALITY_DESCRIPTOR: &str = "conduit.equality/sha256-bytes";
+const STATE_EQUALITY_HASH: &[u8; 32] = &[
+    0xa2, 0x50, 0x96, 0xb1, 0xd4, 0x9a, 0xcb, 0x25, 0x54, 0x63, 0x9f, 0x36, 0xbd, 0x5c, 0xe0, 0x9f,
+    0x18, 0x41, 0xdb, 0x66, 0x5e, 0x3d, 0x75, 0x5c, 0x22, 0x18, 0xa8, 0xe5, 0x87, 0x41, 0xf6, 0x57,
+];
+const STATE_CACHE_REQUEST_DESCRIPTOR: &str = "conduit.cache/text-request";
+const STATE_CACHE_REQUEST_HASH: &[u8; 32] = &[
+    0xe0, 0xa2, 0x09, 0xf8, 0xdd, 0xb8, 0xa8, 0xfb, 0x85, 0x50, 0x74, 0x36, 0x30, 0xc7, 0x86, 0x6c,
+    0x03, 0xf2, 0xda, 0xb4, 0x87, 0x04, 0xfe, 0x66, 0x09, 0x2e, 0x23, 0x85, 0x8e, 0x41, 0xcb, 0x29,
+];
 const CLOSED_RECORD_REQUIRED_FIELDS: &[conduit_std::RequiredField<'static>] = &[
     conduit_std::RequiredField {
         name: "name",
@@ -626,6 +641,10 @@ fn standard_data_contract(id: &str) -> &'static NodeContract<'static> {
 
 fn standard_time_contract(id: &str) -> &'static NodeContract<'static> {
     conduit_std::standard_node_contract(id).expect("standard time contract is published")
+}
+
+fn standard_state_contract(id: &str) -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract(id).expect("standard state contract is published")
 }
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
@@ -808,29 +827,11 @@ pub const SERIAL_PORT_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[named_text_input("transmit")],
     outputs: &[named_text_output("received")],
 };
-pub const CELL_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("state/cell"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("update")],
-    outputs: &[named_text_output("current")],
-};
 pub const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("state/counter"),
     config: EMPTY_CONFIG,
     inputs: &[named_text_input("event")],
     outputs: &[named_text_output("count")],
-};
-pub const DEDUPLICATE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("state/deduplicate"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("candidate")],
-    outputs: &[named_text_output("unique")],
-};
-pub const CACHE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("state/cache"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("request")],
-    outputs: &[named_text_output("response")],
 };
 pub const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/circuit-breaker"),
@@ -979,6 +980,9 @@ pub enum HostedPrimitiveImplementation {
     TimeTimeout,
     TimeDebounce,
     TimeThrottle,
+    StateCell,
+    StateDeduplicate,
+    StateCache,
     Stdout,
     Stderr,
     DisplayText,
@@ -1743,6 +1747,20 @@ impl Registry {
                 validate,
             );
         }
+        for (id, validate) in [
+            ("state/cell", validate_state_cell as ConfigValidator),
+            (
+                "state/deduplicate",
+                validate_state_deduplicate as ConfigValidator,
+            ),
+            ("state/cache", validate_state_cache as ConfigValidator),
+        ] {
+            install(
+                standard_state_contract(id),
+                || Box::new(StateCompatibilityHandler),
+                validate,
+            );
+        }
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
@@ -1995,6 +2013,27 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::TimeThrottle,
                 || Box::new(TimeCompatibilityHandler),
                 validate_time_throttle,
+            ),
+            (
+                standard_state_contract("state/cell"),
+                "state-cell",
+                HostedPrimitiveImplementation::StateCell,
+                || Box::new(StateCompatibilityHandler),
+                validate_state_cell,
+            ),
+            (
+                standard_state_contract("state/deduplicate"),
+                "state-deduplicate",
+                HostedPrimitiveImplementation::StateDeduplicate,
+                || Box::new(StateCompatibilityHandler),
+                validate_state_deduplicate,
+            ),
+            (
+                standard_state_contract("state/cache"),
+                "state-cache",
+                HostedPrimitiveImplementation::StateCache,
+                || Box::new(StateCompatibilityHandler),
+                validate_state_cache,
             ),
             (
                 &STDOUT_CONTRACT,
@@ -2308,10 +2347,10 @@ impl Default for Registry {
             &PROCESS_SPAWN_CONTRACT,
             &GPIO_PIN_CONTRACT,
             &SERIAL_PORT_CONTRACT,
-            &CELL_CONTRACT,
+            standard_state_contract("state/cell"),
             &COUNTER_CONTRACT,
-            &DEDUPLICATE_CONTRACT,
-            &CACHE_CONTRACT,
+            standard_state_contract("state/deduplicate"),
+            standard_state_contract("state/cache"),
             &CIRCUIT_BREAKER_CONTRACT,
             &HEALTH_GATE_CONTRACT,
             &BACKOFF_CONTRACT,
@@ -4238,6 +4277,9 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::TimeTimeout => "time/timeout",
                 HostedPrimitiveImplementation::TimeDebounce => "time/debounce",
                 HostedPrimitiveImplementation::TimeThrottle => "time/throttle",
+                HostedPrimitiveImplementation::StateCell => "state/cell",
+                HostedPrimitiveImplementation::StateDeduplicate => "state/deduplicate",
+                HostedPrimitiveImplementation::StateCache => "state/cache",
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
@@ -4483,6 +4525,59 @@ impl ResolvedPanel<'_> {
                         terminal_seen: false,
                     }
                 }
+                HostedPrimitiveImplementation::StateCell => HostedNodeKind::StateCell {
+                    update_cord: planned_input_cord(plan, planned.instance, "update")?,
+                    command_cord: plan.cords.iter().position(|cord| {
+                        cord.to.node == planned.instance && cord.to.port.as_str() == "command"
+                    }),
+                    initial_bytes: (resolved.source.config("initialization") == Some("value"))
+                        .then(|| {
+                            resolved
+                                .source
+                                .config("initial")
+                                .unwrap_or_default()
+                                .as_bytes()
+                                .to_vec()
+                        }),
+                    initial_value: None,
+                    current: None,
+                    pending_output: None,
+                    emit_initial: resolved.source.config("emission") == Some("initial-and-update"),
+                    initialized: false,
+                },
+                HostedPrimitiveImplementation::StateDeduplicate => {
+                    HostedNodeKind::StateDeduplicate {
+                        state: conduit_std::DeduplicateState::new(
+                            source_usize(&resolved.source, "maximum_entries")?,
+                            u64::try_from(source_usize(&resolved.source, "maximum_bytes")?)
+                                .map_err(|_| {
+                                    RuntimeError::new(
+                                        "CND-STA-002",
+                                        "deduplicate byte bound does not fit u64",
+                                    )
+                                })?,
+                        )
+                        .map_err(state_runtime_error)?,
+                        pending_output: None,
+                    }
+                }
+                HostedPrimitiveImplementation::StateCache => HostedNodeKind::StateCache {
+                    state: conduit_std::CacheState::new(
+                        source_usize(&resolved.source, "maximum_entries")?,
+                        u64::try_from(source_usize(&resolved.source, "maximum_total_bytes")?)
+                            .map_err(|_| {
+                                RuntimeError::new(
+                                    "CND-STA-002",
+                                    "cache byte bound does not fit u64",
+                                )
+                            })?,
+                    )
+                    .map_err(state_runtime_error)?,
+                    envelopes: Vec::with_capacity(conduit_std::STATE_MAX_ENTRIES),
+                    pending_output: None,
+                    maximum_key_bytes: source_usize(&resolved.source, "maximum_key_bytes")?,
+                    maximum_value_bytes: source_usize(&resolved.source, "maximum_value_bytes")?,
+                },
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
@@ -4847,6 +4942,60 @@ enum TimeBehavior {
     },
 }
 
+enum StateCacheRequest<'a> {
+    Put { key: &'a [u8], value: &'a [u8] },
+    Get { key: &'a [u8] },
+    Invalidate { key: &'a [u8] },
+    Reset,
+}
+
+fn parse_state_cache_request(bytes: &[u8]) -> Result<StateCacheRequest<'_>, RuntimeError> {
+    if bytes == b"reset" {
+        return Ok(StateCacheRequest::Reset);
+    }
+    if let Some(rest) = bytes.strip_prefix(b"get:")
+        && !rest.is_empty()
+    {
+        return Ok(StateCacheRequest::Get { key: rest });
+    }
+    if let Some(rest) = bytes.strip_prefix(b"invalidate:")
+        && !rest.is_empty()
+    {
+        return Ok(StateCacheRequest::Invalidate { key: rest });
+    }
+    if let Some(rest) = bytes.strip_prefix(b"put:")
+        && let Some(separator) = rest.iter().position(|byte| *byte == b'=')
+        && separator > 0
+    {
+        return Ok(StateCacheRequest::Put {
+            key: &rest[..separator],
+            value: &rest[separator + 1..],
+        });
+    }
+    Err(RuntimeError::new(
+        "CND-STA-021",
+        "cache request must be put:key=value, get:key, invalidate:key, or reset",
+    ))
+}
+
+fn state_response_value(
+    store: &RefCell<HostValueStore>,
+    bytes: &[u8],
+    envelope: RuntimeValueEnvelope,
+) -> Result<RuntimeValue, RuntimeError> {
+    let handle = store.borrow_mut().store(bytes.to_vec()).ok_or_else(|| {
+        RuntimeError::new(
+            "conduit/value-store-bound-exceeded",
+            "state response exceeded the exact value-store bound",
+        )
+    })?;
+    Ok(RuntimeValue {
+        handle,
+        accounted_bytes: bytes.len() as u32,
+        envelope,
+    })
+}
+
 // Runtime values carry the complete fixed envelope inline so executor
 // allocation remains exact and no per-value metadata allocation is hidden.
 #[allow(clippy::large_enum_variant)]
@@ -4933,6 +5082,27 @@ enum HostedNodeKind {
         cursor: usize,
         pending_output: Option<RuntimeValue>,
         terminal_seen: bool,
+    },
+    StateCell {
+        update_cord: usize,
+        command_cord: Option<usize>,
+        initial_bytes: Option<Vec<u8>>,
+        initial_value: Option<RuntimeValue>,
+        current: Option<RuntimeValue>,
+        pending_output: Option<RuntimeValue>,
+        emit_initial: bool,
+        initialized: bool,
+    },
+    StateDeduplicate {
+        state: conduit_std::DeduplicateState<{ conduit_std::STATE_MAX_ENTRIES }>,
+        pending_output: Option<RuntimeValue>,
+    },
+    StateCache {
+        state: conduit_std::CacheState<{ conduit_std::STATE_MAX_ENTRIES }>,
+        envelopes: Vec<(conduit_std::StateIdentity, RuntimeValueEnvelope)>,
+        pending_output: Option<RuntimeValue>,
+        maximum_key_bytes: usize,
+        maximum_value_bytes: usize,
     },
     TimeTransform {
         behavior: TimeBehavior,
@@ -6314,6 +6484,293 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     SchedulerStep::Progress
                 }
             }
+            HostedNodeKind::StateCell {
+                update_cord,
+                command_cord,
+                initial_bytes,
+                initial_value,
+                current,
+                pending_output,
+                emit_initial,
+                initialized,
+            } => {
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if !*initialized {
+                    *initialized = true;
+                    if let Some(bytes) = initial_bytes.take() {
+                        let Some(handle) = self.store.borrow_mut().store(bytes.clone()) else {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-bound-exceeded"),
+                            };
+                        };
+                        let value = RuntimeValue {
+                            handle,
+                            accounted_bytes: bytes.len() as u32,
+                            envelope: RuntimeValueEnvelope::EMPTY,
+                        };
+                        *initial_value = Some(value);
+                        *current = Some(value);
+                        if *emit_initial {
+                            *pending_output = Some(value);
+                        }
+                    }
+                    return recorded_time_progress(io);
+                }
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if let Some(command_cord) = *command_cord
+                    && let Ok(Some(command)) = io.receive(command_cord)
+                {
+                    let command_bytes = self
+                        .store
+                        .borrow()
+                        .get(command.handle)
+                        .unwrap_or_default()
+                        .to_vec();
+                    match command_bytes.as_slice() {
+                        b"get" => *pending_output = *current,
+                        b"reset" => {
+                            *current = *initial_value;
+                            *pending_output = *current;
+                        }
+                        _ => {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-STA-020",
+                                "cell command must be `get` or `reset`",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-STA-020"),
+                            };
+                        }
+                    }
+                    return SchedulerStep::Progress;
+                }
+                if let Ok(Some(value)) = io.receive(*update_cord) {
+                    *current = Some(value);
+                    *pending_output = Some(value);
+                    return SchedulerStep::Progress;
+                }
+                let update_complete =
+                    matches!(io.input_state(*update_cord), Ok(FlowQueueState::Completed));
+                let command_complete = command_cord.is_none_or(|cord| {
+                    matches!(io.input_state(cord), Ok(FlowQueueState::Completed))
+                });
+                if update_complete && command_complete {
+                    return SchedulerStep::Completed;
+                }
+                if !update_complete {
+                    let _ = io.wait_for_input(*update_cord);
+                }
+                if let Some(command_cord) = *command_cord
+                    && !command_complete
+                {
+                    let _ = io.wait_for_input(command_cord);
+                }
+                SchedulerStep::Pending
+            }
+            HostedNodeKind::StateDeduplicate {
+                state,
+                pending_output,
+            } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if let Ok(Some(value)) = io.receive(in_cord) {
+                    let identity: conduit_std::StateIdentity = {
+                        let store = self.store.borrow();
+                        Sha256::digest(store.get(value.handle).unwrap_or_default()).into()
+                    };
+                    match state.admit(identity, value.accounted_bytes) {
+                        Ok(conduit_std::DeduplicateDecision::Unique { .. }) => {
+                            *pending_output = Some(value);
+                        }
+                        Ok(conduit_std::DeduplicateDecision::Duplicate) => {}
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() =
+                                Some(state_runtime_error(error).clone());
+                            return SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            };
+                        }
+                    }
+                    return SchedulerStep::Progress;
+                }
+                if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    return SchedulerStep::Completed;
+                }
+                let _ = io.wait_for_input(in_cord);
+                SchedulerStep::Pending
+            }
+            HostedNodeKind::StateCache {
+                state,
+                envelopes,
+                pending_output,
+                maximum_key_bytes,
+                maximum_value_bytes,
+            } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if let Ok(Some(request_value)) = io.receive(in_cord) {
+                    let request_bytes = self
+                        .store
+                        .borrow()
+                        .get(request_value.handle)
+                        .unwrap_or_default()
+                        .to_vec();
+                    let request = match parse_state_cache_request(&request_bytes) {
+                        Ok(request) => request,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(error.clone());
+                            return SchedulerStep::Failed {
+                                code: Id("CND-STA-021"),
+                            };
+                        }
+                    };
+                    let response = match request {
+                        StateCacheRequest::Put { key, value } => {
+                            if key.len() > *maximum_key_bytes || value.len() > *maximum_value_bytes
+                            {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-STA-002",
+                                    "cache request exceeds its exact key/value bound",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-STA-002"),
+                                };
+                            }
+                            let identity: conduit_std::StateIdentity = Sha256::digest(key).into();
+                            let Some(handle) = self.store.borrow_mut().store(value.to_vec()) else {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/value-store-bound-exceeded"),
+                                };
+                            };
+                            match state.insert(conduit_std::CacheEntry {
+                                key: identity,
+                                value_handle: handle,
+                                value_bytes: value.len() as u32,
+                            }) {
+                                Ok(conduit_std::CacheInsert::Inserted { evicted }) => {
+                                    if let Some(evicted) = evicted {
+                                        envelopes.retain(|(key, _)| *key != evicted);
+                                    }
+                                }
+                                Ok(conduit_std::CacheInsert::Updated) => {
+                                    envelopes.retain(|(key, _)| *key != identity);
+                                }
+                                Err(error) => {
+                                    *self.host_failure.borrow_mut() =
+                                        Some(state_runtime_error(error).clone());
+                                    return SchedulerStep::Failed {
+                                        code: Id(error.code()),
+                                    };
+                                }
+                            }
+                            envelopes.push((identity, request_value.envelope));
+                            state_response_value(&self.store, b"stored", request_value.envelope)
+                        }
+                        StateCacheRequest::Get { key } => {
+                            if key.len() > *maximum_key_bytes {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-STA-002",
+                                    "cache key exceeds its exact bound",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-STA-002"),
+                                };
+                            }
+                            let identity: conduit_std::StateIdentity = Sha256::digest(key).into();
+                            if let Some(entry) = state.lookup(identity) {
+                                let envelope = envelopes
+                                    .iter()
+                                    .find(|(key, _)| *key == identity)
+                                    .map_or(RuntimeValueEnvelope::EMPTY, |(_, envelope)| *envelope);
+                                Ok(RuntimeValue {
+                                    handle: entry.value_handle,
+                                    accounted_bytes: entry.value_bytes,
+                                    envelope,
+                                })
+                            } else {
+                                state_response_value(&self.store, b"miss", request_value.envelope)
+                            }
+                        }
+                        StateCacheRequest::Invalidate { key } => {
+                            let identity: conduit_std::StateIdentity = Sha256::digest(key).into();
+                            let removed = state.invalidate(identity);
+                            if removed {
+                                envelopes.retain(|(key, _)| *key != identity);
+                            }
+                            state_response_value(
+                                &self.store,
+                                if removed { b"invalidated" } else { b"miss" },
+                                request_value.envelope,
+                            )
+                        }
+                        StateCacheRequest::Reset => {
+                            state.restart();
+                            envelopes.clear();
+                            state_response_value(&self.store, b"reset", request_value.envelope)
+                        }
+                    };
+                    match response {
+                        Ok(response) => *pending_output = Some(response),
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(error.clone());
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-bound-exceeded"),
+                            };
+                        }
+                    }
+                    return SchedulerStep::Progress;
+                }
+                if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    return SchedulerStep::Completed;
+                }
+                let _ = io.wait_for_input(in_cord);
+                SchedulerStep::Pending
+            }
             HostedNodeKind::TimeTransform {
                 behavior,
                 duration_ticks,
@@ -7404,6 +7861,240 @@ fn validate_time_throttle(node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
 
+fn required_state_bound(node: &Node, key: &str, maximum: u64) -> Result<u64, ResolutionError> {
+    let Some(conduit_panel::SourceValue::Integer(value)) = node.config_value(key) else {
+        return Err(ResolutionError::new(
+            "CND-STA-010",
+            format!("node `{}` requires integer `{key}`", node.id),
+        ));
+    };
+    let value = u64::try_from(*value).map_err(|_| {
+        ResolutionError::new(
+            "CND-STA-012",
+            format!("node `{}` has negative `{key}`", node.id),
+        )
+    })?;
+    if value == 0 || value > maximum {
+        return Err(ResolutionError::new(
+            "CND-STA-012",
+            format!("node `{}` exceeds `{key}` provider bound", node.id),
+        ));
+    }
+    Ok(value)
+}
+
+fn validate_state_descriptor(
+    node: &Node,
+    descriptor_key: &str,
+    version_key: &str,
+    hash_key: &str,
+    expected_descriptor: &str,
+    expected_hash: &[u8; 32],
+) -> Result<(), ResolutionError> {
+    let version_is_zero = matches!(
+        node.config_value(version_key),
+        Some(conduit_panel::SourceValue::Integer(0))
+    );
+    if node.config(descriptor_key) != Some(expected_descriptor) || !version_is_zero {
+        return Err(ResolutionError::new(
+            "CND-STA-011",
+            format!("node `{}` requests an unsupported descriptor", node.id),
+        ));
+    }
+    let Some(conduit_panel::SourceValue::Bytes(hash)) = node.config_value(hash_key) else {
+        return Err(ResolutionError::new(
+            "CND-STA-010",
+            format!("node `{}` requires bytes `{hash_key}`", node.id),
+        ));
+    };
+    if hash.as_slice() != expected_hash {
+        return Err(ResolutionError::new(
+            "CND-STA-011",
+            format!("node `{}` requests a stale descriptor hash", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_exact_state_fields(node: &Node, expected: &[&str]) -> Result<(), ResolutionError> {
+    if node.config.len() != expected.len()
+        || node
+            .config
+            .iter()
+            .any(|entry| !expected.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError::new(
+            "CND-STA-010",
+            format!("node `{}` has an incomplete exact state profile", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_state_cell(node: &Node) -> Result<(), ResolutionError> {
+    validate_exact_state_fields(
+        node,
+        &[
+            "state_schema",
+            "state_schema_version",
+            "state_schema_hash",
+            "initialization",
+            "initial",
+            "maximum_value_bytes",
+            "emission",
+            "reset",
+            "terminal",
+            "restart",
+            "checkpoint",
+        ],
+    )?;
+    validate_state_descriptor(
+        node,
+        "state_schema",
+        "state_schema_version",
+        "state_schema_hash",
+        STATE_TEXT_SCHEMA_DESCRIPTOR,
+        STATE_TEXT_SCHEMA_HASH,
+    )?;
+    let maximum = required_state_bound(
+        node,
+        "maximum_value_bytes",
+        conduit_std::STATE_MAX_VALUE_BYTES,
+    )?;
+    if u64::try_from(node.config("initial").unwrap_or_default().len()).unwrap_or(u64::MAX) > maximum
+        || !matches!(node.config("initialization"), Some("empty" | "value"))
+        || !matches!(
+            node.config("emission"),
+            Some("on-update" | "initial-and-update")
+        )
+        || node.config("reset") != Some("initial")
+        || node.config("terminal") != Some("complete")
+        || node.config("restart") != Some("initial")
+        || node.config("checkpoint") != Some("unsupported")
+    {
+        return Err(ResolutionError::new(
+            "CND-STA-012",
+            format!("node `{}` has unsupported cell semantics", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_state_deduplicate(node: &Node) -> Result<(), ResolutionError> {
+    validate_exact_state_fields(
+        node,
+        &[
+            "equality",
+            "equality_schema_version",
+            "equality_hash",
+            "maximum_entries",
+            "maximum_bytes",
+            "eviction",
+            "duplicate",
+            "reset",
+            "terminal",
+            "restart",
+            "checkpoint",
+        ],
+    )?;
+    validate_state_descriptor(
+        node,
+        "equality",
+        "equality_schema_version",
+        "equality_hash",
+        STATE_EQUALITY_DESCRIPTOR,
+        STATE_EQUALITY_HASH,
+    )?;
+    required_state_bound(
+        node,
+        "maximum_entries",
+        conduit_std::STATE_MAX_ENTRIES as u64,
+    )?;
+    required_state_bound(node, "maximum_bytes", conduit_std::STATE_MAX_VALUE_BYTES)?;
+    if node.config("eviction") != Some("fifo")
+        || node.config("duplicate") != Some("drop")
+        || node.config("reset") != Some("clear")
+        || node.config("terminal") != Some("complete")
+        || node.config("restart") != Some("empty")
+        || node.config("checkpoint") != Some("unsupported")
+    {
+        return Err(ResolutionError::new(
+            "CND-STA-012",
+            format!("node `{}` has unsupported deduplicate semantics", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_state_cache(node: &Node) -> Result<(), ResolutionError> {
+    validate_exact_state_fields(
+        node,
+        &[
+            "request_schema",
+            "request_schema_version",
+            "request_schema_hash",
+            "key_equality",
+            "key_equality_schema_version",
+            "key_equality_hash",
+            "maximum_entries",
+            "maximum_key_bytes",
+            "maximum_value_bytes",
+            "maximum_total_bytes",
+            "eviction",
+            "ttl",
+            "sensitivity",
+            "restart",
+            "checkpoint",
+        ],
+    )?;
+    validate_state_descriptor(
+        node,
+        "request_schema",
+        "request_schema_version",
+        "request_schema_hash",
+        STATE_CACHE_REQUEST_DESCRIPTOR,
+        STATE_CACHE_REQUEST_HASH,
+    )?;
+    validate_state_descriptor(
+        node,
+        "key_equality",
+        "key_equality_schema_version",
+        "key_equality_hash",
+        STATE_EQUALITY_DESCRIPTOR,
+        STATE_EQUALITY_HASH,
+    )?;
+    required_state_bound(
+        node,
+        "maximum_entries",
+        conduit_std::STATE_MAX_ENTRIES as u64,
+    )?;
+    let maximum_key = required_state_bound(node, "maximum_key_bytes", 4096)?;
+    let maximum_value = required_state_bound(
+        node,
+        "maximum_value_bytes",
+        conduit_std::STATE_MAX_VALUE_BYTES,
+    )?;
+    let maximum_total = required_state_bound(
+        node,
+        "maximum_total_bytes",
+        conduit_std::STATE_MAX_VALUE_BYTES,
+    )?;
+    if maximum_key > maximum_total
+        || maximum_value > maximum_total
+        || node.config("eviction") != Some("fifo")
+        || node.config("ttl") != Some("none")
+        || node.config("sensitivity") != Some("preserve")
+        || node.config("restart") != Some("empty")
+        || node.config("checkpoint") != Some("unsupported")
+    {
+        return Err(ResolutionError::new(
+            "CND-STA-012",
+            format!("node `{}` has unsupported cache semantics", node.id),
+        ));
+    }
+    Ok(())
+}
+
 fn required_data_reference<'a>(
     node: &'a Node,
     key: &str,
@@ -8289,6 +8980,19 @@ impl Handler for TimeCompatibilityHandler {
     }
 }
 
+struct StateCompatibilityHandler;
+
+impl Handler for StateCompatibilityHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        Ok(inputs.first().cloned().into_iter().collect())
+    }
+}
+
 fn encode_record_literal(node: &Node) -> Result<Vec<u8>, RuntimeError> {
     let Some(SourceValue::Record(fields)) = node.config_value("fields") else {
         return Err(RuntimeError::new(
@@ -8512,6 +9216,10 @@ fn data_boundary_runtime_error(error: conduit_std::DataBoundaryError) -> Runtime
 }
 
 fn time_runtime_error(error: conduit_std::TimeError) -> RuntimeError {
+    RuntimeError::new(error.code(), error.code())
+}
+
+fn state_runtime_error(error: conduit_std::StateError) -> RuntimeError {
     RuntimeError::new(error.code(), error.code())
 }
 

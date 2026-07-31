@@ -2,8 +2,7 @@ mod support;
 
 use conduit_panel::Node;
 use conduit_runtime::{
-    AvailabilityState, CACHE_CONTRACT, CELL_CONTRACT, CIRCUIT_BREAKER_CONTRACT,
-    DEDUPLICATE_CONTRACT, Handler, Registry, RunIo, RuntimeError, Value,
+    AvailabilityState, CIRCUIT_BREAKER_CONTRACT, Handler, Registry, RunIo, RuntimeError, Value,
 };
 
 struct Impostor;
@@ -20,13 +19,8 @@ impl Handler for Impostor {
 }
 
 #[test]
-fn state_and_resilience_callbacks_cannot_claim_behavioral_conformance() {
-    for contract in [
-        &CELL_CONTRACT,
-        &DEDUPLICATE_CONTRACT,
-        &CIRCUIT_BREAKER_CONTRACT,
-        &CACHE_CONTRACT,
-    ] {
+fn resilience_callbacks_cannot_claim_behavioral_conformance() {
+    for contract in [&CIRCUIT_BREAKER_CONTRACT] {
         let mut registry = Registry::default();
         let fixture = support::provider(
             contract,

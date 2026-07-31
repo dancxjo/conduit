@@ -668,6 +668,11 @@ const fn optional_output(mut port: PortContract<'static>) -> PortContract<'stati
     port.connections = ConnectionCardinality::ZeroOrMore;
     port
 }
+const fn optional_input(mut port: PortContract<'static>) -> PortContract<'static> {
+    port.presence = Presence::Optional;
+    port.connections = ConnectionCardinality::ZeroOrOne;
+    port
+}
 const DATA_OPTIONAL_CANDIDATE_OUTPUT: PortContract<'static> =
     optional_output(DATA_CANDIDATE_OUTPUT);
 const DATA_DECISION_OUTPUT: PortContract<'static> = port(
@@ -754,6 +759,55 @@ const TIME_THROTTLE: ConfigContract<'static> = ConfigContract {
         field("terminal", TEXT),
         field("maximum_retained", U64),
         field("discontinuity", TEXT),
+    ],
+};
+const STATE_CELL: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("state_schema", REFERENCE),
+        field("state_schema_version", U64),
+        field("state_schema_hash", BYTES),
+        field("initialization", TEXT),
+        field("initial", TEXT),
+        field("maximum_value_bytes", U64),
+        field("emission", TEXT),
+        field("reset", TEXT),
+        field("terminal", TEXT),
+        field("restart", TEXT),
+        field("checkpoint", TEXT),
+    ],
+};
+const STATE_DEDUPLICATE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("equality", REFERENCE),
+        field("equality_schema_version", U64),
+        field("equality_hash", BYTES),
+        field("maximum_entries", U64),
+        field("maximum_bytes", U64),
+        field("eviction", TEXT),
+        field("duplicate", TEXT),
+        field("reset", TEXT),
+        field("terminal", TEXT),
+        field("restart", TEXT),
+        field("checkpoint", TEXT),
+    ],
+};
+const STATE_CACHE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("request_schema", REFERENCE),
+        field("request_schema_version", U64),
+        field("request_schema_hash", BYTES),
+        field("key_equality", REFERENCE),
+        field("key_equality_schema_version", U64),
+        field("key_equality_hash", BYTES),
+        field("maximum_entries", U64),
+        field("maximum_key_bytes", U64),
+        field("maximum_value_bytes", U64),
+        field("maximum_total_bytes", U64),
+        field("eviction", TEXT),
+        field("ttl", TEXT),
+        field("sensitivity", TEXT),
+        field("restart", TEXT),
+        field("checkpoint", TEXT),
     ],
 };
 const TRANSFORM: ConfigContract<'static> = ConfigContract {
@@ -1677,9 +1731,12 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
     generic_entry!(
         "state/cell",
         State,
-        STATEFUL,
-        &[named("update", IN_BYTES), named("command", CONTROL)],
-        &[named("current", OUT_BYTES)],
+        STATE_CELL,
+        &[
+            named("update", TEXT_ITEMS_INPUT),
+            optional_input(named("command", TEXT_ITEMS_INPUT))
+        ],
+        &[named("current", TEXT_LINES_OUTPUT)],
         Preserving,
         None,
         BUFFERED,
@@ -1708,24 +1765,25 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         BUFFERED,
         PURE
     ),
-    entry!(
+    generic_entry!(
         "state/deduplicate",
         State,
-        STATEFUL,
-        &[named("candidate", IN_BYTES)],
-        &[named("unique", OUT_BYTES)],
+        STATE_DEDUPLICATE,
+        &[named("candidate", TEXT_ITEMS_INPUT)],
+        &[named("unique", TEXT_LINES_OUTPUT)],
         Preserving,
         None,
         BUFFERED,
-        PURE
+        PURE,
+        IDENTITY_GENERIC
     ),
     entry!(
         "state/cache",
         State,
-        STATEFUL,
-        &[named("request", IN_BYTES), named("command", CONTROL)],
-        &[named("response", OUT_BYTES)],
-        Preserving,
+        STATE_CACHE,
+        &[named("request", TEXT_ITEMS_INPUT)],
+        &[named("response", TEXT_LINES_OUTPUT)],
+        ExplicitAdapter,
         None,
         BUFFERED,
         PURE

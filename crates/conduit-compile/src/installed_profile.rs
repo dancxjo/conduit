@@ -78,6 +78,7 @@ impl InstalledProfile {
                     || id == "std/testing/assert-validation-decision"
             })
             || required.keys().any(|id| id.starts_with("time/"))
+            || required.keys().any(|id| id.starts_with("state/"))
             || required.keys().any(|id| {
                 matches!(
                     id.as_str(),
@@ -335,6 +336,12 @@ fn candidate(
             | HostedPrimitiveImplementation::TimeDebounce
             | HostedPrimitiveImplementation::TimeThrottle
     );
+    let state_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::StateCell
+            | HostedPrimitiveImplementation::StateDeduplicate
+            | HostedPrimitiveImplementation::StateCache
+    );
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -384,6 +391,8 @@ fn candidate(
             structural_flow_execution_profile()
         } else if time_profile {
             time_execution_profile()
+        } else if state_profile {
+            state_execution_profile()
         } else {
             execution_profile()
         },
@@ -445,7 +454,7 @@ fn candidate(
                 128 * 1024
             } else if structural_flow_profile {
                 8 * 1024
-            } else if time_profile {
+            } else if time_profile || state_profile {
                 256 * 1024
             } else {
                 2048
@@ -459,7 +468,7 @@ fn candidate(
                 8 * 1024
             } else if structural_flow_profile {
                 4 * 1024
-            } else if time_profile {
+            } else if time_profile || state_profile {
                 8 * 1024
             } else {
                 256
@@ -887,6 +896,53 @@ fn time_execution_profile() -> ExecutionProfileDocument {
             max_retained_bytes: VALUE_BYTES,
             max_pending_operations: 1,
             max_timers: 1,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "retained".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: VALUE_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "pending-operations".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 256,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - VALUE_BYTES - 256,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn state_execution_profile() -> ExecutionProfileDocument {
+    const VALUE_BYTES: u64 = conduit_std::STATE_MAX_VALUE_BYTES;
+    const MEMORY_BYTES: u64 = 256 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-state-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: conduit_std::STATE_MAX_ENTRIES as u32,
+            max_input_leases: 1,
+            max_input_bytes: VALUE_BYTES,
+            max_output_reservations: 1,
+            max_output_bytes: VALUE_BYTES,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_retained_values: conduit_std::STATE_MAX_ENTRIES as u16,
+            max_retained_bytes: VALUE_BYTES,
+            max_pending_operations: 1,
             implementation_memory_bytes: MEMORY_BYTES,
             cancellation_ticks: 1,
             ..ExecutionLimitsDocument::default()

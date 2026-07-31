@@ -1,0 +1,24 @@
+panel 0
+
+node source : std/literal { value = "first\nsecond\n" }
+node lines : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+node cell : state/cell {
+    state_schema = ref("conduit.state/text-register")
+    state_schema_version = 0
+    state_schema_hash = bytes("69d3f4d8d53741fd075be4e6755af9be19db951a5065b89be5a2e87c7755565e")
+    initialization = "value"
+    initial = "initial"
+    maximum_value_bytes = 64
+    emission = "initial-and-update"
+    reset = "initial"
+    terminal = "complete"
+    restart = "initial"
+    checkpoint = "unsupported"
+}
+node join : std/text/join { separator = "," maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }
+node display : display/text
+
+cord source.value -> lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord lines.line -> cell.update { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord cell.current -> join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
