@@ -3676,4 +3676,49 @@ mod tests {
         session.finalize().unwrap();
         assert_eq!(sessions.active_sessions(), 0);
     }
+
+    #[test]
+    fn hosted_listener_ignores_a_host_wake_after_abort() {
+        let (mut session, sessions, address, observations) =
+            start_listener(Id("run/http/listener-abort-host-wake"));
+        let _client = TcpStream::connect(address).unwrap();
+        assert_eq!(
+            session.cancel(StopPolicy::Abort).unwrap().state,
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        assert_eq!(
+            session
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
+                .unwrap()
+                .state,
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled),
+            "a late host callback cannot revive the aborted listener"
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
+
+    #[test]
+    fn hosted_listener_ignores_a_timer_wake_after_abort() {
+        let source = include_str!("../../../examples/http-loopback-listener.panel")
+            .replace("deadline_ticks = \"5000\"", "deadline_ticks = \"1\"");
+        let (mut session, sessions, address, observations) =
+            start_listener_for_source(&source, Id("run/http/listener-abort-timer-wake"));
+        let _client = TcpStream::connect(address).unwrap();
+        session
+            .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
+            .unwrap();
+        pump_until_waiting(&mut session, &observations);
+        let deadline = session
+            .next_timer_deadline()
+            .expect("accepted request retains its exact timer before abort");
+        session.cancel(StopPolicy::Abort).unwrap();
+        assert_eq!(
+            session.advance_to(deadline, &observations).unwrap().state,
+            ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled),
+            "a late timer cannot reinterpret abort as a request timeout"
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
 }
