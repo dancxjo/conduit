@@ -531,7 +531,7 @@ fn example_filesystem() -> Result<LinuxFilesystem, LinuxFilesystemError> {
         .to_path_buf();
     let target =
         fs::canonicalize(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target")).map_err(map_io)?;
-    Ok(LinuxFilesystem::new(
+    LinuxFilesystem::new(
         vec![
             LinuxResourceBinding {
                 resource: EXAMPLE_READ_RESOURCE.to_owned(),
@@ -563,7 +563,7 @@ fn example_filesystem() -> Result<LinuxFilesystem, LinuxFilesystemError> {
         ],
         LINUX_FILESYSTEM_MAX_OPERATION_BYTES,
         LINUX_FILESYSTEM_MAX_SCAN_ENTRIES,
-    )?)
+    )
 }
 
 fn read_result_bytes(read: &LinuxRead) -> Vec<u8> {

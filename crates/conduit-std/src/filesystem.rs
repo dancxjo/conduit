@@ -191,7 +191,6 @@ impl<const BYTES: usize> FileSlot<BYTES> {
         }
     }
 
-    #[must_use]
     pub fn seeded(
         handle: FileHandle,
         value: &[u8],
