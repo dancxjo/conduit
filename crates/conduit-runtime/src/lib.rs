@@ -1904,6 +1904,12 @@ impl ExactHostedRunSession {
         self.session.retained_event_cursor()
     }
 
+    /// One-past-the-end monotonic event cursor for this hosted exact session.
+    #[must_use]
+    pub fn next_event_cursor(&self) -> u64 {
+        self.session.next_event_cursor()
+    }
+
     pub fn read_scheduler_events(
         &self,
         cursor: u64,
@@ -1911,6 +1917,18 @@ impl ExactHostedRunSession {
     ) -> Result<SchedulerEventBatch, RuntimeError> {
         self.session
             .read_scheduler_events(cursor, maximum_events)
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
+    }
+
+    /// Projects one bounded read-only exact-evidence delta without releasing
+    /// the scheduler's retained observation prefix.
+    pub fn read_exact_evidence(
+        &self,
+        cursor: u64,
+        maximum_events: u32,
+    ) -> Result<ExactEvidenceBatch, RuntimeError> {
+        self.session
+            .read_exact_evidence(cursor, maximum_events)
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
     }
 

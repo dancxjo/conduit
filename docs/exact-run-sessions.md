@@ -144,6 +144,14 @@ an unbounded loop. The old terminal-only worker `run` command and its
 fresh-run `cancel` command are not part of the current protocol: Stop targets
 the already started session and returns its own terminal cleanup evidence.
 
+`patchbay-read-exact-evidence` reads one caller-selected bounded delta from
+that same run. Its cursor is the scheduler's monotonic cursor, and its result
+names `available`, `gap`, or `future` explicitly with the cursor to use next.
+It is read-only: a Patchbay or browser renderer cannot acknowledge, compact,
+or otherwise release executor evidence. A worker may request a fresh
+authoritative snapshot after a gap, but it must not recreate omitted evidence
+or resend the complete history as a substitute for cursor progress.
+
 An invalid candidate remains visible in its next source revision without
 removing the prior active plan epoch from the worker's authoritative
 projection. Terminating a worker or closing its page outside that stop path is

@@ -71,6 +71,13 @@ export function patchbay_open_session(document_id: string, source: string): stri
 export function patchbay_pump_exact_run(session_id: string, quantum: bigint): string;
 
 /**
+ * Returns one bounded, read-only exact-evidence delta for the browser-owned
+ * run. The caller supplies the scheduler cursor from the preceding result;
+ * this bridge never acknowledges or releases the executor's event window.
+ */
+export function patchbay_read_exact_evidence(session_id: string, cursor: bigint, maximum_events: number): string;
+
+/**
  * Applies a source transaction through the production Patchbay protocol.
  * The browser receives only the separate source/semantic/presentation facts.
  */
@@ -120,6 +127,7 @@ export interface InitOutput {
     readonly patchbay_notify_host_operation: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_open_session: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_pump_exact_run: (a: number, b: number, c: bigint) => [number, number];
+    readonly patchbay_read_exact_evidence: (a: number, b: number, c: bigint, d: number) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_session_view: (a: number, b: number) => [number, number];
     readonly patchbay_start_exact_run: (a: number, b: number) => [number, number];

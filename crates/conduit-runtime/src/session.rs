@@ -341,6 +341,12 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         self.executor().retained_event_cursor()
     }
 
+    /// One-past-the-end monotonic event cursor for this exact session.
+    #[must_use]
+    pub fn next_event_cursor(&self) -> u64 {
+        self.executor().next_event_cursor()
+    }
+
     /// Reads one bounded caller-owned batch from the retained event window.
     /// A caller must acknowledge only after its configured evidence provider
     /// has committed the batch.
@@ -350,6 +356,28 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         maximum_events: u32,
     ) -> Result<SchedulerEventBatch, SchedulerError> {
         self.executor().read_events(cursor, maximum_events)
+    }
+
+    /// Projects one bounded read-only exact-evidence delta. Unlike
+    /// [`Self::drain_exact_evidence`], this neither commits to an external
+    /// provider nor acknowledges/reuses the retained scheduler prefix.
+    pub fn read_exact_evidence(
+        &self,
+        cursor: u64,
+        maximum_events: u32,
+    ) -> Result<ExactEvidenceBatch, SchedulerError> {
+        let batch = self.read_scheduler_events(cursor, maximum_events)?;
+        let records = self.executor().project_exact_evidence_batch(
+            &self.identity.plan_identity.to_string(),
+            self.identity.plan_epoch,
+            &self.identity.run_id,
+            &batch.events,
+        );
+        Ok(ExactEvidenceBatch {
+            status: batch.status,
+            next_cursor: batch.next_cursor,
+            records,
+        })
     }
 
     /// Releases an externally committed prefix of the fixed event log.

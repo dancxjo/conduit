@@ -13,6 +13,7 @@ export const patchbay_move_node: (a: number, b: number, c: number, d: number, e:
 export const patchbay_notify_host_operation: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_open_session: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_pump_exact_run: (a: number, b: number, c: bigint) => [number, number];
+export const patchbay_read_exact_evidence: (a: number, b: number, c: bigint, d: number) => [number, number];
 export const patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_session_view: (a: number, b: number) => [number, number];
 export const patchbay_start_exact_run: (a: number, b: number) => [number, number];

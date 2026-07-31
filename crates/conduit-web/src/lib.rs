@@ -6,7 +6,8 @@ use wasm_bindgen::prelude::*;
 
 use conduit_compile::{CompileInput, InstalledProfile, compile_source};
 use conduit_core::{
-    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash, TerminalClass,
+    EvidenceCursorStatus, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
+    SemanticHash, TerminalClass, classify_evidence_cursor,
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
@@ -69,6 +70,9 @@ struct BrowserExactRun {
 struct BrowserExactRunTerminal {
     state: ExactRunState,
     high_water: conduit_runtime::SchedulerHighWater,
+    retained_event_cursor: u64,
+    next_event_cursor: u64,
+    events: Vec<conduit_runtime::SchedulerEvent>,
     evidence: Vec<conduit_runtime::ExactEvidenceRecord>,
     output: Vec<u8>,
     error: Vec<u8>,
@@ -611,6 +615,73 @@ fn browser_run_evidence_records(
         })
 }
 
+fn browser_exact_evidence_delta(
+    run: &BrowserExactRun,
+    cursor: u64,
+    maximum_events: u32,
+) -> Result<conduit_runtime::ExactEvidenceBatch, RuntimeError> {
+    if let Some(session) = run.session.as_ref() {
+        return session.read_exact_evidence(cursor, maximum_events);
+    }
+    let terminal = run
+        .terminal
+        .as_ref()
+        .expect("browser run has either a live session or terminal snapshot");
+    let status = classify_evidence_cursor(
+        cursor,
+        terminal.retained_event_cursor,
+        terminal.next_event_cursor,
+    )
+    .map_err(|error| RuntimeError::new("CND-RUN-009", error.to_string()))?;
+    let sequences = if status == EvidenceCursorStatus::Available {
+        terminal
+            .events
+            .iter()
+            .filter(|event| event.sequence >= cursor)
+            .take(usize::try_from(maximum_events).expect("u32 fits usize"))
+            .map(|event| event.sequence)
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    let next_cursor = match status {
+        EvidenceCursorStatus::Available => {
+            sequences
+                .last()
+                .map_or(terminal.next_event_cursor, |sequence| {
+                    sequence
+                        .checked_add(1)
+                        .expect("retained event cursor cannot overflow")
+                })
+        }
+        EvidenceCursorStatus::Gap { resume_at } => resume_at,
+        EvidenceCursorStatus::Future { next_sequence } => next_sequence,
+    };
+    let records = terminal
+        .evidence
+        .iter()
+        .filter(|record| sequences.contains(&record.sequence))
+        .cloned()
+        .collect();
+    Ok(conduit_runtime::ExactEvidenceBatch {
+        status,
+        next_cursor,
+        records,
+    })
+}
+
+fn browser_evidence_cursor_status(status: EvidenceCursorStatus) -> serde_json::Value {
+    match status {
+        EvidenceCursorStatus::Available => serde_json::json!({"kind": "available"}),
+        EvidenceCursorStatus::Gap { resume_at } => {
+            serde_json::json!({"kind": "gap", "resume_at": resume_at})
+        }
+        EvidenceCursorStatus::Future { next_sequence } => {
+            serde_json::json!({"kind": "future", "next_sequence": next_sequence})
+        }
+    }
+}
+
 fn browser_run_io(run: &BrowserExactRun) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     run.terminal.as_ref().map_or_else(
         || {
@@ -671,6 +742,9 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
         let terminal = BrowserExactRunTerminal {
             state: session.state(),
             high_water: session.high_water(),
+            retained_event_cursor: session.retained_event_cursor(),
+            next_event_cursor: session.next_event_cursor(),
+            events: session.scheduler_events().copied().collect(),
             evidence: session.exact_evidence(),
             output,
             error,
@@ -1001,6 +1075,56 @@ pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
             .to_string();
         }
         browser_run_result(session)
+    })
+}
+
+/// Returns one bounded, read-only exact-evidence delta for the browser-owned
+/// run. The caller supplies the scheduler cursor from the preceding result;
+/// this bridge never acknowledges or releases the executor's event window.
+#[wasm_bindgen]
+pub fn patchbay_read_exact_evidence(
+    session_id: String,
+    cursor: u64,
+    maximum_events: u32,
+) -> String {
+    if maximum_events == 0 || u64::from(maximum_events) > MAXIMUM_BROWSER_RUN_PUMP_DECISIONS {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "browser exact-evidence read exceeds its fixed event bound",
+        })
+        .to_string();
+    }
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let sessions = sessions.borrow();
+        let Some(session) = sessions.get(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_ref() else {
+            return browser_run_result(session);
+        };
+        match browser_exact_evidence_delta(run, cursor, maximum_events) {
+            Ok(batch) => serde_json::json!({
+                "ok": true,
+                "run_id": run.run_id,
+                "plan_identity": run.plan.identity,
+                "status": browser_evidence_cursor_status(batch.status),
+                "next_cursor": batch.next_cursor,
+                "records": batch.records,
+            })
+            .to_string(),
+            Err(error) => serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string(),
+        }
     })
 }
 
@@ -3226,8 +3350,8 @@ mod tests {
     use super::{
         explain_panel, panel_language_metadata, panel_source_metadata, patchbay_apply_transaction,
         patchbay_cancel_exact_run, patchbay_move_node, patchbay_notify_host_operation,
-        patchbay_open_session, patchbay_replace_source, patchbay_session_view,
-        patchbay_start_exact_run,
+        patchbay_open_session, patchbay_read_exact_evidence, patchbay_replace_source,
+        patchbay_session_view, patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -3588,6 +3712,21 @@ cord output.value -> sink.result\n\
         assert_eq!(started["view"]["run"]["state"], "Active");
         let active_plan_source = started["source_semantic_hash"].clone();
 
+        let evidence: Value =
+            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 1))
+                .expect("evidence JSON");
+        assert_eq!(evidence["ok"], true, "{evidence}");
+        assert_eq!(evidence["status"]["kind"], "available");
+        assert!(
+            evidence["records"]
+                .as_array()
+                .is_some_and(|records| records.len() <= 1)
+        );
+        let repeated: Value =
+            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 1))
+                .expect("repeated evidence JSON");
+        assert_eq!(repeated, evidence);
+
         let malformed_wake: Value = serde_json::from_str(&patchbay_notify_host_operation(
             session_id.to_owned(),
             "Not an exact host operation".to_owned(),
@@ -3643,6 +3782,16 @@ cord output.value -> sink.result\n\
         assert_eq!(cancelled["ok"], true, "{cancelled}");
         assert_eq!(cancelled["state"], "cancelled");
         assert_eq!(cancelled["view"]["run"]["state"], "Terminal");
+
+        let terminal_evidence: Value =
+            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 1))
+                .expect("terminal evidence JSON");
+        assert_eq!(terminal_evidence["ok"], true, "{terminal_evidence}");
+        assert_eq!(terminal_evidence["status"]["kind"], "available");
+        assert_eq!(
+            terminal_evidence["records"].as_array().map(Vec::len),
+            Some(1)
+        );
     }
 
     #[test]

@@ -991,6 +991,44 @@ fn exact_evidence_drain_commits_before_releasing_the_resident_prefix() {
 }
 
 #[test]
+fn exact_evidence_reads_are_bounded_and_do_not_acknowledge_their_source_events() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostProgress {
+            remaining: 8,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 8,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(512, 16)).unwrap());
+
+        run.pump(1).unwrap();
+        let before = run.scheduler_event_count();
+        let first = run.read_exact_evidence(0, 1).unwrap();
+        assert_eq!(first.status, EvidenceCursorStatus::Available);
+        assert_eq!(first.records.len(), 1);
+        assert_eq!(first.records[0].sequence, 0);
+        assert_eq!(run.scheduler_event_count(), before);
+
+        let repeated = run.read_exact_evidence(0, 1).unwrap();
+        assert_eq!(repeated, first);
+        let next = run.read_exact_evidence(first.next_cursor, 1).unwrap();
+        assert_eq!(next.status, EvidenceCursorStatus::Available);
+        assert!(next.next_cursor > first.next_cursor);
+        assert!(
+            next.records
+                .iter()
+                .all(|record| record.sequence >= first.next_cursor)
+        );
+        assert_eq!(run.scheduler_event_count(), before);
+    });
+}
+
+#[test]
 fn exact_session_timer_wake_resumes_the_same_waiting_epoch() {
     with_plan(1, 64, |plan, profile| {
         let source = FixtureNode::TimerWait {

@@ -266,6 +266,30 @@ export function patchbay_pump_exact_run(session_id, quantum) {
 }
 
 /**
+ * Returns one bounded, read-only exact-evidence delta for the browser-owned
+ * run. The caller supplies the scheduler cursor from the preceding result;
+ * this bridge never acknowledges or releases the executor's event window.
+ * @param {string} session_id
+ * @param {bigint} cursor
+ * @param {number} maximum_events
+ * @returns {string}
+ */
+export function patchbay_read_exact_evidence(session_id, cursor, maximum_events) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_read_exact_evidence(ptr0, len0, cursor, maximum_events);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Applies a source transaction through the production Patchbay protocol.
  * The browser receives only the separate source/semantic/presentation facts.
  * @param {string} source
