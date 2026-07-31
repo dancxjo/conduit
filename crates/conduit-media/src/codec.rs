@@ -790,6 +790,158 @@ pub fn register_deterministic_codec_providers(
     Ok(())
 }
 
+fn register_codec_provider_set(
+    registry: &mut Registry,
+    providers: &[(
+        &'static NodeContract<'static>,
+        &'static str,
+        &'static str,
+        &'static str,
+        conduit_runtime::HandlerFactory,
+        conduit_runtime::ConfigValidator,
+    )],
+) -> Result<(), RegistryError> {
+    static NO_AUTHORITIES: [SemanticHash; 0] = [];
+    for (
+        contract,
+        implementation_id,
+        artifact_id,
+        entrypoint,
+        factory,
+        validator,
+    ) in providers
+    {
+        registry.register_compiled_in_host_service(CompiledInHostService {
+            contract,
+            implementation_id,
+            artifact_id,
+            entrypoint,
+            source_bytes: include_bytes!("codec.rs"),
+            required_authorities: &NO_AUTHORITIES,
+            factory: *factory,
+            validate_config: *validator,
+        })?;
+    }
+    Ok(())
+}
+
+/// Installs an explicit FFmpeg-style profile over the same published media
+/// codec contracts. Contracts and handlers are unchanged; only provider identity
+/// and artifact entrypoints differ.
+pub fn register_ffmpeg_codec_providers(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
+    register_codec_provider_set(
+        registry,
+        &[
+            (
+                &PROBE_CONTRACT,
+                "conduit.media/wave-probe-ffmpeg",
+                "conduit.media/wave-probe-ffmpeg-artifact",
+                "media-ffmpeg-wave-probe",
+                (|| Box::new(Probe) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &DEMUX_CONTRACT,
+                "conduit.media/wave-demux-ffmpeg",
+                "conduit.media/wave-demux-ffmpeg-artifact",
+                "media-ffmpeg-wave-demux",
+                (|| Box::new(Demux) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &MUX_CONTRACT,
+                "conduit.media/wave-mux-ffmpeg",
+                "conduit.media/wave-mux-ffmpeg-artifact",
+                "media-ffmpeg-wave-mux",
+                (|| Box::new(Mux) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &DECODE_CONTRACT,
+                "conduit.media/pcm-decode-ffmpeg",
+                "conduit.media/pcm-decode-ffmpeg-artifact",
+                "media-ffmpeg-pcm-decode",
+                (|| Box::new(Decode) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &ENCODE_CONTRACT,
+                "conduit.media/pcm-encode-ffmpeg",
+                "conduit.media/pcm-encode-ffmpeg-artifact",
+                "media-ffmpeg-pcm-encode",
+                (|| Box::new(Encode) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+        ],
+    )
+}
+
+/// Installs an explicit SoX-style profile over the same published media codec
+/// contracts where SoX overlap exists.
+pub fn register_sox_codec_providers(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
+    register_codec_provider_set(
+        registry,
+        &[
+            (
+                &DECODE_CONTRACT,
+                "conduit.media/pcm-decode-sox",
+                "conduit.media/pcm-decode-sox-artifact",
+                "media-sox-pcm-decode",
+                (|| Box::new(Decode) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &ENCODE_CONTRACT,
+                "conduit.media/pcm-encode-sox",
+                "conduit.media/pcm-encode-sox-artifact",
+                "media-sox-pcm-encode",
+                (|| Box::new(Encode) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+        ],
+    )
+}
+
+/// Installs a bounded browser-focused media profile with distinct implementation
+/// identities.
+pub fn register_browser_codec_providers(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
+    register_codec_provider_set(
+        registry,
+        &[
+            (
+                &DECODE_CONTRACT,
+                "conduit.media/pcm-decode-browser",
+                "conduit.media/pcm-decode-browser-artifact",
+                "media-browser-pcm-decode",
+                (|| Box::new(Decode) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &ENCODE_CONTRACT,
+                "conduit.media/pcm-encode-browser",
+                "conduit.media/pcm-encode-browser-artifact",
+                "media-browser-pcm-encode",
+                (|| Box::new(Encode) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+            (
+                &PROBE_CONTRACT,
+                "conduit.media/wave-probe-browser",
+                "conduit.media/wave-probe-browser-artifact",
+                "media-browser-wave-probe",
+                (|| Box::new(Probe) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+                validate_codec_config as conduit_runtime::ConfigValidator,
+            ),
+        ],
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

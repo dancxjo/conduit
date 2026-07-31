@@ -401,6 +401,24 @@ fn run(
                 vec![source_document.clone()],
             )
         })?;
+        if arguments.enable_media_ffmpeg {
+            conduit_media::register_ffmpeg_codec_providers(&mut registry).map_err(|error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            })?;
+        }
+        if arguments.enable_media_sox {
+            conduit_media::register_sox_codec_providers(&mut registry).map_err(|error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            })?;
+        }
         conduit_learned::register_deterministic_inference_provider(&mut registry).map_err(
             |error| {
                 cli_error(
