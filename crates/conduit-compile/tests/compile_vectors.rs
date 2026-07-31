@@ -862,8 +862,9 @@ cord source.value -> sink.text\n";
             .unwrap()
     };
     assert_eq!(session.high_water().decisions, 0);
+    let mut last_pump = None;
     while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
-        session.pump(1).unwrap();
+        last_pump = Some(session.pump(1).unwrap());
     }
     assert_eq!(
         session.state(),
@@ -873,8 +874,9 @@ cord source.value -> sink.text\n";
         session.with_io(|io| io.display().to_vec()),
         b"owned session"
     );
-    let values = session
-        .value_storage_usage()
+    let values = last_pump
+        .expect("active hosted session completed through at least one pump")
+        .value_storage
         .expect("hosted session exposes its fixed value arena");
     assert_eq!(values.resident_slots, 0);
     assert_eq!(values.resident_bytes, 0);
@@ -882,6 +884,7 @@ cord source.value -> sink.text\n";
     assert!(values.high_water_bytes > 0);
     assert!(values.high_water_slots <= values.maximum_slots);
     assert!(values.high_water_bytes <= values.maximum_bytes);
+    assert_eq!(session.value_storage_usage(), Some(values));
     assert!(session.finalize().is_ok());
     assert_eq!(sessions.active_sessions(), 0);
 }

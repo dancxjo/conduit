@@ -46,6 +46,9 @@ pub struct ExactRunPump {
     /// policy are added by the dedicated evidence follow-up.
     pub event_cursor: u64,
     pub high_water: SchedulerHighWater,
+    /// Fixed hosted-value arena residency after this pump. Portable runs have
+    /// no hosted arena and report `None`.
+    pub value_storage: Option<ValueStorageUsage>,
 }
 
 /// Finite admission controller for concurrently retained exact-run sessions.
@@ -342,6 +345,7 @@ impl<N: SchedulerNode> ExactRunSession<N> {
             tick: self.executor().tick(),
             event_cursor: u64::try_from(self.executor().event_count()).unwrap_or(u64::MAX),
             high_water: self.executor().high_water(),
+            value_storage: self.executor().value_storage_usage(),
         }
     }
 }
