@@ -298,7 +298,7 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     /// Wake one exact named host operation on this session.
     pub fn notify_host_operation(
         &mut self,
-        subject: conduit_core::Id<'static>,
+        subject: conduit_core::Id<'_>,
     ) -> Result<ExactRunPump, SchedulerError> {
         self.notify_host_operation_with_authority(subject, &[])
     }
@@ -306,7 +306,7 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     /// Wake one exact named host operation with fresh live authority facts.
     pub fn notify_host_operation_with_authority(
         &mut self,
-        subject: conduit_core::Id<'static>,
+        subject: conduit_core::Id<'_>,
         grant_observations: &[crate::ExactHostedServiceUseObservation],
     ) -> Result<ExactRunPump, SchedulerError> {
         self.executor_mut()

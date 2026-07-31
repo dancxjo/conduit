@@ -197,6 +197,31 @@ export function patchbay_move_node(source, node_id, x, y) {
 }
 
 /**
+ * Delivers one exact named host-operation wake to the browser-owned session.
+ * The supplied subject is validated but never retained by the bridge; only an
+ * already registered exact wait can become runnable.
+ * @param {string} session_id
+ * @param {string} subject
+ * @returns {string}
+ */
+export function patchbay_notify_host_operation(session_id, subject) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(subject, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_notify_host_operation(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * Opens one finite, revisioned Patchbay authoring session.
  * @param {string} document_id
  * @param {string} source

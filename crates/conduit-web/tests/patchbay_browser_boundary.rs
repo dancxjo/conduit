@@ -66,6 +66,7 @@ fn checked_wasm_bridge_exports_revisioned_session_operations() {
         "patchbay_start_exact_run",
         "patchbay_pump_exact_run",
         "patchbay_advance_exact_run",
+        "patchbay_notify_host_operation",
         "patchbay_cancel_exact_run",
     ] {
         assert!(

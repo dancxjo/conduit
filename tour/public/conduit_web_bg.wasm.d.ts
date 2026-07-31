@@ -10,6 +10,7 @@ export const patchbay_advance_exact_run: (a: number, b: number, c: bigint) => [n
 export const patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_cancel_exact_run: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
+export const patchbay_notify_host_operation: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_open_session: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_pump_exact_run: (a: number, b: number, c: bigint) => [number, number];
 export const patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];

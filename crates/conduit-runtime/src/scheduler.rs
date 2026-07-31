@@ -2423,7 +2423,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
 
     /// Wake a bounded host operation; callback queues remain outside this API
     /// and must fit the implementation profile.
-    pub fn notify_host_operation(&mut self, subject: Id<'static>) -> Result<(), SchedulerError> {
+    pub fn notify_host_operation(&mut self, subject: Id<'_>) -> Result<(), SchedulerError> {
         self.notify_host_operation_with_authority(subject, &[])
     }
 
@@ -2431,13 +2431,17 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
     /// authority for every matching retained waiter.
     pub fn notify_host_operation_with_authority(
         &mut self,
-        subject: Id<'static>,
+        subject: Id<'_>,
         grant_observations: &[crate::ExactHostedServiceUseObservation],
     ) -> Result<(), SchedulerError> {
         for index in 0..self.waits.len() {
             let should_wake = self.waits[index].iter().any(|wait| {
                 wait.kind == WakeInterestKind::HostOperation
-                    && wait.subject == WaitSubject::Named(subject)
+                    && matches!(
+                        wait.subject,
+                        WaitSubject::Named(wait_subject)
+                            if wait_subject.as_str() == subject.as_str()
+                    )
             });
             if should_wake {
                 if self.drivers[index]

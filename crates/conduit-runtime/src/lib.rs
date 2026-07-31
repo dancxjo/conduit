@@ -1849,7 +1849,7 @@ impl ExactHostedRunSession {
 
     pub fn notify_host_operation(
         &mut self,
-        subject: Id<'static>,
+        subject: Id<'_>,
         grant_observations: &[ExactHostedServiceUseObservation],
     ) -> Result<ExactRunPump, RuntimeError> {
         self.session

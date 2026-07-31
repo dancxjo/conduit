@@ -54,6 +54,13 @@ export function patchbay_cancel_exact_run(session_id: string, disposition: strin
 export function patchbay_move_node(source: string, node_id: string, x: number, y: number): string;
 
 /**
+ * Delivers one exact named host-operation wake to the browser-owned session.
+ * The supplied subject is validated but never retained by the bridge; only an
+ * already registered exact wait can become runnable.
+ */
+export function patchbay_notify_host_operation(session_id: string, subject: string): string;
+
+/**
  * Opens one finite, revisioned Patchbay authoring session.
  */
 export function patchbay_open_session(document_id: string, source: string): string;
@@ -110,6 +117,7 @@ export interface InitOutput {
     readonly patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_cancel_exact_run: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
+    readonly patchbay_notify_host_operation: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_open_session: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_pump_exact_run: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];

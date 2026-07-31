@@ -970,6 +970,66 @@ pub fn patchbay_advance_exact_run(session_id: String, tick: u64) -> String {
     })
 }
 
+/// Delivers one exact named host-operation wake to the browser-owned session.
+/// The supplied subject is validated but never retained by the bridge; only an
+/// already registered exact wait can become runnable.
+#[wasm_bindgen]
+pub fn patchbay_notify_host_operation(session_id: String, subject: String) -> String {
+    if subject.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "browser host-operation subject exceeds its fixed byte bound",
+        })
+        .to_string();
+    }
+    let subject = match conduit_core::Id::new(&subject) {
+        Ok(subject) => subject,
+        Err(error) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-012",
+                "diagnostic": format!("invalid browser host-operation subject: {error}"),
+            })
+            .to_string();
+        }
+    };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return browser_run_result(session);
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return browser_run_result(session);
+        };
+        if let Err(error) = exact_session.notify_host_operation(subject, &run.use_observations) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        if let Err(error) = finalize_browser_run_if_terminal(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        browser_run_result(session)
+    })
+}
+
 /// Requests the exact plan-visible stop disposition for the active browser
 /// run. `drain` and `abort` stay distinct through the shared runtime session.
 #[wasm_bindgen]
@@ -3083,8 +3143,9 @@ mod tests {
 
     use super::{
         explain_panel, panel_language_metadata, panel_source_metadata, patchbay_apply_transaction,
-        patchbay_cancel_exact_run, patchbay_move_node, patchbay_open_session,
-        patchbay_replace_source, patchbay_session_view, patchbay_start_exact_run,
+        patchbay_cancel_exact_run, patchbay_move_node, patchbay_notify_host_operation,
+        patchbay_open_session, patchbay_replace_source, patchbay_session_view,
+        patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -3444,6 +3505,22 @@ cord output.value -> sink.result\n\
         assert_eq!(started["state"], "active");
         assert_eq!(started["view"]["run"]["state"], "Active");
         let active_plan_source = started["source_semantic_hash"].clone();
+
+        let malformed_wake: Value = serde_json::from_str(&patchbay_notify_host_operation(
+            session_id.to_owned(),
+            "Not an exact host operation".to_owned(),
+        ))
+        .expect("malformed wake JSON");
+        assert_eq!(malformed_wake["ok"], false);
+        assert_eq!(malformed_wake["code"], "CND-PBY-012");
+
+        let unrelated_wake: Value = serde_json::from_str(&patchbay_notify_host_operation(
+            session_id.to_owned(),
+            "conduit/unrelated-host-operation".to_owned(),
+        ))
+        .expect("unrelated wake JSON");
+        assert_eq!(unrelated_wake["ok"], true, "{unrelated_wake}");
+        assert_eq!(unrelated_wake["state"], "active");
 
         let replacement = serde_json::json!({
             "protocol_version": 0,
