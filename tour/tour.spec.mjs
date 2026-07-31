@@ -882,11 +882,18 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
 
   await page.locator("#workspace-fullscreen").click();
   const workspace = page.locator("#patchbay-workspace");
+  const fullscreenToggle = page.locator("#workspace-fullscreen");
   await expect(workspace).toHaveClass(/patchbay-workspace-active/);
   await expect.poll(() => page.evaluate(() =>
     document.fullscreenElement?.id || null
   )).toBe("patchbay-workspace");
-  await expect(page.locator("#workspace-exit")).toBeFocused();
+  await expect(fullscreenToggle).toBeFocused();
+  await expect(fullscreenToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(fullscreenToggle).toHaveAttribute(
+    "aria-label",
+    "Exit fullscreen Patchbay workspace",
+  );
+  await expect(page.locator("#workspace-exit")).toHaveCount(0);
   await expect(page.locator("#run")).toBeVisible();
   await expect(page.locator("#check")).toBeVisible();
   await expect(page.locator("#logical-view")).toBeVisible();
@@ -895,9 +902,14 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
   await expect(page.locator("#patchbay-source-window")).toBeVisible();
   expect(await source.evaluate((element) => element.__conduitLiveEditor)).toBe(true);
 
-  await page.locator("#workspace-exit").click();
+  await fullscreenToggle.click();
   await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
-  await expect(page.locator("#workspace-fullscreen")).toBeFocused();
+  await expect(fullscreenToggle).toBeFocused();
+  await expect(fullscreenToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(fullscreenToggle).toHaveAttribute(
+    "aria-label",
+    "Enter fullscreen Patchbay workspace",
+  );
   const after = await page.evaluate(() => ({
     sourceRevision: JSON.parse(
       document.querySelector("#patchbay-editor-status").textContent

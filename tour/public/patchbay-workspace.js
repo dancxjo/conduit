@@ -68,8 +68,7 @@ export class PatchbayWorkspaceController {
   init() {
     this.buildToolbar();
     this.enhanceEditorWindow();
-    this.fullscreenButton.onclick = () => void this.enter();
-    this.exitButton.onclick = () => void this.exit();
+    this.fullscreenButton.onclick = () => void this.toggleFullscreen();
     this.showEditorButton.onclick = () => this.showEditor();
     this.errorCount.onclick = () => this.toggleDiagnostics();
     this.shadeButton.onclick = () => this.toggleShade();
@@ -117,17 +116,11 @@ export class PatchbayWorkspaceController {
     this.toolbar.setAttribute("aria-label", "Topology workspace controls");
     this.fullscreenButton = button(
       "workspace-fullscreen",
-      "⛶ Fullscreen canvas",
+      "⛶",
       "Enter fullscreen Patchbay workspace",
     );
     this.fullscreenButton.setAttribute("aria-keyshortcuts", "Control+Shift+F");
     this.fullscreenButton.setAttribute("aria-pressed", "false");
-    this.exitButton = button(
-      "workspace-exit",
-      "⤢ Exit fullscreen",
-      "Exit fullscreen Patchbay workspace",
-    );
-    this.exitButton.hidden = true;
     this.showEditorButton = button(
       "workspace-show-editor",
       "▣ Show source",
@@ -150,7 +143,6 @@ export class PatchbayWorkspaceController {
     this.workspaceStatus.setAttribute("aria-live", "polite");
     this.toolbar.append(
       this.fullscreenButton,
-      this.exitButton,
       this.showEditorButton,
       this.errorCount,
       this.workspaceStatus,
@@ -306,6 +298,25 @@ export class PatchbayWorkspaceController {
     this.activate(false);
   }
 
+  /** Toggle the diagram's fullscreen state without replacing its control. */
+  async toggleFullscreen() {
+    if (this.active) {
+      await this.exit();
+    } else {
+      await this.enter();
+    }
+  }
+
+  updateFullscreenButton(active) {
+    const title = active
+      ? "Exit fullscreen Patchbay workspace"
+      : "Enter fullscreen Patchbay workspace";
+    this.fullscreenButton.textContent = active ? "⤢" : "⛶";
+    this.fullscreenButton.title = title;
+    this.fullscreenButton.setAttribute("aria-label", title);
+    this.fullscreenButton.setAttribute("aria-pressed", String(active));
+  }
+
   activate(nativeFullscreen) {
     if (this.active) return;
     this.active = true;
@@ -319,9 +330,7 @@ export class PatchbayWorkspaceController {
       "patchbay-workspace-fallback-active",
       !nativeFullscreen,
     );
-    this.fullscreenButton.hidden = true;
-    this.fullscreenButton.setAttribute("aria-pressed", "true");
-    this.exitButton.hidden = false;
+    this.updateFullscreenButton(true);
     this.workspaceStatus.textContent = nativeFullscreen
       ? "Browser fullscreen"
       : "In-page fullscreen fallback";
@@ -336,7 +345,7 @@ export class PatchbayWorkspaceController {
     this.applyWindowState();
     this.recoverBounds();
     this.restoreViewport();
-    this.exitButton.focus({ preventScroll: true });
+    this.fullscreenButton.focus({ preventScroll: true });
     this.canvasCard.dispatchEvent(new CustomEvent("patchbayworkspacechange", {
       detail: { active: true, nativeFullscreen },
     }));
@@ -373,9 +382,7 @@ export class PatchbayWorkspaceController {
       "patchbay-workspace-fallback",
     );
     document.body.classList.remove("patchbay-workspace-fallback-active");
-    this.fullscreenButton.hidden = false;
-    this.fullscreenButton.setAttribute("aria-pressed", "false");
-    this.exitButton.hidden = true;
+    this.updateFullscreenButton(false);
     this.showEditorButton.hidden = true;
     this.workspaceStatus.textContent = "";
     this.diagnosticsOpen = false;
