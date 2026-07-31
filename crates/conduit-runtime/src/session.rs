@@ -219,13 +219,25 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     /// control back to the host without resetting any run identity, counter,
     /// queue, or timer state.
     pub fn pump(&mut self, quantum: u64) -> Result<ExactRunPump, SchedulerError> {
+        self.pump_with_authority(quantum, &[])
+    }
+
+    /// Pump with the current host authority facts governing any hosted timer
+    /// wake reached during this call.
+    pub fn pump_with_authority(
+        &mut self,
+        quantum: u64,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<ExactRunPump, SchedulerError> {
         if quantum == 0 {
             return Err(SchedulerError::InvalidPolicy);
         }
         let start = self.executor().decisions();
         while self.executor().decisions().saturating_sub(start) < quantum {
             let before = self.executor().decisions();
-            let status = self.executor_mut().run_one()?;
+            let status = self
+                .executor_mut()
+                .run_one_with_authority(grant_observations)?;
             if !matches!(status, SchedulerStatus::Running) || self.executor().decisions() == before
             {
                 break;
@@ -237,7 +249,18 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     /// Advance only the active run's exact scheduler clock. The caller must
     /// supply an admitted monotonic tick; this never creates a new epoch.
     pub fn advance_to(&mut self, tick: u64) -> Result<ExactRunPump, SchedulerError> {
-        self.executor_mut().advance_to(tick)?;
+        self.advance_to_with_authority(tick, &[])
+    }
+
+    /// Advance with the current host authority facts governing due hosted
+    /// timer waits.
+    pub fn advance_to_with_authority(
+        &mut self,
+        tick: u64,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<ExactRunPump, SchedulerError> {
+        self.executor_mut()
+            .advance_to_with_authority(tick, grant_observations)?;
         Ok(self.snapshot())
     }
 
@@ -246,7 +269,17 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         &mut self,
         subject: conduit_core::Id<'static>,
     ) -> Result<ExactRunPump, SchedulerError> {
-        self.executor_mut().notify_host_operation(subject)?;
+        self.notify_host_operation_with_authority(subject, &[])
+    }
+
+    /// Wake one exact named host operation with fresh live authority facts.
+    pub fn notify_host_operation_with_authority(
+        &mut self,
+        subject: conduit_core::Id<'static>,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<ExactRunPump, SchedulerError> {
+        self.executor_mut()
+            .notify_host_operation_with_authority(subject, grant_observations)?;
         Ok(self.snapshot())
     }
 

@@ -3282,8 +3282,9 @@ mod tests {
         SchedulerPolicy, StopPolicy,
     };
     use conduit_runtime::{
-        ExactHostedServiceAuthority, ExactHostedServiceBinding, ExactRunContext, ExactRunIo,
-        ExactRunSessionRegistry, ExactRunState, Registry, SchedulerReservation,
+        ExactHostedServiceAuthority, ExactHostedServiceBinding, ExactHostedServiceUseObservation,
+        ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState, Registry,
+        SchedulerReservation, hosted_service_use_observations,
     };
 
     use super::{
@@ -3336,7 +3337,10 @@ mod tests {
                 resource_kind: "conduit.resource/http-loopback".to_owned(),
                 resource_id: super::HTTP_CLIENT_LOOPBACK_RESOURCE.to_owned(),
                 resource_binding_id: "binding/http-loopback".to_owned(),
+                resource_lease_id: "lease/http-loopback".to_owned(),
                 grant_id: super::HTTP_CLIENT_LOOPBACK_GRANT.to_owned(),
+                valid_until_tick: 20,
+                check_at_use: true,
                 constraints: vec![
                     (
                         "conduit.constraint/http-authority".to_owned(),
@@ -3378,12 +3382,15 @@ mod tests {
         );
     }
 
-    fn pump_until_waiting(session: &mut conduit_runtime::ExactHostedRunSession) {
+    fn pump_until_waiting(
+        session: &mut conduit_runtime::ExactHostedRunSession,
+        observations: &[ExactHostedServiceUseObservation],
+    ) {
         for _ in 0..16 {
             if session.state() != ExactRunState::Active {
                 break;
             }
-            session.pump(1).unwrap();
+            session.pump(1, observations).unwrap();
         }
         assert_eq!(session.state(), ExactRunState::Waiting);
     }
@@ -3395,6 +3402,7 @@ mod tests {
         conduit_runtime::ExactHostedRunSession,
         ExactRunSessionRegistry,
         std::net::SocketAddr,
+        Vec<ExactHostedServiceUseObservation>,
     ) {
         let mut registry = Registry::hosted_primitives();
         super::register_hosted_http_provider(&mut registry).unwrap();
@@ -3406,6 +3414,7 @@ mod tests {
         let resolved = registry.resolve(&panel).unwrap();
         let bindings = installed.bindings(&plan).unwrap();
         let grants = installed.grant_observations(&plan).unwrap();
+        let observations = hosted_service_use_observations(&grants);
         let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
         let mut session = resolved
             .start_exact_session(
@@ -3437,13 +3446,13 @@ mod tests {
                 ExactRunIo::for_plan(&plan).unwrap(),
             )
             .unwrap();
-        pump_until_waiting(&mut session);
+        pump_until_waiting(&mut session, &observations);
         let diagnostics = session.with_io(|io| String::from_utf8(io.error().to_vec()).unwrap());
         let address: std::net::SocketAddr = diagnostics
             .strip_prefix("CND-HTTP-BOUND ")
             .and_then(|value| value.trim().parse().ok())
             .expect("exact session published its loopback address");
-        (session, sessions, address)
+        (session, sessions, address, observations)
     }
 
     fn start_listener(
@@ -3452,6 +3461,7 @@ mod tests {
         conduit_runtime::ExactHostedRunSession,
         ExactRunSessionRegistry,
         std::net::SocketAddr,
+        Vec<ExactHostedServiceUseObservation>,
     ) {
         start_listener_for_source(
             include_str!("../../../examples/http-loopback-listener.panel"),
@@ -3463,6 +3473,7 @@ mod tests {
         session: &mut conduit_runtime::ExactHostedRunSession,
         address: std::net::SocketAddr,
         path: &str,
+        observations: &[ExactHostedServiceUseObservation],
     ) -> Vec<u8> {
         let mut client = TcpStream::connect(address).unwrap();
         client
@@ -3474,12 +3485,12 @@ mod tests {
         for _ in 0..3 {
             assert_eq!(
                 session
-                    .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                    .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, observations)
                     .unwrap()
                     .state,
                 ExactRunState::Active
             );
-            pump_until_waiting(session);
+            pump_until_waiting(session, observations);
         }
         let mut response = Vec::new();
         client.read_to_end(&mut response).unwrap();
@@ -3488,18 +3499,19 @@ mod tests {
 
     #[test]
     fn hosted_listener_serves_multiple_requests_in_one_exact_session() {
-        let (mut session, sessions, address) = start_listener(Id("run/http/listener"));
+        let (mut session, sessions, address, observations) =
+            start_listener(Id("run/http/listener"));
         let identity = session.identity().clone();
         assert_eq!(
             session
-                .notify_host_operation(Id("conduit/http-other-event"))
+                .notify_host_operation(Id("conduit/http-other-event"), &observations)
                 .unwrap()
                 .state,
             ExactRunState::Waiting
         );
 
         for path in ["/health", "/missing"] {
-            let response = serve_request(&mut session, address, path);
+            let response = serve_request(&mut session, address, path, &observations);
             assert!(
                 response.starts_with(if path == "/health" {
                     b"HTTP/1.1 200 OK\r\n"
@@ -3521,16 +3533,17 @@ mod tests {
 
     #[test]
     fn hosted_listener_drain_finishes_an_admitted_request_without_new_admission() {
-        let (mut session, sessions, address) = start_listener(Id("run/http/listener-drain"));
+        let (mut session, sessions, address, observations) =
+            start_listener(Id("run/http/listener-drain"));
         let mut client = TcpStream::connect(address).unwrap();
         assert_eq!(
             session
-                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
                 .unwrap()
                 .state,
             ExactRunState::Active
         );
-        pump_until_waiting(&mut session);
+        pump_until_waiting(&mut session, &observations);
 
         assert_eq!(
             session.cancel(StopPolicy::Drain).unwrap().state,
@@ -3545,9 +3558,9 @@ mod tests {
             .unwrap();
         for _ in 0..2 {
             session
-                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
                 .unwrap();
-            session.pump(1).unwrap();
+            session.pump(1, &observations).unwrap();
         }
         let mut response = Vec::new();
         client.read_to_end(&mut response).unwrap();
@@ -3564,28 +3577,80 @@ mod tests {
     fn hosted_listener_deadline_wakes_the_same_run_and_fails_before_response() {
         let source = include_str!("../../../examples/http-loopback-listener.panel")
             .replace("deadline_ticks = \"5000\"", "deadline_ticks = \"1\"");
-        let (mut session, sessions, address) =
+        let (mut session, sessions, address, observations) =
             start_listener_for_source(&source, Id("run/http/listener-deadline"));
         let _client = TcpStream::connect(address).unwrap();
         assert_eq!(
             session
-                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
                 .unwrap()
                 .state,
             ExactRunState::Active
         );
-        pump_until_waiting(&mut session);
+        pump_until_waiting(&mut session, &observations);
         let deadline = session
             .next_timer_deadline()
             .expect("an admitted request has one exact deadline");
         assert_eq!(
-            session.advance_to(deadline).unwrap().state,
+            session.advance_to(deadline, &observations).unwrap().state,
             ExactRunState::Active
         );
         let error = session
-            .pump(1)
+            .pump(1, &observations)
             .expect_err("the timer wake rejects an unresponsive admitted request");
         assert_eq!(error.code, "CND-HTTP-017");
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Failed)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
+
+    #[test]
+    fn hosted_listener_rechecks_its_authority_and_lease_before_an_late_host_wake() {
+        let source = include_str!("../../../examples/http-loopback-listener.panel")
+            .replace("deadline_ticks = \"5000\"", "deadline_ticks = \"9\"");
+        let (mut session, sessions, address, observations) =
+            start_listener_for_source(&source, Id("run/http/listener-stale-at-use"));
+        let _client = TcpStream::connect(address).unwrap();
+        session
+            .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
+            .unwrap();
+        pump_until_waiting(&mut session, &observations);
+        let deadline = session
+            .next_timer_deadline()
+            .expect("the admitted request retains its declared timer wake");
+        assert_eq!(
+            session
+                .advance_to(deadline - 1, &observations)
+                .unwrap()
+                .state,
+            ExactRunState::Waiting,
+            "the host may advance only to the admitted time before the request deadline"
+        );
+        let error = session
+            .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
+            .expect_err("the now-stale listener authority blocks the next host operation");
+        assert_eq!(error.code, "CND-RUN-010");
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Failed)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
+
+    #[test]
+    fn hosted_listener_rejects_a_revoked_grant_before_the_callback_runs() {
+        let (mut session, sessions, address, mut observations) =
+            start_listener(Id("run/http/listener-revoked-at-wake"));
+        let _client = TcpStream::connect(address).unwrap();
+        observations[0].grant_active = false;
+        let error = session
+            .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
+            .expect_err("a revoked grant must fail before the listener callback");
+        assert_eq!(error.code, "CND-RUN-010");
         assert_eq!(
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Failed)

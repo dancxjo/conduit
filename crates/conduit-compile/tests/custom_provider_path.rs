@@ -241,13 +241,13 @@ fn custom_hosted_provider_waits_across_multiple_exact_host_wakes() {
         .unwrap();
 
     while session.state() == ExactRunState::Active {
-        session.pump(1).unwrap();
+        session.pump(1, &[]).unwrap();
     }
     assert_eq!(session.state(), ExactRunState::Waiting);
     let identity = session.identity().clone();
     assert_eq!(
         session
-            .notify_host_operation(Id("acme.weather/wrong-subject"))
+            .notify_host_operation(Id("acme.weather/wrong-subject"), &[])
             .unwrap()
             .state,
         ExactRunState::Waiting
@@ -255,13 +255,13 @@ fn custom_hosted_provider_waits_across_multiple_exact_host_wakes() {
     for _ in 0..2 {
         assert_eq!(
             session
-                .notify_host_operation(Id("acme.weather/refresh"))
+                .notify_host_operation(Id("acme.weather/refresh"), &[])
                 .unwrap()
                 .state,
             ExactRunState::Active
         );
         while session.state() == ExactRunState::Active {
-            session.pump(1).unwrap();
+            session.pump(1, &[]).unwrap();
         }
     }
     assert_eq!(

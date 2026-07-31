@@ -778,7 +778,7 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
         "start must not execute a node step"
     );
     while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
-        session.pump(1).unwrap();
+        session.pump(1, &[]).unwrap();
     }
     assert_eq!(
         session.state(),
@@ -864,7 +864,7 @@ cord source.value -> sink.text\n";
     assert_eq!(session.high_water().decisions, 0);
     let mut last_pump = None;
     while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
-        last_pump = Some(session.pump(1).unwrap());
+        last_pump = Some(session.pump(1, &[]).unwrap());
     }
     assert_eq!(
         session.state(),

@@ -540,6 +540,17 @@ pub trait SchedulerNode {
 
     fn cancel(&mut self, _stop: StopPolicy) {}
 
+    /// Revalidates live host authority immediately before a retained timer or
+    /// named host wake resumes this node. Portable nodes have no live host
+    /// authority and therefore accept the empty observation set.
+    fn validate_wake(
+        &mut self,
+        _tick: u64,
+        _grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<(), Id<'static>> {
+        Ok(())
+    }
+
     /// Begins one bounded reconciliation of implementation-owned value
     /// storage. Portable drivers have no external value arena by default.
     fn begin_value_reconciliation(&mut self) {}
@@ -2160,6 +2171,15 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
 
     /// Execute one fair ready-queue decision.
     pub fn run_one(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+        self.run_one_with_authority(&[])
+    }
+
+    /// Execute one fair decision with the live authority observations that
+    /// govern any timer wake reached during this decision.
+    pub fn run_one_with_authority(
+        &mut self,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<SchedulerStatus, SchedulerError> {
         if !matches!(
             self.status,
             SchedulerStatus::Running | SchedulerStatus::Stalled
@@ -2212,7 +2232,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         if let Err(error) = result {
             return self.fail(error);
         }
-        self.wake_due_timers()?;
+        self.wake_due_timers(grant_observations)?;
         self.check_cancellation_deadline()?;
         self.refresh_terminal_status()?;
         self.reconcile_host_values();
@@ -2232,11 +2252,21 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
 
     /// Advance the deterministic clock and wake exact timer interests.
     pub fn advance_to(&mut self, tick: u64) -> Result<(), SchedulerError> {
+        self.advance_to_with_authority(tick, &[])
+    }
+
+    /// Advance the deterministic clock with the fresh live authority facts
+    /// that govern any due hosted timer interest.
+    pub fn advance_to_with_authority(
+        &mut self,
+        tick: u64,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<(), SchedulerError> {
         if tick < self.tick || tick > self.policy.max_tick {
             return Err(SchedulerError::ClockLimitExceeded);
         }
         self.tick = tick;
-        self.wake_due_timers()?;
+        self.wake_due_timers(grant_observations)?;
         self.check_cancellation_deadline()
     }
 
@@ -2255,12 +2285,28 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
     /// Wake a bounded host operation; callback queues remain outside this API
     /// and must fit the implementation profile.
     pub fn notify_host_operation(&mut self, subject: Id<'static>) -> Result<(), SchedulerError> {
+        self.notify_host_operation_with_authority(subject, &[])
+    }
+
+    /// Wake one exact named host operation after validating the current host
+    /// authority for every matching retained waiter.
+    pub fn notify_host_operation_with_authority(
+        &mut self,
+        subject: Id<'static>,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<(), SchedulerError> {
         for index in 0..self.waits.len() {
             let should_wake = self.waits[index].iter().any(|wait| {
                 wait.kind == WakeInterestKind::HostOperation
                     && wait.subject == WaitSubject::Named(subject)
             });
             if should_wake {
+                if self.drivers[index]
+                    .validate_wake(self.tick, grant_observations)
+                    .is_err()
+                {
+                    return self.fail(SchedulerError::StepContractViolation).map(|_| ());
+                }
                 self.clear_waits_and_enqueue(index, SchedulerDecisionReason::HostOperationReady)?;
             }
         }
@@ -2641,7 +2687,10 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         Ok(())
     }
 
-    fn wake_due_timers(&mut self) -> Result<(), SchedulerError> {
+    fn wake_due_timers(
+        &mut self,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<(), SchedulerError> {
         for index in 0..self.waits.len() {
             let should_wake = self.waits[index].iter().any(|wait| {
                 wait.kind == WakeInterestKind::Timer
@@ -2650,6 +2699,12 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
                         .is_some_and(|deadline| deadline <= self.tick)
             });
             if should_wake {
+                if self.drivers[index]
+                    .validate_wake(self.tick, grant_observations)
+                    .is_err()
+                {
+                    return self.fail(SchedulerError::StepContractViolation).map(|_| ());
+                }
                 self.clear_waits_and_enqueue(index, SchedulerDecisionReason::TimerReady)?;
             }
         }

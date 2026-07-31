@@ -1432,6 +1432,42 @@ pub struct ExactGrantObservation<'a> {
     pub lease_available: bool,
 }
 
+/// Owned, current authority facts supplied whenever a hosted session resumes
+/// a retained timer or host-operation wait. This is intentionally separate
+/// from the borrowed Start context: a persistent session owns no plan arena
+/// and must not retain stale host observations between wakes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactHostedServiceUseObservation {
+    pub grant_id: String,
+    pub grant_active: bool,
+    pub resource_binding_id: String,
+    pub resource_lease_id: String,
+    pub lease_valid_until_tick: u64,
+    pub lease_available: bool,
+}
+
+impl<'a> From<ExactGrantObservation<'a>> for ExactHostedServiceUseObservation {
+    fn from(observation: ExactGrantObservation<'a>) -> Self {
+        Self {
+            grant_id: observation.grant.to_string(),
+            grant_active: matches!(observation.status, GrantStatus::Active),
+            resource_binding_id: observation.resource_binding.to_string(),
+            resource_lease_id: observation.resource_lease.to_string(),
+            lease_valid_until_tick: observation.lease_valid_until_tick,
+            lease_available: observation.lease_available,
+        }
+    }
+}
+
+/// Converts freshly observed borrowed grant facts into the owned, bounded
+/// wake input required by a persistent hosted session.
+#[must_use]
+pub fn hosted_service_use_observations(
+    observations: &[ExactGrantObservation<'_>],
+) -> Vec<ExactHostedServiceUseObservation> {
+    observations.iter().copied().map(Into::into).collect()
+}
+
 /// One exact authority binding projected for a selected hosted service.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactHostedServiceAuthority {
@@ -1440,7 +1476,13 @@ pub struct ExactHostedServiceAuthority {
     pub resource_kind: String,
     pub resource_id: String,
     pub resource_binding_id: String,
+    pub resource_lease_id: String,
     pub grant_id: String,
+    /// The last exact authority/lease tick at which this effect may begin a
+    /// hosted operation. This is derived from the pinned grant, capability,
+    /// resource lease, and fresh use-time lease observation at Start.
+    pub valid_until_tick: u64,
+    pub check_at_use: bool,
     pub constraints: Vec<(String, SemanticHash)>,
 }
 
@@ -1606,7 +1648,7 @@ fn validate_use_time_grants(
 fn exact_host_service_binding(
     plan: &ExecutionPlan<'_>,
     node: &ResolvedPlanNode<'_>,
-    use_time_tick: u64,
+    context: ExactRunContext<'_>,
 ) -> Result<ExactHostedServiceBinding, RuntimeError> {
     let authorities = plan
         .authorities
@@ -1627,13 +1669,33 @@ fn exact_host_service_binding(
                         "hosted service authority lacks its exact resource binding",
                     )
                 })?;
+            let lease = resource.lease.ok_or_else(|| {
+                RuntimeError::new(
+                    "CND-RUN-010",
+                    "hosted service authority lacks its exact resource lease",
+                )
+            })?;
+            let observation = context
+                .grant_observations
+                .iter()
+                .find(|observation| observation.grant == authority.grant.id)
+                .expect("exact grant inventory was checked before binding");
+            let valid_until_tick = authority
+                .capability
+                .valid_until_tick
+                .min(authority.grant.expires_at_tick)
+                .min(lease.expires_at_tick)
+                .min(observation.lease_valid_until_tick);
             Ok(ExactHostedServiceAuthority {
                 effect_hash: authority.effect_hash,
                 action: authority.effect.action.to_string(),
                 resource_kind: authority.binding.resource.kind.to_string(),
                 resource_id: authority.binding.resource.id.to_string(),
                 resource_binding_id: resource.id.to_string(),
+                resource_lease_id: lease.id.to_string(),
                 grant_id: authority.grant.id.to_string(),
+                valid_until_tick,
+                check_at_use: authority.binding.check_at_use,
                 constraints: authority
                     .effect
                     .constraints
@@ -1649,9 +1711,65 @@ fn exact_host_service_binding(
         artifact_id: node.artifact.to_string(),
         host_id: node.host.to_string(),
         host_observation_id: node.host_observation.to_string(),
-        use_time_tick,
+        use_time_tick: context.validation.now.tick,
         authorities,
     })
+}
+
+fn validate_hosted_service_use_time(
+    binding: &ExactHostedServiceBinding,
+    scheduler_tick: u64,
+) -> Result<(), RuntimeError> {
+    let tick = binding
+        .use_time_tick
+        .checked_add(scheduler_tick)
+        .ok_or_else(|| RuntimeError::new("CND-RUN-010", "hosted use-time tick overflowed"))?;
+    if binding
+        .authorities
+        .iter()
+        .any(|authority| authority.check_at_use && tick >= authority.valid_until_tick)
+    {
+        return Err(RuntimeError::new(
+            "CND-RUN-010",
+            "hosted use-time grant, capability, or lease is stale",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_hosted_service_wake(
+    binding: &ExactHostedServiceBinding,
+    scheduler_tick: u64,
+    grant_observations: &[ExactHostedServiceUseObservation],
+) -> Result<(), RuntimeError> {
+    let tick = binding
+        .use_time_tick
+        .checked_add(scheduler_tick)
+        .ok_or_else(|| RuntimeError::new("CND-RUN-010", "hosted use-time tick overflowed"))?;
+    validate_hosted_service_use_time(binding, scheduler_tick)?;
+    for authority in &binding.authorities {
+        let observation = grant_observations
+            .iter()
+            .find(|observation| observation.grant_id == authority.grant_id)
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    "CND-RUN-010",
+                    "hosted wake lacks its fresh grant observation",
+                )
+            })?;
+        if !observation.grant_active
+            || observation.resource_binding_id != authority.resource_binding_id
+            || observation.resource_lease_id != authority.resource_lease_id
+            || !observation.lease_available
+            || tick >= observation.lease_valid_until_tick
+        {
+            return Err(RuntimeError::new(
+                "CND-RUN-010",
+                "hosted wake grant, resource binding, or lease is no longer exact",
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Bounded observations returned by one terminal exact-plan execution.
@@ -1698,24 +1816,33 @@ impl ExactHostedRunSession {
         self.session.scheduler_status()
     }
 
-    pub fn pump(&mut self, quantum: u64) -> Result<ExactRunPump, RuntimeError> {
+    pub fn pump(
+        &mut self,
+        quantum: u64,
+        grant_observations: &[ExactHostedServiceUseObservation],
+    ) -> Result<ExactRunPump, RuntimeError> {
         self.session
-            .pump(quantum)
+            .pump_with_authority(quantum, grant_observations)
             .map_err(|error| self.take_scheduler_error(error))
     }
 
-    pub fn advance_to(&mut self, tick: u64) -> Result<ExactRunPump, RuntimeError> {
+    pub fn advance_to(
+        &mut self,
+        tick: u64,
+        grant_observations: &[ExactHostedServiceUseObservation],
+    ) -> Result<ExactRunPump, RuntimeError> {
         self.session
-            .advance_to(tick)
+            .advance_to_with_authority(tick, grant_observations)
             .map_err(|error| self.take_scheduler_error(error))
     }
 
     pub fn notify_host_operation(
         &mut self,
         subject: Id<'static>,
+        grant_observations: &[ExactHostedServiceUseObservation],
     ) -> Result<ExactRunPump, RuntimeError> {
         self.session
-            .notify_host_operation(subject)
+            .notify_host_operation_with_authority(subject, grant_observations)
             .map_err(|error| self.take_scheduler_error(error))
     }
 
@@ -5905,8 +6032,7 @@ impl ResolvedPanel<'_> {
                 }
                 HostedPrimitiveImplementation::Ticker
                 | HostedPrimitiveImplementation::HostedService => {
-                    let binding =
-                        exact_host_service_binding(plan, planned, context.validation.now.tick)?;
+                    let binding = exact_host_service_binding(plan, planned, context)?;
                     let input_cords = resolved
                         .definition
                         .contract
@@ -6984,6 +7110,20 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
         }
     }
 
+    fn validate_wake(
+        &mut self,
+        tick: u64,
+        grant_observations: &[ExactHostedServiceUseObservation],
+    ) -> Result<(), Id<'static>> {
+        if let HostedNodeKind::HostedService { binding, .. } = &self.kind
+            && let Err(error) = validate_hosted_service_wake(binding, tick, grant_observations)
+        {
+            *self.host_failure.borrow_mut() = Some(error);
+            return Err(Id("conduit/host-service-use-time-stale"));
+        }
+        Ok(())
+    }
+
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
         match &mut self.kind {
             HostedNodeKind::Literal { value, emitted } => {
@@ -7606,6 +7746,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
             HostedNodeKind::HostedService {
                 handler,
                 node,
+                binding,
                 input_cords,
                 inputs,
                 output_routes,
@@ -7723,6 +7864,12 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 }
                 if inputs.iter().any(Option::is_none) {
                     return SchedulerStep::Pending;
+                }
+                if let Err(error) = validate_hosted_service_use_time(binding, io.tick()) {
+                    *self.host_failure.borrow_mut() = Some(error);
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/host-service-use-time-stale"),
+                    };
                 }
                 let values = inputs.iter().flatten().cloned().collect::<Vec<_>>();
                 let step = match self.io.with_run_io(|run_io| {

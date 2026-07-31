@@ -1016,7 +1016,7 @@ mod tests {
     };
     use conduit_runtime::{
         AvailabilityState, ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState,
-        SchedulerReservation,
+        SchedulerReservation, hosted_service_use_observations,
     };
     use conduit_std::{
         FileHandle, FileSlot, MemoryFilesystem, ReadConsistency, ReadRequest, WriteRequest,
@@ -1412,6 +1412,7 @@ mod tests {
         let resolved = registry.resolve(&panel).unwrap();
         let bindings = installed.bindings(&plan).unwrap();
         let grants = installed.grant_observations(&plan).unwrap();
+        let observations = hosted_service_use_observations(&grants);
         let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
         let mut session = resolved
             .start_exact_session(
@@ -1448,20 +1449,20 @@ mod tests {
             if session.state() != ExactRunState::Active {
                 break;
             }
-            session.pump(1).unwrap();
+            session.pump(1, &observations).unwrap();
         }
         assert_eq!(session.state(), ExactRunState::Waiting);
         let identity = session.identity().clone();
         assert_eq!(
             session
-                .notify_host_operation(Id("conduit/filesystem-other-event"))
+                .notify_host_operation(Id("conduit/filesystem-other-event"), &observations)
                 .unwrap()
                 .state,
             ExactRunState::Waiting
         );
         assert_eq!(
             session
-                .notify_host_operation(FILESYSTEM_WATCH_HOST_OPERATION)
+                .notify_host_operation(FILESYSTEM_WATCH_HOST_OPERATION, &observations)
                 .unwrap()
                 .state,
             ExactRunState::Active
@@ -1470,7 +1471,7 @@ mod tests {
             if session.state() != ExactRunState::Active {
                 break;
             }
-            session.pump(1).unwrap();
+            session.pump(1, &observations).unwrap();
         }
         assert_eq!(session.state(), ExactRunState::Waiting);
         assert_eq!(session.identity(), &identity);

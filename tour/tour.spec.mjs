@@ -1618,7 +1618,7 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
   await expect(source).toHaveValue(/node wave : conduit\.media\/wave\/literal/);
 
   await runWithAcceptedProfile("deterministic-host");
-  await runWithAcceptedProfile("linux-native");
-  await runWithAcceptedProfile("browser-wasm");
-  await runWithAcceptedProfile("explicit-adapter");
+  await runWithAcceptedProfile("linux-native-fixture");
+  await runWithAcceptedProfile("browser-wasm-fixture");
+  await runWithAcceptedProfile("explicit-adapter-fixture");
 });

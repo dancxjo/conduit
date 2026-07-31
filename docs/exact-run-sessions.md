@@ -90,6 +90,12 @@ Binding, accepting one connection, reading one bounded request, and writing
 one bounded response are distinct nonblocking steps. An accepted request waits
 for both its exact host-operation and its source-declared deadline tick; the
 same live epoch resumes from either, without reading or jumping a real clock.
+At every hosted pump, timer advance, and named host wake, callers provide a
+fresh bounded observation set. The executor rechecks the plan-pinned grant,
+resource binding, lease identity, availability, and authority horizon before
+resuming the provider. A revoked or stale grant/capability/lease fails before
+the provider can poll or touch the host resource; the persistent session never
+retains a borrowed observation or plan arena between wakes.
 `Drain` closes admission first, then lets an already accepted request reach its
 declared response and cleanup; `Abort` disposes the same bounded remainder
 immediately. Neither path creates a new listener, reuses a completed run, or

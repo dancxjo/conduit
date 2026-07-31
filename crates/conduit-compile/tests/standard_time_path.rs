@@ -290,7 +290,7 @@ fn ticker_emits_again_after_each_exact_clock_wake_without_new_epoch() {
         if session.state() != ExactRunState::Active {
             break;
         }
-        session.pump(1).unwrap();
+        session.pump(1, &[]).unwrap();
     }
     assert_eq!(session.state(), ExactRunState::Waiting);
     assert_eq!(session.next_timer_deadline(), Some(12));
@@ -302,12 +302,12 @@ fn ticker_emits_again_after_each_exact_clock_wake_without_new_epoch() {
         .filter(|event| matches!(event.kind, SchedulerEventKind::NodeOutcome { .. }))
         .count();
 
-    session.advance_to(12).unwrap();
+    session.advance_to(12, &[]).unwrap();
     for _ in 0..8 {
         if session.state() != ExactRunState::Active {
             break;
         }
-        session.pump(1).unwrap();
+        session.pump(1, &[]).unwrap();
     }
     assert_eq!(session.state(), ExactRunState::Waiting);
     assert_eq!(session.next_timer_deadline(), Some(23));
