@@ -52,7 +52,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 113);
+    assert_eq!(projection.entries.len(), 114);
     let literal = projection
         .entries
         .iter()
@@ -74,7 +74,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
         .unwrap();
     assert_eq!(file.classification, "optional-host-boundary");
     assert!(file.known_provider_bundles.is_empty());
-    assert_eq!(file.standalone_lesson.status, "required");
+    assert_eq!(file.standalone_lesson.status, "published");
 }
 
 #[test]
