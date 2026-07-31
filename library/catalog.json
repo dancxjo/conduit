@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2506,7 +2506,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3376,7 +3376,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4804,7 +4804,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4883,7 +4883,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4962,7 +4962,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8985,39 +8985,12 @@
           "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "std/data/decode-utf8",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`std/data/decode-utf8` declares this process boundary specifically as bytes.",
-            "affected_bindings": [
-              "runtime-contract:std/data/decode-utf8",
-              "exact-plan-cord:std/data/decode-utf8.in->std/data/decode-utf8.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json",
-              "provider:conduit/hosted-data-decode-utf8"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
         },
         {
           "id": "text",
@@ -9026,40 +8999,13 @@
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
           "terminal": "finite",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "std/data/decode-utf8",
-              "id": "out",
-              "direction": "output",
-              "value_type": "std/text",
-              "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "finite",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`std/data/decode-utf8` declares this boundary specifically as checked text.",
-            "affected_bindings": [
-              "runtime-contract:std/data/decode-utf8",
-              "exact-plan-cord:std/data/decode-utf8.out->std/data/decode-utf8.text",
-              "conformance-fixture:conformance/c4/standard-node-library.json",
-              "provider:conduit/hosted-data-decode-utf8"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
+          "sensitivity": "public",
+          "loss": "lossless-only"
         }
       ],
       "config": [
@@ -9100,7 +9046,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9108,16 +9054,26 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.std/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.decode-utf8.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.decode-utf8.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
-      "compatible_adapter_artifacts": []
+      "compatible_adapter_artifacts": [],
+      "introduction": {
+        "reason": "Introduces an explicit checked UTF-8-to-text boundary after byte sources.",
+        "affected_bindings": [
+          "runtime-contract:std/data/decode-utf8",
+          "conformance-fixture:conformance/c4/standard-node-library.json",
+          "provider:conduit/hosted-data-decode-utf8"
+        ],
+        "repository_migration": "repository corpus migrated to the exact codec descriptor under issue 125",
+        "compatibility_disposition": "new semantic contract; no hidden codec or compatibility alias exists"
+      }
     },
     {
       "semantic_identity": "std/data/deframe-length-u32be",
@@ -9137,11 +9093,11 @@
           "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -9153,11 +9109,11 @@
               "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
+              "values": "exactly-one",
+              "delivery": "finite-batch",
+              "temporal": "atemporal",
+              "terminal": "finite",
+              "sensitivity": "public",
               "loss": "lossless-only"
             },
             "reason": "`std/data/deframe-length-u32be` names this input port for its contract-specific `chunk` payload or role.",
@@ -9178,12 +9134,12 @@
           "type_schema_version": 0,
           "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
           "terminal": "finite",
-          "sensitivity": "restricted",
+          "sensitivity": "public",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -9194,12 +9150,12 @@
               "type_schema_version": 0,
               "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
+              "connections": "one-or-more",
+              "values": "exactly-one",
+              "delivery": "finite-batch",
+              "temporal": "atemporal",
               "terminal": "finite",
-              "sensitivity": "restricted",
+              "sensitivity": "public",
               "loss": "lossless-only"
             },
             "reason": "`std/data/deframe-length-u32be` names this output port for its contract-specific `payload` payload or role.",
@@ -9258,7 +9214,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9266,12 +9222,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.std/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.deframe-length-u32be.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.deframe-length-u32be.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -9295,39 +9251,12 @@
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "std/data/encode-utf8",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/text",
-              "type_schema_version": 0,
-              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`std/data/encode-utf8` declares this boundary specifically as checked text.",
-            "affected_bindings": [
-              "runtime-contract:std/data/encode-utf8",
-              "exact-plan-cord:std/data/encode-utf8.in->std/data/encode-utf8.text",
-              "conformance-fixture:conformance/c4/standard-node-library.json",
-              "provider:conduit/hosted-data-encode-utf8"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
         },
         {
           "id": "bytes",
@@ -9336,40 +9265,13 @@
           "type_schema_version": 0,
           "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
           "terminal": "finite",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "std/data/encode-utf8",
-              "id": "out",
-              "direction": "output",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "finite",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`std/data/encode-utf8` declares this process boundary specifically as bytes.",
-            "affected_bindings": [
-              "runtime-contract:std/data/encode-utf8",
-              "exact-plan-cord:std/data/encode-utf8.out->std/data/encode-utf8.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json",
-              "provider:conduit/hosted-data-encode-utf8"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
+          "sensitivity": "public",
+          "loss": "lossless-only"
         }
       ],
       "config": [
@@ -9410,7 +9312,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9418,16 +9320,26 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.std/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.encode-utf8.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.encode-utf8.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
-      "compatible_adapter_artifacts": []
+      "compatible_adapter_artifacts": [],
+      "introduction": {
+        "reason": "Introduces an explicit checked text-to-UTF-8 boundary before byte sinks.",
+        "affected_bindings": [
+          "runtime-contract:std/data/encode-utf8",
+          "conformance-fixture:conformance/c4/standard-node-library.json",
+          "provider:conduit/hosted-data-encode-utf8"
+        ],
+        "repository_migration": "repository corpus migrated to the exact codec descriptor under issue 125",
+        "compatibility_disposition": "new semantic contract; no hidden codec or compatibility alias exists"
+      }
     },
     {
       "semantic_identity": "std/data/frame-length-u32be",
@@ -9447,11 +9359,11 @@
           "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -9463,11 +9375,11 @@
               "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
               "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
+              "values": "exactly-one",
+              "delivery": "finite-batch",
+              "temporal": "atemporal",
+              "terminal": "finite",
+              "sensitivity": "public",
               "loss": "lossless-only"
             },
             "reason": "`std/data/frame-length-u32be` names this input port for its contract-specific `payload` payload or role.",
@@ -9488,12 +9400,12 @@
           "type_schema_version": 0,
           "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
           "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
           "terminal": "finite",
-          "sensitivity": "restricted",
+          "sensitivity": "public",
           "loss": "lossless-only",
           "migration": {
             "former": {
@@ -9504,12 +9416,12 @@
               "type_schema_version": 0,
               "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
               "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
+              "connections": "one-or-more",
+              "values": "exactly-one",
+              "delivery": "finite-batch",
+              "temporal": "atemporal",
               "terminal": "finite",
-              "sensitivity": "restricted",
+              "sensitivity": "public",
               "loss": "lossless-only"
             },
             "reason": "`std/data/frame-length-u32be` declares this process boundary specifically as bytes.",
@@ -9568,7 +9480,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9576,12 +9488,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.std/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.frame-length-u32be.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.frame-length-u32be.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -9632,7 +9544,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/validate-closed-record",
               "exact-plan-cord:std/data/validate-closed-record.in->std/data/validate-closed-record.candidate",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-validate-closed-record"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9644,8 +9557,8 @@
           "value_type": "std/record",
           "type_schema_version": 0,
           "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -9660,8 +9573,8 @@
               "value_type": "std/record",
               "type_schema_version": 0,
               "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-              "presence": "required",
-              "connections": "exactly-one",
+              "presence": "optional",
+              "connections": "zero-or-more",
               "values": "zero-or-more",
               "delivery": "stream",
               "temporal": "committed",
@@ -9673,7 +9586,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/validate-closed-record",
               "exact-plan-cord:std/data/validate-closed-record.out->std/data/validate-closed-record.candidate",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-validate-closed-record"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9714,7 +9628,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/validate-closed-record",
               "exact-plan-cord:std/data/validate-closed-record.out->std/data/validate-closed-record.decision",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-validate-closed-record"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9767,18 +9682,24 @@
       ],
       "catalog_membership": "portable-catalog",
       "compiler_exported": true,
-      "known_provider_bundles": [],
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-validate-closed-record",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.std/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.validate-closed-record.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.std.data.validate-closed-record.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -10008,7 +9929,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10094,7 +10015,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10180,6 +10101,202 @@
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.std.never.composition",
         "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/record/literal",
+      "public_source_spelling": "std/record/literal",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/record/literal",
+      "schema_version": 0,
+      "semantic_hash": "sha256:e93dab512768edbe3c33132a197094a07f5250d3c8d6f86a8ad6ca71d033883e",
+      "ports": [
+        {
+          "id": "record",
+          "direction": "output",
+          "value_type": "std/record",
+          "type_schema_version": 0,
+          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/record/literal",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/record",
+              "type_schema_version": 0,
+              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "exactly-one",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/record/literal` names this output port for its contract-specific `record` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/record/literal",
+              "exact-plan-cord:std/record/literal.out->std/record/literal.record",
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-record-literal"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "fields",
+          "value_type": "std/record",
+          "type_schema_version": 0,
+          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa"
+        },
+        {
+          "key": "maximum_fields",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_field_name_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_field_value_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-record-literal",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/testing/assert-validation-decision",
+      "public_source_spelling": "std/testing/assert-validation-decision",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/testing/assert-validation-decision",
+      "schema_version": 0,
+      "semantic_hash": "sha256:c0fa49312627bc7a9bd30a4b38360b2e698d5245d188e7b1b91c0944059a983d",
+      "ports": [
+        {
+          "id": "decision",
+          "direction": "input",
+          "value_type": "std/validation-decision",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9590396a82c69d37ed0f257460e3cee365e79846e1dd2a00c83ee8e86672aff",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/testing/assert-validation-decision",
+              "id": "in",
+              "direction": "input",
+              "value_type": "std/validation-decision",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f9590396a82c69d37ed0f257460e3cee365e79846e1dd2a00c83ee8e86672aff",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/testing/assert-validation-decision` names this input port for its contract-specific `decision` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/testing/assert-validation-decision",
+              "exact-plan-cord:std/testing/assert-validation-decision.in->std/testing/assert-validation-decision.decision",
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-assert-validation-decision"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "expected",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-assert-validation-decision",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.explicit-data-boundaries",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -10275,7 +10392,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10400,7 +10517,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10507,7 +10624,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12522,160 +12639,6 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "text/decode-utf8",
-      "public_source_spelling": "text/decode-utf8",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.text",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.text",
-      "export_path": "conduit.std.text/text/decode-utf8",
-      "schema_version": 0,
-      "semantic_hash": "sha256:9477ac45004a3a6e592938ed3ff2dd30c834bc425b24a854148dd19aeac38933",
-      "ports": [
-        {
-          "id": "bytes",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
-          "loss": "lossless-only"
-        },
-        {
-          "id": "text",
-          "direction": "output",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
-          "loss": "lossless-only"
-        }
-      ],
-      "config": [],
-      "catalog_membership": "host-registry",
-      "compiler_exported": true,
-      "known_provider_bundles": [
-        {
-          "implementation": "conduit/hosted-decode-utf8",
-          "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
-        }
-      ],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.text/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.text.decode-utf8.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.text.decode-utf8.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": [],
-      "introduction": {
-        "reason": "Introduces an explicit checked UTF-8-to-text boundary after byte sources.",
-        "affected_bindings": [
-          "runtime-contract:text/decode-utf8",
-          "conformance-fixture:conformance/c4/standard-node-library.json",
-          "provider:conduit/hosted-decode-utf8"
-        ],
-        "repository_migration": "pending explicit stdin byte-to-text pipeline rewrites under issue 185",
-        "compatibility_disposition": "new semantic contract; no hidden codec or compatibility alias exists"
-      }
-    },
-    {
-      "semantic_identity": "text/encode-utf8",
-      "public_source_spelling": "text/encode-utf8",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.text",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.text",
-      "export_path": "conduit.std.text/text/encode-utf8",
-      "schema_version": 0,
-      "semantic_hash": "sha256:9de8e2896c2daa9fc6778d3e58fb68c85c92f2dfa8445eb27b6df47e823bf616",
-      "ports": [
-        {
-          "id": "text",
-          "direction": "input",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
-          "loss": "lossless-only"
-        },
-        {
-          "id": "bytes",
-          "direction": "output",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
-          "loss": "lossless-only"
-        }
-      ],
-      "config": [],
-      "catalog_membership": "host-registry",
-      "compiler_exported": true,
-      "known_provider_bundles": [
-        {
-          "implementation": "conduit/hosted-encode-utf8",
-          "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
-        }
-      ],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.text/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.text.encode-utf8.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#panels.put-a-panel-in-a-panel",
-        "status": "published"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": [],
-      "introduction": {
-        "reason": "Introduces an explicit checked text-to-UTF-8 boundary before byte sinks.",
-        "affected_bindings": [
-          "runtime-contract:text/encode-utf8",
-          "conformance-fixture:conformance/c4/standard-node-library.json",
-          "provider:conduit/hosted-encode-utf8"
-        ],
-        "repository_migration": "pending explicit text-to-stdout pipeline rewrites under issue 185",
-        "compatibility_disposition": "new semantic contract; no hidden codec or compatibility alias exists"
-      }
-    },
-    {
       "semantic_identity": "text/uppercase",
       "public_source_spelling": "text/uppercase",
       "classification": "portable-standard",
@@ -12777,7 +12740,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+          "artifact_digest": "sha256:b718db69c2e26dfb6a110e20159c71793b81b81dca15c745cf7455995e4f52c2"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

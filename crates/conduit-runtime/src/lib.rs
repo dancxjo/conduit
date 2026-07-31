@@ -192,6 +192,24 @@ const BYTES_TYPE: TypeContractRef<'static> = TypeContractRef {
         0x90, 0x74,
     ]),
 };
+const RECORD_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/record"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0xde, 0x0b, 0x25, 0xed, 0xf4, 0x15, 0xc7, 0x2c, 0x7d, 0xbb, 0xe1, 0x1d, 0xc7, 0x78, 0xbd,
+        0x12, 0xe6, 0x8e, 0x5f, 0xc7, 0x3a, 0xb2, 0xe3, 0x8f, 0x61, 0x07, 0x2e, 0x1d, 0x29, 0x5f,
+        0x22, 0xfa,
+    ]),
+};
+const VALIDATION_DECISION_TYPE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/validation-decision"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0xf9, 0x59, 0x03, 0x96, 0xa8, 0x2c, 0x69, 0xd3, 0x7e, 0xd0, 0xf2, 0x57, 0x46, 0x0e, 0x3c,
+        0xee, 0x36, 0x5e, 0x79, 0x84, 0x6e, 0x1d, 0xd2, 0xa0, 0x0c, 0x83, 0xee, 0x8e, 0x86, 0x67,
+        0x2a, 0xff,
+    ]),
+};
 const FORMAT_VALUES_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/format-values"),
     schema_version: 0,
@@ -571,18 +589,6 @@ pub const UPPERCASE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[TEXT_INPUT],
     outputs: &[TEXT_OUTPUT],
 };
-pub const ENCODE_UTF8_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("text/encode-utf8"),
-    config: EMPTY_CONFIG,
-    inputs: &[TEXT_INPUT],
-    outputs: &[BYTES_OUTPUT],
-};
-pub const DECODE_UTF8_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("text/decode-utf8"),
-    config: EMPTY_CONFIG,
-    inputs: &[BYTES_INPUT],
-    outputs: &[TEXT_OUTPUT],
-};
 const DATA_UTF8_CODEC_DESCRIPTOR: &str = "conduit.codec/utf-8";
 const DATA_UTF8_CODEC_HASH: &[u8; 32] = &[
     0xf2, 0x19, 0x29, 0x7c, 0xb2, 0x76, 0xbc, 0x91, 0xec, 0xcd, 0xdb, 0x34, 0x6a, 0x8b, 0x21, 0xe7,
@@ -592,6 +598,21 @@ const DATA_LENGTH_U32BE_DESCRIPTOR: &str = "conduit.framing/length-u32be";
 const DATA_LENGTH_U32BE_HASH: &[u8; 32] = &[
     0xa2, 0x4b, 0x8f, 0xf5, 0x68, 0x74, 0x21, 0x30, 0x3d, 0x44, 0xd8, 0x9a, 0xfc, 0xab, 0xe9, 0xf7,
     0x94, 0x14, 0x64, 0x41, 0x47, 0x85, 0x13, 0x4f, 0xb9, 0xe7, 0x4a, 0x32, 0x02, 0x14, 0xa6, 0xb8,
+];
+const DATA_CLOSED_RECORD_SCHEMA_DESCRIPTOR: &str = "conduit.schema/closed-record-name-count";
+const DATA_CLOSED_RECORD_SCHEMA_HASH: &[u8; 32] = &[
+    0xa3, 0xde, 0x3b, 0x0c, 0x27, 0x8e, 0x14, 0xc8, 0x76, 0x5d, 0x3e, 0x93, 0xa5, 0x25, 0x6e, 0x95,
+    0x7f, 0x58, 0xee, 0x58, 0x20, 0x56, 0x4b, 0x5d, 0xce, 0x0d, 0x23, 0xd5, 0xde, 0xb0, 0x6b, 0xcf,
+];
+const CLOSED_RECORD_REQUIRED_FIELDS: &[conduit_std::RequiredField<'static>] = &[
+    conduit_std::RequiredField {
+        name: "name",
+        maximum_value_bytes: 8,
+    },
+    conduit_std::RequiredField {
+        name: "count",
+        maximum_value_bytes: 4,
+    },
 ];
 
 fn standard_data_contract(id: &str) -> &'static NodeContract<'static> {
@@ -911,6 +932,20 @@ impl Value {
             bytes: value.into(),
         }
     }
+
+    fn record(value: impl Into<Vec<u8>>) -> Self {
+        Self {
+            value_type: RECORD_TYPE,
+            bytes: value.into(),
+        }
+    }
+
+    fn validation_decision(value: impl Into<Vec<u8>>) -> Self {
+        Self {
+            value_type: VALIDATION_DECISION_TYPE,
+            bytes: value.into(),
+        }
+    }
 }
 
 /// Process boundary supplied by the host.
@@ -942,10 +977,11 @@ pub enum HostedPrimitiveImplementation {
     Join,
     Stdin,
     Uppercase,
-    EncodeUtf8,
-    DecodeUtf8,
     DataEncodeUtf8,
     DataDecodeUtf8,
+    RecordLiteral,
+    ValidateClosedRecord,
+    ValidationDecisionAssert,
     FrameLengthU32Be,
     DeframeLengthU32Be,
     Stdout,
@@ -1666,14 +1702,19 @@ impl Registry {
             validate_empty_config,
         );
         install(
-            &ENCODE_UTF8_CONTRACT,
-            || Box::new(EncodeUtf8),
-            validate_empty_config,
+            standard_data_contract("std/record/literal"),
+            || Box::new(RecordLiteral),
+            validate_record_literal,
         );
         install(
-            &DECODE_UTF8_CONTRACT,
-            || Box::new(DecodeUtf8),
-            validate_empty_config,
+            standard_data_contract("std/data/validate-closed-record"),
+            || Box::new(ValidateClosedRecord),
+            validate_closed_record_config,
+        );
+        install(
+            standard_data_contract("std/testing/assert-validation-decision"),
+            || Box::new(ValidationDecisionAssert),
+            validate_validation_decision_assert,
         );
         install(
             standard_data_contract("std/data/encode-utf8"),
@@ -1872,18 +1913,25 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 validate_empty_config,
             ),
             (
-                &ENCODE_UTF8_CONTRACT,
-                "encode-utf8",
-                HostedPrimitiveImplementation::EncodeUtf8,
-                || Box::new(EncodeUtf8),
-                validate_empty_config,
+                standard_data_contract("std/record/literal"),
+                "data-record-literal",
+                HostedPrimitiveImplementation::RecordLiteral,
+                || Box::new(RecordLiteral),
+                validate_record_literal,
             ),
             (
-                &DECODE_UTF8_CONTRACT,
-                "decode-utf8",
-                HostedPrimitiveImplementation::DecodeUtf8,
-                || Box::new(DecodeUtf8),
-                validate_empty_config,
+                standard_data_contract("std/data/validate-closed-record"),
+                "data-validate-closed-record",
+                HostedPrimitiveImplementation::ValidateClosedRecord,
+                || Box::new(ValidateClosedRecord),
+                validate_closed_record_config,
+            ),
+            (
+                standard_data_contract("std/testing/assert-validation-decision"),
+                "data-assert-validation-decision",
+                HostedPrimitiveImplementation::ValidationDecisionAssert,
+                || Box::new(ValidationDecisionAssert),
+                validate_validation_decision_assert,
             ),
             (
                 standard_data_contract("std/data/encode-utf8"),
@@ -2100,23 +2148,22 @@ impl Default for Registry {
                 validate_empty_config,
             ),
         );
-        nodes.insert(
-            ENCODE_UTF8_CONTRACT.id.as_str(),
-            honest_primitive(
-                &ENCODE_UTF8_CONTRACT,
-                || Box::new(EncodeUtf8),
-                validate_empty_config,
-            ),
-        );
-        nodes.insert(
-            DECODE_UTF8_CONTRACT.id.as_str(),
-            honest_primitive(
-                &DECODE_UTF8_CONTRACT,
-                || Box::new(DecodeUtf8),
-                validate_empty_config,
-            ),
-        );
         for (contract, factory, validate) in [
+            (
+                standard_data_contract("std/record/literal"),
+                (|| Box::new(RecordLiteral) as Box<dyn Handler>) as HandlerFactory,
+                validate_record_literal as ConfigValidator,
+            ),
+            (
+                standard_data_contract("std/data/validate-closed-record"),
+                (|| Box::new(ValidateClosedRecord) as Box<dyn Handler>) as HandlerFactory,
+                validate_closed_record_config as ConfigValidator,
+            ),
+            (
+                standard_data_contract("std/testing/assert-validation-decision"),
+                (|| Box::new(ValidationDecisionAssert) as Box<dyn Handler>) as HandlerFactory,
+                validate_validation_decision_assert as ConfigValidator,
+            ),
             (
                 standard_data_contract("std/data/encode-utf8"),
                 (|| Box::new(EncodeUtf8) as Box<dyn Handler>) as HandlerFactory,
@@ -2136,11 +2183,6 @@ impl Default for Registry {
                 standard_data_contract("std/data/deframe-length-u32be"),
                 (|| Box::new(DeframeLengthU32Be) as Box<dyn Handler>) as HandlerFactory,
                 validate_data_framing as ConfigValidator,
-            ),
-            (
-                standard_data_contract("std/data/validate-closed-record"),
-                (|| Box::new(PassThroughHandler) as Box<dyn Handler>) as HandlerFactory,
-                validate_contract_config as ConfigValidator,
             ),
         ] {
             nodes.insert(
@@ -4040,6 +4082,7 @@ impl ResolvedPanel<'_> {
             .exact_topology()
             .map_err(|error| RuntimeError::new(error.code, error.message))?;
         if context.semantic_source_hash != plan.source_semantic_hash
+            || topology.source_semantic_hash != plan.source_semantic_hash
             || topology.nodes.len() != plan.nodes.len()
             || topology.cords.len() != plan.cords.len()
         {
@@ -4146,10 +4189,15 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Join => "std/text/join",
                 HostedPrimitiveImplementation::Stdin => "io/stdin",
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
-                HostedPrimitiveImplementation::EncodeUtf8 => "text/encode-utf8",
-                HostedPrimitiveImplementation::DecodeUtf8 => "text/decode-utf8",
                 HostedPrimitiveImplementation::DataEncodeUtf8 => "std/data/encode-utf8",
                 HostedPrimitiveImplementation::DataDecodeUtf8 => "std/data/decode-utf8",
+                HostedPrimitiveImplementation::RecordLiteral => "std/record/literal",
+                HostedPrimitiveImplementation::ValidateClosedRecord => {
+                    "std/data/validate-closed-record"
+                }
+                HostedPrimitiveImplementation::ValidationDecisionAssert => {
+                    "std/testing/assert-validation-decision"
+                }
                 HostedPrimitiveImplementation::FrameLengthU32Be => "std/data/frame-length-u32be",
                 HostedPrimitiveImplementation::DeframeLengthU32Be => {
                     "std/data/deframe-length-u32be"
@@ -4288,8 +4336,6 @@ impl ResolvedPanel<'_> {
                 },
                 HostedPrimitiveImplementation::Stdin => HostedNodeKind::Stdin { emitted: false },
                 HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
-                HostedPrimitiveImplementation::EncodeUtf8 => HostedNodeKind::PassThrough,
-                HostedPrimitiveImplementation::DecodeUtf8 => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::DataEncodeUtf8
                 | HostedPrimitiveImplementation::DataDecodeUtf8 => HostedNodeKind::DataUtf8 {
                     utf8: conduit_std::Utf8State::new(),
@@ -4299,6 +4345,42 @@ impl ResolvedPanel<'_> {
                     maximum_input_bytes: source_usize(&resolved.source, "maximum_input_bytes")?,
                     maximum_output_bytes: source_usize(&resolved.source, "maximum_output_bytes")?,
                 },
+                HostedPrimitiveImplementation::RecordLiteral => HostedNodeKind::Literal {
+                    value: encode_record_literal(&resolved.source)?,
+                    emitted: false,
+                },
+                HostedPrimitiveImplementation::ValidateClosedRecord => {
+                    let output_cord = |port: &str| {
+                        plan.cords.iter().position(|cord| {
+                            cord.from.node == planned.instance && cord.from.port.as_str() == port
+                        })
+                    };
+                    HostedNodeKind::ValidateClosedRecord {
+                        candidate_cord: output_cord("candidate"),
+                        decision_cord: output_cord("decision"),
+                        candidate: None,
+                        decision: None,
+                        maximum_fields: source_usize(&resolved.source, "maximum_fields")?,
+                        maximum_field_name_bytes: source_usize(
+                            &resolved.source,
+                            "maximum_field_name_bytes",
+                        )?,
+                        maximum_field_value_bytes: source_usize(
+                            &resolved.source,
+                            "maximum_field_value_bytes",
+                        )?,
+                        maximum_work: source_usize(&resolved.source, "maximum_work")?,
+                    }
+                }
+                HostedPrimitiveImplementation::ValidationDecisionAssert => {
+                    HostedNodeKind::ValidationDecisionAssert {
+                        expected: resolved
+                            .source
+                            .config("expected")
+                            .expect("validated expected decision")
+                            .to_owned(),
+                    }
+                }
                 HostedPrimitiveImplementation::FrameLengthU32Be => {
                     HostedNodeKind::FrameLengthU32Be {
                         input: None,
@@ -4718,6 +4800,19 @@ enum HostedNodeKind {
         validated: bool,
         maximum_input_bytes: usize,
         maximum_output_bytes: usize,
+    },
+    ValidateClosedRecord {
+        candidate_cord: Option<usize>,
+        decision_cord: Option<usize>,
+        candidate: Option<RuntimeValue>,
+        decision: Option<RuntimeValue>,
+        maximum_fields: usize,
+        maximum_field_name_bytes: usize,
+        maximum_field_value_bytes: usize,
+        maximum_work: usize,
+    },
+    ValidationDecisionAssert {
+        expected: String,
     },
     FrameLengthU32Be {
         input: Option<RuntimeValue>,
@@ -5648,6 +5743,162 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     }
                     Ok(_) | Err(_) => {
                         let _ = io.wait_for_output(out_cord);
+                        SchedulerStep::Pending
+                    }
+                }
+            }
+            HostedNodeKind::ValidateClosedRecord {
+                candidate_cord,
+                decision_cord,
+                candidate,
+                decision,
+                maximum_fields,
+                maximum_field_name_bytes,
+                maximum_field_value_bytes,
+                maximum_work,
+            } => {
+                if let (Some(candidate_value), Some(decision_value)) = (*candidate, *decision) {
+                    let candidate_status = candidate_cord
+                        .map(|cord| io.send(cord, candidate_value, None))
+                        .transpose();
+                    let decision_status = decision_cord
+                        .map(|cord| io.send(cord, decision_value, None))
+                        .transpose();
+                    let candidate_ready = candidate_status.as_ref().is_ok_and(|status| {
+                        status.is_none_or(|value| value == SendStatus::Reserved)
+                    });
+                    let decision_ready = decision_status.as_ref().is_ok_and(|status| {
+                        status.is_none_or(|value| value == SendStatus::Reserved)
+                    });
+                    if candidate_ready && decision_ready {
+                        *candidate = None;
+                        *decision = None;
+                        return if io.record_host_progress().is_ok() {
+                            SchedulerStep::Progress
+                        } else {
+                            SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            }
+                        };
+                    }
+                    if !candidate_ready {
+                        if let Some(cord) = *candidate_cord {
+                            let _ = io.wait_for_output(cord);
+                        }
+                    }
+                    if !decision_ready {
+                        if let Some(cord) = *decision_cord {
+                            let _ = io.wait_for_output(cord);
+                        }
+                    }
+                    return SchedulerStep::Pending;
+                }
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let value = match io.receive(in_cord) {
+                    Ok(Some(value)) => value,
+                    _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                        return SchedulerStep::Completed;
+                    }
+                    _ => {
+                        let _ = io.wait_for_input(in_cord);
+                        return SchedulerStep::Pending;
+                    }
+                };
+                if value.accounted_bytes as usize > *maximum_work
+                    || io.consume_work(value.accounted_bytes).is_err()
+                {
+                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                        "CND-DAT-014",
+                        "record validation exceeded exact work",
+                    ));
+                    return SchedulerStep::Failed {
+                        code: Id("CND-DAT-014"),
+                    };
+                }
+                let structural = {
+                    let store = self.store.borrow();
+                    let Some(bytes) = store.get(value.handle) else {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/value-store-missing"),
+                        };
+                    };
+                    conduit_std::validate_closed_record_bytes(
+                        bytes,
+                        CLOSED_RECORD_REQUIRED_FIELDS,
+                        *maximum_fields,
+                        *maximum_field_name_bytes,
+                        *maximum_field_value_bytes,
+                        *maximum_work,
+                    )
+                };
+                let structural = match structural {
+                    Ok(decision) => decision,
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(data_boundary_runtime_error(error));
+                        return SchedulerStep::Failed {
+                            code: Id(error.code()),
+                        };
+                    }
+                };
+                let encoded = encode_structural_decision(structural);
+                let accounted_bytes = encoded.len() as u32;
+                let Some(handle) = self.store.borrow_mut().store(encoded) else {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/value-store-bound-exceeded"),
+                    };
+                };
+                *candidate = Some(value);
+                *decision = Some(RuntimeValue {
+                    handle,
+                    accounted_bytes,
+                    envelope: RuntimeValueEnvelope::EMPTY,
+                });
+                SchedulerStep::Progress
+            }
+            HostedNodeKind::ValidationDecisionAssert { expected } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                match io.receive(in_cord) {
+                    Ok(Some(value)) => {
+                        let actual = {
+                            let store = self.store.borrow();
+                            store
+                                .get(value.handle)
+                                .ok_or_else(|| {
+                                    RuntimeError::new(
+                                        "conduit/value-store-missing",
+                                        "validation decision value is missing",
+                                    )
+                                })
+                                .and_then(validation_decision_name)
+                        };
+                        match actual {
+                            Ok(actual) if actual == expected => SchedulerStep::Progress,
+                            Ok(actual) => {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-DAT-015",
+                                    format!("expected `{expected}` but received `{actual}`"),
+                                ));
+                                SchedulerStep::Failed {
+                                    code: Id("CND-DAT-015"),
+                                }
+                            }
+                            Err(error) => {
+                                *self.host_failure.borrow_mut() = Some(error);
+                                SchedulerStep::Failed {
+                                    code: Id("CND-DAT-013"),
+                                }
+                            }
+                        }
+                    }
+                    _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                        SchedulerStep::Completed
+                    }
+                    _ => {
+                        let _ = io.wait_for_input(in_cord);
                         SchedulerStep::Pending
                     }
                 }
@@ -6622,7 +6873,11 @@ fn required_data_descriptor_pin(
     expected_hash: &[u8; 32],
 ) -> Result<(), ResolutionError> {
     required_data_reference(node, prefix, expected_id)?;
-    let version_key = format!("{prefix}_schema_version");
+    let version_key = if prefix == "schema" {
+        "schema_version".to_owned()
+    } else {
+        format!("{prefix}_schema_version")
+    };
     if required_data_bound(node, &version_key, u32::MAX as u64)? != 0 {
         return Err(ResolutionError::new(
             "CND-DAT-011",
@@ -6742,6 +6997,113 @@ fn validate_data_framing(node: &Node) -> Result<(), ResolutionError> {
         return Err(ResolutionError::new(
             "CND-DAT-012",
             format!("node `{}` has inconsistent framing bounds", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_record_bounds(node: &Node) -> Result<(), ResolutionError> {
+    let fields = required_data_bound(
+        node,
+        "maximum_fields",
+        conduit_std::DATA_MAX_RECORD_FIELDS as u64,
+    )?;
+    let names = required_data_bound(
+        node,
+        "maximum_field_name_bytes",
+        conduit_std::DATA_MAX_FIELD_NAME_BYTES as u64,
+    )?;
+    let values = required_data_bound(
+        node,
+        "maximum_field_value_bytes",
+        conduit_std::DATA_MAX_FIELD_VALUE_BYTES as u64,
+    )?;
+    let work = required_data_bound(
+        node,
+        "maximum_work",
+        conduit_std::DATA_MAX_RECORD_BYTES as u64,
+    )?;
+    let minimum_work = 2_u64
+        .checked_add(fields.saturating_mul(6 + names + values))
+        .ok_or_else(|| ResolutionError::new("CND-DAT-012", "record work bound overflowed"))?;
+    if work < minimum_work {
+        return Err(ResolutionError::new(
+            "CND-DAT-012",
+            format!("node `{}` has insufficient structural work", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_record_literal(node: &Node) -> Result<(), ResolutionError> {
+    validate_data_config_keys(
+        node,
+        &[
+            "fields",
+            "maximum_fields",
+            "maximum_field_name_bytes",
+            "maximum_field_value_bytes",
+            "maximum_work",
+        ],
+    )?;
+    let Some(SourceValue::Record(fields)) = node.config_value("fields") else {
+        return Err(ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` requires record `fields`", node.id),
+        ));
+    };
+    if fields
+        .iter()
+        .any(|(_, value)| !matches!(value, SourceValue::Text(_)))
+    {
+        return Err(ResolutionError::new(
+            "CND-DAT-013",
+            format!("node `{}` record literal values must be text", node.id),
+        ));
+    }
+    validate_record_bounds(node)
+}
+
+fn validate_closed_record_config(node: &Node) -> Result<(), ResolutionError> {
+    validate_data_config_keys(
+        node,
+        &[
+            "schema",
+            "schema_version",
+            "schema_hash",
+            "maximum_fields",
+            "maximum_field_name_bytes",
+            "maximum_field_value_bytes",
+            "maximum_work",
+        ],
+    )?;
+    required_data_descriptor_pin(
+        node,
+        "schema",
+        DATA_CLOSED_RECORD_SCHEMA_DESCRIPTOR,
+        DATA_CLOSED_RECORD_SCHEMA_HASH,
+    )?;
+    validate_record_bounds(node)
+}
+
+fn validate_validation_decision_assert(node: &Node) -> Result<(), ResolutionError> {
+    validate_data_config_keys(node, &["expected"])?;
+    let expected = node.config("expected").ok_or_else(|| {
+        ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` requires text `expected`", node.id),
+        )
+    })?;
+    if !matches!(
+        expected,
+        "accepted" | "rejected-missing-field" | "rejected-unknown-field"
+    ) {
+        return Err(ResolutionError::new(
+            "CND-DAT-011",
+            format!(
+                "node `{}` requests unsupported decision `{expected}`",
+                node.id
+            ),
         ));
     }
     Ok(())
@@ -7331,6 +7693,161 @@ impl Handler for Uppercase {
 
 struct EncodeUtf8;
 
+fn encode_record_literal(node: &Node) -> Result<Vec<u8>, RuntimeError> {
+    let Some(SourceValue::Record(fields)) = node.config_value("fields") else {
+        return Err(RuntimeError::new(
+            "CND-DAT-010",
+            "record literal disappeared",
+        ));
+    };
+    let fields = fields
+        .iter()
+        .map(|(name, value)| {
+            let SourceValue::Text(value) = value else {
+                return Err(RuntimeError::new(
+                    "CND-DAT-013",
+                    "record literal value is not text",
+                ));
+            };
+            Ok(conduit_std::StructuralField {
+                name,
+                value: value.as_bytes(),
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let maximum_work =
+        runtime_data_bound(node, "maximum_work", conduit_std::DATA_MAX_RECORD_BYTES)?;
+    let mut output = vec![0; maximum_work];
+    let length = conduit_std::encode_closed_record(
+        &fields,
+        &mut output,
+        runtime_data_bound(node, "maximum_fields", conduit_std::DATA_MAX_RECORD_FIELDS)?,
+        runtime_data_bound(
+            node,
+            "maximum_field_name_bytes",
+            conduit_std::DATA_MAX_FIELD_NAME_BYTES,
+        )?,
+        runtime_data_bound(
+            node,
+            "maximum_field_value_bytes",
+            conduit_std::DATA_MAX_FIELD_VALUE_BYTES,
+        )?,
+        maximum_work,
+    )
+    .map_err(data_boundary_runtime_error)?;
+    output.truncate(length);
+    Ok(output)
+}
+
+struct RecordLiteral;
+
+impl Handler for RecordLiteral {
+    fn run(
+        &mut self,
+        node: &Node,
+        _inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        Ok(vec![Value::record(encode_record_literal(node)?)])
+    }
+}
+
+fn encode_structural_decision(decision: conduit_std::StructuralDecision) -> Vec<u8> {
+    match decision {
+        conduit_std::StructuralDecision::Accepted => vec![0],
+        conduit_std::StructuralDecision::Rejected {
+            field_index,
+            reason,
+        } => {
+            let reason = match reason {
+                conduit_std::StructuralRejection::MissingRequiredField => 1,
+                conduit_std::StructuralRejection::UnknownField => 2,
+            };
+            let mut bytes = vec![1, reason, u8::from(field_index.is_some())];
+            if let Some(index) = field_index {
+                bytes.extend_from_slice(&(index as u16).to_be_bytes());
+            }
+            bytes
+        }
+    }
+}
+
+struct ValidateClosedRecord;
+
+impl Handler for ValidateClosedRecord {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == RECORD_TYPE)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "record candidate is missing"))?;
+        let decision = conduit_std::validate_closed_record_bytes(
+            &input.bytes,
+            CLOSED_RECORD_REQUIRED_FIELDS,
+            runtime_data_bound(node, "maximum_fields", conduit_std::DATA_MAX_RECORD_FIELDS)?,
+            runtime_data_bound(
+                node,
+                "maximum_field_name_bytes",
+                conduit_std::DATA_MAX_FIELD_NAME_BYTES,
+            )?,
+            runtime_data_bound(
+                node,
+                "maximum_field_value_bytes",
+                conduit_std::DATA_MAX_FIELD_VALUE_BYTES,
+            )?,
+            runtime_data_bound(node, "maximum_work", conduit_std::DATA_MAX_RECORD_BYTES)?,
+        )
+        .map_err(data_boundary_runtime_error)?;
+        Ok(vec![
+            Value::record(input.bytes.clone()),
+            Value::validation_decision(encode_structural_decision(decision)),
+        ])
+    }
+}
+
+fn validation_decision_name(bytes: &[u8]) -> Result<&'static str, RuntimeError> {
+    match bytes {
+        [0] => Ok("accepted"),
+        [1, 1, 0] => Ok("rejected-missing-field"),
+        [1, 2, 1, _, _] => Ok("rejected-unknown-field"),
+        _ => Err(RuntimeError::new(
+            "CND-DAT-013",
+            "validation decision representation is malformed",
+        )),
+    }
+}
+
+struct ValidationDecisionAssert;
+
+impl Handler for ValidationDecisionAssert {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == VALIDATION_DECISION_TYPE)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "validation decision is missing"))?;
+        let actual = validation_decision_name(&input.bytes)?;
+        let expected = node
+            .config("expected")
+            .ok_or_else(|| RuntimeError::new("CND-DAT-010", "expected decision disappeared"))?;
+        if actual != expected {
+            return Err(RuntimeError::new(
+                "CND-DAT-015",
+                format!("expected `{expected}` but received `{actual}`"),
+            ));
+        }
+        Ok(Vec::new())
+    }
+}
+
 impl Handler for EncodeUtf8 {
     fn run(
         &mut self,
@@ -7383,11 +7900,10 @@ impl Handler for DecodeUtf8 {
     }
 }
 
-fn runtime_data_bound(node: &Node, key: &str, default: usize) -> Result<usize, RuntimeError> {
+fn runtime_data_bound(node: &Node, key: &str, _maximum: usize) -> Result<usize, RuntimeError> {
     match node.config_value(key) {
         Some(conduit_panel::SourceValue::Integer(value)) => usize::try_from(*value)
             .map_err(|_| RuntimeError::new("CND-DAT-012", "data bound is out of range")),
-        None if node.kind == "text/encode-utf8" || node.kind == "text/decode-utf8" => Ok(default),
         _ => Err(RuntimeError::new(
             "CND-DAT-010",
             format!("node `{}` lost exact `{key}`", node.id),
@@ -7699,7 +8215,7 @@ mod tests {
                     )
                 }
                 node message : std/text/format
-                node encoded : text/encode-utf8
+                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
                 node output : io/stdout
                 cord template.value -> message.template
                 cord values.values -> message.values
@@ -7736,7 +8252,7 @@ mod tests {
                     values = list("only-one")
                 }
                 node message : std/text/format
-                node encoded : text/encode-utf8
+                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
                 node output : io/stdout
                 cord template.value -> message.template
                 cord values.values -> message.values
@@ -7822,7 +8338,7 @@ mod tests {
                     value = "Hello from Conduit.\n"
                 }
                 node shout : text/uppercase
-                node encoded : text/encode-utf8
+                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
                 node output : io/stdout
                 cord greeting.value -> shout.text
                 cord shout.text -> encoded.text
@@ -7877,8 +8393,8 @@ mod tests {
             })
             .expect("data boundaries run");
         assert_eq!(display, b"representation boundaries stay explicit");
-        assert_eq!(summary.nodes_completed, 8);
-        assert_eq!(summary.cords_conducted, 7);
+        assert_eq!(summary.nodes_completed, 6);
+        assert_eq!(summary.cords_conducted, 5);
 
         let unsupported = parse(
             r#"
@@ -8002,7 +8518,7 @@ mod tests {
                     bind value = source.value
                 }
                 node line : example/upper-line { value = "mixed Case" }
-                node encoded : text/encode-utf8
+                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
                 node stdout : io/stdout
                 node stderr : io/stderr
                 cord line.text -> encoded.text
@@ -8052,7 +8568,7 @@ mod tests {
                 }
                 node source : std/literal { value = "boundary" }
                 node transform : example/uppercase
-                node encoded : text/encode-utf8
+                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
                 node sink : io/stdout
                 cord source.value -> transform.text
                 cord transform.text -> encoded.text

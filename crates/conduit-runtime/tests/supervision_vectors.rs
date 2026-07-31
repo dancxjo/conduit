@@ -209,7 +209,7 @@ impl ModuleLoader for MemoryLoader {
 fn current_panel_source() -> &'static str {
     "panel 0\n\
      node subject : std/literal { value = \"work\" }\n\
-     node encoded : text/encode-utf8\n\
+     node encoded : std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
      node sink : io/stdout\n\
      node handler : supervision/supervisor\n\
      cord subject.value -> encoded.text\n\

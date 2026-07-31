@@ -551,6 +551,45 @@ fn sealed_document_drives_the_exact_hosted_executor() {
         .unwrap_err();
     assert_eq!(wrong_binding.code, "CND-RUN-008");
 
+    let changed_source = source.replace("\"hello\"", "\"changed\"");
+    let changed_panel = parse(&changed_source).unwrap();
+    let changed_resolved = registry.resolve(&changed_panel).unwrap();
+    let mut rejected_input = &b""[..];
+    let source_mismatch = changed_resolved
+        .run_exact(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: conduit_core::Id("fixture/run"),
+                validation: conduit_core::PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 128,
+                    max_tick: 256,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            &mut RunIo {
+                input: &mut rejected_input,
+                output: &mut Vec::new(),
+                error: &mut Vec::new(),
+                display: &mut Vec::new(),
+            },
+        )
+        .unwrap_err();
+    assert_eq!(source_mismatch.code, "CND-RUN-009");
+
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();

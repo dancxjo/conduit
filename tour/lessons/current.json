@@ -1488,6 +1488,150 @@
       }
     },
     {
+      "id": "library.explicit-data-boundaries",
+      "chapter": 4,
+      "title": "Representations are explicit boundaries",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "library.typed-text-format"
+      ],
+      "objective": "Run exact UTF-8 encoding, length framing, deframing, decoding, and closed-record validation with every descriptor identity and finite bound visible in the panel and plan.",
+      "prose": "Text, bytes, frames, records, and validation decisions are distinct values. Each transformation pins the codec, framing, or schema descriptor and declares finite input, output, retained-state, and work bounds.",
+      "vocabulary": [
+        "codec descriptor",
+        "framing descriptor",
+        "closed record",
+        "validation decision",
+        "work bound"
+      ],
+      "source": "panel 0\n\nnode message : std/literal { value = \"representation boundaries stay explicit\" }\nnode encoded : std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 64 maximum_output_bytes = 64 }\nnode framed : std/data/frame-length-u32be { framing = ref(\"conduit.framing/length-u32be\") framing_schema_version = 0 framing_hash = bytes(\"a24b8ff5687421303d44d89afcabe9f7941464414785134fb9e74a320214a6b8\") maximum_frame_bytes = 64 maximum_partial_bytes = 68 maximum_output_bytes = 68 }\nnode deframed : std/data/deframe-length-u32be { framing = ref(\"conduit.framing/length-u32be\") framing_schema_version = 0 framing_hash = bytes(\"a24b8ff5687421303d44d89afcabe9f7941464414785134fb9e74a320214a6b8\") maximum_frame_bytes = 64 maximum_partial_bytes = 68 maximum_output_bytes = 64 }\nnode decoded : std/data/decode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 64 maximum_output_bytes = 64 }\nnode display : display/text\n\ncord message.value -> encoded.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord encoded.bytes -> framed.payload { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord framed.bytes -> deframed.chunk { capacity = 1 max_value_bytes = 68 max_queued_bytes = 68 low_watermark = 0 high_watermark = 1 pressure = block }\ncord deframed.payload -> decoded.bytes { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord decoded.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run examples/data-boundary-round-trip.panel",
+      "commands": [
+        "conduct --check examples/data-boundary-round-trip.panel",
+        "conduct --run examples/data-boundary-round-trip.panel",
+        "conduct --run examples/data-validation.panel",
+        "conduct --run examples/data-validation-rejection.panel"
+      ],
+      "expected_display": "representation boundaries stay explicit",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 64,
+        "queue_bytes": 328,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "data-boundary-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "type_id",
+          "descriptor_id",
+          "descriptor_hash",
+          "bounds",
+          "decision"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "representation boundaries stay explicit"
+      },
+      "hints": [
+        "Change the text without changing the codec identity; the plan still names one exact UTF-8 transformation.",
+        "Reduce maximum_frame_bytes below the encoded payload to see bounded admission fail closed.",
+        "Compare the accepted and missing-field record examples; rejection is a typed decision, not a parser side effect."
+      ],
+      "solution": "Name one exact descriptor at every representation boundary, declare all finite bounds, and consume validation as an explicit typed decision.",
+      "accessibility": {
+        "non_audio": "Ordered text names each input representation, descriptor identity, finite bound, output representation, and validation result.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered boundary story has focus.",
+        "color_independent": "Representation labels, descriptor hashes, bounds, decision words, and ordered text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Canonical bounded nodes make text encoding, byte framing, record construction, and structural validation exact and interoperable.",
+        "what": "Encode and decode transform text and bytes under one pinned UTF-8 descriptor; frame and deframe use a pinned u32 big-endian length descriptor; closed-record validation emits a typed accepted or structural-rejection decision.",
+        "when": "Use these nodes whenever values cross a representation, transport, persistence, or schema boundary that must remain portable and inspectable.",
+        "wrong": "Implicit codecs, delimiter guessing, unbounded partial frames, host-language object validation, descriptor aliases, malformed records accepted as data, and validation hidden inside parsing fail closed.",
+        "contracts": [
+          {
+            "id": "std/data/encode-utf8",
+            "inputs": [
+              "text:std/text"
+            ],
+            "outputs": [
+              "bytes:std/bytes"
+            ],
+            "policy": "exact codec descriptor and finite input/output bytes"
+          },
+          {
+            "id": "std/data/frame-length-u32be",
+            "inputs": [
+              "payload:std/bytes"
+            ],
+            "outputs": [
+              "bytes:std/bytes"
+            ],
+            "policy": "four-byte length prefix and finite frame/partial/output bytes"
+          },
+          {
+            "id": "std/data/validate-closed-record",
+            "inputs": [
+              "candidate:std/record"
+            ],
+            "outputs": [
+              "decision:std/validation-decision"
+            ],
+            "policy": "exact closed schema and finite fields, names, values, and work"
+          }
+        ],
+        "editable": [
+          "message.value:std/text",
+          "encoded.maximum_input_bytes:1..4096",
+          "framed.maximum_frame_bytes:1..4096"
+        ],
+        "provider": "hosted exact-plan deterministic executor",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact contract, implementation, artifact, type, and descriptor identities",
+          "finite queue, frame, retained-state, output, and work bounds",
+          "ordered provider steps and one exact terminal cause",
+          "typed accepted or structural-rejection validation decision"
+        ],
+        "docs": [
+          "../../examples/data-boundary-round-trip.panel",
+          "../../examples/data-validation.panel",
+          "../../examples/data-validation-rejection.panel"
+        ],
+        "scenarios": [
+          {
+            "id": "round-trip",
+            "title": "UTF-8 length-framed round trip",
+            "panel": "../../examples/data-boundary-round-trip.panel",
+            "semantics": "Each representation change is a separately pinned, bounded node."
+          },
+          {
+            "id": "validation-accepted",
+            "title": "Closed record accepted",
+            "panel": "../../examples/data-validation.panel",
+            "semantics": "The exact schema accepts a record containing exactly name and count."
+          },
+          {
+            "id": "validation-rejected",
+            "title": "Closed record rejected",
+            "panel": "../../examples/data-validation-rejection.panel",
+            "semantics": "A missing count field produces the typed missing-field decision."
+          }
+        ]
+      }
+    },
+    {
       "id": "library.contract-package-imports",
       "chapter": 4,
       "title": "Imports name meaning; plans provide machines",

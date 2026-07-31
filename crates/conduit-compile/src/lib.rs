@@ -1654,15 +1654,15 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "std/text/format",
             "std/text/lines",
             "std/text/join",
+            "std/record/literal",
             "std/data/validate-closed-record",
+            "std/testing/assert-validation-decision",
             "std/data/encode-utf8",
             "std/data/decode-utf8",
             "std/data/frame-length-u32be",
             "std/data/deframe-length-u32be",
             "io/stdout",
             "display/text",
-            "text/encode-utf8",
-            "text/decode-utf8",
             "text/uppercase",
             "supervision/supervisor",
             "net/http/serve-once",
@@ -1682,6 +1682,8 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
         types: [
             "std/text",
             "std/bytes",
+            "std/record",
+            "std/validation-decision",
             "std/reference/any",
             "std/format-values",
             "std/list/text",
@@ -2858,7 +2860,12 @@ fn compile_graph(
     let mut topology = resolved
         .exact_topology()
         .map_err(|_| CompileError::new(CompileReason::SourceInvalid))?;
-    topology.source_semantic_hash = lowered.semantic_hash;
+    let entry = graph
+        .modules
+        .iter()
+        .find(|module| module.canonical_uri == graph.entry_uri)
+        .ok_or_else(|| CompileError::new(CompileReason::SourceInvalid))?;
+    topology.source_semantic_hash = parse_hash(&conduit_panel::semantic_source_hash(&entry.panel))?;
     compile_topology(&topology, &lowered, input)
 }
 

@@ -73,6 +73,11 @@ impl InstalledProfile {
             || required.contains_key("std/text/lines")
             || required.contains_key("std/text/join")
             || required.keys().any(|id| {
+                id.starts_with("std/data/")
+                    || id == "std/record/literal"
+                    || id == "std/testing/assert-validation-decision"
+            })
+            || required.keys().any(|id| {
                 matches!(
                     id.as_str(),
                     "conduit.std/tee"
@@ -160,7 +165,7 @@ impl InstalledProfile {
             time_basis: "clock/conduct-host".to_owned(),
             current_tick: 12,
             plan_budget: BudgetDocument {
-                memory_bytes: 2 * 1024 * 1024,
+                memory_bytes: 4 * 1024 * 1024,
                 storage_bytes: 16 * 1024 * 1024,
                 cpu_units: 64,
                 timers: 16,
@@ -309,6 +314,11 @@ fn candidate(
             | HostedPrimitiveImplementation::FrameLengthU32Be
             | HostedPrimitiveImplementation::DeframeLengthU32Be
     );
+    let structural_validation_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::RecordLiteral
+            | HostedPrimitiveImplementation::ValidateClosedRecord
+    );
     let structural_flow_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::Tee
@@ -360,6 +370,8 @@ fn candidate(
             buffered_text_execution_profile()
         } else if data_boundary_profile {
             data_boundary_execution_profile()
+        } else if structural_validation_profile {
+            structural_validation_execution_profile()
         } else if structural_flow_profile {
             structural_flow_execution_profile()
         } else {
@@ -396,13 +408,13 @@ fn candidate(
             observed_at_tick: 10,
             valid_until_tick: 20,
             available: BudgetDocument {
-                memory_bytes: 2 * 1024 * 1024,
+                memory_bytes: 4 * 1024 * 1024,
                 storage_bytes: 16 * 1024 * 1024,
                 cpu_units: 64,
                 timers: 16,
                 transports: 16,
                 checkpoints: 16,
-                evidence_bytes: 64 * 1024,
+                evidence_bytes: 256 * 1024,
             },
             capabilities: Vec::new(),
             resources: Vec::new(),
@@ -417,6 +429,8 @@ fn candidate(
         allocation: BudgetDocument {
             memory_bytes: if host_service_instance.is_some() {
                 64 * 1024
+            } else if structural_validation_profile {
+                576 * 1024
             } else if format_profile || buffered_text_profile || data_boundary_profile {
                 128 * 1024
             } else if structural_flow_profile {
@@ -425,7 +439,11 @@ fn candidate(
                 2048
             },
             cpu_units: 1,
-            evidence_bytes: if format_profile || buffered_text_profile || data_boundary_profile {
+            evidence_bytes: if format_profile
+                || buffered_text_profile
+                || data_boundary_profile
+                || structural_validation_profile
+            {
                 8 * 1024
             } else if structural_flow_profile {
                 4 * 1024
@@ -827,6 +845,54 @@ fn data_boundary_execution_profile() -> ExecutionProfileDocument {
                 category: "port-transactions".to_owned(),
                 accounting: "executor-allocated".to_owned(),
                 bytes: MEMORY_BYTES - (2 * VALUE_BYTES),
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn structural_validation_execution_profile() -> ExecutionProfileDocument {
+    const VALUE_BYTES: u64 = conduit_std::DATA_MAX_RECORD_BYTES as u64;
+    const DECISION_BYTES: u64 = 5;
+    const MEMORY_BYTES: u64 = 576 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-structural-validation-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: VALUE_BYTES as u32,
+            max_input_leases: 1,
+            max_input_bytes: VALUE_BYTES,
+            max_output_reservations: 2,
+            max_output_bytes: VALUE_BYTES + DECISION_BYTES,
+            max_transactions: 1,
+            max_fragments_per_step: 2,
+            max_retained_values: 2,
+            max_retained_bytes: VALUE_BYTES + DECISION_BYTES,
+            max_scratch_bytes: VALUE_BYTES as u32,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "retained".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: VALUE_BYTES + DECISION_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "step-scratch".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: VALUE_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - (2 * VALUE_BYTES) - DECISION_BYTES,
             },
         ],
         checkpoint: None,

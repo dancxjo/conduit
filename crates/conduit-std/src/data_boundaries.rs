@@ -10,6 +10,9 @@ pub const DATA_MAX_RECORD_FIELDS: usize = 32;
 pub const DATA_MAX_FIELD_NAME_BYTES: usize = 64;
 /// Maximum bytes examined in one structural field value.
 pub const DATA_MAX_FIELD_VALUE_BYTES: usize = 4096;
+/// Maximum encoded bytes in the normative closed-record representation.
+pub const DATA_MAX_RECORD_BYTES: usize =
+    2 + DATA_MAX_RECORD_FIELDS * (2 + DATA_MAX_FIELD_NAME_BYTES + 4 + DATA_MAX_FIELD_VALUE_BYTES);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DataBoundaryError {
@@ -22,6 +25,8 @@ pub enum DataBoundaryError {
     FieldNameTooLarge,
     FieldValueTooLarge,
     DuplicateField,
+    MalformedRecord,
+    WorkBoundExceeded,
 }
 
 impl DataBoundaryError {
@@ -37,6 +42,8 @@ impl DataBoundaryError {
             Self::FieldNameTooLarge => "CND-DAT-007",
             Self::FieldValueTooLarge => "CND-DAT-008",
             Self::DuplicateField => "CND-DAT-009",
+            Self::MalformedRecord => "CND-DAT-013",
+            Self::WorkBoundExceeded => "CND-DAT-014",
         }
     }
 }
@@ -215,6 +222,143 @@ pub enum StructuralDecision {
     },
 }
 
+/// Encodes a closed record as a field count followed by length-delimited
+/// UTF-8 names and opaque values. Integers are big-endian (`u16`, then `u32`).
+pub fn encode_closed_record(
+    fields: &[StructuralField<'_>],
+    output: &mut [u8],
+    maximum_fields: usize,
+    maximum_field_name_bytes: usize,
+    maximum_field_value_bytes: usize,
+    maximum_work: usize,
+) -> Result<usize, DataBoundaryError> {
+    if fields.len() > maximum_fields
+        || fields.len() > DATA_MAX_RECORD_FIELDS
+        || fields.len() > u16::MAX as usize
+    {
+        return Err(DataBoundaryError::TooManyFields);
+    }
+    let required = fields.iter().try_fold(2_usize, |total, field| {
+        if field.name.len() > maximum_field_name_bytes
+            || field.name.len() > DATA_MAX_FIELD_NAME_BYTES
+            || field.name.len() > u16::MAX as usize
+        {
+            return Err(DataBoundaryError::FieldNameTooLarge);
+        }
+        if field.value.len() > maximum_field_value_bytes
+            || field.value.len() > DATA_MAX_FIELD_VALUE_BYTES
+            || field.value.len() > u32::MAX as usize
+        {
+            return Err(DataBoundaryError::FieldValueTooLarge);
+        }
+        total
+            .checked_add(2 + field.name.len() + 4 + field.value.len())
+            .ok_or(DataBoundaryError::WorkBoundExceeded)
+    })?;
+    if required > maximum_work {
+        return Err(DataBoundaryError::WorkBoundExceeded);
+    }
+    if output.len() < required {
+        return Err(DataBoundaryError::OutputTooSmall);
+    }
+    output[..2].copy_from_slice(&(fields.len() as u16).to_be_bytes());
+    let mut cursor = 2;
+    for field in fields {
+        output[cursor..cursor + 2].copy_from_slice(&(field.name.len() as u16).to_be_bytes());
+        cursor += 2;
+        output[cursor..cursor + field.name.len()].copy_from_slice(field.name.as_bytes());
+        cursor += field.name.len();
+        output[cursor..cursor + 4].copy_from_slice(&(field.value.len() as u32).to_be_bytes());
+        cursor += 4;
+        output[cursor..cursor + field.value.len()].copy_from_slice(field.value);
+        cursor += field.value.len();
+    }
+    Ok(cursor)
+}
+
+fn take_u16(bytes: &[u8], cursor: &mut usize) -> Result<usize, DataBoundaryError> {
+    let end = cursor
+        .checked_add(2)
+        .ok_or(DataBoundaryError::MalformedRecord)?;
+    let value = bytes
+        .get(*cursor..end)
+        .and_then(|bytes| <[u8; 2]>::try_from(bytes).ok())
+        .map(u16::from_be_bytes)
+        .ok_or(DataBoundaryError::MalformedRecord)?;
+    *cursor = end;
+    Ok(usize::from(value))
+}
+
+fn take_u32(bytes: &[u8], cursor: &mut usize) -> Result<usize, DataBoundaryError> {
+    let end = cursor
+        .checked_add(4)
+        .ok_or(DataBoundaryError::MalformedRecord)?;
+    let value = bytes
+        .get(*cursor..end)
+        .and_then(|bytes| <[u8; 4]>::try_from(bytes).ok())
+        .map(u32::from_be_bytes)
+        .ok_or(DataBoundaryError::MalformedRecord)?;
+    *cursor = end;
+    usize::try_from(value).map_err(|_| DataBoundaryError::MalformedRecord)
+}
+
+/// Decodes the normative record representation and applies one exact
+/// closed-record descriptor without allocating.
+pub fn validate_closed_record_bytes(
+    bytes: &[u8],
+    required: &[RequiredField<'_>],
+    maximum_fields: usize,
+    maximum_field_name_bytes: usize,
+    maximum_field_value_bytes: usize,
+    maximum_work: usize,
+) -> Result<StructuralDecision, DataBoundaryError> {
+    if bytes.len() > maximum_work {
+        return Err(DataBoundaryError::WorkBoundExceeded);
+    }
+    let mut cursor = 0;
+    let field_count = take_u16(bytes, &mut cursor)?;
+    if field_count > maximum_fields || field_count > DATA_MAX_RECORD_FIELDS {
+        return Err(DataBoundaryError::TooManyFields);
+    }
+    let empty = StructuralField {
+        name: "",
+        value: &[],
+    };
+    let mut fields = [empty; DATA_MAX_RECORD_FIELDS];
+    for field in &mut fields[..field_count] {
+        let name_len = take_u16(bytes, &mut cursor)?;
+        if name_len > maximum_field_name_bytes || name_len > DATA_MAX_FIELD_NAME_BYTES {
+            return Err(DataBoundaryError::FieldNameTooLarge);
+        }
+        let name_end = cursor
+            .checked_add(name_len)
+            .ok_or(DataBoundaryError::MalformedRecord)?;
+        let name = core::str::from_utf8(
+            bytes
+                .get(cursor..name_end)
+                .ok_or(DataBoundaryError::MalformedRecord)?,
+        )
+        .map_err(|_| DataBoundaryError::InvalidUtf8)?;
+        cursor = name_end;
+        let value_len = take_u32(bytes, &mut cursor)?;
+        if value_len > maximum_field_value_bytes || value_len > DATA_MAX_FIELD_VALUE_BYTES {
+            return Err(DataBoundaryError::FieldValueTooLarge);
+        }
+        let value_end = cursor
+            .checked_add(value_len)
+            .ok_or(DataBoundaryError::MalformedRecord)?;
+        let value = bytes
+            .get(cursor..value_end)
+            .ok_or(DataBoundaryError::MalformedRecord)?;
+        cursor = value_end;
+        *field = StructuralField { name, value };
+    }
+    if cursor != bytes.len() {
+        return Err(DataBoundaryError::MalformedRecord);
+    }
+    validate_closed_record(&fields[..field_count], required)
+}
+
 /// Validates a deliberately small closed-record descriptor.
 ///
 /// Rejection is a typed domain decision. Malformed or out-of-bound input is a
@@ -360,6 +504,17 @@ mod tests {
                 field_index: None,
                 reason: StructuralRejection::MissingRequiredField,
             })
+        );
+
+        let mut bytes = [0; 64];
+        let length = encode_closed_record(&accepted, &mut bytes, 2, 8, 8, 64).unwrap();
+        assert_eq!(
+            validate_closed_record_bytes(&bytes[..length], &descriptor, 2, 8, 8, 64),
+            Ok(StructuralDecision::Accepted)
+        );
+        assert_eq!(
+            validate_closed_record_bytes(&bytes[..length - 1], &descriptor, 2, 8, 8, 64),
+            Err(DataBoundaryError::MalformedRecord)
         );
     }
 }

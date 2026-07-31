@@ -61,7 +61,11 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "std/text/join",
         "io/stdin",
         "text/uppercase",
-        "text/encode-utf8",
+        "std/data/encode-utf8",
+        "std/data/decode-utf8",
+        "std/data/frame-length-u32be",
+        "std/data/deframe-length-u32be",
+        "std/data/validate-closed-record",
         "io/stdout",
         "io/stderr",
         "display/text",
@@ -183,7 +187,7 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
         "panel 0\n\
          node source : std/literal { value = \"fixture\" }\n\
          node upper : text/uppercase\n\
-         node encoded : text/encode-utf8\n\
+         node encoded : std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
          node sink : io/stdout\n\
          cord source.value -> upper.text\n\
          cord upper.text -> encoded.text\n\

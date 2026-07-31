@@ -12,7 +12,13 @@ node merge : conduit.std/merge {
     ordering = "round-robin"
 }
 node merged_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
-node encoded : text/encode-utf8
+node encoded : std/data/encode-utf8 {
+    codec = ref("conduit.codec/utf-8")
+    codec_schema_version = 0
+    codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
+    maximum_input_bytes = 4096
+    maximum_output_bytes = 4096
+}
 node output : io/stdout
 
 cord first.value -> first_lines.text {

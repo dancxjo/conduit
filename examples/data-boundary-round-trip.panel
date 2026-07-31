@@ -3,10 +3,6 @@ panel 0
 node message : std/literal {
     value = "representation boundaries stay explicit"
 }
-node lines : std/text/lines {
-    maximum_line_bytes = 64
-    maximum_retained_prefix_bytes = 64
-}
 node encoded : std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
@@ -37,24 +33,9 @@ node decoded : std/data/decode-utf8 {
     maximum_input_bytes = 64
     maximum_output_bytes = 64
 }
-node joined : std/text/join {
-    separator = ""
-    maximum_items = 1
-    maximum_item_bytes = 64
-    maximum_separator_bytes = 0
-    maximum_output_bytes = 64
-}
 node display : display/text
 
-cord message.value -> lines.text {
-    capacity = 1
-    max_value_bytes = 64
-    max_queued_bytes = 64
-    low_watermark = 0
-    high_watermark = 1
-    pressure = block
-}
-cord lines.line -> encoded.text {
+cord message.value -> encoded.text {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64
@@ -86,15 +67,7 @@ cord deframed.payload -> decoded.bytes {
     high_watermark = 1
     pressure = block
 }
-cord decoded.text -> joined.item {
-    capacity = 1
-    max_value_bytes = 64
-    max_queued_bytes = 64
-    low_watermark = 0
-    high_watermark = 1
-    pressure = block
-}
-cord joined.text -> display.text {
+cord decoded.text -> display.text {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64

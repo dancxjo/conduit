@@ -315,7 +315,17 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.std/select",
             _,
         ) => Some("library.standard-flow-control"),
-        ("text/uppercase" | "text/encode-utf8", true) => Some("panels.put-a-panel-in-a-panel"),
+        (
+            "std/record/literal"
+            | "std/data/encode-utf8"
+            | "std/data/decode-utf8"
+            | "std/data/frame-length-u32be"
+            | "std/data/deframe-length-u32be"
+            | "std/data/validate-closed-record"
+            | "std/testing/assert-validation-decision",
+            _,
+        ) => Some("library.explicit-data-boundaries"),
+        ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };
     if let Some(artifact) = published {
@@ -341,7 +351,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
 fn former_port_id(contract: &str, direction: &str, current: &str) -> Option<&'static str> {
     if matches!(
         contract,
-        "display/text" | "text/encode-utf8" | "text/decode-utf8"
+        "display/text" | "std/data/encode-utf8" | "std/data/decode-utf8"
     ) {
         return None;
     }
@@ -502,7 +512,7 @@ fn validate_semantic_port_inventory(entries: &[Entry]) -> Result<(), String> {
                 .map(|introduction| (entry.semantic_identity.as_str(), introduction))
         })
         .collect::<BTreeMap<_, _>>();
-    for required in ["display/text", "text/encode-utf8"] {
+    for required in ["display/text", "std/data/encode-utf8"] {
         let introduction = introductions
             .get(required)
             .ok_or_else(|| format!("`{required}` lacks its introduction disposition"))?;
@@ -684,9 +694,9 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
                     compatibility_disposition:
                         "new semantic contract; no former identity or compatibility alias exists",
                 }),
-                "text/encode-utf8" => {
+                "std/data/encode-utf8" => {
                     let mut affected_bindings = vec![
-                        "runtime-contract:text/encode-utf8".to_owned(),
+                        "runtime-contract:std/data/encode-utf8".to_owned(),
                         format!("conformance-fixture:{}", fixture(id, owner.classification)),
                     ];
                     affected_bindings.extend(provider_binding_ids.iter().cloned());
@@ -695,14 +705,14 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
                             "Introduces an explicit checked text-to-UTF-8 boundary before byte sinks.",
                         affected_bindings,
                         repository_migration:
-                            "pending explicit text-to-stdout pipeline rewrites under issue 185",
+                            "repository corpus migrated to the exact codec descriptor under issue 125",
                         compatibility_disposition:
                             "new semantic contract; no hidden codec or compatibility alias exists",
                     })
                 }
-                "text/decode-utf8" => {
+                "std/data/decode-utf8" => {
                     let mut affected_bindings = vec![
-                        "runtime-contract:text/decode-utf8".to_owned(),
+                        "runtime-contract:std/data/decode-utf8".to_owned(),
                         format!("conformance-fixture:{}", fixture(id, owner.classification)),
                     ];
                     affected_bindings.extend(provider_binding_ids.iter().cloned());
@@ -711,7 +721,7 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
                             "Introduces an explicit checked UTF-8-to-text boundary after byte sources.",
                         affected_bindings,
                         repository_migration:
-                            "pending explicit stdin byte-to-text pipeline rewrites under issue 185",
+                            "repository corpus migrated to the exact codec descriptor under issue 125",
                         compatibility_disposition:
                             "new semantic contract; no hidden codec or compatibility alias exists",
                     })

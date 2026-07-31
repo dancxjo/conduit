@@ -302,7 +302,7 @@ node left_lines : std/text/lines { maximum_line_bytes = 16 maximum_retained_pref
 node right_lines : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node merged : conduit.std/merge { ordering = "round-robin" }
 node joined : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
-node encoded : text/encode-utf8
+node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
 node sink : io/stdout
 cord left_chunks.value -> left_lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
 cord right_chunks.value -> right_lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
@@ -333,8 +333,8 @@ node lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_prefix_b
 node split : conduit.std/tee {{ mode = "{mode}" }}
 node left_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
 node right_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
-node left_encoded : text/encode-utf8
-node right_encoded : text/encode-utf8
+node left_encoded : std/data/encode-utf8 {{ codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }}
+node right_encoded : std/data/encode-utf8 {{ codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }}
 node left_sink : io/stdout
 node right_sink : io/stderr
 cord chunks.value -> lines.text {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}
@@ -372,7 +372,7 @@ node data : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_byt
 node commands : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node gated : conduit.std/gate { initial = "closed" retained = "block" }
 node joined : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
-node encoded : text/encode-utf8
+node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
 node sink : io/stdout
 cord data_chunks.value -> data.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
 cord command_chunks.value -> commands.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
@@ -397,7 +397,7 @@ node right : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_by
 node commands : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
 node selected : conduit.std/select { initial = "left" inactive = "block" }
 node joined : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
-node encoded : text/encode-utf8
+node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
 node sink : io/stdout
 cord left_chunks.value -> left.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
 cord right_chunks.value -> right.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
@@ -428,8 +428,8 @@ node right_lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_pr
 node paired : conduit.std/zip {{ unpaired = "{policy}" }}
 node left_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
 node right_joined : std/text/join {{ separator = "" maximum_items = 8 maximum_item_bytes = 16 maximum_separator_bytes = 1 maximum_output_bytes = 128 }}
-node left_encoded : text/encode-utf8
-node right_encoded : text/encode-utf8
+node left_encoded : std/data/encode-utf8 {{ codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }}
+node right_encoded : std/data/encode-utf8 {{ codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }}
 node left_sink : io/stdout
 node right_sink : io/stderr
 cord left_chunks.value -> left_lines.text {{ capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }}

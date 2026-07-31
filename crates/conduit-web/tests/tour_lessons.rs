@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 22] = [
+const REQUIRED_TOUR_LESSONS: [&str; 23] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -22,6 +22,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 22] = [
     "patchbay.observes-patchbay",
     "library.typed-text-format",
     "library.standard-flow-control",
+    "library.explicit-data-boundaries",
     "library.contract-package-imports",
     "platform.value-envelope-clock-feedback",
     "platform.resource-lease-effect-commit",

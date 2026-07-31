@@ -28,9 +28,10 @@ pub use conformance::{
 };
 pub use data_boundaries::{
     DATA_MAX_FIELD_NAME_BYTES, DATA_MAX_FIELD_VALUE_BYTES, DATA_MAX_FRAME_BYTES,
-    DATA_MAX_RECORD_FIELDS, DataBoundaryError, LENGTH_U32BE_PREFIX_BYTES, LengthU32BeDecoder,
-    RequiredField, StructuralDecision, StructuralField, StructuralRejection, decode_utf8,
-    encode_length_u32be, encode_utf8, validate_closed_record,
+    DATA_MAX_RECORD_BYTES, DATA_MAX_RECORD_FIELDS, DataBoundaryError, LENGTH_U32BE_PREFIX_BYTES,
+    LengthU32BeDecoder, RequiredField, StructuralDecision, StructuralField, StructuralRejection,
+    decode_utf8, encode_closed_record, encode_length_u32be, encode_utf8, validate_closed_record,
+    validate_closed_record_bytes,
 };
 pub use text_format::{
     FORMAT_MAX_NAME_BYTES, FORMAT_MAX_OUTPUT_BYTES, FORMAT_MAX_RETAINED_BYTES,
@@ -615,55 +616,28 @@ const TEXT_ITEMS_INPUT: PortContract<'static> = port(
     TerminalContract::Finite,
 );
 const TEXT_JOIN_OUTPUT: PortContract<'static> = batch_text_port("text", Direction::Output);
-const DATA_TEXT_INPUT: PortContract<'static> = port(
-    "text",
-    Direction::Input,
-    TEXT,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Either,
-);
-const DATA_BYTES_INPUT: PortContract<'static> = port(
-    "bytes",
-    Direction::Input,
-    BYTES,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Either,
-);
-const DATA_BYTES_OUTPUT: PortContract<'static> = port(
-    "bytes",
-    Direction::Output,
-    BYTES,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Finite,
-);
-const DATA_TEXT_OUTPUT: PortContract<'static> = port(
-    "text",
-    Direction::Output,
-    TEXT,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Finite,
-);
-const DATA_PAYLOAD_INPUT: PortContract<'static> = port(
-    "payload",
-    Direction::Input,
-    BYTES,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Either,
-);
-const DATA_PAYLOAD_OUTPUT: PortContract<'static> = port(
-    "payload",
-    Direction::Output,
-    BYTES,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Finite,
-);
-const DATA_CHUNK_INPUT: PortContract<'static> = port(
-    "chunk",
-    Direction::Input,
-    BYTES,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::Either,
-);
+const DATA_TEXT_INPUT: PortContract<'static> = batch_text_port("text", Direction::Input);
+const DATA_BYTES_INPUT: PortContract<'static> = PortContract {
+    value_type: BYTES,
+    ..batch_text_port("bytes", Direction::Input)
+};
+const DATA_BYTES_OUTPUT: PortContract<'static> = PortContract {
+    value_type: BYTES,
+    ..batch_text_port("bytes", Direction::Output)
+};
+const DATA_TEXT_OUTPUT: PortContract<'static> = batch_text_port("text", Direction::Output);
+const DATA_PAYLOAD_INPUT: PortContract<'static> = PortContract {
+    value_type: BYTES,
+    ..batch_text_port("payload", Direction::Input)
+};
+const DATA_PAYLOAD_OUTPUT: PortContract<'static> = PortContract {
+    value_type: BYTES,
+    ..batch_text_port("payload", Direction::Output)
+};
+const DATA_CHUNK_INPUT: PortContract<'static> = PortContract {
+    value_type: BYTES,
+    ..batch_text_port("chunk", Direction::Input)
+};
 const DATA_CANDIDATE_INPUT: PortContract<'static> = port(
     "candidate",
     Direction::Input,
@@ -678,11 +652,32 @@ const DATA_CANDIDATE_OUTPUT: PortContract<'static> = port(
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
 );
+const fn optional_output(mut port: PortContract<'static>) -> PortContract<'static> {
+    port.presence = Presence::Optional;
+    port.connections = ConnectionCardinality::ZeroOrMore;
+    port
+}
+const DATA_OPTIONAL_CANDIDATE_OUTPUT: PortContract<'static> =
+    optional_output(DATA_CANDIDATE_OUTPUT);
 const DATA_DECISION_OUTPUT: PortContract<'static> = port(
     "decision",
     Direction::Output,
     VALIDATION_DECISION,
     ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const DATA_DECISION_INPUT: PortContract<'static> = port(
+    "decision",
+    Direction::Input,
+    VALIDATION_DECISION,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const DATA_RECORD_OUTPUT: PortContract<'static> = port(
+    "record",
+    Direction::Output,
+    RECORD,
+    ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
 
@@ -750,6 +745,18 @@ const DATA_VALIDATION: ConfigContract<'static> = ConfigContract {
         field("maximum_field_value_bytes", U64),
         field("maximum_work", U64),
     ],
+};
+const DATA_RECORD_LITERAL: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("fields", RECORD),
+        field("maximum_fields", U64),
+        field("maximum_field_name_bytes", U64),
+        field("maximum_field_value_bytes", U64),
+        field("maximum_work", U64),
+    ],
+};
+const DATA_VALIDATION_ASSERT: ConfigContract<'static> = ConfigContract {
+    fields: &[field("expected", TEXT)],
 };
 const STATEFUL: ConfigContract<'static> = ConfigContract {
     fields: &[
@@ -1382,12 +1389,34 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
+        "std/record/literal",
+        Source,
+        DATA_RECORD_LITERAL,
+        &[],
+        &[DATA_RECORD_OUTPUT],
+        ProducesDeclaredType,
+        None,
+        DATA_VALIDATION_LIMITS,
+        PURE
+    ),
+    entry!(
         "std/data/validate-closed-record",
         Transform,
         DATA_VALIDATION,
         &[DATA_CANDIDATE_INPUT],
-        &[DATA_CANDIDATE_OUTPUT, DATA_DECISION_OUTPUT],
+        &[DATA_OPTIONAL_CANDIDATE_OUTPUT, DATA_DECISION_OUTPUT],
         ExplicitAdapter,
+        None,
+        DATA_VALIDATION_LIMITS,
+        PURE
+    ),
+    entry!(
+        "std/testing/assert-validation-decision",
+        Testing,
+        DATA_VALIDATION_ASSERT,
+        &[DATA_DECISION_INPUT],
+        &[],
+        Preserving,
         None,
         DATA_VALIDATION_LIMITS,
         PURE

@@ -66,7 +66,7 @@ fn fallback_node_selects_primary_or_fallback() {
             node primary : std/literal { value = "primary data" }
             node secondary : std/literal { value = "fallback data" }
             node router : flow/fallback
-            node encoded : text/encode-utf8
+            node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
             node sink : io/stdout
             cord primary.value -> router.primary
             cord secondary.value -> router.fallback
