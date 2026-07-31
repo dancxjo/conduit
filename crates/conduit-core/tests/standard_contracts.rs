@@ -9,13 +9,13 @@ const FIXTURE: &str = include_str!("../../../conformance/c4/standard-node-librar
 
 fn host_service() -> HostServiceContract<'static> {
     HostServiceContract {
-        interface: Id("host/blob-store"),
+        interface: Id("host/storage-cache-get"),
         interface_version: 1,
-        operation: Id("blob/read"),
-        provider_binding: Id("provider/blob-store"),
-        resource_binding: Id("blob/exact"),
-        grant: Id("grant/read-blob"),
-        cancellation_scope: Id("scope/read"),
+        operation: Id("storage/cache/get"),
+        provider_binding: Id("provider/storage-cache"),
+        resource_binding: Id("storage-cache/exact"),
+        grant: Id("grant/storage-cache-get"),
+        cancellation_scope: Id("scope/storage-cache-get"),
         maximum_request_bytes: 128,
         maximum_response_bytes: 4096,
         maximum_pending: 2,
@@ -27,10 +27,10 @@ fn host_service() -> HostServiceContract<'static> {
 
 fn host_capability() -> HostServiceCapability<'static> {
     HostServiceCapability {
-        interface: Id("host/blob-store"),
+        interface: Id("host/storage-cache-get"),
         interface_version: 1,
-        operation: Id("blob/read"),
-        provider_binding: Id("provider/blob-store"),
+        operation: Id("storage/cache/get"),
+        provider_binding: Id("provider/storage-cache"),
         observed_at_tick: 10,
         valid_until_tick: 20,
         maximum_request_bytes: 128,
@@ -472,7 +472,7 @@ fn host_service_resolution_outcome(id: &str) -> &'static str {
     let mut capability = host_capability();
     let mut current_tick = 15;
     let mut authorization = HostServiceAuthorization::Authorized {
-        grant: Id("grant/read-blob"),
+        grant: Id("grant/storage-cache-get"),
     };
     match id {
         "capable-host-service" => {}

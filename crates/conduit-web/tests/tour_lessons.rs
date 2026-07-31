@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 27] = [
+const REQUIRED_TOUR_LESSONS: [&str; 28] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -27,6 +27,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 27] = [
     "library.explicit-time",
     "library.explicit-data-boundaries",
     "library.bounded-filesystem",
+    "library.evictable-storage-cache",
     "library.contract-package-imports",
     "platform.value-envelope-clock-feedback",
     "platform.resource-lease-effect-commit",
@@ -998,6 +999,110 @@ fn bounded_filesystem_lesson_runs_exact_browser_providers_and_failure_paths() {
                 assert!(diagnostic.contains(expected), "{id}: {result}");
             }
             kind => panic!("unexpected filesystem validation kind {kind}"),
+        }
+    }
+}
+
+#[test]
+fn evictable_storage_cache_lesson_runs_exact_browser_provider_and_failure_paths() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.evictable-storage-cache")
+        .expect("evictable cache lesson is selectable");
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    assert_eq!(
+        lesson["library"]["contracts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|contract| contract["id"].as_str().unwrap())
+            .collect::<BTreeSet<_>>(),
+        [
+            "storage/blob/literal",
+            "storage/cache/get",
+            "storage/cache/put",
+            "storage/cache/remove",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "provider_state",
+        "availability_evidence",
+        "descriptor",
+        "resource",
+        "grant",
+        "handle_scope",
+        "content_identity",
+        "retention",
+        "eviction",
+        "queue",
+        "pressure",
+        "cancellation",
+        "error",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .unwrap()
+            .contains("ordered text table")
+    );
+    assert!(
+        lesson["library"]["wrong"]
+            .as_str()
+            .unwrap()
+            .contains("no hidden fallback")
+    );
+
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 5);
+    for scenario in scenarios {
+        let id = scenario["id"].as_str().unwrap();
+        let source = scenario["source"].as_str().unwrap();
+        assert_current_panel_source(id, source);
+        let raw = if scenario["execution"] == "cancel-before-first-step" {
+            cancel_panel(source.to_owned())
+        } else {
+            run_panel(source.to_owned())
+        };
+        let result: Value =
+            serde_json::from_str(&raw).unwrap_or_else(|error| panic!("{id}: {error}: {raw}"));
+        let validation = &scenario["validation"];
+        let expected = validation["value"].as_str().unwrap();
+        match validation["kind"].as_str().unwrap() {
+            "display" => {
+                assert_eq!(result["ok"], true, "{id}: {result}");
+                assert_eq!(result["display"], expected, "{id}: {result}");
+                assert_eq!(result["terminal"], "succeeded", "{id}: {result}");
+            }
+            "terminal" => {
+                assert_eq!(result["ok"], true, "{id}: {result}");
+                assert_eq!(result["terminal"], expected, "{id}: {result}");
+            }
+            "diagnostic" => {
+                assert_eq!(result["ok"], false, "{id}: {result}");
+                let diagnostic = result["diagnostic"]
+                    .as_str()
+                    .or_else(|| result["stderr"].as_str())
+                    .unwrap_or_default();
+                assert!(diagnostic.contains(expected), "{id}: {result}");
+            }
+            kind => panic!("unexpected cache validation kind {kind}"),
         }
     }
 }

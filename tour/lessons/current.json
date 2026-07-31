@@ -2,6 +2,183 @@
   "schema": "conduit.tour-lessons",
   "lessons": [
     {
+      "id": "library.evictable-storage-cache",
+      "chapter": 4,
+      "title": "Evictable large-value cache",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.resource-lease-effect-commit"
+      ],
+      "objective": "Cache and retrieve one bounded blob while keeping provider availability, authority, retention, integrity, and eviction outcomes explicit.",
+      "prose": "Cache nodes cross an ordinary bounded host-service boundary. Put returns an opaque provider- and run-scoped handle; get verifies the content digest before yielding bytes; remove invalidates one handle. The installed provider is best effort and evictable, never durable, and a handle never substitutes for a grant.",
+      "vocabulary": [
+        "content identity",
+        "opaque cache handle",
+        "best effort",
+        "evictable",
+        "retention",
+        "integrity"
+      ],
+      "source": "panel 0\n\nnode blob : storage/blob/literal {\n    value = bytes(\"626f756e64656420636163686520666978747572650a\")\n    maximum_bytes = 64\n}\n\nnode put : storage/cache/put {\n    resource = secret(\"conduit.resource/storage-cache-example-put\")\n    grant = secret(\"conduit.grant/storage-cache-put\")\n    descriptor = ref(\"conduit.descriptor/storage-cache-example\")\n    run_epoch = 1\n    now_tick = 10\n    retention_ticks = 100\n    maximum_blob_bytes = 64\n    persistence = \"evictable\"\n    eviction = \"fifo\"\n    sensitivity = \"restricted\"\n    cancellation = \"discard\"\n}\n\nnode get : storage/cache/get {\n    resource = secret(\"conduit.resource/storage-cache-example-get\")\n    grant = secret(\"conduit.grant/storage-cache-get\")\n    descriptor = ref(\"conduit.descriptor/storage-cache-example\")\n    run_epoch = 1\n    now_tick = 11\n    maximum_blob_bytes = 64\n    integrity = \"sha256-before-yield\"\n    cancellation = \"discard\"\n}\n\ncord blob.blob -> put.blob { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord put.handle -> get.handle { capacity = 1 max_value_bytes = 66 max_queued_bytes = 66 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --enable-storage-cache examples/storage-cache.panel",
+      "commands": [
+        "conduct --enable-storage-cache --check examples/storage-cache.panel",
+        "conduct --enable-storage-cache examples/storage-cache.panel"
+      ],
+      "expected_display": "",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 130,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "evictable-cache-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "provider_state",
+          "availability_evidence",
+          "descriptor",
+          "resource",
+          "grant",
+          "handle_scope",
+          "content_identity",
+          "retention",
+          "eviction",
+          "queue",
+          "pressure",
+          "cancellation",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": ""
+      },
+      "hints": [
+        "The handle is an opaque reference scoped to this provider and run; get still needs its own active grant.",
+        "Best effort describes the provider class, while a fresh host observation describes current selectability. Neither promises future uptime.",
+        "A hit validates SHA-256 identity before bytes cross the output cord; miss, eviction, expiration, provider loss, and cancellation remain distinct outcomes."
+      ],
+      "solution": "Wire an explicitly bounded blob into put, pass only its opaque handle to get or remove, pin a fresh provider report and separate operation grants in the exact plan, and request evictable retention only.",
+      "accessibility": {
+        "non_audio": "An ordered text table names provider observation freshness, best-effort class, resource and grant, blob digest and byte count, opaque handle scope, queue pressure, retention, hit or miss, cancellation, error, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered cache story has focus.",
+        "color_independent": "Every state is duplicated by provider, handle, digest, bound, hit, miss, evicted, expired, cancelled, error, and terminal text."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Explicit typed cache nodes store bounded blobs through an optional best-effort provider without claiming durability.",
+        "what": "Blob literal produces bounded bytes; put stores them and returns an opaque handle; get checks identity before a hit; remove invalidates the referenced entry.",
+        "when": "Use this profile when recomputable large values may be retained locally for reuse and a miss or provider loss can be handled explicitly.",
+        "wrong": "Durable requirements, stale reports, insufficient capacity, oversized values, denied grants, refused sensitivity, digest mismatch, wrong provider or run handles, cancellation, eviction, expiration, and provider loss fail or report explicit outcomes with no hidden fallback.",
+        "contracts": [
+          {
+            "id": "storage/blob/literal",
+            "kind": "node",
+            "instance": "blob",
+            "outputs": ["blob:storage/blob"],
+            "descriptor_hash": "sha256:dd477b94c3e4982454f3c8f39e864140f8c4870ebc6616fe719ed9b06d330a96"
+          },
+          {
+            "id": "storage/cache/put",
+            "kind": "node",
+            "instance": "put",
+            "inputs": ["blob:storage/blob"],
+            "outputs": ["handle:storage/cache-handle", "result:storage/cache-put-result"],
+            "descriptor_hash": "sha256:1fa113a6bf3284dabe216d88410e4944648ab579e284a3d84b0dc603887bba16"
+          },
+          {
+            "id": "storage/cache/get",
+            "kind": "node",
+            "instance": "get",
+            "inputs": ["handle:storage/cache-handle"],
+            "outputs": ["blob:storage/blob", "result:storage/cache-get-result"],
+            "descriptor_hash": "sha256:6625d2c6eb24b2063276e49d5f2a2f10393d156c165ff99e6a541b298766bd96"
+          },
+          {
+            "id": "storage/cache/remove",
+            "kind": "node",
+            "instance": "remove",
+            "inputs": ["handle:storage/cache-handle"],
+            "outputs": ["result:storage/cache-remove-result"],
+            "descriptor_hash": "sha256:2be933ac09be137ae5f201cb1126cfc41b7a805c6d5860a80adc04a363244a41"
+          }
+        ],
+        "editable": [
+          "blob.value:0..64 bytes",
+          "put.retention_ticks:1..1024",
+          "put.sensitivity:public|restricted",
+          "get.now_tick:10..110"
+        ],
+        "provider": "explicit browser in-memory evictable cache provider through the ordinary exact host-service boundary",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "known contract, installed provider, fresh host observation, best-effort availability class, active operation grant, and resource binding",
+          "exact implementation, artifact, descriptor, provider epoch, run epoch, handle slot and generation, content digest and byte count",
+          "finite entry, byte, retention, pending-operation, queue, timer, cancellation, and evidence bounds",
+          "ordered put then integrity-checked hit, or explicit miss, eviction, expiration, remove, provider loss, cancellation, error, and terminal cause",
+          "protected resource and grant configuration remains redacted"
+        ],
+        "docs": [
+          "../../spec/062-evictable-blob-cache.md",
+          "../../examples/storage-cache.panel",
+          "../../conformance/c4/standard-catalog.json"
+        ],
+        "scenarios": [
+          {
+            "id": "put-get-composition",
+            "title": "Put then integrity-checked get",
+            "explanation": "Store one bounded blob, pass the opaque handle across a bounded cord, and verify its content identity before yielding a hit.",
+            "source": "panel 0\n\nnode blob : storage/blob/literal { value = bytes(\"626f756e64656420636163686520666978747572650a\") maximum_bytes = 64 }\nnode put : storage/cache/put { resource = secret(\"conduit.resource/storage-cache-example-put\") grant = secret(\"conduit.grant/storage-cache-put\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 10 retention_ticks = 100 maximum_blob_bytes = 64 persistence = \"evictable\" eviction = \"fifo\" sensitivity = \"restricted\" cancellation = \"discard\" }\nnode get : storage/cache/get { resource = secret(\"conduit.resource/storage-cache-example-get\") grant = secret(\"conduit.grant/storage-cache-get\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 11 maximum_blob_bytes = 64 integrity = \"sha256-before-yield\" cancellation = \"discard\" }\ncord blob.blob -> put.blob { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord put.handle -> get.handle { capacity = 1 max_value_bytes = 66 max_queued_bytes = 66 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {"kind": "display", "value": ""}
+          },
+          {
+            "id": "put-remove",
+            "title": "Put then explicit remove",
+            "explanation": "Invalidate one opaque handle under a separate remove grant; the handle itself never authorizes removal.",
+            "source": "panel 0\n\nnode blob : storage/blob/literal { value = bytes(\"72656d6f7665206d650a\") maximum_bytes = 64 }\nnode put : storage/cache/put { resource = secret(\"conduit.resource/storage-cache-example-put\") grant = secret(\"conduit.grant/storage-cache-put\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 10 retention_ticks = 100 maximum_blob_bytes = 64 persistence = \"evictable\" eviction = \"fifo\" sensitivity = \"public\" cancellation = \"discard\" }\nnode remove : storage/cache/remove { resource = secret(\"conduit.resource/storage-cache-example-remove\") grant = secret(\"conduit.grant/storage-cache-remove\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 cancellation = \"discard\" }\ncord blob.blob -> put.blob { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord put.handle -> remove.handle { capacity = 1 max_value_bytes = 66 max_queued_bytes = 66 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {"kind": "display", "value": ""}
+          },
+          {
+            "id": "durable-rejected",
+            "title": "Durability is not cacheability",
+            "explanation": "Changing the requirement to durable is rejected deterministically; an evictable provider is never relabeled or ranked into durable storage.",
+            "source": "panel 0\n\nnode blob : storage/blob/literal { value = bytes(\"64757261626c653f\") maximum_bytes = 64 }\nnode put : storage/cache/put { resource = secret(\"conduit.resource/storage-cache-example-put\") grant = secret(\"conduit.grant/storage-cache-put\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 10 retention_ticks = 100 maximum_blob_bytes = 64 persistence = \"durable\" eviction = \"fifo\" sensitivity = \"public\" cancellation = \"discard\" }\nnode remove : storage/cache/remove { resource = secret(\"conduit.resource/storage-cache-example-remove\") grant = secret(\"conduit.grant/storage-cache-remove\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 cancellation = \"discard\" }\ncord blob.blob -> put.blob { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord put.handle -> remove.handle { capacity = 1 max_value_bytes = 66 max_queued_bytes = 66 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {"kind": "diagnostic", "value": "CND-CACHE-012"}
+          },
+          {
+            "id": "wrong-resource",
+            "title": "Wrong resource or grant",
+            "explanation": "A handle cannot repair a missing resource binding or mint authority; admission fails before cache mutation.",
+            "source": "panel 0\n\nnode blob : storage/blob/literal { value = bytes(\"6e6f20616d6269656e74206361636865\") maximum_bytes = 64 }\nnode put : storage/cache/put { resource = secret(\"conduit.resource/not-installed\") grant = secret(\"conduit.grant/storage-cache-put\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 10 retention_ticks = 100 maximum_blob_bytes = 64 persistence = \"evictable\" eviction = \"fifo\" sensitivity = \"public\" cancellation = \"discard\" }\nnode remove : storage/cache/remove { resource = secret(\"conduit.resource/storage-cache-example-remove\") grant = secret(\"conduit.grant/storage-cache-remove\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 cancellation = \"discard\" }\ncord blob.blob -> put.blob { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord put.handle -> remove.handle { capacity = 1 max_value_bytes = 66 max_queued_bytes = 66 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {"kind": "diagnostic", "value": "CND-CACHE-012"}
+          },
+          {
+            "id": "cancelled",
+            "title": "Cancelled before first operation",
+            "explanation": "Cancellation discards the pending cache operation and yields no handle, cached value, or hidden background work.",
+            "source": "panel 0\n\nnode blob : storage/blob/literal { value = bytes(\"63616e63656c\") maximum_bytes = 64 }\nnode put : storage/cache/put { resource = secret(\"conduit.resource/storage-cache-example-put\") grant = secret(\"conduit.grant/storage-cache-put\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 10 retention_ticks = 100 maximum_blob_bytes = 64 persistence = \"evictable\" eviction = \"fifo\" sensitivity = \"public\" cancellation = \"discard\" }\nnode get : storage/cache/get { resource = secret(\"conduit.resource/storage-cache-example-get\") grant = secret(\"conduit.grant/storage-cache-get\") descriptor = ref(\"conduit.descriptor/storage-cache-example\") run_epoch = 1 now_tick = 11 maximum_blob_bytes = 64 integrity = \"sha256-before-yield\" cancellation = \"discard\" }\ncord blob.blob -> put.blob { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord put.handle -> get.handle { capacity = 1 max_value_bytes = 66 max_queued_bytes = 66 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "cancel-before-first-step",
+            "validation": {"kind": "terminal", "value": "cancelled"}
+          }
+        ]
+      }
+    },
+    {
       "id": "welcome.hello-panel",
       "chapter": 0,
       "title": "Hello, panel",

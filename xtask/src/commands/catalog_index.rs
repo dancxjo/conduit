@@ -288,6 +288,13 @@ fn lesson(id: &str, composition: bool) -> Lesson {
         ("fs/chunk/literal" | "fs/read" | "fs/write" | "fs/watch", _) => {
             Some("library.bounded-filesystem")
         }
+        (
+            "storage/blob/literal"
+            | "storage/cache/put"
+            | "storage/cache/get"
+            | "storage/cache/remove",
+            _,
+        ) => Some("library.evictable-storage-cache"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };

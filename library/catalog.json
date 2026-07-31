@@ -82,7 +82,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -171,7 +171,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -281,7 +281,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -370,7 +370,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -474,7 +474,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -832,7 +832,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1467,7 +1467,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1971,7 +1971,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2588,7 +2588,7 @@
         {
           "implementation": "conduit/hosted-file-chunk-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2991,7 +2991,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3043,7 +3043,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3095,7 +3095,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5176,7 +5176,7 @@
         {
           "implementation": "conduit/hosted-state-cache",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5325,7 +5325,7 @@
         {
           "implementation": "conduit/hosted-state-cell",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5615,7 +5615,7 @@
         {
           "implementation": "conduit/hosted-state-deduplicate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5903,7 +5903,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6007,7 +6007,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6105,7 +6105,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6209,7 +6209,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6334,7 +6334,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6498,7 +6498,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6557,7 +6557,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6686,7 +6686,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6745,7 +6745,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6827,7 +6827,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6925,7 +6925,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7005,7 +7005,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7025,73 +7025,40 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "storage/blob/read",
-      "public_source_spelling": "storage/blob/read",
+      "semantic_identity": "storage/blob/literal",
+      "public_source_spelling": "storage/blob/literal",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.storage",
       "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
-      "export_path": "conduit.host.storage/storage/blob/read",
+      "export_path": "conduit.host.storage/storage/blob/literal",
       "schema_version": 0,
-      "semantic_hash": "sha256:4a2971c3d83ecb5897a98847ed09a23c0b8df467e9cf9002d664b740eb40a646",
+      "semantic_hash": "sha256:dd477b94c3e4982454f3c8f39e864140f8c4870ebc6616fe719ed9b06d330a96",
       "ports": [
-        {
-          "id": "reference",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only"
-        },
         {
           "id": "blob",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "storage/blob",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+          "type_hash": "sha256:60ad4d01a7bf42c7ce16c0d422769719477f20234768eb48fa23547b085e313f",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "zero-or-more",
+          "values": "exactly-one",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "finite",
           "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "value",
+          "value_type": "std/bytes",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_response_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_pending",
+          "key": "maximum_bytes",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
@@ -7105,212 +7072,123 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.storage/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.blob.read.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.blob.read.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "storage/blob/store",
-      "public_source_spelling": "storage/blob/store",
+      "semantic_identity": "storage/cache/get",
+      "public_source_spelling": "storage/cache/get",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.storage",
       "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
-      "export_path": "conduit.host.storage/storage/blob/store",
+      "export_path": "conduit.host.storage/storage/cache/get",
       "schema_version": 0,
-      "semantic_hash": "sha256:9e158720efe8ae8479624c0fdb4d7e552c9935b2ef9d584db6fcdbeb30d7740b",
+      "semantic_hash": "sha256:6625d2c6eb24b2063276e49d5f2a2f10393d156c165ff99e6a541b298766bd96",
       "ports": [
         {
-          "id": "blob",
+          "id": "handle",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "storage/cache-handle",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:dc3b4514b0d9cd0efc02bdfda531390becdfff5e09dc59b623743960ff57414b",
           "presence": "required",
           "connections": "exactly-one",
           "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
-          "loss": "lossless-only"
-        },
-        {
-          "id": "reference",
-          "direction": "output",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
-          "loss": "lossless-only"
-        }
-      ],
-      "config": [],
-      "catalog_membership": "host-registry",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.host.storage/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.blob.store.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.blob.store.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "storage/blob/write",
-      "public_source_spelling": "storage/blob/write",
-      "classification": "optional-host-boundary",
-      "package_owner": "conduit.host.storage",
-      "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
-      "export_path": "conduit.host.storage/storage/blob/write",
-      "schema_version": 0,
-      "semantic_hash": "sha256:b6f2bf4ea8e023906601249cb691b094c1e05721b8cd9a7239408e5465551914",
-      "ports": [
-        {
-          "id": "blob",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "finite",
           "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
-          "id": "reference",
+          "id": "blob",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "storage/blob",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
+          "type_hash": "sha256:60ad4d01a7bf42c7ce16c0d422769719477f20234768eb48fa23547b085e313f",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "exactly-one",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only"
-        }
-      ],
-      "config": [
-        {
-          "key": "resource",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_response_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_pending",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.host.storage/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.blob.write.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.blob.write.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "storage/key-value",
-      "public_source_spelling": "storage/key-value",
-      "classification": "optional-host-boundary",
-      "package_owner": "conduit.host.storage",
-      "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
-      "export_path": "conduit.host.storage/storage/key-value",
-      "schema_version": 0,
-      "semantic_hash": "sha256:77ca187f60fc9ada96893cb4d5bf5224a8004671ecced4c56c3cd3882afb631a",
-      "ports": [
-        {
-          "id": "operation",
-          "direction": "input",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
           "id": "result",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "storage/cache-get-result",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
+          "type_hash": "sha256:a91221a6e134eff0a75e81c4fdd508e44537f6c831a9dfb0fca83579e616cbbe",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
+          "delivery": "stream",
+          "temporal": "committed",
           "terminal": "finite",
-          "sensitivity": "public",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "resource",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "grant",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "descriptor",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "run_epoch",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "now_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_blob_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "integrity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "cancellation",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
       "catalog_membership": "portable-catalog",
       "compiler_exported": false,
       "known_provider_bundles": [],
@@ -7319,12 +7197,247 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.storage/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.key-value.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.storage.key-value.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "storage/cache/put",
+      "public_source_spelling": "storage/cache/put",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.storage",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
+      "export_path": "conduit.host.storage/storage/cache/put",
+      "schema_version": 0,
+      "semantic_hash": "sha256:1fa113a6bf3284dabe216d88410e4944648ab579e284a3d84b0dc603887bba16",
+      "ports": [
+        {
+          "id": "blob",
+          "direction": "input",
+          "value_type": "storage/blob",
+          "type_schema_version": 0,
+          "type_hash": "sha256:60ad4d01a7bf42c7ce16c0d422769719477f20234768eb48fa23547b085e313f",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "handle",
+          "direction": "output",
+          "value_type": "storage/cache-handle",
+          "type_schema_version": 0,
+          "type_hash": "sha256:dc3b4514b0d9cd0efc02bdfda531390becdfff5e09dc59b623743960ff57414b",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "result",
+          "direction": "output",
+          "value_type": "storage/cache-put-result",
+          "type_schema_version": 0,
+          "type_hash": "sha256:19adbecb9ef33ca1fad5c1fc1dc5c2265f020c73a3c8b9af7a1f6a7cb7ce7900",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "resource",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "grant",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "descriptor",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "run_epoch",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "now_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "retention_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_blob_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "persistence",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "eviction",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "sensitivity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "cancellation",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.storage/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "storage/cache/remove",
+      "public_source_spelling": "storage/cache/remove",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.storage",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
+      "export_path": "conduit.host.storage/storage/cache/remove",
+      "schema_version": 0,
+      "semantic_hash": "sha256:2be933ac09be137ae5f201cb1126cfc41b7a805c6d5860a80adc04a363244a41",
+      "ports": [
+        {
+          "id": "handle",
+          "direction": "input",
+          "value_type": "storage/cache-handle",
+          "type_schema_version": 0,
+          "type_hash": "sha256:dc3b4514b0d9cd0efc02bdfda531390becdfff5e09dc59b623743960ff57414b",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "result",
+          "direction": "output",
+          "value_type": "storage/cache-remove-result",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e480551e38c300181be7a50e9e26dfdaf8842b719e8cf9c7de4933eac5d4719a",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "resource",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "grant",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "descriptor",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "run_epoch",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cancellation",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.storage/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.evictable-storage-cache",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -7490,7 +7603,7 @@
         {
           "implementation": "conduit/hosted-supervision-circuit-breaker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7861,7 +7974,7 @@
         {
           "implementation": "conduit/hosted-supervision-retry",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8433,7 +8546,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8721,7 +8834,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8837,7 +8950,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9125,7 +9238,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9312,7 +9425,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+          "artifact_digest": "sha256:652bce5a809bb6e562011cb3c68c2b8f3e5445f8ec2383d488953e876bc07a4e"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
