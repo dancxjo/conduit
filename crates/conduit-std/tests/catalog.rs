@@ -149,6 +149,72 @@ fn application_socket_catalog_has_only_the_four_exact_current_operations() {
 }
 
 #[test]
+fn application_socket_fixture_matrix_covers_transport_and_authority_boundaries() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/c4/application-sockets.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema"], "conduit.application-socket-conformance");
+    let contracts = fixture["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.host/net/tcp/connect",
+            "conduit.host/net/tcp/listen",
+            "conduit.host/net/udp/connected",
+            "conduit.host/net/udp/datagram",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let cases = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "tcp-connect",
+        "tcp-listen-accept",
+        "tcp-partial-read-write",
+        "tcp-half-close-eof",
+        "tcp-accept-limit",
+        "tcp-refused",
+        "tcp-reset",
+        "tcp-timeout",
+        "udp-connected-boundary",
+        "udp-unconnected-address",
+        "udp-oversized",
+        "udp-loss",
+        "udp-duplicate",
+        "udp-reorder",
+        "target-denied",
+        "bind-denied",
+        "stale-topology",
+        "cancel-before-commit",
+        "cancel-after-commit",
+        "buffer-exhaustion",
+        "provider-loss",
+        "linux-loopback-equivalence",
+        "dns-absent",
+        "firewall-non-claim",
+        "public-reachability-non-claim",
+        "required-tls",
+        "constrained-host",
+    ] {
+        assert!(
+            cases.contains(required),
+            "missing socket fixture {required}"
+        );
+    }
+}
+
+#[test]
 fn standard_nodes_use_the_one_canonical_identity_selected_for_each_contract() {
     let restored_flat_identities = [
         "conduit.std/tee",

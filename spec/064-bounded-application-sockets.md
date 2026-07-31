@@ -72,6 +72,13 @@ mutation, or reachability claims. A browser or constrained host that lacks an
 exact implementation reports unsupported; it does not substitute a teaching
 simulation or an ambient network API.
 
+The checked
+[`application-sockets.json`](../conformance/c4/application-sockets.json)
+manifest names the required positive, pressure, authority, cancellation,
+terminal, non-claim, hosted-equivalence, and unsupported cases. Evidence is
+normalized without retaining operating-system socket objects or ephemeral port
+numbers.
+
 HTTP servers, HTTP clients, DNS, and distributed cords may consume these
 boundaries through their own typed semantic contracts. They must not duplicate
 or erase the raw transport semantics.

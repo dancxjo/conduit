@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.application-socket-conformance",
+  "schema_version": 0,
+  "contracts": [
+    "conduit.host/net/tcp/connect",
+    "conduit.host/net/tcp/listen",
+    "conduit.host/net/udp/connected",
+    "conduit.host/net/udp/datagram"
+  ],
+  "providers": ["deterministic", "linux-loopback"],
+  "cases": [
+    {"id": "tcp-connect", "transport": "tcp", "expected": "completed"},
+    {"id": "tcp-listen-accept", "transport": "tcp", "expected": "completed"},
+    {"id": "tcp-partial-read-write", "transport": "tcp", "expected": "ordered-stream"},
+    {"id": "tcp-half-close-eof", "transport": "tcp", "expected": "half-close-then-eof"},
+    {"id": "tcp-accept-limit", "transport": "tcp", "expected": "rejected"},
+    {"id": "tcp-refused", "transport": "tcp", "expected": "refused"},
+    {"id": "tcp-reset", "transport": "tcp", "expected": "reset"},
+    {"id": "tcp-timeout", "transport": "tcp", "expected": "timed-out"},
+    {"id": "udp-connected-boundary", "transport": "udp", "expected": "one-datagram"},
+    {"id": "udp-unconnected-address", "transport": "udp", "expected": "explicit-address"},
+    {"id": "udp-oversized", "transport": "udp", "expected": "datagram-oversized"},
+    {"id": "udp-loss", "transport": "udp", "expected": "loss-observed"},
+    {"id": "udp-duplicate", "transport": "udp", "expected": "duplicate-observed"},
+    {"id": "udp-reorder", "transport": "udp", "expected": "reorder-observed"},
+    {"id": "target-denied", "transport": "all", "expected": "pre-effect-rejection"},
+    {"id": "bind-denied", "transport": "all", "expected": "pre-effect-rejection"},
+    {"id": "stale-topology", "transport": "all", "expected": "pre-effect-rejection"},
+    {"id": "cancel-before-commit", "transport": "all", "expected": "cancelled"},
+    {"id": "cancel-after-commit", "transport": "all", "expected": "cleanup-complete"},
+    {"id": "buffer-exhaustion", "transport": "all", "expected": "overflow"},
+    {"id": "provider-loss", "transport": "all", "expected": "provider-lost"},
+    {"id": "linux-loopback-equivalence", "transport": "all", "expected": "normalized-equivalent"},
+    {"id": "dns-absent", "transport": "all", "expected": "no-resolution"},
+    {"id": "firewall-non-claim", "transport": "all", "expected": "no-mutation"},
+    {"id": "public-reachability-non-claim", "transport": "all", "expected": "not-claimed"},
+    {"id": "required-tls", "transport": "all", "expected": "unsupported-not-plaintext"},
+    {"id": "constrained-host", "transport": "all", "expected": "unsupported"}
+  ],
+  "normalization": [
+    "contract",
+    "operation",
+    "session",
+    "sequence",
+    "bytes",
+    "messages",
+    "pressure",
+    "terminal",
+    "cleanup"
+  ]
+}
