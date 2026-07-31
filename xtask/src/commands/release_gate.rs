@@ -62,6 +62,20 @@ fn digest(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }
 
+fn is_executable_proof(proof: &str) -> bool {
+    [
+        "canonical-run",
+        "canonical-http-loopback",
+        "canonical-file-read",
+        "canonical-file-write",
+        "canonical-file-watch",
+        "canonical-storage-cache",
+        "canonical-process-exec",
+        "canonical-socket-loopback",
+    ]
+    .contains(&proof)
+}
+
 fn load_claims(workspace_root: &Path) -> Result<(Claims, Vec<u8>), Box<dyn std::error::Error>> {
     let bytes = fs::read(workspace_root.join(CLAIMS_PATH))?;
     let claims = serde_json::from_slice(&bytes)?;
@@ -175,18 +189,7 @@ fn validate(
     }
 
     for entry in &runnability.entries {
-        if entry.state == "runnable"
-            && ![
-                "canonical-run",
-                "canonical-http-loopback",
-                "canonical-file-read",
-                "canonical-file-write",
-                "canonical-file-watch",
-                "canonical-storage-cache",
-                "canonical-process-exec",
-            ]
-            .contains(&entry.proof.as_str())
-        {
+        if entry.state == "runnable" && !is_executable_proof(&entry.proof) {
             return Err(format!(
                 "runnable example `{}` has no executable proof",
                 entry.path
@@ -356,15 +359,12 @@ mod tests {
             state: "runnable".to_owned(),
             proof: "canonical-check-rejection".to_owned(),
         };
-        assert!(
-            entry.state == "runnable"
-                && ![
-                    "canonical-run",
-                    "canonical-http-loopback",
-                    "canonical-storage-cache",
-                ]
-                .contains(&entry.proof.as_str())
-        );
+        assert!(entry.state == "runnable" && !is_executable_proof(&entry.proof));
+    }
+
+    #[test]
+    fn socket_loopback_is_an_executable_proof() {
+        assert!(is_executable_proof("canonical-socket-loopback"));
     }
 
     #[test]
