@@ -15,8 +15,13 @@ use conduit_http::{
     HttpServiceLimits, HttpServingAuthority, HttpServingBackend, HttpServingCapabilities,
     HttpTransition, InMemoryHttpServingBackend, LinuxHttpServingBackend, ResolvedHttpSelection,
     ResolvedHttpService, SERVE_COMPOSITE_BOUNDARY, SecretFileHandle, SessionKind, TrustedProxy,
-    ViewProjectionBinding, match_route, resolve_asset, validate_certificate_window,
-    validate_http_selection, validate_http_transition, validate_view_projection,
+    ViewProjectionBinding,
+    client::{
+        ClientBinding, ClientRequest, ClientScheme, ClientTerminal, ClientTrustHandle,
+        NumericEndpoint, RedirectPolicy, run_linux_client,
+    },
+    match_route, resolve_asset, validate_certificate_window, validate_http_selection,
+    validate_http_transition, validate_view_projection,
 };
 use conduit_runtime::{ResolvedPlacementBinding, ResolvedReplacementSupport};
 use rcgen::generate_simple_self_signed;
@@ -1130,4 +1135,92 @@ fn evidence_distinguishes_transport_security_from_conduit_authority() {
             .all(|event| event.service_identity
                 == service(HttpSecurityMode::TrustedProxyTls).identity)
     );
+}
+
+#[test]
+fn bounded_linux_client_performs_real_tls_and_verifies_hostname() {
+    let directory = tempdir().unwrap();
+    let certified = generate_simple_self_signed(vec!["localhost".to_owned()]).unwrap();
+    let certificate_path = directory.path().join("certificate.pem");
+    let key_path = directory.path().join("key.pem");
+    std::fs::write(&certificate_path, certified.cert.pem()).unwrap();
+    std::fs::write(&key_path, certified.signing_key.serialize_pem()).unwrap();
+
+    let service = linux_service(HttpSecurityMode::DirectTls);
+    let mut offered = capabilities(HttpSecurityMode::DirectTls);
+    offered.complete_stack_hard_bounded = false;
+    let mut backend = LinuxHttpServingBackend::new(
+        offered,
+        Some(DirectTlsSecretHandles {
+            certificate_chain: SecretFileHandle::new(certificate_path.clone()),
+            private_key: SecretFileHandle::new(key_path),
+        }),
+    )
+    .unwrap();
+    backend.bind(&service, authority()).unwrap();
+    let address = backend.local_addr().unwrap();
+
+    let client = thread::spawn(move || {
+        let std::net::SocketAddr::V4(address) = address else {
+            panic!("fixture binds IPv4");
+        };
+        let binding = ClientBinding {
+            endpoint: NumericEndpoint {
+                address: address.ip().to_ipv6_mapped().octets(),
+                port: address.port(),
+            },
+            authority: "localhost",
+            network_resource: "conduit.resource/http-loopback",
+            outbound_grant: "conduit.grant/http-loopback-request",
+            tls_policy: "conduit.http/direct-tls",
+            trust_handle: Some("secret/trust"),
+            client_certificate_handle: None,
+            client_private_key_handle: None,
+            proxy_resource: None,
+            dns_observation_fresh: true,
+            provider_observation_fresh: true,
+            destination_allowed: true,
+            limits: conduit_http::client::ClientLimits::checked_fixture(),
+        };
+        let request = ClientRequest {
+            method: HttpMethod::Get,
+            scheme: ClientScheme::Https,
+            authority: "localhost",
+            target: "/secure",
+            headers: &[],
+            body: &[],
+            redirects: RedirectPolicy::Return,
+        };
+        let trust = ClientTrustHandle::new(certificate_path);
+        let mut body = [0_u8; 16];
+        let mut evidence = [None; 16];
+        let result = run_linux_client(binding, request, Some(&trust), &mut body, &mut evidence);
+        (result, body)
+    });
+
+    let connection = poll_until(|| backend.poll_accept()).unwrap();
+    let request = match poll_until(|| backend.poll_exchange(connection)).unwrap() {
+        HttpExchangeEvent::Request(request) => request,
+        other => panic!("unexpected event {other:?}"),
+    };
+    assert!(request.security.encrypted);
+    poll_until(|| {
+        backend.poll_send(
+            connection,
+            &HttpResponsePart {
+                exchange: request.exchange,
+                status: 200,
+                headers: vec![],
+                body: b"secure".to_vec(),
+                terminal: true,
+            },
+        )
+    })
+    .unwrap();
+    backend.close(connection).unwrap();
+
+    let (result, body) = client.join().unwrap();
+    assert_eq!(result.terminal, ClientTerminal::Completed);
+    assert_eq!(result.status, Some(200));
+    assert_eq!(&body[..result.response_bytes], b"secure");
 }

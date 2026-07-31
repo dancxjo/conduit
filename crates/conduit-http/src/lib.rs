@@ -2500,6 +2500,27 @@ fn validate_http_fetch_config(node: &conduit_panel::Node) -> Result<(), Resoluti
             message: "HTTP client TLS policy is invalid".to_owned(),
         });
     }
+    for key in [
+        "trust_handle",
+        "client_certificate_handle",
+        "client_private_key_handle",
+        "proxy_resource",
+    ] {
+        if node.config_value(key).is_some() && optional_secret_config(node, key).is_none() {
+            return Err(ResolutionError {
+                code: "CND-SRC-002",
+                message: format!("HTTP client `{key}` must be a protected reference"),
+            });
+        }
+    }
+    if optional_secret_config(node, "client_certificate_handle").is_some()
+        != optional_secret_config(node, "client_private_key_handle").is_some()
+    {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-016",
+            message: "HTTP client certificate and private-key handles must be paired".to_owned(),
+        });
+    }
     if required_resolution_config(node, "cancellation")? != "abort-and-cleanup" {
         return Err(ResolutionError {
             code: "CND-HTTP-CL-012",
