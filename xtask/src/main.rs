@@ -77,6 +77,8 @@ enum Commands {
         #[arg(long)]
         output: Option<PathBuf>,
     },
+    /// Verify that only one unreleased Conduit-owned draft remains
+    PreReleaseVersionGate,
     /// Run complete workspace check suite (formatting, clippy, tests, gates, boundaries)
     CheckAll,
 }
@@ -148,6 +150,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::ReleaseGate { check, output } => {
             commands::release_gate::run(&root, check, output.as_deref())
         }
+        Commands::PreReleaseVersionGate => commands::pre_release_version_gate::run(&root),
         Commands::CheckAll => commands::check_all::run(&root),
     }
 }

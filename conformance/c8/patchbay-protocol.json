@@ -1,0 +1,23 @@
+{
+  "suite": "conduit.patchbay-protocol",
+  "cases": [
+    {"id":"move-only-preserves-semantic-identity","expected":{"source_unchanged":true,"presentation_changed":true}},
+    {"id":"source-edit-creates-new-semantic-revision","expected":{"source_changed":true,"semantic_changed":true}},
+    {"id":"stale-edit-is-atomic-conflict","expected":{"accepted":false,"code":"CND-PBY-003"}},
+    {"id":"invalid-source-is-atomic-diagnostic","expected":{"accepted":false,"code":"CND-PBY-004"}},
+    {"id":"run-remains-pinned-while-source-changes","expected":{"run_plan_unchanged":true}},
+    {"id":"logical-and-expanded-subjects-are-distinct","expected":{"logical_expanded_distinct":true}},
+    {"id":"projection-gap-requires-resync","expected":{"gap_explicit":true}},
+    {"id":"protocol-version-mismatch-fails-closed","expected":{"accepted":false,"code":"CND-PBY-001"}},
+    {"id":"persistent-session-rejects-stale-concurrent-revision","expected":{"accepted":false,"code":"CND-PBY-003","state_unchanged":true}},
+    {"id":"typed-connect-validates-through-resolver","expected":{"accepted":true,"compatibility_proof":true,"candidate_revision":true}},
+    {"id":"incompatible-connection-is-atomic","expected":{"accepted":false,"code":"CND-PBY-010","state_unchanged":true}},
+    {"id":"hidden-composite-port-is-inaccessible","expected":{"accepted":false,"code":"CND-PBY-005"}},
+    {"id":"invalid-config-span-is-atomic","expected":{"accepted":false,"code":"CND-PBY-012","state_unchanged":true}},
+    {"id":"projection-truncation-is-explicit","expected":{"truncated":true,"maximum_nodes":1024}},
+    {"id":"renderer-failure-preserves-headless-control","expected":{"authoring_available":true,"execution_available":true}},
+    {"id":"direct-active-plan-mutation-is-not-a-protocol-operation","expected":{"accepted":false,"code":"CND-PBY-012"}},
+    {"id":"candidate-plan-does-not-mutate-active-run","expected":{"candidate_plan_identity":true,"active_plan_unchanged":true}},
+    {"id":"authoritative-view-has-no-browser-inference","expected":{"rust_projection":true,"fake_activity_absent":true,"hard_coded_placement_absent":true}}
+  ]
+}

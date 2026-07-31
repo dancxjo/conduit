@@ -3,7 +3,7 @@
 This cookbook shows bounded source shapes for the `conduit-std` catalog. A
 recipe is runnable only when its state below says so; a published contract is
 not an installed provider. The checked-in inventory
-[`examples/runnability-v1.json`](../examples/runnability-v1.json) is the
+[`examples/runnability.json`](../examples/runnability.json) is the
 executable authority for example files.
 
 ---
@@ -57,7 +57,7 @@ placeholders, unsupported kinds, and output overflow terminate with exact
 `format/...` codes during execution.
 
 ```panel
-panel 3
+panel 0
 
 node template : std/literal {
     value = "{worker} processed {count} records; payload = {{ok}}.\n"
@@ -77,8 +77,8 @@ cord message.text -> sink.text { capacity = 1 max_value_bytes = 16384 max_queued
 ```
 
 The exact grammar, type descriptors, wire representation, limits, normalized
-terminal codes, migration rule, and conformance fixture are frozen in
-[specification 054](../spec/054-text-format-v1.md).
+terminal codes, migration rule, and conformance fixture are current in
+[specification 054](../spec/054-text-format.md).
 
 ### Lines and finite join
 
@@ -92,7 +92,7 @@ bounds; neither performs Unicode normalization or locale-sensitive work.
 
 See the checked [`lines → join`](../examples/text-lines-join.panel) and
 [`format → lines`](../examples/format-lines.panel) compositions and
-[specification 060](../spec/060-text-lines-join-v1.md).
+[specification 060](../spec/060-text-lines-join.md).
 
 ## 2. Structural & Flow Control Nodes
 
@@ -167,7 +167,7 @@ demonstrates why the nodes are separate ordinary graph boundaries.
 
 State: **contract-only**; counter and cell providers are not installed.
 ```panel
-panel 3
+panel 0
 
 node tick_gen : state/counter
 node state_cell : state/cell { initial = "STATE_IDLE" }
@@ -181,7 +181,7 @@ cord state_cell.current -> display.text { capacity = 4 max_value_bytes = 256 max
 
 State: **contract-only**; stdin and deduplication providers are not installed.
 ```panel
-panel 3
+panel 0
 
 node raw_events : io/stdin
 node dedup : state/deduplicate
@@ -200,7 +200,7 @@ cord dedup.unique -> sink.bytes { capacity = 16 max_value_bytes = 4096 max_queue
 State: **contract-only**; breaker, timing, and HTTP client providers are not
 installed.
 ```panel
-panel 3
+panel 0
 
 node request_src : std/literal { value = "query" }
 node breaker : supervision/circuit-breaker
@@ -221,7 +221,7 @@ cord backoff_retry.ready -> client.request { capacity = 8 max_value_bytes = 2048
 State: **contract-only** on a device profile; no device capability, permission,
 grant, or Wi-Fi provider is implied.
 ```panel
-panel 3
+panel 0
 
 node sta : net/wifi/join { ssid = "OfficeNet" }
 node status_logger : observe/log
@@ -234,7 +234,7 @@ cord sta.state -> status_logger.message { capacity = 4 max_value_bytes = 1024 ma
 State: **contract-only** on a device profile; no GPIO provider or actuation
 grant is implied.
 ```panel
-panel 3
+panel 0
 
 node button : device/gpio/pin { pin = 4 mode = "read" }
 node led : device/gpio/pin { pin = 13 mode = "write" }

@@ -14,7 +14,7 @@ impl TypeContractProvider for FixtureProvider {
     fn provider_descriptor(&self) -> DescriptorRef<'static> {
         DescriptorRef {
             kind: Id("fixture/type-provider"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([0x91; 32]),
         }
     }
@@ -68,7 +68,7 @@ impl TypeContractProvider for FixtureProvider {
         {
             return ProviderTypeDecision {
                 outcome: CompatibilityOutcome::Compatible,
-                rule: Id("fixture/accepts-v1"),
+                rule: Id("fixture/accepts"),
             };
         }
         if consumer.contract_id == Id("fixture/audio.pcm")
@@ -159,7 +159,7 @@ fn type_compatibility_matches_frozen_vectors() {
     let mut registry = TypeRegistry::default();
     registry.register(FixtureProvider).unwrap();
 
-    let fixtures = include_str!("../../../conformance/c2/type-contract-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c2/type-contract.tsv");
     for line in fixtures.lines().filter(|line| !line.starts_with('#')) {
         let columns = line.split('\t').collect::<Vec<_>>();
         assert_eq!(columns.len(), 14, "invalid fixture row: {line}");
@@ -229,7 +229,7 @@ fn satisfaction_report_retains_provider_rule_and_bilateral_facets() {
     assert_eq!(report.decision.outcome, CompatibilityOutcome::Compatible);
     assert_eq!(
         report.provider_rule,
-        Some(Id("conduit/structural-projection-v1"))
+        Some(Id("conduit/structural-projection"))
     );
     assert_eq!(
         report.consumer_provider,
@@ -271,7 +271,7 @@ fn registration_rejects_invalid_and_duplicate_namespaces() {
         fn provider_descriptor(&self) -> DescriptorRef<'static> {
             DescriptorRef {
                 kind: Id("fixture/named-provider"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: SemanticHash::from_bytes([0x92; 32]),
             }
         }

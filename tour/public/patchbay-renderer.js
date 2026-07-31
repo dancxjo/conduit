@@ -126,7 +126,10 @@ export class PatchbayReactFlowRenderer {
         this.legacySmartEdge = legacy.PatchbaySmartEdge || null;
         this.renderFlow();
       });
+      return;
     }
+
+    this.renderFlow();
   }
 
   setViewModel(viewModel, lessonId = "default") {
@@ -190,6 +193,9 @@ export class PatchbayReactFlowRenderer {
     if (!window.React || !window.ReactDOM || !window.ReactFlow) {
       this.container.innerHTML =
         '<div class="card-subtitle error-text">React Flow libraries unavailable.</div>';
+      return;
+    }
+    if (patchbayFeatures.legacyLinePlacement && !this.legacySmartEdge) {
       return;
     }
 
@@ -402,7 +408,7 @@ export class PatchbayReactFlowRenderer {
     );
 
     this.flowWrapper.dataset.renderer = "react-flow";
-    this.flowWrapper.dataset.projection = "rust-authoritative-v1";
+    this.flowWrapper.dataset.projection = "rust-authoritative";
     this.flowWrapper.dataset.legacyLinePlacement = String(
       patchbayFeatures.legacyLinePlacement,
     );

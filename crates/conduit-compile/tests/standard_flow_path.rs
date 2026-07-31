@@ -28,7 +28,7 @@ fn exact_report(
         let profile = node.execution_profile.expect("flow provider has a profile");
         assert_eq!(
             profile.id.as_str(),
-            "conduit/hosted-structural-flow-profile-v1"
+            "conduit/hosted-structural-flow-profile"
         );
         assert_eq!(profile.limits.max_input_leases, 2);
         assert_eq!(profile.limits.max_output_reservations, 2);
@@ -187,7 +187,7 @@ fn unsupported_flow_profiles_fail_during_resolution() {
         ("conduit.std/gate", r#"retained = "unbounded""#),
         ("conduit.std/select", r#"inactive = "drop""#),
     ] {
-        let source = format!("panel 3\nnode invalid : {kind} {{ {config} }}\n");
+        let source = format!("panel 0\nnode invalid : {kind} {{ {config} }}\n");
         let error = Registry::hosted_primitives()
             .resolve(&conduit_panel::parse(&source).unwrap())
             .unwrap_err();
@@ -295,7 +295,7 @@ fn every_standard_flow_node_cancels_before_work_with_bounded_evidence() {
 #[test]
 fn merge_round_robin_survives_capacity_one_pressure_and_repeats_deterministically() {
     let source = r#"
-panel 3
+panel 0
 node left_chunks : std/literal { value = "a1\na2\n" }
 node right_chunks : std/literal { value = "b1\nb2\n" }
 node left_lines : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
@@ -327,7 +327,7 @@ fn tee_modes_preserve_all_values_across_uneven_capacity_one_branches() {
     for mode in ["coupled", "isolated"] {
         let source = format!(
             r#"
-panel 3
+panel 0
 node chunks : std/literal {{ value = "a\nb\nc\n" }}
 node lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }}
 node split : conduit.std/tee {{ mode = "{mode}" }}
@@ -365,7 +365,7 @@ cord right_encoded.bytes -> right_sink.bytes {{ capacity = 1 max_value_bytes = 1
 #[test]
 fn gate_and_select_apply_control_before_data_without_hidden_loss() {
     let gate = r#"
-panel 3
+panel 0
 node data_chunks : std/literal { value = "d1\nd2\n" }
 node command_chunks : std/literal { value = "open\nclosed\nopen\n" }
 node data : std/text/lines { maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }
@@ -388,7 +388,7 @@ cord encoded.bytes -> sink.bytes { capacity = 1 max_value_bytes = 128 max_queued
     );
 
     let select = r#"
-panel 3
+panel 0
 node left_chunks : std/literal { value = "l1\nl2\n" }
 node right_chunks : std/literal { value = "r1\n" }
 node command_chunks : std/literal { value = "right\nleft\n" }
@@ -420,7 +420,7 @@ fn zip_has_explicit_uneven_terminal_policies() {
     let source = |policy: &str| {
         format!(
             r#"
-panel 3
+panel 0
 node left_chunks : std/literal {{ value = "l1\nl2\nl3\n" }}
 node right_chunks : std/literal {{ value = "r1\nr2\n" }}
 node left_lines : std/text/lines {{ maximum_line_bytes = 16 maximum_retained_prefix_bytes = 16 }}

@@ -16,7 +16,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn descriptor(kind: &'static str, byte: u8) -> DescriptorRef<'static> {
     DescriptorRef {
         kind: Id(kind),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -98,13 +98,13 @@ fn proof_with<'a>(
     let provider = SatisfactionPin {
         descriptor: DescriptorRef {
             kind: Id("fixture/provider"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(9),
         },
     };
     let provider_available = reason != SatisfactionReason::ProviderUnavailable;
     let mut proof = SatisfactionProof {
-        schema_version: 1,
+        schema_version: 0,
         identity: hash(0),
         role,
         method: SatisfactionMethod::StructuralFacets,
@@ -148,9 +148,9 @@ fn accepted_proof<'a>(
 
 #[test]
 fn required_fixture_inventory_is_frozen() {
-    let fixture = include_str!("../../../conformance/c2/implicit-satisfaction-v1.json");
+    let fixture = include_str!("../../../conformance/c2/implicit-satisfaction.json");
     let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
-    assert_eq!(value["suite"], "conduit.implicit-satisfaction/v1");
+    assert_eq!(value["suite"], "conduit.implicit-satisfaction");
     assert_eq!(value["cases"].as_array().unwrap().len(), 24);
     for required in [
         "directional-structural-port-success",
@@ -222,7 +222,7 @@ fn structural_port_proof_is_complete_directional_and_order_independent() {
 fn port_proof_reuses_the_frozen_complete_port_decision() {
     let value_type = TypeContractRef {
         contract_id: Id("fixture/value"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(30),
     };
     let port = |id, direction| PortContract {
@@ -268,12 +268,12 @@ fn port_proof_reuses_the_frozen_complete_port_decision() {
         SatisfactionRole::PortConnection,
         DescriptorRef {
             kind: Id("conduit/port-contract"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: consumer.semantic_hash().unwrap(),
         },
         DescriptorRef {
             kind: Id("conduit/port-contract"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: producer.semantic_hash().unwrap(),
         },
         &obligations,
@@ -298,7 +298,7 @@ fn port_proof_reuses_the_frozen_complete_port_decision() {
 fn exact_nominal_success_needs_no_provider_or_shape() {
     let exact = descriptor("fixture/nominal", 7);
     let mut proof = SatisfactionProof {
-        schema_version: 1,
+        schema_version: 0,
         identity: hash(0),
         role: SatisfactionRole::Implementation,
         method: SatisfactionMethod::ExactNominal,

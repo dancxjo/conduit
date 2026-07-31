@@ -14,9 +14,9 @@ use crate::{
     PinnedDescriptor, SemanticHash, validate_administrative_proof,
 };
 
-pub const GENESIS_PROFILE_SCHEMA_VERSION: u32 = 1;
-pub const DISTRIBUTION_PROFILE_SCHEMA_VERSION: u32 = 1;
-pub const GENESIS_CONTROL_SCHEMA_VERSION: u32 = 1;
+pub const GENESIS_PROFILE_SCHEMA_VERSION: u32 = 0;
+pub const DISTRIBUTION_PROFILE_SCHEMA_VERSION: u32 = 0;
+pub const GENESIS_CONTROL_SCHEMA_VERSION: u32 = 0;
 pub const MAX_BOOTSTRAP_CHANNELS: usize = 4;
 pub const MAX_PUBLIC_OPERATIONS: usize = 16;
 pub const MAX_GENESIS_MEMBERS: usize = 32;
@@ -1258,7 +1258,7 @@ fn descriptor_hash(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind: Id(kind),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()
@@ -1277,7 +1277,7 @@ fn valid_id(value: Id<'_>) -> bool {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    valid_id(value.id) && value.schema_version > 0
+    valid_id(value.id) && value.schema_version == 0
 }
 
 fn has_duplicate_channels(channels: &[BootstrapChannel]) -> bool {

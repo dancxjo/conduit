@@ -12,13 +12,13 @@ use conduit_core::{
 };
 use serde_json::{Value, json};
 
-const FIXTURE: &str = include_str!("../../../conformance/c2/realms-passports-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c2/realms-passports.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([byte; 32]),
     }
 }
@@ -50,7 +50,7 @@ const ROLE: RoleBinding<'static> = RoleBinding {
 };
 const EVENT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/realm-control"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([19; 32]),
 };
 static ROOTS: [PublicKeyRef<'static>; 1] = [ROOT];

@@ -8,8 +8,8 @@ use crate::{
     MapField, PinnedDescriptor, SemanticHash,
 };
 
-pub const IMPLEMENTATION_MANIFEST_SCHEMA_VERSION: u32 = 1;
-pub const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 1;
+pub const IMPLEMENTATION_MANIFEST_SCHEMA_VERSION: u32 = 0;
+pub const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 0;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ExecutorKind {
@@ -397,9 +397,7 @@ pub fn validate_implementation_manifest(
     {
         return Err(ManifestReason::InvalidDescriptor);
     }
-    if manifest.minimum_plan_version == 0
-        || manifest.minimum_plan_version > manifest.maximum_plan_version
-        || manifest.minimum_runtime_protocol == 0
+    if manifest.minimum_plan_version > manifest.maximum_plan_version
         || manifest.minimum_runtime_protocol > manifest.maximum_runtime_protocol
     {
         return Err(ManifestReason::UnsupportedVersion);
@@ -653,7 +651,7 @@ fn hash_license(value: &str) -> Result<SemanticHash, ManifestIdentityError> {
 fn hash(kind: &str, fields: &[MapField<'_>]) -> Result<SemanticHash, ManifestIdentityError> {
     CanonicalDescriptor {
         kind: Id(kind),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()
@@ -763,14 +761,11 @@ fn valid_id(value: Id<'_>) -> bool {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    valid_id(value.id) && value.schema_version > 0
+    valid_id(value.id) && value.schema_version == 0
 }
 
 fn valid_entrypoint(value: ManifestEntrypoint<'_>) -> bool {
-    valid_id(value.name)
-        && valid_id(value.adapter)
-        && valid_id(value.abi)
-        && value.protocol_version > 0
+    valid_id(value.name) && valid_id(value.adapter) && valid_id(value.abi)
 }
 
 fn valid_replacement(value: ReplacementSupport<'_>) -> bool {

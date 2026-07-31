@@ -1,5 +1,5 @@
 # Sensor threshold alarm and LED control panel.
-panel 3
+panel 0
 
 node sensor_pin : device/gpio/pin {
     pin = 14

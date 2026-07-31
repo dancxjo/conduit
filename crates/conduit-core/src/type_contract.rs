@@ -116,7 +116,7 @@ mod tests {
     fn accepts_an_opaque_namespaced_reference() {
         let reference = TypeContractRef {
             contract_id: Id("example/record"),
-            schema_version: 3,
+            schema_version: 0,
             semantic_hash: HASH,
         };
 
@@ -128,7 +128,7 @@ mod tests {
     fn rejects_missing_or_malformed_namespaces() {
         let local = TypeContractRef {
             contract_id: Id("record"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: HASH,
         };
         assert_eq!(

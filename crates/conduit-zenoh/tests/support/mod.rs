@@ -25,7 +25,7 @@ pub const fn hash(byte: u8) -> SemanticHash {
 pub const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -49,7 +49,7 @@ fn peer(
         realm_identity: hash(passport_byte + 20),
         entity: Id(entity),
         passport: hash(passport_byte),
-        passport_schema_version: 1,
+        passport_schema_version: 0,
         credential: if entity == "fixture/writer" {
             Id("fixture/writer-credential")
         } else {
@@ -78,7 +78,7 @@ pub fn binding<'a>(endpoint: &'a str, security: CarrierSecurityMode) -> PlanDist
     )
     .unwrap();
     let mut value = PlanDistributedCord {
-        schema_version: 2,
+        schema_version: 0,
         identity: ZERO,
         cord: Id("fixture/remote-cord"),
         writer_port_contract_hash: hash(10),
@@ -91,7 +91,7 @@ pub fn binding<'a>(endpoint: &'a str, security: CarrierSecurityMode) -> PlanDist
             id: Id("artifact/zenoh-rust-1-9-0"),
             digest: ArtifactDigest::from_bytes([44; 32]),
         }),
-        backend_profile: Some(pin("conduit/profile.zenoh-hosted-observed-v1", 45)),
+        backend_profile: Some(pin("conduit/profile.zenoh-hosted-observed", 45)),
         carrier_security: security_pin(security),
         carrier_security_mode: Some(security),
         carrier_endpoint: Some(endpoint),
@@ -314,7 +314,7 @@ fn proof<'a>(requirement: DistributedPeerRequirement<'a>) -> DistributedPeerProo
 
 pub fn handshake<'a>(binding: PlanDistributedCord<'a>) -> DistributedCordHandshake<'a> {
     DistributedCordHandshake {
-        protocol_version: 1,
+        protocol_version: 0,
         plan_identity: PLAN,
         binding_identity: binding.identity,
         cord: binding.cord,

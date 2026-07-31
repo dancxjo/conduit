@@ -83,7 +83,7 @@ fn parse_reason(value: &str) -> CompatibilityReason {
 
 #[test]
 fn record_compatibility_matches_frozen_vectors() {
-    let fixtures = include_str!("../../../conformance/c1/compatibility-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c1/compatibility.tsv");
     for line in fixtures.lines().filter(|line| !line.starts_with('#')) {
         let columns = line.split('\t').collect::<Vec<_>>();
         assert_eq!(columns.len(), 14, "invalid fixture row: {line}");
@@ -142,7 +142,7 @@ fn record_compatibility_matches_frozen_vectors() {
 
 #[test]
 fn migration_compatibility_matches_frozen_vectors() {
-    let fixtures = include_str!("../../../conformance/c1/migration-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c1/migration.tsv");
     for line in fixtures.lines().filter(|line| !line.starts_with('#')) {
         let columns = line.split('\t').collect::<Vec<_>>();
         assert_eq!(columns.len(), 12, "invalid fixture row: {line}");
@@ -157,7 +157,7 @@ fn migration_compatibility_matches_frozen_vectors() {
             semantic_hash: hash(columns[4]),
         };
         let migration = MigrationRef {
-            id: Id("conduit/schema-v1-to-v2"),
+            id: Id("conduit/schema-to-target"),
             semantic_hash: hash("99"),
             source: DescriptorRef {
                 semantic_hash: hash(columns[5]),
@@ -204,7 +204,7 @@ fn migration_compatibility_matches_frozen_vectors() {
 fn exact_compatibility_is_not_version_or_hash_similarity() {
     let exact = DescriptorRef {
         kind: Id("conduit/schema"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash("11"),
     };
     assert_eq!(
@@ -215,7 +215,7 @@ fn exact_compatibility_is_not_version_or_hash_similarity() {
         assess_exact(
             exact,
             DescriptorRef {
-                schema_version: 2,
+                schema_version: 99,
                 ..exact
             }
         )
@@ -263,7 +263,7 @@ fn malformed_schemas_are_indeterminate_not_incompatible() {
     ];
     let descriptor = DescriptorRef {
         kind: Id("conduit/schema"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash("11"),
     };
     let malformed = RecordSchema {

@@ -4,9 +4,9 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 use wasm_bindgen::prelude::*;
 
-use conduit_compile::{compile_source, CompileInput, InstalledProfile};
+use conduit_compile::{CompileInput, InstalledProfile, compile_source};
 use conduit_core::{
-    ReadyQueueDiscipline, SchedulerPolicy, TerminalClass, SCHEDULER_CONTRACT_VERSION,
+    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, TerminalClass,
 };
 use conduit_runtime::{ExactExecutionReport, ExactRunContext, RuntimeError, SchedulerReservation};
 
@@ -625,7 +625,7 @@ fn authoritative_patchbay_view(
         composite.exports.truncate(bounds.maximum_ports_per_node);
     }
     Ok(conduit_patchbay::PatchbayViewModel {
-        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_V1,
+        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_VERSION,
         source: workspace.source().clone(),
         semantic,
         presentation: workspace.presentation().clone(),
@@ -811,7 +811,7 @@ pub fn patchbay_replace_source(source: String, replacement: String) -> String {
         Err(error) => return patchbay_error(error),
     };
     let request = conduit_patchbay::EditRequest {
-        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_V1,
+        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_VERSION,
         document_id: "tour/draft".to_owned(),
         expected_source_revision: workspace.source().revision,
         expected_presentation_revision: workspace.presentation().revision,
@@ -833,7 +833,7 @@ pub fn patchbay_move_node(source: String, node_id: String, x: i32, y: i32) -> St
         Err(error) => return patchbay_error(error),
     };
     let request = conduit_patchbay::EditRequest {
-        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_V1,
+        protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_VERSION,
         document_id: "tour/draft".to_owned(),
         expected_source_revision: workspace.source().revision,
         expected_presentation_revision: workspace.presentation().revision,
@@ -871,7 +871,7 @@ pub fn parse_panel(source: String) -> String {
 #[wasm_bindgen]
 pub fn panel_language_metadata() -> String {
     serde_json::json!({
-        "schema": "conduit.panel-language/v1",
+        "schema": "conduit.panel-language",
         "reserved_words": conduit_panel::RESERVED_WORDS,
         "syntax_words": conduit_panel::SYNTAX_WORDS,
         "identifier_compatible_syntax_words":
@@ -1155,7 +1155,7 @@ pub fn panel_source_metadata(source: String) -> String {
     let document = conduit_panel::parse_document(&source);
     let Ok(panel) = document.panel() else {
         return serde_json::json!({
-            "schema": "conduit.panel-source-metadata/v1",
+            "schema": "conduit.panel-source-metadata",
             "semantic_available": false,
             "annotations": [],
             "diagnostics": document.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>(),
@@ -1242,7 +1242,7 @@ pub fn panel_source_metadata(source: String) -> String {
         )
     });
     serde_json::json!({
-        "schema": "conduit.panel-source-metadata/v1",
+        "schema": "conduit.panel-source-metadata",
         "semantic_available": true,
         "annotations": annotations,
         "diagnostics": [],
@@ -1395,7 +1395,7 @@ fn run_panel_exact_inner(
     let explicit_input = compile_input_json
         .map(|json| {
             serde_json::from_str::<CompileInput>(json)
-                .map_err(|_| RuntimeError::new("CND-CMP-002", "invalid compile-input/v2 JSON"))
+                .map_err(|_| RuntimeError::new("CND-CMP-002", "invalid compile-input JSON"))
         })
         .transpose()?;
     let input = explicit_input.as_ref().unwrap_or(&installed.input);
@@ -1499,21 +1499,23 @@ mod tests {
         patchbay_move_node, patchbay_open_session, patchbay_replace_source, patchbay_session_view,
     };
 
-    const SOURCE: &str = "panel 3\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
+    const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
 
     #[test]
     fn parser_metadata_and_patchbay_ranges_are_authoritative() {
         let metadata: Value =
             serde_json::from_str(&panel_language_metadata()).expect("language metadata JSON");
-        assert_eq!(metadata["schema"], "conduit.panel-language/v1");
+        assert_eq!(metadata["schema"], "conduit.panel-language");
         assert_eq!(metadata["reserved_words"], serde_json::json!([]));
         assert_eq!(
             metadata["identifier_compatible_syntax_words"],
             serde_json::json!(["input", "output"])
         );
-        assert!(metadata["syntax_words"]
-            .as_array()
-            .is_some_and(|words| words.contains(&Value::String("output".to_owned()))));
+        assert!(
+            metadata["syntax_words"]
+                .as_array()
+                .is_some_and(|words| words.contains(&Value::String("output".to_owned())))
+        );
 
         let source = SOURCE.replace("hello", "héllo");
         let opened: Value = serde_json::from_str(&patchbay_open_session(
@@ -1563,7 +1565,7 @@ mod tests {
 
     #[test]
     fn source_metadata_uses_parser_direction_and_exact_semantic_spans() {
-        let source = "panel 3\n\
+        let source = "panel 0\n\
 interface fixture/duplex {\n\
   > value : fixture/text\n\
   result > : fixture/text\n\
@@ -1606,14 +1608,10 @@ cord output.value -> sink.result\n\
             "interface/fixture/duplex/port/outgoing/result"
         )));
         assert!(names.iter().any(|entry| {
-            entry.0 == "value"
-                && entry.1 == "outgoing"
-                && entry.2.ends_with("/from/output/value")
+            entry.0 == "value" && entry.1 == "outgoing" && entry.2.ends_with("/from/output/value")
         }));
         assert!(names.iter().any(|entry| {
-            entry.0 == "result"
-                && entry.1 == "receiving"
-                && entry.2.ends_with("/to/sink/result")
+            entry.0 == "result" && entry.1 == "receiving" && entry.2.ends_with("/to/sink/result")
         }));
         assert!(names.iter().any(|entry| {
             entry.0 == "result"
@@ -1633,7 +1631,7 @@ cord output.value -> sink.result\n\
         }));
 
         let malformed: Value = serde_json::from_str(&panel_source_metadata(
-            "panel 3\ncord source.value ->\n".to_owned(),
+            "panel 0\ncord source.value ->\n".to_owned(),
         ))
         .unwrap();
         assert_eq!(malformed["semantic_available"], false);
@@ -1665,7 +1663,7 @@ cord output.value -> sink.result\n\
         assert_ne!(changed["semantic_hash"], moved["semantic_hash"]);
 
         let explained: Value = serde_json::from_str(&explain_panel(
-            "panel 3\n\
+            "panel 0\n\
              composite example/upper {\n\
                node worker : text/uppercase\n\
                export > text = worker.text\n\
@@ -1680,9 +1678,11 @@ cord output.value -> sink.result\n\
         ))
         .expect("explanation JSON");
         assert_eq!(explained["ok"], true);
-        assert!(explained["logical"]
-            .as_str()
-            .is_some_and(|value| value.contains("composite transform : example/upper")));
+        assert!(
+            explained["logical"]
+                .as_str()
+                .is_some_and(|value| value.contains("composite transform : example/upper"))
+        );
         assert!(explained["expanded"].as_str().is_some_and(|value| {
             value.contains("transform.worker : text/uppercase")
                 || value.contains("transform.worker : text/uppercase")
@@ -1719,7 +1719,10 @@ cord output.value -> sink.result\n\
         ))
         .expect("open JSON");
         assert_eq!(opened["ok"], true);
-        assert_eq!(opened["view"]["protocol_version"], 1);
+        assert_eq!(
+            opened["view"]["protocol_version"],
+            conduit_patchbay::PATCHBAY_PROTOCOL_VERSION
+        );
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["type_id"],
             "std/text"
@@ -1744,12 +1747,14 @@ cord output.value -> sink.result\n\
             opened["view"]["topology"]["cords"][0]["compatibility"]["compatible"],
             true
         );
-        assert!(opened["view"]["topology"]["logical_nodes"][0]
-            .get("fake_activity")
-            .is_none());
+        assert!(
+            opened["view"]["topology"]["logical_nodes"][0]
+                .get("fake_activity")
+                .is_none()
+        );
 
         let request = serde_json::json!({
-            "protocol_version": 1,
+            "protocol_version": 0,
             "document_id": "test/session",
             "expected_source_revision": 0,
             "expected_presentation_revision": 0,
@@ -1791,7 +1796,7 @@ cord output.value -> sink.result\n\
         );
 
         let replacement = serde_json::json!({
-            "protocol_version": 1,
+            "protocol_version": 0,
             "document_id": "test/session",
             "expected_source_revision": 0,
             "expected_presentation_revision": 1,
@@ -1823,7 +1828,7 @@ cord output.value -> sink.result\n\
 
     #[test]
     fn candidate_connection_rejects_hidden_composite_members() {
-        let composite = "panel 3\n\
+        let composite = "panel 0\n\
 composite example/box {\n\
   node worker : text/uppercase\n\
   export > text = worker.text\n\
@@ -1847,22 +1852,26 @@ cord box.uppercased -> sink.text\n";
                 .len(),
             2
         );
-        assert!(opened["view"]["topology"]["expanded_nodes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|node| node["id"] == "box.worker"));
-        assert!(opened["view"]["topology"]["logical_nodes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|node| node["id"] == "box")
-            .is_some_and(|node| {
-                node["inputs"].as_array().unwrap().len() == 1
-                    && node["outputs"].as_array().unwrap().len() == 1
-            }));
+        assert!(
+            opened["view"]["topology"]["expanded_nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|node| node["id"] == "box.worker")
+        );
+        assert!(
+            opened["view"]["topology"]["logical_nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|node| node["id"] == "box")
+                .is_some_and(|node| {
+                    node["inputs"].as_array().unwrap().len() == 1
+                        && node["outputs"].as_array().unwrap().len() == 1
+                })
+        );
         let request = serde_json::json!({
-            "protocol_version": 1,
+            "protocol_version": 0,
             "document_id": "test/composite",
             "expected_source_revision": 0,
             "expected_presentation_revision": 0,
@@ -1894,7 +1903,7 @@ cord box.uppercased -> sink.text\n";
 
     #[test]
     fn patchbay_projection_reports_deterministic_truncation() {
-        let mut source = String::from("panel 3\n");
+        let mut source = String::from("panel 0\n");
         for index in 0..513 {
             source.push_str(&format!(
                 "node literal_{index} : std/literal {{ value = \"{index}\" }}\n\

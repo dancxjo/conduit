@@ -236,7 +236,7 @@ fn workload_report(workspace_root: &Path, workloads: &[Value]) -> Result<Vec<Val
 }
 
 pub fn run(workspace_root: &Path, update: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let baseline_path = workspace_root.join("benchmarks/baseline-v1.json");
+    let baseline_path = workspace_root.join("benchmarks/baseline.json");
     if !baseline_path.exists() {
         return Err(format!("Baseline missing: {}", baseline_path.display()).into());
     }
@@ -327,7 +327,7 @@ pub fn run(workspace_root: &Path, update: bool) -> Result<(), Box<dyn std::error
 
     let workload_report = workload_report(workspace_root, &workloads)?;
     let report = json!({
-        "schema": "conduit.performance-report/v1",
+        "schema": "conduit.performance-report",
         "metadata": host_metadata(workspace_root, &baseline),
         "artifacts": measured,
         "workloads": workload_report,

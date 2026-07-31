@@ -10,7 +10,7 @@ const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const PLAN: SemanticHash = SemanticHash::from_bytes([1; 32]);
 const VALUE_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([2; 32]),
 };
 const POLICY: EvidencePolicy = EvidencePolicy {
@@ -42,7 +42,7 @@ fn event<'a>(
     payload: EventPayload<'a>,
 ) -> ExecutionEvent<'a> {
     let mut event = ExecutionEvent {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         event_id: Id(event_id),
         run_id: Id("run/fixture"),
@@ -136,7 +136,7 @@ fn resonance_extension_preserves_frozen_execution_event_identity() {
 
 #[test]
 fn correlation_categories_cannot_collapse_or_reuse_attempt_identity() {
-    let fixture = include_str!("../../../conformance/c2/port-group-correlation-v1.json");
+    let fixture = include_str!("../../../conformance/c2/port-group-correlation.json");
     for family in [
         "request",
         "exchange",
@@ -330,7 +330,7 @@ fn causal_replay_preserves_distributed_order_corrections_and_terminal_state() {
     assert_eq!(events[2].relations.derived_from, &[source_id]);
     assert!(!format!("{:?}", events[2].payload).contains("first"));
 
-    let fixture = include_str!("../../../conformance/c2/execution-event-v1.tsv");
+    let fixture = include_str!("../../../conformance/c2/execution-event.tsv");
     for case in [
         "causation_chain",
         "nested_subject",

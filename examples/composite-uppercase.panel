@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 composite example/upper-line {
     node source : std/literal

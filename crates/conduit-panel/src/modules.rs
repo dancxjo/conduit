@@ -422,10 +422,10 @@ mod tests {
 
     #[test]
     fn relative_imports_are_dependency_ordered_and_content_identified() {
-        let child = "panel 1\nnode worker { node value : std/literal }\nroot worker\n";
+        let child = "panel 0\nnode worker { node value : std/literal }\nroot worker\n";
         let pin = content_hash(child);
         let root = format!(
-            "panel 1\nimport \"./child.panel\" as child pin \"{pin}\"\n\
+            "panel 0\nimport \"./child.panel\" as child pin \"{pin}\"\n\
              node app {{ node worker : child.worker }}\nroot app\n"
         );
         let loader = MemoryLoader(BTreeMap::from([
@@ -443,11 +443,11 @@ mod tests {
         let loader = MemoryLoader(BTreeMap::from([
             (
                 "mem://fixture/a.panel".to_owned(),
-                "panel 1\nimport \"./b.panel\" as b\n".to_owned(),
+                "panel 0\nimport \"./b.panel\" as b\n".to_owned(),
             ),
             (
                 "mem://fixture/b.panel".to_owned(),
-                "panel 1\nimport \"./a.panel\" as a\n".to_owned(),
+                "panel 0\nimport \"./a.panel\" as a\n".to_owned(),
             ),
         ]));
         let error = resolve_modules("mem://fixture/a.panel", None, &loader).unwrap_err();
@@ -461,11 +461,11 @@ mod tests {
         let loader = MemoryLoader(BTreeMap::from([
             (
                 "mem://entry/root.panel".to_owned(),
-                "panel 1\nimport \"mem://shared/child.panel\" as child\n".to_owned(),
+                "panel 0\nimport \"mem://shared/child.panel\" as child\n".to_owned(),
             ),
             (
                 "mem://shared/child.panel".to_owned(),
-                "panel 1\n".to_owned(),
+                "panel 0\n".to_owned(),
             ),
         ]));
         let graph = resolve_modules("mem://entry/root.panel", None, &loader).unwrap();

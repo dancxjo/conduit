@@ -35,7 +35,7 @@ use rcgen::{
 use serde_json::{Value, json};
 use support::{PLAN, authorities, binding, context, handshake, hash, placement, selection};
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/zenoh-transport-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/zenoh-transport.json");
 
 fn unused_local_port() -> u16 {
     let listener = TcpListener::bind("127.0.0.1:0").expect("reserve local port");
@@ -258,7 +258,7 @@ fn real_exchange(mode: CarrierSecurityMode) -> Value {
 
 fn artifact_manifest(id: &'static str, digest: ArtifactDigest) -> ArtifactManifest<'static> {
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id(id),
         digest,
@@ -292,21 +292,21 @@ fn implementation_manifest<'a>(
     artifact: &'a ManifestArtifactRef<'a>,
 ) -> ImplementationManifest<'a> {
     let mut manifest = ImplementationManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: SemanticHash::from_bytes([0; 32]),
         id: binding.backend.id,
         implementation_version: "1.9.0",
         semantic_contract: PinnedDescriptor {
             id: Id(ZENOH_TRANSPORT_CONTRACT_ID),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(39),
         },
         executor: ExecutorKind::NativeInProcess,
         entrypoint: ManifestEntrypoint {
             name: Id("run"),
-            adapter: Id("conduit/message-step-v1"),
-            abi: Id("conduit/hosted-rust-v1"),
-            protocol_version: 1,
+            adapter: Id("conduit/message-step"),
+            abi: Id("conduit/hosted-rust"),
+            protocol_version: 0,
         },
         execution_profile: binding.backend_profile.expect("backend profile"),
         artifacts: core::slice::from_ref(artifact),
@@ -314,8 +314,8 @@ fn implementation_manifest<'a>(
         provided_interfaces: &[],
         required_authorities: &[],
         required_effects: &[],
-        minimum_plan_version: 10,
-        maximum_plan_version: 10,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,
         replacement: conduit_core::ReplacementSupport::Cold,
@@ -360,8 +360,8 @@ fn capability_report<'a>(
         supported_executors: executors,
         supported_targets: targets,
         supported_abis: abis,
-        minimum_plan_version: 10,
-        maximum_plan_version: 10,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &[],
     };
     let mut scratch = [SemanticHash::from_bytes([0; 32]); 8];
@@ -726,7 +726,7 @@ fn host_resolver_selects_the_exact_zenoh_implementation_artifact_and_profile() {
         policy_hash: SemanticHash::from_bytes([0; 32]),
         time_basis: Id("fixture/clock"),
         current_tick: 20,
-        plan_version: 10,
+        plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         trusted_reporters: &[report.reporter],
         trusted_report_trust: &[report.trust.semantic_hash],
         required_realm: None,
@@ -805,7 +805,7 @@ fn linux_and_pico_manifests_share_the_transport_contract_through_distinct_bounda
             name: Id("transport"),
             adapter: Id(FIRMWARE_HOST_SERVICE_ADAPTER_ID),
             abi: firmware_abi,
-            protocol_version: 1,
+            protocol_version: 0,
         },
         execution_profile: support::pin("conduit/zenoh-pico-static", 82),
         artifacts: core::slice::from_ref(&firmware_artifact_ref),
@@ -911,7 +911,7 @@ fn linux_and_pico_manifests_share_the_transport_contract_through_distinct_bounda
         policy_hash: SemanticHash::from_bytes([0; 32]),
         time_basis: Id("fixture/clock"),
         current_tick: 20,
-        plan_version: 10,
+        plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         trusted_reporters: &trusted_reporters,
         trusted_report_trust: &trusted_report_trust,
         required_realm: None,
@@ -1199,7 +1199,7 @@ fn zenoh_live_event_contract() -> EventStreamContract<'static> {
         event_class: EventClass::Domain,
         payload_type: TypeContractRef {
             contract_id: Id("fixture/event-value"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(107),
         },
         retention: RetentionPolicy::Ring {

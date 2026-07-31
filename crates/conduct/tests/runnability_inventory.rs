@@ -122,11 +122,11 @@ fn invoke_http(root: &Path, entry: &Entry, request_path: &str) -> (std::process:
 fn every_checked_panel_has_one_verified_runnability_state() {
     let root = root();
     let inventory: Inventory = serde_json::from_str(
-        &fs::read_to_string(root.join("examples/runnability-v1.json"))
+        &fs::read_to_string(root.join("examples/runnability.json"))
             .expect("runnability inventory exists"),
     )
     .expect("runnability inventory is valid");
-    assert_eq!(inventory.schema, "conduit.panel-runnability/v1");
+    assert_eq!(inventory.schema, "conduit.panel-runnability");
     assert_eq!(
         inventory.states,
         ["runnable", "contract-only", "illustrative/unavailable"]
@@ -256,7 +256,7 @@ fn every_checked_panel_has_one_verified_runnability_state() {
     }
 
     let lessons: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(root.join("tour/lessons/v1.json")).expect("Tour lessons exist"),
+        &fs::read_to_string(root.join("tour/lessons/current.json")).expect("Tour lessons exist"),
     )
     .expect("Tour lessons are valid");
     for lesson in lessons["lessons"].as_array().expect("lessons are listed") {
@@ -285,7 +285,9 @@ fn every_checked_panel_has_one_verified_runnability_state() {
         assert!(ran.status.success(), "{id} exported source runs");
         assert_eq!(
             String::from_utf8(ran.stdout).expect("lesson stdout is UTF-8"),
-            lesson["expected_display"].as_str().expect("runnable display"),
+            lesson["expected_display"]
+                .as_str()
+                .expect("runnable display"),
             "{id} exported source projects the same display result"
         );
         assert_eq!(

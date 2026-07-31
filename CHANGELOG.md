@@ -1,7 +1,7 @@
 # Changelog
 
 Conduit is pre-release software. Entries describe only claims admitted by
-`release/capabilities-v1.json`; a closed issue or merged commit is not itself a
+`release/capabilities.json`; a closed issue or merged commit is not itself a
 release claim.
 
 ## 0.1.0 — unreleased

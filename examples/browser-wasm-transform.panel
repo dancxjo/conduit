@@ -1,6 +1,6 @@
 # This source contains no browser-specific node kind. A browser report and
 # exact implementation manifest select the WASM placement outside the panel.
-panel 3
+panel 0
 
 node greeting : std/literal {
     value = "Browser-local semantics stay portable.\n"

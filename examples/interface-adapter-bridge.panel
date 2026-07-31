@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node adapter_bridge implements conduit/text-processor {
   node formatter : text/uppercase

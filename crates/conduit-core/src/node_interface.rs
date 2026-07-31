@@ -19,10 +19,10 @@ use crate::{
 };
 
 /// Exact schema of a node-interface descriptor.
-pub const NODE_INTERFACE_CONTRACT_SCHEMA_VERSION: u32 = 1;
+pub const NODE_INTERFACE_CONTRACT_SCHEMA_VERSION: u32 = 0;
 
 /// Exact schema of a node-interface satisfaction proof.
-pub const NODE_INTERFACE_PROOF_SCHEMA_VERSION: u32 = 1;
+pub const NODE_INTERFACE_PROOF_SCHEMA_VERSION: u32 = 0;
 
 /// Portable bound on members in one version-1 interface.
 pub const MAX_NODE_INTERFACE_MEMBERS: usize = 64;
@@ -485,7 +485,7 @@ pub fn assess_node_interface<'a, 'proof>(
     interface
         .validate_reference(interface_ref, interface_hash_scratch)
         .map_err(NodeInterfaceSatisfactionError::InterfaceIdentity)?;
-    if candidate_ref.kind != Id("conduit/node-contract") || candidate_ref.schema_version == 0 {
+    if candidate_ref.kind != Id("conduit/node-contract") || candidate_ref.schema_version != 0 {
         return Err(NodeInterfaceSatisfactionError::InvalidCandidateDescriptor);
     }
     validate_candidate(candidate)
@@ -785,7 +785,7 @@ fn aggregate_reason(
 }
 
 fn valid_descriptor(descriptor: DescriptorRef<'_>) -> bool {
-    Id::new(descriptor.kind.as_str()).is_ok() && descriptor.schema_version > 0
+    Id::new(descriptor.kind.as_str()).is_ok() && descriptor.schema_version == 0
 }
 
 fn validate_namespaced_id(id: Id<'_>) -> Result<(), NodeInterfaceContractError<'_>> {
@@ -842,7 +842,7 @@ fn hash_interface_member(
     let port_hash = member.port.semantic_hash()?;
     CanonicalDescriptor {
         kind: Id("conduit/node-interface-member"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic(
                 "requirement",
@@ -860,7 +860,7 @@ fn hash_interface_requirement(
     let contract_fields = descriptor_fields(&requirement.contract);
     CanonicalDescriptor {
         kind: Id("conduit/node-interface-requirement"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic("id", CanonicalValue::Identifier(requirement.id)),
             semantic("contract", CanonicalValue::Map(&contract_fields)),
@@ -885,7 +885,7 @@ fn hash_member_proof(
         .map(|decision| Id(decision.reason.as_str()));
     CanonicalDescriptor {
         kind: Id("conduit/node-interface-member-proof"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic(
                 "required_member",
@@ -932,7 +932,7 @@ fn hash_requirement_proof(
         .map_or(CanonicalValue::Null, CanonicalValue::Identifier);
     CanonicalDescriptor {
         kind: Id("conduit/node-interface-requirement-proof"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic("required", CanonicalValue::Bytes(required_hash.as_bytes())),
             semantic("offered", offered),

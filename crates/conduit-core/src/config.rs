@@ -130,7 +130,7 @@ impl ConfigFieldContract<'_> {
         ];
         CanonicalDescriptor {
             kind: Id("conduit/config-field-contract"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&fields),
         }
         .semantic_hash()

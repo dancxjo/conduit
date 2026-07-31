@@ -1,10 +1,10 @@
 use conduit_core::{
-    EXECUTION_PLAN_SCHEMA_VERSION_V15, EXECUTION_PLAN_SCHEMA_VERSION_V17, Id, InstancePath,
-    PinnedDescriptor, PlanInstancePool, PlanPoolRuntime, PlanResourceBudget,
-    PoolAdmissionDisposition, PoolAdmissionFacts, PoolAdmissionPolicy, PoolCleanupPolicy,
-    PoolContract, PoolController, PoolError, PoolFailureDisposition, PoolGeneration,
-    PoolGenerationReservation, PoolReason, PoolReservationProfile, PoolSlotState,
-    PoolSupervisionPolicy, PoolWorkIdentity, SemanticHash, select_fair_pool,
+    EXECUTION_PLAN_SCHEMA_VERSION, Id, InstancePath, PinnedDescriptor, PlanInstancePool,
+    PlanPoolRuntime, PlanResourceBudget, PoolAdmissionDisposition, PoolAdmissionFacts,
+    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolController, PoolError,
+    PoolFailureDisposition, PoolGeneration, PoolGenerationReservation, PoolReason,
+    PoolReservationProfile, PoolSlotState, PoolSupervisionPolicy, PoolWorkIdentity, SemanticHash,
+    select_fair_pool,
 };
 use conduit_runtime::{HostedPoolError, instantiate_plan_pool};
 use serde::Deserialize;
@@ -156,7 +156,7 @@ fn capacity_result(value: PoolAdmissionDisposition) -> Value {
 fn pin(name: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(name),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -693,9 +693,9 @@ fn execute(id: &str) -> Value {
             let error = pool.progress(slot, 2).unwrap_err();
             json!({"code":error.code(),"unchanged":before == pool.slots()[usize::from(slot)]})
         }
-        "legacy-plan-not-executable" => {
+        "missing-runtime-contract" => {
             let error = match instantiate_plan_pool::<2, 64>(
-                EXECUTION_PLAN_SCHEMA_VERSION_V15,
+                EXECUTION_PLAN_SCHEMA_VERSION,
                 hash(9),
                 plan_pool(false),
                 7,
@@ -706,9 +706,9 @@ fn execute(id: &str) -> Value {
             };
             json!({"code":error.code()})
         }
-        "schema-17-roundtrip" => {
+        "current-plan-roundtrip" => {
             let pool = plan_pool(true);
-            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION_V17,"runtime":pool.runtime.is_some()})
+            json!({"schema_version":EXECUTION_PLAN_SCHEMA_VERSION,"runtime":pool.runtime.is_some()})
         }
         _ => panic!("unimplemented replicated-pool fixture `{id}`"),
     }
@@ -717,7 +717,7 @@ fn execute(id: &str) -> Value {
 #[test]
 fn every_replicated_pool_fixture_executes_independently() {
     let fixture: Fixture = serde_json::from_str(include_str!(
-        "../../../conformance/c4/replicated-pools-v1.json"
+        "../../../conformance/c4/replicated-pools.json"
     ))
     .unwrap();
     assert_eq!(fixture.cases.len(), 38);
@@ -729,13 +729,16 @@ fn every_replicated_pool_fixture_executes_independently() {
 #[test]
 fn errors_keep_stable_pool_families() {
     assert_eq!(PoolError::ReservationExceeded.code(), "CND-POL-005");
-    assert_eq!(HostedPoolError::LegacyPlan.code(), "CND-POOL-HOST-002");
+    assert_eq!(
+        HostedPoolError::MissingRuntimeContract.code(),
+        "CND-POOL-HOST-002"
+    );
 }
 
 #[test]
 fn plan_transition_pool_cases_execute_the_real_generation_controller() {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/plan-transitions-v1.json"
+        "../../../conformance/c5/plan-transitions.json"
     ))
     .unwrap();
     for case in fixture["cases"].as_array().unwrap() {

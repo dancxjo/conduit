@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 interface speech/recognizer {
   > audio : std/text

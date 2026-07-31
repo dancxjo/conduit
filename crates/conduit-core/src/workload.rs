@@ -2,7 +2,7 @@
 
 use crate::{AuthorityTime, Id, InstancePath, SemanticHash};
 
-pub const WORKLOAD_CONTRACT_SCHEMA_VERSION: u32 = 1;
+pub const WORKLOAD_CONTRACT_SCHEMA_VERSION: u32 = 0;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadGuarantee {

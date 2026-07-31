@@ -3,8 +3,7 @@ use conduit_core::{
     BoundednessProfile, CancellationCheckpointPolicy, CancellationGuarantee,
     CheckpointProviderCapabilities, ClockRounding, DeadlineContract, DelegationPolicy,
     DeliveryClaim, DescriptorRef, Direction, DuplicatePolicy, DuplicationRule,
-    EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V17, EXECUTION_PLAN_SCHEMA_VERSION_V18, EffectCommitProfile,
+    EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, EffectCommitProfile,
     EffectDiscontinuity, EffectIdempotency, EffectRequirement, EventClass,
     EventProviderCapabilities, EventStreamContract, ExecutionLimits, ExecutionPlan,
     ExecutionProfile, ExplicitSatisfactionRequirement, FanOutMode, FeedbackBoundaryKind,
@@ -13,25 +12,24 @@ use conduit_core::{
     JobContract, MergeOrdering, MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact,
     PlanAuthority, PlanClockConversion, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode,
     PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary, PlanHostObservation,
-    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject,
-    PlanValidationContext, PlanWorkload, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
-    RUNTIME_EVIDENCE_POLICY_VERSION, ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, ResourceLeaseContract, ResourceLeaseReason, ResourceRef, ResourceSelector,
-    ResourceSharingMode, RestartPolicy, RetentionPolicy, RuntimeEvidenceMode,
-    RuntimeEvidencePolicy, SatisfactionFacet, SatisfactionMethod, SatisfactionObligation,
-    SatisfactionPin, SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
-    Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef, UnknownCommitPolicy,
-    UnresolvedPlanConstraint, UnresolvedPlanKind, ValueEnvelopePolicy,
-    WORKLOAD_CONTRACT_SCHEMA_VERSION, WorkloadBudget, WorkloadCapability, WorkloadContract,
-    WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit, resolve_authority,
-    validate_execution_plan,
+    PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext,
+    PlanWorkload, Pressure, RESOURCE_LEASE_SCHEMA_VERSION, RUNTIME_EVIDENCE_POLICY_VERSION,
+    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract,
+    ResourceLeaseReason, ResourceRef, ResourceSelector, ResourceSharingMode, RestartPolicy,
+    RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy, SatisfactionFacet,
+    SatisfactionMethod, SatisfactionObligation, SatisfactionPin, SatisfactionProof,
+    SatisfactionReason, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy,
+    SubscriberCoupling, TypeContractRef, UnknownCommitPolicy, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, ValueEnvelopePolicy, WORKLOAD_CONTRACT_SCHEMA_VERSION, WorkloadBudget,
+    WorkloadCapability, WorkloadContract, WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit,
+    resolve_authority, validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([8; 32]),
 };
 const RESOURCE: ResourceRef<'static> = ResourceRef {
@@ -64,7 +62,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -127,6 +125,44 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
     )
     .unwrap();
     let effect_hash = effect.semantic_hash().unwrap();
+    let required_effects = [effect_hash];
+    let required_resources = [Id("fixture/source-device")];
+    let lease = ResourceLeaseContract {
+        schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+        id: Id("fixture/source-lease"),
+        resource_binding: required_resources[0],
+        holder: effect.requester,
+        run: Id("fixture/run"),
+        epoch: 1,
+        scope: Id("fixture/read-scope"),
+        sharing: ResourceSharingMode::Exclusive,
+        reservation: PlanResourceBudget {
+            memory_bytes: 50,
+            ..PlanResourceBudget::ZERO
+        },
+        time_basis: Id("clock/monotonic"),
+        issued_at_tick: 5,
+        expires_at_tick: 60,
+        revocation_grace_ticks: 5,
+        cleanup_ticks: 10,
+        maximum_operations: 2,
+        maximum_evidence_events: 4,
+        cleanup_escalation: pin("fixture/force-close", 30),
+        foreign_retention: ForeignRetention::Unsupported,
+    };
+    let commit_profile = EffectCommitProfile {
+        schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+        id: Id("fixture/read-commit"),
+        operation: effect.action,
+        resource_lease: lease.id,
+        commit_boundary: pin("fixture/read-commit-boundary", 31),
+        idempotency: EffectIdempotency::ReconcileBeforeRetry,
+        unknown_commit: UnknownCommitPolicy::Reconcile,
+        discontinuity: EffectDiscontinuity::ReconcileRequired,
+        cleanup: pin("fixture/read-cleanup", 32),
+        maximum_attempts: 2,
+        evidence_events_per_attempt: 2,
+    };
     let authority = PlanAuthority {
         node: effect.requester,
         effect_hash,
@@ -138,10 +174,8 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         administrative_subject: None,
         containment: None,
         policy_budgets: &[],
-        commit_profile: None,
+        commit_profile: Some(commit_profile),
     };
-    let required_effects = [effect_hash];
-    let required_resources = [Id("fixture/source-device")];
     let observations = [PlanHostObservation {
         id: Id("fixture/host-report"),
         host: Id("host/a"),
@@ -165,15 +199,48 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         node: effect.requester,
         resource: RESOURCE,
         host_observation: observations[0].id,
-        lease: None,
+        lease: Some(lease),
     }];
+    let mut execution_profile = ExecutionProfile {
+        id: Id("fixture/current-profile"),
+        schema_version: 0,
+        semantic_hash: ZERO_HASH,
+        boundedness: BoundednessProfile::Hard,
+        cancellation: CancellationGuarantee::Bounded,
+        step_bound_enforced: true,
+        limits: ExecutionLimits {
+            max_step_work: 8,
+            max_retained_values: 0,
+            max_retained_bytes: 0,
+            max_scratch_bytes: 0,
+            max_input_leases: 0,
+            max_input_bytes: 0,
+            max_output_reservations: 0,
+            max_output_bytes: 0,
+            max_transactions: 1,
+            max_fragments_per_step: 0,
+            max_pending_operations: 0,
+            max_timers: 0,
+            max_child_tasks: 0,
+            max_host_buffer_bytes: 0,
+            max_foreign_queue_items: 0,
+            max_foreign_queue_bytes: 0,
+            max_checkpoint_bytes: 0,
+            implementation_memory_bytes: 0,
+            cancellation_ticks: 1,
+        },
+        representations: &[],
+        memory_claims: &[],
+        checkpoint: None,
+    };
+    execution_profile.semantic_hash = execution_profile.computed_semantic_hash(&mut []).unwrap();
     let nodes = [
         ResolvedPlanNode {
             instance: InstancePath::new("root/source").unwrap(),
             contract: pin("fixture/source-contract", 13),
             implementation: pin("fixture/source-impl", 14),
             lifecycle_policy: pin("fixture/source-lifecycle", 28),
-            execution_profile: None,
+            execution_profile: Some(&execution_profile),
             artifact: artifacts[0].id,
             host_observation: observations[0].id,
             host: observations[0].host,
@@ -186,7 +253,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
             contract: pin("fixture/sink-contract", 15),
             implementation: pin("fixture/sink-impl", 16),
             lifecycle_policy: pin("fixture/sink-lifecycle", 29),
-            execution_profile: None,
+            execution_profile: Some(&execution_profile),
             artifact: artifacts[1].id,
             host_observation: observations[0].id,
             host: observations[0].host,
@@ -206,14 +273,14 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         id: Id("values"),
         from: ResolvedPlanPort {
             node: nodes[0].instance,
-            port: Id("out"),
+            port: Id("value"),
             direction: Direction::Output,
             port_contract_hash: hash(17),
             value_type: TYPE,
         },
         to: ResolvedPlanPort {
             node: nodes[1].instance,
-            port: Id("in"),
+            port: Id("value"),
             direction: Direction::Input,
             port_contract_hash: hash(18),
             value_type: TYPE,
@@ -224,15 +291,15 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
     let members = [nodes[0].instance, nodes[1].instance];
     let exports = [
         PlanExportBinding {
-            boundary_port: Id("out"),
+            boundary_port: Id("value"),
             member: nodes[0].instance,
-            member_port: Id("out"),
+            member_port: Id("value"),
             direction: Direction::Output,
         },
         PlanExportBinding {
-            boundary_port: Id("in"),
+            boundary_port: Id("value"),
             member: nodes[1].instance,
-            member_port: Id("in"),
+            member_port: Id("value"),
             direction: Direction::Input,
         },
     ];
@@ -261,38 +328,9 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         direction: Direction::Output,
         members: &group_members,
     }];
-    let pool_grants = [grant.id];
-    let pools = [PlanInstancePool {
-        instance: InstancePath::new("root/pool").unwrap(),
-        template_hash: hash(23),
-        derived_identity_hash: hash(24),
-        maximum_live: 1,
-        maximum_queued: 1,
-        admission_policy: pin("fixture/admission", 25),
-        supervision_policy: pin("fixture/supervision", 26),
-        per_instance_budget: PlanResourceBudget {
-            memory_bytes: 16,
-            timers: 1,
-            evidence_bytes: 16,
-            ..PlanResourceBudget::ZERO
-        },
-        authority_grants: &pool_grants,
-        maximum_instance_ticks: 50,
-        implementation_set_hash: hash(27),
-        correlation_slots: 2,
-        worst_case_budget: PlanResourceBudget {
-            memory_bytes: 16,
-            timers: 1,
-            evidence_bytes: 16,
-            ..PlanResourceBudget::ZERO
-        },
-        child_nodes: 2,
-        child_cords: 1,
-        runtime: None,
-    }];
     let authorities = [authority];
     let mut plan = ExecutionPlan {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO_HASH,
         source_semantic_hash: hash(1),
         resolver: pin("fixture/resolver", 2),
@@ -319,7 +357,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         hazard_closure: None,
         composites: &composites,
         port_groups: &groups,
-        instance_pools: &pools,
+        instance_pools: &[],
         supervisions: &[],
         unresolved: &[],
     };
@@ -330,7 +368,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
 
 fn context(tick: u64) -> PlanValidationContext<'static> {
     PlanValidationContext {
-        supported_schema_version: 1,
+        supported_schema_version: 0,
         now: time(tick),
     }
 }
@@ -352,11 +390,11 @@ fn workload_budget(work_units: u64) -> WorkloadBudget {
 }
 
 #[test]
-fn schema_19_pins_workload_admission_separately_from_observations() {
+fn workload_admission_is_pinned_separately_from_observations() {
     with_plan(|plan, scratch| {
         let mut profile = ExecutionProfile {
             id: Id("fixture/workload-profile"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: ZERO_HASH,
             boundedness: BoundednessProfile::Hard,
             cancellation: CancellationGuarantee::Bounded,
@@ -476,28 +514,6 @@ fn schema_19_pins_workload_admission_separately_from_observations() {
                 subject_index: Some(0),
             })
         );
-
-        let mut legacy = ExecutionPlan {
-            schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V18,
-            identity: ZERO_HASH,
-            ..current
-        };
-        legacy.identity = legacy.semantic_hash(scratch).unwrap();
-        assert_eq!(
-            validate_execution_plan(
-                &legacy,
-                PlanValidationContext {
-                    supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V18,
-                    now: time(20),
-                },
-                scratch,
-            ),
-            Err(conduit_core::PlanValidationError {
-                code: PlanDiagnosticCode::UnsupportedVersion,
-                collection: PlanCollection::Workloads,
-                subject_index: Some(0),
-            })
-        );
     });
 }
 
@@ -506,11 +522,10 @@ fn valid_nested_plan_pins_every_runnable_boundary() {
     with_plan(|plan, scratch| {
         assert_eq!(
             plan.identity.to_string(),
-            "sha256:5e0b490b723828de2fa235ec8cdc5338bc9c1263cc191a770a5b49c66a2e28a7"
+            "sha256:eb57d8a56634b735fb5a70506d57a32a1244cd7303de529d951673ddd06b4c0a"
         );
         assert_eq!(validate_execution_plan(&plan, context(20), scratch), Ok(()));
         assert_eq!(plan.identity, plan.semantic_hash(scratch).unwrap());
-        assert_eq!(plan.instance_pools[0].correlation_slots, 2);
         assert_eq!(plan.nodes[0].required_effects.len(), 1);
 
         let mut minimal = ExecutionPlan {
@@ -526,7 +541,7 @@ fn valid_nested_plan_pins_every_runnable_boundary() {
             Ok(())
         );
 
-        let fixture = include_str!("../../../conformance/c2/execution-plan-v1.tsv");
+        let fixture = include_str!("../../../conformance/c2/execution-plan.tsv");
         for case in [
             "valid_minimal",
             "valid_nested",
@@ -553,11 +568,11 @@ fn valid_nested_plan_pins_every_runnable_boundary() {
 }
 
 #[test]
-fn schema_18_pins_resource_lease_and_domain_commit_disposition() {
+fn resource_lease_and_domain_commit_disposition_are_pinned() {
     with_plan(|plan, scratch| {
         let mut execution_profile = ExecutionProfile {
             id: Id("fixture/lease-execution-profile"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: ZERO_HASH,
             boundedness: BoundednessProfile::Hard,
             cancellation: CancellationGuarantee::Bounded,
@@ -699,20 +714,6 @@ fn schema_18_pins_resource_lease_and_domain_commit_disposition() {
             PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::IdentityMismatch)
         );
         assert_eq!(error.collection, PlanCollection::Resources);
-
-        let mut legacy = ExecutionPlan {
-            schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
-            identity: ZERO_HASH,
-            ..plan
-        };
-        legacy.identity = legacy.semantic_hash(scratch).unwrap();
-        let legacy_context = PlanValidationContext {
-            supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
-            now: time(20),
-        };
-        let error = validate_execution_plan(&legacy, legacy_context, scratch).unwrap_err();
-        assert_eq!(error.code, PlanDiagnosticCode::UnsupportedVersion);
-        assert_eq!(error.collection, PlanCollection::Resources);
     });
 }
 
@@ -775,83 +776,78 @@ fn canonical_identity_ignores_registry_and_collection_order() {
 }
 
 #[test]
-fn plan_v2_pins_group_maximum_and_direction_without_rewriting_v1() {
+fn current_plan_pins_group_maximum_and_direction() {
     with_plan(|plan, scratch| {
-        let fixture = include_str!("../../../conformance/c2/port-group-correlation-v1.json");
+        let fixture = include_str!("../../../conformance/c2/port-group-correlation.json");
         for case in [
-            "plan-v1-preserved",
-            "plan-v2-maximum",
-            "plan-v2-direction",
-            "plan-v2-membership-over-maximum",
-            "plan-v1-to-v2-migration",
+            "plan-preserved",
+            "plan-maximum",
+            "plan-direction",
+            "plan-membership-over-maximum",
         ] {
             assert!(fixture.contains(&format!("\"id\": \"{case}\"")));
         }
-        let v1_changed_group = [PlanPortGroup {
+        let changed_group = [PlanPortGroup {
             maximum: 99,
             direction: Direction::Input,
             ..plan.port_groups[0]
         }];
-        let v1_changed = ExecutionPlan {
-            port_groups: &v1_changed_group,
+        let changed = ExecutionPlan {
+            port_groups: &changed_group,
             ..plan
         };
-        assert_eq!(v1_changed.semantic_hash(scratch).unwrap(), plan.identity);
-
-        let mut v2 = ExecutionPlan {
-            schema_version: 2,
-            identity: ZERO_HASH,
-            ..plan
-        };
-        v2.identity = v2.semantic_hash(scratch).unwrap();
-        let v2_context = PlanValidationContext {
-            supported_schema_version: 2,
-            now: time(20),
-        };
-        assert_eq!(validate_execution_plan(&v2, v2_context, scratch), Ok(()));
-        assert_ne!(v2.identity, plan.identity);
+        assert_ne!(changed.semantic_hash(scratch).unwrap(), plan.identity);
 
         let changed_maximum_group = [PlanPortGroup {
             maximum: 3,
-            ..v2.port_groups[0]
+            ..plan.port_groups[0]
         }];
         let changed_maximum = ExecutionPlan {
             port_groups: &changed_maximum_group,
-            ..v2
+            ..plan
         };
-        assert_ne!(changed_maximum.semantic_hash(scratch).unwrap(), v2.identity);
+        assert_ne!(
+            changed_maximum.semantic_hash(scratch).unwrap(),
+            plan.identity
+        );
 
         let changed_direction_group = [PlanPortGroup {
             direction: Direction::Input,
-            ..v2.port_groups[0]
+            ..plan.port_groups[0]
         }];
         let changed_direction = ExecutionPlan {
             port_groups: &changed_direction_group,
-            ..v2
+            ..plan
         };
         assert_ne!(
             changed_direction.semantic_hash(scratch).unwrap(),
-            v2.identity
+            plan.identity
         );
 
         let invalid_group = [PlanPortGroup {
             maximum: 1,
-            ..v2.port_groups[0]
+            ..plan.port_groups[0]
         }];
         let mut invalid = ExecutionPlan {
             identity: ZERO_HASH,
             port_groups: &invalid_group,
-            ..v2
+            ..plan
         };
         invalid.identity = invalid.semantic_hash(scratch).unwrap();
         assert_eq!(
-            validate_execution_plan(&invalid, v2_context, scratch)
+            validate_execution_plan(&invalid, context(20), scratch)
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::InvalidDescriptor
         );
+        let mut displaced = ExecutionPlan {
+            schema_version: 1,
+            identity: ZERO_HASH,
+            ..plan
+        };
+        displaced.identity = displaced.semantic_hash(scratch).unwrap();
         assert_eq!(
-            validate_execution_plan(&v2, context(1), scratch)
+            validate_execution_plan(&displaced, context(20), scratch)
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::UnsupportedVersion
@@ -860,20 +856,20 @@ fn plan_v2_pins_group_maximum_and_direction_without_rewriting_v1() {
 }
 
 #[test]
-fn plan_v3_pins_bounded_execution_profiles_without_rewriting_v1_or_v2() {
+fn current_plan_pins_bounded_execution_profiles() {
     with_plan(|plan, scratch| {
-        let fixture = include_str!("../../../conformance/c4/implementation-step-v1.json");
+        let fixture = include_str!("../../../conformance/c4/implementation-step.json");
         for case in [
-            "plan-v3-profile-pinned",
-            "plan-v1-v2-identities-preserved",
-            "plan-v3-missing-profile-rejected",
-            "plan-v2-profile-rejected",
+            "plan-profile-pinned",
+            "plan-identities-preserved",
+            "plan-missing-profile-rejected",
+            "plan-profile-rejected",
         ] {
             assert!(fixture.contains(&format!("\"id\":\"{case}\"")));
         }
         let mut profile = ExecutionProfile {
             id: Id("fixture/execution-profile"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: ZERO_HASH,
             boundedness: BoundednessProfile::Hard,
             cancellation: CancellationGuarantee::Bounded,
@@ -914,40 +910,17 @@ fn plan_v3_pins_bounded_execution_profiles_without_rewriting_v1_or_v2() {
                 ..plan.nodes[1]
             },
         ];
-        let mut v3 = ExecutionPlan {
-            schema_version: 3,
+        let mut current = ExecutionPlan {
             identity: ZERO_HASH,
             nodes: &nodes,
             ..plan
         };
-        v3.identity = v3.semantic_hash(scratch).unwrap();
-        let v3_context = PlanValidationContext {
-            supported_schema_version: 3,
-            now: time(20),
-        };
-        assert_eq!(validate_execution_plan(&v3, v3_context, scratch), Ok(()));
-        assert_ne!(v3.identity, plan.identity);
-
-        let mut v2_with_profile = ExecutionPlan {
-            schema_version: 2,
-            identity: ZERO_HASH,
-            nodes: &nodes,
-            ..plan
-        };
-        v2_with_profile.identity = v2_with_profile.semantic_hash(scratch).unwrap();
+        current.identity = current.semantic_hash(scratch).unwrap();
         assert_eq!(
-            validate_execution_plan(
-                &v2_with_profile,
-                PlanValidationContext {
-                    supported_schema_version: 2,
-                    now: time(20)
-                },
-                scratch
-            )
-            .unwrap_err()
-            .code,
-            PlanDiagnosticCode::InvalidDescriptor
+            validate_execution_plan(&current, context(20), scratch),
+            Ok(())
         );
+        assert_ne!(current.identity, plan.identity);
 
         let missing_profile_nodes = [
             ResolvedPlanNode {
@@ -959,11 +932,11 @@ fn plan_v3_pins_bounded_execution_profiles_without_rewriting_v1_or_v2() {
         let mut missing = ExecutionPlan {
             identity: ZERO_HASH,
             nodes: &missing_profile_nodes,
-            ..v3
+            ..current
         };
         missing.identity = missing.semantic_hash(scratch).unwrap();
         assert_eq!(
-            validate_execution_plan(&missing, v3_context, scratch)
+            validate_execution_plan(&missing, context(20), scratch)
                 .unwrap_err()
                 .code,
             PlanDiagnosticCode::InvalidDescriptor
@@ -972,23 +945,23 @@ fn plan_v3_pins_bounded_execution_profiles_without_rewriting_v1_or_v2() {
 }
 
 #[test]
-fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
+fn current_plan_pins_coupled_fanout_and_deterministic_merge() {
     with_plan(|plan, scratch| {
-        let fixture = include_str!("../../../conformance/c4/structural-flow-v1.json");
+        let fixture = include_str!("../../../conformance/c4/structural-flow.json");
         for case in [
-            "plan-v4-coupled-fanout-pinned",
-            "plan-v4-multi-edge-without-fanout-rejected",
+            "plan-coupled-fanout-pinned",
+            "plan-multi-edge-without-fanout-rejected",
             "non-copyable-value-rejected",
             "deterministic-round-robin",
             "event-time-late-value",
-            "plan-v1-v3-identities-preserved",
+            "plan-identities-preserved",
         ] {
             assert!(fixture.contains(&format!("\"id\":\"{case}\"")));
         }
-        let resonance = include_str!("../../../conformance/c4/resonance-v1.json");
+        let resonance = include_str!("../../../conformance/c4/resonance.json");
         for case in [
-            "plan-v5-stream-identity",
-            "plan-v1-v4-identities-preserved",
+            "plan-stream-identity",
+            "plan-identities-preserved",
             "durability-provider-rejected",
             "retention-provider-rejected",
             "security-provider-rejected",
@@ -997,7 +970,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         }
         let mut profile = ExecutionProfile {
             id: Id("fixture/structural-profile"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: ZERO_HASH,
             boundedness: BoundednessProfile::Hard,
             cancellation: CancellationGuarantee::Bounded,
@@ -1075,7 +1048,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             terminal: MergeTerminalPolicy::DrainAll,
         }];
         let mut v4 = ExecutionPlan {
-            schema_version: 4,
+            schema_version: 0,
             identity: ZERO_HASH,
             nodes: &nodes,
             cords: &cords,
@@ -1085,7 +1058,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         };
         v4.identity = v4.semantic_hash(scratch).unwrap();
         let context = PlanValidationContext {
-            supported_schema_version: 4,
+            supported_schema_version: 0,
             now: time(20),
         };
         assert_eq!(validate_execution_plan(&v4, context, scratch), Ok(()));
@@ -1196,7 +1169,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             },
         };
         let mut v5 = ExecutionPlan {
-            schema_version: 5,
+            schema_version: 0,
             identity: ZERO_HASH,
             event_streams: &[stream],
             runtime_evidence: None,
@@ -1204,7 +1177,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         };
         v5.identity = v5.semantic_hash(scratch).unwrap();
         let context5 = PlanValidationContext {
-            supported_schema_version: 5,
+            supported_schema_version: 0,
             now: time(20),
         };
         assert_eq!(validate_execution_plan(&v5, context5, scratch), Ok(()));
@@ -1229,26 +1202,6 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             validate_execution_plan(&incapable, context5, scratch)
                 .unwrap_err()
                 .code,
-            PlanDiagnosticCode::EventStreamInvalid
-        );
-
-        let mut illegal_v4_stream = ExecutionPlan {
-            schema_version: 4,
-            identity: ZERO_HASH,
-            ..v5
-        };
-        illegal_v4_stream.identity = illegal_v4_stream.semantic_hash(scratch).unwrap();
-        assert_eq!(
-            validate_execution_plan(
-                &illegal_v4_stream,
-                PlanValidationContext {
-                    supported_schema_version: 4,
-                    now: time(20)
-                },
-                scratch
-            )
-            .unwrap_err()
-            .code,
             PlanDiagnosticCode::EventStreamInvalid
         );
 
@@ -1337,7 +1290,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         let job_streams = [job_stream];
         let jobs = [job];
         let mut v6 = ExecutionPlan {
-            schema_version: 6,
+            schema_version: 0,
             identity: ZERO_HASH,
             budget: PlanResourceBudget {
                 memory_bytes: 512,
@@ -1355,7 +1308,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         };
         v6.identity = v6.semantic_hash(scratch).unwrap();
         let context6 = PlanValidationContext {
-            supported_schema_version: 6,
+            supported_schema_version: 0,
             now: time(20),
         };
         assert_eq!(validate_execution_plan(&v6, context6, scratch), Ok(()));
@@ -1363,7 +1316,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
 
         let alternate_type = TypeContractRef {
             contract_id: Id("fixture/alternate-value"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(91),
         };
         let structural_cords = [
@@ -1425,28 +1378,28 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             offered_hash: hash(93),
         }];
         let mut satisfaction = SatisfactionProof {
-            schema_version: 1,
+            schema_version: 0,
             identity: ZERO_HASH,
             role: SatisfactionRole::PortConnection,
             method: SatisfactionMethod::StructuralFacets,
             required: DescriptorRef {
                 kind: Id("conduit/port-contract"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: structural_cords[0].to.port_contract_hash,
             },
             offered: DescriptorRef {
                 kind: Id("conduit/port-contract"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: structural_cords[0].from.port_contract_hash,
             },
             provider: Some(SatisfactionPin {
                 descriptor: DescriptorRef {
                     kind: Id("fixture/type-provider"),
-                    schema_version: 1,
+                    schema_version: 0,
                     semantic_hash: hash(94),
                 },
             }),
-            provider_rule: Some(Id("fixture/structural-port-v1")),
+            provider_rule: Some(Id("fixture/structural-port")),
             policy: None,
             facets: &facets,
             obligations: &obligations,
@@ -1476,7 +1429,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
                 reason: Id("fixture/accepted"),
             });
         let mut implementation_proof = SatisfactionProof {
-            schema_version: 1,
+            schema_version: 0,
             identity: ZERO_HASH,
             role: SatisfactionRole::Implementation,
             method: SatisfactionMethod::ProviderRule,
@@ -1493,11 +1446,11 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             provider: Some(SatisfactionPin {
                 descriptor: DescriptorRef {
                     kind: Id("fixture/implementation-provider"),
-                    schema_version: 1,
+                    schema_version: 0,
                     semantic_hash: hash(96),
                 },
             }),
-            provider_rule: Some(Id("fixture/implementation-satisfies-v1")),
+            provider_rule: Some(Id("fixture/implementation-satisfies")),
             policy: None,
             facets: &[],
             obligations: &implementation_obligations,
@@ -1524,7 +1477,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             },
         ];
         let mut v7 = ExecutionPlan {
-            schema_version: 7,
+            schema_version: 0,
             identity: ZERO_HASH,
             cords: &structural_cords,
             fanouts: &structural_fanouts,
@@ -1533,7 +1486,7 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         };
         v7.identity = v7.semantic_hash(scratch).unwrap();
         let context7 = PlanValidationContext {
-            supported_schema_version: 7,
+            supported_schema_version: 0,
             now: time(20),
         };
         assert_eq!(validate_execution_plan(&v7, context7, scratch), Ok(()));
@@ -1623,21 +1576,6 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             PlanDiagnosticCode::SatisfactionInvalid
         );
 
-        let mut illegal_v6_proof = ExecutionPlan {
-            schema_version: 6,
-            identity: ZERO_HASH,
-            cords: v6.cords,
-            fanouts: v6.fanouts,
-            ..v7
-        };
-        illegal_v6_proof.identity = illegal_v6_proof.semantic_hash(scratch).unwrap();
-        assert_eq!(
-            validate_execution_plan(&illegal_v6_proof, context6, scratch)
-                .unwrap_err()
-                .code,
-            PlanDiagnosticCode::SatisfactionInvalid
-        );
-
         let runtime_policy = RuntimeEvidencePolicy {
             schema_version: RUNTIME_EVIDENCE_POLICY_VERSION,
             mode: RuntimeEvidenceMode::Record,
@@ -1651,14 +1589,14 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             gap_summary_bytes: 8,
         };
         let mut v8 = ExecutionPlan {
-            schema_version: 8,
+            schema_version: 0,
             identity: ZERO_HASH,
             runtime_evidence: Some(runtime_policy),
             ..v7
         };
         v8.identity = v8.semantic_hash(scratch).unwrap();
         let context8 = PlanValidationContext {
-            supported_schema_version: 8,
+            supported_schema_version: 0,
             now: time(20),
         };
         assert_eq!(validate_execution_plan(&v8, context8, scratch), Ok(()));
@@ -1680,19 +1618,6 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         );
         assert_ne!(changed_evidence.identity, v8.identity);
 
-        let mut illegal_v7_evidence = ExecutionPlan {
-            schema_version: 7,
-            identity: ZERO_HASH,
-            ..v8
-        };
-        illegal_v7_evidence.identity = illegal_v7_evidence.semantic_hash(scratch).unwrap();
-        assert_eq!(
-            validate_execution_plan(&illegal_v7_evidence, context7, scratch)
-                .unwrap_err()
-                .code,
-            PlanDiagnosticCode::RuntimeEvidenceInvalid
-        );
-
         let incapable_jobs = [PlanJob {
             checkpoint_provider_capabilities: Some(CheckpointProviderCapabilities {
                 durable: false,
@@ -1713,19 +1638,6 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
             PlanDiagnosticCode::JobInvalid
         );
 
-        let mut illegal_v5_job = ExecutionPlan {
-            schema_version: 5,
-            identity: ZERO_HASH,
-            ..v6
-        };
-        illegal_v5_job.identity = illegal_v5_job.semantic_hash(scratch).unwrap();
-        assert_eq!(
-            validate_execution_plan(&illegal_v5_job, context5, scratch)
-                .unwrap_err()
-                .code,
-            PlanDiagnosticCode::JobInvalid
-        );
-
         let mut changed = ExecutionPlan {
             identity: ZERO_HASH,
             merges: &[PlanMerge {
@@ -1736,26 +1648,6 @@ fn plan_v4_pins_coupled_fanout_and_deterministic_merge_without_rewriting_v3() {
         };
         changed.identity = changed.semantic_hash(scratch).unwrap();
         assert_ne!(changed.identity, v4.identity);
-
-        let mut illegal_v3 = ExecutionPlan {
-            schema_version: 3,
-            identity: ZERO_HASH,
-            ..v4
-        };
-        illegal_v3.identity = illegal_v3.semantic_hash(scratch).unwrap();
-        assert_eq!(
-            validate_execution_plan(
-                &illegal_v3,
-                PlanValidationContext {
-                    supported_schema_version: 3,
-                    now: time(20)
-                },
-                scratch
-            )
-            .unwrap_err()
-            .code,
-            PlanDiagnosticCode::StructuralInvalid
-        );
     });
 }
 
@@ -1890,7 +1782,7 @@ fn portable_validator_rejects_every_required_malformed_class() {
         );
 
         let unsupported = ExecutionPlan {
-            schema_version: 2,
+            schema_version: 1,
             ..plan
         };
         assert_eq!(
@@ -1939,11 +1831,11 @@ fn portable_validator_rejects_every_required_malformed_class() {
 }
 
 #[test]
-fn plan_v17_pins_value_clock_and_feedback_facts() {
+fn current_plan_pins_value_clock_and_feedback_facts() {
     with_plan(|base, scratch| {
         let mut profile = ExecutionProfile {
             id: Id("fixture/execution-profile"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: ZERO_HASH,
             boundedness: BoundednessProfile::Hard,
             cancellation: CancellationGuarantee::Bounded,
@@ -2036,7 +1928,7 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
             ..base.cords[0]
         }];
         let mut plan = ExecutionPlan {
-            schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
+            schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
             cords: &cords,
             value_envelopes: &envelopes,
             clock_conversions: &conversions,
@@ -2049,7 +1941,7 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
         validate_execution_plan(
             &plan,
             PlanValidationContext {
-                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
                 now: time(20),
             },
             scratch,
@@ -2079,7 +1971,7 @@ fn plan_v17_pins_value_clock_and_feedback_facts() {
         let error = validate_execution_plan(
             &unauthorized_clock,
             PlanValidationContext {
-                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION_V17,
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
                 now: time(20),
             },
             scratch,

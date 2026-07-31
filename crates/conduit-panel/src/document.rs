@@ -1,4 +1,4 @@
-use std::fmt::{self, Write as _};
+use std::fmt::Write as _;
 
 use sha2::{Digest as _, Sha256};
 
@@ -7,27 +7,7 @@ use crate::{
     PortGroupShape, SourcePressure, parse_with_root,
 };
 
-pub const SOURCE_AST_SCHEMA_V1: u16 = 1;
-pub const SOURCE_AST_SCHEMA_V2: u16 = 2;
-pub const SOURCE_AST_SCHEMA_V3: u16 = 3;
-pub const SOURCE_AST_SCHEMA_V4: u16 = 4;
-pub const SOURCE_AST_SCHEMA_V5: u16 = 5;
-
-/// Explicit persisted source-AST schema selection failure.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SourceSchemaError {
-    pub code: &'static str,
-    pub schema_version: u16,
-    pub message: String,
-}
-
-impl fmt::Display for SourceSchemaError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{}: {}", self.code, self.message)
-    }
-}
-
-impl std::error::Error for SourceSchemaError {}
+pub const SOURCE_AST_SCHEMA_VERSION: u16 = 0;
 
 /// Exact source extent, using UTF-8 byte offsets and one-based locations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -82,31 +62,6 @@ impl SourceDocument {
     pub fn semantic_hash(&self) -> Option<String> {
         self.ast.as_ref().map(semantic_source_hash)
     }
-
-    /// Hashes corrected authored source semantics without caller-selected
-    /// resolution state.
-    #[must_use]
-    pub fn semantic_hash_v2(&self) -> Option<String> {
-        self.ast.as_ref().map(semantic_source_hash_v2)
-    }
-
-    /// Hashes grammar-v2 supervision bindings under source-AST schema 3.
-    #[must_use]
-    pub fn semantic_hash_v3(&self) -> Option<String> {
-        self.ast.as_ref().map(semantic_source_hash_v3)
-    }
-
-    /// Hashes grammar-v2 named interface declarations and claims under source-AST schema 4.
-    #[must_use]
-    pub fn semantic_hash_v4(&self) -> Option<String> {
-        self.ast.as_ref().map(semantic_source_hash_v4)
-    }
-
-    /// Hashes grammar-v3 directional declarations under source-AST schema 5.
-    #[must_use]
-    pub fn semantic_hash_v5(&self) -> Option<String> {
-        self.ast.as_ref().map(semantic_source_hash_v5)
-    }
 }
 
 /// Parses a lossless document without selecting among multiple declared roots.
@@ -142,124 +97,12 @@ pub fn parse_document_with_root(source: &str, selected_root: Option<&str>) -> So
 /// execution-plan identities.
 #[must_use]
 pub fn semantic_source_hash(panel: &Panel) -> String {
-    semantic_source_hash_v1(panel)
-}
-
-/// Frozen version 1 source-semantic hash.
-///
-/// Version 1 included `Panel::selected_root`. It remains available so
-/// persisted identities and conformance fixtures are never reinterpreted.
-#[must_use]
-pub fn semantic_source_hash_v1(panel: &Panel) -> String {
-    let mut normalized = String::new();
-    write_panel(panel, &mut normalized, true);
-    format!(
-        "sha256:{:x}",
-        Sha256::digest(
-            [
-                b"conduit.panel-source/v1\0".as_slice(),
-                normalized.as_bytes()
-            ]
-            .concat()
-        )
-    )
-}
-
-/// Corrected version 2 authored-source hash.
-///
-/// Caller-selected root state is resolved metadata, not authored AST
-/// semantics, and is therefore excluded under the version 2 domain.
-#[must_use]
-pub fn semantic_source_hash_v2(panel: &Panel) -> String {
     let mut normalized = String::new();
     write_panel(panel, &mut normalized, false);
     format!(
         "sha256:{:x}",
-        Sha256::digest(
-            [
-                b"conduit.panel-source/v2\0".as_slice(),
-                normalized.as_bytes()
-            ]
-            .concat()
-        )
+        Sha256::digest([b"conduit.panel-source\0".as_slice(), normalized.as_bytes()].concat())
     )
-}
-
-/// Version 3 authored-source hash including explicit supervision bindings.
-///
-/// The normalized writer also sees these fields under older hash functions,
-/// but grammar version 1 cannot author them. A distinct domain prevents a
-/// grammar-v2 document from being mistaken for persisted schema 2.
-#[must_use]
-pub fn semantic_source_hash_v3(panel: &Panel) -> String {
-    let mut normalized = String::new();
-    write_panel(panel, &mut normalized, false);
-    format!(
-        "sha256:{:x}",
-        Sha256::digest(
-            [
-                b"conduit.panel-source/v3\0".as_slice(),
-                normalized.as_bytes()
-            ]
-            .concat()
-        )
-    )
-}
-
-/// Version 4 authored-source hash including named interface declarations and claims.
-#[must_use]
-pub fn semantic_source_hash_v4(panel: &Panel) -> String {
-    let mut normalized = String::new();
-    write_panel(panel, &mut normalized, false);
-    format!(
-        "sha256:{:x}",
-        Sha256::digest(
-            [
-                b"conduit.panel-source/v4\0".as_slice(),
-                normalized.as_bytes()
-            ]
-            .concat()
-        )
-    )
-}
-
-/// Version 5 authored-source hash for grammar-v3 directional declarations.
-///
-/// Direction remains an explicit AST field. The new domain ensures persisted
-/// grammar-v2 identities are never reinterpreted as the logographic syntax.
-#[must_use]
-pub fn semantic_source_hash_v5(panel: &Panel) -> String {
-    let mut normalized = String::new();
-    write_panel(panel, &mut normalized, false);
-    format!(
-        "sha256:{:x}",
-        Sha256::digest(
-            [
-                b"conduit.panel-source/v5\0".as_slice(),
-                normalized.as_bytes()
-            ]
-            .concat()
-        )
-    )
-}
-
-/// Hashes one explicitly selected source-AST schema.
-pub fn semantic_source_hash_version(
-    panel: &Panel,
-    schema_version: u16,
-) -> Result<String, SourceSchemaError> {
-    match schema_version {
-        SOURCE_AST_SCHEMA_V1 => Ok(semantic_source_hash_v1(panel)),
-        SOURCE_AST_SCHEMA_V2 => Ok(semantic_source_hash_v2(panel)),
-        SOURCE_AST_SCHEMA_V3 => Ok(semantic_source_hash_v3(panel)),
-        SOURCE_AST_SCHEMA_V4 => Ok(semantic_source_hash_v4(panel)),
-        SOURCE_AST_SCHEMA_V5 => Ok(semantic_source_hash_v5(panel)),
-        _ => Err(SourceSchemaError {
-            code: "CND-SRC-011",
-            schema_version,
-            message: format!("unsupported source-AST schema version {schema_version}"),
-        }),
-    }
 }
 
 pub(crate) fn lossless_tokens(source: &str) -> Vec<CstToken> {

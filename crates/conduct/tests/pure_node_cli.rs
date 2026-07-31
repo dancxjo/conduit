@@ -12,10 +12,10 @@ fn workspace_file(path: &str) -> PathBuf {
 #[test]
 fn canonical_cli_matches_the_pure_node_value_and_normalized_evidence() {
     let profile: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/pure-node-v1-profile.json"
+        "../../../conformance/c5/pure-node-profile.json"
     ))
     .unwrap();
-    let panel = workspace_file("conformance/c5/pure-node-v1.panel");
+    let panel = workspace_file("conformance/c5/pure-node.panel");
 
     let human = Command::new(env!("CARGO_BIN_EXE_conduct"))
         .arg(&panel)
@@ -40,8 +40,8 @@ fn canonical_cli_matches_the_pure_node_value_and_normalized_evidence() {
         .collect::<Vec<_>>();
     assert!(records.iter().any(|record| {
         record["record"] == "summary"
-            && record["nodes_completed"] == 3
-            && record["cords_conducted"] == 2
+            && record["nodes_completed"] == 4
+            && record["cords_conducted"] == 3
     }));
     let stdout = records
         .iter()

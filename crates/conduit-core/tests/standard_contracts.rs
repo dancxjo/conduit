@@ -5,7 +5,7 @@ use conduit_core::{
     validate_host_service_contract, validate_retry_contract, validate_standard_node_contract,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c4/standard-node-library-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c4/standard-node-library.json");
 
 fn host_service() -> HostServiceContract<'static> {
     HostServiceContract {
@@ -454,10 +454,7 @@ fn node_contract_outcome(id: &str) -> &'static str {
 #[test]
 fn every_standard_node_contract_fixture_executes_independently() {
     let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(
-        fixture["schema"],
-        "conduit.standard-node-library-fixture/v1"
-    );
+    assert_eq!(fixture["schema"], "conduit.standard-node-library-fixture");
     let cases = fixture["cases"]
         .as_array()
         .unwrap()
@@ -500,10 +497,7 @@ fn host_service_resolution_outcome(id: &str) -> &'static str {
 #[test]
 fn every_host_service_resolution_fixture_executes_independently() {
     let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(
-        fixture["schema"],
-        "conduit.standard-node-library-fixture/v1"
-    );
+    assert_eq!(fixture["schema"], "conduit.standard-node-library-fixture");
     let cases = fixture["cases"]
         .as_array()
         .unwrap()

@@ -9,7 +9,7 @@ use conduit_runtime::{
 
 const TEXT: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/text"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
         0xc1, 0xbb, 0x91, 0xcf, 0x01, 0xee, 0xfc, 0xeb, 0x30, 0x4e, 0xe1, 0xfb, 0x4d, 0xe5, 0xb8,
         0x7f, 0xee, 0x8e, 0xa2, 0x74, 0xb0, 0x9b, 0xc9, 0x6f, 0x72, 0xe2, 0xcc, 0xa8, 0x95, 0x75,
@@ -57,7 +57,7 @@ fn captured<T>(result: Result<T, ConfigResolutionError<'_>>) -> Result<T, (&'sta
 #[test]
 fn config_fixtures_preserve_defaults_mutability_and_redaction() {
     let registry = TypeRegistry::default();
-    let fixtures = include_str!("../../../conformance/c2/config-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c2/config.tsv");
     let default_contract = ConfigContract {
         fields: &[DEFAULT_FIELD],
     };
@@ -192,7 +192,7 @@ fn every_config_field_contract_fact_changes_identity() {
         },
         ConfigFieldContract {
             value_type: TypeContractRef {
-                schema_version: 2,
+                semantic_hash: SemanticHash::from_bytes([0xaa; 32]),
                 ..TEXT
             },
             ..DEFAULT_FIELD

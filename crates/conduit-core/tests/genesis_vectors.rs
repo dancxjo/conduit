@@ -17,7 +17,7 @@ use conduit_core::{
 };
 use serde_json::{Value, json};
 
-const FIXTURE: &str = include_str!("../../../conformance/c4/safe-genesis-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c4/safe-genesis.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const CHANNELS: [BootstrapChannel; 4] = [
     BootstrapChannel::PhysicalPresence,
@@ -33,7 +33,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -925,7 +925,7 @@ fn recovery_is_monotonic_and_exactly_snapshot_bound() {
 #[test]
 fn every_safe_genesis_fixture_case_executes_independently() {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(fixture["suite"], "conduit.safe-genesis/v1");
+    assert_eq!(fixture["suite"], "conduit.safe-genesis");
     for case in fixture["cases"].as_array().unwrap() {
         let id = case["id"].as_str().unwrap();
         assert_eq!(run_fixture_case(id), case["expected"], "{id}");

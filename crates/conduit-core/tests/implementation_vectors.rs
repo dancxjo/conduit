@@ -9,16 +9,16 @@ use conduit_core::{
     validate_host_operation, validate_plan_execution_profile,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c4/implementation-step-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c4/implementation-step.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([1; 32]),
 };
 const REPRESENTATION: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("fixture/representation"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([2; 32]),
 };
 const INPUT_A: ValueRepresentation<'static> = ValueRepresentation {
@@ -115,7 +115,7 @@ const LIMITS: ExecutionLimits = ExecutionLimits {
 fn with_profile(test: impl FnOnce(ExecutionProfile<'static>)) {
     let mut profile = ExecutionProfile {
         id: Id("fixture/execution-profile"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: ZERO,
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
@@ -135,7 +135,7 @@ fn instantiation(profile: &ExecutionProfile<'_>) -> InstantiationContext<'static
         instance: InstancePath::new("root/node").unwrap(),
         implementation: PinnedDescriptor {
             id: Id("fixture/implementation"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([3; 32]),
         },
         artifact: Id("artifact/a"),
@@ -554,7 +554,7 @@ fn host_operations_and_optional_checkpoint_require_exact_plan_bindings() {
             profile.validate_checkpoint(conduit_core::CheckpointRequest {
                 contract: PinnedDescriptor {
                     id: Id("fixture/checkpoint"),
-                    schema_version: 1,
+                    schema_version: 0,
                     semantic_hash: SemanticHash::from_bytes([9; 32]),
                 },
                 maximum_bytes: 1,

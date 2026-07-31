@@ -28,49 +28,15 @@ use crate::{
     validate_stream_contract, validate_value_envelope_policy, validate_workload_contract,
 };
 
-/// Latest exact schema supported by the portable validator.
+/// Current pre-release exact execution-plan schema.
 ///
-/// Schema 2 adds explicit port-group maximum and direction. Schema 3 adds one
-/// exact implementation execution profile per primitive node. Schema 4 adds
-/// structural flow, schema 5 adds Resonance streams, and schema 6 adds durable
-/// jobs, schema 7 adds implicit-satisfaction proof bindings, schema 8 adds one
-/// exact runtime-evidence recording policy, schema 9 adds distributed-cord
-/// bindings, and schema 10 pins the selected transport artifact, bounded
-/// backend profile, carrier protection, and carrier endpoint. Schema 11 pins
-/// administrative containment proofs on exact authority bindings. Schema 12
-/// pins persistent policy-budget status and optional finite offline leases.
-/// Schema 13 pins whole-plan hazardous-effect closure policy, exact stage
-/// transfers, permits, and the resulting decision. Schema 14 pins hazardous
-/// host profiles and independently observed inhibit boundaries into that
-/// closure and revalidates their freshness at run start. Schema 15 pins typed
-/// supervision bindings, admitted actions, ordinary handler placement, and
-/// complete finite recovery resources. Schema 16 adds exact replicated-pool
-/// runtime admission, lifecycle, resource, and generation-overlap contracts.
-/// Schema 17 adds bounded value-envelope authorization, exact clock
-/// conversions, and finite feedback boundaries. Schema 18 pins run-scoped
-/// resource leases and domain-owned effect commit/cleanup profiles. Schema 19
-/// pins workload admission, resource-category support, and deadline
-/// enforcement evidence without promoting observations into authority.
-/// Earlier schemas remain readable with frozen identities.
-pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 19;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V1: u32 = 1;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V2: u32 = 2;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V3: u32 = 3;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V4: u32 = 4;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V5: u32 = 5;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V6: u32 = 6;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V7: u32 = 7;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V8: u32 = 8;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V9: u32 = 9;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V10: u32 = 10;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V11: u32 = 11;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V12: u32 = 12;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V13: u32 = 13;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V14: u32 = 14;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V15: u32 = 15;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V16: u32 = 16;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V17: u32 = 17;
-pub const EXECUTION_PLAN_SCHEMA_VERSION_V18: u32 = 18;
+/// It includes explicit port-group bounds and direction, bounded execution
+/// profiles, structural flow, event streams, durable jobs, satisfaction
+/// proofs, evidence policy, distributed bindings, containment, policy budgets,
+/// hazard closure, inhibit boundaries, typed supervision, replicated pools,
+/// value envelopes, clock conversion, feedback, resource leases, effect commit
+/// profiles, and workload admission.
+pub const EXECUTION_PLAN_SCHEMA_VERSION: u32 = 0;
 
 /// One exact, versioned descriptor dependency.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -131,7 +97,7 @@ pub struct PlanResourceBinding<'a> {
     pub node: InstancePath<'a>,
     pub resource: crate::ResourceRef<'a>,
     pub host_observation: Id<'a>,
-    /// Finite run/epoch-scoped lease introduced in schema 18.
+    /// Finite run/epoch-scoped lease.
     pub lease: Option<ResourceLeaseContract<'a>>,
 }
 
@@ -209,7 +175,7 @@ pub struct ResolvedPlanNode<'a> {
     pub contract: PinnedDescriptor<'a>,
     pub implementation: PinnedDescriptor<'a>,
     pub lifecycle_policy: PinnedDescriptor<'a>,
-    /// Exact bounded execution profile in plan schema 3; absent in v1/v2.
+    /// Exact bounded execution profile required by the current plan.
     pub execution_profile: Option<&'a ExecutionProfile<'a>>,
     pub artifact: Id<'a>,
     pub host_observation: Id<'a>,
@@ -325,7 +291,7 @@ pub struct PlanAuthority<'a> {
     pub administrative_subject: Option<AdministrativeSubject<'a>>,
     pub containment: Option<AdministrativeProof<'a>>,
     pub policy_budgets: &'a [PlanPolicyBudget<'a>],
-    /// Domain commit/retry/cleanup semantics introduced in schema 18.
+    /// Domain commit/retry/cleanup semantics required by the current plan.
     pub commit_profile: Option<EffectCommitProfile<'a>>,
 }
 
@@ -339,7 +305,7 @@ pub struct PlanPolicyBudget<'a> {
     pub check_at_use: bool,
 }
 
-/// Exact plan-level hazardous-effect closure proof introduced in schema 13.
+/// Exact plan-level hazardous-effect closure proof.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanHazardClosure<'a> {
     pub epoch: u64,
@@ -382,9 +348,9 @@ pub struct PlanPortGroupMember<'a> {
 pub struct PlanPortGroup<'a> {
     pub instance: InstancePath<'a>,
     pub template_hash: SemanticHash,
-    /// Authored semantic maximum. This is normative in plan schema 2.
+    /// Authored semantic maximum.
     pub maximum: u16,
-    /// Direction of every complete member contract. Normative in schema 2.
+    /// Direction of every complete member contract.
     pub direction: Direction,
     pub members: &'a [PlanPortGroupMember<'a>],
 }
@@ -418,8 +384,7 @@ pub struct PlanInstancePool<'a> {
     pub worst_case_budget: PlanResourceBudget,
     pub child_nodes: u16,
     pub child_cords: u16,
-    /// Runtime semantics introduced in plan schema 16. Earlier frozen schemas
-    /// keep this absent and cannot be used to instantiate a runtime pool.
+    /// Runtime semantics required for a runnable pool.
     pub runtime: Option<PlanPoolRuntime<'a>>,
 }
 
@@ -530,38 +495,37 @@ pub struct ExecutionPlan<'a> {
     pub budget: PlanResourceBudget,
     pub host_observations: &'a [PlanHostObservation<'a>],
     pub resources: &'a [PlanResourceBinding<'a>],
-    /// Admission/deadline declarations introduced in schema 19.
+    /// Admission/deadline declarations.
     pub workloads: &'a [PlanWorkload<'a>],
     pub artifacts: &'a [PlanArtifact<'a>],
     pub nodes: &'a [ResolvedPlanNode<'a>],
     pub cords: &'a [ResolvedPlanCord<'a>],
-    /// Bounded per-value metadata authorization introduced in schema 17.
+    /// Bounded per-value metadata authorization.
     pub value_envelopes: &'a [ValueEnvelopePolicy<'a>],
-    /// Exact cross-domain clock conversions introduced in schema 17.
+    /// Exact cross-domain clock conversions.
     pub clock_conversions: &'a [crate::PlanClockConversion<'a>],
-    /// Finite dependency edges that intentionally break cycles in schema 17.
+    /// Finite dependency edges that intentionally break cycles.
     pub feedback_boundaries: &'a [crate::PlanFeedbackBoundary<'a>],
-    /// Cross-host bindings introduced in schema 9 and exact-carrier revised
-    /// in schema 10.
+    /// Exact cross-host bindings.
     pub distributed_cords: &'a [PlanDistributedCord<'a>],
-    /// Structural plan facts introduced in schema 4.
+    /// Structural plan facts.
     pub fanouts: &'a [PlanFanOut<'a>],
     pub merges: &'a [PlanMerge<'a>],
-    /// Resonance stream facts introduced in schema 5.
+    /// Resonance stream facts.
     pub event_streams: &'a [PlanEventStream<'a>],
-    /// Exact executor-evidence projection policy introduced in schema 8.
+    /// Exact executor-evidence projection policy.
     pub runtime_evidence: Option<RuntimeEvidencePolicy<'a>>,
-    /// Durable finite-job facts introduced in schema 6.
+    /// Durable finite-job facts.
     pub jobs: &'a [PlanJob<'a>],
-    /// Accepted implicit-satisfaction proofs introduced in schema 7.
+    /// Accepted implicit-satisfaction proofs.
     pub satisfaction_proofs: &'a [PlanSatisfactionProof<'a>],
     pub authorities: &'a [PlanAuthority<'a>],
-    /// Policy-selected whole-plan closure introduced in schema 13.
+    /// Policy-selected whole-plan closure.
     pub hazard_closure: Option<PlanHazardClosure<'a>>,
     pub composites: &'a [PlanCompositeMapping<'a>],
     pub port_groups: &'a [PlanPortGroup<'a>],
     pub instance_pools: &'a [PlanInstancePool<'a>],
-    /// Typed supervision entries introduced in schema 15.
+    /// Typed supervision entries.
     pub supervisions: &'a [PlanSupervision<'a>],
     pub unresolved: &'a [UnresolvedPlanConstraint<'a>],
 }
@@ -738,11 +702,7 @@ impl ExecutionPlan<'_> {
             count = count
                 .checked_add(node.required_resources.len())
                 .and_then(|value| value.checked_add(node.required_effects.len()))
-                .and_then(|value| {
-                    value.checked_add(usize::from(
-                        self.schema_version >= 3 && node.execution_profile.is_some(),
-                    ))
-                })
+                .and_then(|value| value.checked_add(usize::from(node.execution_profile.is_some())))
                 .ok_or(PlanIdentityError::FactCountOverflow)?;
         }
         for composite in self.composites {
@@ -837,13 +797,11 @@ impl ExecutionPlan<'_> {
         }
         for value in self.nodes {
             push!(hash_node(*value));
-            if self.schema_version >= 3 {
-                if let Some(profile) = value.execution_profile {
-                    push!(hash_node_execution_profile(
-                        value.instance,
-                        profile.semantic_hash
-                    ));
-                }
+            if let Some(profile) = value.execution_profile {
+                push!(hash_node_execution_profile(
+                    value.instance,
+                    profile.semantic_hash
+                ));
             }
             for resource in value.required_resources {
                 push!(hash_node_resource(value.instance, *resource));
@@ -1075,11 +1033,8 @@ pub fn validate_execution_plan(
     context: PlanValidationContext<'_>,
     identity_scratch: &mut [SemanticHash],
 ) -> Result<(), PlanValidationError> {
-    if !(EXECUTION_PLAN_SCHEMA_VERSION_V1..=EXECUTION_PLAN_SCHEMA_VERSION)
-        .contains(&plan.schema_version)
-        || !(EXECUTION_PLAN_SCHEMA_VERSION_V1..=EXECUTION_PLAN_SCHEMA_VERSION)
-            .contains(&context.supported_schema_version)
-        || plan.schema_version > context.supported_schema_version
+    if plan.schema_version != EXECUTION_PLAN_SCHEMA_VERSION
+        || context.supported_schema_version != EXECUTION_PLAN_SCHEMA_VERSION
     {
         return Err(error(
             PlanDiagnosticCode::UnsupportedVersion,
@@ -1175,58 +1130,41 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
-        match (plan.schema_version >= 18, resource.lease) {
-            (false, Some(_)) => {
-                return Err(indexed(
-                    PlanDiagnosticCode::UnsupportedVersion,
+        if let Some(lease) = resource.lease {
+            validate_resource_lease(lease).map_err(|reason| {
+                indexed(
+                    PlanDiagnosticCode::ResourceLease(reason),
                     PlanCollection::Resources,
                     index,
-                ));
-            }
-            (true, Some(lease)) => {
-                validate_resource_lease(lease).map_err(|reason| {
+                )
+            })?;
+            let node = plan
+                .nodes
+                .iter()
+                .find(|node| node.instance == resource.node)
+                .ok_or_else(|| {
                     indexed(
-                        PlanDiagnosticCode::ResourceLease(reason),
+                        PlanDiagnosticCode::DanglingReference,
                         PlanCollection::Resources,
                         index,
                     )
                 })?;
-                let node = plan
-                    .nodes
-                    .iter()
-                    .find(|node| node.instance == resource.node)
-                    .ok_or_else(|| {
-                        indexed(
-                            PlanDiagnosticCode::DanglingReference,
-                            PlanCollection::Resources,
-                            index,
-                        )
-                    })?;
-                if lease.resource_binding != resource.id
-                    || lease.holder != resource.node
-                    || lease.time_basis != plan.created_at.basis
-                    || lease.issued_at_tick > plan.created_at.tick
-                    || plan.created_at.tick >= lease.expires_at_tick
-                    || !lease.reservation.fits_within(node.allocation)
-                {
-                    return Err(indexed(
-                        PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::IdentityMismatch),
-                        PlanCollection::Resources,
-                        index,
-                    ));
-                }
+            if lease.resource_binding != resource.id
+                || lease.holder != resource.node
+                || lease.time_basis != plan.created_at.basis
+                || lease.issued_at_tick > plan.created_at.tick
+                || plan.created_at.tick >= lease.expires_at_tick
+                || !lease.reservation.fits_within(node.allocation)
+            {
+                return Err(indexed(
+                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::IdentityMismatch),
+                    PlanCollection::Resources,
+                    index,
+                ));
             }
-            _ => {}
         }
     }
 
-    if plan.schema_version < 19 && !plan.workloads.is_empty() {
-        return Err(error(
-            PlanDiagnosticCode::UnsupportedVersion,
-            PlanCollection::Workloads,
-            Some(0),
-        ));
-    }
     for (index, workload) in plan.workloads.iter().enumerate() {
         let contract = workload.contract;
         let capability = workload.capability;
@@ -1311,26 +1249,22 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
-        match (plan.schema_version >= 3, node.execution_profile) {
-            (true, Some(profile)) => {
-                validate_plan_execution_profile(profile, node.allocation, identity_scratch)
-                    .map_err(|_| {
-                        indexed(
-                            PlanDiagnosticCode::InvalidDescriptor,
-                            PlanCollection::Nodes,
-                            index,
-                        )
-                    })?;
-            }
-            (false, None) => {}
-            _ => {
-                return Err(indexed(
+        let Some(profile) = node.execution_profile else {
+            return Err(indexed(
+                PlanDiagnosticCode::InvalidDescriptor,
+                PlanCollection::Nodes,
+                index,
+            ));
+        };
+        validate_plan_execution_profile(profile, node.allocation, identity_scratch).map_err(
+            |_| {
+                indexed(
                     PlanDiagnosticCode::InvalidDescriptor,
                     PlanCollection::Nodes,
                     index,
-                ));
-            }
-        }
+                )
+            },
+        )?;
         if plan.nodes[..index]
             .iter()
             .any(|prior| prior.instance == node.instance)
@@ -1397,18 +1331,6 @@ pub fn validate_execution_plan(
                 ));
             }
         }
-    }
-
-    if plan.schema_version < 17
-        && (!plan.value_envelopes.is_empty()
-            || !plan.clock_conversions.is_empty()
-            || !plan.feedback_boundaries.is_empty())
-    {
-        return Err(error(
-            PlanDiagnosticCode::UnsupportedVersion,
-            PlanCollection::ValueEnvelopes,
-            Some(0),
-        ));
     }
 
     for (index, cord) in plan.cords.iter().enumerate() {
@@ -1481,10 +1403,9 @@ pub fn validate_execution_plan(
             ));
         }
         if cord.from.value_type != cord.to.value_type
-            && (plan.schema_version < 7
-                || !plan.satisfaction_proofs.iter().any(|binding| {
-                    matches!(binding.subject, PlanSatisfactionSubject::Cord(id) if id == cord.id)
-                }))
+            && !plan.satisfaction_proofs.iter().any(|binding| {
+                matches!(binding.subject, PlanSatisfactionSubject::Cord(id) if id == cord.id)
+            })
         {
             return Err(indexed(
                 PlanDiagnosticCode::ContractMismatch,
@@ -1621,13 +1542,6 @@ pub fn validate_execution_plan(
             })?;
     }
 
-    if plan.schema_version < 9 && !plan.distributed_cords.is_empty() {
-        return Err(error(
-            PlanDiagnosticCode::Distributed(crate::DistributedReason::UnsupportedVersion),
-            PlanCollection::DistributedCords,
-            Some(0),
-        ));
-    }
     for (index, binding) in plan.distributed_cords.iter().enumerate() {
         validate_distributed_binding(binding).map_err(|reason| {
             indexed(
@@ -1636,11 +1550,8 @@ pub fn validate_execution_plan(
                 index,
             )
         })?;
-        let binding_schema_matches_plan = if plan.schema_version == 9 {
-            binding.schema_version == crate::DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION_V1
-        } else {
-            binding.schema_version == crate::DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION
-        };
+        let binding_schema_matches_plan =
+            binding.schema_version == crate::DISTRIBUTED_CORD_BINDING_SCHEMA_VERSION;
         if !binding_schema_matches_plan {
             return Err(indexed(
                 PlanDiagnosticCode::Distributed(crate::DistributedReason::UnsupportedVersion),
@@ -1729,37 +1640,27 @@ pub fn validate_execution_plan(
             )
         })?;
     }
-    if plan.schema_version >= 9 {
-        for (index, cord) in plan.cords.iter().enumerate() {
-            let writer = plan
-                .nodes
-                .iter()
-                .find(|node| node.instance == cord.from.node);
-            let reader = plan.nodes.iter().find(|node| node.instance == cord.to.node);
-            let is_cross_host = writer
-                .zip(reader)
-                .is_some_and(|(writer, reader)| writer.host != reader.host);
-            let binding_count = plan
-                .distributed_cords
-                .iter()
-                .filter(|binding| binding.cord == cord.id)
-                .count();
-            if (is_cross_host && binding_count != 1) || (!is_cross_host && binding_count != 0) {
-                return Err(indexed(
-                    PlanDiagnosticCode::Distributed(crate::DistributedReason::PeerMismatch),
-                    PlanCollection::Cords,
-                    index,
-                ));
-            }
+    for (index, cord) in plan.cords.iter().enumerate() {
+        let writer = plan
+            .nodes
+            .iter()
+            .find(|node| node.instance == cord.from.node);
+        let reader = plan.nodes.iter().find(|node| node.instance == cord.to.node);
+        let is_cross_host = writer
+            .zip(reader)
+            .is_some_and(|(writer, reader)| writer.host != reader.host);
+        let binding_count = plan
+            .distributed_cords
+            .iter()
+            .filter(|binding| binding.cord == cord.id)
+            .count();
+        if (is_cross_host && binding_count != 1) || (!is_cross_host && binding_count != 0) {
+            return Err(indexed(
+                PlanDiagnosticCode::Distributed(crate::DistributedReason::PeerMismatch),
+                PlanCollection::Cords,
+                index,
+            ));
         }
-    }
-
-    if plan.schema_version < 4 && (!plan.fanouts.is_empty() || !plan.merges.is_empty()) {
-        return Err(error(
-            PlanDiagnosticCode::StructuralInvalid,
-            PlanCollection::Header,
-            None,
-        ));
     }
     for (index, fanout) in plan.fanouts.iter().enumerate() {
         let valid_copy = match fanout.duplication {
@@ -1837,36 +1738,34 @@ pub fn validate_execution_plan(
             ));
         }
     }
-    if plan.schema_version >= 4 {
-        for (cord_index, cord) in plan.cords.iter().enumerate() {
-            if plan.cords[..cord_index]
-                .iter()
-                .any(|prior| prior.from == cord.from)
-            {
-                continue;
-            }
-            let outgoing = plan
-                .cords
-                .iter()
-                .filter(|candidate| candidate.from == cord.from)
-                .count();
-            if outgoing > 1 {
-                let exact = plan.fanouts.iter().filter(|fanout| {
-                    fanout.producer == cord.from
-                        && fanout.branches.len() == outgoing
-                        && plan
-                            .cords
-                            .iter()
-                            .filter(|candidate| candidate.from == cord.from)
-                            .all(|candidate| fanout.branches.contains(&candidate.id))
-                });
-                if exact.count() != 1 {
-                    return Err(indexed(
-                        PlanDiagnosticCode::StructuralInvalid,
-                        PlanCollection::Cords,
-                        cord_index,
-                    ));
-                }
+    for (cord_index, cord) in plan.cords.iter().enumerate() {
+        if plan.cords[..cord_index]
+            .iter()
+            .any(|prior| prior.from == cord.from)
+        {
+            continue;
+        }
+        let outgoing = plan
+            .cords
+            .iter()
+            .filter(|candidate| candidate.from == cord.from)
+            .count();
+        if outgoing > 1 {
+            let exact = plan.fanouts.iter().filter(|fanout| {
+                fanout.producer == cord.from
+                    && fanout.branches.len() == outgoing
+                    && plan
+                        .cords
+                        .iter()
+                        .filter(|candidate| candidate.from == cord.from)
+                        .all(|candidate| fanout.branches.contains(&candidate.id))
+            });
+            if exact.count() != 1 {
+                return Err(indexed(
+                    PlanDiagnosticCode::StructuralInvalid,
+                    PlanCollection::Cords,
+                    cord_index,
+                ));
             }
         }
     }
@@ -1928,13 +1827,6 @@ pub fn validate_execution_plan(
         }
     }
 
-    if plan.schema_version < 5 && !plan.event_streams.is_empty() {
-        return Err(error(
-            PlanDiagnosticCode::EventStreamInvalid,
-            PlanCollection::Header,
-            None,
-        ));
-    }
     for (index, stream) in plan.event_streams.iter().enumerate() {
         if !valid_path(stream.publisher)
             || !plan
@@ -1962,13 +1854,6 @@ pub fn validate_execution_plan(
         })?;
     }
 
-    if plan.schema_version < 8 && plan.runtime_evidence.is_some() {
-        return Err(error(
-            PlanDiagnosticCode::RuntimeEvidenceInvalid,
-            PlanCollection::Header,
-            None,
-        ));
-    }
     if let Some(policy) = plan.runtime_evidence {
         let stream = policy.stream.and_then(|stream_id| {
             plan.event_streams
@@ -1985,13 +1870,6 @@ pub fn validate_execution_plan(
         }
     }
 
-    if plan.schema_version < 6 && !plan.jobs.is_empty() {
-        return Err(error(
-            PlanDiagnosticCode::JobInvalid,
-            PlanCollection::Header,
-            None,
-        ));
-    }
     for (index, job) in plan.jobs.iter().enumerate() {
         let Some(stream) = plan
             .event_streams
@@ -2033,13 +1911,6 @@ pub fn validate_execution_plan(
         })?;
     }
 
-    if plan.schema_version < 7 && !plan.satisfaction_proofs.is_empty() {
-        return Err(error(
-            PlanDiagnosticCode::SatisfactionInvalid,
-            PlanCollection::Header,
-            None,
-        ));
-    }
     for (index, binding) in plan.satisfaction_proofs.iter().enumerate() {
         let subject_valid = match binding.subject {
             PlanSatisfactionSubject::Cord(id) => {
@@ -2052,13 +1923,13 @@ pub fn validate_execution_plan(
                             binding.proof.required
                                 == DescriptorRef {
                                     kind: Id("conduit/port-contract"),
-                                    schema_version: 1,
+                                    schema_version: 0,
                                     semantic_hash: cord.to.port_contract_hash,
                                 }
                                 && binding.proof.offered
                                     == DescriptorRef {
                                         kind: Id("conduit/port-contract"),
-                                        schema_version: 1,
+                                        schema_version: 0,
                                         semantic_hash: cord.from.port_contract_hash,
                                     }
                                 && binding.proof.obligations.iter().any(|obligation| {
@@ -2121,34 +1992,6 @@ pub fn validate_execution_plan(
     }
 
     for (index, authority) in plan.authorities.iter().enumerate() {
-        if plan.schema_version < 11
-            && (authority.effect.administrative_class.is_some()
-                || authority.administrative_subject.is_some()
-                || authority.containment.is_some())
-        {
-            return Err(indexed(
-                PlanDiagnosticCode::UnsupportedVersion,
-                PlanCollection::Authorities,
-                index,
-            ));
-        }
-        if plan.schema_version < 12
-            && (authority.effect.policy_budget_class.is_some()
-                || !authority.policy_budgets.is_empty())
-        {
-            return Err(indexed(
-                PlanDiagnosticCode::UnsupportedVersion,
-                PlanCollection::Authorities,
-                index,
-            ));
-        }
-        if plan.schema_version < 18 && authority.commit_profile.is_some() {
-            return Err(indexed(
-                PlanDiagnosticCode::UnsupportedVersion,
-                PlanCollection::Authorities,
-                index,
-            ));
-        }
         let Some(node) = plan
             .nodes
             .iter()
@@ -2202,50 +2045,48 @@ pub fn validate_execution_plan(
                 index,
             ));
         }
-        if plan.schema_version >= 18 {
-            let Some(profile) = authority.commit_profile else {
-                return Err(indexed(
-                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract),
-                    PlanCollection::Authorities,
-                    index,
-                ));
-            };
-            let Some(lease) = plan.resources.iter().find_map(|resource| {
-                (resource.node == authority.node && resource.resource == authority.binding.resource)
-                    .then_some(resource.lease)
-                    .flatten()
-            }) else {
-                return Err(indexed(
-                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::WrongResource),
-                    PlanCollection::Authorities,
-                    index,
-                ));
-            };
-            validate_effect_commit_profile(profile, lease).map_err(|reason| {
+        let Some(profile) = authority.commit_profile else {
+            return Err(indexed(
+                PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract),
+                PlanCollection::Authorities,
+                index,
+            ));
+        };
+        let Some(lease) = plan.resources.iter().find_map(|resource| {
+            (resource.node == authority.node && resource.resource == authority.binding.resource)
+                .then_some(resource.lease)
+                .flatten()
+        }) else {
+            return Err(indexed(
+                PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::WrongResource),
+                PlanCollection::Authorities,
+                index,
+            ));
+        };
+        validate_effect_commit_profile(profile, lease).map_err(|reason| {
+            indexed(
+                PlanDiagnosticCode::ResourceLease(reason),
+                PlanCollection::Authorities,
+                index,
+            )
+        })?;
+        let required_evidence = u32::from(profile.maximum_attempts)
+            .checked_mul(u32::from(profile.evidence_events_per_attempt))
+            .ok_or_else(|| {
                 indexed(
-                    PlanDiagnosticCode::ResourceLease(reason),
+                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::EvidenceExhausted),
                     PlanCollection::Authorities,
                     index,
                 )
             })?;
-            let required_evidence = u32::from(profile.maximum_attempts)
-                .checked_mul(u32::from(profile.evidence_events_per_attempt))
-                .ok_or_else(|| {
-                    indexed(
-                        PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::EvidenceExhausted),
-                        PlanCollection::Authorities,
-                        index,
-                    )
-                })?;
-            if profile.operation != authority.effect.action
-                || required_evidence > lease.maximum_evidence_events
-            {
-                return Err(indexed(
-                    PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract),
-                    PlanCollection::Authorities,
-                    index,
-                ));
-            }
+        if profile.operation != authority.effect.action
+            || required_evidence > lease.maximum_evidence_events
+        {
+            return Err(indexed(
+                PlanDiagnosticCode::ResourceLease(ResourceLeaseReason::InvalidContract),
+                PlanCollection::Authorities,
+                index,
+            ));
         }
         match (
             authority.effect.administrative_class,
@@ -2338,16 +2179,8 @@ pub fn validate_execution_plan(
 
     match plan.hazard_closure {
         None => {}
-        Some(_) if plan.schema_version < 13 => {
-            return Err(error(
-                PlanDiagnosticCode::UnsupportedVersion,
-                PlanCollection::HazardClosure,
-                None,
-            ));
-        }
         Some(closure) => {
-            if (!closure.hazardous_hosts.is_empty() && plan.schema_version < 14)
-                || (plan.schema_version >= 14 && closure.hazardous_hosts.is_empty())
+            if closure.hazardous_hosts.is_empty()
                 || closure.hazardous_hosts.len() > crate::MAX_HAZARDOUS_HOST_BINDINGS
             {
                 return Err(error(
@@ -2494,9 +2327,8 @@ pub fn validate_execution_plan(
     }
 
     for (index, group) in plan.port_groups.iter().enumerate() {
-        let invalid_v2_bounds = plan.schema_version >= 2
-            && (group.maximum == 0 || group.members.len() > usize::from(group.maximum));
-        if !valid_path(group.instance) || group.members.is_empty() || invalid_v2_bounds {
+        let invalid_bounds = group.maximum == 0 || group.members.len() > usize::from(group.maximum);
+        if !valid_path(group.instance) || group.members.is_empty() || invalid_bounds {
             return Err(indexed(
                 PlanDiagnosticCode::InvalidDescriptor,
                 PlanCollection::PortGroups,
@@ -2532,23 +2364,19 @@ pub fn validate_execution_plan(
     for (index, pool) in plan.instance_pools.iter().enumerate() {
         let needed_slots = pool.maximum_live.checked_add(pool.maximum_queued);
         let minimum_budget = pool.per_instance_budget.checked_mul(pool.maximum_live);
-        let runtime_version_valid = if plan.schema_version < 16 {
-            pool.runtime.is_none()
-        } else {
-            pool.runtime.is_some_and(|runtime| {
-                validate_plan_pool_runtime(*pool, runtime)
-                    && match runtime.contract.supervision {
-                        PoolSupervisionPolicy::Fallback { target } => {
-                            plan.nodes.iter().any(|node| node.instance == target)
-                                || plan
-                                    .composites
-                                    .iter()
-                                    .any(|composite| composite.instance == target)
-                        }
-                        _ => true,
+        let runtime_valid = pool.runtime.is_some_and(|runtime| {
+            validate_plan_pool_runtime(*pool, runtime)
+                && match runtime.contract.supervision {
+                    PoolSupervisionPolicy::Fallback { target } => {
+                        plan.nodes.iter().any(|node| node.instance == target)
+                            || plan
+                                .composites
+                                .iter()
+                                .any(|composite| composite.instance == target)
                     }
-            })
-        };
+                    _ => true,
+                }
+        });
         if !valid_path(pool.instance)
             || !valid_pin(pool.admission_policy)
             || !valid_pin(pool.supervision_policy)
@@ -2558,7 +2386,7 @@ pub fn validate_execution_plan(
             || pool.child_cords == 0
             || needed_slots.is_none_or(|needed| pool.correlation_slots < needed)
             || minimum_budget.is_none_or(|minimum| !minimum.fits_within(pool.worst_case_budget))
-            || !runtime_version_valid
+            || !runtime_valid
             || pool.authority_grants.iter().any(|grant| {
                 !valid_id(*grant)
                     || !plan
@@ -2599,15 +2427,6 @@ pub fn validate_execution_plan(
             })?;
     }
 
-    if (plan.schema_version < 15 && !plan.supervisions.is_empty())
-        || ((15..16).contains(&plan.schema_version) && plan.supervisions.is_empty())
-    {
-        return Err(error(
-            PlanDiagnosticCode::UnsupportedVersion,
-            PlanCollection::Supervisions,
-            None,
-        ));
-    }
     for (index, supervision) in plan.supervisions.iter().enumerate() {
         let limits = supervision.contract.limits;
         let contract_valid = supervision.contract.validate().is_ok();
@@ -2872,14 +2691,14 @@ fn job_allocation_valid(job: PlanJob<'_>) -> bool {
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
-    valid_id(pin.id) && pin.schema_version > 0
+    valid_id(pin.id) && pin.schema_version == 0
 }
 
 fn valid_port(port: ResolvedPlanPort<'_>) -> bool {
     valid_path(port.node)
         && valid_id(port.port)
         && valid_id(port.value_type.contract_id)
-        && port.value_type.schema_version > 0
+        && port.value_type.schema_version == 0
 }
 
 fn has_duplicate_paths(paths: &[InstancePath<'_>]) -> bool {
@@ -2915,7 +2734,7 @@ fn descriptor_hash(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind,
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()
@@ -2947,7 +2766,7 @@ fn hash_host_observation(
 }
 
 fn hash_resource_binding(
-    schema_version: u32,
+    _schema_version: u32,
     value: PlanResourceBinding<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     let lease = value
@@ -2970,13 +2789,9 @@ fn hash_resource_binding(
             ),
             defaulted_null(
                 "lease",
-                if schema_version >= 18 {
-                    lease.as_ref().map_or(CanonicalValue::Null, |hash| {
-                        CanonicalValue::Bytes(hash.as_bytes())
-                    })
-                } else {
-                    CanonicalValue::Null
-                },
+                lease.as_ref().map_or(CanonicalValue::Null, |hash| {
+                    CanonicalValue::Bytes(hash.as_bytes())
+                }),
             ),
         ],
     )
@@ -3460,7 +3275,7 @@ fn hash_fanout(value: PlanFanOut<'_>) -> Result<SemanticHash, CanonicalError<Inf
     };
     let copy_hash = copy.map(|pin| pin.semantic_hash);
     descriptor_hash(
-        Id("conduit/plan-fanout-v1"),
+        Id("conduit/plan-fanout"),
         &[
             semantic("id", CanonicalValue::Identifier(value.id)),
             semantic("producer", CanonicalValue::Map(&producer)),
@@ -3512,7 +3327,7 @@ fn hash_fanout_branch(
     cord: Id<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     descriptor_hash(
-        Id("conduit/plan-fanout-branch-v1"),
+        Id("conduit/plan-fanout-branch"),
         &[
             semantic("fanout", CanonicalValue::Identifier(fanout)),
             semantic("cord", CanonicalValue::Identifier(cord)),
@@ -3537,7 +3352,7 @@ fn hash_merge(value: PlanMerge<'_>) -> Result<SemanticHash, CanonicalError<Infal
     };
     let timestamp_hash = timestamp.map(|value| value.semantic_hash);
     descriptor_hash(
-        Id("conduit/plan-merge-v1"),
+        Id("conduit/plan-merge"),
         &[
             semantic("id", CanonicalValue::Identifier(value.id)),
             semantic("node", CanonicalValue::Text(value.node.as_str())),
@@ -3592,7 +3407,7 @@ fn hash_merge_input(
     input: PlanMergeInput<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     descriptor_hash(
-        Id("conduit/plan-merge-input-v1"),
+        Id("conduit/plan-merge-input"),
         &[
             semantic("merge", CanonicalValue::Identifier(merge)),
             semantic("cord", CanonicalValue::Identifier(input.cord)),
@@ -3644,14 +3459,14 @@ fn hash_event_stream(
         SubscriberCoupling::Coupled(flow) => ("coupled", flow),
         SubscriberCoupling::Isolated(flow) => ("isolated", flow),
     };
-    let flow_hash = descriptor_hash(Id("conduit/event-subscriber-flow-v1"), &flow_fields(flow))?;
+    let flow_hash = descriptor_hash(Id("conduit/event-subscriber-flow"), &flow_fields(flow))?;
     let allocation_hash = descriptor_hash(
-        Id("conduit/event-stream-allocation-v1"),
+        Id("conduit/event-stream-allocation"),
         &budget_fields(value.allocation),
     )?;
     let capabilities = value.provider_capabilities;
     descriptor_hash(
-        Id("conduit/plan-event-stream-v1"),
+        Id("conduit/plan-event-stream"),
         &[
             semantic("id", CanonicalValue::Identifier(value.contract.id)),
             semantic("publisher", CanonicalValue::Text(value.publisher.as_str())),
@@ -3789,7 +3604,7 @@ fn hash_runtime_evidence_policy(
     value: RuntimeEvidencePolicy<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     descriptor_hash(
-        Id("conduit/runtime-evidence-policy-v1"),
+        Id("conduit/runtime-evidence-policy"),
         &[
             semantic(
                 "schema_version",
@@ -3837,12 +3652,12 @@ fn hash_runtime_evidence_policy(
 fn hash_job(value: PlanJob<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
     let contract_hash = value.contract.semantic_hash()?;
     let allocation_hash = descriptor_hash(
-        Id("conduit/job-allocation-v1"),
+        Id("conduit/job-allocation"),
         &budget_fields(value.allocation),
     )?;
     let capabilities = value.checkpoint_provider_capabilities;
     descriptor_hash(
-        Id("conduit/plan-job-v1"),
+        Id("conduit/plan-job"),
         &[
             semantic("owner", CanonicalValue::Text(value.owner.as_str())),
             semantic(
@@ -3930,7 +3745,7 @@ fn hash_satisfaction_proof(
 }
 
 fn hash_authority(
-    schema_version: u32,
+    _schema_version: u32,
     value: PlanAuthority<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     let administrative_subject = value
@@ -3957,45 +3772,29 @@ fn hash_authority(
             ),
             defaulted_null(
                 "administrative_subject",
-                if schema_version >= 11 {
-                    administrative_subject
-                        .as_ref()
-                        .map_or(CanonicalValue::Null, |hash| {
-                            CanonicalValue::Bytes(hash.as_bytes())
-                        })
-                } else {
-                    CanonicalValue::Null
-                },
+                administrative_subject
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
             ),
             defaulted_null(
                 "policy_budgets",
-                if schema_version >= 12 {
-                    CanonicalValue::Bytes(policy_budgets.as_bytes())
-                } else {
-                    CanonicalValue::Null
-                },
+                CanonicalValue::Bytes(policy_budgets.as_bytes()),
             ),
             defaulted_null(
                 "containment_execution",
-                if schema_version >= 11 {
-                    containment.as_ref().map_or(CanonicalValue::Null, |hash| {
-                        CanonicalValue::Bytes(hash.as_bytes())
-                    })
-                } else {
-                    CanonicalValue::Null
-                },
+                containment.as_ref().map_or(CanonicalValue::Null, |hash| {
+                    CanonicalValue::Bytes(hash.as_bytes())
+                }),
             ),
             defaulted_null(
                 "commit_profile",
-                if schema_version >= 18 {
-                    commit_profile
-                        .as_ref()
-                        .map_or(CanonicalValue::Null, |hash| {
-                            CanonicalValue::Bytes(hash.as_bytes())
-                        })
-                } else {
-                    CanonicalValue::Null
-                },
+                commit_profile
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
             ),
             semantic(
                 "capability_id",
@@ -4054,7 +3853,7 @@ fn hash_authority(
 }
 
 fn hash_hazard_closure(
-    plan_schema_version: u32,
+    _plan_schema_version: u32,
     value: PlanHazardClosure<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     if value.flows.len() > crate::MAX_HAZARD_FLOWS
@@ -4073,7 +3872,7 @@ fn hash_hazard_closure(
     }
     let permit_set = semantic_hash_with_hash_set(
         Id("conduit/plan-hazard-permits"),
-        1,
+        0,
         &[],
         Id("permits"),
         &permits[..value.permits.len()],
@@ -4095,18 +3894,14 @@ fn hash_hazard_closure(
             ],
         )?;
     }
-    let host_set = if plan_schema_version >= 14 {
-        Some(semantic_hash_with_hash_set(
-            Id("conduit/plan-hazardous-hosts"),
-            1,
-            &[],
-            Id("hosts"),
-            &hosts[..value.hazardous_hosts.len()],
-        )?)
-    } else {
-        None
-    };
-    let legacy_fields = [
+    let host_set = semantic_hash_with_hash_set(
+        Id("conduit/plan-hazardous-hosts"),
+        0,
+        &[],
+        Id("hosts"),
+        &hosts[..value.hazardous_hosts.len()],
+    )?;
+    let base_fields = [
         semantic("epoch", CanonicalValue::Integer(i128::from(value.epoch))),
         semantic(
             "plan_subject",
@@ -4122,30 +3917,21 @@ fn hash_hazard_closure(
         ),
         semantic("permits", CanonicalValue::Bytes(permit_set.as_bytes())),
     ];
-    if let Some(host_set) = host_set {
-        let fields = [
-            legacy_fields[0],
-            legacy_fields[1],
-            legacy_fields[2],
-            legacy_fields[3],
-            legacy_fields[4],
-            semantic(
-                "hazardous_hosts",
-                CanonicalValue::Bytes(host_set.as_bytes()),
-            ),
-        ];
-        return semantic_hash_with_hash_set(
-            Id("conduit/plan-hazard-closure"),
-            1,
-            &fields,
-            Id("flows"),
-            &flows[..value.flows.len()],
-        );
-    }
+    let fields = [
+        base_fields[0],
+        base_fields[1],
+        base_fields[2],
+        base_fields[3],
+        base_fields[4],
+        semantic(
+            "hazardous_hosts",
+            CanonicalValue::Bytes(host_set.as_bytes()),
+        ),
+    ];
     semantic_hash_with_hash_set(
         Id("conduit/plan-hazard-closure"),
-        1,
-        &legacy_fields,
+        0,
+        &fields,
         Id("flows"),
         &flows[..value.flows.len()],
     )
@@ -4190,7 +3976,7 @@ fn hash_policy_budget_set(
     }
     semantic_hash_with_hash_set(
         Id("conduit/plan-policy-budget-set"),
-        1,
+        0,
         &[],
         Id("bindings"),
         &hashes[..bindings.len()],
@@ -4297,23 +4083,11 @@ fn hash_export(
 }
 
 fn hash_port_group(
-    plan_schema_version: u32,
+    _plan_schema_version: u32,
     value: PlanPortGroup<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
-    if plan_schema_version == EXECUTION_PLAN_SCHEMA_VERSION_V1 {
-        return descriptor_hash(
-            Id("conduit/plan-port-group"),
-            &[
-                semantic("instance", CanonicalValue::Text(value.instance.as_str())),
-                semantic(
-                    "template_hash",
-                    CanonicalValue::Bytes(value.template_hash.as_bytes()),
-                ),
-            ],
-        );
-    }
     descriptor_hash(
-        Id("conduit/plan-port-group-v2"),
+        Id("conduit/plan-port-group"),
         &[
             semantic("instance", CanonicalValue::Text(value.instance.as_str())),
             semantic(
@@ -4354,88 +4128,12 @@ fn hash_port_group_member(
 }
 
 fn hash_instance_pool(
-    plan_schema_version: u32,
+    _plan_schema_version: u32,
     value: PlanInstancePool<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     let per_instance = budget_fields(value.per_instance_budget);
     let worst_case = budget_fields(value.worst_case_budget);
     let runtime_hash = value.runtime.map(hash_plan_pool_runtime).transpose()?;
-    if plan_schema_version >= EXECUTION_PLAN_SCHEMA_VERSION {
-        return descriptor_hash(
-            Id("conduit/plan-instance-pool-v2"),
-            &[
-                semantic("instance", CanonicalValue::Text(value.instance.as_str())),
-                semantic(
-                    "template_hash",
-                    CanonicalValue::Bytes(value.template_hash.as_bytes()),
-                ),
-                semantic(
-                    "derived_identity_hash",
-                    CanonicalValue::Bytes(value.derived_identity_hash.as_bytes()),
-                ),
-                semantic(
-                    "maximum_live",
-                    CanonicalValue::Integer(i128::from(value.maximum_live)),
-                ),
-                semantic(
-                    "maximum_queued",
-                    CanonicalValue::Integer(i128::from(value.maximum_queued)),
-                ),
-                semantic(
-                    "admission_policy_id",
-                    CanonicalValue::Identifier(value.admission_policy.id),
-                ),
-                semantic(
-                    "admission_policy_version",
-                    CanonicalValue::Integer(i128::from(value.admission_policy.schema_version)),
-                ),
-                semantic(
-                    "admission_policy_hash",
-                    CanonicalValue::Bytes(value.admission_policy.semantic_hash.as_bytes()),
-                ),
-                semantic(
-                    "supervision_policy_id",
-                    CanonicalValue::Identifier(value.supervision_policy.id),
-                ),
-                semantic(
-                    "supervision_policy_version",
-                    CanonicalValue::Integer(i128::from(value.supervision_policy.schema_version)),
-                ),
-                semantic(
-                    "supervision_policy_hash",
-                    CanonicalValue::Bytes(value.supervision_policy.semantic_hash.as_bytes()),
-                ),
-                semantic("per_instance_budget", CanonicalValue::Map(&per_instance)),
-                semantic(
-                    "maximum_instance_ticks",
-                    CanonicalValue::Integer(i128::from(value.maximum_instance_ticks)),
-                ),
-                semantic(
-                    "implementation_set_hash",
-                    CanonicalValue::Bytes(value.implementation_set_hash.as_bytes()),
-                ),
-                semantic(
-                    "correlation_slots",
-                    CanonicalValue::Integer(i128::from(value.correlation_slots)),
-                ),
-                semantic("worst_case_budget", CanonicalValue::Map(&worst_case)),
-                semantic(
-                    "child_nodes",
-                    CanonicalValue::Integer(i128::from(value.child_nodes)),
-                ),
-                semantic(
-                    "child_cords",
-                    CanonicalValue::Integer(i128::from(value.child_cords)),
-                ),
-                semantic(
-                    "runtime_hash",
-                    runtime_hash.as_ref().map_or(CanonicalValue::Null, |hash| {
-                        CanonicalValue::Bytes(hash.as_bytes())
-                    }),
-                ),
-            ],
-        );
-    }
     descriptor_hash(
         Id("conduit/plan-instance-pool"),
         &[
@@ -4501,6 +4199,12 @@ fn hash_instance_pool(
             semantic(
                 "child_cords",
                 CanonicalValue::Integer(i128::from(value.child_cords)),
+            ),
+            semantic(
+                "runtime_hash",
+                runtime_hash.as_ref().map_or(CanonicalValue::Null, |hash| {
+                    CanonicalValue::Bytes(hash.as_bytes())
+                }),
             ),
         ],
     )
@@ -4688,7 +4392,7 @@ fn hash_supervision(
     let limits = value.contract.limits;
     let allocation = budget_fields(value.allocation);
     descriptor_hash(
-        Id("conduit/plan-supervision-v1"),
+        Id("conduit/plan-supervision"),
         &[
             semantic("instance", CanonicalValue::Text(value.instance.as_str())),
             semantic(
@@ -4844,7 +4548,7 @@ fn hash_supervision_member(
     member: InstancePath<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     descriptor_hash(
-        Id("conduit/plan-supervision-member-v1"),
+        Id("conduit/plan-supervision-member"),
         &[
             semantic("supervision", CanonicalValue::Text(supervision.as_str())),
             semantic("member", CanonicalValue::Text(member.as_str())),
@@ -4857,7 +4561,7 @@ fn hash_supervision_action(
     action: crate::AdmittedSupervisionAction<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     descriptor_hash(
-        Id("conduit/plan-supervision-action-v1"),
+        Id("conduit/plan-supervision-action"),
         &[
             semantic("supervision", CanonicalValue::Text(supervision.as_str())),
             semantic(
@@ -4896,7 +4600,7 @@ fn hash_supervision_target(
     target: PlanSupervisionTarget<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     descriptor_hash(
-        Id("conduit/plan-supervision-target-v1"),
+        Id("conduit/plan-supervision-target"),
         &[
             semantic("supervision", CanonicalValue::Text(supervision.as_str())),
             semantic("choice", CanonicalValue::Identifier(target.choice)),

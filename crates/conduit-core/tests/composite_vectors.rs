@@ -9,7 +9,7 @@ use conduit_core::{
 
 const VALUE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([7; 32]),
 };
 
@@ -146,7 +146,7 @@ fn definition_cycles_and_instance_paths_are_deterministic() {
         Err(CompositeError::RecursiveDefinition)
     );
 
-    let fixture = include_str!("../../../conformance/c2/composite-v1.tsv");
+    let fixture = include_str!("../../../conformance/c2/composite.tsv");
     for case in [
         "one-level",
         "nested",

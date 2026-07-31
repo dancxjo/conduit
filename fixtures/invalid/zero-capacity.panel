@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node greeting : std/literal {
     value = "This panel must not resolve."

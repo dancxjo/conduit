@@ -13,14 +13,14 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
 
 fn lease() -> ResourceLeaseContract<'static> {
     ResourceLeaseContract {
-        schema_version: 1,
+        schema_version: 0,
         id: Id("lease/file-output"),
         resource_binding: Id("resource/file-output"),
         holder: InstancePath::new("writer").unwrap(),
@@ -54,7 +54,7 @@ fn lease() -> ResourceLeaseContract<'static> {
 
 fn profile() -> EffectCommitProfile<'static> {
     EffectCommitProfile {
-        schema_version: 1,
+        schema_version: 0,
         id: Id("effect/file-replace"),
         operation: Id("file/replace"),
         resource_lease: Id("lease/file-output"),

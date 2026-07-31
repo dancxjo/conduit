@@ -28,22 +28,21 @@ const REQUIRED_TOUR_LESSONS: [&str; 21] = [
     "platform.cross-host-provider-conformance",
 ];
 
-const CURRENT_PANEL_VERSION: u16 = 3;
-
 fn assert_current_panel_source(id: &str, source: &str) {
     let panel = conduit_panel::parse(source)
         .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
     assert_eq!(
-        panel.version, CURRENT_PANEL_VERSION,
+        panel.version,
+        conduit_panel::SOURCE_AST_SCHEMA_VERSION,
         "{id} must teach the current Panel grammar"
     );
 }
 
 #[test]
 fn tour_lessons_declare_verified_browser_runnability() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
-    assert_eq!(manifest["schema"], "conduit.tour-lessons/v1");
+    assert_eq!(manifest["schema"], "conduit.tour-lessons");
 
     let lessons = manifest["lessons"]
         .as_array()
@@ -61,7 +60,7 @@ fn tour_lessons_declare_verified_browser_runnability() {
         serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
             .expect("Tour browser plan is valid JSON");
     assert_eq!(
-        browser_plan["schema"], "conduit.tour-browser-plan/v1",
+        browser_plan["schema"], "conduit.tour-browser-plan",
         "lessons consume the exact browser-host plan"
     );
     let maximum_message_bytes = browser_plan["bounds"]["maximum_message_bytes"]
@@ -195,7 +194,7 @@ fn tour_lessons_declare_verified_browser_runnability() {
 
 #[test]
 fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let lesson = manifest["lessons"]
         .as_array()
@@ -269,7 +268,7 @@ fn standard_flow_lesson_exposes_exact_semantics_and_accessible_evidence() {
 
 #[test]
 fn typed_text_format_library_lesson_runs_every_checked_scenario() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let browser_plan: Value =
         serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
@@ -288,7 +287,7 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
         .expect("typed text format is selectable");
     let lesson_tick_budget = lesson["budgets"]["runtime_ticks"].as_u64().unwrap();
     let library = &lesson["library"];
-    assert_eq!(library["schema"], "conduit.tour-library-lesson/v1");
+    assert_eq!(library["schema"], "conduit.tour-library-lesson");
     assert_eq!(library["profile"], "browser-dedicated-worker");
     for field in ["summary", "what", "when", "wrong", "provider"] {
         assert!(
@@ -419,10 +418,10 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
 
 #[test]
 fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/value-envelope-clock-feedback-v1.json"
+        "../../../conformance/c5/value-envelope-clock-feedback.json"
     ))
     .expect("value envelope fixture is valid JSON");
     let lesson = manifest["lessons"]
@@ -432,7 +431,7 @@ fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
         .find(|lesson| lesson["id"] == "platform.value-envelope-clock-feedback")
         .expect("platform lesson is selectable");
     let platform = &lesson["platform"];
-    assert_eq!(platform["schema"], "conduit.tour-platform-lesson/v1");
+    assert_eq!(platform["schema"], "conduit.tour-platform-lesson");
     for field in ["what", "when", "wrong"] {
         assert!(
             platform[field]
@@ -512,10 +511,10 @@ fn value_envelope_platform_lesson_is_fixture_backed_and_executable() {
 
 #[test]
 fn resource_lease_platform_lesson_is_fixture_backed_and_executable() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/resource-lease-effect-commit-v1.json"
+        "../../../conformance/c5/resource-lease-effect-commit.json"
     ))
     .expect("resource lease fixture is valid JSON");
     let lesson = manifest["lessons"]
@@ -525,7 +524,7 @@ fn resource_lease_platform_lesson_is_fixture_backed_and_executable() {
         .find(|lesson| lesson["id"] == "platform.resource-lease-effect-commit")
         .expect("resource lease lesson is selectable");
     let platform = &lesson["platform"];
-    assert_eq!(platform["schema"], "conduit.tour-platform-lesson/v1");
+    assert_eq!(platform["schema"], "conduit.tour-platform-lesson");
 
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
@@ -565,10 +564,10 @@ fn resource_lease_platform_lesson_is_fixture_backed_and_executable() {
 
 #[test]
 fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/workload-admission-deadline-v1.json"
+        "../../../conformance/c5/workload-admission-deadline.json"
     ))
     .expect("workload fixture is valid JSON");
     let lesson = manifest["lessons"]
@@ -578,7 +577,7 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
         .find(|lesson| lesson["id"] == "platform.workload-admission-deadline")
         .expect("workload lesson is selectable");
     let platform = &lesson["platform"];
-    assert_eq!(platform["schema"], "conduit.tour-platform-lesson/v1");
+    assert_eq!(platform["schema"], "conduit.tour-platform-lesson");
 
     let result: Value =
         serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
@@ -612,10 +611,10 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
 
 #[test]
 fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/cross-host-provider-conformance-v1.json"
+        "../../../conformance/c5/cross-host-provider-conformance.json"
     ))
     .expect("cross-host fixture is valid JSON");
     let lesson = manifest["lessons"]
@@ -665,11 +664,11 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
 fn tour_reference_panels_are_canonical_and_fail_closed() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let manifest: Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join("tour/reference-panels/v1.json"))
+        &std::fs::read_to_string(root.join("tour/reference-panels/current.json"))
             .expect("reference-panel manifest exists"),
     )
     .expect("reference-panel manifest is valid");
-    assert_eq!(manifest["schema"], "conduit.tour-reference-panels/v1");
+    assert_eq!(manifest["schema"], "conduit.tour-reference-panels");
 
     for reference in manifest["panels"]
         .as_array()
@@ -711,7 +710,7 @@ fn tour_reference_panels_are_canonical_and_fail_closed() {
 #[test]
 fn tour_linked_panel_examples_use_the_current_grammar() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/v1.json"))
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
 
     for lesson in manifest["lessons"].as_array().expect("lessons are listed") {

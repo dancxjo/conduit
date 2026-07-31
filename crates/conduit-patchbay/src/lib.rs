@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, VecDeque};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
-pub const PATCHBAY_PROTOCOL_V1: u16 = 1;
+pub const PATCHBAY_PROTOCOL_VERSION: u16 = 0;
 pub const DEFAULT_WORKSPACE_HISTORY_LIMIT: usize = 16;
 pub const MAXIMUM_EDIT_OPERATIONS: usize = 32;
 pub const MAXIMUM_PATCHBAY_DIAGNOSTICS: usize = 64;
@@ -73,7 +73,7 @@ struct LibraryProviderDocument {
 pub fn project_library_catalog(json: &str) -> Result<LibraryCatalogProjection, ProtocolError> {
     let document: LibraryCatalogDocument = serde_json::from_str(json)
         .map_err(|_| rejected("CND-PBY-014", "invalid library catalog document"))?;
-    if document.schema != "conduit.library-catalog/v1"
+    if document.schema != "conduit.library-catalog"
         || document.entries.len() > MAXIMUM_LIBRARY_CATALOG_ENTRIES
     {
         return Err(rejected(
@@ -1527,7 +1527,7 @@ impl Workspace {
         let document_id = document_id.into();
         let source = source.into();
         let document = conduit_panel::parse_document(&source);
-        let semantic_hash = document.semantic_hash_v2().ok_or_else(|| ProtocolError {
+        let semantic_hash = document.semantic_hash().ok_or_else(|| ProtocolError {
             code: "CND-PBY-004",
             message: "initial source must parse".to_owned(),
             diagnostics: document
@@ -1659,7 +1659,7 @@ impl Workspace {
         F: Fn(&str) -> NodeAvailabilityProjection,
         V: Fn(&str) -> Result<CompatibilityProof, ProtocolError>,
     {
-        if request.protocol_version != PATCHBAY_PROTOCOL_V1 {
+        if request.protocol_version != PATCHBAY_PROTOCOL_VERSION {
             return Err(ProtocolError {
                 code: "CND-PBY-001",
                 message: "unsupported Patchbay protocol version".to_owned(),
@@ -1700,18 +1700,17 @@ impl Workspace {
             match operation {
                 EditOperation::ReplaceSource { source } => {
                     let document = conduit_panel::parse_document(&source);
-                    let semantic_hash =
-                        document.semantic_hash_v2().ok_or_else(|| ProtocolError {
-                            code: "CND-PBY-004",
-                            message: "source edit did not parse; transaction was not applied"
-                                .to_owned(),
-                            diagnostics: document
-                                .diagnostics
-                                .iter()
-                                .map(ToString::to_string)
-                                .collect(),
-                            disposition: EditDisposition::Rejected,
-                        })?;
+                    let semantic_hash = document.semantic_hash().ok_or_else(|| ProtocolError {
+                        code: "CND-PBY-004",
+                        message: "source edit did not parse; transaction was not applied"
+                            .to_owned(),
+                        diagnostics: document
+                            .diagnostics
+                            .iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                        disposition: EditDisposition::Rejected,
+                    })?;
                     candidate_source.source = source;
                     candidate_source.semantic_hash = semantic_hash;
                     source_changed = true;
@@ -1819,7 +1818,7 @@ impl Workspace {
         let compatibility = if source_changed {
             let document = conduit_panel::parse_document(&candidate_source.source);
             candidate_source.semantic_hash =
-                document.semantic_hash_v2().ok_or_else(|| ProtocolError {
+                document.semantic_hash().ok_or_else(|| ProtocolError {
                     code: "CND-PBY-004",
                     message: "candidate source did not parse; transaction was not applied"
                         .to_owned(),
@@ -1991,8 +1990,7 @@ fn presentation_snapshot(
     revision: u64,
     node_positions: BTreeMap<String, NodePosition>,
 ) -> PresentationSnapshot {
-    let mut identity_input =
-        format!("conduit.patchbay-presentation/v1\0{document_id}\0{revision}\0");
+    let mut identity_input = format!("conduit.patchbay-presentation\0{document_id}\0{revision}\0");
     for (node, position) in &node_positions {
         identity_input.push_str(&format!("{node}\0{}\0{}\0", position.x, position.y));
     }

@@ -83,7 +83,7 @@ fn create_inspect_and_extract_keep_results_and_diagnostics_separate() {
     assert!(created.status.success());
     assert!(created.stderr.is_empty());
     let result: serde_json::Value = serde_json::from_slice(&created.stdout).unwrap();
-    assert_eq!(result["schema"], "conduit.result/v1");
+    assert_eq!(result["schema"], "conduit.result");
     assert_eq!(result["operation"], "package-create");
     assert_eq!(result["result"]["identity"], manifest.identity);
     let decoded = decode_package(

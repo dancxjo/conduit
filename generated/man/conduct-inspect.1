@@ -10,7 +10,7 @@ Validate and describe one artifact without executing it
 .SH OPTIONS
 .TP
 \fB\-\-type\fR \fI<TYPE>\fR [default: auto]
-Select a frozen artifact kind, or use marker\-only detection
+Select a current artifact kind, or use marker\-only detection
 .br
 
 .br
@@ -43,7 +43,7 @@ Read the artifact from this file, or `\-` for stdin
 Inspection is read-only, bounded, marker-based, and non-executing.
 It performs no network access, provider discovery, secret resolution, authority acquisition, dynamic loading, or artifact execution.
 .SH STREAMS
-Human or conduit.result/v1 inspection results are written to stdout.
+Human or conduit.result inspection results are written to stdout.
 Human or versioned JSON diagnostics are written to stderr.
 .SH EXIT STATUS
 Zero indicates successful validation or normal downstream pipe closure.

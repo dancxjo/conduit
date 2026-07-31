@@ -11,8 +11,8 @@ use crate::{
     validate_host_operation,
 };
 
-pub const RESOURCE_LEASE_SCHEMA_VERSION: u32 = 1;
-pub const EFFECT_COMMIT_PROFILE_SCHEMA_VERSION: u32 = 1;
+pub const RESOURCE_LEASE_SCHEMA_VERSION: u32 = 0;
+pub const EFFECT_COMMIT_PROFILE_SCHEMA_VERSION: u32 = 0;
 
 /// Whether and how one exact resource reservation may be shared.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -895,5 +895,5 @@ fn budget_fields(value: PlanResourceBudget) -> [MapField<'static>; 7] {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    Id::new(value.id.as_str()).is_ok() && value.schema_version > 0
+    Id::new(value.id.as_str()).is_ok() && value.schema_version == 0
 }

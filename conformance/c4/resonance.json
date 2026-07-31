@@ -1,0 +1,33 @@
+{
+  "suite": "conduit.resonance",
+  "cases": [
+    {"id":"execution-event-compatible","runner":"core-resonance","expected":{"identity_preserved":true,"class":"normative-evidence"}},
+    {"id":"cord-value-without-publication","runner":"plan","expected":{"event_streams":0,"automatic_event":false}},
+    {"id":"explicit-domain-publication","runner":"plan","expected":{"event_streams":1,"class":"domain"}},
+    {"id":"evidence-and-domain-share-correlation","runner":"core-resonance","expected":{"same_correlation":true,"same_class":false}},
+    {"id":"append-only-correction","runner":"core-resonance","expected":{"prior_mutated":false,"relationship":"corrects"}},
+    {"id":"append-only-supersession","runner":"core-resonance","expected":{"prior_mutated":false,"relationship":"supersedes"}},
+    {"id":"append-only-retraction","runner":"core-resonance","expected":{"prior_mutated":false,"relationship":"retracts"}},
+    {"id":"coupled-subscriber-pressure","runner":"core-ring","expected":{"outcome":"would-block","bounded":true}},
+    {"id":"isolated-subscriber-pressure","runner":"core-ring","expected":{"producer_blocked":false,"gap_explicit":true}},
+    {"id":"retained-ring-overflow-gap","runner":"core-ring","expected":{"first_available":1}},
+    {"id":"append-crash-before-commit","runner":"core-append","expected":{"recovery":"discard-partial"}},
+    {"id":"append-crash-after-commit","runner":"core-append","expected":{"recovery":"replay-committed"}},
+    {"id":"replay-exact-cursor","runner":"core-ring","expected":{"cursor":1,"ordered":true}},
+    {"id":"replay-checkpoint-cursor","runner":"core-contract","expected":{"capability_required":true}},
+    {"id":"duplicate-idempotent-consumer","runner":"core-contract","expected":{"delivery":"at-least-once","safe":true}},
+    {"id":"duplicate-non-idempotent-consumer","runner":"core-contract","expected":{"duplicate_exposed":true,"exactly_once":false}},
+    {"id":"redacted-stable-envelope","runner":"core-resonance","expected":{"payload_hidden":true,"envelope_stable":true}},
+    {"id":"distributed-causal-out-of-order","runner":"core-resonance","expected":{"causation":"explicit","universal_clock":false}},
+    {"id":"projection-deterministic-rebuild","runner":"core-projection","expected":{"snapshot_plus_cursor":true,"bounded":true}},
+    {"id":"projection-version-change","runner":"core-projection","expected":{"logic_identity_changes":true}},
+    {"id":"durability-provider-rejected","runner":"plan","expected":{"error":"CND-RSN-003"}},
+    {"id":"retention-provider-rejected","runner":"plan","expected":{"error":"CND-RSN-003"}},
+    {"id":"security-provider-rejected","runner":"plan","expected":{"error":"CND-RSN-003"}},
+    {"id":"embedded-retained-not-durable","runner":"core-contract","expected":{"retained":true,"durable":false}},
+    {"id":"terminal-evidence-survives-sampling","runner":"core-contract","expected":{"terminal_preserved":true,"gap_evidenced":true}},
+    {"id":"plan-stream-identity","runner":"execution-plan","expected":{"policy_identity_bearing":true}},
+    {"id":"plan-identities-preserved","runner":"execution-plan","expected":{"current_identity":"exact"}},
+    {"id":"sealed-stream-rejects-append","runner":"core-ring","expected":{"error":"CND-RSN-004"}}
+  ]
+}

@@ -7,9 +7,9 @@ use core::fmt;
 
 use crate::{AuthorityTime, Id, InstancePath, PinnedDescriptor, ResolvedPlanCord, Sensitivity};
 
-pub const VALUE_ENVELOPE_POLICY_SCHEMA_VERSION: u32 = 1;
-pub const CLOCK_CONVERSION_SCHEMA_VERSION: u32 = 1;
-pub const FEEDBACK_BOUNDARY_SCHEMA_VERSION: u32 = 1;
+pub const VALUE_ENVELOPE_POLICY_SCHEMA_VERSION: u32 = 0;
+pub const CLOCK_CONVERSION_SCHEMA_VERSION: u32 = 0;
+pub const FEEDBACK_BOUNDARY_SCHEMA_VERSION: u32 = 0;
 pub const MAX_VALUE_CLOCK_DOMAINS: usize = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -298,7 +298,7 @@ fn valid_id(value: Id<'_>) -> bool {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    valid_id(value.id) && value.schema_version != 0 && value.semantic_hash.as_bytes() != &[0; 32]
+    valid_id(value.id) && value.schema_version == 0 && value.semantic_hash.as_bytes() != &[0; 32]
 }
 
 pub fn validate_value_envelope_policy(

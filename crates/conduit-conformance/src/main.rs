@@ -82,5 +82,5 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
 fn default_manifest() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
-        .join("conformance/v1/manifest.json")
+        .join("conformance/current/manifest.json")
 }

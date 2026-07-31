@@ -1,19 +1,20 @@
 use conduit_core::{
-    AcknowledgementMode, AuthorityGrant, AuthorityScope, AuthorityTime, CredentialVerification,
-    CredentialVerificationOutcome, DelegationPolicy, DisconnectPolicy, DistributedAuthorityContext,
-    DistributedCordBudget, DistributedCordHandshake, DistributedDelivery, DistributedEvidenceKind,
-    DistributedHandshakeContext, DistributedOrdering, DistributedPeerProof,
-    DistributedPeerRequirement, DistributedReason, EffectRequirement, FlowCapacity, FlowPolicy,
-    FlowWatermarks, GrantStatus, HostCapability, Id, ObservedGrant, PassportStatus,
-    PassportStatusObservation, PinnedDescriptor, PlanAuthority, PlanDistributedCord,
-    PlanResourceBudget, Pressure, ReconnectMode, ResourceRef, ResourceSelector, ResumeProof,
-    SemanticHash, StopPolicy, TerminalClass, WorkloadDelegation, resolve_authority,
+    AcknowledgementMode, ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime,
+    CarrierSecurityMode, CredentialVerification, CredentialVerificationOutcome, DelegationPolicy,
+    DisconnectPolicy, DistributedAuthorityContext, DistributedCordBudget, DistributedCordHandshake,
+    DistributedDelivery, DistributedEvidenceKind, DistributedHandshakeContext, DistributedOrdering,
+    DistributedPeerProof, DistributedPeerRequirement, DistributedReason, EffectRequirement,
+    FlowCapacity, FlowPolicy, FlowWatermarks, GrantStatus, HostCapability, Id, ObservedGrant,
+    PassportStatus, PassportStatusObservation, PinnedDescriptor, PlanArtifact, PlanAuthority,
+    PlanDistributedCord, PlanResourceBudget, Pressure, ReconnectMode, ResourceRef,
+    ResourceSelector, ResumeProof, SemanticHash, StopPolicy, TerminalClass, WorkloadDelegation,
+    resolve_authority,
 };
 use conduit_runtime::{
     DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,
     InMemoryDistributedCordBackend, InMemoryTransportFault, OutboundDistributedFrame,
-    RuntimeTimestamp, RuntimeValueEnvelope, decode_distributed_envelope_v2,
-    encode_distributed_envelope, encode_distributed_envelope_v2,
+    RuntimeTimestamp, RuntimeValueEnvelope, decode_distributed_envelope,
+    encode_distributed_envelope,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -26,7 +27,7 @@ const fn hash(byte: u8) -> SemanticHash {
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -50,7 +51,7 @@ fn peer(
         realm_identity: hash(passport_byte + 20),
         entity: Id(entity),
         passport: hash(passport_byte),
-        passport_schema_version: 1,
+        passport_schema_version: 0,
         credential: if entity == "fixture/writer" {
             Id("fixture/writer-credential")
         } else {
@@ -79,7 +80,7 @@ fn binding() -> PlanDistributedCord<'static> {
     )
     .unwrap();
     let mut value = PlanDistributedCord {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         cord: Id("fixture/remote-cord"),
         writer_port_contract_hash: hash(10),
@@ -88,11 +89,14 @@ fn binding() -> PlanDistributedCord<'static> {
         session: Id("fixture/session"),
         initial_session_epoch: 1,
         backend: pin("fixture/distributed-backend", 40),
-        backend_artifact: None,
-        backend_profile: None,
+        backend_artifact: Some(PlanArtifact {
+            id: Id("artifact/zenoh-rust"),
+            digest: ArtifactDigest::from_bytes([43; 32]),
+        }),
+        backend_profile: Some(pin("conduit/zenoh-hosted-accounted", 44)),
         carrier_security: pin("fixture/mtls-profile", 41),
-        carrier_security_mode: None,
-        carrier_endpoint: None,
+        carrier_security_mode: Some(CarrierSecurityMode::MutualTls),
+        carrier_endpoint: Some("tls/zenoh.example:7447"),
         carrier_binding: Id("fixture/resolved-carrier-binding"),
         delivery: DistributedDelivery::AtLeastOnce,
         acknowledgement: AcknowledgementMode::Cumulative,
@@ -125,7 +129,7 @@ fn binding() -> PlanDistributedCord<'static> {
             reorder_bytes: 160,
             dedup_items: 2,
             maximum_payload_bytes: 64,
-            maximum_frame_bytes: 80,
+            maximum_frame_bytes: 640,
             maximum_unacknowledged: 4,
             maximum_retries: 2,
             maximum_reconnect_attempts: 2,
@@ -208,7 +212,7 @@ fn proof(requirement: DistributedPeerRequirement<'static>) -> DistributedPeerPro
 
 fn handshake(binding: PlanDistributedCord<'static>) -> DistributedCordHandshake<'static> {
     DistributedCordHandshake {
-        protocol_version: 1,
+        protocol_version: 0,
         plan_identity: PLAN,
         binding_identity: binding.identity,
         cord: binding.cord,
@@ -389,7 +393,7 @@ fn value(sequence: u64, payload: &[u8]) -> OutboundDistributedFrame<'_> {
 }
 
 #[test]
-fn distributed_v2_preserves_authorized_value_facts_and_rejects_impersonation() {
+fn distributed_envelope_preserves_authorized_value_facts_and_rejects_impersonation() {
     let mut binding = binding();
     binding.budget.maximum_frame_bytes = 1_024;
     binding.identity = binding.semantic_hash().unwrap();
@@ -417,18 +421,14 @@ fn distributed_v2_preserves_authorized_value_facts_and_rejects_impersonation() {
         ..value(1, b"data")
     };
     let mut bytes = [0_u8; 1_024];
-    assert_eq!(
-        encode_distributed_envelope(PLAN, &binding, frame, &mut bytes),
-        Err(conduit_runtime::TransportReason::UnsupportedProtocol)
-    );
-    let used = encode_distributed_envelope_v2(PLAN, &binding, frame, &mut bytes).unwrap();
-    let decoded = decode_distributed_envelope_v2(&bytes[..used], PLAN, &binding).unwrap();
+    let used = encode_distributed_envelope(PLAN, &binding, frame, &mut bytes).unwrap();
+    let decoded = decode_distributed_envelope(&bytes[..used], PLAN, &binding).unwrap();
     assert_eq!(decoded.frame.value_envelope, Some(envelope));
     assert_eq!(decoded.frame.payload, b"data");
 
     bytes[210] ^= 1;
     assert_eq!(
-        decode_distributed_envelope_v2(&bytes[..used], PLAN, &binding),
+        decode_distributed_envelope(&bytes[..used], PLAN, &binding),
         Err(conduit_runtime::TransportReason::EnvelopeIdentityMismatch)
     );
 

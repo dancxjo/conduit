@@ -17,7 +17,7 @@ function escapeHtml(value) {
 }
 
 export function configurePanelLanguage(metadata) {
-  if (metadata?.schema !== "conduit.panel-language/v1" ||
+  if (metadata?.schema !== "conduit.panel-language" ||
       !Array.isArray(metadata.syntax_words) ||
       !Array.isArray(metadata.reserved_words) ||
       !Array.isArray(metadata.identifier_compatible_syntax_words)) {

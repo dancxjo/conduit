@@ -13,13 +13,13 @@ use sha2::{Digest, Sha256};
 use crate::Id;
 
 /// Version of the canonical descriptor byte form.
-pub const CANONICAL_FORM_VERSION: u8 = 1;
+pub const CANONICAL_FORM_VERSION: u8 = 0;
 
 /// Header at the beginning of every canonical descriptor.
 pub const CANONICAL_MAGIC: [u8; 4] = [b'C', b'N', b'D', CANONICAL_FORM_VERSION];
 
 /// Domain separator prepended before hashing canonical descriptor bytes.
-pub const SEMANTIC_HASH_DOMAIN: &[u8] = b"conduit.semantic-hash/v1\0";
+pub const SEMANTIC_HASH_DOMAIN: &[u8] = b"conduit.semantic-hash\0";
 
 /// Maximum nested collection depth accepted by the portable encoder.
 pub const MAX_CANONICAL_DEPTH: u8 = 64;
@@ -712,7 +712,7 @@ mod aggregate_tests {
         ];
         let descriptor = CanonicalDescriptor {
             kind: Id("conduit/execution-plan"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&complete),
         };
         let expected = descriptor.semantic_hash().unwrap();
@@ -722,7 +722,7 @@ mod aggregate_tests {
         write_descriptor_with_hash_set(
             &mut specialized_bytes,
             Id("conduit/execution-plan"),
-            1,
+            0,
             &ordinary,
             Id("facts"),
             &hashes,
@@ -732,7 +732,7 @@ mod aggregate_tests {
         assert_eq!(
             semantic_hash_with_hash_set(
                 Id("conduit/execution-plan"),
-                1,
+                0,
                 &ordinary,
                 Id("facts"),
                 &hashes,

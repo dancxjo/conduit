@@ -5,21 +5,23 @@ use std::time::Instant;
 use conduit_core::{
     ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
     BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
-    EXECUTION_PLAN_SCHEMA_VERSION, EffectRequirement, EventClass, EventCorrelation,
+    EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, EffectCommitProfile,
+    EffectDiscontinuity, EffectIdempotency, EffectRequirement, EventClass, EventCorrelation,
     EventProviderCapabilities, EventStreamContract, EvidencePolicy, EvidenceStreamExtension,
     ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FeedbackBoundaryKind,
     FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity,
-    FlowPolicy, FlowQueueState, FlowWatermarks, GrantStatus, HostCapability, Id,
+    FlowPolicy, FlowQueueState, FlowWatermarks, ForeignRetention, GrantStatus, HostCapability, Id,
     ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting,
     MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
     PlanCompositeMapping, PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary,
     PlanHostObservation, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
-    RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline, ReplayDelivery, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, ResourceRef, ResourceSelector, RetentionPolicy,
-    RuntimeEvidenceMode, RuntimeEvidencePolicy, SCHEDULER_CONTRACT_VERSION, SampleSchedule,
-    SchedulerDecisionReason, SchedulerPolicy, SemanticHash, Sensitivity, StopPolicy,
-    SubscriberCoupling, TypeContractRef, ValueEnvelopePolicy, ValueEnvelopeReason,
-    extend_execution_event, resolve_authority,
+    RESOURCE_LEASE_SCHEMA_VERSION, RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline,
+    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract,
+    ResourceRef, ResourceSelector, ResourceSharingMode, RetentionPolicy, RuntimeEvidenceMode,
+    RuntimeEvidencePolicy, SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerDecisionReason,
+    SchedulerPolicy, SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef,
+    UnknownCommitPolicy, ValueEnvelopePolicy, ValueEnvelopeReason, extend_execution_event,
+    resolve_authority,
 };
 use conduit_runtime::{
     DeterministicExecutor, OwnedEventPayload, RuntimeEvidenceContext, RuntimeTimestamp,
@@ -31,7 +33,7 @@ use conduit_runtime::{
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([9; 32]),
 };
 const CLAIMS: [MemoryClaim; 2] = [
@@ -75,7 +77,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -83,7 +85,7 @@ fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
 fn profile() -> ExecutionProfile<'static> {
     let mut value = ExecutionProfile {
         id: Id("fixture/scheduler-profile"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: ZERO,
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
@@ -204,7 +206,7 @@ fn with_plan(
         queue_memory_bytes: queue_bytes,
     }];
     let mut plan = ExecutionPlan {
-        schema_version: 3,
+        schema_version: 0,
         identity: ZERO,
         source_semantic_hash: hash(12),
         resolver: pin("fixture/resolver", 13),
@@ -863,7 +865,7 @@ fn exact_preallocation_and_atomic_startup() {
         let error = DeterministicExecutor::start(
             &plan,
             PlanValidationContext {
-                supported_schema_version: 3,
+                supported_schema_version: 0,
                 now: AuthorityTime {
                     basis: Id("clock/monotonic"),
                     tick: 2,
@@ -1020,7 +1022,7 @@ fn coupled_fanout_admits_all_branches_atomically_under_slow_pressure() {
             duplication: DuplicationRule::Copy(pin("fixture/copy", 31)),
         }];
         let mut plan = ExecutionPlan {
-            schema_version: 4,
+            schema_version: 0,
             identity: ZERO,
             budget: PlanResourceBudget {
                 cpu_units: 3,
@@ -1065,7 +1067,7 @@ fn coupled_fanout_admits_all_branches_atomically_under_slow_pressure() {
         let mut executor = DeterministicExecutor::start(
             &plan,
             PlanValidationContext {
-                supported_schema_version: 4,
+                supported_schema_version: 0,
                 now: AuthorityTime {
                     basis: Id("clock/monotonic"),
                     tick: 2,
@@ -1229,7 +1231,7 @@ fn two_input_join_commits_only_when_both_leases_are_ready() {
         let mut executor = DeterministicExecutor::start(
             &plan,
             PlanValidationContext {
-                supported_schema_version: 3,
+                supported_schema_version: 0,
                 now: AuthorityTime {
                     basis: Id("clock/monotonic"),
                     tick: 2,
@@ -1530,6 +1532,42 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
         let effect_hash = effect.semantic_hash().unwrap();
         let required_resources = [Id("fixture/source-device")];
         let required_effects = [effect_hash];
+        let lease = ResourceLeaseContract {
+            schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+            id: Id("fixture/source-lease"),
+            resource_binding: required_resources[0],
+            holder: effect.requester,
+            run: effect.audience,
+            epoch: 1,
+            scope: Id("fixture/read-scope"),
+            sharing: ResourceSharingMode::Exclusive,
+            reservation: PlanResourceBudget {
+                memory_bytes: 1,
+                ..PlanResourceBudget::ZERO
+            },
+            time_basis: capability.time_basis,
+            issued_at_tick: 0,
+            expires_at_tick: 1_000,
+            revocation_grace_ticks: 1,
+            cleanup_ticks: 2,
+            maximum_operations: 2,
+            maximum_evidence_events: 4,
+            cleanup_escalation: pin("fixture/force-close", 42),
+            foreign_retention: ForeignRetention::Unsupported,
+        };
+        let commit_profile = EffectCommitProfile {
+            schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: Id("fixture/read-commit"),
+            operation: effect.action,
+            resource_lease: lease.id,
+            commit_boundary: pin("fixture/read-commit-boundary", 43),
+            idempotency: EffectIdempotency::ReconcileBeforeRetry,
+            unknown_commit: UnknownCommitPolicy::Reconcile,
+            discontinuity: EffectDiscontinuity::ReconcileRequired,
+            cleanup: pin("fixture/read-cleanup", 44),
+            maximum_attempts: 2,
+            evidence_events_per_attempt: 2,
+        };
         let nodes = [
             ResolvedPlanNode {
                 required_resources: &required_resources,
@@ -1543,7 +1581,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             node: nodes[0].instance,
             resource,
             host_observation: nodes[0].host_observation,
-            lease: None,
+            lease: Some(lease),
         }];
         let authorities = [PlanAuthority {
             node: nodes[0].instance,
@@ -1556,7 +1594,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             administrative_subject: None,
             containment: None,
             policy_budgets: &[],
-            commit_profile: None,
+            commit_profile: Some(commit_profile),
         }];
         let members = [nodes[0].instance, nodes[1].instance];
         let exports = [
@@ -1586,7 +1624,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
                 event_class: EventClass::NormativeEvidence,
                 payload_type: TypeContractRef {
                     contract_id: Id("conduit/runtime-observation"),
-                    schema_version: 1,
+                    schema_version: 0,
                     semantic_hash: hash(0x23),
                 },
                 retention: RetentionPolicy::Ring {
@@ -1635,7 +1673,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             gap_summary_bytes: 2_048,
         };
         let mut plan = ExecutionPlan {
-            schema_version: 8,
+            schema_version: 0,
             identity: ZERO,
             resources: &resources,
             nodes: &nodes,
@@ -1875,7 +1913,7 @@ fn long_run_never_exceeds_plan_capacity_and_exposes_metrics() {
 #[test]
 fn every_deterministic_scheduler_fixture_is_owned_here() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c4/bounded-scheduler-v1.json"
+        "../../../conformance/c4/bounded-scheduler.json"
     ))
     .unwrap();
     let ids = fixture["cases"]

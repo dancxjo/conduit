@@ -19,7 +19,7 @@ const OTHER_RESOURCE: ResourceRef<'static> = ResourceRef {
 };
 const VALUE_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([3; 32]),
 };
 const CONSTRAINT: AuthorityConstraintRef<'static> = AuthorityConstraintRef {
@@ -428,7 +428,7 @@ fn effect_and_grant_identities_cover_authority_facts() {
         .unwrap()
     );
 
-    let fixture = include_str!("../../../conformance/c2/authority-v1.tsv");
+    let fixture = include_str!("../../../conformance/c2/authority.tsv");
     for case in [
         "allow",
         "deny_missing_grant",

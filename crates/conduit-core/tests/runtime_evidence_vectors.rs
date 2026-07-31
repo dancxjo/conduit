@@ -6,7 +6,7 @@ use conduit_core::{
     TelemetryAdmission, TypeContractRef, validate_runtime_evidence_policy,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c4/runtime-evidence-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c4/runtime-evidence.json");
 
 fn hash(byte: u8) -> SemanticHash {
     SemanticHash::from_bytes([byte; 32])
@@ -31,7 +31,7 @@ fn contract(
             event_class: EventClass::NormativeEvidence,
             payload_type: TypeContractRef {
                 contract_id: Id("conduit/runtime-observation"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(0x23),
             },
             retention: RetentionPolicy::Ring {
@@ -46,7 +46,7 @@ fn contract(
             maximum_projection_bytes: 1_024,
             provider: PinnedDescriptor {
                 id: Id("provider/evidence"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(2),
             },
             recording_authority: None,
@@ -86,7 +86,7 @@ fn policy() -> RuntimeEvidencePolicy<'static> {
 #[test]
 fn fixture_inventory_names_every_runtime_evidence_boundary() {
     let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(fixture["suite"], "conduit.runtime-evidence/v1");
+    assert_eq!(fixture["suite"], "conduit.runtime-evidence");
     let ids = fixture["cases"]
         .as_array()
         .unwrap()
@@ -95,7 +95,7 @@ fn fixture_inventory_names_every_runtime_evidence_boundary() {
         .collect::<Vec<_>>();
     for required in [
         "explicit-disabled-policy",
-        "plan-v8-policy-identity",
+        "plan-policy-identity",
         "pressure-loss-golden-sequence",
         "scheduling-latency-monotonic",
         "derivation-links-accepted-input",

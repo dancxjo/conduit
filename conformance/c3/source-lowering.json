@@ -1,0 +1,152 @@
+{
+  "suite": "source-lowering",
+  "source_ast_schema_version": 0,
+  "lowering_schema_version": 0,
+  "cases": [
+    {
+      "id": "authored-identity-excludes-root-selection",
+      "assertion": "source-root-selection",
+      "source": "panel 0\nnode alpha : fixture/handler\nnode beta : fixture/handler\nroot alpha\nroot beta\n",
+      "selected_roots": [
+        "alpha",
+        "beta"
+      ],
+      "expected": {
+        "relation": "equal"
+      }
+    },
+    {
+      "id": "resolved-root-selection-enters-lowering-identity",
+      "assertion": "lowering-root-selection",
+      "source": "panel 0\nnode alpha : fixture/handler\nnode beta : fixture/handler\nroot alpha\nroot beta\n",
+      "selected_roots": [
+        "alpha",
+        "beta"
+      ],
+      "expected": {
+        "relation": "different",
+        "targets": [
+          "alpha",
+          "beta"
+        ]
+      }
+    },
+    {
+      "id": "implicit-sole-root-normalizes-with-explicit-selection",
+      "assertion": "implicit-explicit-root",
+      "source": "panel 0\nnode app : fixture/handler\nroot app\n",
+      "expected": {
+        "relation": "equal",
+        "implicit_mode": "implicit-sole",
+        "explicit_mode": "explicit"
+      }
+    },
+    {
+      "id": "trivia-preserves-authored-and-lowered-identity",
+      "assertion": "compare",
+      "source": "panel 0\nnode app : fixture/handler using ready\n",
+      "comparison_source": "# trivia\npanel 0   node app:fixture/handler using ready\n",
+      "expected": {
+        "source_relation": "equal",
+        "lowering_relation": "equal",
+        "content_relation": "different"
+      }
+    },
+    {
+      "id": "constraint-is-retained-and-identity-bearing",
+      "assertion": "constraint",
+      "source": "panel 0\nnode app : fixture/handler using ready\n",
+      "comparison_source": "panel 0\nnode app : fixture/handler using fallback\n",
+      "expected": {
+        "constraint": "ready",
+        "relation": "different",
+        "origin_line": 2,
+        "origin_column": 34
+      }
+    },
+    {
+      "id": "ordinary-cord-is-retained-and-identity-bearing",
+      "assertion": "cord",
+      "source": "panel 0\nnode source : fixture/handler\nnode sink : fixture/handler\ncord source.value -> sink.value { capacity = 1 }\n",
+      "comparison_source": "panel 0\nnode source : fixture/handler\nnode sink : fixture/handler\ncord source.value -> sink.value { capacity = 2 }\n",
+      "expected": {
+        "cords": 1,
+        "capacity": 1,
+        "relation": "different",
+        "origin_line": 4
+      }
+    },
+    {
+      "id": "composite-child-and-export-are-retained",
+      "assertion": "export",
+      "source": "panel 0\nnode box {\n  node child : fixture/handler\n  export result > = child.left\n}\n",
+      "comparison_source": "panel 0\nnode box {\n  node child : fixture/handler\n  export result > = child.right\n}\n",
+      "expected": {
+        "composites": 1,
+        "children": 1,
+        "exports": 1,
+        "target_ends": "/node/child/port/left",
+        "relation": "different",
+        "origin_line": 4
+      }
+    },
+    {
+      "id": "configuration-binding-is-retained",
+      "assertion": "binding",
+      "source": "panel 0\nnode box(p: fixture/i8) {\n  node child : fixture/handler\n  bind p = child.left\n}\n",
+      "comparison_source": "panel 0\nnode box(p: fixture/i8) {\n  node child : fixture/handler\n  bind p = child.right\n}\n",
+      "expected": {
+        "composites": 1,
+        "bindings": 1,
+        "target_ends": "/node/child/config/left",
+        "relation": "different",
+        "origin_line": 4
+      }
+    },
+    {
+      "id": "nested-imported-topology-retains-content-identified-origins",
+      "assertion": "imported-topology",
+      "entry_uri": "mem://fixture/root.panel",
+      "source": "panel 0\nimport \"./child.panel\" as child\nnode outer {\n  node nested : child.inner\n  export result > = nested.result\n}\nroot outer\n",
+      "modules": {
+        "mem://fixture/child.panel": "panel 0\nnode inner {\n  node value : fixture/handler using ready\n  node sink : fixture/handler\n  cord value.result -> sink.value\n  export result > = value.result\n}\nroot inner\n"
+      },
+      "expected": {
+        "composites": 2,
+        "children": 3,
+        "cords": 1,
+        "exports": 2,
+        "constraints": 1,
+        "child_origin_uri": "mem://fixture/child.panel",
+        "child_export_line": 6
+      }
+    },
+    {
+      "id": "dangling-export-is-rejected",
+      "assertion": "parse-diagnostic",
+      "source": "panel 0\nnode inner { node value : fixture/handler export result > = value.result }\nnode outer { node child : inner export result > = child.missing }\n",
+      "expected": {
+        "outcome": "rejected",
+        "code": "CND-SRC-009"
+      }
+    },
+    {
+      "id": "dangling-binding-is-rejected",
+      "assertion": "parse-diagnostic",
+      "source": "panel 0\nnode box(p: fixture/i8) { node child : fixture/handler bind missing = child.value }\n",
+      "expected": {
+        "outcome": "rejected",
+        "code": "CND-SRC-003"
+      }
+    },
+    {
+      "id": "boundary-bypass-remains-rejected",
+      "assertion": "parse-diagnostic",
+      "source": "panel 0\nnode box { node inner : fixture/handler export result > = inner.result }\nnode app : box\nnode sink : fixture/handler\ncord app.inner.result -> sink.value\n",
+      "expected": {
+        "outcome": "rejected",
+        "code": "CND-SRC-009"
+      }
+    }
+  ]
+}

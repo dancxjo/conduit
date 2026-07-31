@@ -117,11 +117,11 @@ impl<T: MessageStepEndpoint> MessageStepBinding<T> {
     ) -> Result<StepObservation, ImplementationError> {
         let sequence = self.next_sequence;
         let reply = self.endpoint.exchange(ForeignStepRequest {
-            protocol_version: 1,
+            protocol_version: 0,
             sequence,
             maximum_work,
         });
-        if reply.protocol_version != 1 {
+        if reply.protocol_version != 0 {
             return Err(ImplementationError::InvalidProfile);
         }
         self.next_sequence = sequence

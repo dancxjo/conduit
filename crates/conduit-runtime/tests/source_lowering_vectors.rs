@@ -6,15 +6,14 @@ use conduit_core::{
 };
 use conduit_panel::{
     LoadedModule, ModuleLoader, RootSelectionMode, SourceValue, resolve_modules,
-    semantic_source_hash_v1, semantic_source_hash_v2, semantic_source_hash_version,
+    semantic_source_hash,
 };
 use conduit_runtime::{
     ConfigProvenance, LiteralValidationError, LoweredConfigValue, OwnedConfigFieldSchema,
     OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference, OwnedSemanticValue,
-    OwnedTypeReference, SourceContractCatalog, VersionedLoweredSource, lower_source,
-    lower_source_v2, lower_source_v4, lower_source_version, migrate_lowered_source_v1,
+    OwnedTypeReference, SourceContractCatalog, lower_source, lower_source_base, lower_topology,
 };
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 
 struct MemoryLoader(BTreeMap<String, String>);
@@ -35,7 +34,7 @@ impl Catalog {
     fn type_ref(id: &str) -> OwnedTypeReference {
         OwnedTypeReference {
             id: id.to_owned(),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes(Sha256::digest(id.as_bytes()).into()),
         }
     }
@@ -274,27 +273,16 @@ impl SourceContractCatalog for Catalog {
 }
 
 #[test]
-fn grammar_three_uses_source_ast_schema_five_without_reinterpreting_older_source() {
-    let directional = lower_source_v4(
-        &graph("panel 3\ninterface fixture/ports { > value : fixture/text }\n"),
+fn current_grammar_uses_the_current_source_ast_schema() {
+    let lowered = lower_source(
+        &graph("panel 0\ninterface fixture/ports { > value : fixture/text }\n"),
         &Catalog,
     )
     .unwrap();
     assert_eq!(
-        directional.source_ast_schema_version,
-        conduit_runtime::SOURCE_AST_SCHEMA_V5
+        lowered.source_ast_schema_version,
+        conduit_runtime::SOURCE_AST_SCHEMA_VERSION
     );
-
-    let frozen = lower_source_v4(
-        &graph("panel 2\ninterface fixture/ports { input value : fixture/text }\n"),
-        &Catalog,
-    )
-    .unwrap();
-    assert_eq!(
-        frozen.source_ast_schema_version,
-        conduit_runtime::SOURCE_AST_SCHEMA_V4
-    );
-    assert_ne!(directional.semantic_hash, frozen.semantic_hash);
 }
 
 struct OrderedPortCatalog(Vec<String>);
@@ -348,7 +336,7 @@ fn graph(source: &str) -> conduit_panel::ModuleGraph {
 fn hosted_schemas_copy_core_contract_facts_and_hash_every_exact_change() {
     const TYPE: TypeContractRef<'static> = TypeContractRef {
         contract_id: Id("fixture/bool"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([0x11; 32]),
     };
     const FIELD: ConfigFieldContract<'static> = ConfigFieldContract {
@@ -406,188 +394,6 @@ fn fixture_graph_with_root(
         .map_err(|error| error.code.to_owned())
 }
 
-fn diagnostic_result(
-    expected: &Map<String, Value>,
-    error: &conduit_runtime::LoweringDiagnostic,
-) -> Value {
-    let mut actual = Map::from_iter([
-        ("outcome".to_owned(), json!("rejected")),
-        ("code".to_owned(), json!(error.code)),
-    ]);
-    if expected.contains_key("expected_contract") {
-        actual.insert(
-            "expected_contract".to_owned(),
-            json!(
-                error
-                    .expected_contract
-                    .as_ref()
-                    .map(|contract| contract.id.as_str())
-            ),
-        );
-    }
-    if expected.contains_key("origin_uri") {
-        actual.insert(
-            "origin_uri".to_owned(),
-            json!(
-                error
-                    .origin
-                    .as_ref()
-                    .map(|origin| origin.module_uri.as_str())
-            ),
-        );
-    }
-    if expected.contains_key("origin_line") {
-        actual.insert(
-            "origin_line".to_owned(),
-            json!(error.origin.as_ref().map(|origin| origin.span.line)),
-        );
-    }
-    Value::Object(actual)
-}
-
-#[test]
-fn every_normative_source_lowering_vector_has_the_exact_result() {
-    let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c3/source-lowering-v1.json"
-    ))
-    .unwrap();
-    for case in fixture["cases"].as_array().unwrap() {
-        let id = case["id"].as_str().unwrap();
-        let expected = case["result"].as_object().unwrap();
-        let assertion = case["assertion"].as_str().unwrap();
-        let actual = match assertion {
-            "parse-diagnostic" => {
-                let source = case["source"].as_str().unwrap();
-                let error = conduit_panel::parse(source).unwrap_err();
-                json!({
-                    "outcome": "rejected",
-                    "code": error.code,
-                    "origin_line": error.line,
-                })
-            }
-            "diagnostic" => {
-                let graph = fixture_graph(case, "source").unwrap();
-                let error = lower_source(&graph, &Catalog).unwrap_err();
-                if case["source"]
-                    .as_str()
-                    .is_some_and(|source| source.contains("do-not-echo"))
-                {
-                    assert!(!format!("{error:?}").contains("do-not-echo"), "{id}");
-                    assert!(!error.to_string().contains("do-not-echo"), "{id}");
-                }
-                diagnostic_result(expected, &error)
-            }
-            "compare" => {
-                let first =
-                    lower_source(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
-                let second =
-                    lower_source(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
-                        .unwrap();
-                let relation = if first.semantic_hash == second.semantic_hash {
-                    "equal"
-                } else {
-                    "different"
-                };
-                if expected.contains_key("provenance") {
-                    json!({
-                        "outcome": "accepted",
-                        "relation": relation,
-                        "provenance": [
-                            provenance_name(first.nodes[0].config[0].provenance),
-                            provenance_name(second.nodes[0].config[0].provenance),
-                        ],
-                    })
-                } else {
-                    json!({"outcome": "accepted", "relation": relation})
-                }
-            }
-            "secret" => {
-                let lowered =
-                    lower_source(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
-                let debug = format!("{lowered:?}");
-                let explain = lowered.explain();
-                let safe = !debug.contains("fixture-do-not-echo")
-                    && !explain.contains("fixture-do-not-echo")
-                    && debug.contains("[REDACTED]")
-                    && explain.contains("[REDACTED]");
-                json!({
-                    "outcome": "accepted",
-                    "provenance": provenance_name(lowered.nodes[0].config[0].provenance),
-                    "ordinary_output": if safe { "[REDACTED]" } else { "LEAKED" },
-                })
-            }
-            "lower" => {
-                let lowered =
-                    lower_source(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
-                let mut actual = Map::from_iter([("outcome".to_owned(), json!("accepted"))]);
-                if expected.contains_key("provenance") {
-                    let entry = lowered
-                        .nodes
-                        .iter()
-                        .find(|node| node.path.ends_with("/node/app"))
-                        .and_then(|node| node.config.first())
-                        .unwrap();
-                    actual.insert(
-                        "provenance".to_owned(),
-                        json!(provenance_name(entry.provenance)),
-                    );
-                    if expected.contains_key("origin_uri") {
-                        actual.insert(
-                            "origin_uri".to_owned(),
-                            json!(
-                                entry
-                                    .origin
-                                    .as_ref()
-                                    .map(|origin| origin.module_uri.as_str())
-                            ),
-                        );
-                    }
-                    if expected.contains_key("origin_line") {
-                        actual.insert(
-                            "origin_line".to_owned(),
-                            json!(entry.origin.as_ref().map(|origin| origin.span.line)),
-                        );
-                    }
-                } else if expected.contains_key("origin_uri") {
-                    let entry = lowered
-                        .nodes
-                        .iter()
-                        .find(|node| node.path.ends_with("/node/app"))
-                        .and_then(|node| node.config.first())
-                        .unwrap();
-                    actual.insert(
-                        "origin_uri".to_owned(),
-                        json!(
-                            entry
-                                .origin
-                                .as_ref()
-                                .map(|origin| origin.module_uri.as_str())
-                        ),
-                    );
-                    actual.insert(
-                        "origin_line".to_owned(),
-                        json!(entry.origin.as_ref().map(|origin| origin.span.line)),
-                    );
-                }
-                if expected.contains_key("expanded_group_ports") {
-                    actual.insert(
-                        "expanded_group_ports".to_owned(),
-                        json!(lowered.group_ports.len()),
-                    );
-                    actual.insert("pool_maximum".to_owned(), json!(lowered.pools[0].maximum));
-                    actual.insert(
-                        "template_contract".to_owned(),
-                        json!(lowered.pools[0].template_contract_id),
-                    );
-                }
-                Value::Object(actual)
-            }
-            other => panic!("{id}: unknown assertion {other}"),
-        };
-        assert_eq!(actual, Value::Object(expected.clone()), "{id}");
-    }
-}
-
 fn relation(left: SemanticHash, right: SemanticHash) -> &'static str {
     if left == right { "equal" } else { "different" }
 }
@@ -604,13 +410,11 @@ fn root_mode(mode: RootSelectionMode) -> &'static str {
 }
 
 #[test]
-fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
-    let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c3/source-lowering-v2.json"
-    ))
-    .unwrap();
-    assert_eq!(fixture["source_ast_schema_version"], 2);
-    assert_eq!(fixture["lowering_schema_version"], 2);
+fn every_normative_source_lowering_vector_has_the_exact_result() {
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../../conformance/c3/source-lowering.json")).unwrap();
+    assert_eq!(fixture["source_ast_schema_version"], 0);
+    assert_eq!(fixture["lowering_schema_version"], 0);
 
     for case in fixture["cases"].as_array().unwrap() {
         let id = case["id"].as_str().unwrap();
@@ -623,24 +427,20 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
                 let first = &first.modules.last().unwrap().panel;
                 let second = &second.modules.last().unwrap().panel;
                 json!({
-                    "v1_relation": text_relation(
-                        &semantic_source_hash_v1(first),
-                        &semantic_source_hash_v1(second),
-                    ),
-                    "v2_relation": text_relation(
-                        &semantic_source_hash_v2(first),
-                        &semantic_source_hash_v2(second),
+                    "relation": text_relation(
+                        &semantic_source_hash(first),
+                        &semantic_source_hash(second),
                     ),
                 })
             }
             "lowering-root-selection" => {
                 let roots = case["selected_roots"].as_array().unwrap();
-                let first = lower_source_v2(
+                let first = lower_topology(
                     &fixture_graph_with_root(case, "source", roots[0].as_str()).unwrap(),
                     &Catalog,
                 )
                 .unwrap();
-                let second = lower_source_v2(
+                let second = lower_topology(
                     &fixture_graph_with_root(case, "source", roots[1].as_str()).unwrap(),
                     &Catalog,
                 )
@@ -655,8 +455,8 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
             }
             "implicit-explicit-root" => {
                 let implicit =
-                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
-                let explicit = lower_source_v2(
+                    lower_topology(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                let explicit = lower_topology(
                     &fixture_graph_with_root(case, "source", Some("app")).unwrap(),
                     &Catalog,
                 )
@@ -674,12 +474,12 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
                 let second_graph = fixture_graph(case, "comparison_source").unwrap();
                 let first_panel = &first_graph.modules.last().unwrap().panel;
                 let second_panel = &second_graph.modules.last().unwrap().panel;
-                let first = lower_source_v2(&first_graph, &Catalog).unwrap();
-                let second = lower_source_v2(&second_graph, &Catalog).unwrap();
+                let first = lower_topology(&first_graph, &Catalog).unwrap();
+                let second = lower_topology(&second_graph, &Catalog).unwrap();
                 json!({
                     "source_relation": text_relation(
-                        &semantic_source_hash_v2(first_panel),
-                        &semantic_source_hash_v2(second_panel),
+                        &semantic_source_hash(first_panel),
+                        &semantic_source_hash(second_panel),
                     ),
                     "lowering_relation": relation(first.semantic_hash, second.semantic_hash),
                     "content_relation": text_relation(
@@ -690,9 +490,9 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
             }
             "constraint" => {
                 let first =
-                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                    lower_topology(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
                 let second =
-                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                    lower_topology(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
                         .unwrap();
                 let constraint_origin = first
                     .source_map
@@ -709,9 +509,9 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
             }
             "cord" => {
                 let first =
-                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                    lower_topology(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
                 let second =
-                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                    lower_topology(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
                         .unwrap();
                 json!({
                     "cords": first.cords.len(),
@@ -722,9 +522,9 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
             }
             "export" => {
                 let first =
-                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                    lower_topology(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
                 let second =
-                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                    lower_topology(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
                         .unwrap();
                 json!({
                     "composites": first.composites.len(),
@@ -740,9 +540,9 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
             }
             "binding" => {
                 let first =
-                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                    lower_topology(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
                 let second =
-                    lower_source_v2(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
+                    lower_topology(&fixture_graph(case, "comparison_source").unwrap(), &Catalog)
                         .unwrap();
                 json!({
                     "composites": first.composites.len(),
@@ -757,7 +557,7 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
             }
             "imported-topology" => {
                 let lowered =
-                    lower_source_v2(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
+                    lower_topology(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
                 let child_export = lowered
                     .exports
                     .iter()
@@ -777,61 +577,11 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
                     "child_export_line": child_export.origin.span.line,
                 })
             }
-            "v1-preservation" => {
-                let graph = fixture_graph(case, "source").unwrap();
-                let direct = lower_source(&graph, &Catalog).unwrap();
-                let VersionedLoweredSource::V1(versioned) =
-                    lower_source_version(1, &graph, &Catalog).unwrap()
-                else {
-                    panic!("{id}: expected v1");
-                };
-                json!({
-                    "schema_version": 1,
-                    "relation": relation(direct.semantic_hash, versioned.semantic_hash),
-                })
-            }
-            "migration" => {
-                let graph = fixture_graph(case, "source").unwrap();
-                let v1 = lower_source(&graph, &Catalog).unwrap();
-                let migrated = migrate_lowered_source_v1(&v1, &graph, &Catalog).unwrap();
-                json!({
-                    "outcome": "migrated",
-                    "schema_version": migrated.schema_version,
-                    "constraint": migrated.nodes[0].unresolved_constraint,
-                })
-            }
-            "stale-migration" => {
-                let persisted =
-                    lower_source(&fixture_graph(case, "source").unwrap(), &Catalog).unwrap();
-                let graph = fixture_graph(case, "comparison_source").unwrap();
-                let error = migrate_lowered_source_v1(&persisted, &graph, &Catalog).unwrap_err();
-                json!({"outcome": "rejected", "code": error.code})
-            }
-            "ambiguous-migration" => {
-                let graph = fixture_graph(case, "source").unwrap();
-                let persisted = lower_source(&graph, &Catalog).unwrap();
-                let error = migrate_lowered_source_v1(&persisted, &graph, &Catalog).unwrap_err();
-                json!({"outcome": "rejected", "code": error.code})
-            }
-            "unsupported-source-version" => {
-                let panel = conduit_panel::parse(case["source"].as_str().unwrap()).unwrap();
-                let error = semantic_source_hash_version(
-                    &panel,
-                    case["schema_version"].as_u64().unwrap() as u16,
-                )
-                .unwrap_err();
-                json!({"outcome": "rejected", "code": error.code})
-            }
-            "unsupported-lowering-version" => {
-                let graph = fixture_graph(case, "source").unwrap();
-                let error = lower_source_version(
-                    case["schema_version"].as_u64().unwrap() as u16,
-                    &graph,
-                    &Catalog,
-                )
-                .unwrap_err();
-                json!({"outcome": "rejected", "code": error.code})
-            }
+            "v1-preservation"
+            | "migration"
+            | "stale-migration"
+            | "ambiguous-migration"
+            | "unsupported-lowering-version" => continue,
             "parse-diagnostic" => {
                 let error = conduit_panel::parse(case["source"].as_str().unwrap()).unwrap_err();
                 json!({"outcome": "rejected", "code": error.code})
@@ -842,18 +592,10 @@ fn every_normative_source_lowering_v2_vector_has_the_exact_result() {
     }
 }
 
-fn provenance_name(provenance: ConfigProvenance) -> &'static str {
-    match provenance {
-        ConfigProvenance::Authored => "authored",
-        ConfigProvenance::SchemaDefault => "schema-default",
-        ConfigProvenance::PlanBinding => "plan-binding",
-    }
-}
-
 #[test]
 fn every_normative_port_group_source_vector_has_the_exact_result() {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c2/port-group-correlation-v1.json"
+        "../../../conformance/c2/port-group-correlation.json"
     ))
     .unwrap();
     for case in fixture["port_group_cases"].as_array().unwrap() {
@@ -877,12 +619,12 @@ fn every_normative_port_group_source_vector_has_the_exact_result() {
                 json!({"outcome": "accepted", "target": target})
             }
             "diagnostic" => {
-                let error = lower_source(&graph(source), &Catalog).unwrap_err();
+                let error = lower_source_base(&graph(source), &Catalog).unwrap_err();
                 json!({"outcome": "rejected", "code": error.code})
             }
             "compare" => {
-                let first = lower_source(&graph(source), &Catalog).unwrap();
-                let second = lower_source(
+                let first = lower_source_base(&graph(source), &Catalog).unwrap();
+                let second = lower_source_base(
                     &graph(case["comparison_source"].as_str().unwrap()),
                     &Catalog,
                 )
@@ -908,8 +650,8 @@ fn every_normative_port_group_source_vector_has_the_exact_result() {
                             .collect(),
                     )
                 };
-                let first = lower_source(&graph(source), &catalog(&orders[0])).unwrap();
-                let second = lower_source(&graph(source), &catalog(&orders[1])).unwrap();
+                let first = lower_source_base(&graph(source), &catalog(&orders[0])).unwrap();
+                let second = lower_source_base(&graph(source), &catalog(&orders[1])).unwrap();
                 json!({
                     "outcome": "accepted",
                     "relation": if first.semantic_hash == second.semantic_hash {
@@ -920,7 +662,7 @@ fn every_normative_port_group_source_vector_has_the_exact_result() {
                 })
             }
             "lower" => {
-                let lowered = lower_source(&graph(source), &Catalog).unwrap();
+                let lowered = lower_source_base(&graph(source), &Catalog).unwrap();
                 let members: Vec<Value> = lowered
                     .group_ports
                     .iter()
@@ -1002,13 +744,13 @@ fn every_normative_port_group_source_vector_has_the_exact_result() {
 
 #[test]
 fn explicit_and_default_values_have_one_descriptor_with_visible_provenance() {
-    let omitted = lower_source(
-        &graph("panel 3\nnode value : fixture/defaulted\n"),
+    let omitted = lower_source_base(
+        &graph("panel 0\nnode value : fixture/defaulted\n"),
         &Catalog,
     )
     .unwrap();
-    let explicit = lower_source(
-        &graph("panel 3\nnode value : fixture/defaulted { enabled = true }\n"),
+    let explicit = lower_source_base(
+        &graph("panel 0\nnode value : fixture/defaulted { enabled = true }\n"),
         &Catalog,
     )
     .unwrap();
@@ -1032,26 +774,26 @@ fn explicit_and_default_values_have_one_descriptor_with_visible_provenance() {
 
 #[test]
 fn records_are_canonical_and_precision_sensitive_values_remain_exact() {
-    let left = lower_source(
-        &graph("panel 3\nnode value : fixture/record { value = record(name=\"a\",count=7) }\n"),
+    let left = lower_source_base(
+        &graph("panel 0\nnode value : fixture/record { value = record(name=\"a\",count=7) }\n"),
         &Catalog,
     )
     .unwrap();
-    let right = lower_source(
-        &graph("panel 3\nnode value : fixture/record { value = record(count=7,name=\"a\") }\n"),
+    let right = lower_source_base(
+        &graph("panel 0\nnode value : fixture/record { value = record(count=7,name=\"a\") }\n"),
         &Catalog,
     )
     .unwrap();
     assert_eq!(left.semantic_hash, right.semantic_hash);
 
-    let short = lower_source(
-        &graph("panel 3\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n"),
+    let short = lower_source_base(
+        &graph("panel 0\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n"),
         &Catalog,
     )
     .unwrap();
-    let precise = lower_source(
+    let precise = lower_source_base(
         &graph(
-            "panel 3\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
+            "panel 0\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
         ),
         &Catalog,
     )
@@ -1063,19 +805,19 @@ fn records_are_canonical_and_precision_sensitive_values_remain_exact() {
 fn wrong_types_overflow_and_missing_providers_name_span_and_contract() {
     for (source, code) in [
         (
-            "panel 3\nnode value : fixture/integer { count = \"seven\" }\n",
+            "panel 0\nnode value : fixture/integer { count = \"seven\" }\n",
             "CND-LWR-005",
         ),
         (
-            "panel 3\nnode value : fixture/integer { count = 128 }\n",
+            "panel 0\nnode value : fixture/integer { count = 128 }\n",
             "CND-LWR-006",
         ),
         (
-            "panel 3\nnode value : fixture/provider { value = \"x\" }\n",
+            "panel 0\nnode value : fixture/provider { value = \"x\" }\n",
             "CND-LWR-008",
         ),
     ] {
-        let error = lower_source(&graph(source), &Catalog).unwrap_err();
+        let error = lower_source_base(&graph(source), &Catalog).unwrap_err();
         assert_eq!(error.code, code);
         assert!(error.expected_contract.is_some());
         let origin = error.origin.expect("authored value span");
@@ -1087,8 +829,8 @@ fn wrong_types_overflow_and_missing_providers_name_span_and_contract() {
 
 #[test]
 fn diagnostic_value_spans_are_exact_and_exclude_following_trivia() {
-    let error = lower_source(
-        &graph("panel 3\nnode n : fixture/integer { count = -129    }\n"),
+    let error = lower_source_base(
+        &graph("panel 0\nnode n : fixture/integer { count = -129    }\n"),
         &Catalog,
     )
     .unwrap_err();
@@ -1101,8 +843,8 @@ fn diagnostic_value_spans_are_exact_and_exclude_following_trivia() {
 
 #[test]
 fn secret_references_are_plan_bindings_and_never_format_the_reference() {
-    let lowered = lower_source(
-        &graph("panel 3\nnode value : fixture/secret { token = secret(\"do-not-print-this\") }\n"),
+    let lowered = lower_source_base(
+        &graph("panel 0\nnode value : fixture/secret { token = secret(\"do-not-print-this\") }\n"),
         &Catalog,
     )
     .unwrap();
@@ -1121,8 +863,8 @@ fn secret_references_are_plan_bindings_and_never_format_the_reference() {
 
 #[test]
 fn imported_definition_schema_and_multi_file_origins_remain_exact() {
-    let child = "panel 3\nnode configured(count: fixture/i8) { }\nroot configured\n";
-    let entry = "panel 3\nimport \"./child.panel\" as child\n\
+    let child = "panel 0\nnode configured(count: fixture/i8) { }\nroot configured\n";
+    let entry = "panel 0\nimport \"./child.panel\" as child\n\
                  node app : child.configured { count = 7 }\n";
     let graph = resolve_modules(
         "mem://fixture/root.panel",
@@ -1133,7 +875,7 @@ fn imported_definition_schema_and_multi_file_origins_remain_exact() {
         ])),
     )
     .unwrap();
-    let lowered = lower_source(&graph, &Catalog).unwrap();
+    let lowered = lower_source_base(&graph, &Catalog).unwrap();
     let app = lowered
         .nodes
         .iter()
@@ -1153,11 +895,11 @@ fn imported_definition_schema_and_multi_file_origins_remain_exact() {
 
 #[test]
 fn groups_and_pools_lower_to_finite_plan_visible_specs() {
-    let lowered = lower_source(
+    let lowered = lower_source_base(
         &graph(
-            "panel 3\n\
-             port-group routes input : fixture/request-port keyed max 2 { member home member assets }\n\
-             port-group workers output : fixture/reply-port indexed max 3\n\
+            "panel 0\n\
+             port-group > routes : fixture/request-port keyed max 2 { member home member assets }\n\
+             port-group workers > : fixture/reply-port indexed max 3\n\
              pool sessions : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 16 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\n",
         ),
         &Catalog,
@@ -1186,13 +928,13 @@ fn groups_and_pools_lower_to_finite_plan_visible_specs() {
 }
 
 #[test]
-fn every_normative_panel_interface_satisfaction_v1_vector_has_the_exact_result() {
+fn every_normative_panel_interface_satisfaction_vector_has_the_exact_result() {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c3/panel-interface-satisfaction-v1.json"
+        "../../../conformance/c3/panel-interface-satisfaction.json"
     ))
     .unwrap();
-    assert_eq!(fixture["source_ast_schema_version"], 5);
-    assert_eq!(fixture["lowering_schema_version"], 4);
+    assert_eq!(fixture["source_ast_schema_version"], 0);
+    assert_eq!(fixture["lowering_schema_version"], 0);
 
     for case in fixture["cases"].as_array().unwrap() {
         let id = case["id"].as_str().unwrap();
@@ -1200,7 +942,7 @@ fn every_normative_panel_interface_satisfaction_v1_vector_has_the_exact_result()
         let actual = match case["assertion"].as_str().unwrap() {
             "diagnostic" => {
                 let graph = fixture_graph(case, "source").unwrap();
-                match conduit_runtime::lower_source_v4(&graph, &Catalog) {
+                match conduit_runtime::lower_source(&graph, &Catalog) {
                     Ok(_) => json!({"outcome": "accepted"}),
                     Err(error) => json!({"outcome": "rejected", "code": error.code}),
                 }

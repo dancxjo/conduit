@@ -3,7 +3,7 @@ use std::io::Write as _;
 use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};
 
-const CLI_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-cli-v1.json");
+const CLI_FIXTURE: &str = include_str!("../../../conformance/c3/conduct-cli.json");
 
 fn command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduct"));
@@ -199,13 +199,13 @@ fn every_canonical_invocation_preserves_modes_stdin_and_streams() {
     assert!(checked.status.success());
     assert_eq!(
         checked.stdout,
-        b"ok: panel v3; 0 definitions; 3 root nodes; 2 root cords\n"
+        b"ok: panel v0; 0 definitions; 3 root nodes; 2 root cords\n"
     );
     assert!(checked.stderr.is_empty());
 
     let explained = command().args(["--explain", example]).output().unwrap();
     assert!(explained.status.success());
-    assert!(explained.stdout.starts_with(b"logical panel v3:"));
+    assert!(explained.stdout.starts_with(b"logical panel v0:"));
     assert!(explained.stderr.is_empty());
 
     let source = include_bytes!("../../../examples/hello.panel");
@@ -252,12 +252,12 @@ fn help_version_and_conflict_snapshots_are_exact_at_representative_widths() {
 fn parser_and_argument_failures_support_lossless_json_with_clean_stdout() {
     let parser = output_with_stdin(
         &["--check", "--diagnostic-format=json", "-"],
-        b"panel 3\ncord a.value b.text\n",
+        b"panel 0\ncord a.value b.text\n",
     );
     assert!(!parser.status.success());
     assert!(parser.stdout.is_empty());
     let diagnostic: serde_json::Value = serde_json::from_slice(&parser.stderr).unwrap();
-    assert_eq!(diagnostic["schema_version"], 1);
+    assert_eq!(diagnostic["schema_version"], 0);
     assert_eq!(diagnostic["code"], "CND-SRC-001");
     assert_eq!(diagnostic["primary"]["document_id"], "stdin");
     assert!(

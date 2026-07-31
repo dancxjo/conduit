@@ -8,16 +8,16 @@ use conduit_core::{
 };
 use serde_json::Value;
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/manifests-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/manifests.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const CONTRACT: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("fixture/node-contract"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([1; 32]),
 };
 const PROFILE: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("fixture/execution-profile"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([2; 32]),
 };
 const ARTIFACT_DIGEST: ArtifactDigest = ArtifactDigest::from_bytes([3; 32]);
@@ -32,7 +32,7 @@ const ARTIFACT: ManifestArtifactRef<'static> = ManifestArtifactRef {
 const BACKEND: ManifestInterface<'static> = ManifestInterface {
     interface: PinnedDescriptor {
         id: Id("conduit/host.clock"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([4; 32]),
     },
     entrypoint: Id("clock-v1"),
@@ -40,7 +40,7 @@ const BACKEND: ManifestInterface<'static> = ManifestInterface {
 
 fn implementation(executor: ExecutorKind) -> ImplementationManifest<'static> {
     let mut manifest = ImplementationManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: Id(match executor {
             ExecutorKind::NativeInProcess => "fixture/native",
@@ -55,9 +55,9 @@ fn implementation(executor: ExecutorKind) -> ImplementationManifest<'static> {
         executor,
         entrypoint: ManifestEntrypoint {
             name: Id("run"),
-            adapter: Id("conduit-step-v1"),
+            adapter: Id("conduit-step"),
             abi: Id("component-v1"),
-            protocol_version: 1,
+            protocol_version: 0,
         },
         execution_profile: PROFILE,
         artifacts: &[ARTIFACT],
@@ -65,14 +65,14 @@ fn implementation(executor: ExecutorKind) -> ImplementationManifest<'static> {
         provided_interfaces: &[BACKEND],
         required_authorities: &[AUTHORITY],
         required_effects: &[EFFECT],
-        minimum_plan_version: 1,
+        minimum_plan_version: 0,
         maximum_plan_version: 8,
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 2,
         replacement: ReplacementSupport::Stateful {
             state_contract: PinnedDescriptor {
                 id: Id("fixture/state"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: SemanticHash::from_bytes([6; 32]),
             },
             maximum_export_bytes: 1024,
@@ -109,7 +109,7 @@ fn artifact() -> ArtifactManifest<'static> {
         },
     ];
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: Id("fixture/artifact"),
         digest: ARTIFACT_DIGEST,
@@ -362,7 +362,7 @@ fn artifact_policy_reports_integrity_target_abi_license_sbom_and_signature() {
 #[test]
 fn c5_fixture_freezes_required_manifest_and_verification_boundaries() {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
-    assert_eq!(fixture["suite"], "conduit.manifests/v1");
+    assert_eq!(fixture["suite"], "conduit.manifests");
     let cases = fixture["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 27);
     for required in [

@@ -33,7 +33,7 @@ impl Handler for CustomWeatherProvider {
 
 #[test]
 fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() {
-    const SOURCE: &str = "panel 3\nnode weather : acme/weather/probe\n";
+    const SOURCE: &str = "panel 0\nnode weather : acme/weather/probe\n";
     let mut registry = Registry::hosted_primitives();
     registry.register_contract_only(&CUSTOM_CONTRACT);
     registry

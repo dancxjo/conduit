@@ -1,5 +1,5 @@
 use conduit_panel::{LoadedModule, ModuleLoader, resolve_modules};
-use conduit_runtime::{Registry, SourceContractCatalog, lower_source_v4};
+use conduit_runtime::{Registry, SourceContractCatalog, lower_source};
 use std::collections::BTreeMap;
 
 struct MemoryLoader(BTreeMap<String, String>);
@@ -49,7 +49,7 @@ fn cookbook_interface_primitive_satisfaction_example_lowers_successfully() {
     )
     .unwrap();
 
-    let lowered = lower_source_v4(&graph, &registry).unwrap();
+    let lowered = lower_source(&graph, &registry).unwrap();
     assert_eq!(lowered.interface_proofs.len(), 1);
     assert_eq!(
         lowered.interface_proofs[0].interface_id,
@@ -72,7 +72,7 @@ fn cookbook_interface_composite_satisfaction_example_lowers_successfully() {
     )
     .unwrap();
 
-    let lowered = lower_source_v4(&graph, &registry).unwrap();
+    let lowered = lower_source(&graph, &registry).unwrap();
     assert_eq!(lowered.interface_proofs.len(), 1);
     assert_eq!(
         lowered.interface_proofs[0].interface_id,
@@ -95,7 +95,7 @@ fn cookbook_interface_consumer_example_lowers_successfully() {
     )
     .unwrap();
 
-    let lowered = lower_source_v4(&graph, &registry).unwrap();
+    let lowered = lower_source(&graph, &registry).unwrap();
     assert_eq!(lowered.interface_proofs.len(), 1);
     assert_eq!(
         lowered.interface_proofs[0].interface_id,
@@ -118,7 +118,7 @@ fn cookbook_interface_adapter_bridge_example_lowers_successfully() {
     )
     .unwrap();
 
-    let lowered = lower_source_v4(&graph, &registry).unwrap();
+    let lowered = lower_source(&graph, &registry).unwrap();
     assert_eq!(lowered.interface_proofs.len(), 1);
     assert_eq!(
         lowered.interface_proofs[0].interface_id,
@@ -141,6 +141,6 @@ fn cookbook_interface_diagnostic_failure_example_triggers_rejection() {
     )
     .unwrap();
 
-    let err = lower_source_v4(&graph, &registry).unwrap_err();
+    let err = lower_source(&graph, &registry).unwrap_err();
     assert_eq!(err.code, "CND-LWR-013");
 }

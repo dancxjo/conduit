@@ -9,7 +9,7 @@ use crate::{
     ResourceRef, SemanticHash, validate_passport_status,
 };
 
-pub const CAPABILITY_REPORT_SCHEMA_VERSION: u32 = 2;
+pub const CAPABILITY_REPORT_SCHEMA_VERSION: u32 = 0;
 
 /// Exact realm membership/status evidence attached to one host observation.
 ///
@@ -273,8 +273,8 @@ pub fn validate_capability_report(
         || !valid_pin(report.trust)
         || !valid_id(report.time_basis)
         || report.observed_at_tick > report.valid_until_tick
-        || report.minimum_plan_version == 0
-        || report.minimum_plan_version > report.maximum_plan_version
+        || report.minimum_plan_version != crate::EXECUTION_PLAN_SCHEMA_VERSION
+        || report.maximum_plan_version != crate::EXECUTION_PLAN_SCHEMA_VERSION
         || report.capabilities.iter().any(|capability| {
             !valid_capability(capability) || !budget_fits(capability.capacity, report.available)
         })
@@ -374,7 +374,7 @@ fn hash_membership(value: ReportMembership<'_>) -> Result<SemanticHash, HostRepo
     ];
     CanonicalDescriptor {
         kind: Id("conduit/host-report-membership"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&fields),
     }
     .semantic_hash()
@@ -529,7 +529,7 @@ fn hash_constraint(value: SemanticHash) -> Result<SemanticHash, HostReportIdenti
 fn hash(kind: &str, fields: &[MapField<'_>]) -> Result<SemanticHash, HostReportIdentityError> {
     CanonicalDescriptor {
         kind: Id(kind),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()
@@ -549,7 +549,7 @@ fn valid_id(value: Id<'_>) -> bool {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    valid_id(value.id) && value.schema_version > 0
+    valid_id(value.id) && value.schema_version == 0
 }
 
 fn valid_capability(value: &ReportCapability<'_>) -> bool {

@@ -1,0 +1,32 @@
+{
+  "suite": "conduit.manifests",
+  "cases": [
+    {"id":"same-contract-native-wasm-ffi","runner":"implementation-manifest","expected":{"shared_semantic_contract":true,"distinct_implementation_identities":true}},
+    {"id":"process-is-language-neutral","runner":"implementation-manifest","expected":{"executor":"process","python_semantic_kind":false}},
+    {"id":"firmware-entrypoint-and-abi","runner":"implementation-manifest","expected":{"accepted":true}},
+    {"id":"remote-provided-backend-interface","runner":"implementation-manifest","expected":{"accepted":true}},
+    {"id":"host-service-interfaces-remain-narrow","runner":"implementation-manifest","expected":{"provided_interfaces":true,"mega_host":false}},
+    {"id":"missing-entrypoint","runner":"implementation-manifest","expected":{"accepted":false,"code":"CND-MAN-002"}},
+    {"id":"unsupported-plan-runtime-range","runner":"implementation-manifest","expected":{"accepted":false,"code":"CND-MAN-005"}},
+    {"id":"execution-profile-and-effects-pinned","runner":"implementation-manifest","expected":{"accepted":true}},
+    {"id":"stateful-replacement-is-bounded","runner":"implementation-manifest","expected":{"accepted":true}},
+    {"id":"reproducible-rebuild-match","runner":"implementation-manifest","expected":{"required_artifact_matches_claim":true}},
+    {"id":"reproducible-rebuild-mismatch","runner":"implementation-manifest","expected":{"accepted":false,"code":"CND-MAN-002"}},
+    {"id":"artifact-substitution-changes-implementation-and-plan","runner":"implementation-manifest","expected":{"contract_identity_changed":false,"implementation_identity_changed":true,"plan_identity_changed":true}},
+    {"id":"heterogeneous-bundle-transitive-references","runner":"artifact-manifest","expected":{"accepted":true}},
+    {"id":"remote-location-is-nonidentity-hint","runner":"artifact-manifest","expected":{"artifact_identity_changed":false}},
+    {"id":"digest-mismatch-before-load","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-002","loader_observed":false}},
+    {"id":"size-mismatch-before-load","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-003"}},
+    {"id":"wrong-target","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-004"}},
+    {"id":"unsupported-abi","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-005"}},
+    {"id":"signature-valid-under-explicit-policy","runner":"artifact-verification","expected":{"accepted":true,"signer_reported":true,"evidence_reported":true}},
+    {"id":"signature-invalid","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-006"}},
+    {"id":"signature-is-not-sandbox-claim","runner":"artifact-verification","expected":{"sandbox_inferred":false}},
+    {"id":"provenance-required","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-007"}},
+    {"id":"unknown-license-policy","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-008"}},
+    {"id":"missing-sbom-policy","runner":"artifact-verification","expected":{"accepted":false,"code":"CND-ART-009"}},
+    {"id":"license-provenance-inspection-no-execution","runner":"manifest-inspection","expected":{"inspectable":true,"executed":false,"fetched":false}},
+    {"id":"secret-material-is-opaque-host-handle","runner":"implementation-manifest","expected":{"secret_bytes_embedded":false}},
+    {"id":"validation-never-loads-or-executes","runner":"implementation-manifest","expected":{"loaded":false,"executed":false}}
+  ]
+}

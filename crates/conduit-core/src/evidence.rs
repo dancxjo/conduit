@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Exact event-envelope schema supported by the v1 validator.
-pub const EXECUTION_EVENT_SCHEMA_VERSION: u32 = 1;
+pub const EXECUTION_EVENT_SCHEMA_VERSION: u32 = 0;
 
 /// Maximum direct derivation inputs in the allocator-free v1 envelope.
 pub const MAX_EVENT_DERIVATIONS: usize = 16;
@@ -633,7 +633,7 @@ fn valid_time(time: EventTime<'_>) -> bool {
 }
 
 fn valid_type(value: TypeContractRef<'_>) -> bool {
-    valid_id(value.contract_id) && value.schema_version > 0
+    valid_id(value.contract_id) && value.schema_version == 0
 }
 
 fn valid_id(value: Id<'_>) -> bool {

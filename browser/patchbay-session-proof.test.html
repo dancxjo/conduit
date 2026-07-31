@@ -13,7 +13,7 @@
   const assert = (condition, message) => {
     if (!condition) throw new Error(message);
   };
-  const source = `panel 3
+  const source = `panel 0
 node greeting : std/literal { value = "hello" }
 node output : display/text
 cord greeting.value -> output.text {
@@ -27,7 +27,7 @@ cord greeting.value -> output.text {
 `;
   const request = (documentId, sourceRevision, presentationRevision, operations) =>
     JSON.stringify({
-      protocol_version: 1,
+      protocol_version: 0,
       document_id: documentId,
       expected_source_revision: sourceRevision,
       expected_presentation_revision: presentationRevision,
@@ -39,7 +39,7 @@ cord greeting.value -> output.text {
     const opened = JSON.parse(patchbay_open_session("browser/proof", source));
     assert(opened.ok, opened.diagnostic);
     const view = opened.view;
-    assert(view.protocol_version === 1, "view model is not versioned");
+    assert(view.protocol_version === 0, "view model is not current");
     assert(view.bounds.maximum_history === 16, "history is not explicitly bounded");
     assert(view.topology.logical_nodes.length === 2, "Rust logical projection drifted");
     assert(view.topology.expanded_nodes.length === 2, "Rust expanded projection drifted");

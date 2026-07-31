@@ -9,7 +9,7 @@ use crate::{
     validate_envelope,
 };
 
-pub const REALM_SCHEMA_VERSION: u32 = 1;
+pub const REALM_SCHEMA_VERSION: u32 = 0;
 pub const MAX_REALM_ROOT_KEYS: usize = 8;
 pub const MAX_PASSPORT_KEYS: usize = 8;
 pub const MAX_PASSPORT_ROLES: usize = 16;
@@ -443,7 +443,7 @@ pub struct EventAuthorship<'a> {
 }
 
 /// Additive protected authorship. The enclosed Resonance envelope retains its
-/// own frozen identity through verification and any bridge hop.
+/// own current identity through verification and any bridge hop.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AuthenticatedResonanceEnvelope<'a> {
     pub envelope: ResonanceEnvelope<'a>,
@@ -881,7 +881,7 @@ fn field<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> {
 fn hash(kind: &str, fields: &[MapField<'_>]) -> Result<SemanticHash, RealmIdentityError> {
     CanonicalDescriptor {
         kind: Id(kind),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(fields),
     }
     .semantic_hash()
@@ -974,7 +974,7 @@ fn valid_id(value: Id<'_>) -> bool {
     Id::new(value.as_str()).is_ok()
 }
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    valid_id(value.id) && value.schema_version > 0
+    valid_id(value.id) && value.schema_version == 0
 }
 fn valid_key(value: PublicKeyRef<'_>) -> bool {
     valid_id(value.id) && valid_id(value.algorithm)

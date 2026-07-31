@@ -1,0 +1,108 @@
+{
+  "schema_version": 0,
+  "workspace_version": "0.0.0-dev",
+  "policy": "one-current-draft",
+  "classifications": [
+    {
+      "family": "workspace-crates",
+      "classification": "current-draft-self-description",
+      "marker": "0.0.0-dev",
+      "locations": ["Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "family": "panel-grammar",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-panel", "examples", "fixtures", "tour"]
+    },
+    {
+      "family": "source-ast",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-panel/src/document.rs"]
+    },
+    {
+      "family": "semantic-source-hash",
+      "classification": "semantic-identity-substitution-fact",
+      "marker": "conduit.panel-source",
+      "locations": ["crates/conduit-panel/src/document.rs"]
+    },
+    {
+      "family": "lowered-source",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-runtime/src/source_lowering.rs"]
+    },
+    {
+      "family": "canonical-form",
+      "classification": "semantic-identity-substitution-fact",
+      "marker": 0,
+      "locations": ["crates/conduit-core/src/canonical.rs", "conformance/c1/canonical.json"]
+    },
+    {
+      "family": "execution-plan",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-core/src/execution_plan.rs"]
+    },
+    {
+      "family": "run-stream",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduct/src/run_stream.rs"]
+    },
+    {
+      "family": "result-diagnostic-evidence-inspection",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-diagnostics", "crates/conduit-inspect", "crates/conduit-core/src/evidence.rs"]
+    },
+    {
+      "family": "package-manifest-catalog",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-package", "crates/conduit-core/src/manifest.rs", "library/catalog.json"]
+    },
+    {
+      "family": "tour-patchbay-browser-plan",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["tour/lessons/current.json", "crates/conduit-patchbay", "tour/public/browser-plan.json"]
+    },
+    {
+      "family": "distributed-binding-envelope",
+      "classification": "current-draft-self-description",
+      "marker": 0,
+      "locations": ["crates/conduit-core/src/distributed.rs", "crates/conduit-runtime/src/transport.rs"]
+    },
+    {
+      "family": "semantic-type-and-port-compatibility",
+      "classification": "semantic-identity-substitution-fact",
+      "marker": "exact-current-identities",
+      "locations": ["crates/conduit-core/src/type_contract.rs", "crates/conduit-core/src/port.rs"]
+    },
+    {
+      "family": "live-plan-and-checkpoint-transition",
+      "classification": "live-transition-state-contract",
+      "marker": "explicit-current-state-boundaries",
+      "locations": ["crates/conduit-core/src/transition.rs", "crates/conduit-runtime/src/transition.rs"]
+    },
+    {
+      "family": "http-tls-wasm-zenoh-platform-standards",
+      "classification": "external-protocol-standard-version",
+      "marker": "owned-by-external-standard",
+      "locations": ["crates/conduit-http", "crates/conduit-web", "crates/conduit-zenoh"]
+    }
+  ],
+  "removed_unreleased_compatibility": [
+    "panel 1 and panel 2 parser branches",
+    "directional syntax one-time migrator",
+    "source AST version selectors and old hash domains",
+    "lowered-source readers and migrator",
+    "withdrawn run-stream writer",
+    "execution-plan version ladder",
+    "distributed binding and envelope version selectors",
+    "displaced source-lowering fixture"
+  ],
+  "released_obligations": []
+}

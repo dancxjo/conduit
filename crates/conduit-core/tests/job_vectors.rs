@@ -22,7 +22,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -105,7 +105,7 @@ fn evidence_stream() -> (EventStreamContract<'static>, EventProviderCapabilities
             event_class: EventClass::NormativeEvidence,
             payload_type: TypeContractRef {
                 contract_id: Id("conduit/job-evidence"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(53),
             },
             retention: RetentionPolicy::DurableAppend {
@@ -174,7 +174,7 @@ fn states() -> [CheckpointStateRef<'static>; 2] {
 
 fn envelope<'a>(state: &'a [CheckpointStateRef<'a>]) -> CheckpointEnvelope<'a> {
     let mut value = CheckpointEnvelope {
-        schema_version: 1,
+        schema_version: 0,
         checkpoint: Id("checkpoint/a"),
         status: CheckpointStatus::Complete,
         job: Id("job/a"),
@@ -669,7 +669,7 @@ fn immutable_job_records_bind_to_resonance_without_becoming_projections() {
 
 #[test]
 fn normative_job_fixture_inventory_is_owned_here() {
-    let fixture = include_str!("../../../conformance/c4/durable-job-v1.json");
+    let fixture = include_str!("../../../conformance/c4/durable-job.json");
     for id in [
         "distinct-durable-identities",
         "distinct-work-lease",
@@ -710,8 +710,7 @@ fn normative_job_fixture_inventory_is_owned_here() {
         "late-validation-remains-evidence",
         "non-checkpointable-restart-declared",
         "incapable-checkpoint-provider-rejected",
-        "plan-v6-job-identity",
-        "plan-v1-v5-identities-preserved",
+        "plan-job-identity",
     ] {
         assert!(fixture.contains(&format!("\"id\":\"{id}\"")), "{id}");
     }

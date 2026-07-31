@@ -10,7 +10,7 @@ State: **contract-only**. Exact policy, implementation, host, authority,
 timer, and allocation bindings are deliberately absent from this snippet.
 
 ```panel
-panel 3
+panel 0
 
 node request : std/literal {
     value = "work"
@@ -34,6 +34,6 @@ or epoch beyond that admitted choice, prepare an issue-57 candidate transition
 instead.
 
 The complete contract, stable reasons, resource equation, and evidence rules
-are in [typed supervision version 1](../spec/049-typed-supervision-v1.md).
-`conformance/c4/supervision-v1.json` contains positive, negative, race,
+are in [typed supervision version 1](../spec/049-typed-supervision.md).
+`conformance/c4/supervision.json` contains positive, negative, race,
 capacity, source, browser, and constrained-profile examples.

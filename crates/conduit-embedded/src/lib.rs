@@ -13,9 +13,9 @@ use conduit_core::{
     CanonicalDescriptor, CanonicalValue, FieldDisposition, Id, MapField, SemanticHash,
 };
 
-pub const EMBEDDED_PROFILE_SCHEMA_VERSION: u32 = 1;
-pub const STATIC_PLAN_SCHEMA_VERSION: u32 = 1;
-pub const HIL_PROTOCOL_VERSION: u16 = 1;
+pub const EMBEDDED_PROFILE_SCHEMA_VERSION: u32 = 0;
+pub const STATIC_PLAN_SCHEMA_VERSION: u32 = 0;
+pub const HIL_PROTOCOL_VERSION: u16 = 0;
 pub const MAXIMUM_NODES: u16 = 32;
 pub const MAXIMUM_CORDS: u16 = 48;
 pub const MAXIMUM_PORTS: u16 = 96;

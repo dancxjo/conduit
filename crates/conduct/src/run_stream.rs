@@ -9,46 +9,38 @@ use std::io::{self, Write};
 use conduit_runtime::{ExactEvidenceRecord, ExecutionSummary, OwnedExecutionEvent};
 use serde::Serialize;
 
-pub const RUN_STREAM_SCHEMA: &str = "conduit.run/v2";
-pub const RUN_STREAM_SCHEMA_VERSION: u16 = 2;
+pub const RUN_STREAM_SCHEMA: &str = "conduit.run";
+pub const RUN_STREAM_SCHEMA_VERSION: u16 = 0;
 pub const RUN_CHANNEL_CHUNK_MAX_BYTES: usize = 4_096;
 pub const RUN_CHANNEL_CHUNK_MAX_HEX_BYTES: usize = RUN_CHANNEL_CHUNK_MAX_BYTES * 2;
 pub const RUN_CHANNEL_RECORD_MAX_BYTES: usize = 8_448;
 pub const RUN_SUMMARY_RECORD_MAX_BYTES: usize = 512;
 pub const RUN_STRUCTURED_RECORD_MAX_BYTES: usize = 65_536;
 
-const WITHDRAWN_RUN_STREAM_SCHEMA: &str = "conduit.run/v1";
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RunStreamVersionError {
-    WithdrawnV1,
+pub enum RunStreamSchemaError {
     Unsupported,
 }
 
-impl fmt::Display for RunStreamVersionError {
+impl fmt::Display for RunStreamSchemaError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::WithdrawnV1 => formatter.write_str("conduit.run/v1 was withdrawn before release"),
             Self::Unsupported => formatter.write_str("unsupported conduit run-stream version"),
         }
     }
 }
 
-impl std::error::Error for RunStreamVersionError {}
+impl std::error::Error for RunStreamSchemaError {}
 
-/// Validate the outer transport identity without falling back to another
-/// version. Version 1 remains recognizable only so consumers can reject the
-/// deliberately withdrawn contract distinctly.
+/// Validate the sole current outer transport identity.
 pub fn validate_run_stream_version(
     schema: &str,
     schema_version: u16,
-) -> Result<(), RunStreamVersionError> {
+) -> Result<(), RunStreamSchemaError> {
     if schema == RUN_STREAM_SCHEMA && schema_version == RUN_STREAM_SCHEMA_VERSION {
         Ok(())
-    } else if schema == WITHDRAWN_RUN_STREAM_SCHEMA && schema_version == 1 {
-        Err(RunStreamVersionError::WithdrawnV1)
     } else {
-        Err(RunStreamVersionError::Unsupported)
+        Err(RunStreamSchemaError::Unsupported)
     }
 }
 
@@ -269,16 +261,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn version_policy_accepts_only_v2() {
+    fn version_policy_accepts_only_the_current_draft() {
         let fixture: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../conformance/c3/conduct-run-stream-v2.json"
+            "../../../conformance/c3/conduct-run-stream.json"
         ))
         .unwrap();
         for case in fixture["version_cases"].as_array().unwrap() {
             let expected = match case["expected"]["reason"].as_str() {
                 None => Ok(()),
-                Some("withdrawn-v1") => Err(RunStreamVersionError::WithdrawnV1),
-                Some("unsupported-version") => Err(RunStreamVersionError::Unsupported),
+                Some("unsupported-version") => Err(RunStreamSchemaError::Unsupported),
                 reason => panic!("unexpected fixture reason {reason:?}"),
             };
             assert_eq!(
@@ -296,7 +287,7 @@ mod tests {
     #[test]
     fn implementation_limits_match_the_conformance_fixture() {
         let fixture: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../conformance/c3/conduct-run-stream-v2.json"
+            "../../../conformance/c3/conduct-run-stream.json"
         ))
         .unwrap();
         let limits = &fixture["limits"];
@@ -386,7 +377,7 @@ mod tests {
 
     #[test]
     fn execution_events_use_the_direct_bounded_outer_path() {
-        let source = include_str!("../../../conformance/c2/execution-event-v1.ndjson");
+        let source = include_str!("../../../conformance/c2/execution-event.ndjson");
         let first_line = source.lines().next().unwrap();
         let event: OwnedExecutionEvent = serde_json::from_str(first_line).unwrap();
         let expected_event: serde_json::Value = serde_json::from_str(first_line).unwrap();
@@ -406,8 +397,8 @@ mod tests {
     #[test]
     fn exact_executor_evidence_uses_the_direct_bounded_outer_path() {
         let evidence = ExactEvidenceRecord {
-            schema: "conduit.exact-execution-evidence/v1",
-            schema_version: 1,
+            schema: "conduit.exact-execution-evidence",
+            schema_version: 0,
             plan_identity:
                 "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             plan_epoch: 1,
@@ -415,11 +406,11 @@ mod tests {
             sequence: 0,
             tick: 1,
             subject_kind: "cord",
-            subject_id: "root/source.out->root/sink.in".to_owned(),
+            subject_id: "root/source.value->root/sink.text".to_owned(),
             node_id: None,
-            cord_id: Some("root/source.out->root/sink.in".to_owned()),
-            from_port: Some("root/source.out".to_owned()),
-            to_port: Some("root/sink.in".to_owned()),
+            cord_id: Some("root/source.value->root/sink.text".to_owned()),
+            from_port: Some("root/source.value".to_owned()),
+            to_port: Some("root/sink.text".to_owned()),
             implementation_id: None,
             implementation_identity: None,
             artifact_id: None,
@@ -442,7 +433,7 @@ mod tests {
         assert_eq!(record["record"], "exact_execution_evidence");
         assert_eq!(
             record["evidence"]["schema"],
-            "conduit.exact-execution-evidence/v1"
+            "conduit.exact-execution-evidence"
         );
         assert_eq!(record["evidence"]["pressure"], "block");
     }

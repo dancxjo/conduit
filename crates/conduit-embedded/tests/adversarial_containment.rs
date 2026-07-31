@@ -7,7 +7,7 @@ use conduit_core::{
     inhibit_hazardous_host, validate_support_graph,
 };
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/adversarial-containment-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/adversarial-containment.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 
 fn hash(byte: u8) -> SemanticHash {
@@ -17,7 +17,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }

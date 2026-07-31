@@ -1,6 +1,6 @@
 # The source remains host-neutral. Resolution places preprocess in an exact
 # browser AudioWorklet profile and speech on an exact Linux remote endpoint.
-panel 3
+panel 0
 
 node media : std/literal {
     value = "browser media frame\n"

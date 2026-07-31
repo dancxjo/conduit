@@ -7,8 +7,8 @@ use std::{
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-const MAGIC: &[u8] = b"CND\x01";
-const HASH_DOMAIN: &[u8] = b"conduit.semantic-hash/v1\0";
+const MAGIC: &[u8] = b"CND\x00";
+const HASH_DOMAIN: &[u8] = b"conduit.semantic-hash\0";
 const MAX_DEPTH: usize = 64;
 
 fn validate_identifier(val: &str) -> Result<Vec<u8>, String> {
@@ -359,8 +359,7 @@ pub fn run(
     vectors_file: Option<PathBuf>,
     show: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let path =
-        vectors_file.unwrap_or_else(|| workspace_root.join("conformance/c1/canonical-v1.json"));
+    let path = vectors_file.unwrap_or_else(|| workspace_root.join("conformance/c1/canonical.json"));
     if !path.exists() {
         return Err(format!("Vectors file missing: {}", path.display()).into());
     }

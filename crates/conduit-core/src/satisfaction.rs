@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// Exact schema of a satisfaction proof descriptor.
-pub const SATISFACTION_PROOF_SCHEMA_VERSION: u32 = 1;
+pub const SATISFACTION_PROOF_SCHEMA_VERSION: u32 = 0;
 
 /// Directional boundary at which an offered descriptor is being considered.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -367,7 +367,7 @@ impl fmt::Display for SatisfactionProofError {
                 "explicit adapter or migration requirement is inconsistent"
             }
             Self::CompatibilityMismatch => {
-                "satisfaction proof does not match the frozen port decision"
+                "satisfaction proof does not match the current port decision"
             }
             Self::IdentityMismatch => "satisfaction proof identity does not match",
             Self::ScratchTooSmall => "satisfaction proof identity scratch is too small",
@@ -400,13 +400,13 @@ pub fn validate_port_satisfaction_proof(
     if proof.required
         != (DescriptorRef {
             kind: Id("conduit/port-contract"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: required_hash,
         })
         || proof.offered
             != (DescriptorRef {
                 kind: Id("conduit/port-contract"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: offered_hash,
             })
         || proof.outcome != decision.outcome
@@ -730,7 +730,7 @@ pub fn select_satisfaction_candidate<'a>(
 }
 
 fn valid_descriptor(descriptor: DescriptorRef<'_>) -> bool {
-    Id::new(descriptor.kind.as_str()).is_ok() && descriptor.schema_version > 0
+    Id::new(descriptor.kind.as_str()).is_ok() && descriptor.schema_version == 0
 }
 
 fn descriptor_fields<'a>(descriptor: &'a DescriptorRef<'a>) -> [MapField<'a>; 3] {
@@ -750,7 +750,7 @@ fn descriptor_fields<'a>(descriptor: &'a DescriptorRef<'a>) -> [MapField<'a>; 3]
 fn hash_facet(facet: SatisfactionFacet<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind: Id("conduit/satisfaction-facet"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic("id", CanonicalValue::Identifier(facet.id)),
             semantic(
@@ -771,7 +771,7 @@ fn hash_obligation(
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
     CanonicalDescriptor {
         kind: Id("conduit/satisfaction-obligation"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&[
             semantic("id", CanonicalValue::Identifier(obligation.id)),
             semantic(

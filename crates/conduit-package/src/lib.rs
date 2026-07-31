@@ -16,8 +16,8 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
-pub const PACKAGE_SCHEMA: &str = "conduit.package/v1";
-pub const PACKAGE_SCHEMA_VERSION: u16 = 1;
+pub const PACKAGE_SCHEMA: &str = "conduit.package";
+pub const PACKAGE_SCHEMA_VERSION: u16 = 0;
 pub const PACKAGE_MAGIC: &[u8; 8] = b"CNDPKG1\n";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -499,7 +499,7 @@ fn validate_object(object: &PackageObject, limits: PackageLimits) -> Result<(), 
         validate_id(&identity.kind)?;
         parse_sha256(&identity.semantic_identity)?;
         match identity.kind.as_str() {
-            "execution-plan" if identity.schema_version > EXECUTION_PLAN_SCHEMA_VERSION => {
+            "execution-plan" if identity.schema_version != EXECUTION_PLAN_SCHEMA_VERSION => {
                 return Err(PackageError::new(PackageReason::UnsupportedVersion));
             }
             "implementation-manifest"
@@ -531,22 +531,14 @@ fn validate_media_type(object: &PackageObject) -> Result<(), PackageError> {
         return Err(PackageError::new(PackageReason::MalformedManifest));
     }
     if object.media_type.starts_with("application/vnd.conduit.") {
-        let Some((base, version)) = object.media_type.rsplit_once(";version=") else {
-            return Err(PackageError::new(PackageReason::UnsupportedVersion));
-        };
-        let version = version
-            .parse::<u32>()
-            .map_err(|_| PackageError::new(PackageReason::UnsupportedVersion))?;
-        let supported = match base {
-            "application/vnd.conduit.execution-plan+json" => {
-                (1..=EXECUTION_PLAN_SCHEMA_VERSION).contains(&version)
-            }
-            "application/vnd.conduit.implementation-manifest+json"
-            | "application/vnd.conduit.artifact-manifest+json"
-            | "application/vnd.conduit.module-lock+json"
-            | "application/vnd.conduit.semantic-descriptor+json" => version == 1,
-            _ => false,
-        };
+        let supported = matches!(
+            object.media_type.as_str(),
+            "application/vnd.conduit.execution-plan+json"
+                | "application/vnd.conduit.implementation-manifest+json"
+                | "application/vnd.conduit.artifact-manifest+json"
+                | "application/vnd.conduit.module-lock+json"
+                | "application/vnd.conduit.semantic-descriptor+json"
+        );
         if !supported {
             return Err(PackageError::new(PackageReason::UnsupportedVersion));
         }
@@ -952,7 +944,7 @@ mod tests {
             object_digest: payload_digest,
             signature_digest,
             signer: "fixture/signer".to_owned(),
-            scheme: "fixture/signature-v1".to_owned(),
+            scheme: "fixture/signature".to_owned(),
             verifier: "fixture/verifier".to_owned(),
             verified: true,
             evidence_digest,

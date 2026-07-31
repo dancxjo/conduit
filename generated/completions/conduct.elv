@@ -39,7 +39,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand package 'Create, verify, or extract a bounded content-addressed package'
         }
         &'conduct;inspect'= {
-            cand --type 'Select a frozen artifact kind, or use marker-only detection'
+            cand --type 'Select a current artifact kind, or use marker-only detection'
             cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
             cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
             cand --color 'Select diagnostic terminal styling'

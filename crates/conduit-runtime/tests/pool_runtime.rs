@@ -1,8 +1,7 @@
 use conduit_core::{
-    BoundednessProfile, CancellationGuarantee, EXECUTION_PLAN_SCHEMA_VERSION,
-    EXECUTION_PLAN_SCHEMA_VERSION_V15, ExecutionLimits, ExecutionProfile, Id,
-    ImplementationMachine, InstancePath, InstancePhase, InstantiationContext, LifecycleUsage,
-    PinnedDescriptor, PlanInstancePool, PlanPoolRuntime, PlanResourceBudget,
+    BoundednessProfile, CancellationGuarantee, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionLimits,
+    ExecutionProfile, Id, ImplementationMachine, InstancePath, InstancePhase, InstantiationContext,
+    LifecycleUsage, PinnedDescriptor, PlanInstancePool, PlanPoolRuntime, PlanResourceBudget,
     PoolAdmissionDisposition, PoolAdmissionFacts, PoolAdmissionPolicy, PoolCleanupPolicy,
     PoolContract, PoolGenerationReservation, PoolReason, PoolReservationProfile, PoolSlotState,
     PoolSupervisionPolicy, PoolWorkIdentity, PrepareOutcome, SemanticHash, StepOutcome, StepUsage,
@@ -19,7 +18,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(name: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(name),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -97,7 +96,7 @@ fn plan_pool() -> PlanInstancePool<'static> {
 fn implementation_profile() -> ExecutionProfile<'static> {
     let mut profile = ExecutionProfile {
         id: Id("fixture/pool-child-profile"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(0),
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
@@ -188,7 +187,7 @@ fn hosted_runtime_executes_the_exact_core_contract() {
 }
 
 #[test]
-fn hosted_profile_and_legacy_plan_fail_before_admission() {
+fn hosted_profile_and_missing_runtime_fail_before_admission() {
     let pool = plan_pool();
     assert!(matches!(
         instantiate_plan_pool::<1, 64>(EXECUTION_PLAN_SCHEMA_VERSION, hash(9), pool, 7, 1),
@@ -205,12 +204,11 @@ fn hosted_profile_and_legacy_plan_fail_before_admission() {
             7,
             1,
         ),
-        Err(HostedPoolError::LegacyPlan)
+        Err(HostedPoolError::MissingRuntimeContract)
     ));
-    assert!(matches!(
-        instantiate_plan_pool::<2, 64>(EXECUTION_PLAN_SCHEMA_VERSION_V15, hash(9), pool, 7, 1,),
-        Err(HostedPoolError::LegacyPlan)
-    ));
+    assert!(
+        instantiate_plan_pool::<2, 64>(EXECUTION_PLAN_SCHEMA_VERSION, hash(9), pool, 7, 1).is_ok()
+    );
 }
 
 #[test]

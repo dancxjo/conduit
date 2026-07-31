@@ -8,7 +8,7 @@ const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([byte; 32]),
     }
 }
@@ -64,8 +64,8 @@ fn report<'a>(
         supported_executors: executors,
         supported_targets: targets,
         supported_abis: &[Id("component-v1")],
-        minimum_plan_version: 1,
-        maximum_plan_version: 8,
+        minimum_plan_version: 0,
+        maximum_plan_version: 0,
         current_constraints: &[],
     };
     let mut scratch = [ZERO; 16];
@@ -86,7 +86,7 @@ fn report_identity_is_independent_of_observation_collection_order() {
     assert_eq!(first.identity, second.identity);
     let mut scratch = [ZERO; 16];
     assert_eq!(
-        validate_capability_report(&first, Id("fixture/clock"), 15, 8, &mut scratch),
+        validate_capability_report(&first, Id("fixture/clock"), 15, 0, &mut scratch),
         Ok(())
     );
 }
@@ -99,11 +99,11 @@ fn freshness_time_basis_and_identity_fail_closed() {
     let valid = report(&capabilities, &executors, &targets);
     let mut scratch = [ZERO; 16];
     assert_eq!(
-        validate_capability_report(&valid, Id("fixture/clock"), 21, 1, &mut scratch),
+        validate_capability_report(&valid, Id("fixture/clock"), 21, 0, &mut scratch),
         Err(HostReportReason::Stale)
     );
     assert_eq!(
-        validate_capability_report(&valid, Id("other/clock"), 15, 1, &mut scratch),
+        validate_capability_report(&valid, Id("other/clock"), 15, 0, &mut scratch),
         Err(HostReportReason::TimeBasisMismatch)
     );
     let changed = CapabilityReport {
@@ -114,7 +114,7 @@ fn freshness_time_basis_and_identity_fail_closed() {
         ..valid
     };
     assert_eq!(
-        validate_capability_report(&changed, Id("fixture/clock"), 15, 1, &mut scratch),
+        validate_capability_report(&changed, Id("fixture/clock"), 15, 0, &mut scratch),
         Err(HostReportReason::IdentityMismatch)
     );
 }
@@ -146,11 +146,11 @@ fn membership_binding_is_identified_and_status_checked_at_resolution_time() {
     bound.identity = bound.computed_semantic_hash(&mut scratch).unwrap();
     assert_ne!(bound.identity, unbound_identity);
     assert_eq!(
-        validate_capability_report(&bound, Id("fixture/clock"), 15, 1, &mut scratch),
+        validate_capability_report(&bound, Id("fixture/clock"), 15, 0, &mut scratch),
         Ok(())
     );
     assert_eq!(
-        validate_capability_report(&bound, Id("fixture/clock"), 18, 1, &mut scratch),
+        validate_capability_report(&bound, Id("fixture/clock"), 18, 0, &mut scratch),
         Err(HostReportReason::MembershipInvalid)
     );
 
@@ -158,7 +158,7 @@ fn membership_binding_is_identified_and_status_checked_at_resolution_time() {
     mismatched.membership.as_mut().unwrap().status.entity = Id("fixture/other-entity");
     mismatched.identity = mismatched.computed_semantic_hash(&mut scratch).unwrap();
     assert_eq!(
-        validate_capability_report(&mismatched, Id("fixture/clock"), 15, 1, &mut scratch),
+        validate_capability_report(&mismatched, Id("fixture/clock"), 15, 0, &mut scratch),
         Err(HostReportReason::MembershipInvalid)
     );
 }

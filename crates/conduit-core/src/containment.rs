@@ -12,7 +12,7 @@ use crate::{
     PinnedDescriptor, ResourceRef, ResourceSelector, SemanticHash,
 };
 
-pub const CONTAINMENT_POLICY_SCHEMA_VERSION: u32 = 1;
+pub const CONTAINMENT_POLICY_SCHEMA_VERSION: u32 = 0;
 pub const MAX_ADMINISTRATIVE_APPROVERS: usize = 8;
 pub const MAX_ADMINISTRATIVE_BENEFICIARIES: usize = 8;
 pub const MAX_ADMINISTRATIVE_APPROVALS: usize = 8;
@@ -1133,7 +1133,7 @@ fn optional_hash_value(hash: Option<&SemanticHash>) -> CanonicalValue<'_> {
 }
 
 fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
-    pin.schema_version > 0 && Id::new(pin.id.as_str()).is_ok()
+    pin.schema_version == 0 && Id::new(pin.id.as_str()).is_ok()
 }
 
 fn valid_principal(principal: AdministrativePrincipal<'_>) -> bool {

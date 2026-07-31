@@ -13,13 +13,13 @@ use conduit_core::{
 
 const VALUE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([0x11; 32]),
 };
 
 const OTHER_VALUE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/other-value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([0x22; 32]),
 };
 
@@ -75,7 +75,7 @@ fn interface_reference<'a>(interface: &NodeInterfaceContract<'a>) -> NodeInterfa
     let mut scratch = vec![hash(0); interface.members.len() + interface.requirements.len()];
     NodeInterfaceContractRef {
         contract_id: interface.id,
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: interface.semantic_hash(&mut scratch).unwrap(),
     }
 }
@@ -86,7 +86,7 @@ fn placeholder_requirement_proof() -> NodeInterfaceRequirementProof<'static> {
             id: Id("conduit/placeholder"),
             contract: DescriptorRef {
                 kind: Id("fixture/placeholder"),
-                schema_version: 1,
+                schema_version: 0,
                 semantic_hash: hash(0),
             },
         },
@@ -100,16 +100,16 @@ fn placeholder_requirement_proof() -> NodeInterfaceRequirementProof<'static> {
 fn candidate_reference(byte: u8) -> DescriptorRef<'static> {
     DescriptorRef {
         kind: Id("conduit/node-contract"),
-        schema_version: 2,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
 
 #[test]
 fn language_neutral_fixture_inventory_is_frozen() {
-    let fixture = include_str!("../../../conformance/c2/node-interface-v1.json");
+    let fixture = include_str!("../../../conformance/c2/node-interface.json");
     let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
-    assert_eq!(value["suite"], "conduit.node-interface/v1");
+    assert_eq!(value["suite"], "conduit.node-interface");
     assert_eq!(value["portable_limits"]["maximum_members"], 64);
     assert_eq!(value["cases"].as_array().unwrap().len(), 21);
     for required in [
@@ -140,7 +140,7 @@ fn language_neutral_fixture_inventory_is_frozen() {
 fn required_non_port_facts_are_directional_and_cannot_widen_authority() {
     let required_authority = DescriptorRef {
         kind: Id("conduit/node-effect-contract"),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(0x31),
     };
     let requirements = [NodeInterfaceRequirement {

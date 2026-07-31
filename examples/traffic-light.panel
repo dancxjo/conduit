@@ -1,5 +1,5 @@
 # Traffic light state machine sequencer panel.
-panel 3
+panel 0
 
 node clock_ticks : std/counter
 node state_selector : std/cell {

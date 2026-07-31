@@ -14,7 +14,7 @@ fn hash(byte: u8) -> SemanticHash {
 fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -552,7 +552,7 @@ fn run_fixture(scenario: &str) -> Result<&'static str, PolicyBudgetReason> {
 #[test]
 fn every_persistent_budget_fixture_executes_independently() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../conformance/c2/persistent-budget-v1.json"
+        "../../../conformance/c2/persistent-budget.json"
     ))
     .unwrap();
     for case in fixture["cases"].as_array().unwrap() {

@@ -1,5 +1,5 @@
 # Wi-Fi station join configuration reference panel.
-panel 3
+panel 0
 
 node wifi_sta : net/wifi/join {
     ssid = "ConduitNet"

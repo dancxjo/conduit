@@ -9,7 +9,7 @@ fn manifest(bytes: &[u8]) -> ArtifactManifest<'static> {
     let mut digest = [0_u8; 32];
     digest.copy_from_slice(&Sha256::digest(bytes));
     let mut manifest = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id("fixture/blob"),
         digest: ArtifactDigest::from_bytes(digest),

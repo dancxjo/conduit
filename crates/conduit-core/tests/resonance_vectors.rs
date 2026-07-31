@@ -40,7 +40,7 @@ fn envelope(event: &'static str, sequence: u64) -> ResonanceEnvelope<'static> {
         idempotency: Some(Id("idempotency/a")),
         payload_type: TypeContractRef {
             contract_id: Id("fixture/event"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(2),
         },
         payload: EventPayloadRef::ContentAddressed {
@@ -106,7 +106,7 @@ fn provider_claims_and_append_crash_boundary_are_honest() {
         maximum_projection_bytes: 128,
         provider: PinnedDescriptor {
             id: Id("provider/durable"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(5),
         },
         recording_authority: Some(Id("grant/record")),
@@ -167,7 +167,7 @@ fn local_distributed_and_embedded_profiles_share_only_honest_capabilities() {
         maximum_projection_bytes: 64,
         provider: PinnedDescriptor {
             id: Id("provider/retained"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(12),
         },
         recording_authority: Some(Id("grant/record")),
@@ -253,7 +253,7 @@ fn required_evidence_and_control_authority_fail_closed() {
         maximum_projection_bytes: 64,
         provider: PinnedDescriptor {
             id: Id("provider/evidence"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(13),
         },
         recording_authority: None,
@@ -321,12 +321,12 @@ fn replay_and_projection_state_are_explicitly_bounded() {
         stream: Id("stream/domain"),
         logic: PinnedDescriptor {
             id: Id("projection/logic"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(10),
         },
         snapshot_contract: PinnedDescriptor {
             id: Id("projection/snapshot"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(11),
         },
         maximum_state_bytes: 128,
@@ -352,9 +352,9 @@ fn replay_and_projection_state_are_explicitly_bounded() {
 
 #[test]
 fn normative_resonance_fixture_inventory_is_owned_here() {
-    let fixture = include_str!("../../../conformance/c4/resonance-v1.json");
+    let fixture = include_str!("../../../conformance/c4/resonance.json");
     for id in [
-        "execution-event-v1-compatible",
+        "execution-event-compatible",
         "cord-value-without-publication",
         "explicit-domain-publication",
         "append-only-correction",

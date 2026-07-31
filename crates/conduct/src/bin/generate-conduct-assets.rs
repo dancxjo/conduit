@@ -63,8 +63,8 @@ fn generated_assets() -> Vec<(PathBuf, Vec<u8>)> {
 Primary human values, finite JSON results, and streaming NDJSON run records are written to stdout.
 Diagnostics and terminal status are written to stderr.
 .SH MACHINE OUTPUT
-\fB\-\-format=json\fR selects a finite conduit.result/v1 record for check or explain.
-\fB\-\-format=ndjson\fR selects ordered, bounded conduit.run/v2 channel chunks and structured records for run.
+\fB\-\-format=json\fR selects a finite conduit.result record for check or explain.
+\fB\-\-format=ndjson\fR selects ordered, bounded conduit.run channel chunks and structured records for run.
 \fB\-\-diagnostic\-format=json\fR independently selects one structured diagnostic on stderr.
 .SH EXIT STATUS
 Zero indicates success, help, version, or normal downstream pipe closure.
@@ -88,7 +88,7 @@ Two indicates a command, source, resolution, runtime, or non-broken output failu
 Inspection is read-only, bounded, marker-based, and non-executing.
 It performs no network access, provider discovery, secret resolution, authority acquisition, dynamic loading, or artifact execution.
 .SH STREAMS
-Human or conduit.result/v1 inspection results are written to stdout.
+Human or conduit.result inspection results are written to stdout.
 Human or versioned JSON diagnostics are written to stderr.
 .SH EXIT STATUS
 Zero indicates successful validation or normal downstream pipe closure.

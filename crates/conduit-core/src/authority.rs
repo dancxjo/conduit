@@ -930,7 +930,7 @@ impl EffectRequirement<'_> {
         ];
         CanonicalDescriptor {
             kind: Id("conduit/effect-requirement"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&fields),
         }
         .semantic_hash()
@@ -942,7 +942,7 @@ const NULL_CANONICAL_VALUE: CanonicalValue<'static> = CanonicalValue::Null;
 fn hash_pinned_descriptor(
     pin: PinnedDescriptor<'_>,
 ) -> Result<SemanticHash, CanonicalError<Infallible>> {
-    if pin.schema_version == 0 || Id::new(pin.id.as_str()).is_err() {
+    if pin.schema_version != 0 || Id::new(pin.id.as_str()).is_err() {
         return Err(CanonicalError::InvalidIdentifier);
     }
     let fields = [
@@ -958,7 +958,7 @@ fn hash_pinned_descriptor(
     ];
     CanonicalDescriptor {
         kind: Id("conduit/pinned-descriptor"),
-        schema_version: 1,
+        schema_version: 0,
         body: CanonicalValue::Map(&fields),
     }
     .semantic_hash()
@@ -1019,7 +1019,7 @@ impl AuthorityGrant<'_> {
         ];
         CanonicalDescriptor {
             kind: Id("conduit/authority-grant"),
-            schema_version: 1,
+            schema_version: 0,
             body: CanonicalValue::Map(&fields),
         }
         .semantic_hash()

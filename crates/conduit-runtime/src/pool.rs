@@ -120,10 +120,12 @@ pub fn instantiate_plan_pool<'a, const SLOTS: usize, const EVIDENCE: usize>(
     epoch: u64,
     generation: u32,
 ) -> Result<HostedPoolRuntime<'a, SLOTS, EVIDENCE>, HostedPoolError> {
-    if schema_version < EXECUTION_PLAN_SCHEMA_VERSION {
-        return Err(HostedPoolError::LegacyPlan);
+    if schema_version != EXECUTION_PLAN_SCHEMA_VERSION {
+        return Err(HostedPoolError::UnsupportedPlan);
     }
-    let runtime = pool.runtime.ok_or(HostedPoolError::LegacyPlan)?;
+    let runtime = pool
+        .runtime
+        .ok_or(HostedPoolError::MissingRuntimeContract)?;
     runtime
         .generation_reservation
         .validate()
@@ -143,7 +145,8 @@ pub fn instantiate_plan_pool<'a, const SLOTS: usize, const EVIDENCE: usize>(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HostedPoolError {
     UnknownPool,
-    LegacyPlan,
+    UnsupportedPlan,
+    MissingRuntimeContract,
     Contract(PoolError),
 }
 
@@ -152,7 +155,7 @@ impl HostedPoolError {
     pub const fn code(self) -> &'static str {
         match self {
             Self::UnknownPool => "CND-POOL-HOST-001",
-            Self::LegacyPlan => "CND-POOL-HOST-002",
+            Self::UnsupportedPlan | Self::MissingRuntimeContract => "CND-POOL-HOST-002",
             Self::Contract(error) => error.code(),
         }
     }
@@ -162,8 +165,9 @@ impl fmt::Display for HostedPoolError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownPool => formatter.write_str("execution plan has no such pool"),
-            Self::LegacyPlan => {
-                formatter.write_str("pre-schema-16 pool has no executable runtime contract")
+            Self::UnsupportedPlan => formatter.write_str("execution plan schema is unsupported"),
+            Self::MissingRuntimeContract => {
+                formatter.write_str("pool has no executable runtime contract")
             }
             Self::Contract(error) => error.fmt(formatter),
         }

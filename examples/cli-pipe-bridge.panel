@@ -1,5 +1,5 @@
 # Single-port CLI pipe bridge panel.
-panel 3
+panel 0
 
 node input_pipe : io/stdin
 node decoder : text/decode-utf8

@@ -5,8 +5,8 @@ use conduit_compile::{InstalledProfile, compile_source};
 use conduit_web::{cancel_panel, run_panel};
 use sha2::{Digest as _, Sha256};
 
-const SOURCE: &str = include_str!("../../../conformance/c5/pure-node-v1.panel");
-const PROFILE: &str = include_str!("../../../conformance/c5/pure-node-v1-profile.json");
+const SOURCE: &str = include_str!("../../../conformance/c5/pure-node.panel");
+const PROFILE: &str = include_str!("../../../conformance/c5/pure-node-profile.json");
 
 fn workspace_file(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -23,7 +23,7 @@ fn checked_pure_node_plan_and_browser_run_are_exact_and_bounded() {
 
     if std::env::var_os("CONDUIT_UPDATE_PURE_NODE_PLAN").is_some() {
         fs::write(
-            workspace_file("conformance/c5/pure-node-v1-plan.json"),
+            workspace_file("conformance/c5/pure-node-plan.json"),
             serde_json::to_string(&actual_plan).unwrap(),
         )
         .unwrap();
@@ -35,7 +35,7 @@ fn checked_pure_node_plan_and_browser_run_are_exact_and_bounded() {
     }
 
     let golden: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(workspace_file("conformance/c5/pure-node-v1-plan.json")).unwrap(),
+        &fs::read_to_string(workspace_file("conformance/c5/pure-node-plan.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(actual_plan, golden, "exact plan golden drifted");
@@ -117,7 +117,7 @@ fn pure_node_uppercase_requires_an_installed_candidate() {
     let mut unavailable = installed.input;
     unavailable
         .candidates
-        .retain(|candidate| candidate.implementation.id != "conduit/hosted-uppercase-v1");
+        .retain(|candidate| candidate.implementation.id != "conduit/hosted-uppercase");
     unavailable.seal().unwrap();
     let error = compile_source(SOURCE, &unavailable).unwrap_err();
     assert_eq!(error.code(), "CND-CMP-005");

@@ -1,5 +1,5 @@
 # With a panel read from a file, process stdin remains available to this node.
-panel 3
+panel 0
 
 node input : io/stdin
 node decoder : text/decode-utf8

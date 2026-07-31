@@ -120,7 +120,7 @@ fn state_name(state: FlowQueueState) -> &'static str {
 
 #[test]
 fn every_policy_matches_the_full_buffer_fixture() {
-    let fixtures = include_str!("../../../conformance/c2/flow-policy-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c2/flow-policy.tsv");
     for line in fixtures.lines().filter(|line| !line.starts_with('#')) {
         let columns = line.split('\t').collect::<Vec<_>>();
         assert_eq!(columns.len(), 11, "invalid fixture row: {line}");

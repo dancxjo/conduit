@@ -1,0 +1,367 @@
+{
+  "suite": "conduit.canonical",
+  "canonical_form_version": 1,
+  "semantic_hash": "sha256",
+  "vectors": [
+    {
+      "name": "node-contract",
+      "kind": "conduit/node-contract",
+      "schema_version": 0,
+      "body": {
+        "map": [
+          {
+            "name": "label",
+            "disposition": "annotation",
+            "value": {
+              "text": "Uppercase"
+            }
+          },
+          {
+            "name": "enabled",
+            "disposition": "defaulted",
+            "default": {
+              "boolean": true
+            },
+            "value": {
+              "boolean": true
+            }
+          },
+          {
+            "name": "ports",
+            "value": {
+              "set": [
+                {
+                  "map": [
+                    {
+                      "name": "presence",
+                      "value": {
+                        "identifier": "required"
+                      }
+                    },
+                    {
+                      "name": "id",
+                      "value": {
+                        "identifier": "out"
+                      }
+                    },
+                    {
+                      "name": "value_type",
+                      "value": {
+                        "identifier": "std/text"
+                      }
+                    },
+                    {
+                      "name": "delivery",
+                      "value": {
+                        "identifier": "finite-batch"
+                      }
+                    },
+                    {
+                      "name": "direction",
+                      "value": {
+                        "identifier": "output"
+                      }
+                    },
+                    {
+                      "name": "cardinality",
+                      "value": {
+                        "identifier": "one-or-more"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "map": [
+                    {
+                      "name": "id",
+                      "value": {
+                        "identifier": "in"
+                      }
+                    },
+                    {
+                      "name": "direction",
+                      "value": {
+                        "identifier": "input"
+                      }
+                    },
+                    {
+                      "name": "value_type",
+                      "value": {
+                        "identifier": "std/text"
+                      }
+                    },
+                    {
+                      "name": "presence",
+                      "value": {
+                        "identifier": "required"
+                      }
+                    },
+                    {
+                      "name": "cardinality",
+                      "value": {
+                        "identifier": "exactly-one"
+                      }
+                    },
+                    {
+                      "name": "delivery",
+                      "value": {
+                        "identifier": "finite-batch"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "value": {
+              "identifier": "text/uppercase"
+            }
+          }
+        ]
+      },
+      "equivalent_bodies": [
+        {
+          "map": [
+            {
+              "name": "id",
+              "value": {
+                "identifier": "text/uppercase"
+              }
+            },
+            {
+              "name": "ports",
+              "value": {
+                "set": [
+                  {
+                    "map": [
+                      {
+                        "name": "value_type",
+                        "value": {
+                          "identifier": "std/text"
+                        }
+                      },
+                      {
+                        "name": "delivery",
+                        "value": {
+                          "identifier": "finite-batch"
+                        }
+                      },
+                      {
+                        "name": "cardinality",
+                        "value": {
+                          "identifier": "exactly-one"
+                        }
+                      },
+                      {
+                        "name": "presence",
+                        "value": {
+                          "identifier": "required"
+                        }
+                      },
+                      {
+                        "name": "direction",
+                        "value": {
+                          "identifier": "input"
+                        }
+                      },
+                      {
+                        "name": "id",
+                        "value": {
+                          "identifier": "in"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "map": [
+                      {
+                        "name": "cardinality",
+                        "value": {
+                          "identifier": "one-or-more"
+                        }
+                      },
+                      {
+                        "name": "id",
+                        "value": {
+                          "identifier": "out"
+                        }
+                      },
+                      {
+                        "name": "direction",
+                        "value": {
+                          "identifier": "output"
+                        }
+                      },
+                      {
+                        "name": "delivery",
+                        "value": {
+                          "identifier": "finite-batch"
+                        }
+                      },
+                      {
+                        "name": "presence",
+                        "value": {
+                          "identifier": "required"
+                        }
+                      },
+                      {
+                        "name": "value_type",
+                        "value": {
+                          "identifier": "std/text"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "different_bodies": [
+        {
+          "map": [
+            {
+              "name": "id",
+              "value": {
+                "identifier": "conduit/lowercase"
+              }
+            },
+            {
+              "name": "ports",
+              "value": {
+                "set": []
+              }
+            }
+          ]
+        }
+      ],
+      "canonical_hex": "434e4400220000000000000015636f6e647569742f6e6f64652d636f6e747261637400000000310000000000000002220000000000000002696422000000000000000e746578742f757070657263617365220000000000000005706f7274733200000000000000023100000000000000062200000000000000026964220000000000000002696e22000000000000000864656c697665727922000000000000000c66696e6974652d626174636822000000000000000870726573656e63652200000000000000087265717569726564220000000000000009646972656374696f6e220000000000000005696e70757422000000000000000a76616c75655f747970652200000000000000087374642f7465787422000000000000000b63617264696e616c69747922000000000000000b65786163746c792d6f6e6531000000000000000622000000000000000269642200000000000000036f757422000000000000000864656c697665727922000000000000000c66696e6974652d626174636822000000000000000870726573656e63652200000000000000087265717569726564220000000000000009646972656374696f6e2200000000000000066f757470757422000000000000000a76616c75655f747970652200000000000000087374642f7465787422000000000000000b63617264696e616c69747922000000000000000b6f6e652d6f722d6d6f7265",
+      "semantic_hash": "sha256:435a3179acd68d169a179b9a71c07775eccc6d154b1c2ea0c81216a9128d9c18"
+    },
+    {
+      "name": "scalar-coverage",
+      "kind": "conduit/example",
+      "schema_version": 0,
+      "body": {
+        "map": [
+          {
+            "name": "retry",
+            "disposition": "defaulted",
+            "default": {
+              "integer": 3
+            },
+            "value": {
+              "integer": 4
+            }
+          },
+          {
+            "name": "payload",
+            "value": {
+              "bytes": "0001ff"
+            }
+          },
+          {
+            "name": "names",
+            "value": {
+              "list": [
+                {
+                  "text": "é"
+                },
+                {
+                  "text": "é"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "value": {
+              "integer": -3
+            }
+          },
+          {
+            "name": "empty",
+            "value": null
+          }
+        ]
+      },
+      "equivalent_bodies": [
+        {
+          "map": [
+            {
+              "name": "empty",
+              "value": null
+            },
+            {
+              "name": "limit",
+              "value": {
+                "integer": -3
+              }
+            },
+            {
+              "name": "names",
+              "value": {
+                "list": [
+                  {
+                    "text": "é"
+                  },
+                  {
+                    "text": "é"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "payload",
+              "value": {
+                "bytes": "0001ff"
+              }
+            },
+            {
+              "name": "retry",
+              "value": {
+                "integer": 4
+              }
+            }
+          ]
+        }
+      ],
+      "canonical_hex": "434e440022000000000000000f636f6e647569742f6578616d706c6500000000310000000000000005220000000000000005656d707479002200000000000000056c696d697410fffffffffffffffffffffffffffffffd2200000000000000056e616d6573300000000000000002210000000000000002c3a921000000000000000365cc81220000000000000005726574727910000000000000000000000000000000042200000000000000077061796c6f61642000000000000000030001ff",
+      "semantic_hash": "sha256:34fa4e2373627df282dd65196665824cd6b1cfaa7d0fa04e211b13185b6f0f60"
+    }
+  ],
+  "negative_vectors": [
+    {
+      "name": "duplicate-map-key",
+      "kind": "conduit/example",
+      "schema_version": 0,
+      "body": {
+        "map": [
+          {
+            "name": "id",
+            "value": null
+          },
+          {
+            "name": "id",
+            "value": {
+              "boolean": false
+            }
+          }
+        ]
+      },
+      "expected_error": "duplicate-map-key"
+    },
+    {
+      "name": "invalid-identifier",
+      "kind": "conduit/example",
+      "schema_version": 0,
+      "body": {
+        "identifier": "Not/Portable"
+      },
+      "expected_error": "invalid-identifier"
+    }
+  ]
+}

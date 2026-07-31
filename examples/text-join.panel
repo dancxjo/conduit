@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node text : std/literal { value = "one\n" }
 node lines : std/text/lines {

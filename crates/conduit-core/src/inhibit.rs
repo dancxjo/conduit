@@ -14,8 +14,8 @@ use crate::{
     SemanticHash, validate_administrative_proof,
 };
 
-pub const HAZARDOUS_HOST_PROFILE_SCHEMA_VERSION: u32 = 1;
-pub const INHIBIT_OBSERVATION_SCHEMA_VERSION: u32 = 1;
+pub const HAZARDOUS_HOST_PROFILE_SCHEMA_VERSION: u32 = 0;
+pub const INHIBIT_OBSERVATION_SCHEMA_VERSION: u32 = 0;
 pub const MAX_OPERATING_ENVELOPE_LIMITS: usize = 16;
 pub const MAX_HAZARDOUS_HOST_BINDINGS: usize = 32;
 
@@ -893,7 +893,7 @@ fn valid_id(value: Id<'_>) -> bool {
 }
 
 fn valid_pin(value: PinnedDescriptor<'_>) -> bool {
-    valid_id(value.id) && value.schema_version > 0
+    valid_id(value.id) && value.schema_version == 0
 }
 
 const fn zero_hash() -> SemanticHash {

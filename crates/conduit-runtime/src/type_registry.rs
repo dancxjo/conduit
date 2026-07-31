@@ -141,7 +141,7 @@ impl TypeRegistry {
             return Err(TypeRegistryError::DuplicateNamespace(namespace.to_owned()));
         }
         let descriptor = provider.provider_descriptor();
-        if Id::new(descriptor.kind.as_str()).is_err() || descriptor.schema_version == 0 {
+        if Id::new(descriptor.kind.as_str()).is_err() || descriptor.schema_version != 0 {
             return Err(TypeRegistryError::InvalidProviderDescriptor(
                 namespace.to_owned(),
             ));
@@ -325,7 +325,7 @@ impl TypeRegistry {
         let provider_rule = match decision.reason {
             CompatibilityReason::TypeStructuralAccepted
             | CompatibilityReason::TypeStructuralMismatch => {
-                Some(Id("conduit/structural-projection-v1"))
+                Some(Id("conduit/structural-projection"))
             }
             CompatibilityReason::TypeProviderAccepted
             | CompatibilityReason::TypeProviderRejected

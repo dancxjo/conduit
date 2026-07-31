@@ -92,7 +92,7 @@ pub fn current_firmware_identity(
 }
 
 pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let budget_path = workspace_root.join("conformance/c5/rp2040-budgets-v1.json");
+    let budget_path = workspace_root.join("conformance/c5/rp2040-budgets.json");
     if !budget_path.exists() {
         return Err(format!("Budget file missing: {}", budget_path.display()).into());
     }
@@ -256,7 +256,7 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let firmware_id = current_firmware_identity(workspace_root, target, "release")?;
 
     let report = json!({
-        "schema": "conduit.rp2040-budget-report/v1",
+        "schema": "conduit.rp2040-budget-report",
         "target": target,
         "artifact": artifact_rel,
         "firmware_identity": format!("sha256:{}", hex::encode(firmware_id)),

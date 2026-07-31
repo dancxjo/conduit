@@ -13,7 +13,7 @@ Conduit maintains a strict boundary between domain semantics, host execution, an
 | **TypeContract** | Domain / Crate | Value type meaning, compatibility, and canonical representation schema. |
 | **NodeContract** | Domain / Catalog | Concrete node boundary specifying ports, config requirements, and resource shape. |
 | **Implementation** | Provider / Host | Target-executable handler logic selected by host resolution (e.g., Linux, RP2040, WASM). |
-| **ExecutionPlan** | Conduit Runtime | Lowered, immutable execution plan with frozen budgets and deterministic evidence tracing. |
+| **ExecutionPlan** | Conduit Runtime | Lowered, immutable execution plan with current budgets and deterministic evidence tracing. |
 
 ---
 
@@ -26,7 +26,7 @@ use conduit_core::{Id, SemanticHash, TypeContract, TypeContractRef};
 
 pub const AUDIO_PCM_TYPE: TypeContractRef<'static> = &TypeContract {
     id: Id("speech/audio-pcm"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
         0x73, 0x70, 0x65, 0x65, 0x63, 0x68, 0x2d, 0x61, 0x75, 0x64, 0x69, 0x6f, 0x2d, 0x70,
         0x63, 0x6d, 0x2d, 0x76, 0x31, 0x2d, 0x73, 0x65, 0x6d, 0x61, 0x6e, 0x74, 0x69, 0x63,
@@ -109,7 +109,7 @@ impl conduit_runtime::Handler for AsrHandler {
 Domain users author `.panel` source files referencing your domain node:
 
 ```panel
-panel 3
+panel 0
 
 node audio_source : std/literal {
     value = "sample_audio_pcm_payload"

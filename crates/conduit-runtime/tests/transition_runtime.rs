@@ -39,7 +39,7 @@ use conduit_runtime::{
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
-const TRANSITION_FIXTURE: &str = include_str!("../../../conformance/c5/plan-transitions-v1.json");
+const TRANSITION_FIXTURE: &str = include_str!("../../../conformance/c5/plan-transitions.json");
 const CONTRACT_PIN: PinnedDescriptor<'static> = pin("fixture/semantic-service", 20);
 const PROFILE_PIN: PinnedDescriptor<'static> = pin("fixture/hosted-profile", 21);
 const REPORTER: PinnedDescriptor<'static> = pin("fixture/reporter", 22);
@@ -60,7 +60,7 @@ const fn hash(byte: u8) -> SemanticHash {
 const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     PinnedDescriptor {
         id: Id(id),
-        schema_version: 1,
+        schema_version: 0,
         semantic_hash: hash(byte),
     }
 }
@@ -79,7 +79,7 @@ const fn resources(memory: u64) -> PlanResourceBudget {
 
 fn artifact_manifest() -> ArtifactManifest<'static> {
     let mut value = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: ARTIFACT_REF.id,
         digest: CANDIDATE_ARTIFACT,
@@ -107,7 +107,7 @@ fn artifact_manifest() -> ArtifactManifest<'static> {
 
 fn candidate_manifest() -> ImplementationManifest<'static> {
     let mut value = ImplementationManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: ZERO,
         id: Id("fixture/candidate"),
         implementation_version: "1",
@@ -115,9 +115,9 @@ fn candidate_manifest() -> ImplementationManifest<'static> {
         executor: ExecutorKind::NativeInProcess,
         entrypoint: ManifestEntrypoint {
             name: Id("run"),
-            adapter: Id("conduit-step-v1"),
+            adapter: Id("conduit-step"),
             abi: Id("fixture-abi-v1"),
-            protocol_version: 1,
+            protocol_version: 0,
         },
         execution_profile: PROFILE_PIN,
         artifacts: core::slice::from_ref(&ARTIFACT_REF),
@@ -125,8 +125,8 @@ fn candidate_manifest() -> ImplementationManifest<'static> {
         provided_interfaces: &[],
         required_authorities: &[],
         required_effects: &[],
-        minimum_plan_version: 1,
-        maximum_plan_version: 32,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,
         replacement: ReplacementSupport::Stateful {
@@ -315,8 +315,8 @@ fn resolution(
         supported_executors: &executors,
         supported_targets: &[],
         supported_abis: &[],
-        minimum_plan_version: 1,
-        maximum_plan_version: 32,
+        minimum_plan_version: 0,
+        maximum_plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         current_constraints: &[],
     };
     report.identity = report.computed_semantic_hash(&mut [ZERO; 8]).unwrap();
@@ -346,7 +346,7 @@ fn resolution(
         policy_hash: ZERO,
         time_basis: Id("clock.monotonic"),
         current_tick: 20,
-        plan_version: 1,
+        plan_version: conduit_core::EXECUTION_PLAN_SCHEMA_VERSION,
         trusted_reporters: &[REPORTER],
         trusted_report_trust: &[REPORT_TRUST.semantic_hash],
         required_realm: None,
@@ -845,7 +845,7 @@ fn control(
         idempotency: Some(Id(event)),
         payload_type: TypeContractRef {
             contract_id: Id("conduit/plan-transition-control"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: hash(94),
         },
         payload: EventPayloadRef::ContentAddressed {

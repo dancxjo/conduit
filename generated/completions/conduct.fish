@@ -45,7 +45,7 @@ complete -c conduct -n "__fish_conduct_needs_command" -s V -l version -d 'Print 
 complete -c conduct -n "__fish_conduct_needs_command" -a "inspect" -d 'Validate and describe one artifact without executing it'
 complete -c conduct -n "__fish_conduct_needs_command" -a "compile" -d 'Compile source against explicit immutable inputs into one exact plan'
 complete -c conduct -n "__fish_conduct_needs_command" -a "package" -d 'Create, verify, or extract a bounded content-addressed package'
-complete -c conduct -n "__fish_conduct_using_subcommand inspect" -l type -d 'Select a frozen artifact kind, or use marker-only detection' -r -f -a "auto\t''
+complete -c conduct -n "__fish_conduct_using_subcommand inspect" -l type -d 'Select a current artifact kind, or use marker-only detection' -r -f -a "auto\t''
 panel\t''
 lowered-source\t''
 execution-plan\t''

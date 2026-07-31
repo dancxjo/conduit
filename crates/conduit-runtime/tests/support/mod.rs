@@ -15,7 +15,7 @@ pub fn provider(contract: &'static NodeContract<'static>, id: &str) -> ProviderF
         contract,
         PinnedDescriptor {
             id: contract.id,
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: OwnedNodeSchema::from_contract(contract).semantic_hash(),
         },
         id,
@@ -33,7 +33,7 @@ pub fn provider_with_contract(
     let contract_hash = OwnedNodeSchema::from_contract(contract).semantic_hash();
     let digest = ArtifactDigest::from_bytes(*contract_hash.as_bytes());
     let mut artifact = ArtifactManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id(artifact_id),
         digest,
@@ -68,7 +68,7 @@ pub fn provider_with_contract(
         required: true,
     }]));
     let mut manifest = ImplementationManifest {
-        schema_version: 1,
+        schema_version: 0,
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id(implementation_id),
         implementation_version: "1",
@@ -76,13 +76,13 @@ pub fn provider_with_contract(
         executor: ExecutorKind::NativeInProcess,
         entrypoint: ManifestEntrypoint {
             name: Id("run"),
-            adapter: Id("conduit/compatibility-handler-v1"),
-            abi: Id("conduit/rust-v1"),
-            protocol_version: 1,
+            adapter: Id("conduit/compatibility-handler"),
+            abi: Id("conduit/rust"),
+            protocol_version: 0,
         },
         execution_profile: PinnedDescriptor {
             id: Id("conduit/test-execution-profile"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([92; 32]),
         },
         artifacts: artifact_reference,
@@ -90,7 +90,7 @@ pub fn provider_with_contract(
         provided_interfaces: &[],
         required_authorities: &[],
         required_effects: &[],
-        minimum_plan_version: 1,
+        minimum_plan_version: 0,
         maximum_plan_version: u32::MAX,
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,

@@ -9,23 +9,23 @@ use conduit_core::{
 };
 use std::collections::BTreeSet;
 
-const FIXTURE: &str = include_str!("../../../conformance/c5/value-envelope-clock-feedback-v1.json");
+const FIXTURE: &str = include_str!("../../../conformance/c5/value-envelope-clock-feedback.json");
 
 const REPRESENTATION: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("fixture/bytes-v1"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([1; 32]),
 };
 
 const CANCELLATION: PinnedDescriptor<'static> = PinnedDescriptor {
     id: Id("fixture/bounded-cancellation"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([2; 32]),
 };
 
 const TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/value"),
-    schema_version: 1,
+    schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([8; 32]),
 };
 

@@ -1,4 +1,4 @@
-panel 3
+panel 0
 
 node template : std/literal {
     value = "{first}\r\n{second}\n"

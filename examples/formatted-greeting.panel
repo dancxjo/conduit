@@ -1,5 +1,5 @@
 # Typed template + values -> text formatting with exact finite cords.
-panel 3
+panel 0
 
 node template : std/literal {
     value = "Hello, {name}. Payload: {{status = {status}}}\n"

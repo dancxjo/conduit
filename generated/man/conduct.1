@@ -1,6 +1,6 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH conduct 1  "conduct 0.1.0"
+.TH conduct 1  "conduct 0.0.0-dev"
 .SH NAME
 conduct \- Conduct a typed node arrangement.
 .SH SYNOPSIS
@@ -95,13 +95,13 @@ Compile source against explicit immutable inputs into one exact plan
 conduct\-package(1)
 Create, verify, or extract a bounded content\-addressed package
 .SH VERSION
-v0.1.0
+v0.0.0\-dev
 .SH STREAMS
 Primary human values, finite JSON results, and streaming NDJSON run records are written to stdout.
 Diagnostics and terminal status are written to stderr.
 .SH MACHINE OUTPUT
-\fB\-\-format=json\fR selects a finite conduit.result/v1 record for check or explain.
-\fB\-\-format=ndjson\fR selects ordered, bounded conduit.run/v2 channel chunks and structured records for run.
+\fB\-\-format=json\fR selects a finite conduit.result record for check or explain.
+\fB\-\-format=ndjson\fR selects ordered, bounded conduit.run channel chunks and structured records for run.
 \fB\-\-diagnostic\-format=json\fR independently selects one structured diagnostic on stderr.
 .SH EXIT STATUS
 Zero indicates success, help, version, or normal downstream pipe closure.

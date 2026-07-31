@@ -34,12 +34,12 @@ const timelineLanes = document.querySelector("#timeline-lanes");
 const timelineExplanation = document.querySelector("#timeline-explanation");
 const timelineTableBody = document.querySelector("#timeline-table tbody");
 
-const lessons = await (await fetch("../lessons/v1.json", { cache: "no-store" })).json();
+const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
 const referenceManifest = await (
-  await fetch("../reference-panels/v1.json", { cache: "no-store" })
+  await fetch("../reference-panels/current.json", { cache: "no-store" })
 ).json();
-if (referenceManifest.schema !== "conduit.tour-reference-panels/v1") {
+if (referenceManifest.schema !== "conduit.tour-reference-panels") {
   throw new Error("unsupported Tour reference-panel manifest");
 }
 const referencePanels = await Promise.all(referenceManifest.panels.map(async (panel) => {
@@ -70,7 +70,7 @@ async function sha256Hex(bytes) {
     .join("");
 }
 
-if (browserPlan.schema !== "conduit.tour-browser-plan/v1") {
+if (browserPlan.schema !== "conduit.tour-browser-plan") {
   throw new Error("unsupported Tour browser plan");
 }
 const adapterArtifact = browserPlan.artifacts.find(
@@ -121,11 +121,11 @@ const hostReport = observeBrowserHost({
   reporter: {
     realmId: "conduit/tour-static-realm",
     entityId: "conduit/tour-browser-workload",
-    passportIdentity: "conduit/tour-browser-passport-v1",
+    passportIdentity: "conduit/tour-browser-passport",
     statusObservation: {
       realmId: "conduit/tour-static-realm",
       entityId: "conduit/tour-browser-workload",
-      passportIdentity: "conduit/tour-browser-passport-v1",
+      passportIdentity: "conduit/tour-browser-passport",
       reporterIdentity: "conduit/tour-static-status-reporter",
       timeBasis: "conduit/tour-fixture-clock",
       observedAtTick: 9,
@@ -371,7 +371,7 @@ function openPatchbaySession() {
 
 function applyPatchbayOperations(operations, options = {}) {
   const request = {
-    protocol_version: 1,
+    protocol_version: 0,
     document_id: patchbaySessionId,
     expected_source_revision: patchbaySourceRevision,
     expected_presentation_revision: patchbayPresentationRevision,
@@ -572,6 +572,7 @@ function renderExactResultTimeline(value) {
     values.textContent =
       `Exact terminal state: ${value.terminal}\n` +
       `Exact stdout: ${JSON.stringify(value.stdout || "")}\n` +
+      `Exact display: ${JSON.stringify(value.display || "")}\n` +
       `Exact stderr: ${JSON.stringify(value.stderr || "")}`;
   } else {
     values.textContent =
@@ -1057,13 +1058,19 @@ async function run() {
     const counts = Number.isInteger(value.completed_nodes)
       ? `\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
       : "";
-    const visibleResult = value.ok
-      ? `${value.stdout || `Run completed: ${value.terminal}.`}${counts}`
-      : value.diagnostic;
-
     const validation = activeScenario()?.validation || current.validation;
+    const visibleValue = validation?.kind === "display"
+      ? value.display
+      : validation?.kind === "stdout"
+        ? value.stdout
+        : value.stdout || value.display;
+    const visibleResult = value.ok
+      ? `${visibleValue || `Run completed: ${value.terminal}.`}${counts}`
+      : value.diagnostic;
     const lessonComplete = validation?.kind === "stdout"
       ? value.ok && value.stdout === validation.value
+      : validation?.kind === "display"
+        ? value.ok && value.display === validation.value
       : validation?.kind === "terminal"
         ? value.ok && value.terminal === validation.value
         : validation?.kind === "diagnostic"

@@ -90,7 +90,7 @@ fn type_ref(value: &str) -> TypeContractRef<'static> {
     match value {
         "a" => TypeContractRef {
             contract_id: Id("fixture/type-a"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([
                 0x30, 0x59, 0x01, 0xdf, 0x23, 0x30, 0x60, 0x2d, 0x0d, 0x93, 0xbb, 0xa6, 0x75, 0x6e,
                 0x70, 0x20, 0x9a, 0x5b, 0xea, 0xe0, 0x5f, 0xed, 0xf6, 0xb9, 0xc5, 0xcf, 0xe5, 0x51,
@@ -99,7 +99,7 @@ fn type_ref(value: &str) -> TypeContractRef<'static> {
         },
         "b" => TypeContractRef {
             contract_id: Id("fixture/type-b"),
-            schema_version: 1,
+            schema_version: 0,
             semantic_hash: SemanticHash::from_bytes([
                 0x93, 0xf1, 0xce, 0x8a, 0xb2, 0x59, 0x98, 0x01, 0x1c, 0x18, 0xee, 0x61, 0xd3, 0x01,
                 0x1b, 0x90, 0xe7, 0x1a, 0xb3, 0x9f, 0xb8, 0xa7, 0xcc, 0x44, 0xd3, 0x73, 0xc5, 0x4b,
@@ -154,7 +154,7 @@ fn parse_outcome(value: &str) -> CompatibilityOutcome {
 
 #[test]
 fn port_compatibility_matches_frozen_vectors() {
-    let fixtures = include_str!("../../../conformance/c2/port-contract-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c2/port-contract.tsv");
     for line in fixtures.lines().filter(|line| !line.starts_with('#')) {
         let columns = line.split('\t').collect::<Vec<_>>();
         assert_eq!(columns.len(), 25, "invalid fixture row: {line}");
@@ -259,7 +259,7 @@ fn every_port_reason_has_a_stable_spelling() {
 
 #[test]
 fn a_type_decision_for_different_operands_is_not_reused() {
-    let fixtures = include_str!("../../../conformance/c2/port-contract-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c2/port-contract.tsv");
     let columns = fixtures
         .lines()
         .find(|line| line.starts_with("accepted\t"))
@@ -286,7 +286,7 @@ fn a_type_decision_for_different_operands_is_not_reused() {
 
 #[test]
 fn every_port_contract_fact_changes_identity() {
-    let fixtures = include_str!("../../../conformance/c2/port-contract-v1.tsv");
+    let fixtures = include_str!("../../../conformance/c2/port-contract.tsv");
     let columns = fixtures
         .lines()
         .find(|line| line.starts_with("accepted\t"))

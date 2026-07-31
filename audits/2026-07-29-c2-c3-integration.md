@@ -6,7 +6,7 @@ Audit date: 2026-07-29
 
 Audited baseline: `b65e377009e3cad8f23401f39fd118700efcb37b`
 
-Conformance baseline: `conduit.conformance/v1`, manifest revision 4,
+Conformance baseline: `conduit.conformance`, manifest revision 4,
 13 suites, 206 normative cases
 
 ## Decision
@@ -68,18 +68,18 @@ finding A1 and assigned to #64.
 
 | Issue / PR | Normative contract | Requirements | Reference implementation | Persisted commitment | Fixture coverage | Audit result |
 |---|---|---|---|---|---|---|
-| #5 / PR #40 | `spec/005-type-contracts-v1.md` | `TYP-001`–`TYP-012` | `conduit_core::TypeContractRef`; `conduit_runtime::TypeRegistry` | opaque `(contract_id, schema_version, semantic_hash)` reference; provider decisions remain hosted | `conformance/c2/type-contract-v1.tsv`; positive exact/provider, negative malformed, boundary unavailable/unknown, migration directional | coherent; #56 must add representation identity beside, never inside, semantic type identity |
-| #6 / PR #43 | `spec/006-port-config-contracts-v1.md` | `PRT-001`–`PRT-008`, `CFG-001`–`CFG-007` | `PortContract`, `ConfigFieldContract`, `ConfigContract`, `config_resolution` | port-contract and config-field schema 1; every port fact hashed; protected values excluded from semantic identity | `port-contract-v1.tsv`, `config-v1.tsv`; positive, negative, cardinality/bounds, default migration | coherent; complete port contracts remain the only group-member boundary |
-| #7 / PR #46 | `spec/007-bounded-flow-policy-v1.md` | `FLW-001`–`FLW-012` | `FlowPolicy`, `FlowCapacity`, `FlowWatermarks`, `BoundedFlowQueue` | positive finite item/value/aggregate-byte limits; exact pressure parameters and FIFO blocking | `flow-policy-v1.tsv` plus exhaustive short traces; all policies, invalid bounds, type-proof boundaries, cancellation | coherent and allocator-free; #20 consumes this algebra without adding queue semantics |
-| #8 / PR #47 | `spec/008-lifecycle-cancellation-terminal-v1.md` | `LIF-*`, `CAN-*`, `TRM-*`, `REP-*` | lifecycle/cord machines, cancellation registry, terminal resolver | immutable transition vocabulary, explicit causes, bounded cancellation storage, new attempt identity on restart | `lifecycle-v1.tsv`, `terminal-races-v1.tsv`; legal/illegal edges, races, bounds, replicated restart | coherent; #56 maps step outcomes into these states, #60 specializes finite replicated populations |
-| #9 / PR #48 | `spec/009-exported-composites-v1.md` | `CMP-001`–`CMP-010` | `CompositeDefinition`, `validate_composite`, hosted `expand_panel` | logical composite and expanded primitive paths remain distinct; exports preserve complete contracts | `composite-v1.tsv`; one-level/nested, recursion, fan-out, bindings, boundary bypass | core/runtime model coherent; corrected C3 lowering must retain this topology (A1/#64) |
-| #10 / PR #49 | `spec/010-scoped-authority-v1.md` | `AUT-001`–`AUT-009`, `SEN-001`–`SEN-003` | authority descriptors, deterministic resolver, at-use validation | capabilities, effects, grants, bindings, and revocation observations are separate; protected evidence structural | `authority-v1.tsv`; allow/deny, expiry, delegation, aggregation, redaction | coherent; #56 host operations consume exact bindings and cannot provision |
-| #11 / PR #50 | `spec/011-exact-execution-plan-v1.md` | `PLN-001`–`PLN-010` | `ExecutionPlan`, exact leaf hashing, portable validator | schema 1 exact arrangement; immutable source/resolver/host/artifact/node/cord/authority/composite/group/pool references | `execution-plan-v1.tsv`; valid, malformed, order independence, staleness, budget, pool boundary | coherent for current fields; #56 needs a versioned implementation execution-profile reference, #44 must reconcile explicit group maxima |
-| #12 / PR #51 | `spec/012-immutable-execution-event-v1.md` | `EVD-001`–`EVD-010` | `ExecutionEvent`, stream validator, owned NDJSON adapter | schema 1 append-only events; exact plan link; separate append/observer/time/causal order; structural redaction | `execution-event-v1.tsv` and `.ndjson`; causation, correction, timestamp inversion, redaction, replay | coherent; transition policy must consume events, not diagnostic prose |
-| #13 / PR #52 | `spec/013-conformance-harness-v1.md` | `CNF-001`–`CNF-009` | `conduit-conformance` audit/request/check/reference protocol | manifest revisioning and semantic fixture versions are distinct; request IDs are not semantic identities | all 13 suites; digest/inventory/protocol/property checks | coherent; independent Python canonical verification is now an explicit local/CI gate |
-| #14 / PR #54 | `spec/014-panel-grammar-modules-v1.md` | `SRC-001`–`SRC-011` | `conduit-panel` lexer/parser, `SourceDocument`, module resolver | grammar 1, exact UTF-8 content hashes, lossless CST, normalized source-hash domain | `panel-grammar-v1.json`; every production, malformed recovery, imports, roots, groups, pools | grammar is frozen and parse-compatible; selected-root identity leakage requires versioned correction A1/#64 |
-| #15 / PR #55 | `spec/015-typed-source-lowering-v1.md` | `LWR-001`–`LWR-012` | `source_lowering`, owned semantic schemas, source maps | distinct hashes for node schemas, lowered config/nodes/group ports/pools/source; protected bindings remain unresolved | `source-lowering-v1.json`; literals, defaults, imports, redaction, groups/pools, errors | config/default lowering is coherent; complete topology and constraints require A1/#64; group details require A2/#44 |
-| #16 / PR #58 | `spec/016-structured-diagnostics-v1.md` | `DIA-001`–`DIA-012` | allocator-free `Diagnostic`; owned JSON/fixes/renderer; CLI adapters | diagnostic schema 1, authoritative byte spans, guarded edits, structural redaction | `diagnostics-v1.json`; exact human/ANSI snapshots, JSON, fixes, multi-file, non-UTF-8 | coherent; ownership with #17/#18 confirmed below |
+| #5 / PR #40 | `spec/005-type-contracts.md` | `TYP-001`–`TYP-012` | `conduit_core::TypeContractRef`; `conduit_runtime::TypeRegistry` | opaque `(contract_id, schema_version, semantic_hash)` reference; provider decisions remain hosted | `conformance/c2/type-contract.tsv`; positive exact/provider, negative malformed, boundary unavailable/unknown, migration directional | coherent; #56 must add representation identity beside, never inside, semantic type identity |
+| #6 / PR #43 | `spec/006-port-config-contracts.md` | `PRT-001`–`PRT-008`, `CFG-001`–`CFG-007` | `PortContract`, `ConfigFieldContract`, `ConfigContract`, `config_resolution` | port-contract and config-field schema 1; every port fact hashed; protected values excluded from semantic identity | `port-contract.tsv`, `config.tsv`; positive, negative, cardinality/bounds, default migration | coherent; complete port contracts remain the only group-member boundary |
+| #7 / PR #46 | `spec/007-bounded-flow-policy.md` | `FLW-001`–`FLW-012` | `FlowPolicy`, `FlowCapacity`, `FlowWatermarks`, `BoundedFlowQueue` | positive finite item/value/aggregate-byte limits; exact pressure parameters and FIFO blocking | `flow-policy.tsv` plus exhaustive short traces; all policies, invalid bounds, type-proof boundaries, cancellation | coherent and allocator-free; #20 consumes this algebra without adding queue semantics |
+| #8 / PR #47 | `spec/008-lifecycle-cancellation-terminal.md` | `LIF-*`, `CAN-*`, `TRM-*`, `REP-*` | lifecycle/cord machines, cancellation registry, terminal resolver | immutable transition vocabulary, explicit causes, bounded cancellation storage, new attempt identity on restart | `lifecycle.tsv`, `terminal-races.tsv`; legal/illegal edges, races, bounds, replicated restart | coherent; #56 maps step outcomes into these states, #60 specializes finite replicated populations |
+| #9 / PR #48 | `spec/009-exported-composites.md` | `CMP-001`–`CMP-010` | `CompositeDefinition`, `validate_composite`, hosted `expand_panel` | logical composite and expanded primitive paths remain distinct; exports preserve complete contracts | `composite.tsv`; one-level/nested, recursion, fan-out, bindings, boundary bypass | core/runtime model coherent; corrected C3 lowering must retain this topology (A1/#64) |
+| #10 / PR #49 | `spec/010-scoped-authority.md` | `AUT-001`–`AUT-009`, `SEN-001`–`SEN-003` | authority descriptors, deterministic resolver, at-use validation | capabilities, effects, grants, bindings, and revocation observations are separate; protected evidence structural | `authority.tsv`; allow/deny, expiry, delegation, aggregation, redaction | coherent; #56 host operations consume exact bindings and cannot provision |
+| #11 / PR #50 | `spec/011-exact-execution-plan.md` | `PLN-001`–`PLN-010` | `ExecutionPlan`, exact leaf hashing, portable validator | schema 1 exact arrangement; immutable source/resolver/host/artifact/node/cord/authority/composite/group/pool references | `execution-plan.tsv`; valid, malformed, order independence, staleness, budget, pool boundary | coherent for current fields; #56 needs a versioned implementation execution-profile reference, #44 must reconcile explicit group maxima |
+| #12 / PR #51 | `spec/012-immutable-execution-event.md` | `EVD-001`–`EVD-010` | `ExecutionEvent`, stream validator, owned NDJSON adapter | schema 1 append-only events; exact plan link; separate append/observer/time/causal order; structural redaction | `execution-event.tsv` and `.ndjson`; causation, correction, timestamp inversion, redaction, replay | coherent; transition policy must consume events, not diagnostic prose |
+| #13 / PR #52 | `spec/013-conformance-harness.md` | `CNF-001`–`CNF-009` | `conduit-conformance` audit/request/check/reference protocol | manifest revisioning and semantic fixture versions are distinct; request IDs are not semantic identities | all 13 suites; digest/inventory/protocol/property checks | coherent; independent Python canonical verification is now an explicit local/CI gate |
+| #14 / PR #54 | `spec/014-panel-grammar-modules.md` | `SRC-001`–`SRC-011` | `conduit-panel` lexer/parser, `SourceDocument`, module resolver | grammar 1, exact UTF-8 content hashes, lossless CST, normalized source-hash domain | `panel-grammar.json`; every production, malformed recovery, imports, roots, groups, pools | grammar is frozen and parse-compatible; selected-root identity leakage requires versioned correction A1/#64 |
+| #15 / PR #55 | `spec/015-typed-source-lowering.md` | `LWR-001`–`LWR-012` | `source_lowering`, owned semantic schemas, source maps | distinct hashes for node schemas, lowered config/nodes/group ports/pools/source; protected bindings remain unresolved | `source-lowering.json`; literals, defaults, imports, redaction, groups/pools, errors | config/default lowering is coherent; complete topology and constraints require A1/#64; group details require A2/#44 |
+| #16 / PR #58 | `spec/016-structured-diagnostics.md` | `DIA-001`–`DIA-012` | allocator-free `Diagnostic`; owned JSON/fixes/renderer; CLI adapters | diagnostic schema 1, authoritative byte spans, guarded edits, structural redaction | `diagnostics.json`; exact human/ANSI snapshots, JSON, fixes, multi-file, non-UTF-8 | coherent; ownership with #17/#18 confirmed below |
 
 PRs reviewed: #40, #43, #46–#52, #54, #55, and #58. Their merge commits are
 recorded in Git history and all referenced source/specification/fixture files
@@ -133,7 +133,7 @@ rather than duplicate:
 
 | Identity or record | Version/domain | Compatibility commitment |
 |---|---|---|
-| canonical descriptor bytes | `conduit.canonical/v1` | byte-for-byte frozen vectors; annotations/default elision do not become semantic |
+| canonical descriptor bytes | `conduit.canonical` | byte-for-byte frozen vectors; annotations/default elision do not become semantic |
 | type reference | three-field reference version 1 | exact ID, schema revision, and semantic hash; no version-number inference |
 | port/config descriptors | schema 1 | all stated fields retain meaning; changes require new descriptor identity/schema-aware migration |
 | flow policy | algebra 1 | no sentinel/unbounded capacity or hidden pressure default |
@@ -142,8 +142,8 @@ rather than duplicate:
 | authority descriptors | version 1 | observation, permission, binding, and revocation identities remain separate |
 | execution plan | schema 1 | immutable exact arrangement; changes to persisted fields require a new schema or explicit compatible extension |
 | execution event / NDJSON | schema 1 / representation 1 | append-only, plan-linked, lossless round trip; presentation and logs remain derived |
-| conformance protocol | protocol 1, fixture `conduit.conformance/v1` | fixture corrections increment manifest revision; semantic changes require a new fixture/operation version |
-| `.panel` source | grammar 1, `conduit.panel-source/v1` | frozen valid syntax/AST meaning; no silent root/default/name-resolution reinterpretation |
+| conformance protocol | protocol 1, fixture `conduit.conformance` | fixture corrections increment manifest revision; semantic changes require a new fixture/operation version |
+| `.panel` source | grammar 1, `conduit.panel-source` | frozen valid syntax/AST meaning; no silent root/default/name-resolution reinterpretation |
 | typed lowering | versioned `conduit.* /v1` hash domains | v1 output meaning remains readable; A1 requires a new corrected boundary rather than hash drift |
 | structured diagnostic / JSON | schema 1 | codes and fields stable; prose/presentation may improve without changing structured meaning |
 
@@ -291,8 +291,8 @@ no carried repository-local generated artifacts:
 
 ```text
 just sup
-cargo run -p conduit-conformance -- audit conformance/v1/manifest.json
-cargo run -p conduit-conformance -- reference conformance/v1/manifest.json
+cargo run -p conduit-conformance -- audit conformance/current/manifest.json
+cargo run -p conduit-conformance -- reference conformance/current/manifest.json
 python3 conformance/c1/verify_canonical_v1.py
 cargo +1.85.0 check --workspace --all-targets
 cargo +1.85.0 check -p conduit-core --no-default-features --target thumbv6m-none-eabi
