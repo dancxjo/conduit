@@ -169,6 +169,10 @@ impl InstalledProfile {
             if Registry::default()
                 .node_schema(contract.id.as_str())
                 .is_none()
+                && !catalog
+                    .external_leaf_contracts
+                    .iter()
+                    .any(|entry| entry.id == contract.id.as_str())
             {
                 catalog.external_leaf_contracts.push(
                     ExternalLeafContractDocument::from_contract(contract).ok_or_else(|| {

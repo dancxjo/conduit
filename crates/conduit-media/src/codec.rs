@@ -802,15 +802,7 @@ fn register_codec_provider_set(
     )],
 ) -> Result<(), RegistryError> {
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
-    for (
-        contract,
-        implementation_id,
-        artifact_id,
-        entrypoint,
-        factory,
-        validator,
-    ) in providers
-    {
+    for (contract, implementation_id, artifact_id, entrypoint, factory, validator) in providers {
         registry.register_compiled_in_host_service(CompiledInHostService {
             contract,
             implementation_id,
@@ -828,9 +820,7 @@ fn register_codec_provider_set(
 /// Installs an explicit FFmpeg-style profile over the same published media
 /// codec contracts. Contracts and handlers are unchanged; only provider identity
 /// and artifact entrypoints differ.
-pub fn register_ffmpeg_codec_providers(
-    registry: &mut Registry,
-) -> Result<(), RegistryError> {
+pub fn register_ffmpeg_codec_providers(registry: &mut Registry) -> Result<(), RegistryError> {
     register_codec_provider_set(
         registry,
         &[
@@ -880,9 +870,7 @@ pub fn register_ffmpeg_codec_providers(
 
 /// Installs an explicit SoX-style profile over the same published media codec
 /// contracts where SoX overlap exists.
-pub fn register_sox_codec_providers(
-    registry: &mut Registry,
-) -> Result<(), RegistryError> {
+pub fn register_sox_codec_providers(registry: &mut Registry) -> Result<(), RegistryError> {
     register_codec_provider_set(
         registry,
         &[
@@ -908,9 +896,7 @@ pub fn register_sox_codec_providers(
 
 /// Installs a bounded browser-focused media profile with distinct implementation
 /// identities.
-pub fn register_browser_codec_providers(
-    registry: &mut Registry,
-) -> Result<(), RegistryError> {
+pub fn register_browser_codec_providers(registry: &mut Registry) -> Result<(), RegistryError> {
     register_codec_provider_set(
         registry,
         &[

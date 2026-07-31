@@ -290,10 +290,7 @@ fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implemen
             .map(|candidate| candidate.implementation.id.as_str())
             .collect::<Vec<_>>();
         implementations.sort_unstable();
-        let mut expected = expected_implementations
-            .iter()
-            .copied()
-            .collect::<Vec<_>>();
+        let mut expected = expected_implementations.to_vec();
         expected.sort_unstable();
         assert_eq!(implementations, expected, "contract {contract}");
     }
@@ -327,7 +324,10 @@ fn implementation_preference_selects_overlapping_media_providers() {
             "conduit.media/pcm-encode-ffmpeg",
         ),
         (
-            ["conduit.media/pcm-decode-sox", "conduit.media/pcm-encode-sox"],
+            [
+                "conduit.media/pcm-decode-sox",
+                "conduit.media/pcm-encode-sox",
+            ],
             "conduit.media/pcm-decode-sox",
             "conduit.media/pcm-encode-sox",
         ),

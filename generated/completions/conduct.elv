@@ -33,6 +33,8 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --enable-file-write 'Explicitly install the bounded example file-write provider'
             cand --enable-file-watch 'Explicitly install the bounded example file-watch provider'
             cand --enable-storage-cache 'Explicitly install the bounded evictable blob-cache provider'
+            cand --enable-media-ffmpeg 'Explicitly install the bounded FFmpeg-overlapping media providers'
+            cand --enable-media-sox 'Explicitly install the bounded SoX-overlapping media providers'
             cand --enable-process-exec 'Explicitly install the bounded closed-inventory process provider'
             cand --enable-socket-loopback 'Explicitly install the bounded numeric-loopback socket providers'
             cand --enable-http-client-loopback 'Explicitly install the bounded numeric-loopback HTTP client provider'

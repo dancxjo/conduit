@@ -40,6 +40,10 @@ Options:
           Explicitly install the bounded example file-watch provider
       --enable-storage-cache
           Explicitly install the bounded evictable blob-cache provider
+      --enable-media-ffmpeg
+          Explicitly install the bounded FFmpeg-overlapping media providers
+      --enable-media-sox
+          Explicitly install the bounded SoX-overlapping media providers
       --enable-process-exec
           Explicitly install the bounded closed-inventory process provider
       --enable-socket-loopback

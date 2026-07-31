@@ -36,6 +36,8 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             [CompletionResult]::new('--enable-file-write', '--enable-file-write', [CompletionResultType]::ParameterName, 'Explicitly install the bounded example file-write provider')
             [CompletionResult]::new('--enable-file-watch', '--enable-file-watch', [CompletionResultType]::ParameterName, 'Explicitly install the bounded example file-watch provider')
             [CompletionResult]::new('--enable-storage-cache', '--enable-storage-cache', [CompletionResultType]::ParameterName, 'Explicitly install the bounded evictable blob-cache provider')
+            [CompletionResult]::new('--enable-media-ffmpeg', '--enable-media-ffmpeg', [CompletionResultType]::ParameterName, 'Explicitly install the bounded FFmpeg-overlapping media providers')
+            [CompletionResult]::new('--enable-media-sox', '--enable-media-sox', [CompletionResultType]::ParameterName, 'Explicitly install the bounded SoX-overlapping media providers')
             [CompletionResult]::new('--enable-process-exec', '--enable-process-exec', [CompletionResultType]::ParameterName, 'Explicitly install the bounded closed-inventory process provider')
             [CompletionResult]::new('--enable-socket-loopback', '--enable-socket-loopback', [CompletionResultType]::ParameterName, 'Explicitly install the bounded numeric-loopback socket providers')
             [CompletionResult]::new('--enable-http-client-loopback', '--enable-http-client-loopback', [CompletionResultType]::ParameterName, 'Explicitly install the bounded numeric-loopback HTTP client provider')
