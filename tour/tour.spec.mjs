@@ -61,6 +61,17 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
       });
       const sessionId = opened.value?.session_id;
       const started = await request("patchbay-start-exact-run", { sessionId });
+      const invalidCandidate = await request("patchbay-apply-transaction", {
+        sessionId,
+        requestJson: JSON.stringify({
+          protocol_version: 0,
+          document_id: sessionId,
+          expected_source_revision: 0,
+          expected_presentation_revision: 0,
+          operations: [{ ReplaceSource: { source: "panel 0\nnode broken :" } }],
+        }),
+      });
+      const activeAfterCandidate = await request("patchbay-session-view", { sessionId });
       const malformed = await request("patchbay-notify-host-operation", {
         sessionId,
         subject: "not an exact host operation",
@@ -74,7 +85,17 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         disposition: "abort",
       });
       const viewed = await request("patchbay-session-view", { sessionId });
-      return { configured, opened, started, malformed, unrelated, cancelled, viewed };
+      return {
+        configured,
+        opened,
+        started,
+        invalidCandidate,
+        activeAfterCandidate,
+        malformed,
+        unrelated,
+        cancelled,
+        viewed,
+      };
     } finally {
       worker.terminate();
     }
@@ -83,6 +104,14 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   expect(result.configured).toMatchObject({ ok: true, value: { configured: true } });
   expect(result.opened.value).toMatchObject({ ok: true, session_id: "tour/worker-exact-session" });
   expect(result.started.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.invalidCandidate.value).toMatchObject({
+    ok: true,
+    result: { compatibility: { compatible: false, plan_disposition: "unavailable" } },
+  });
+  expect(result.activeAfterCandidate.value.view).toMatchObject({
+    source: { revision: 1 },
+    run: { state: "Active", source_semantic_hash: result.started.value.source_semantic_hash },
+  });
   expect(result.malformed.value).toMatchObject({ ok: false, code: "CND-PBY-012" });
   expect(result.unrelated.value).toMatchObject({ ok: true, state: "active" });
   expect(result.cancelled.value).toMatchObject({ ok: true, state: "cancelled" });

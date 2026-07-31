@@ -1,5 +1,6 @@
 import init, {
   cancel_panel,
+  patchbay_apply_transaction,
   patchbay_advance_exact_run,
   patchbay_cancel_exact_run,
   patchbay_notify_host_operation,
@@ -29,6 +30,8 @@ function response(operation, value) {
       return patchbay_open_session(value.documentId, value.source);
     case "patchbay-session-view":
       return patchbay_session_view(value.sessionId);
+    case "patchbay-apply-transaction":
+      return patchbay_apply_transaction(value.sessionId, value.requestJson);
     case "patchbay-start-exact-run":
       return patchbay_start_exact_run(value.sessionId);
     case "patchbay-pump-exact-run":

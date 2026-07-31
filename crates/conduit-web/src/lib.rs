@@ -1791,9 +1791,16 @@ fn authoritative_patchbay_view(
             }
         }
     }
-    let plan = resolved_view
-        .as_ref()
-        .and_then(|_| exact_plan.or_else(|| exact_plan_snapshot(source_text)));
+    // A live run supplies its own already-authorized plan snapshot.  A new
+    // candidate may be malformed or unresolved, but that cannot erase the
+    // active epoch from the projection.  In the absence of a live snapshot,
+    // only a currently resolved authoring revision may project its candidate
+    // plan.
+    let plan = exact_plan.or_else(|| {
+        resolved_view
+            .as_ref()
+            .and_then(|_| exact_plan_snapshot(source_text))
+    });
     // An active run is pinned to `plan`, not to the mutable authoring
     // workspace. A candidate source revision can therefore remain visible
     // while the prior valid epoch continues independently. The plan identity
@@ -3528,7 +3535,7 @@ cord output.value -> sink.result\n\
             "expected_source_revision": 0,
             "expected_presentation_revision": 0,
             "operations": [{
-                "ReplaceSource": {"source": SOURCE.replace("hello", "candidate")}
+                "ReplaceSource": {"source": "panel 0\nnode broken :"}
             }]
         });
         let edited: Value = serde_json::from_str(&patchbay_apply_transaction(
@@ -3537,9 +3544,10 @@ cord output.value -> sink.result\n\
         ))
         .expect("candidate edit JSON");
         assert_eq!(edited["ok"], true, "{edited}");
+        assert_eq!(edited["result"]["compatibility"]["compatible"], false);
         assert_eq!(
             edited["result"]["compatibility"]["plan_disposition"],
-            "candidate-only"
+            "unavailable"
         );
 
         let view: Value = serde_json::from_str(&patchbay_session_view(session_id.to_owned()))
@@ -3549,10 +3557,8 @@ cord output.value -> sink.result\n\
             view["view"]["run"]["source_semantic_hash"],
             active_plan_source
         );
-        assert_ne!(
-            view["view"]["source"]["semantic_hash"], active_plan_source,
-            "candidate source must not rewrite the active epoch",
-        );
+        assert!(view["view"]["source"].get("semantic_hash").is_none());
+        assert_eq!(view["view"]["run"]["state"], "Active");
 
         let cancelled: Value = serde_json::from_str(&patchbay_cancel_exact_run(
             session_id.to_owned(),
