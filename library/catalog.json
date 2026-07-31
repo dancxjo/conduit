@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2506,7 +2506,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3376,7 +3376,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4804,7 +4804,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4883,7 +4883,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4962,7 +4962,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9046,7 +9046,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9214,7 +9214,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9312,7 +9312,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9480,7 +9480,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9686,7 +9686,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9929,7 +9929,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10015,7 +10015,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10197,7 +10197,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10283,7 +10283,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10392,7 +10392,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10517,7 +10517,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10624,7 +10624,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12740,7 +12740,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13186,7 +13186,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13356,7 +13356,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13802,7 +13802,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14069,7 +14069,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:19677c0ea0ac97757b2193fd99dd838aecf737b029fe5f2d69b6534f49fc6dce"
+          "artifact_digest": "sha256:08b147d6a5235024b7e8871a9a8226cdcbd0ae2c459c3dd5cc59aceedaea911b"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

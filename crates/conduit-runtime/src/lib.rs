@@ -4977,6 +4977,26 @@ enum HostedNodeKind {
     },
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ValidationSendOutcome {
+    Published,
+    Blocked,
+}
+
+fn stage_validation_output(
+    status: Result<SendStatus, SchedulerError>,
+    pending: &mut Option<RuntimeValue>,
+) -> Result<ValidationSendOutcome, Id<'static>> {
+    match status {
+        Ok(SendStatus::Reserved) => {
+            *pending = None;
+            Ok(ValidationSendOutcome::Published)
+        }
+        Ok(SendStatus::WouldBlock) => Ok(ValidationSendOutcome::Blocked),
+        Ok(_) | Err(_) => Err(Id("std/data/validate-closed-record-output-rejected")),
+    }
+}
+
 struct HostedSchedulerDriver<'r, 'i> {
     kind: HostedNodeKind,
     store: Rc<RefCell<HostValueStore>>,
@@ -5870,41 +5890,54 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 maximum_field_value_bytes,
                 maximum_work,
             } => {
-                if let (Some(candidate_value), Some(decision_value)) = (*candidate, *decision) {
-                    let candidate_status = candidate_cord
-                        .map(|cord| io.send(cord, candidate_value, None))
-                        .transpose();
-                    let decision_status = decision_cord
-                        .map(|cord| io.send(cord, decision_value, None))
-                        .transpose();
-                    let candidate_ready = candidate_status.as_ref().is_ok_and(|status| {
-                        status.is_none_or(|value| value == SendStatus::Reserved)
-                    });
-                    let decision_ready = decision_status.as_ref().is_ok_and(|status| {
-                        status.is_none_or(|value| value == SendStatus::Reserved)
-                    });
-                    if candidate_ready && decision_ready {
-                        *candidate = None;
-                        *decision = None;
-                        return if io.record_host_progress().is_ok() {
-                            SchedulerStep::Progress
-                        } else {
-                            SchedulerStep::Failed {
-                                code: Id("conduit/step-work-bound-exceeded"),
-                            }
-                        };
-                    }
-                    if !candidate_ready {
+                if candidate.is_some() || decision.is_some() {
+                    let mut blocked = false;
+                    let mut published = false;
+                    if let Some(candidate_value) = *candidate {
                         if let Some(cord) = *candidate_cord {
-                            let _ = io.wait_for_output(cord);
+                            match stage_validation_output(
+                                io.send(cord, candidate_value, None),
+                                candidate,
+                            ) {
+                                Ok(ValidationSendOutcome::Published) => published = true,
+                                Ok(ValidationSendOutcome::Blocked) => {
+                                    blocked = true;
+                                    let _ = io.wait_for_output(cord);
+                                }
+                                Err(code) => return SchedulerStep::Failed { code },
+                            }
+                        } else {
+                            *candidate = None;
                         }
                     }
-                    if !decision_ready {
+                    if let Some(decision_value) = *decision {
                         if let Some(cord) = *decision_cord {
-                            let _ = io.wait_for_output(cord);
+                            match stage_validation_output(
+                                io.send(cord, decision_value, None),
+                                decision,
+                            ) {
+                                Ok(ValidationSendOutcome::Published) => published = true,
+                                Ok(ValidationSendOutcome::Blocked) => {
+                                    blocked = true;
+                                    let _ = io.wait_for_output(cord);
+                                }
+                                Err(code) => return SchedulerStep::Failed { code },
+                            }
+                        } else {
+                            *decision = None;
                         }
                     }
-                    return SchedulerStep::Pending;
+                    return if published {
+                        SchedulerStep::Progress
+                    } else if blocked {
+                        SchedulerStep::Pending
+                    } else if io.record_host_progress().is_ok() {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        }
+                    };
                 }
                 let Some(&in_cord) = self.in_cords.first() else {
                     return SchedulerStep::Completed;
@@ -8775,6 +8808,41 @@ impl Handler for FallbackHandler {
 mod tests {
     use super::*;
     use conduit_panel::parse;
+
+    #[test]
+    fn validation_outputs_remain_exact_under_asymmetric_pressure() {
+        let value = RuntimeValue {
+            handle: 7,
+            accounted_bytes: 8,
+            envelope: RuntimeValueEnvelope::EMPTY,
+        };
+        for publish_candidate_first in [true, false] {
+            let mut candidate = Some(value);
+            let mut decision = Some(value);
+            let (first, blocked) = if publish_candidate_first {
+                (&mut candidate, &mut decision)
+            } else {
+                (&mut decision, &mut candidate)
+            };
+
+            assert_eq!(
+                stage_validation_output(Ok(SendStatus::Reserved), first),
+                Ok(ValidationSendOutcome::Published)
+            );
+            assert!(first.is_none());
+            assert_eq!(
+                stage_validation_output(Ok(SendStatus::WouldBlock), blocked),
+                Ok(ValidationSendOutcome::Blocked)
+            );
+            assert_eq!(*blocked, Some(value));
+            assert_eq!(
+                stage_validation_output(Ok(SendStatus::Reserved), blocked),
+                Ok(ValidationSendOutcome::Published)
+            );
+            assert!(candidate.is_none());
+            assert!(decision.is_none());
+        }
+    }
 
     #[test]
     fn format_uses_typed_inputs_named_indexed_and_escaped_placeholders() {
