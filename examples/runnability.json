@@ -9,6 +9,7 @@
     {"path":"examples/composite-uppercase.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-CMP-004"},
     {"path":"examples/cross-host-provider-conformance.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"CUSTOM CONTRACTS NEED EXACT CONFORMANCE AND EXPLICIT ADAPTERS.\n"},
     {"path":"examples/csv-json-transform.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
+    {"path":"examples/data-boundary-round-trip.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"representation boundaries stay explicit"},
     {"path":"examples/dir-watcher.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/file-copier.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/flow-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"right","expected_stderr":"right"},

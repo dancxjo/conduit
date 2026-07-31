@@ -302,6 +302,13 @@ fn candidate(
         installed.implementation,
         HostedPrimitiveImplementation::Lines | HostedPrimitiveImplementation::Join
     );
+    let data_boundary_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::DataEncodeUtf8
+            | HostedPrimitiveImplementation::DataDecodeUtf8
+            | HostedPrimitiveImplementation::FrameLengthU32Be
+            | HostedPrimitiveImplementation::DeframeLengthU32Be
+    );
     let structural_flow_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::Tee
@@ -351,6 +358,8 @@ fn candidate(
             format_execution_profile()
         } else if buffered_text_profile {
             buffered_text_execution_profile()
+        } else if data_boundary_profile {
+            data_boundary_execution_profile()
         } else if structural_flow_profile {
             structural_flow_execution_profile()
         } else {
@@ -408,7 +417,7 @@ fn candidate(
         allocation: BudgetDocument {
             memory_bytes: if host_service_instance.is_some() {
                 64 * 1024
-            } else if format_profile || buffered_text_profile {
+            } else if format_profile || buffered_text_profile || data_boundary_profile {
                 128 * 1024
             } else if structural_flow_profile {
                 8 * 1024
@@ -416,7 +425,7 @@ fn candidate(
                 2048
             },
             cpu_units: 1,
-            evidence_bytes: if format_profile || buffered_text_profile {
+            evidence_bytes: if format_profile || buffered_text_profile || data_boundary_profile {
                 8 * 1024
             } else if structural_flow_profile {
                 4 * 1024
@@ -770,6 +779,54 @@ fn buffered_text_execution_profile() -> ExecutionProfileDocument {
                 category: "port-transactions".to_owned(),
                 accounting: "executor-allocated".to_owned(),
                 bytes: MEMORY_BYTES - RETAINED_BYTES - SCRATCH_BYTES,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn data_boundary_execution_profile() -> ExecutionProfileDocument {
+    const VALUE_BYTES: u64 =
+        conduit_std::DATA_MAX_FRAME_BYTES as u64 + conduit_std::LENGTH_U32BE_PREFIX_BYTES as u64;
+    const MEMORY_BYTES: u64 = 32 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-data-boundary-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: VALUE_BYTES as u32,
+            max_input_leases: 1,
+            max_input_bytes: VALUE_BYTES,
+            max_output_reservations: 1,
+            max_output_bytes: VALUE_BYTES,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_retained_values: 1,
+            max_retained_bytes: VALUE_BYTES,
+            max_scratch_bytes: VALUE_BYTES as u32,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "retained".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: VALUE_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "step-scratch".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: VALUE_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - (2 * VALUE_BYTES),
             },
         ],
         checkpoint: None,

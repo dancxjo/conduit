@@ -1,0 +1,104 @@
+panel 0
+
+node message : std/literal {
+    value = "representation boundaries stay explicit"
+}
+node lines : std/text/lines {
+    maximum_line_bytes = 64
+    maximum_retained_prefix_bytes = 64
+}
+node encoded : std/data/encode-utf8 {
+    codec = ref("conduit.codec/utf-8")
+    codec_schema_version = 0
+    codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
+    maximum_input_bytes = 64
+    maximum_output_bytes = 64
+}
+node framed : std/data/frame-length-u32be {
+    framing = ref("conduit.framing/length-u32be")
+    framing_schema_version = 0
+    framing_hash = bytes("a24b8ff5687421303d44d89afcabe9f7941464414785134fb9e74a320214a6b8")
+    maximum_frame_bytes = 64
+    maximum_partial_bytes = 68
+    maximum_output_bytes = 68
+}
+node deframed : std/data/deframe-length-u32be {
+    framing = ref("conduit.framing/length-u32be")
+    framing_schema_version = 0
+    framing_hash = bytes("a24b8ff5687421303d44d89afcabe9f7941464414785134fb9e74a320214a6b8")
+    maximum_frame_bytes = 64
+    maximum_partial_bytes = 68
+    maximum_output_bytes = 64
+}
+node decoded : std/data/decode-utf8 {
+    codec = ref("conduit.codec/utf-8")
+    codec_schema_version = 0
+    codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
+    maximum_input_bytes = 64
+    maximum_output_bytes = 64
+}
+node joined : std/text/join {
+    separator = ""
+    maximum_items = 1
+    maximum_item_bytes = 64
+    maximum_separator_bytes = 0
+    maximum_output_bytes = 64
+}
+node display : display/text
+
+cord message.value -> lines.text {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord lines.line -> encoded.text {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord encoded.bytes -> framed.payload {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord framed.bytes -> deframed.chunk {
+    capacity = 1
+    max_value_bytes = 68
+    max_queued_bytes = 68
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord deframed.payload -> decoded.bytes {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord decoded.text -> joined.item {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+cord joined.text -> display.text {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

@@ -3,7 +3,7 @@
   "schema_version": 0,
   "source": "pure-node.panel",
   "expected_stdout_utf8": "CONDUIT EXACT SLICE.\n",
-  "normalized_evidence_sha256": "sha256:7ac0ffbd490c511cc73ad258a40c98f0cc8634bc7c3d9558229cb8513cd71664",
+  "normalized_evidence_sha256": "sha256:c6a2fb01afb52dd42d68483e63b36337728dfb197c8afc155ada912caa11c646",
   "plan_epoch": 1,
   "bounds": {
     "cords": 3,

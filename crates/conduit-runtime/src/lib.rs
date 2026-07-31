@@ -583,6 +583,20 @@ pub const DECODE_UTF8_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[BYTES_INPUT],
     outputs: &[TEXT_OUTPUT],
 };
+const DATA_UTF8_CODEC_DESCRIPTOR: &str = "conduit.codec/utf-8";
+const DATA_UTF8_CODEC_HASH: &[u8; 32] = &[
+    0xf2, 0x19, 0x29, 0x7c, 0xb2, 0x76, 0xbc, 0x91, 0xec, 0xcd, 0xdb, 0x34, 0x6a, 0x8b, 0x21, 0xe7,
+    0xed, 0xd4, 0x41, 0x4b, 0x88, 0x44, 0x01, 0x41, 0x08, 0x51, 0x37, 0x47, 0xae, 0x11, 0xbf, 0x53,
+];
+const DATA_LENGTH_U32BE_DESCRIPTOR: &str = "conduit.framing/length-u32be";
+const DATA_LENGTH_U32BE_HASH: &[u8; 32] = &[
+    0xa2, 0x4b, 0x8f, 0xf5, 0x68, 0x74, 0x21, 0x30, 0x3d, 0x44, 0xd8, 0x9a, 0xfc, 0xab, 0xe9, 0xf7,
+    0x94, 0x14, 0x64, 0x41, 0x47, 0x85, 0x13, 0x4f, 0xb9, 0xe7, 0x4a, 0x32, 0x02, 0x14, 0xa6, 0xb8,
+];
+
+fn standard_data_contract(id: &str) -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract(id).expect("standard data contract is published")
+}
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
     config: EMPTY_CONFIG,
@@ -930,6 +944,10 @@ pub enum HostedPrimitiveImplementation {
     Uppercase,
     EncodeUtf8,
     DecodeUtf8,
+    DataEncodeUtf8,
+    DataDecodeUtf8,
+    FrameLengthU32Be,
+    DeframeLengthU32Be,
     Stdout,
     Stderr,
     DisplayText,
@@ -1657,6 +1675,26 @@ impl Registry {
             || Box::new(DecodeUtf8),
             validate_empty_config,
         );
+        install(
+            standard_data_contract("std/data/encode-utf8"),
+            || Box::new(EncodeUtf8),
+            validate_data_codec,
+        );
+        install(
+            standard_data_contract("std/data/decode-utf8"),
+            || Box::new(DecodeUtf8),
+            validate_data_codec,
+        );
+        install(
+            standard_data_contract("std/data/frame-length-u32be"),
+            || Box::new(FrameLengthU32Be),
+            validate_data_framing,
+        );
+        install(
+            standard_data_contract("std/data/deframe-length-u32be"),
+            || Box::new(DeframeLengthU32Be),
+            validate_data_framing,
+        );
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
@@ -1846,6 +1884,34 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::DecodeUtf8,
                 || Box::new(DecodeUtf8),
                 validate_empty_config,
+            ),
+            (
+                standard_data_contract("std/data/encode-utf8"),
+                "data-encode-utf8",
+                HostedPrimitiveImplementation::DataEncodeUtf8,
+                || Box::new(EncodeUtf8),
+                validate_data_codec,
+            ),
+            (
+                standard_data_contract("std/data/decode-utf8"),
+                "data-decode-utf8",
+                HostedPrimitiveImplementation::DataDecodeUtf8,
+                || Box::new(DecodeUtf8),
+                validate_data_codec,
+            ),
+            (
+                standard_data_contract("std/data/frame-length-u32be"),
+                "data-frame-length-u32be",
+                HostedPrimitiveImplementation::FrameLengthU32Be,
+                || Box::new(FrameLengthU32Be),
+                validate_data_framing,
+            ),
+            (
+                standard_data_contract("std/data/deframe-length-u32be"),
+                "data-deframe-length-u32be",
+                HostedPrimitiveImplementation::DeframeLengthU32Be,
+                || Box::new(DeframeLengthU32Be),
+                validate_data_framing,
             ),
             (
                 &STDOUT_CONTRACT,
@@ -2050,6 +2116,38 @@ impl Default for Registry {
                 validate_empty_config,
             ),
         );
+        for (contract, factory, validate) in [
+            (
+                standard_data_contract("std/data/encode-utf8"),
+                (|| Box::new(EncodeUtf8) as Box<dyn Handler>) as HandlerFactory,
+                validate_data_codec as ConfigValidator,
+            ),
+            (
+                standard_data_contract("std/data/decode-utf8"),
+                (|| Box::new(DecodeUtf8) as Box<dyn Handler>) as HandlerFactory,
+                validate_data_codec as ConfigValidator,
+            ),
+            (
+                standard_data_contract("std/data/frame-length-u32be"),
+                (|| Box::new(FrameLengthU32Be) as Box<dyn Handler>) as HandlerFactory,
+                validate_data_framing as ConfigValidator,
+            ),
+            (
+                standard_data_contract("std/data/deframe-length-u32be"),
+                (|| Box::new(DeframeLengthU32Be) as Box<dyn Handler>) as HandlerFactory,
+                validate_data_framing as ConfigValidator,
+            ),
+            (
+                standard_data_contract("std/data/validate-closed-record"),
+                (|| Box::new(PassThroughHandler) as Box<dyn Handler>) as HandlerFactory,
+                validate_contract_config as ConfigValidator,
+            ),
+        ] {
+            nodes.insert(
+                contract.id.as_str(),
+                honest_primitive(contract, factory, validate),
+            );
+        }
         nodes.insert(
             STDOUT_CONTRACT.id.as_str(),
             honest_primitive(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config),
@@ -4050,6 +4148,12 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Uppercase => "text/uppercase",
                 HostedPrimitiveImplementation::EncodeUtf8 => "text/encode-utf8",
                 HostedPrimitiveImplementation::DecodeUtf8 => "text/decode-utf8",
+                HostedPrimitiveImplementation::DataEncodeUtf8 => "std/data/encode-utf8",
+                HostedPrimitiveImplementation::DataDecodeUtf8 => "std/data/decode-utf8",
+                HostedPrimitiveImplementation::FrameLengthU32Be => "std/data/frame-length-u32be",
+                HostedPrimitiveImplementation::DeframeLengthU32Be => {
+                    "std/data/deframe-length-u32be"
+                }
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
@@ -4186,6 +4290,39 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Uppercase => HostedNodeKind::Uppercase,
                 HostedPrimitiveImplementation::EncodeUtf8 => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::DecodeUtf8 => HostedNodeKind::PassThrough,
+                HostedPrimitiveImplementation::DataEncodeUtf8
+                | HostedPrimitiveImplementation::DataDecodeUtf8 => HostedNodeKind::DataUtf8 {
+                    utf8: conduit_std::Utf8State::new(),
+                    pending: None,
+                    cursor: 0,
+                    validated: false,
+                    maximum_input_bytes: source_usize(&resolved.source, "maximum_input_bytes")?,
+                    maximum_output_bytes: source_usize(&resolved.source, "maximum_output_bytes")?,
+                },
+                HostedPrimitiveImplementation::FrameLengthU32Be => {
+                    HostedNodeKind::FrameLengthU32Be {
+                        input: None,
+                        cursor: 0,
+                        output: Vec::new(),
+                        pending_output: None,
+                        maximum_frame_bytes: source_usize(&resolved.source, "maximum_frame_bytes")?,
+                        maximum_output_bytes: source_usize(
+                            &resolved.source,
+                            "maximum_output_bytes",
+                        )?,
+                    }
+                }
+                HostedPrimitiveImplementation::DeframeLengthU32Be => {
+                    let maximum_frame_bytes =
+                        source_usize(&resolved.source, "maximum_frame_bytes")?;
+                    HostedNodeKind::DeframeLengthU32Be {
+                        decoder: conduit_std::LengthU32BeDecoder::new(maximum_frame_bytes),
+                        input: None,
+                        cursor: 0,
+                        pending_output: None,
+                        terminal_seen: false,
+                    }
+                }
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
@@ -4574,6 +4711,29 @@ enum HostedNodeKind {
     Stderr,
     DisplayText,
     PassThrough,
+    DataUtf8 {
+        utf8: conduit_std::Utf8State,
+        pending: Option<RuntimeValue>,
+        cursor: usize,
+        validated: bool,
+        maximum_input_bytes: usize,
+        maximum_output_bytes: usize,
+    },
+    FrameLengthU32Be {
+        input: Option<RuntimeValue>,
+        cursor: usize,
+        output: Vec<u8>,
+        pending_output: Option<RuntimeValue>,
+        maximum_frame_bytes: usize,
+        maximum_output_bytes: usize,
+    },
+    DeframeLengthU32Be {
+        decoder: conduit_std::LengthU32BeDecoder<{ conduit_std::DATA_MAX_FRAME_BYTES }>,
+        input: Option<RuntimeValue>,
+        cursor: usize,
+        pending_output: Option<RuntimeValue>,
+        terminal_seen: bool,
+    },
     Tee {
         isolated: bool,
         retained: Option<RuntimeValue>,
@@ -5398,6 +5558,365 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     SchedulerStep::Pending
                 }
             }
+            HostedNodeKind::DataUtf8 {
+                utf8,
+                pending,
+                cursor,
+                validated,
+                maximum_input_bytes,
+                maximum_output_bytes,
+            } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if pending.is_none() {
+                    match io.receive(in_cord) {
+                        Ok(Some(value)) => {
+                            if value.accounted_bytes as usize > *maximum_input_bytes
+                                || value.accounted_bytes as usize > *maximum_output_bytes
+                            {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-DAT-012",
+                                    "UTF-8 value exceeded the exact codec bounds",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-DAT-012"),
+                                };
+                            }
+                            *pending = Some(value);
+                            *cursor = 0;
+                            *validated = false;
+                            utf8.reset();
+                        }
+                        _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                            return SchedulerStep::Completed;
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(in_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                let value = pending.expect("UTF-8 input is retained");
+                while !*validated && io.remaining_work() > 0 {
+                    let byte = {
+                        let store = self.store.borrow();
+                        store
+                            .get(value.handle)
+                            .and_then(|bytes| bytes.get(*cursor))
+                            .copied()
+                    };
+                    let Some(byte) = byte else {
+                        if *cursor != value.accounted_bytes as usize || utf8.finish().is_err() {
+                            *self.host_failure.borrow_mut() =
+                                Some(RuntimeError::new("CND-DAT-005", "value is not exact UTF-8"));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-DAT-005"),
+                            };
+                        }
+                        *validated = true;
+                        break;
+                    };
+                    if io.consume_work(1).is_err() || utf8.push_byte(byte).is_err() {
+                        *self.host_failure.borrow_mut() =
+                            Some(RuntimeError::new("CND-DAT-005", "value is not exact UTF-8"));
+                        return SchedulerStep::Failed {
+                            code: Id("CND-DAT-005"),
+                        };
+                    }
+                    *cursor += 1;
+                }
+                if !*validated {
+                    return if io.record_host_progress().is_ok() {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        }
+                    };
+                }
+                match io.send(out_cord, value, None) {
+                    Ok(SendStatus::Reserved) => {
+                        *pending = None;
+                        *cursor = 0;
+                        *validated = false;
+                        utf8.reset();
+                        SchedulerStep::Progress
+                    }
+                    Ok(_) | Err(_) => {
+                        let _ = io.wait_for_output(out_cord);
+                        SchedulerStep::Pending
+                    }
+                }
+            }
+            HostedNodeKind::FrameLengthU32Be {
+                input,
+                cursor,
+                output,
+                pending_output,
+                maximum_frame_bytes,
+                maximum_output_bytes,
+            } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if input.is_none() {
+                    match io.receive(in_cord) {
+                        Ok(Some(value)) => {
+                            if value.accounted_bytes as usize > *maximum_frame_bytes {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-DAT-001",
+                                    "frame payload exceeded the exact bound",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-DAT-001"),
+                                };
+                            }
+                            *input = Some(value);
+                            *cursor = 0;
+                            output.clear();
+                        }
+                        _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                            return SchedulerStep::Completed;
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(in_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                let value = input.expect("frame input is retained");
+                let payload_len = value.accounted_bytes as usize;
+                let total = conduit_std::LENGTH_U32BE_PREFIX_BYTES + payload_len;
+                if total > *maximum_output_bytes {
+                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                        "CND-DAT-002",
+                        "framed output exceeded the exact bound",
+                    ));
+                    return SchedulerStep::Failed {
+                        code: Id("CND-DAT-002"),
+                    };
+                }
+                let prefix = (payload_len as u32).to_be_bytes();
+                while *cursor < total && io.remaining_work() > 0 {
+                    let byte = if *cursor < prefix.len() {
+                        prefix[*cursor]
+                    } else {
+                        let payload_index = *cursor - prefix.len();
+                        let store = self.store.borrow();
+                        let Some(byte) = store
+                            .get(value.handle)
+                            .and_then(|bytes| bytes.get(payload_index))
+                            .copied()
+                        else {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-missing"),
+                            };
+                        };
+                        byte
+                    };
+                    if io.consume_work(1).is_err() {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        };
+                    }
+                    output.push(byte);
+                    *cursor += 1;
+                }
+                if *cursor < total {
+                    return if io.record_host_progress().is_ok() {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Failed {
+                            code: Id("conduit/step-work-bound-exceeded"),
+                        }
+                    };
+                }
+                let bytes = core::mem::take(output);
+                let accounted_bytes = bytes.len() as u32;
+                let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/value-store-bound-exceeded"),
+                    };
+                };
+                *input = None;
+                *cursor = 0;
+                *pending_output = Some(RuntimeValue {
+                    handle,
+                    accounted_bytes,
+                    envelope: value.envelope,
+                });
+                if io.record_host_progress().is_ok() {
+                    SchedulerStep::Progress
+                } else {
+                    SchedulerStep::Failed {
+                        code: Id("conduit/step-work-bound-exceeded"),
+                    }
+                }
+            }
+            HostedNodeKind::DeframeLengthU32Be {
+                decoder,
+                input,
+                cursor,
+                pending_output,
+                terminal_seen,
+            } => {
+                let Some(&in_cord) = self.in_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if input.is_none() && !*terminal_seen {
+                    match io.receive(in_cord) {
+                        Ok(Some(value)) => {
+                            *input = Some(value);
+                            *cursor = 0;
+                        }
+                        _ if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) => {
+                            *terminal_seen = true;
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(in_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                if let Some(value) = *input {
+                    while *cursor < value.accounted_bytes as usize && io.remaining_work() > 0 {
+                        let byte = {
+                            let store = self.store.borrow();
+                            store
+                                .get(value.handle)
+                                .and_then(|bytes| bytes.get(*cursor))
+                                .copied()
+                        };
+                        let Some(byte) = byte else {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-missing"),
+                            };
+                        };
+                        if io.consume_work(1).is_err() {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            };
+                        }
+                        *cursor += 1;
+                        match decoder.push_byte(byte) {
+                            Ok(true) => {
+                                let length =
+                                    decoder.ready_len().expect("ready decoder has exact length");
+                                let mut bytes = vec![0; length];
+                                decoder
+                                    .take_ready(&mut bytes)
+                                    .map_err(data_boundary_runtime_error)
+                                    .unwrap_or_else(|error| {
+                                        *self.host_failure.borrow_mut() = Some(error);
+                                        None
+                                    });
+                                if self.host_failure.borrow().is_some() {
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-DAT-002"),
+                                    };
+                                }
+                                let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                                    return SchedulerStep::Failed {
+                                        code: Id("conduit/value-store-bound-exceeded"),
+                                    };
+                                };
+                                *pending_output = Some(RuntimeValue {
+                                    handle,
+                                    accounted_bytes: length as u32,
+                                    envelope: value.envelope,
+                                });
+                                if *cursor == value.accounted_bytes as usize {
+                                    *input = None;
+                                    *cursor = 0;
+                                }
+                                return if io.record_host_progress().is_ok() {
+                                    SchedulerStep::Progress
+                                } else {
+                                    SchedulerStep::Failed {
+                                        code: Id("conduit/step-work-bound-exceeded"),
+                                    }
+                                };
+                            }
+                            Ok(false) => {}
+                            Err(error) => {
+                                *self.host_failure.borrow_mut() =
+                                    Some(data_boundary_runtime_error(error));
+                                return SchedulerStep::Failed {
+                                    code: Id(error.code()),
+                                };
+                            }
+                        }
+                    }
+                    if input.is_some() && *cursor == value.accounted_bytes as usize {
+                        *input = None;
+                        *cursor = 0;
+                        return if io.record_host_progress().is_ok() {
+                            SchedulerStep::Progress
+                        } else {
+                            SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            }
+                        };
+                    }
+                    if input.is_some() {
+                        return if io.record_host_progress().is_ok() {
+                            SchedulerStep::Progress
+                        } else {
+                            SchedulerStep::Failed {
+                                code: Id("conduit/step-work-bound-exceeded"),
+                            }
+                        };
+                    }
+                }
+                if *terminal_seen {
+                    match decoder.finish() {
+                        Ok(()) => SchedulerStep::Completed,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() =
+                                Some(data_boundary_runtime_error(error));
+                            SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            }
+                        }
+                    }
+                } else {
+                    SchedulerStep::Progress
+                }
+            }
             HostedNodeKind::Tee {
                 isolated,
                 retained,
@@ -6054,6 +6573,180 @@ fn validate_select(node: &Node) -> Result<(), ResolutionError> {
     )
 }
 
+fn required_data_reference<'a>(
+    node: &'a Node,
+    key: &str,
+    expected: &str,
+) -> Result<&'a str, ResolutionError> {
+    let value = node.config(key).ok_or_else(|| {
+        ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` requires exact `{key}` descriptor", node.id),
+        )
+    })?;
+    if value != expected {
+        return Err(ResolutionError::new(
+            "CND-DAT-011",
+            format!("node `{}` requests unsupported `{key}` `{value}`", node.id),
+        ));
+    }
+    Ok(value)
+}
+
+fn required_data_bound(node: &Node, key: &str, maximum: u64) -> Result<u64, ResolutionError> {
+    let Some(conduit_panel::SourceValue::Integer(value)) = node.config_value(key) else {
+        return Err(ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` requires integer `{key}`", node.id),
+        ));
+    };
+    let value = u64::try_from(*value).map_err(|_| {
+        ResolutionError::new(
+            "CND-DAT-012",
+            format!("node `{}` has negative `{key}`", node.id),
+        )
+    })?;
+    if value > maximum {
+        return Err(ResolutionError::new(
+            "CND-DAT-012",
+            format!("node `{}` exceeds `{key}` provider bound", node.id),
+        ));
+    }
+    Ok(value)
+}
+
+fn required_data_descriptor_pin(
+    node: &Node,
+    prefix: &str,
+    expected_id: &str,
+    expected_hash: &[u8; 32],
+) -> Result<(), ResolutionError> {
+    required_data_reference(node, prefix, expected_id)?;
+    let version_key = format!("{prefix}_schema_version");
+    if required_data_bound(node, &version_key, u32::MAX as u64)? != 0 {
+        return Err(ResolutionError::new(
+            "CND-DAT-011",
+            format!(
+                "node `{}` requests unsupported `{prefix}` schema version",
+                node.id
+            ),
+        ));
+    }
+    let hash_key = format!("{prefix}_hash");
+    let Some(conduit_panel::SourceValue::Bytes(hash)) = node.config_value(&hash_key) else {
+        return Err(ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` requires bytes `{hash_key}`", node.id),
+        ));
+    };
+    if hash.as_slice() != expected_hash {
+        return Err(ResolutionError::new(
+            "CND-DAT-011",
+            format!("node `{}` requests unsupported `{prefix}` hash", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_data_config_keys(node: &Node, expected: &[&str]) -> Result<(), ResolutionError> {
+    if node.config.len() != expected.len() {
+        return Err(ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` has an incomplete data-boundary profile", node.id),
+        ));
+    }
+    if let Some(entry) = node
+        .config
+        .iter()
+        .find(|entry| !expected.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError::new(
+            "CND-DAT-010",
+            format!("node `{}` has unknown field `{}`", node.id, entry.key),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_data_codec(node: &Node) -> Result<(), ResolutionError> {
+    validate_data_config_keys(
+        node,
+        &[
+            "codec",
+            "codec_schema_version",
+            "codec_hash",
+            "maximum_input_bytes",
+            "maximum_output_bytes",
+        ],
+    )?;
+    required_data_descriptor_pin(
+        node,
+        "codec",
+        DATA_UTF8_CODEC_DESCRIPTOR,
+        DATA_UTF8_CODEC_HASH,
+    )?;
+    let input = required_data_bound(
+        node,
+        "maximum_input_bytes",
+        conduit_std::DATA_MAX_FRAME_BYTES as u64,
+    )?;
+    let output = required_data_bound(
+        node,
+        "maximum_output_bytes",
+        conduit_std::DATA_MAX_FRAME_BYTES as u64,
+    )?;
+    if output < input {
+        return Err(ResolutionError::new(
+            "CND-DAT-012",
+            format!(
+                "node `{}` output bound is smaller than its input bound",
+                node.id
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_data_framing(node: &Node) -> Result<(), ResolutionError> {
+    validate_data_config_keys(
+        node,
+        &[
+            "framing",
+            "framing_schema_version",
+            "framing_hash",
+            "maximum_frame_bytes",
+            "maximum_partial_bytes",
+            "maximum_output_bytes",
+        ],
+    )?;
+    required_data_descriptor_pin(
+        node,
+        "framing",
+        DATA_LENGTH_U32BE_DESCRIPTOR,
+        DATA_LENGTH_U32BE_HASH,
+    )?;
+    let frame = required_data_bound(
+        node,
+        "maximum_frame_bytes",
+        conduit_std::DATA_MAX_FRAME_BYTES as u64,
+    )?;
+    let storage_maximum =
+        conduit_std::DATA_MAX_FRAME_BYTES as u64 + conduit_std::LENGTH_U32BE_PREFIX_BYTES as u64;
+    let partial = required_data_bound(node, "maximum_partial_bytes", storage_maximum)?;
+    let output = required_data_bound(node, "maximum_output_bytes", storage_maximum)?;
+    let framed = frame + conduit_std::LENGTH_U32BE_PREFIX_BYTES as u64;
+    if partial < framed
+        || (node.kind == "std/data/frame-length-u32be" && output < framed)
+        || (node.kind == "std/data/deframe-length-u32be" && output < frame)
+    {
+        return Err(ResolutionError::new(
+            "CND-DAT-012",
+            format!("node `{}` has inconsistent framing bounds", node.id),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_contract_config(_node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
@@ -6641,7 +7334,7 @@ struct EncodeUtf8;
 impl Handler for EncodeUtf8 {
     fn run(
         &mut self,
-        _node: &Node,
+        node: &Node,
         inputs: &[Value],
         _io: &mut RunIo<'_>,
     ) -> Result<Vec<Value>, RuntimeError> {
@@ -6649,9 +7342,18 @@ impl Handler for EncodeUtf8 {
             .first()
             .filter(|value| value.value_type == TEXT_TYPE)
             .ok_or_else(|| RuntimeError::new("CND-RUN-004", "UTF-8 encoder text input missing"))?;
-        std::str::from_utf8(&input.bytes)
-            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
-        Ok(vec![Value::bytes(input.bytes.clone())])
+        let maximum = runtime_data_bound(
+            node,
+            "maximum_output_bytes",
+            conduit_std::DATA_MAX_FRAME_BYTES,
+        )?;
+        let text = std::str::from_utf8(&input.bytes)
+            .map_err(|_| RuntimeError::new("CND-DAT-005", "input is not exact UTF-8 text"))?;
+        let mut output = vec![0; maximum];
+        let length =
+            conduit_std::encode_utf8(text, &mut output).map_err(data_boundary_runtime_error)?;
+        output.truncate(length);
+        Ok(vec![Value::bytes(output)])
     }
 }
 
@@ -6660,7 +7362,7 @@ struct DecodeUtf8;
 impl Handler for DecodeUtf8 {
     fn run(
         &mut self,
-        _node: &Node,
+        node: &Node,
         inputs: &[Value],
         _io: &mut RunIo<'_>,
     ) -> Result<Vec<Value>, RuntimeError> {
@@ -6668,9 +7370,116 @@ impl Handler for DecodeUtf8 {
             .first()
             .filter(|value| value.value_type == BYTES_TYPE)
             .ok_or_else(|| RuntimeError::new("CND-RUN-004", "UTF-8 decoder byte input missing"))?;
-        std::str::from_utf8(&input.bytes)
-            .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
-        Ok(vec![Value::text(input.bytes.clone())])
+        let maximum = runtime_data_bound(
+            node,
+            "maximum_output_bytes",
+            conduit_std::DATA_MAX_FRAME_BYTES,
+        )?;
+        let mut output = vec![0; maximum];
+        let length = conduit_std::decode_utf8(&input.bytes, &mut output)
+            .map_err(data_boundary_runtime_error)?;
+        output.truncate(length);
+        Ok(vec![Value::text(output)])
+    }
+}
+
+fn runtime_data_bound(node: &Node, key: &str, default: usize) -> Result<usize, RuntimeError> {
+    match node.config_value(key) {
+        Some(conduit_panel::SourceValue::Integer(value)) => usize::try_from(*value)
+            .map_err(|_| RuntimeError::new("CND-DAT-012", "data bound is out of range")),
+        None if node.kind == "text/encode-utf8" || node.kind == "text/decode-utf8" => Ok(default),
+        _ => Err(RuntimeError::new(
+            "CND-DAT-010",
+            format!("node `{}` lost exact `{key}`", node.id),
+        )),
+    }
+}
+
+fn data_boundary_runtime_error(error: conduit_std::DataBoundaryError) -> RuntimeError {
+    RuntimeError::new(error.code(), error.code())
+}
+
+struct FrameLengthU32Be;
+
+impl Handler for FrameLengthU32Be {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == BYTES_TYPE)
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "frame payload is missing"))?;
+        let maximum_frame = runtime_data_bound(
+            node,
+            "maximum_frame_bytes",
+            conduit_std::DATA_MAX_FRAME_BYTES,
+        )?;
+        let maximum_output = runtime_data_bound(
+            node,
+            "maximum_output_bytes",
+            conduit_std::DATA_MAX_FRAME_BYTES + conduit_std::LENGTH_U32BE_PREFIX_BYTES,
+        )?;
+        let mut output = vec![0; maximum_output];
+        let length = conduit_std::encode_length_u32be(&input.bytes, &mut output, maximum_frame)
+            .map_err(data_boundary_runtime_error)?;
+        output.truncate(length);
+        Ok(vec![Value::bytes(output)])
+    }
+}
+
+struct DeframeLengthU32Be;
+
+impl Handler for DeframeLengthU32Be {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let maximum_frame = runtime_data_bound(
+            node,
+            "maximum_frame_bytes",
+            conduit_std::DATA_MAX_FRAME_BYTES,
+        )?;
+        let mut decoder =
+            conduit_std::LengthU32BeDecoder::<{ conduit_std::DATA_MAX_FRAME_BYTES }>::new(
+                maximum_frame,
+            );
+        let mut output = vec![0; maximum_frame];
+        let mut ready_length = None;
+        for input in inputs {
+            if input.value_type != BYTES_TYPE {
+                return Err(RuntimeError::new(
+                    "CND-RUN-004",
+                    "deframe chunk is not exact bytes",
+                ));
+            }
+            for &byte in &input.bytes {
+                if decoder
+                    .push_byte(byte)
+                    .map_err(data_boundary_runtime_error)?
+                {
+                    if ready_length.is_some() {
+                        return Err(RuntimeError::new(
+                            "CND-DAT-013",
+                            "finite compatibility execution produced more than one frame",
+                        ));
+                    }
+                    ready_length = decoder
+                        .take_ready(&mut output)
+                        .map_err(data_boundary_runtime_error)?;
+                }
+            }
+        }
+        decoder.finish().map_err(data_boundary_runtime_error)?;
+        let length = ready_length.ok_or_else(|| {
+            RuntimeError::new("CND-DAT-003", "input terminated without a complete frame")
+        })?;
+        output.truncate(length);
+        Ok(vec![Value::bytes(output)])
     }
 }
 
@@ -7045,6 +7854,49 @@ mod tests {
         assert!(error.is_empty());
         assert_eq!(summary.nodes_completed, 4);
         assert_eq!(summary.cords_conducted, 3);
+    }
+
+    #[test]
+    fn data_boundary_profile_round_trips_and_rejects_unpinned_codecs() {
+        let panel = parse(include_str!(
+            "../../../examples/data-boundary-round-trip.panel"
+        ))
+        .expect("data-boundary example parses");
+        let registry = Registry::hosted_primitives();
+        let resolved = registry.resolve(&panel).expect("exact profiles resolve");
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        let mut display = Vec::new();
+        let summary = resolved
+            .run_batch(&mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+                display: &mut display,
+            })
+            .expect("data boundaries run");
+        assert_eq!(display, b"representation boundaries stay explicit");
+        assert_eq!(summary.nodes_completed, 8);
+        assert_eq!(summary.cords_conducted, 7);
+
+        let unsupported = parse(
+            r#"
+                panel 0
+                node encoded : std/data/encode-utf8 {
+                    codec = ref("conduit.codec/utf-8")
+                    codec_schema_version = 0
+                    codec_hash = bytes("0000000000000000000000000000000000000000000000000000000000000000")
+                    maximum_input_bytes = 64
+                    maximum_output_bytes = 64
+                }
+            "#,
+        )
+        .expect("unsupported profile parses");
+        let failure = registry
+            .resolve(&unsupported)
+            .expect_err("unsupported codec hash fails resolution");
+        assert_eq!(failure.code, "CND-DAT-011");
     }
 
     #[test]

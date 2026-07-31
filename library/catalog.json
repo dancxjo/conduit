@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -906,7 +906,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.crypto",
       "export_path": "conduit.host.crypto/crypto/operation",
       "schema_version": 0,
-      "semantic_hash": "sha256:2444dc51d464ffe5b57947eb0acd6a6bfb7954911bcc27d3e5422db61bc46815",
+      "semantic_hash": "sha256:90d4ef6c21eac39a1517df484577f604bd18041d6419cf1f67a000f4deb613a7",
       "ports": [
         {
           "id": "operation",
@@ -996,13 +996,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -1050,7 +1050,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.data",
       "export_path": "conduit.host.data/data/compress",
       "schema_version": 0,
-      "semantic_hash": "sha256:e5606e3489ebad60f85ac1e258cd405382a41aad88720d43deb06fa9843f0568",
+      "semantic_hash": "sha256:08019dcea8f61c3ec6d6151d4cd3fbedb50e095eeef636843a00a6ff9d828a61",
       "ports": [
         {
           "id": "uncompressed",
@@ -1140,13 +1140,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1481,7 +1481,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.evidence",
       "export_path": "conduit.host.evidence/evidence/export",
       "schema_version": 0,
-      "semantic_hash": "sha256:f9ae7014d7ce7e91de159235c7285a5e65cf726a19c16ea6dd375b5e4197745e",
+      "semantic_hash": "sha256:9156de23df3cce8b47a89159acfcde331705a2950da3ec70a0f940bf42545a9f",
       "ports": [
         {
           "id": "evidence",
@@ -1571,13 +1571,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -1625,7 +1625,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
       "export_path": "conduit.std.flow/flow/adapter",
       "schema_version": 0,
-      "semantic_hash": "sha256:2d343a28f58cf463eb6f083f0a3c77f4328f41b847d09651ca7796ecd754a63a",
+      "semantic_hash": "sha256:50e5c95eb49360afa98c2da7f90b44cc853bdb2332e814b3ecd55c2f18fe8119",
       "ports": [
         {
           "id": "source",
@@ -1715,7 +1715,7 @@
           "key": "implementation",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_outputs_per_input",
@@ -2506,7 +2506,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2772,7 +2772,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
       "export_path": "conduit.std.flow/flow/filter-map",
       "schema_version": 0,
-      "semantic_hash": "sha256:86fa97cab5bd1e721852aec13d9ac96386e40c00020dffd313e127d49fd49b85",
+      "semantic_hash": "sha256:3f70678915460164c245a1b0099dd4872007c7f1e21603dba1c3eb55528b8d4b",
       "ports": [
         {
           "id": "candidate",
@@ -2862,7 +2862,7 @@
           "key": "implementation",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_outputs_per_input",
@@ -3024,7 +3024,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
       "export_path": "conduit.std.flow/flow/flat-map",
       "schema_version": 0,
-      "semantic_hash": "sha256:48384650a3956aedda3a7b99a50d78aac695d7ffaf295fc3a1a4b2eb9ce65f82",
+      "semantic_hash": "sha256:57dc64347ac1ef003e95f65764bdb37b51fe96eef3284a122eab34f2ab1772f5",
       "ports": [
         {
           "id": "item",
@@ -3114,7 +3114,7 @@
           "key": "implementation",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_outputs_per_input",
@@ -3150,7 +3150,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
       "export_path": "conduit.std.flow/flow/fold",
       "schema_version": 0,
-      "semantic_hash": "sha256:4d0d9c488d5255e4ef7703cad831b425576f27a6c6fb2dfa5f170f71748d1004",
+      "semantic_hash": "sha256:bf24697350dd8c53f0a2b142f8356b369374ae93326e43a02a612935d35ee5ae",
       "ports": [
         {
           "id": "item",
@@ -3252,7 +3252,7 @@
           "key": "compatibility",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         }
       ],
       "catalog_membership": "portable-catalog",
@@ -3376,7 +3376,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3696,7 +3696,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
       "export_path": "conduit.std.flow/flow/map",
       "schema_version": 0,
-      "semantic_hash": "sha256:ed1f9ddbb08db6a16a159d59082a30fa555217e9783520301a5d74b1fe6094f1",
+      "semantic_hash": "sha256:b4c874ae2c61dc01e15a7a88fb0541b25006c15f1abe57966819c3f23d7dea06",
       "ports": [
         {
           "id": "item",
@@ -3786,7 +3786,7 @@
           "key": "implementation",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_outputs_per_input",
@@ -4536,7 +4536,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.fs",
       "export_path": "conduit.host.fs/fs/watch",
       "schema_version": 0,
-      "semantic_hash": "sha256:f747f9d669e2befe1495471b46bc9f5878df836d5664a0e9d7a8b9d9f7b863f7",
+      "semantic_hash": "sha256:26afa404ef62ebf8a59f70ee374e30ea92aeb97d367cd99083840d19be3e4387",
       "ports": [
         {
           "id": "path",
@@ -4626,13 +4626,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -4804,7 +4804,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4883,7 +4883,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4962,7 +4962,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4989,7 +4989,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/bridge",
       "schema_version": 0,
-      "semantic_hash": "sha256:4180395f9a55f806cfbb1746b0dacd0fb3b6df154a9627ef54c7f356239417a3",
+      "semantic_hash": "sha256:6cf423b8ab6cfe0abb8b8c367e77db4f4f86a026563f66717e59bc4e161a626e",
       "ports": [
         {
           "id": "frame",
@@ -5079,13 +5079,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -5133,7 +5133,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/dhcp/client",
       "schema_version": 0,
-      "semantic_hash": "sha256:9eaf64628acca4cd199c8eb09b61e6140f3a1bfddf2336bdd9f393bfbcbd2bae",
+      "semantic_hash": "sha256:d3049a2fb777a38e02bf70ebd047f4dd55f7ac9d1f96f4f7288d90548ce035ab",
       "ports": [
         {
           "id": "request",
@@ -5223,13 +5223,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -5277,7 +5277,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/dhcp/server",
       "schema_version": 0,
-      "semantic_hash": "sha256:4f2ad91e37f8ae893c6189b2099b99d9362dc971f53a838ffbfe18ac2897b7bc",
+      "semantic_hash": "sha256:a9f38f5b0e5cd7b2e4b4fb400a03d9022c2cad31f312e85758b2fdc5686b409b",
       "ports": [
         {
           "id": "configuration",
@@ -5367,13 +5367,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -5534,7 +5534,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/http/fetch",
       "schema_version": 0,
-      "semantic_hash": "sha256:eb123e2991f4291b357f1cbaa5b83d9c7b65d1265ad95103f018392af7bbef4b",
+      "semantic_hash": "sha256:15bff1ff5d402a853e3a5dbc46bc59a3718429998c1aa43e1cda82893449a6d7",
       "ports": [
         {
           "id": "request",
@@ -5572,7 +5572,7 @@
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -5620,7 +5620,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/http/serve",
       "schema_version": 0,
-      "semantic_hash": "sha256:d10dd5ce6c5917f605aef4150d33f33bf02cacc49be16f8f719f5d039070e898",
+      "semantic_hash": "sha256:7935ed1ac42fb0e37a09c47c25ca35bd7cc95c1c09b44d7c0738339abd78b46b",
       "ports": [
         {
           "id": "response",
@@ -5658,13 +5658,13 @@
           "key": "listen",
           "value_type": "net/socket/address",
           "type_schema_version": 0,
-          "type_hash": "sha256:9eef61f80f023617e4688d0ccaf954ec2a12fbe8ca25ecc540ee352aeaa13a1f"
+          "type_hash": "sha256:073db6726d1c2aa9dff770e996e16c7c449a8b5a39b927c937e09460b53ce4d6"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -5886,7 +5886,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/ip/configure-static",
       "schema_version": 0,
-      "semantic_hash": "sha256:c52c0dbde75fab58b3785d93ab86c30a55ad8f080e2e2f8864c97a9372b6e270",
+      "semantic_hash": "sha256:82a6df8b45798e3ac89e25201bbdbc08d44285039f898b950d05909b71b8c2bd",
       "ports": [
         {
           "id": "configuration",
@@ -5976,13 +5976,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -6030,7 +6030,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/nat",
       "schema_version": 0,
-      "semantic_hash": "sha256:032587c3b94225bc8982488b679ada02583cf95de6f99c56d097ac8a228af580",
+      "semantic_hash": "sha256:c26d9833eb8eef32fe25a48ba6ecc1a82819c77384c9e2374bf6755a04b53303",
       "ports": [
         {
           "id": "packet",
@@ -6120,13 +6120,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -6174,7 +6174,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/observe",
       "schema_version": 0,
-      "semantic_hash": "sha256:39bd9d436d4ae304695d027725c742f0a0194d9aed484ebb25b65ed88a85106f",
+      "semantic_hash": "sha256:b09e3150534162e58befb9a6f6cfaedc5f1540372be1dfb584b1555d3b83851a",
       "ports": [
         {
           "id": "request",
@@ -6264,13 +6264,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -6318,7 +6318,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/reachability",
       "schema_version": 0,
-      "semantic_hash": "sha256:df28c46edcedf2d1f1100e9e63c394073c143f2bb19d1362e6fbb7605781fde2",
+      "semantic_hash": "sha256:b5b3b3ba291be968e9cefbf9149d2c66f37d6a64f6388f0158d1269262e61449",
       "ports": [
         {
           "id": "target",
@@ -6408,13 +6408,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -6462,7 +6462,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/route",
       "schema_version": 0,
-      "semantic_hash": "sha256:53df23f981b4b815c3db2e19a6daa820aa9ce2c625289c8622b70ae2d1c44ba8",
+      "semantic_hash": "sha256:a0e1f7a99440ad00c9ce3d1476f74628067eb6449d13fe023f33bd9f36c83053",
       "ports": [
         {
           "id": "route",
@@ -6552,13 +6552,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -6606,7 +6606,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/sse",
       "schema_version": 0,
-      "semantic_hash": "sha256:d1e930b4bcd978645d035b32bdcb46ff70655f5887c24fd46146a70fff7e5954",
+      "semantic_hash": "sha256:b1478e6e2870f0983971289b5819329d72591ec87aa96aef4a01a22222180069",
       "ports": [
         {
           "id": "request",
@@ -6696,13 +6696,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -6976,7 +6976,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/websocket",
       "schema_version": 0,
-      "semantic_hash": "sha256:9f38eaf1d670abe8f56d68ccfc2c13bdef0f7a47949061faeb0344acb820c5d3",
+      "semantic_hash": "sha256:d37870c64e965eb19c59dd7f132170115691c9f4ffed6b877fba6ed230cb9645",
       "ports": [
         {
           "id": "frame",
@@ -7066,13 +7066,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -7346,7 +7346,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/wifi/scan",
       "schema_version": 0,
-      "semantic_hash": "sha256:1271b0e278c06fd3f5d8ede210fa8c6b3c60ce5b1025854fcb304b6c4f1ad9af",
+      "semantic_hash": "sha256:d6c091f5bd9989eccf6d8f0cda398bb55e95b60dc3b6ef61435cb71622931d70",
       "ports": [
         {
           "id": "request",
@@ -7436,13 +7436,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -7716,7 +7716,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.process",
       "export_path": "conduit.host.process/process/stream",
       "schema_version": 0,
-      "semantic_hash": "sha256:97c2a6df1b3ac3a86d6720afcc5a29ef67420b1f53cf5513ce669290b31e8394",
+      "semantic_hash": "sha256:caa51e1fdff46715be3d82b079542323bbc3491145f92c671fe25c25ba7c1c97",
       "ports": [
         {
           "id": "stdin",
@@ -7806,13 +7806,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -7860,7 +7860,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.secret",
       "export_path": "conduit.host.secret/secret/reference",
       "schema_version": 0,
-      "semantic_hash": "sha256:03b913aa1afaed0ab601a9b27d5235c891f9149ee9422045293236ddb8f41438",
+      "semantic_hash": "sha256:4622a0b954b519a8b0a13dad2cec2958bc1aa8d534fd11783bce3333f2d0b478",
       "ports": [
         {
           "id": "reference",
@@ -7950,13 +7950,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -8230,7 +8230,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.state",
       "export_path": "conduit.std.state/state/checkpoint",
       "schema_version": 0,
-      "semantic_hash": "sha256:4730b3e5479a7f1d5a26002c00163f067c72a3edd1b299ccbd042f07eafea868",
+      "semantic_hash": "sha256:18fbe9c3ce6ef4ac15d18256787ed88ed50a053ebc0196f238f3a857ec8b95ba",
       "ports": [
         {
           "id": "state",
@@ -8373,7 +8373,7 @@
           "key": "compatibility",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         }
       ],
       "catalog_membership": "portable-catalog",
@@ -8629,7 +8629,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.state",
       "export_path": "conduit.std.state/state/history",
       "schema_version": 0,
-      "semantic_hash": "sha256:9c9bd2140b11387466f61dc34c019193f5f2681a3ca275eecfa97cc05292ce7a",
+      "semantic_hash": "sha256:3d34c2683c8b3d297a41ca24ed9d4957983ce58a6b1f077a4e4a51e29d29b051",
       "ports": [
         {
           "id": "event",
@@ -8772,7 +8772,7 @@
           "key": "compatibility",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         }
       ],
       "catalog_membership": "portable-catalog",
@@ -8802,7 +8802,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.state",
       "export_path": "conduit.std.state/state/machine",
       "schema_version": 0,
-      "semantic_hash": "sha256:96ca6b63ba885c5e979834c926461767af76eee7857ecca4495ff360f9c9bb72",
+      "semantic_hash": "sha256:be5c38927f51f180543376636681270675aa3625df003e08551af0b128adc50e",
       "ports": [
         {
           "id": "event",
@@ -8945,7 +8945,7 @@
           "key": "compatibility",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         }
       ],
       "catalog_membership": "portable-catalog",
@@ -8975,7 +8975,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std",
       "export_path": "conduit.std/std/data/decode-utf8",
       "schema_version": 0,
-      "semantic_hash": "sha256:c2418f604f061e784a01d40ecb17bc88226979de0fe723f8a67e8cee3655cee9",
+      "semantic_hash": "sha256:c908652820efb5ad570fdc1f0438bff686fafa7cf49d0eceff11b0f222dcd007",
       "ports": [
         {
           "id": "bytes",
@@ -9012,7 +9012,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/decode-utf8",
               "exact-plan-cord:std/data/decode-utf8.in->std/data/decode-utf8.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-decode-utf8"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9053,7 +9054,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/decode-utf8",
               "exact-plan-cord:std/data/decode-utf8.out->std/data/decode-utf8.text",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-decode-utf8"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9065,7 +9067,19 @@
           "key": "codec",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "codec_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "codec_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
         },
         {
           "key": "maximum_input_bytes",
@@ -9081,8 +9095,14 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-decode-utf8",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -9107,7 +9127,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std",
       "export_path": "conduit.std/std/data/deframe-length-u32be",
       "schema_version": 0,
-      "semantic_hash": "sha256:26519c748b0e939ea7e7d3c176673d5fe22ac69e7788b3faa5358b24719839d8",
+      "semantic_hash": "sha256:58114db9ad8812fead3eb27be4e7061d08e04e0b784c9805b40008065c29240a",
       "ports": [
         {
           "id": "chunk",
@@ -9144,7 +9164,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/deframe-length-u32be",
               "exact-plan-cord:std/data/deframe-length-u32be.in->std/data/deframe-length-u32be.chunk",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-deframe-length-u32be"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9185,7 +9206,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/deframe-length-u32be",
               "exact-plan-cord:std/data/deframe-length-u32be.out->std/data/deframe-length-u32be.payload",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-deframe-length-u32be"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9197,7 +9219,19 @@
           "key": "framing",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "framing_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "framing_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
         },
         {
           "key": "maximum_frame_bytes",
@@ -9219,8 +9253,14 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-deframe-length-u32be",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -9245,7 +9285,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std",
       "export_path": "conduit.std/std/data/encode-utf8",
       "schema_version": 0,
-      "semantic_hash": "sha256:3085c6c8d097a1ed228536b14cc9f394e3b566d1099f6cff8e4865ac4dfd6cb5",
+      "semantic_hash": "sha256:a121f8315d19dd145ecaa64d8b632f57855f2822f928a321b3f158b8130e9cf1",
       "ports": [
         {
           "id": "text",
@@ -9282,7 +9322,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/encode-utf8",
               "exact-plan-cord:std/data/encode-utf8.in->std/data/encode-utf8.text",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-encode-utf8"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9323,7 +9364,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/encode-utf8",
               "exact-plan-cord:std/data/encode-utf8.out->std/data/encode-utf8.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-encode-utf8"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9335,7 +9377,19 @@
           "key": "codec",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "codec_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "codec_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
         },
         {
           "key": "maximum_input_bytes",
@@ -9351,8 +9405,14 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-encode-utf8",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -9377,7 +9437,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std",
       "export_path": "conduit.std/std/data/frame-length-u32be",
       "schema_version": 0,
-      "semantic_hash": "sha256:30c61effa6cc5eb11c0ae5871ac5801af734ef1b148430ef43eeafc6588fb911",
+      "semantic_hash": "sha256:03362226049250ebf01ec4da9afe2c8418e67e1eacb9864722405ca33e783473",
       "ports": [
         {
           "id": "payload",
@@ -9414,7 +9474,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/frame-length-u32be",
               "exact-plan-cord:std/data/frame-length-u32be.in->std/data/frame-length-u32be.payload",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-frame-length-u32be"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9455,7 +9516,8 @@
             "affected_bindings": [
               "runtime-contract:std/data/frame-length-u32be",
               "exact-plan-cord:std/data/frame-length-u32be.out->std/data/frame-length-u32be.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
+              "conformance-fixture:conformance/c4/standard-node-library.json",
+              "provider:conduit/hosted-data-frame-length-u32be"
             ],
             "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
             "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
@@ -9467,7 +9529,19 @@
           "key": "framing",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "framing_schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "framing_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
         },
         {
           "key": "maximum_frame_bytes",
@@ -9489,8 +9563,14 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-data-frame-length-u32be",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
+        }
+      ],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
       "required_result_profile": "conduit.cross-host-provider",
@@ -9515,7 +9595,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std",
       "export_path": "conduit.std/std/data/validate-closed-record",
       "schema_version": 0,
-      "semantic_hash": "sha256:e51302a9b9dfdb6f9aeac6caab99dd4f9ab5743a0f91d022d523011d48bec3f4",
+      "semantic_hash": "sha256:cdcc4d7894879aead86ea258e08e7ff62067ce3d2280ae1a03ae7adee48e63da",
       "ports": [
         {
           "id": "candidate",
@@ -9646,7 +9726,19 @@
           "key": "schema",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "schema_version",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "schema_hash",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
         },
         {
           "key": "maximum_fields",
@@ -9674,7 +9766,7 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
+      "compiler_exported": true,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
@@ -9916,7 +10008,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10002,7 +10094,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10183,7 +10275,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10308,7 +10400,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10415,7 +10507,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10442,7 +10534,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
       "export_path": "conduit.host.storage/storage/blob/read",
       "schema_version": 0,
-      "semantic_hash": "sha256:1aaa877113bd727c71fe210c5ad67bdb7ca5b8e7df20ec983de10de37b5cc24b",
+      "semantic_hash": "sha256:4a2971c3d83ecb5897a98847ed09a23c0b8df467e9cf9002d664b740eb40a646",
       "ports": [
         {
           "id": "reference",
@@ -10532,13 +10624,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -10699,7 +10791,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.storage",
       "export_path": "conduit.host.storage/storage/blob/write",
       "schema_version": 0,
-      "semantic_hash": "sha256:5869a6d47f4ac8b7ad8dab1abd2747994c8f493679424c767ad3afe4e6b9d170",
+      "semantic_hash": "sha256:b6f2bf4ea8e023906601249cb691b094c1e05721b8cd9a7239408e5465551914",
       "ports": [
         {
           "id": "blob",
@@ -10789,13 +10881,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",
@@ -11421,7 +11513,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.supervision",
       "export_path": "conduit.std.supervision/supervision/retry",
       "schema_version": 0,
-      "semantic_hash": "sha256:10d66aaa529528139f2648b763e4883c08f3b108d893eae7b00cfb0372d38317",
+      "semantic_hash": "sha256:3cf23c3601c8c6f77df4a4d16b875260f1cc68165f1cca0feb0cc56aba34ece4",
       "ports": [
         {
           "id": "request",
@@ -11564,7 +11656,7 @@
           "key": "compatibility",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         }
       ],
       "catalog_membership": "portable-catalog",
@@ -11781,7 +11873,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.supervision",
       "export_path": "conduit.std.supervision/supervision/worker-pool",
       "schema_version": 0,
-      "semantic_hash": "sha256:608999fb61b387eabbaa170b6ec79a7b09095ffac1d36e0a242f51ae0c0fcedb",
+      "semantic_hash": "sha256:acc121e77721907f6bbb9ba3f3ebb5ede2599b5bf7d8149390e02457671a63cc",
       "ports": [
         {
           "id": "job",
@@ -11924,7 +12016,7 @@
           "key": "compatibility",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         }
       ],
       "catalog_membership": "portable-catalog",
@@ -12477,7 +12569,7 @@
         {
           "implementation": "conduit/hosted-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12554,7 +12646,7 @@
         {
           "implementation": "conduit/hosted-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12685,7 +12777,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:c9a988a553b1cfeac3775253520955bd91b5ce170c82321afbcdb6202f38706f"
+          "artifact_digest": "sha256:1f343ba5e036ff6b9cd1c3bd8ebda1d1211721b48932bcb5dc3eac239dca1cae"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12712,7 +12804,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/batch",
       "schema_version": 0,
-      "semantic_hash": "sha256:8bc1b5bba53d8f05c847a1f64b91c0bb726e8c276ae0957787879c40c361f955",
+      "semantic_hash": "sha256:ac989f5c0676fd0995178291d6795d447094c40bdf1aeafd41f4280865c6a6fc",
       "ports": [
         {
           "id": "item",
@@ -12808,7 +12900,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -12844,7 +12936,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/deadline",
       "schema_version": 0,
-      "semantic_hash": "sha256:a5a10e4b3092c85c46c0582b2a96eed1135f55592a5fb82c00e779b24a7e93b0",
+      "semantic_hash": "sha256:cf7dd4199dd4206e83979b9913b6c95745f34f67e25be461ecfbe1daf43996d0",
       "ports": [
         {
           "id": "item",
@@ -12940,7 +13032,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -13202,7 +13294,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/rate-limit",
       "schema_version": 0,
-      "semantic_hash": "sha256:75970ee53f4e01cb5cfb88ea891c3ee4f57ccccfe528131bbfad18e529a3d356",
+      "semantic_hash": "sha256:69d61beae667d52cd6a0d5cc07db0aa9ea930f9f1238901b48f85875a1cfcdac",
       "ports": [
         {
           "id": "request",
@@ -13298,7 +13390,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -13334,7 +13426,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/sample",
       "schema_version": 0,
-      "semantic_hash": "sha256:00b01e769fe127d74088751ea597960d7876e90a3e2a09c6ff101e95673f1e4e",
+      "semantic_hash": "sha256:02a7c488bec86cc29aa81ca149f09b5494813a38dbf81bf82170ac9b523720f9",
       "ports": [
         {
           "id": "observation",
@@ -13430,7 +13522,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -13579,7 +13671,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/ticker",
       "schema_version": 0,
-      "semantic_hash": "sha256:8233bf14740f441cdd102233f2744466aa5aa7338469ba8162ce69af2b1cebc0",
+      "semantic_hash": "sha256:22bc13e33611c31f14e26085f8403b6fb1b9791c5472bdcd4fb4a7a049c1f289",
       "ports": [
         {
           "id": "tick",
@@ -13634,7 +13726,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -13670,7 +13762,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/timeout",
       "schema_version": 0,
-      "semantic_hash": "sha256:8ac775d9e1442e8c99a3bd440f955d52c7b3a6f334943cc76e36f81df22c1300",
+      "semantic_hash": "sha256:094cf81b11635257e8832a52852bcb9ebb2c01d6227cd6431da26bc2918c0a73",
       "ports": [
         {
           "id": "item",
@@ -13766,7 +13858,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -13802,7 +13894,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/timer",
       "schema_version": 0,
-      "semantic_hash": "sha256:7cb61249a374205d116672f68ec8635bd3a09b0014105bd9fd514dafb392cfbd",
+      "semantic_hash": "sha256:bd78f8f45dd241716f8789445bb62cbb87bdbd6bac5b63fc89fbee38d8189eb4",
       "ports": [
         {
           "id": "elapsed",
@@ -13857,7 +13949,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -13893,7 +13985,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.std.time",
       "export_path": "conduit.std.time/time/window",
       "schema_version": 0,
-      "semantic_hash": "sha256:9683f8a2aa518cd2563df5cdeb74e1e45337567836818ee837cf8a1ffffd2223",
+      "semantic_hash": "sha256:53c833198aab33989b6bcaae8edff680de73f6fd977d9829267d67e0ceebe07d",
       "ports": [
         {
           "id": "item",
@@ -13989,7 +14081,7 @@
           "key": "time_basis",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_pending",
@@ -14025,7 +14117,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.transport",
       "export_path": "conduit.host.transport/transport/zenoh",
       "schema_version": 0,
-      "semantic_hash": "sha256:6bf6bf90a4ee0e682cb006bdd039e660457639207a688401e38beb69d2fe074d",
+      "semantic_hash": "sha256:3bacbc46e0da1c6bf648fc4492e432699e31cf45ac5230baa55a2b0ec52cf12e",
       "ports": [
         {
           "id": "sample",
@@ -14115,13 +14207,13 @@
           "key": "resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "grant",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
           "key": "maximum_request_bytes",

@@ -149,7 +149,7 @@ fn type_universe_is_richer_than_any_host_support_claim() {
 }
 
 #[test]
-fn every_published_port_uses_the_current_exact_type_identity() {
+fn every_published_port_and_config_field_uses_the_current_exact_type_identity() {
     let mut mismatches = Vec::new();
     for entry in STANDARD_CATALOG {
         for port in entry
@@ -168,6 +168,21 @@ fn every_published_port_uses_the_current_exact_type_identity() {
                     entry.contract.id,
                     port.id,
                     port.value_type.semantic_hash,
+                    current.semantic_hash
+                ));
+            }
+        }
+        for field in entry.contract.config.fields {
+            let Some(current) = standard_type_reference(field.value_type.contract_id.as_str())
+            else {
+                continue;
+            };
+            if field.value_type != current {
+                mismatches.push(format!(
+                    "{}.config.{}: actual {}, current {}",
+                    entry.contract.id,
+                    field.key,
+                    field.value_type.semantic_hash,
                     current.semantic_hash
                 ));
             }
@@ -666,13 +681,25 @@ fn data_boundaries_replace_generic_placeholders_with_exact_profiles() {
             "std/data/encode-utf8",
             &["text"][..],
             &["bytes"][..],
-            &["codec", "maximum_input_bytes", "maximum_output_bytes"][..],
+            &[
+                "codec",
+                "codec_schema_version",
+                "codec_hash",
+                "maximum_input_bytes",
+                "maximum_output_bytes",
+            ][..],
         ),
         (
             "std/data/decode-utf8",
             &["bytes"][..],
             &["text"][..],
-            &["codec", "maximum_input_bytes", "maximum_output_bytes"][..],
+            &[
+                "codec",
+                "codec_schema_version",
+                "codec_hash",
+                "maximum_input_bytes",
+                "maximum_output_bytes",
+            ][..],
         ),
         (
             "std/data/frame-length-u32be",
@@ -680,6 +707,8 @@ fn data_boundaries_replace_generic_placeholders_with_exact_profiles() {
             &["bytes"][..],
             &[
                 "framing",
+                "framing_schema_version",
+                "framing_hash",
                 "maximum_frame_bytes",
                 "maximum_partial_bytes",
                 "maximum_output_bytes",
@@ -691,6 +720,8 @@ fn data_boundaries_replace_generic_placeholders_with_exact_profiles() {
             &["payload"][..],
             &[
                 "framing",
+                "framing_schema_version",
+                "framing_hash",
                 "maximum_frame_bytes",
                 "maximum_partial_bytes",
                 "maximum_output_bytes",
@@ -702,6 +733,8 @@ fn data_boundaries_replace_generic_placeholders_with_exact_profiles() {
             &["candidate", "decision"][..],
             &[
                 "schema",
+                "schema_version",
+                "schema_hash",
                 "maximum_fields",
                 "maximum_field_name_bytes",
                 "maximum_field_value_bytes",
