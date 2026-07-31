@@ -1,8 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bumpalo::Bump;
-use conduit_compile::{compile_source, InstalledProfile};
-use conduit_runtime::{CompiledInHostService, Handler, Registry, RunIo, Value};
+use conduit_compile::{InstalledProfile, compile_source};
+use conduit_core::NodeContract;
+use conduit_runtime::{
+    CompiledInHostService, Handler, Registry, RegistryError, RunIo, RuntimeError,
+    Value as RuntimeValue,
+};
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
@@ -1326,21 +1330,21 @@ fn cross_host_profile_registry(profile: &str) -> Registry {
 fn register_codec_fixture_provider(
     registry: &mut Registry,
     providers: &[(
-        &'static conduit_runtime::NodeContract<'static>,
+        &'static NodeContract<'static>,
         &'static str,
         &'static str,
         &'static str,
     )],
-) -> Result<(), conduit_runtime::RuntimeError> {
+) -> Result<(), RegistryError> {
     struct FixtureCodecProvider;
 
     impl Handler for FixtureCodecProvider {
         fn run(
             &mut self,
             _node: &conduit_panel::Node,
-            _inputs: &[Value],
+            _inputs: &[RuntimeValue],
             _io: &mut RunIo<'_>,
-        ) -> Result<Vec<Value>, conduit_runtime::RuntimeError> {
+        ) -> Result<Vec<RuntimeValue>, RuntimeError> {
             Ok(Vec::new())
         }
     }
@@ -1360,10 +1364,16 @@ fn register_codec_fixture_provider(
     Ok(())
 }
 
-fn register_linux_codec_fixture_providers(registry: &mut Registry) -> Result<(), conduit_runtime::RuntimeError> {
+fn register_linux_codec_fixture_providers(registry: &mut Registry) -> Result<(), RegistryError> {
     register_codec_fixture_provider(
         registry,
         &[
+            (
+                &conduit_media::WAVE_LITERAL_CONTRACT,
+                "conduit.media/wave-literal-linux-native-fixture",
+                "conduit.media/wave-literal-linux-native-fixture-artifact",
+                "media-wave-literal-linux-native-fixture",
+            ),
             (
                 &conduit_media::DEMUX_CONTRACT,
                 "conduit.media/wave-demux-linux-native-fixture",
@@ -1380,12 +1390,16 @@ fn register_linux_codec_fixture_providers(registry: &mut Registry) -> Result<(),
     )
 }
 
-fn register_browser_codec_fixture_providers(
-    registry: &mut Registry,
-) -> Result<(), conduit_runtime::RuntimeError> {
+fn register_browser_codec_fixture_providers(registry: &mut Registry) -> Result<(), RegistryError> {
     register_codec_fixture_provider(
         registry,
         &[
+            (
+                &conduit_media::WAVE_LITERAL_CONTRACT,
+                "conduit.media/wave-literal-browser-wasm-fixture",
+                "conduit.media/wave-literal-browser-wasm-fixture-artifact",
+                "media-wave-literal-browser-wasm-fixture",
+            ),
             (
                 &conduit_media::DEMUX_CONTRACT,
                 "conduit.media/wave-demux-browser-wasm-fixture",
@@ -1404,10 +1418,16 @@ fn register_browser_codec_fixture_providers(
 
 fn register_explicit_adapter_codec_fixture_providers(
     registry: &mut Registry,
-) -> Result<(), conduit_runtime::RuntimeError> {
+) -> Result<(), RegistryError> {
     register_codec_fixture_provider(
         registry,
         &[
+            (
+                &conduit_media::WAVE_LITERAL_CONTRACT,
+                "conduit.media/wave-literal-explicit-adapter-fixture",
+                "conduit.media/wave-literal-explicit-adapter-fixture-artifact",
+                "media-wave-literal-explicit-adapter-fixture",
+            ),
             (
                 &conduit_media::DEMUX_CONTRACT,
                 "conduit.media/wave-demux-explicit-adapter-fixture",
@@ -1429,16 +1449,15 @@ fn cross_host_media_bindings(
     profile: &str,
 ) -> BTreeMap<String, (String, String, String, String)> {
     let registry = cross_host_profile_registry(profile);
-    let installed = InstalledProfile::observe_registry(source, &registry)
-        .unwrap_or_else(|error| {
-            panic!("profile {profile} must produce a compatible installed profile: {error}")
-        });
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap_or_else(|error| {
+        panic!("profile {profile} must produce a compatible installed profile: {error}")
+    });
     let document = compile_source(source, &installed.input)
         .unwrap_or_else(|error| panic!("profile {profile} must compile the media graph: {error}"));
     let arena = Bump::new();
-    let plan = document
-        .as_plan(&arena)
-        .unwrap_or_else(|error| panic!("profile {profile} must produce an execution plan: {error}"));
+    let plan = document.as_plan(&arena).unwrap_or_else(|error| {
+        panic!("profile {profile} must produce an execution plan: {error}")
+    });
     let bindings = installed
         .bindings(&plan)
         .unwrap_or_else(|error| panic!("profile {profile} must compute exact bindings: {error}"));
@@ -1501,10 +1520,14 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
                 .as_str()
                 .expect("platform profile names its accepted profile id");
             accepted_profile_ids.insert(profile_id.to_owned());
-            accepted_profile_bindings
-                .insert(profile_id.to_owned(), cross_host_media_bindings(source, profile_id));
+            accepted_profile_bindings.insert(
+                profile_id.to_owned(),
+                cross_host_media_bindings(source, profile_id),
+            );
             accepted_boundaries.insert(
-                fixture_case["boundary"].as_str().expect("fixture case names a boundary"),
+                fixture_case["boundary"]
+                    .as_str()
+                    .expect("fixture case names a boundary"),
             );
             accepted_type_relations.insert(
                 fixture_case["type_relation"]
@@ -1517,15 +1540,23 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     }
     assert_eq!(
         accepted_profile_ids,
-        ["deterministic-host", "linux-native", "browser-wasm", "explicit-adapter"]
-            .into_iter()
-            .map(str::to_owned)
-            .collect()
+        [
+            "deterministic-host",
+            "linux-native",
+            "browser-wasm",
+            "explicit-adapter"
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
     );
     assert_eq!(accepted_boundaries.contains("native"), true);
     assert_eq!(accepted_boundaries.contains("wasm-browser"), true);
     assert_eq!(accepted_type_relations.contains("exact"), true);
-    assert_eq!(accepted_type_relations.contains("different-explicit-adapter"), true);
+    assert_eq!(
+        accepted_type_relations.contains("different-explicit-adapter"),
+        true
+    );
     let deterministic_bindings = accepted_profile_bindings
         .get("deterministic-host")
         .expect("deterministic-host profile is accepted");
@@ -1538,18 +1569,42 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     let explicit_bindings = accepted_profile_bindings
         .get("explicit-adapter")
         .expect("explicit-adapter profile is accepted");
-    let deterministic_decode = deterministic_bindings["conduit.media/audio/decode"].0.clone();
+    let deterministic_decode = deterministic_bindings["conduit.media/audio/decode"]
+        .0
+        .clone();
     let linux_decode = linux_bindings["conduit.media/audio/decode"].0.clone();
     let browser_decode = browser_bindings["conduit.media/audio/decode"].0.clone();
-    let deterministic_artifact = deterministic_bindings["conduit.media/audio/decode"].2.clone();
+    let explicit_decode = explicit_bindings["conduit.media/audio/decode"].0.clone();
+    let deterministic_artifact = deterministic_bindings["conduit.media/audio/decode"]
+        .2
+        .clone();
     let linux_artifact = linux_bindings["conduit.media/audio/decode"].2.clone();
     let browser_artifact = browser_bindings["conduit.media/audio/decode"].2.clone();
+    let explicit_artifact = explicit_bindings["conduit.media/audio/decode"].2.clone();
+    let deterministic_observation = deterministic_bindings["conduit.media/audio/decode"]
+        .3
+        .clone();
+    let linux_observation = linux_bindings["conduit.media/audio/decode"].3.clone();
+    let browser_observation = browser_bindings["conduit.media/audio/decode"].3.clone();
+    let explicit_observation = explicit_bindings["conduit.media/audio/decode"].3.clone();
     assert_ne!(deterministic_decode, linux_decode);
     assert_ne!(deterministic_decode, browser_decode);
     assert_ne!(linux_decode, browser_decode);
+    assert_ne!(linux_decode, explicit_decode);
     assert_ne!(deterministic_artifact, linux_artifact);
     assert_ne!(deterministic_artifact, browser_artifact);
     assert_ne!(linux_artifact, browser_artifact);
+    assert_ne!(explicit_artifact, deterministic_artifact);
+    assert_ne!(explicit_artifact, linux_artifact);
+    assert_ne!(explicit_artifact, browser_artifact);
+    assert!(!deterministic_observation.is_empty());
+    assert_eq!(
+        deterministic_observation,
+        "conduit/conduct-host-observation"
+    );
+    assert_eq!(linux_observation, deterministic_observation);
+    assert_eq!(browser_observation, deterministic_observation);
+    assert_eq!(explicit_observation, deterministic_observation);
     let deterministic_contract_hashes: BTreeSet<_> = deterministic_bindings
         .iter()
         .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
@@ -1569,7 +1624,10 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         .iter()
         .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
         .collect();
-    assert_eq!(deterministic_contract_hashes.len(), deterministic_bindings.len());
+    assert_eq!(
+        deterministic_contract_hashes.len(),
+        deterministic_bindings.len()
+    );
     assert_eq!(linux_contract_hashes, deterministic_contract_hashes);
     assert_eq!(browser_contract_hashes, deterministic_contract_hashes);
     let fields = lesson["presentation"]["patchbay_fields"]

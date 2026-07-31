@@ -370,8 +370,6 @@ fn browser_registry() -> Registry {
         .expect("deterministic media providers have distinct identities");
     conduit_media::register_deterministic_codec_providers(&mut registry)
         .expect("deterministic codec providers have distinct identities");
-    conduit_media::register_browser_codec_providers(&mut registry)
-        .expect("browser media providers have distinct identities");
     conduit_learned::register_deterministic_inference_provider(&mut registry)
         .expect("deterministic inference providers have distinct identities");
     conduit_spatial::register_deterministic_spatial_provider(&mut registry)
