@@ -97,6 +97,22 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
             .wait_with_output()
             .expect("process exec conduct completes");
     }
+    if entry.proof == "canonical-socket-loopback" {
+        command
+            .arg("--enable-socket-loopback")
+            .arg(&entry.path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut child = command.spawn().expect("socket conduct starts");
+        child
+            .stdin
+            .take()
+            .expect("socket stdin")
+            .write_all(b"bounded socket bytes\n")
+            .expect("socket stdin writes");
+        return child.wait_with_output().expect("socket conduct completes");
+    }
     command.arg(&entry.path).output().expect("conduct executes")
 }
 
