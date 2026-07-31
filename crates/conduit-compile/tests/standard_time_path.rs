@@ -129,3 +129,69 @@ fn time_contracts_do_not_claim_an_uninstalled_provider() {
         );
     }
 }
+
+#[test]
+fn stale_missing_unbounded_and_silently_lossy_time_profiles_fail_resolution() {
+    let delay = include_str!("../../../examples/time-delay.panel");
+    for (source, code) in [
+        (
+            delay.replace("    clock = ref(\"conduit.clock/monotonic-ticks\")\n", ""),
+            "CND-TIM-010",
+        ),
+        (
+            delay.replace(
+                "6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48",
+                "7b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48",
+            ),
+            "CND-TIM-011",
+        ),
+        (
+            delay.replace("duration_ticks = 3", "duration_ticks = 1000001"),
+            "CND-TIM-012",
+        ),
+        (
+            include_str!("../../../examples/time-debounce.panel")
+                .replace("loss = \"coalesce\"", "loss = \"implicit\""),
+            "CND-TIM-012",
+        ),
+        (
+            include_str!("../../../examples/time-throttle.panel")
+                .replace("overflow = \"block\"", "overflow = \"coalesce\""),
+            "CND-TIM-012",
+        ),
+    ] {
+        let error = InstalledProfile::observe(&source)
+            .err()
+            .expect("time profile must fail closed");
+        assert_eq!(error.code, code, "{}", error.message);
+    }
+}
+
+#[test]
+fn pending_terminal_policies_and_trailing_coalescing_are_executable() {
+    let delay_drop = include_str!("../../../examples/time-delay.panel")
+        .replace("terminal = \"drain\"", "terminal = \"drop\"");
+    assert!(exact_run(&delay_drop, "run/time/delay-drop").0.is_empty());
+
+    let debounce_drop = include_str!("../../../examples/time-debounce.panel")
+        .replace("terminal = \"flush\"", "terminal = \"drop\"");
+    assert!(
+        exact_run(&debounce_drop, "run/time/debounce-drop")
+            .0
+            .is_empty()
+    );
+
+    let throttle_trailing = include_str!("../../../examples/time-throttle.panel")
+        .replace("mode = \"leading\"", "mode = \"trailing\"")
+        .replace("overflow = \"block\"", "overflow = \"coalesce\"");
+    assert_eq!(
+        exact_run(&throttle_trailing, "run/time/throttle-coalesce").0,
+        b"admitted request"
+    );
+    let throttle_drop = throttle_trailing.replace("terminal = \"flush\"", "terminal = \"drop\"");
+    assert!(
+        exact_run(&throttle_drop, "run/time/throttle-drop")
+            .0
+            .is_empty()
+    );
+}
