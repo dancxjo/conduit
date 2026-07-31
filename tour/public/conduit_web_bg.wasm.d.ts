@@ -4,6 +4,7 @@ export const memory: WebAssembly.Memory;
 export const cancel_panel: (a: number, b: number) => [number, number];
 export const explain_panel: (a: number, b: number) => [number, number];
 export const panel_language_metadata: () => [number, number];
+export const panel_source_metadata: (a: number, b: number) => [number, number];
 export const parse_panel: (a: number, b: number) => [number, number];
 export const patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];

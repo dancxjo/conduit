@@ -433,6 +433,51 @@ kbd {
   color: var(--text-accent);
 }
 
+.structured-topology {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--line-color);
+  padding-top: 0.6rem;
+}
+
+.structured-topology h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+}
+
+.connection-list {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.structured-topology-button {
+  width: 100%;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  padding: 0.35rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.structured-topology-button:focus-visible {
+  outline: 2px solid var(--accent-emerald);
+  outline-offset: 2px;
+}
+
+[data-port-direction="receiving"] .structured-topology-button {
+  border-left: 4px dashed var(--panel-input-port);
+}
+
+[data-port-direction="outgoing"] .structured-topology-button {
+  border-right: 4px double var(--panel-output-port);
+}
+
 /* Source Editor Area */
 .panel-source-editor {
   position: relative;
@@ -507,13 +552,22 @@ textarea#source::placeholder {
   font-weight: 500;
   text-underline-offset: 0.18em;
 }
-.panel-token-port-input {
+.panel-token-port-receiving {
   color: var(--panel-input-port);
   text-decoration: underline dashed;
 }
-.panel-token-port-output {
+.panel-token-port-outgoing {
   color: var(--panel-output-port);
   text-decoration: underline double;
+}
+.panel-token-port-sigil {
+  font-weight: 800;
+}
+.panel-token-port-sigil-receiving {
+  color: var(--panel-input-port);
+}
+.panel-token-port-sigil-outgoing {
+  color: var(--panel-output-port);
 }
 .panel-source-selection {
   padding: 0;
@@ -539,12 +593,14 @@ textarea#source::placeholder {
 }
 
 @media (forced-colors: active) {
-  .panel-token-port-input {
+  .panel-token-port-receiving,
+  .panel-token-port-sigil-receiving {
     color: LinkText;
     text-decoration-style: dashed;
   }
 
-  .panel-token-port-output {
+  .panel-token-port-outgoing,
+  .panel-token-port-sigil-outgoing {
     color: VisitedText;
     text-decoration-style: double;
   }
@@ -1174,11 +1230,11 @@ path.patchbay-smart-cord.compatibility-incompatible {
   white-space: nowrap;
 }
 
-.input-jack {
+.receiving-jack {
   left: 4px;
 }
 
-.output-jack {
+.outgoing-jack {
   right: 4px;
   flex-direction: row-reverse;
 }
@@ -1203,15 +1259,47 @@ path.patchbay-smart-cord.compatibility-incompatible {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  appearance: none;
   background: rgba(15, 23, 42, 0.9);
+  color: inherit;
   padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid var(--line-color);
   font-size: 0.7rem;
+  font-family: inherit;
   min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.jack-label:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.receiving-port-label {
+  color: var(--panel-input-port);
+  border-style: dashed;
+}
+
+.outgoing-port-label {
+  color: var(--panel-output-port);
+  border-style: double;
+}
+
+.port-display-label {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+@media (forced-colors: active) {
+  .receiving-port-label,
+  .outgoing-port-label,
+  .jack-handle {
+    color: ButtonText;
+    border-color: ButtonText !important;
+    forced-color-adjust: auto;
+  }
 }
 
 @media (max-width: 1024px) {

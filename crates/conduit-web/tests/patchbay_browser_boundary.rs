@@ -14,6 +14,8 @@ fn browser_has_no_private_panel_parser_or_semantic_inference() {
     let renderer = std::fs::read_to_string(root.join("tour/public/patchbay-renderer.js")).unwrap();
     let faceplate =
         std::fs::read_to_string(root.join("tour/public/patchbay-faceplate.js")).unwrap();
+    let highlighter =
+        std::fs::read_to_string(root.join("tour/public/panel-highlighter.js")).unwrap();
     let tour = std::fs::read_to_string(root.join("tour/public/tour.js")).unwrap();
     for forbidden in [
         "parsePanelToViewModel",
@@ -38,6 +40,13 @@ fn browser_has_no_private_panel_parser_or_semantic_inference() {
         );
     }
     assert!(renderer.contains("viewModel.topology?.expanded_nodes"));
+    for forbidden in ["cordEndpoint", "selector === \".in\"", "(?:in|out)"] {
+        assert!(
+            !highlighter.contains(forbidden),
+            "source highlighter contains name-based direction inference `{forbidden}`"
+        );
+    }
+    assert!(highlighter.contains("panelSourceMetadata(textarea.value)"));
     assert!(renderer.contains("dataset.projection"));
     assert!(tour.contains("patchbay_open_session"));
     assert!(tour.contains("patchbay_apply_transaction"));
@@ -50,6 +59,7 @@ fn checked_wasm_bridge_exports_revisioned_session_operations() {
     let root = root();
     let declarations = std::fs::read_to_string(root.join("tour/public/conduit_web.d.ts")).unwrap();
     for operation in [
+        "panel_source_metadata",
         "patchbay_open_session",
         "patchbay_session_view",
         "patchbay_apply_transaction",

@@ -21,7 +21,8 @@ export function FaceplateNodeComponent({ data, id }) {
     isComposite = false,
     isSelected = false,
     onConfigChange,
-    onOpenNested
+    onOpenNested,
+    onPortSelect,
   } = data;
 
   const [expanded, setExpanded] = window.React.useState(true);
@@ -48,17 +49,43 @@ export function FaceplateNodeComponent({ data, id }) {
   const inputJacks = inputs.map((port, idx) => {
     const topOffset = 60 + idx * 36;
 
-    return e("div", { key: port.id, className: "faceplate-jack input-jack", style: { top: `${topOffset}px` } },
+    return e("div", {
+      key: port.semantic_path,
+      className: "faceplate-jack receiving-jack",
+      style: { top: `${topOffset}px` },
+      role: "group",
+      "aria-label": port.accessible_label,
+      "data-semantic-path": port.semantic_path,
+      "data-port-direction": "receiving",
+    },
       e(window.ReactFlow.Handle, {
         id: port.id,
         type: "target",
         position: window.ReactFlow.Position.Left,
         className: "jack-handle",
         isConnectable: false,
+        "aria-label": port.accessible_label,
+        "data-semantic-path": port.semantic_path,
       }),
-      e("span", { className: "jack-label", title: `Type: ${port.type_id}` },
-        e("span", { className: "jack-status-dot", style: { background: port.connected ? "#38bdf8" : "#475569" } }),
-        port.id
+      e("button", {
+        type: "button",
+        className: "jack-label receiving-port-label nodrag",
+        title: `${port.accessible_label}; type ${port.type_id}`,
+        "aria-label": `${port.accessible_label}; type ${port.type_id}`,
+        onClick: (event) => {
+          event.stopPropagation();
+          onPortSelect?.(id, port);
+        },
+      },
+        e("span", {
+          className: "port-display-label",
+          "aria-hidden": "true",
+        }, port.display_label),
+        e("span", {
+          className: "jack-status-dot",
+          style: { background: port.connected ? "#38bdf8" : "#475569" },
+          "aria-hidden": "true",
+        })
       )
     );
   });
@@ -67,17 +94,43 @@ export function FaceplateNodeComponent({ data, id }) {
   const outputJacks = outputs.map((port, idx) => {
     const topOffset = 60 + idx * 36;
 
-    return e("div", { key: port.id, className: "faceplate-jack output-jack", style: { top: `${topOffset}px` } },
+    return e("div", {
+      key: port.semantic_path,
+      className: "faceplate-jack outgoing-jack",
+      style: { top: `${topOffset}px` },
+      role: "group",
+      "aria-label": port.accessible_label,
+      "data-semantic-path": port.semantic_path,
+      "data-port-direction": "outgoing",
+    },
       e(window.ReactFlow.Handle, {
         id: port.id,
         type: "source",
         position: window.ReactFlow.Position.Right,
         className: "jack-handle",
         isConnectable: false,
+        "aria-label": port.accessible_label,
+        "data-semantic-path": port.semantic_path,
       }),
-      e("span", { className: "jack-label", title: `Type: ${port.type_id}` },
-        port.id,
-        e("span", { className: "jack-status-dot", style: { background: port.connected ? "#38bdf8" : "#475569" } })
+      e("button", {
+        type: "button",
+        className: "jack-label outgoing-port-label nodrag",
+        title: `${port.accessible_label}; type ${port.type_id}`,
+        "aria-label": `${port.accessible_label}; type ${port.type_id}`,
+        onClick: (event) => {
+          event.stopPropagation();
+          onPortSelect?.(id, port);
+        },
+      },
+        e("span", {
+          className: "port-display-label",
+          "aria-hidden": "true",
+        }, port.display_label),
+        e("span", {
+          className: "jack-status-dot",
+          style: { background: port.connected ? "#38bdf8" : "#475569" },
+          "aria-hidden": "true",
+        })
       )
     );
   });

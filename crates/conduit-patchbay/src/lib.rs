@@ -550,7 +550,13 @@ pub struct PatchbayConfigProjection {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PatchbayPortProjection {
     pub id: String,
+    /// Stable semantic selection subject; never derived from screen geometry.
+    pub semantic_path: String,
     pub direction: String,
+    /// Exact full face/list spelling with the one-glyph flow convention.
+    pub display_label: String,
+    /// Redundant non-color description for assistive presentation.
+    pub accessible_label: String,
     pub type_id: String,
     pub delivery: String,
     pub connections: String,
@@ -562,8 +568,14 @@ pub struct PatchbayCordProjection {
     pub id: String,
     pub from_node: String,
     pub from_port: String,
+    pub from_port_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_port_range: Option<SourceRangeProjection>,
     pub to_node: String,
     pub to_port: String,
+    pub to_port_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_port_range: Option<SourceRangeProjection>,
     pub value_type: String,
     pub compatibility: CompatibilityProof,
     pub capacity_items: u16,

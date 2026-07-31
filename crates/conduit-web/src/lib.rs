@@ -388,7 +388,31 @@ fn authoritative_patchbay_view(
                         });
                         let projected = conduit_patchbay::PatchbayPortProjection {
                             id: export.id.clone(),
+                            semantic_path: format!(
+                                "root/{}/port/{}/{}",
+                                source_node.id,
+                                if export.direction == "input" {
+                                    "receiving"
+                                } else {
+                                    "outgoing"
+                                },
+                                export.id
+                            ),
                             direction: export.direction.to_owned(),
+                            display_label: if export.direction == "input" {
+                                format!("> {}", export.id)
+                            } else {
+                                format!("{} >", export.id)
+                            },
+                            accessible_label: format!(
+                                "{}, {} port",
+                                export.id,
+                                if export.direction == "input" {
+                                    "receiving"
+                                } else {
+                                    "outgoing"
+                                }
+                            ),
                             type_id: target_port
                                 .map_or("unknown", |port| port.type_id.as_str())
                                 .to_owned(),
@@ -461,25 +485,48 @@ fn authoritative_patchbay_view(
                 .and_then(|node| node.inputs.iter().find(|port| port.id == cord.to_port))
                 .map(|port| port.type_id.clone())
                 .unwrap_or_else(|| "unknown".to_owned());
-            let source_range = panel
+            let source_cord = panel
                 .cords
                 .iter()
-                .find(|source_cord| source_cord.id == cord.id)
-                .and_then(|source_cord| {
-                    declaration_source_range(
-                        source_text,
-                        source_cord.source_span,
-                        "cord",
-                        source_revision,
-                        "authored",
-                    )
-                });
+                .find(|source_cord| source_cord.id == cord.id);
+            let source_range = source_cord.and_then(|source_cord| {
+                declaration_source_range(
+                    source_text,
+                    source_cord.source_span,
+                    "cord",
+                    source_revision,
+                    "authored",
+                )
+            });
+            let endpoint_ranges = source_cord
+                .and_then(|source_cord| cord_endpoint_member_offsets(source_text, source_cord));
+            let from_port_range = endpoint_ranges.and_then(|(from, _)| {
+                source_range_from_offsets(source_text, from, source_revision, "authored-endpoint")
+            });
+            let to_port_range = endpoint_ranges.and_then(|(_, to)| {
+                source_range_from_offsets(source_text, to, source_revision, "authored-endpoint")
+            });
             conduit_patchbay::PatchbayCordProjection {
                 id: cord.id.clone(),
                 from_node: cord.from_node.clone(),
                 from_port: cord.from_port.clone(),
+                from_port_path: source_cord.map_or_else(
+                    || format!("root/{}/port/outgoing/{}", cord.from_node, cord.from_port),
+                    |source| {
+                        format!(
+                            "root/{}/port/outgoing/{}",
+                            source.from.node, source.from.port
+                        )
+                    },
+                ),
+                from_port_range,
                 to_node: cord.to_node.clone(),
                 to_port: cord.to_port.clone(),
+                to_port_path: source_cord.map_or_else(
+                    || format!("root/{}/port/receiving/{}", cord.to_node, cord.to_port),
+                    |source| format!("root/{}/port/receiving/{}", source.to.node, source.to.port),
+                ),
+                to_port_range,
                 value_type: producer_type.clone(),
                 compatibility: conduit_patchbay::CompatibilityProof {
                     compatible: true,
@@ -609,9 +656,24 @@ fn project_resolved_node(
     config: BTreeMap<String, conduit_patchbay::PatchbayConfigProjection>,
 ) -> conduit_patchbay::PatchbayNodeProjection {
     let project_port = |port: &conduit_runtime::ResolvedPortView, direction: &str| {
+        let presentation_direction = if direction == "input" {
+            "receiving"
+        } else {
+            "outgoing"
+        };
         conduit_patchbay::PatchbayPortProjection {
             id: port.id.clone(),
+            semantic_path: format!(
+                "root/{}/port/{}/{}",
+                node.id, presentation_direction, port.id
+            ),
             direction: direction.to_owned(),
+            display_label: if direction == "input" {
+                format!("> {}", port.id)
+            } else {
+                format!("{} >", port.id)
+            },
+            accessible_label: format!("{}, {presentation_direction} port", port.id),
             type_id: port.type_id.clone(),
             delivery: port.delivery.to_owned(),
             connections: port.connections.to_owned(),
@@ -814,6 +876,376 @@ pub fn panel_language_metadata() -> String {
         "syntax_words": conduit_panel::SYNTAX_WORDS,
         "identifier_compatible_syntax_words":
             conduit_panel::IDENTIFIER_COMPATIBLE_SYNTAX_WORDS,
+    })
+    .to_string()
+}
+
+fn source_offset(source: &str, line: usize, column: usize) -> Option<usize> {
+    if line == 0 || column == 0 {
+        return None;
+    }
+    let mut byte = 0;
+    for _ in 1..line {
+        byte += source.get(byte..)?.find('\n')? + 1;
+    }
+    let line_end = source[byte..]
+        .find('\n')
+        .map_or(source.len(), |relative| byte + relative);
+    let relative = source[byte..line_end]
+        .char_indices()
+        .nth(column - 1)
+        .map_or(line_end - byte, |(relative, _)| relative);
+    Some(byte + relative)
+}
+
+fn source_span_offsets(source: &str, span: conduit_panel::SourceSpan) -> Option<(usize, usize)> {
+    let start = source_offset(source, span.line, span.column)?;
+    let end = source_offset(source, span.end_line, span.end_column)?;
+    (start <= end && end <= source.len()).then_some((start, end))
+}
+
+fn source_range_from_offsets(
+    source: &str,
+    (start_byte, end_byte): (usize, usize),
+    source_revision: u64,
+    provenance: &str,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    if start_byte >= end_byte
+        || end_byte > source.len()
+        || !source.is_char_boundary(start_byte)
+        || !source.is_char_boundary(end_byte)
+    {
+        return None;
+    }
+    Some(conduit_patchbay::SourceRangeProjection {
+        start_byte,
+        end_byte,
+        start_utf16: source[..start_byte].encode_utf16().count(),
+        end_utf16: source[..end_byte].encode_utf16().count(),
+        source_revision,
+        provenance: provenance.to_owned(),
+    })
+}
+
+fn is_panel_identifier_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'/' | b'@' | b'[' | b']')
+}
+
+fn named_member_offset(source: &str, start: usize, end: usize, id: &str) -> Option<usize> {
+    let declaration = source.get(start..end)?;
+    declaration.match_indices(id).find_map(|(relative, _)| {
+        let absolute = start + relative;
+        let before = absolute
+            .checked_sub(1)
+            .and_then(|index| source.as_bytes().get(index))
+            .is_some_and(|byte| is_panel_identifier_byte(*byte));
+        let after = source
+            .as_bytes()
+            .get(absolute + id.len())
+            .is_some_and(|byte| is_panel_identifier_byte(*byte));
+        (!before && !after).then_some(absolute)
+    })
+}
+
+fn annotation(
+    source: &str,
+    start_byte: usize,
+    end_byte: usize,
+    kind: &str,
+    direction: &str,
+    semantic_path: String,
+) -> serde_json::Value {
+    serde_json::json!({
+        "start_byte": start_byte,
+        "end_byte": end_byte,
+        "start_utf16": source[..start_byte].encode_utf16().count(),
+        "end_utf16": source[..end_byte].encode_utf16().count(),
+        "kind": kind,
+        "direction": direction,
+        "semantic_path": semantic_path,
+        "accessible_label": match kind {
+            "port-name" => format!("{}, {} port", &source[start_byte..end_byte], direction),
+            "port-sigil" => format!("{} port declaration sigil", direction),
+            _ => format!("{} port", direction),
+        },
+    })
+}
+
+fn direction_name(direction: conduit_panel::ExportDirection) -> &'static str {
+    match direction {
+        conduit_panel::ExportDirection::Input => "receiving",
+        conduit_panel::ExportDirection::Output => "outgoing",
+    }
+}
+
+fn annotate_directional_declaration(
+    source: &str,
+    annotations: &mut Vec<serde_json::Value>,
+    span: conduit_panel::SourceSpan,
+    id: &str,
+    direction: conduit_panel::ExportDirection,
+    semantic_path: String,
+) {
+    let Some((start, end)) = source_span_offsets(source, span) else {
+        return;
+    };
+    let Some(id_start) = named_member_offset(source, start, end, id) else {
+        return;
+    };
+    let direction = direction_name(direction);
+    annotations.push(annotation(
+        source,
+        id_start,
+        id_start + id.len(),
+        "port-name",
+        direction,
+        semantic_path.clone(),
+    ));
+
+    let before = source.get(start..id_start).unwrap_or_default();
+    let after = source.get(id_start + id.len()..end).unwrap_or_default();
+    let sigil = if direction == "receiving" {
+        before.rfind('>').map(|relative| start + relative)
+    } else {
+        after
+            .find('>')
+            .map(|relative| id_start + id.len() + relative)
+            .or_else(|| before.rfind('<').map(|relative| start + relative))
+    };
+    if let Some(sigil_start) = sigil {
+        annotations.push(annotation(
+            source,
+            sigil_start,
+            sigil_start + 1,
+            "port-sigil",
+            direction,
+            semantic_path,
+        ));
+    }
+}
+
+fn annotate_endpoint(
+    source: &str,
+    annotations: &mut Vec<serde_json::Value>,
+    search_range: (usize, usize),
+    endpoint: &conduit_panel::Endpoint,
+    direction: &str,
+    semantic_path: String,
+    reverse: bool,
+) {
+    let Some((member_start, member_end)) =
+        endpoint_member_offset(source, search_range, endpoint, reverse)
+    else {
+        return;
+    };
+    annotations.push(annotation(
+        source,
+        member_start,
+        member_end,
+        "port-name",
+        direction,
+        semantic_path,
+    ));
+}
+
+fn endpoint_member_offset(
+    source: &str,
+    (search_start, search_end): (usize, usize),
+    endpoint: &conduit_panel::Endpoint,
+    reverse: bool,
+) -> Option<(usize, usize)> {
+    let complete = format!("{}.{}", endpoint.node, endpoint.port);
+    let region = source.get(search_start..search_end)?;
+    let relative = if reverse {
+        region.rfind(&complete)
+    } else {
+        region.find(&complete)
+    }?;
+    let member_start = search_start + relative + complete.len() - endpoint.port.len();
+    Some((member_start, member_start + endpoint.port.len()))
+}
+
+fn cord_endpoint_member_offsets(
+    source: &str,
+    cord: &conduit_panel::Cord,
+) -> Option<((usize, usize), (usize, usize))> {
+    let (start, end) = source_span_offsets(source, cord.source_span)?;
+    let declaration = source.get(start..end)?;
+    let body_start = declaration.find('{').unwrap_or(declaration.len());
+    let endpoints = &declaration[..body_start];
+    if let Some(relative) = endpoints.find("->") {
+        let arrow = start + relative;
+        let from = endpoint_member_offset(source, (start, arrow), &cord.from, true)?;
+        let to = endpoint_member_offset(source, (arrow + 2, start + body_start), &cord.to, false)?;
+        Some((from, to))
+    } else {
+        let relative = endpoints.find("<-")?;
+        let arrow = start + relative;
+        let to = endpoint_member_offset(source, (start, arrow), &cord.to, true)?;
+        let from =
+            endpoint_member_offset(source, (arrow + 2, start + body_start), &cord.from, false)?;
+        Some((from, to))
+    }
+}
+
+fn annotate_cords(
+    source: &str,
+    annotations: &mut Vec<serde_json::Value>,
+    owner: &str,
+    cords: &[conduit_panel::Cord],
+) {
+    for cord in cords {
+        let Some((from_range, to_range)) = cord_endpoint_member_offsets(source, cord) else {
+            continue;
+        };
+        let cord_path = format!("{owner}/cord/{}", cord.id);
+        annotations.push(annotation(
+            source,
+            from_range.0,
+            from_range.1,
+            "port-name",
+            "outgoing",
+            format!("{cord_path}/from/{}/{}", cord.from.node, cord.from.port),
+        ));
+        annotations.push(annotation(
+            source,
+            to_range.0,
+            to_range.1,
+            "port-name",
+            "receiving",
+            format!("{cord_path}/to/{}/{}", cord.to.node, cord.to.port),
+        ));
+    }
+}
+
+fn annotate_export_target(
+    source: &str,
+    annotations: &mut Vec<serde_json::Value>,
+    definition_id: &str,
+    export: &conduit_panel::PortExport,
+) {
+    let Some((start, end)) = source_span_offsets(source, export.source_span) else {
+        return;
+    };
+    let declaration = source.get(start..end).unwrap_or_default();
+    let target_start = declaration
+        .find('=')
+        .map_or(start, |relative| start + relative + 1);
+    let direction = direction_name(export.direction);
+    annotate_endpoint(
+        source,
+        annotations,
+        (target_start, end),
+        &export.target,
+        direction,
+        format!(
+            "definition/{definition_id}/export/{}/target/{}/{}",
+            export.id, export.target.node, export.target.port
+        ),
+        false,
+    );
+}
+
+/// Returns exact semantic port ranges derived from the production parser.
+///
+/// Malformed source deliberately returns no semantic annotations: the browser
+/// may retain lossless lexical presentation, but it must not guess direction.
+#[wasm_bindgen]
+pub fn panel_source_metadata(source: String) -> String {
+    let document = conduit_panel::parse_document(&source);
+    let Ok(panel) = document.panel() else {
+        return serde_json::json!({
+            "schema": "conduit.panel-source-metadata/v1",
+            "semantic_available": false,
+            "annotations": [],
+            "diagnostics": document.diagnostics.iter().map(ToString::to_string).collect::<Vec<_>>(),
+        })
+        .to_string();
+    };
+
+    let mut annotations = Vec::new();
+    for interface in &panel.interfaces {
+        for member in &interface.members {
+            annotate_directional_declaration(
+                &source,
+                &mut annotations,
+                member.source_span,
+                &member.id,
+                member.direction,
+                format!(
+                    "interface/{}/port/{}/{}",
+                    interface.id,
+                    direction_name(member.direction),
+                    member.id
+                ),
+            );
+        }
+    }
+    for group in &panel.port_groups {
+        annotate_directional_declaration(
+            &source,
+            &mut annotations,
+            group.source_span,
+            &group.id,
+            group.direction,
+            format!(
+                "root/port-group/{}/{}",
+                direction_name(group.direction),
+                group.id
+            ),
+        );
+    }
+    annotate_cords(&source, &mut annotations, "root", &panel.cords);
+    for definition in &panel.definitions {
+        for export in &definition.exports {
+            annotate_directional_declaration(
+                &source,
+                &mut annotations,
+                export.source_span,
+                &export.id,
+                export.direction,
+                format!(
+                    "definition/{}/port/{}/{}",
+                    definition.id,
+                    direction_name(export.direction),
+                    export.id
+                ),
+            );
+            annotate_export_target(&source, &mut annotations, &definition.id, export);
+        }
+        for group in &definition.port_groups {
+            annotate_directional_declaration(
+                &source,
+                &mut annotations,
+                group.source_span,
+                &group.id,
+                group.direction,
+                format!(
+                    "definition/{}/port-group/{}/{}",
+                    definition.id,
+                    direction_name(group.direction),
+                    group.id
+                ),
+            );
+        }
+        annotate_cords(
+            &source,
+            &mut annotations,
+            &format!("definition/{}", definition.id),
+            &definition.cords,
+        );
+    }
+    annotations.sort_by_key(|value| {
+        (
+            value["start_byte"].as_u64().unwrap_or(u64::MAX),
+            value["end_byte"].as_u64().unwrap_or(u64::MAX),
+        )
+    });
+    serde_json::json!({
+        "schema": "conduit.panel-source-metadata/v1",
+        "semantic_available": true,
+        "annotations": annotations,
+        "diagnostics": [],
     })
     .to_string()
 }
@@ -1063,8 +1495,8 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        explain_panel, panel_language_metadata, patchbay_apply_transaction, patchbay_move_node,
-        patchbay_open_session, patchbay_replace_source, patchbay_session_view,
+        explain_panel, panel_language_metadata, panel_source_metadata, patchbay_apply_transaction,
+        patchbay_move_node, patchbay_open_session, patchbay_replace_source, patchbay_session_view,
     };
 
     const SOURCE: &str = "panel 3\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -1109,6 +1541,97 @@ mod tests {
                     .expect("browser source offset") as usize,
             "UTF-8 and browser UTF-16 offsets must remain distinct"
         );
+        for (field, expected, path) in [
+            ("from_port_range", "out", "root/greeting/port/outgoing/out"),
+            ("to_port_range", "in", "root/output/port/receiving/in"),
+        ] {
+            let endpoint = &cord[field];
+            let endpoint_start = endpoint["start_byte"].as_u64().unwrap() as usize;
+            let endpoint_end = endpoint["end_byte"].as_u64().unwrap() as usize;
+            assert_eq!(&source[endpoint_start..endpoint_end], expected);
+            assert_eq!(endpoint["provenance"], "authored-endpoint");
+            let path_field = if field == "from_port_range" {
+                "from_port_path"
+            } else {
+                "to_port_path"
+            };
+            assert_eq!(cord[path_field], path);
+        }
+    }
+
+    #[test]
+    fn source_metadata_uses_parser_direction_and_exact_semantic_spans() {
+        let source = "panel 3\n\
+interface fixture/duplex {\n\
+  > in : fixture/text\n\
+  in > : fixture/text\n\
+  > audio : fixture/audio\n\
+  committed > : fixture/text\n\
+}\n\
+composite fixture/box {\n\
+  node worker : fixture/sink\n\
+  export > audio = worker.in\n\
+}\n\
+node output : fixture/source\n\
+node sink : fixture/sink\n\
+cord output.in -> sink.in\n\
+# > comment.in and \"string.out >\" are not ports\n";
+        let metadata: Value =
+            serde_json::from_str(&panel_source_metadata(source.to_owned())).unwrap();
+        assert_eq!(metadata["semantic_available"], true);
+        let annotations = metadata["annotations"].as_array().unwrap();
+        let names = annotations
+            .iter()
+            .filter(|entry| entry["kind"] == "port-name")
+            .map(|entry| {
+                let start = entry["start_byte"].as_u64().unwrap() as usize;
+                let end = entry["end_byte"].as_u64().unwrap() as usize;
+                (
+                    &source[start..end],
+                    entry["direction"].as_str().unwrap(),
+                    entry["semantic_path"].as_str().unwrap(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert!(names.contains(&(
+            "in",
+            "receiving",
+            "interface/fixture/duplex/port/receiving/in"
+        )));
+        assert!(names.contains(&(
+            "in",
+            "outgoing",
+            "interface/fixture/duplex/port/outgoing/in"
+        )));
+        assert!(names.iter().any(|entry| {
+            entry.0 == "in" && entry.1 == "outgoing" && entry.2.ends_with("/from/output/in")
+        }));
+        assert!(names.iter().any(|entry| {
+            entry.0 == "in" && entry.1 == "receiving" && entry.2.ends_with("/to/sink/in")
+        }));
+        assert!(names.iter().any(|entry| {
+            entry.0 == "in"
+                && entry.1 == "receiving"
+                && entry.2.ends_with("/export/audio/target/worker/in")
+        }));
+        assert_eq!(
+            annotations
+                .iter()
+                .filter(|entry| entry["kind"] == "port-sigil")
+                .count(),
+            5
+        );
+        assert!(!annotations.iter().any(|entry| {
+            let start = entry["start_byte"].as_u64().unwrap() as usize;
+            source[..start].ends_with("comment.")
+        }));
+
+        let malformed: Value = serde_json::from_str(&panel_source_metadata(
+            "panel 3\ncord source.value ->\n".to_owned(),
+        ))
+        .unwrap();
+        assert_eq!(malformed["semantic_available"], false);
+        assert_eq!(malformed["annotations"], serde_json::json!([]));
     }
 
     #[test]
@@ -1196,6 +1719,22 @@ mod tests {
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["type_id"],
             "std/text"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["display_label"],
+            "out >"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["accessible_label"],
+            "out, outgoing port"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["semantic_path"],
+            "root/greeting/port/outgoing/out"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["logical_nodes"][1]["inputs"][0]["display_label"],
+            "> in"
         );
         assert_eq!(
             opened["view"]["topology"]["cords"][0]["compatibility"]["compatible"],
