@@ -1,12 +1,106 @@
 use bumpalo::Bump;
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_core::{
-    Id, PlanValidationContext, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
-    TerminalClass,
+    ConfigContract, ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract,
+    PlanValidationContext, PortContract, PortFlowConstraints, Presence, ReadyQueueDiscipline,
+    SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash, Sensitivity, StopPolicy,
+    TemporalContract, TerminalClass, TerminalContract, TypeContractRef, ValueCardinality,
 };
+use conduit_panel::Node;
 use conduit_runtime::{
-    AvailabilityState, ExactExecutionReport, ExactRunContext, Registry, RunIo, SchedulerReservation,
+    AvailabilityState, CompiledInHostService, ExactExecutionReport, ExactRunContext, ExactRunIo,
+    ExactRunSessionRegistry, ExactRunState, Handler, HostedServiceStep, HostedServiceStepContext,
+    Registry, RunIo, RuntimeError, SchedulerEventKind, SchedulerReservation, Value,
 };
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+
+const TICKER_SOURCE: &str = "panel 0\n\
+node ticker : time/ticker { duration_ticks = 10 time_basis = ref(\"conduit.clock/monotonic-ticks\") maximum_pending = 1 }\n\
+node sink : acme/tick-sink\n\
+cord ticker.tick -> sink.tick { capacity = 1 max_value_bytes = 8 max_queued_bytes = 8 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+
+const TICK_U64: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/u64"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0xf9, 0xba, 0xd3, 0xea, 0x53, 0xd3, 0xca, 0x01, 0xa0, 0xa4, 0xd6, 0x9f, 0x86, 0xc8, 0x25,
+        0x65, 0x17, 0x07, 0x16, 0x45, 0xea, 0x7d, 0x68, 0xef, 0x63, 0x6b, 0x6d, 0x94, 0x87, 0x70,
+        0xf0, 0xec,
+    ]),
+};
+const TICK_SINK_INPUT: PortContract<'static> = PortContract {
+    id: Id("tick"),
+    direction: Direction::Input,
+    value_type: TICK_U64,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::Either,
+    sensitivity: Sensitivity::Restricted,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const TICK_SINK_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("acme/tick-sink"),
+    config: ConfigContract { fields: &[] },
+    inputs: &[TICK_SINK_INPUT],
+    outputs: &[],
+};
+
+static TICK_SINK_COUNT: AtomicUsize = AtomicUsize::new(0);
+static TICK_SINK_LAST: AtomicU64 = AtomicU64::new(u64::MAX);
+
+struct TickSink;
+
+impl Handler for TickSink {
+    fn step(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        let [value] = inputs else {
+            return Err(RuntimeError::new(
+                "CND-RUN-004",
+                "tick sink requires one value",
+            ));
+        };
+        if value.value_type != TICK_U64 {
+            return Err(RuntimeError::new(
+                "CND-RUN-004",
+                "ticker changed its exact value type",
+            ));
+        }
+        let bytes: [u8; 8] = value.bytes.as_slice().try_into().map_err(|_| {
+            RuntimeError::new("CND-RUN-004", "ticker value is not the exact u64 encoding")
+        })?;
+        TICK_SINK_LAST.store(u64::from_be_bytes(bytes), Ordering::SeqCst);
+        TICK_SINK_COUNT.fetch_add(1, Ordering::SeqCst);
+        Ok(HostedServiceStep::produced(Vec::new()))
+    }
+}
+
+fn ticker_registry() -> Registry {
+    let mut registry = Registry::hosted_primitives();
+    registry.register_contract_only(&TICK_SINK_CONTRACT);
+    registry
+        .register_compiled_in_host_service(CompiledInHostService {
+            contract: &TICK_SINK_CONTRACT,
+            implementation_id: "acme/tick-sink-hosted",
+            artifact_id: "acme/tick-sink-artifact",
+            entrypoint: "tick-sink",
+            source_bytes: include_bytes!("standard_time_path.rs"),
+            required_authorities: &[],
+            factory: || Box::new(TickSink),
+            validate_config: |_| Ok(()),
+        })
+        .unwrap();
+    registry
+}
 
 fn exact_run(source: &str, run_id: &'static str) -> (Vec<u8>, ExactExecutionReport) {
     let installed = InstalledProfile::observe(source).unwrap();
@@ -116,6 +210,7 @@ fn time_contracts_do_not_claim_an_uninstalled_provider() {
     let contracts = Registry::default();
     let hosted = Registry::hosted_primitives();
     for id in [
+        "time/ticker",
         "time/delay",
         "time/timeout",
         "time/debounce",
@@ -130,6 +225,111 @@ fn time_contracts_do_not_claim_an_uninstalled_provider() {
             AvailabilityState::ProviderAvailable
         );
     }
+}
+
+#[test]
+fn ticker_emits_again_after_each_exact_clock_wake_without_new_epoch() {
+    TICK_SINK_COUNT.store(0, Ordering::SeqCst);
+    TICK_SINK_LAST.store(u64::MAX, Ordering::SeqCst);
+    let registry = ticker_registry();
+    let installed = InstalledProfile::observe_registry(TICKER_SOURCE, &registry).unwrap();
+    let document = compile_source(TICKER_SOURCE, &installed.input).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+    let ticker = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "time/ticker")
+        .expect("ticker is present in the exact plan");
+    assert_eq!(
+        ticker.execution_profile.unwrap().id.as_str(),
+        "conduit/hosted-time-profile"
+    );
+    assert_eq!(ticker.allocation.timers, 1);
+    let ticker_contract = conduit_std::standard_node_contract("time/ticker").unwrap();
+    assert_eq!(ticker_contract.outputs[0].values.as_str(), "zero-or-more");
+    assert_eq!(ticker_contract.outputs[0].terminal.as_str(), "open-ended");
+
+    let panel = conduit_panel::parse(TICKER_SOURCE).unwrap();
+    let resolved = registry.resolve(&panel).unwrap();
+    let bindings = installed.bindings(&plan).unwrap();
+    let grants = installed.grant_observations(&plan).unwrap();
+    let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
+    let mut session = resolved
+        .start_exact_session(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 128,
+                run_id: Id("run/time/ticker"),
+                grant_observations: &grants,
+                validation: PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: SchedulerPolicy {
+                    schema_version: SCHEDULER_CONTRACT_VERSION,
+                    ready_queue: ReadyQueueDiscipline::RoundRobin,
+                    max_decisions: 64,
+                    max_tick: 64,
+                    max_consecutive_yields: 8,
+                    max_events: 64,
+                },
+                reservation: SchedulerReservation {
+                    available_runtime_memory_bytes: plan.budget.memory_bytes,
+                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                },
+            },
+            &sessions,
+            ExactRunIo::for_plan(&plan).unwrap(),
+        )
+        .unwrap();
+
+    for _ in 0..8 {
+        if session.state() != ExactRunState::Active {
+            break;
+        }
+        session.pump(1).unwrap();
+    }
+    assert_eq!(session.state(), ExactRunState::Waiting);
+    assert_eq!(session.next_timer_deadline(), Some(12));
+    assert_eq!(TICK_SINK_COUNT.load(Ordering::SeqCst), 1);
+    assert_eq!(TICK_SINK_LAST.load(Ordering::SeqCst), 0);
+    let identity = session.identity().clone();
+    let first_tick_events = session
+        .scheduler_events()
+        .filter(|event| matches!(event.kind, SchedulerEventKind::NodeOutcome { .. }))
+        .count();
+
+    session.advance_to(12).unwrap();
+    for _ in 0..8 {
+        if session.state() != ExactRunState::Active {
+            break;
+        }
+        session.pump(1).unwrap();
+    }
+    assert_eq!(session.state(), ExactRunState::Waiting);
+    assert_eq!(session.next_timer_deadline(), Some(23));
+    assert_eq!(session.identity(), &identity);
+    assert_eq!(TICK_SINK_COUNT.load(Ordering::SeqCst), 2);
+    assert_eq!(TICK_SINK_LAST.load(Ordering::SeqCst), 1);
+    assert!(
+        session
+            .scheduler_events()
+            .filter(|event| matches!(event.kind, SchedulerEventKind::NodeOutcome { .. }))
+            .count()
+            > first_tick_events,
+        "the exact ticker provider must take another bounded production step"
+    );
+
+    session.cancel(StopPolicy::Abort).unwrap();
+    assert_eq!(
+        session.state(),
+        ExactRunState::Terminal(TerminalClass::Cancelled)
+    );
+    session.finalize().unwrap();
+    assert_eq!(sessions.active_sessions(), 0);
 }
 
 #[test]
@@ -167,6 +367,14 @@ fn stale_missing_unbounded_and_silently_lossy_time_profiles_fail_resolution() {
             .expect("time profile must fail closed");
         assert_eq!(error.code, code, "{}", error.message);
     }
+    let error = match InstalledProfile::observe_registry(
+        &TICKER_SOURCE.replace("duration_ticks = 10", "duration_ticks = 0"),
+        &ticker_registry(),
+    ) {
+        Ok(_) => panic!("zero ticker interval must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, "CND-TIM-012", "{}", error.message);
 }
 
 #[test]

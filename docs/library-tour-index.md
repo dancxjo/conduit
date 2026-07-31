@@ -143,7 +143,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `time/rate-limit` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.rate-limit.standalone (required) | tour/lessons/current.json#library.time.rate-limit.composition (required) |
 | `time/sample` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.sample.standalone (required) | tour/lessons/current.json#library.time.sample.composition (required) |
 | `time/throttle` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
-| `time/ticker` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.ticker.standalone (required) | tour/lessons/current.json#library.time.ticker.composition (required) |
+| `time/ticker` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.time.ticker.standalone (required) | tour/lessons/current.json#library.time.ticker.composition (required) |
 | `time/timeout` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
 | `time/timer` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.timer.standalone (required) | tour/lessons/current.json#library.time.timer.composition (required) |
 | `time/window` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.window.standalone (required) | tour/lessons/current.json#library.time.window.composition (required) |

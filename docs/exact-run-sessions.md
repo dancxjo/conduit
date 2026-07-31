@@ -64,6 +64,12 @@ the simple case: its first bounded step returns its exact outputs and declares
 completion. A live provider may instead return outputs and remain active, or
 register one named timer or host-operation interest and become Waiting.
 
+`time/ticker` is the reference timer source: its current contract is an
+open-ended `u64` stream, not a one-shot result. It reserves the first output
+in the producing step, then waits for its one admitted timer. Advancing that
+timer resumes the same plan, epoch, provider binding, and retained state; it
+does not synthesize a new run or bypass the output transaction.
+
 The scheduler, not a provider callback, owns the clock and wake registry. A
 deterministic host can advance an admitted test clock. A real host registers
 the provider's finite timer and wakes the same run later; it must not jump time

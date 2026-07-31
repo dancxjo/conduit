@@ -751,6 +751,13 @@ const OUT_U64: PortContract<'static> = port(
     ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
+const OUT_TICKER_U64: PortContract<'static> = port(
+    "tick",
+    Direction::Output,
+    U64,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::OpenEnded,
+);
 const OUT_RECORD: PortContract<'static> = port(
     "result",
     Direction::Output,
@@ -2256,7 +2263,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Time,
         TIMED,
         &[],
-        &[named("tick", OUT_U64)],
+        &[OUT_TICKER_U64],
         ProducesDeclaredType,
         Monotonic,
         TIMERS,

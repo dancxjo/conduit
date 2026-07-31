@@ -163,12 +163,14 @@ demonstrates why the nodes are separate ordinary graph boundaries.
 
 ## 3. Explicit Time Nodes
 
-State: **runnable** on the hosted exact-plan executor. `time/delay`,
-`time/timeout`, `time/debounce`, and `time/throttle` pin the
+State: **runnable** on the hosted exact-plan executor. `time/ticker`,
+`time/delay`, `time/timeout`, `time/debounce`, and `time/throttle` pin the
 `conduit.clock/monotonic-ticks` descriptor, schema, hash, and one-tick
 resolution. Durations are finite, clock discontinuities fail closed, and each
 node owns at most one timer and one retained value.
 
+- ticker is an open-ended `u64` source: it emits the next count, then waits
+  for its one exact timer before the same run may emit again;
 - delay chooses terminal `drain` or `drop`;
 - timeout is an inactivity boundary reset by each value;
 - debounce names leading or trailing admission, explicit coalescing, and
@@ -187,8 +189,9 @@ cargo run -p conduct -- examples/time-compose.panel
 ```
 
 The composition splits two logical lines, debounces to the trailing value, then
-crosses a lossless leading throttle. Exact execution advances only to a
-plan-retained timer deadline; it never reads ambient wall-clock state.
+crosses a lossless leading throttle. A persistent ticker session likewise
+advances only when its host supplies the plan-retained timer deadline; neither
+path reads ambient wall-clock state.
 
 ---
 

@@ -1290,6 +1290,7 @@ pub enum HostedPrimitiveImplementation {
     ValidationDecisionAssert,
     FrameLengthU32Be,
     DeframeLengthU32Be,
+    Ticker,
     TimeDelay,
     TimeTimeout,
     TimeDebounce,
@@ -2681,6 +2682,11 @@ impl Registry {
             || Box::new(DeframeLengthU32Be),
             validate_data_framing,
         );
+        install(
+            standard_time_contract("time/ticker"),
+            || Box::new(Ticker::default()),
+            validate_ticker,
+        );
         for (id, validate) in [
             ("time/delay", validate_time_delay as ConfigValidator),
             ("time/timeout", validate_time_timeout as ConfigValidator),
@@ -2971,6 +2977,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::DeframeLengthU32Be,
                 || Box::new(DeframeLengthU32Be),
                 validate_data_framing,
+            ),
+            (
+                standard_time_contract("time/ticker"),
+                "time-ticker",
+                HostedPrimitiveImplementation::Ticker,
+                || Box::new(Ticker::default()),
+                validate_ticker,
             ),
             (
                 standard_time_contract("time/delay"),
@@ -5414,6 +5427,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::DeframeLengthU32Be => {
                     "std/data/deframe-length-u32be"
                 }
+                HostedPrimitiveImplementation::Ticker => "time/ticker",
                 HostedPrimitiveImplementation::TimeDelay => "time/delay",
                 HostedPrimitiveImplementation::TimeTimeout => "time/timeout",
                 HostedPrimitiveImplementation::TimeDebounce => "time/debounce",
@@ -5870,7 +5884,8 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::Fallback => {
                     HostedNodeKind::Fallback { emitted: false }
                 }
-                HostedPrimitiveImplementation::HostedService => {
+                HostedPrimitiveImplementation::Ticker
+                | HostedPrimitiveImplementation::HostedService => {
                     let binding =
                         exact_host_service_binding(plan, planned, context.validation.now.tick)?;
                     let input_cords = resolved
@@ -7793,7 +7808,60 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                         SchedulerStep::Progress
                     }
                 } else {
-                    SchedulerStep::Progress
+                    // A provider cannot claim progress merely by retaining an
+                    // output in its own state: the current scheduler step
+                    // must either reserve the first exact cord or register
+                    // the corresponding output wait. Subsequent branches are
+                    // flushed by the pending-output path above.
+                    let output = pending_outputs
+                        .first_mut()
+                        .expect("nonempty hosted-service outputs have a first value");
+                    let out_cord = output
+                        .cords
+                        .get(output.next_cord)
+                        .copied()
+                        .expect("hosted-service pending output has an exact cord");
+                    match io.send(out_cord, output.value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            output.next_cord += 1;
+                            if pending_outputs
+                                .iter()
+                                .all(|output| output.next_cord == output.cords.len())
+                            {
+                                pending_outputs.clear();
+                                if *completion_pending {
+                                    if let Err(error) = handler.cleanup(node) {
+                                        *self.host_failure.borrow_mut() = Some(error);
+                                        return SchedulerStep::Failed {
+                                            code: Id("conduit/host-service-cleanup-failed"),
+                                        };
+                                    }
+                                    *completed = true;
+                                    SchedulerStep::Completed
+                                } else {
+                                    SchedulerStep::Progress
+                                }
+                            } else {
+                                SchedulerStep::Progress
+                            }
+                        }
+                        Ok(SendStatus::WouldBlock) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                        status => {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-RUN-004",
+                                format!(
+                                    "host service `{}` output was rejected by its exact cord: {status:?}",
+                                    node.id,
+                                ),
+                            ));
+                            SchedulerStep::Failed {
+                                code: Id("conduit/host-service-output-failed"),
+                            }
+                        }
+                    }
                 }
             }
             HostedNodeKind::Uppercase => {
@@ -10162,6 +10230,39 @@ fn validate_time_common(node: &Node, expected: &[&str]) -> Result<(), Resolution
     Ok(())
 }
 
+fn validate_ticker(node: &Node) -> Result<(), ResolutionError> {
+    const EXPECTED: &[&str] = &["duration_ticks", "time_basis", "maximum_pending"];
+    if node.config.len() != EXPECTED.len()
+        || node
+            .config
+            .iter()
+            .any(|entry| !EXPECTED.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError::new(
+            "CND-TIM-010",
+            format!("node `{}` has an incomplete ticker profile", node.id),
+        ));
+    }
+    if node.config("time_basis") != Some(TIME_CLOCK_DESCRIPTOR) {
+        return Err(ResolutionError::new(
+            "CND-TIM-011",
+            format!("node `{}` requests an unsupported ticker clock", node.id),
+        ));
+    }
+    let duration_ticks =
+        required_time_bound(node, "duration_ticks", conduit_std::TIME_MAX_DURATION_TICKS)?;
+    if duration_ticks == 0 || required_time_bound(node, "maximum_pending", 1)? != 1 {
+        return Err(ResolutionError::new(
+            "CND-TIM-012",
+            format!(
+                "node `{}` requires one nonzero bounded ticker interval and one pending wake",
+                node.id
+            ),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_time_delay(node: &Node) -> Result<(), ResolutionError> {
     validate_time_common(
         node,
@@ -11700,6 +11801,88 @@ impl Handler for Uppercase {
 }
 
 struct EncodeUtf8;
+
+#[derive(Default)]
+struct Ticker {
+    duration_ticks: u64,
+    next_tick: u64,
+    deadline_tick: Option<u64>,
+}
+
+impl Handler for Ticker {
+    fn prepare(
+        &mut self,
+        node: &Node,
+        binding: ExactHostedServiceBinding,
+    ) -> Result<(), RuntimeError> {
+        self.bind_exact(binding)?;
+        let Some(SourceValue::Integer(duration_ticks)) = node.config_value("duration_ticks") else {
+            return Err(RuntimeError::new(
+                "CND-TIM-010",
+                "ticker duration disappeared after exact validation",
+            ));
+        };
+        self.duration_ticks = u64::try_from(*duration_ticks).map_err(|_| {
+            RuntimeError::new(
+                "CND-TIM-012",
+                "ticker duration is not representable by the hosted clock",
+            )
+        })?;
+        if self.duration_ticks == 0 {
+            return Err(RuntimeError::new(
+                "CND-TIM-012",
+                "ticker interval must be nonzero",
+            ));
+        }
+        Ok(())
+    }
+
+    fn step(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-RUN-004",
+                "ticker does not accept input values",
+            ));
+        }
+        if let Some(deadline_tick) = self.deadline_tick {
+            if context.tick < deadline_tick {
+                return Ok(HostedServiceStep::Waiting {
+                    interest: HostedServiceInterest::Timer {
+                        subject: Id("conduit/time-ticker"),
+                        deadline_tick,
+                    },
+                });
+            }
+            self.deadline_tick = None;
+        }
+        let tick = self.next_tick;
+        self.next_tick = self.next_tick.checked_add(1).ok_or_else(|| {
+            RuntimeError::new(
+                "CND-TIM-020",
+                "ticker count exhausted its u64 representation",
+            )
+        })?;
+        let deadline_tick = context
+            .tick
+            .checked_add(self.duration_ticks)
+            .ok_or_else(|| RuntimeError::new("CND-TIM-020", "ticker deadline overflowed"))?;
+        self.deadline_tick = Some(deadline_tick);
+        let value_type = conduit_std::standard_node_contract("time/ticker")
+            .expect("ticker is in the standard catalog")
+            .outputs[0]
+            .value_type;
+        Ok(HostedServiceStep::produced(vec![Value {
+            value_type,
+            bytes: tick.to_be_bytes().to_vec(),
+        }]))
+    }
+}
 
 struct TimeCompatibilityHandler;
 

@@ -3655,7 +3655,7 @@
         {
           "id": "browser-host",
           "path": "../c5/browser-host.json",
-          "sha256": "sha256:e0f29cdbf668a78391e34e499acb05b9961b4d1c742f705a46bb6da28dfa5b46",
+          "sha256": "sha256:71d6678aedc178926d16d58cb9be54d3d0ad0766b3ec0119b5245bedaf12de13",
           "operation": "browser-host",
           "requirement_ids": [
             "BRW-001",
@@ -6271,7 +6271,7 @@
         {
           "id": "cross-host-provider-conformance",
           "path": "../c5/cross-host-provider-conformance.json",
-          "sha256": "sha256:401e0b4a11881537461d7d17a80066cbbbace45e51b4da420bb41799d07890e9",
+          "sha256": "sha256:ed5a7edf9efd24ca1ee336a431857fd00c9ae427bffbc19e874269225d011ba3",
           "operation": "cross-host-provider-conformance",
           "requirement_ids": [
             "HCF-001",

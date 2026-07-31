@@ -473,7 +473,8 @@ fn candidate(
     );
     let time_profile = matches!(
         installed.implementation,
-        HostedPrimitiveImplementation::TimeDelay
+        HostedPrimitiveImplementation::Ticker
+            | HostedPrimitiveImplementation::TimeDelay
             | HostedPrimitiveImplementation::TimeTimeout
             | HostedPrimitiveImplementation::TimeDebounce
             | HostedPrimitiveImplementation::TimeThrottle
