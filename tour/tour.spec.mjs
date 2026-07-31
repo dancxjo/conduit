@@ -1230,20 +1230,27 @@ test("routes cords through free space by default and keeps labels off node faces
       .map((node) => {
         const bounds = node.getBoundingClientRect();
         return {
+          id: node.dataset.id,
           left: bounds.left - clearance,
           right: bounds.right + clearance,
           top: bounds.top - clearance,
           bottom: bounds.bottom + clearance,
         };
       });
+    const endpointNodeIds = new Set([
+      path.dataset.sourceNode,
+      path.dataset.targetNode,
+    ]);
     for (let index = 0; index <= sampleCount; index += 1) {
       const ratio = index / sampleCount;
-      // Only the short lead from a handle to the outside of its own faceplate
-      // may touch an endpoint node.
+      // A cord necessarily leaves its source faceplate and enters its target
+      // faceplate. Its routed interior must remain in free space around every
+      // other node, independent of route length or viewport scale.
       if (ratio < 0.03 || ratio > 0.97) continue;
       const point = path.getPointAtLength(totalLength * ratio);
       const screenPoint = point.matrixTransform(path.getScreenCTM());
-      const hits = nodes.some((bounds) =>
+      const hits = nodes.some(({ id, ...bounds }) =>
+        !endpointNodeIds.has(id) &&
         screenPoint.x > bounds.left &&
         screenPoint.x < bounds.right &&
         screenPoint.y > bounds.top &&
@@ -1281,18 +1288,24 @@ test("routes cords through free space by default and keeps labels off node faces
         .map((node) => {
           const bounds = node.getBoundingClientRect();
           return {
+            id: node.dataset.id,
             left: bounds.left - clearance,
             right: bounds.right + clearance,
             top: bounds.top - clearance,
             bottom: bounds.bottom + clearance,
           };
         });
+      const endpointNodeIds = new Set([
+        path.dataset.sourceNode,
+        path.dataset.targetNode,
+      ]);
       for (let index = 0; index <= sampleCount; index += 1) {
         const ratio = index / sampleCount;
         if (ratio < 0.03 || ratio > 0.97) continue;
         const point = path.getPointAtLength(totalLength * ratio);
         const screenPoint = point.matrixTransform(path.getScreenCTM());
-        const hits = nodes.some((bounds) =>
+        const hits = nodes.some(({ id, ...bounds }) =>
+          !endpointNodeIds.has(id) &&
           screenPoint.x > bounds.left &&
           screenPoint.x < bounds.right &&
           screenPoint.y > bounds.top &&
