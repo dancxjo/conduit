@@ -504,6 +504,7 @@ dependencies = [
  "conduit-panel",
  "conduit-patchbay",
  "conduit-runtime",
+ "conduit-std",
  "serde_json",
  "sha2",
  "wasm-bindgen",

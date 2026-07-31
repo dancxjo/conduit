@@ -332,6 +332,9 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "std/testing/assert-validation-decision",
             _,
         ) => Some("library.explicit-data-boundaries"),
+        ("fs/chunk/literal" | "fs/read" | "fs/write" | "fs/watch", _) => {
+            Some("library.bounded-filesystem")
+        }
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
     };

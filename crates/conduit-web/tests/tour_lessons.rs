@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 26] = [
+const REQUIRED_TOUR_LESSONS: [&str; 27] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -26,6 +26,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 26] = [
     "library.bounded-supervision",
     "library.explicit-time",
     "library.explicit-data-boundaries",
+    "library.bounded-filesystem",
     "library.contract-package-imports",
     "platform.value-envelope-clock-feedback",
     "platform.resource-lease-effect-commit",
@@ -907,7 +908,102 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
 }
 
 #[test]
-fn tour_reference_panels_are_canonical_and_fail_closed() {
+fn bounded_filesystem_lesson_runs_exact_browser_providers_and_failure_paths() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-filesystem")
+        .expect("bounded filesystem lesson is selectable");
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    assert_eq!(
+        lesson["library"]["contracts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|contract| contract["id"].as_str().unwrap())
+            .collect::<BTreeSet<_>>(),
+        ["fs/chunk/literal", "fs/read", "fs/watch", "fs/write"]
+            .into_iter()
+            .collect()
+    );
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "provider_state",
+        "resource_handle",
+        "grant",
+        "operation_bounds",
+        "queue",
+        "pressure",
+        "rename_identity",
+        "cancellation",
+        "error",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .unwrap()
+            .contains("ordered text table")
+    );
+
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 6);
+    assert_eq!(lesson["source"], scenarios[0]["source"]);
+    for scenario in scenarios {
+        let id = scenario["id"].as_str().unwrap();
+        let source = scenario["source"].as_str().unwrap();
+        assert_current_panel_source(id, source);
+        let raw = if scenario["execution"] == "cancel-before-first-step" {
+            cancel_panel(source.to_owned())
+        } else {
+            run_panel(source.to_owned())
+        };
+        assert!(!raw.contains("/home/"), "{id} redacts host paths: {raw}");
+        assert!(
+            !raw.contains("read-source.txt"),
+            "{id} redacts provider mapping: {raw}"
+        );
+        let result: Value =
+            serde_json::from_str(&raw).unwrap_or_else(|error| panic!("{id}: {error}: {raw}"));
+        let validation = &scenario["validation"];
+        let expected = validation["value"].as_str().unwrap();
+        match validation["kind"].as_str().unwrap() {
+            "display" => {
+                assert_eq!(result["ok"], true, "{id}: {result}");
+                assert_eq!(result["display"], expected, "{id}: {result}");
+                assert_eq!(result["terminal"], "succeeded", "{id}: {result}");
+            }
+            "terminal" => {
+                assert_eq!(result["ok"], true, "{id}: {result}");
+                assert_eq!(result["terminal"], expected, "{id}: {result}");
+            }
+            "diagnostic" => {
+                assert_eq!(result["ok"], false, "{id}: {result}");
+                let diagnostic = result["diagnostic"]
+                    .as_str()
+                    .or_else(|| result["stderr"].as_str())
+                    .unwrap_or_default();
+                assert!(diagnostic.contains(expected), "{id}: {result}");
+            }
+            kind => panic!("unexpected filesystem validation kind {kind}"),
+        }
+    }
+}
+
+#[test]
+fn tour_reference_panels_are_canonical_runnable_or_fail_closed() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let manifest: Value = serde_json::from_str(
         &std::fs::read_to_string(root.join("tour/reference-panels/current.json"))
@@ -921,16 +1017,6 @@ fn tour_reference_panels_are_canonical_and_fail_closed() {
         .expect("reference panels are listed")
     {
         let id = reference["id"].as_str().expect("reference id");
-        assert_eq!(
-            reference["runnability"]["state"], "contract-only",
-            "{id} cannot claim an unavailable browser provider"
-        );
-        assert!(
-            reference["runnability"]["reason"]
-                .as_str()
-                .is_some_and(|reason| !reason.is_empty()),
-            "{id} explains why Run is unavailable"
-        );
         let relative = reference["source_path"]
             .as_str()
             .expect("canonical source path")
@@ -939,6 +1025,27 @@ fn tour_reference_panels_are_canonical_and_fail_closed() {
         let source = std::fs::read_to_string(root.join(relative))
             .unwrap_or_else(|error| panic!("{id} canonical source is readable: {error}"));
         assert_current_panel_source(id, &source);
+        if reference["runnability"]["state"] == "runnable" {
+            assert_eq!(
+                reference["runnability"]["proof"],
+                "browser-worker-exact-plan"
+            );
+            let result: Value =
+                serde_json::from_str(&run_panel(source)).expect("runnable reference emits JSON");
+            assert_eq!(result["ok"], true, "{id} runs in its browser profile");
+            assert_eq!(result["terminal"], "succeeded", "{id} terminates");
+            continue;
+        }
+        assert_eq!(
+            reference["runnability"]["state"], "contract-only",
+            "{id} has a verified runnability state"
+        );
+        assert!(
+            reference["runnability"]["reason"]
+                .as_str()
+                .is_some_and(|reason| !reason.is_empty()),
+            "{id} explains why Run is unavailable"
+        );
         let panel = conduit_panel::parse(&source).expect("current reference source already parsed");
         let failure = Registry::hosted_primitives()
             .resolve(&panel)

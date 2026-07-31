@@ -4,18 +4,18 @@
     {
       "id": "file-copier",
       "title": "File Copier Pipeline",
-      "objective": "Inspect a bounded file stream contract",
-      "prose": "Contract-only: no file provider is installed in the browser host.",
+      "objective": "Run a bounded opaque-resource file copy",
+      "prose": "Runnable in the explicitly selected browser in-memory filesystem profile; no host path or ambient filesystem is available.",
       "source_path": "../../examples/file-copier.panel",
-      "runnability": {"state":"contract-only","profile":"browser","code":"CND-IMP-001","reason":"file providers are not installed in the Tour browser host"}
+      "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"}
     },
     {
       "id": "dir-watcher",
-      "title": "Directory Watcher & Filter",
-      "objective": "Inspect directory and filtering contracts",
-      "prose": "Contract-only: file watching and pass-through providers are not installed in the browser host.",
+      "title": "Bounded File Watcher",
+      "objective": "Run a bounded initial watch observation",
+      "prose": "Runnable in the explicitly selected browser in-memory filesystem profile with finite event and queue bounds.",
       "source_path": "../../examples/dir-watcher.panel",
-      "runnability": {"state":"contract-only","profile":"browser","code":"CND-IMP-001","reason":"directory and filter providers are not installed in the Tour browser host"}
+      "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"}
     },
     {
       "id": "http-webhook-relay",

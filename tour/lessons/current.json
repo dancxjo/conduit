@@ -1957,6 +1957,222 @@
       }
     },
     {
+      "id": "library.bounded-filesystem",
+      "chapter": 4,
+      "title": "Bounded file boundaries",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.resource-lease-effect-commit"
+      ],
+      "objective": "Run an opaque-handle file read, then compare bounded write and watch scenarios while inspecting exact provider, authority, queue, cancellation, and terminal evidence.",
+      "prose": "File nodes receive opaque scoped resource identities, never operating-system paths. Reads pin a finite range and EOF policy; writes pin mutation, partial-commit, flush, cleanup, and cancellation policy; watches pin event identity, loss, queue, gap, resync, rename, and terminal behavior.",
+      "vocabulary": [
+        "opaque resource handle",
+        "bounded range",
+        "partial commit",
+        "flush claim",
+        "watch gap",
+        "rename identity"
+      ],
+      "source": "panel 0\n\nnode reader : fs/read {\n    resource = secret(\"conduit.resource/filesystem-example-read\")\n    grant = secret(\"conduit.grant/filesystem-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n",
+      "command": "conduct --run examples/filesystem-read.panel",
+      "commands": [
+        "conduct --check examples/filesystem-read.panel",
+        "conduct --run examples/filesystem-read.panel",
+        "conduct --enable-file-write examples/filesystem-write.panel",
+        "conduct --enable-file-write examples/file-copier.panel",
+        "conduct --enable-file-watch examples/dir-watcher.panel"
+      ],
+      "expected_display": "",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 32,
+        "queue_bytes": 64,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "filesystem-boundary-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "provider_state",
+          "resource_handle",
+          "grant",
+          "operation_bounds",
+          "queue",
+          "pressure",
+          "rename_identity",
+          "cancellation",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": ""
+      },
+      "hints": [
+        "The secret reference names an opaque provider binding; it is not a path and cannot be expanded by the panel.",
+        "Write and watch are explicit provider-profile choices because they mutate or continuously observe host state.",
+        "Timeline controls reveal the same ordered evidence projected into Patchbay; they never synthesize file events."
+      ],
+      "solution": "Bind one exact scoped resource and matching grant, choose finite byte or event ceilings, state every consistency, loss, commit, cleanup, and cancellation policy, and let admission fail before execution when the provider or handle does not match.",
+      "accessibility": {
+        "non_audio": "An ordered text table names provider state, opaque resource, grant, offset or event sequence, byte and queue bounds, pressure, commit or gap result, cancellation, error, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered file-boundary story has focus.",
+        "color_independent": "Resource labels, event names, sequence numbers, bounds, commit words, gap markers, errors, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Opaque file resources cross a bounded host-service boundary with exact read, write, watch, authority, and evidence semantics.",
+        "what": "Read emits a bounded chunk and EOF result; write consumes one bounded chunk and reports the committed prefix and honest flush claim; watch emits ordered create, change, remove, rename, gap, and resync observations under a finite queue.",
+        "when": "Use these nodes when a graph must access a specifically installed file resource without exposing paths, descriptors, ambient discovery, or framework objects to semantic source.",
+        "wrong": "Wrong or denied handles, stale host reports, symlinks, oversized chunks, unsupported durability, partial commits, provider loss, watch overflow, rename ambiguity, and cancellation terminate with explicit evidence instead of silent fallback.",
+        "contracts": [
+          {
+            "id": "fs/read",
+            "kind": "node",
+            "instance": "reader",
+            "outputs": [
+              "chunk:fs/chunk",
+              "result:fs/read-result"
+            ],
+            "descriptor_hash": "sha256:86eda0f147f89a1f9b9219a7906abd24c377635124acb78b3474f3fc2f8e2a91"
+          },
+          {
+            "id": "fs/chunk/literal",
+            "kind": "node",
+            "instance": "source",
+            "outputs": [
+              "chunk:fs/chunk"
+            ],
+            "descriptor_hash": "sha256:564bcf5062351a573fa63798766a456deb0e64e2b4f4c647e5969f25d79476df"
+          },
+          {
+            "id": "fs/write",
+            "kind": "node",
+            "instance": "writer",
+            "inputs": [
+              "chunk:fs/chunk"
+            ],
+            "outputs": [
+              "result:fs/write-result"
+            ],
+            "descriptor_hash": "sha256:5d96b31b89347d681e3bdacaf1d93f91ea72d44d19843139a1d792a6f3b74e71"
+          },
+          {
+            "id": "fs/watch",
+            "kind": "node",
+            "instance": "watcher",
+            "outputs": [
+              "event:fs/event"
+            ],
+            "descriptor_hash": "sha256:78bf54d01ee90c2fb83d3789efef6c14d0c93869876a8c3c35a4fd1e5fb9e54b"
+          }
+        ],
+        "editable": [
+          "reader.offset:0..26",
+          "reader.chunk_bytes:1..64",
+          "writer.mode:create|replace|append",
+          "writer.partial:fail-without-commit|report-committed-prefix",
+          "watcher.coalescing:none|same-handle-latest",
+          "watcher.overflow:terminal-gap|gap-resync"
+        ],
+        "provider": "explicit browser in-memory filesystem provider through the ordinary exact host-service boundary",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "contract-known, installed provider, fresh host observation, active grant, resource binding, and running state",
+          "exact implementation, artifact, opaque resource, lease, operation bounds, pending-operation bound, and evidence budget",
+          "ordered chunk or watch event, pressure and queue occupancy, commit or gap result, and one exact terminal cause",
+          "redacted protected configuration with no operating-system path or file content in diagnostics"
+        ],
+        "docs": [
+          "../../spec/061-bounded-filesystem.md",
+          "../../docs/cookbook-standard-library.md",
+          "../../examples/filesystem-read.panel",
+          "../../examples/filesystem-write.panel",
+          "../../examples/file-copier.panel",
+          "../../examples/dir-watcher.panel",
+          "../../conformance/c4/standard-catalog.json"
+        ],
+        "scenarios": [
+          {
+            "id": "standalone-read",
+            "title": "Standalone bounded read",
+            "explanation": "Read one snapshot chunk from an opaque provider resource and terminate explicitly at EOF.",
+            "source": "panel 0\n\nnode reader : fs/read {\n    resource = secret(\"conduit.resource/filesystem-example-read\")\n    grant = secret(\"conduit.grant/filesystem-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n",
+            "execution": "run",
+            "validation": {
+              "kind": "display",
+              "value": ""
+            }
+          },
+          {
+            "id": "read-write-composition",
+            "title": "Read then write",
+            "explanation": "Send the exact fs/chunk value from a bounded read into a separately granted bounded replace operation.",
+            "source": "panel 0\n\nnode reader : fs/read {\n    resource = secret(\"conduit.resource/filesystem-example-read\")\n    grant = secret(\"conduit.grant/filesystem-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n\nnode writer : fs/write {\n    resource = secret(\"conduit.resource/filesystem-example-write\")\n    grant = secret(\"conduit.grant/filesystem-write\")\n    mode = \"replace\"\n    maximum_bytes = 64\n    partial = \"fail-without-commit\"\n    flush = \"provider-accepted\"\n    cleanup = \"close\"\n    cancellation = \"close\"\n}\n\ncord reader.chunk -> writer.chunk {\n    capacity = 1\n    max_value_bytes = 64\n    max_queued_bytes = 64\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+            "execution": "run",
+            "validation": {
+              "kind": "display",
+              "value": ""
+            }
+          },
+          {
+            "id": "standalone-write",
+            "title": "Standalone bounded write",
+            "explanation": "Produce one typed file chunk and replace only the explicitly bound in-memory resource.",
+            "source": "panel 0\n\nnode source : fs/chunk/literal {\n    value = bytes(\"636f6e6475697420626f756e6465642066696c6573797374656d0a\")\n    maximum_bytes = 64\n}\n\nnode writer : fs/write {\n    resource = secret(\"conduit.resource/filesystem-example-write\")\n    grant = secret(\"conduit.grant/filesystem-write\")\n    mode = \"replace\"\n    maximum_bytes = 64\n    partial = \"fail-without-commit\"\n    flush = \"provider-accepted\"\n    cleanup = \"close\"\n    cancellation = \"close\"\n}\n\ncord source.chunk -> writer.chunk { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            "execution": "run",
+            "validation": {
+              "kind": "display",
+              "value": ""
+            }
+          },
+          {
+            "id": "standalone-watch",
+            "title": "Standalone bounded watch",
+            "explanation": "Emit one initial observation under a pinned clock, finite queue, explicit gap policy, and preserved opaque rename identity.",
+            "source": "panel 0\n\nnode watcher : fs/watch {\n    resource = secret(\"conduit.resource/filesystem-example-watch\")\n    grant = secret(\"conduit.grant/filesystem-watch\")\n    clock = ref(\"conduit.clock/monotonic-ticks\")\n    clock_schema_version = 0\n    clock_hash = bytes(\"6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48\")\n    event_kinds = \"create-change-remove-rename\"\n    emit_initial = true\n    coalescing = \"none\"\n    loss = \"explicit-gap\"\n    queue_capacity = 4\n    maximum_events = 4\n    overflow = \"gap-resync\"\n    rename_identity = \"preserve-handle\"\n    cancellation = \"close\"\n}\n",
+            "execution": "run",
+            "validation": {
+              "kind": "display",
+              "value": ""
+            }
+          },
+          {
+            "id": "wrong-handle",
+            "title": "Wrong opaque handle",
+            "explanation": "A source-named resource outside the installed provider table is rejected before any ambient lookup or file operation.",
+            "source": "panel 0\n\nnode reader : fs/read {\n    resource = secret(\"conduit.resource/not-installed\")\n    grant = secret(\"conduit.grant/filesystem-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n",
+            "execution": "run",
+            "validation": {
+              "kind": "diagnostic",
+              "value": "CND-FSH-019"
+            }
+          },
+          {
+            "id": "cancelled",
+            "title": "Cancelled before first operation",
+            "explanation": "Abort cancellation is applied before the provider receives a file operation, so no chunk, mutation, or watch observation is committed.",
+            "source": "panel 0\n\nnode reader : fs/read {\n    resource = secret(\"conduit.resource/filesystem-example-read\")\n    grant = secret(\"conduit.grant/filesystem-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n",
+            "execution": "cancel-before-first-step",
+            "validation": {
+              "kind": "terminal",
+              "value": "cancelled"
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "library.contract-package-imports",
       "chapter": 4,
       "title": "Imports name meaning; plans provide machines",

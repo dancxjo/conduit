@@ -36,10 +36,10 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `flow/skip` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.skip.standalone (required) | tour/lessons/current.json#library.flow.skip.composition (required) |
 | `flow/switch` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.switch.standalone (required) | tour/lessons/current.json#library.flow.switch.composition (required) |
 | `flow/take` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.take.standalone (required) | tour/lessons/current.json#library.flow.take.composition (required) |
-| `fs/chunk/literal` | optional-host-boundary | `conduit.host.fs` | 1 | tour/lessons/current.json#library.fs.chunk.literal.standalone (required) | tour/lessons/current.json#library.fs.chunk.literal.composition (required) |
-| `fs/read` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.fs.read.standalone (required) | tour/lessons/current.json#library.fs.read.composition (required) |
-| `fs/watch` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.fs.watch.standalone (required) | tour/lessons/current.json#library.fs.watch.composition (required) |
-| `fs/write` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.fs.write.standalone (required) | tour/lessons/current.json#library.fs.write.composition (required) |
+| `fs/chunk/literal` | optional-host-boundary | `conduit.host.fs` | 1 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
+| `fs/read` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
+| `fs/watch` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
+| `fs/write` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
 | `io/stderr` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stderr.standalone (required) | tour/lessons/current.json#library.io.stderr.composition (required) |
 | `io/stdin` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stdin.standalone (required) | tour/lessons/current.json#library.io.stdin.composition (required) |
 | `io/stdout` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#welcome.hello-panel (published) | tour/lessons/current.json#platform.cross-host-provider-conformance (published) |

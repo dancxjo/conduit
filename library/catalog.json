@@ -4496,12 +4496,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.fs/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.chunk.literal.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.chunk.literal.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -4658,12 +4658,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.fs/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.read.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.read.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -4815,12 +4815,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.fs/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.watch.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.watch.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -4977,12 +4977,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.fs/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.write.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.fs.write.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-filesystem",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,

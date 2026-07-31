@@ -6,13 +6,30 @@ use wasm_bindgen::prelude::*;
 
 use conduit_compile::{CompileInput, InstalledProfile, compile_source};
 use conduit_core::{
-    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, TerminalClass,
+    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash, TerminalClass,
 };
-use conduit_runtime::{ExactExecutionReport, ExactRunContext, RuntimeError, SchedulerReservation};
+use conduit_panel::{Node, SourceValue};
+use conduit_runtime::{
+    CompiledInHostService, ExactExecutionReport, ExactRunContext, Handler, Registry,
+    ResolutionError, RunIo, RuntimeError, SchedulerReservation, Value, file_read_contract,
+    file_watch_contract, file_write_contract,
+};
+use conduit_std::{
+    FileHandle, FileSlot, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
+    ReadRequest, WatchCoalescing, WatchOverflow, WatchRequest, WriteMode, WriteRequest,
+};
 
 const MAXIMUM_PATCHBAY_SESSIONS: usize = 8;
 const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
 const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
+const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
+const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
+const BROWSER_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
+const BROWSER_FILE_BYTES: &[u8] = b"bounded filesystem fixture\n";
+const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
+    0x6b, 0x9c, 0x68, 0x72, 0x26, 0xd4, 0xa1, 0x96, 0x5e, 0x78, 0x0b, 0x63, 0xb4, 0xbd, 0xc0, 0x92,
+    0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
+];
 
 thread_local! {
     static PATCHBAY_SESSIONS: RefCell<BTreeMap<String, conduit_patchbay::Workspace>> =
@@ -25,6 +42,367 @@ struct ExactBrowserResult {
     error: Vec<u8>,
     display: Vec<u8>,
     patchbay: serde_json::Value,
+}
+
+fn browser_filesystem() -> MemoryFilesystem<1, 256, 8> {
+    MemoryFilesystem::new([FileSlot::seeded(FileHandle(1), BROWSER_FILE_BYTES, false)
+        .expect("browser filesystem fixture is statically bounded")])
+}
+
+fn exact_keys(node: &Node, expected: &[&str]) -> Result<(), ResolutionError> {
+    if node.config.len() == expected.len()
+        && expected
+            .iter()
+            .all(|key| node.config.iter().any(|entry| entry.key == *key))
+    {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-FSH-019",
+            format!(
+                "browser file node `{}` has an incomplete exact config",
+                node.id
+            ),
+        ))
+    }
+}
+
+fn exact_secret(node: &Node, key: &str, expected: &str) -> bool {
+    matches!(
+        node.config_value(key),
+        Some(SourceValue::SecretReference(value)) if value == expected
+    )
+}
+
+fn exact_usize(node: &Node, key: &str, maximum: usize) -> Result<usize, RuntimeError> {
+    match node.config_value(key) {
+        Some(SourceValue::Integer(value)) if *value > 0 && *value <= maximum as i128 => {
+            usize::try_from(*value)
+                .map_err(|_| RuntimeError::new("CND-FS-001", "file bound does not fit usize"))
+        }
+        _ => Err(RuntimeError::new(
+            "CND-FS-001",
+            format!("browser file node `{}` has invalid `{key}`", node.id),
+        )),
+    }
+}
+
+fn validate_browser_read(node: &Node) -> Result<(), ResolutionError> {
+    exact_keys(
+        node,
+        &[
+            "resource",
+            "grant",
+            "offset",
+            "maximum_bytes",
+            "chunk_bytes",
+            "consistency",
+            "eof",
+            "cancellation",
+        ],
+    )?;
+    if exact_secret(node, "resource", BROWSER_READ_RESOURCE)
+        && exact_secret(node, "grant", "conduit.grant/filesystem-read")
+        && matches!(node.config("consistency"), Some("snapshot" | "live"))
+        && node.config("eof") == Some("terminal")
+        && node.config("cancellation") == Some("discard")
+    {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-FSH-019",
+            "browser read requests unsupported resource or semantics",
+        ))
+    }
+}
+
+fn validate_browser_write(node: &Node) -> Result<(), ResolutionError> {
+    exact_keys(
+        node,
+        &[
+            "resource",
+            "grant",
+            "mode",
+            "maximum_bytes",
+            "partial",
+            "flush",
+            "cleanup",
+            "cancellation",
+        ],
+    )?;
+    if exact_secret(node, "resource", BROWSER_WRITE_RESOURCE)
+        && exact_secret(node, "grant", "conduit.grant/filesystem-write")
+        && matches!(node.config("mode"), Some("create" | "replace" | "append"))
+        && matches!(
+            node.config("partial"),
+            Some("fail-without-commit" | "report-committed-prefix")
+        )
+        && matches!(node.config("flush"), Some("none" | "provider-accepted"))
+        && node.config("cleanup") == Some("close")
+        && node.config("cancellation") == Some("close")
+    {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-FSH-019",
+            "browser write requests unsupported resource or semantics",
+        ))
+    }
+}
+
+fn validate_browser_watch(node: &Node) -> Result<(), ResolutionError> {
+    exact_keys(
+        node,
+        &[
+            "resource",
+            "grant",
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "event_kinds",
+            "emit_initial",
+            "coalescing",
+            "loss",
+            "queue_capacity",
+            "maximum_events",
+            "overflow",
+            "rename_identity",
+            "cancellation",
+        ],
+    )?;
+    if exact_secret(node, "resource", BROWSER_WATCH_RESOURCE)
+        && exact_secret(node, "grant", "conduit.grant/filesystem-watch")
+        && node.config("clock") == Some("conduit.clock/monotonic-ticks")
+        && matches!(
+            node.config_value("clock_schema_version"),
+            Some(SourceValue::Integer(0))
+        )
+        && matches!(
+            node.config_value("clock_hash"),
+            Some(SourceValue::Bytes(hash)) if hash.as_slice() == MONOTONIC_CLOCK_HASH
+        )
+        && node.config("event_kinds") == Some("create-change-remove-rename")
+        && matches!(
+            node.config_value("emit_initial"),
+            Some(SourceValue::Boolean(true))
+        )
+        && matches!(
+            node.config("coalescing"),
+            Some("none" | "same-handle-latest")
+        )
+        && node.config("loss") == Some("explicit-gap")
+        && matches!(node.config("overflow"), Some("terminal-gap" | "gap-resync"))
+        && node.config("rename_identity") == Some("preserve-handle")
+        && node.config("cancellation") == Some("close")
+    {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-FSH-019",
+            "browser watch requests unsupported resource or semantics",
+        ))
+    }
+}
+
+struct BrowserRead;
+
+impl Handler for BrowserRead {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new("CND-FSH-019", "read has hidden inputs"));
+        }
+        let offset = match node.config_value("offset") {
+            Some(SourceValue::Integer(value)) if *value >= 0 => *value as u64,
+            _ => return Err(RuntimeError::new("CND-FS-001", "invalid read offset")),
+        };
+        let maximum_bytes = exact_usize(node, "maximum_bytes", 256)?;
+        let chunk_bytes = exact_usize(node, "chunk_bytes", 256)?;
+        let mut output = [0; 256];
+        let result = browser_filesystem()
+            .read(
+                ReadRequest {
+                    handle: FileHandle(1),
+                    offset,
+                    maximum_bytes,
+                    chunk_bytes,
+                    consistency: if node.config("consistency") == Some("live") {
+                        ReadConsistency::Live
+                    } else {
+                        ReadConsistency::Snapshot
+                    },
+                },
+                &mut output[..chunk_bytes],
+            )
+            .map_err(|error| RuntimeError::new(error.code(), error.code()))?;
+        let mut metadata = Vec::with_capacity(25);
+        metadata.extend_from_slice(&(result.bytes_read as u64).to_be_bytes());
+        metadata.extend_from_slice(&result.next_offset.to_be_bytes());
+        metadata.extend_from_slice(&result.generation.to_be_bytes());
+        metadata.push(u8::from(result.eof));
+        Ok(vec![
+            Value {
+                value_type: file_read_contract().outputs[0].value_type,
+                bytes: output[..result.bytes_read].to_vec(),
+            },
+            Value {
+                value_type: file_read_contract().outputs[1].value_type,
+                bytes: metadata,
+            },
+        ])
+    }
+}
+
+struct BrowserWrite;
+
+impl Handler for BrowserWrite {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let input = inputs
+            .first()
+            .filter(|value| value.value_type == file_write_contract().inputs[0].value_type)
+            .ok_or_else(|| RuntimeError::new("CND-FSH-019", "write chunk is missing"))?;
+        let mode = match node.config("mode") {
+            Some("create") => WriteMode::Create,
+            Some("append") => WriteMode::Append,
+            _ => WriteMode::Replace,
+        };
+        let partial = if node.config("partial") == Some("report-committed-prefix") {
+            PartialWritePolicy::ReportCommittedPrefix
+        } else {
+            PartialWritePolicy::FailWithoutCommit
+        };
+        let flush = if node.config("flush") == Some("provider-accepted") {
+            FlushClaim::ProviderAccepted
+        } else {
+            FlushClaim::None
+        };
+        let result = browser_filesystem()
+            .write(
+                WriteRequest {
+                    handle: FileHandle(1),
+                    mode,
+                    maximum_bytes: exact_usize(node, "maximum_bytes", 256)?,
+                    partial,
+                    requested_flush: flush,
+                },
+                &input.bytes,
+            )
+            .map_err(|error| RuntimeError::new(error.code(), error.code()))?;
+        let mut metadata = Vec::with_capacity(19);
+        metadata.extend_from_slice(&(result.bytes_written as u64).to_be_bytes());
+        metadata.extend_from_slice(&result.generation.to_be_bytes());
+        metadata.push(u8::from(result.committed));
+        metadata.push(u8::from(result.complete));
+        metadata.push(match result.flush {
+            FlushClaim::None => 0,
+            FlushClaim::ProviderAccepted => 1,
+            FlushClaim::Durable => 2,
+        });
+        Ok(vec![Value {
+            value_type: file_write_contract().outputs[0].value_type,
+            bytes: metadata,
+        }])
+    }
+}
+
+struct BrowserWatch;
+
+impl Handler for BrowserWatch {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new("CND-FSH-019", "watch has hidden inputs"));
+        }
+        let mut filesystem = browser_filesystem();
+        filesystem
+            .begin_watch(WatchRequest {
+                emit_initial: true,
+                maximum_events: exact_usize(node, "maximum_events", 8)?,
+                queue_capacity: exact_usize(node, "queue_capacity", 8)?,
+                coalescing: if node.config("coalescing") == Some("same-handle-latest") {
+                    WatchCoalescing::SameHandleLatest
+                } else {
+                    WatchCoalescing::None
+                },
+                overflow: if node.config("overflow") == Some("terminal-gap") {
+                    WatchOverflow::TerminalGap
+                } else {
+                    WatchOverflow::GapThenResync
+                },
+            })
+            .map_err(|error| RuntimeError::new(error.code(), error.code()))?;
+        let event = filesystem
+            .take_watch_event()
+            .map_err(|error| RuntimeError::new(error.code(), error.code()))?
+            .ok_or_else(|| RuntimeError::new("CND-FS-009", "initial watch event disappeared"))?;
+        let resource = BROWSER_WATCH_RESOURCE.as_bytes();
+        let mut bytes = Vec::with_capacity(11 + resource.len());
+        bytes.push(0);
+        bytes.extend_from_slice(&event.generation.to_be_bytes());
+        bytes.extend_from_slice(&(resource.len() as u16).to_be_bytes());
+        bytes.extend_from_slice(resource);
+        Ok(vec![Value {
+            value_type: file_watch_contract().outputs[0].value_type,
+            bytes,
+        }])
+    }
+}
+
+fn browser_registry() -> Registry {
+    static READ_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x31; 32])];
+    static WRITE_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x32; 32])];
+    static WATCH_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x33; 32])];
+    let mut registry = Registry::hosted_primitives();
+    for provider in [
+        CompiledInHostService {
+            contract: file_read_contract(),
+            implementation_id: "conduit/filesystem-memory-read",
+            artifact_id: "conduit/filesystem-memory-read-artifact",
+            entrypoint: "filesystem-memory-read",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &READ_AUTHORITIES,
+            factory: || Box::new(BrowserRead),
+            validate_config: validate_browser_read,
+        },
+        CompiledInHostService {
+            contract: file_write_contract(),
+            implementation_id: "conduit/filesystem-memory-write",
+            artifact_id: "conduit/filesystem-memory-write-artifact",
+            entrypoint: "filesystem-memory-write",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &WRITE_AUTHORITIES,
+            factory: || Box::new(BrowserWrite),
+            validate_config: validate_browser_write,
+        },
+        CompiledInHostService {
+            contract: file_watch_contract(),
+            implementation_id: "conduit/filesystem-memory-watch",
+            artifact_id: "conduit/filesystem-memory-watch-artifact",
+            entrypoint: "filesystem-memory-watch",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &WATCH_AUTHORITIES,
+            factory: || Box::new(BrowserWatch),
+            validate_config: validate_browser_watch,
+        },
+    ] {
+        registry
+            .register_compiled_in_host_service(provider)
+            .expect("browser filesystem provider identities are unique");
+    }
+    registry
 }
 
 const fn terminal_name(terminal: TerminalClass) -> &'static str {
@@ -215,7 +593,7 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
             })
             .to_string();
         };
-        let registry = conduit_runtime::Registry::hosted_primitives();
+        let registry = browser_registry();
         let result = workspace.apply_validated(
             request,
             |contract_id| availability_projection(&registry, contract_id),
@@ -261,7 +639,7 @@ fn validate_patchbay_candidate(
         diagnostics: vec![error.to_string()],
         disposition: conduit_patchbay::EditDisposition::Rejected,
     })?;
-    conduit_runtime::Registry::hosted_primitives()
+    browser_registry()
         .resolve(&panel)
         .map_err(|error| conduit_patchbay::ProtocolError {
             code: "CND-PBY-010",
@@ -290,7 +668,8 @@ fn validate_patchbay_candidate(
 }
 
 fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
-    let installed = InstalledProfile::observe(source).ok()?;
+    let registry = browser_registry();
+    let installed = InstalledProfile::observe_registry(source, &registry).ok()?;
     let document = compile_source(source, &installed.input).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
@@ -306,7 +685,7 @@ fn authoritative_patchbay_view(
 ) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
     let document = conduit_panel::parse_document(&workspace.source().source);
     let recovered = conduit_panel::recover_document(&workspace.source().source);
-    let registry = conduit_runtime::Registry::hosted_primitives();
+    let registry = browser_registry();
     let semantic = workspace.semantic_with_lookup(|id| availability_projection(&registry, id));
     let bounds = conduit_patchbay::PatchbayProjectionBounds::default();
     let source_text = workspace.source().source.as_str();
@@ -1978,7 +2357,7 @@ pub fn explain_panel(source: String) -> String {
             .to_string();
         }
     };
-    match conduit_runtime::Registry::hosted_primitives().resolve(&panel) {
+    match browser_registry().resolve(&panel) {
         Ok(resolved) => serde_json::json!({
             "ok": true,
             "logical": resolved.explain_logical(),
@@ -2106,7 +2485,8 @@ fn run_panel_exact_inner(
 ) -> Result<ExactBrowserResult, RuntimeError> {
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
-    let installed = InstalledProfile::observe(source)?;
+    let registry = browser_registry();
+    let installed = InstalledProfile::observe_registry(source, &registry)?;
     let explicit_input = compile_input_json
         .map(|json| {
             serde_json::from_str::<CompileInput>(json)
@@ -2124,7 +2504,6 @@ fn run_panel_exact_inner(
     let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
     let workspace = conduit_patchbay::Workspace::new("conduit/browser-source", source)
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?;
-    let registry = conduit_runtime::Registry::hosted_primitives();
     let resolved = registry
         .resolve(&panel)
         .map_err(|error| RuntimeError::new(error.code, error.message))?;

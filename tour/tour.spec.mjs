@@ -946,13 +946,16 @@ test("routes cords through free space and keeps labels off node faces", async ({
   }).toBe(false);
 });
 
-test("reference panels expose canonical contract-only status and disable Run", async ({ page }) => {
+test("filesystem reference panels use the explicit bounded browser provider", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   await page.getByRole("button", { name: "File Copier Pipeline" }).click();
-  await expect(page.locator("#runnability-state")).toContainText("contract-only");
-  await expect(page.locator("#run")).toBeDisabled();
-  await expect(page.locator("#result")).toContainText("CND-IMP-001");
-  await expect(page.locator("#source")).toHaveValue(/node reader : std\/file-read/);
+  await expect(page.locator("#runnability-state")).toContainText("runnable · browser");
+  await expect(page.locator("#run")).toBeEnabled();
+  await expect(page.locator("#source")).toHaveValue(/node reader : fs\/read/);
+  await page.locator("#run").click();
+  await expect(page.locator("#result")).toContainText("Run completed", {
+    timeout: 20_000,
+  });
 });
 
 test("pedagogical completion is not execution evidence", async ({ page }) => {
