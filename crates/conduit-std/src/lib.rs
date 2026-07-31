@@ -20,6 +20,7 @@ mod conformance;
 mod data_boundaries;
 mod filesystem;
 mod state;
+mod storage_cache;
 mod supervision;
 mod text_format;
 mod text_lines_join;
@@ -46,6 +47,11 @@ pub use filesystem::{
 pub use state::{
     CacheEntry, CacheInsert, CacheState, CellState, DeduplicateDecision, DeduplicateState,
     STATE_MAX_ENTRIES, STATE_MAX_VALUE_BYTES, StateError, StateIdentity,
+};
+pub use storage_cache::{
+    BlobIdentity, CACHE_MAX_BLOB_BYTES, CACHE_MAX_ENTRIES, CacheError, CacheHandle,
+    CachePersistence, CacheRequirement, CacheSensitivity, CacheStore, GetOutcome, GetRequest,
+    GetResult, PutRequest, PutResult, RemoveOutcome,
 };
 pub use supervision::{
     AttemptOutcome, BackoffMode, BackoffPolicy, BreakerAdmission, BreakerOutcome, BreakerState,
@@ -347,6 +353,46 @@ const FS_EVENT: TypeContractRef<'static> = TypeContractRef {
         0x19, 0xa6,
     ]),
 };
+const STORAGE_BLOB: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("storage/blob"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        96, 173, 77, 1, 167, 191, 66, 199, 206, 22, 192, 212, 34, 118, 151, 25, 71, 127, 32, 35,
+        71, 104, 235, 72, 250, 35, 84, 123, 8, 94, 49, 63,
+    ]),
+};
+const STORAGE_CACHE_HANDLE: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("storage/cache-handle"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        220, 59, 69, 20, 176, 217, 205, 14, 252, 2, 189, 253, 165, 49, 57, 11, 236, 223, 255, 94,
+        9, 220, 89, 182, 35, 116, 57, 96, 255, 87, 65, 75,
+    ]),
+};
+const STORAGE_CACHE_PUT_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("storage/cache-put-result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        25, 173, 190, 203, 158, 243, 60, 161, 250, 213, 193, 252, 29, 197, 194, 38, 95, 2, 12, 115,
+        163, 200, 185, 175, 122, 31, 106, 124, 183, 206, 121, 0,
+    ]),
+};
+const STORAGE_CACHE_GET_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("storage/cache-get-result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        169, 18, 33, 166, 225, 52, 239, 240, 167, 94, 129, 196, 253, 213, 8, 228, 69, 55, 246, 200,
+        49, 169, 223, 176, 252, 168, 53, 121, 230, 22, 203, 190,
+    ]),
+};
+const STORAGE_CACHE_REMOVE_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("storage/cache-remove-result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        228, 128, 85, 30, 56, 195, 0, 24, 27, 231, 165, 14, 158, 38, 223, 218, 248, 132, 43, 113,
+        158, 140, 249, 199, 222, 73, 51, 234, 197, 212, 113, 154,
+    ]),
+};
 
 const VALUE_PARAMETER: CatalogTypeExpression = CatalogTypeExpression::Parameter(Id("value"));
 const NATURAL_EXPRESSION: CatalogTypeExpression = CatalogTypeExpression::Named(Id("std/natural"));
@@ -639,6 +685,55 @@ const FS_EVENT_OUTPUT: PortContract<'static> = port(
     Direction::Output,
     FS_EVENT,
     ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const STORAGE_BLOB_INPUT: PortContract<'static> = port(
+    "blob",
+    Direction::Input,
+    STORAGE_BLOB,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const STORAGE_BLOB_OUTPUT: PortContract<'static> = port(
+    "blob",
+    Direction::Output,
+    STORAGE_BLOB,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const STORAGE_CACHE_HANDLE_INPUT: PortContract<'static> = port(
+    "handle",
+    Direction::Input,
+    STORAGE_CACHE_HANDLE,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const STORAGE_CACHE_HANDLE_OUTPUT: PortContract<'static> = port(
+    "handle",
+    Direction::Output,
+    STORAGE_CACHE_HANDLE,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const STORAGE_CACHE_PUT_RESULT_OUTPUT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    STORAGE_CACHE_PUT_RESULT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const STORAGE_CACHE_GET_RESULT_OUTPUT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    STORAGE_CACHE_GET_RESULT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
+const STORAGE_CACHE_REMOVE_RESULT_OUTPUT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    STORAGE_CACHE_REMOVE_RESULT,
+    ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
 const CONTROL: PortContract<'static> = port(
@@ -1077,6 +1172,45 @@ const FILE_WATCH: ConfigContract<'static> = ConfigContract {
         field("cancellation", TEXT),
     ],
 };
+const STORAGE_BLOB_LITERAL: ConfigContract<'static> = ConfigContract {
+    fields: &[field("value", BYTES), field("maximum_bytes", U64)],
+};
+const STORAGE_CACHE_PUT: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("resource", REFERENCE),
+        protected_field("grant", REFERENCE),
+        field("descriptor", REFERENCE),
+        field("run_epoch", U64),
+        field("now_tick", U64),
+        field("retention_ticks", U64),
+        field("maximum_blob_bytes", U64),
+        field("persistence", TEXT),
+        field("eviction", TEXT),
+        field("sensitivity", TEXT),
+        field("cancellation", TEXT),
+    ],
+};
+const STORAGE_CACHE_GET: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("resource", REFERENCE),
+        protected_field("grant", REFERENCE),
+        field("descriptor", REFERENCE),
+        field("run_epoch", U64),
+        field("now_tick", U64),
+        field("maximum_blob_bytes", U64),
+        field("integrity", TEXT),
+        field("cancellation", TEXT),
+    ],
+};
+const STORAGE_CACHE_REMOVE: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("resource", REFERENCE),
+        protected_field("grant", REFERENCE),
+        field("descriptor", REFERENCE),
+        field("run_epoch", U64),
+        field("cancellation", TEXT),
+    ],
+};
 const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
     fields: &[
         protected_field("grant", REFERENCE),
@@ -1217,6 +1351,15 @@ const FILE_WATCH_LIMITS: CatalogLimits = CatalogLimits {
     timers: 1,
     retries: 0,
     work_per_step: 8,
+    evidence_events: 128,
+};
+const STORAGE_CACHE_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: CACHE_MAX_ENTRIES as u32,
+    retained_bytes: (CACHE_MAX_ENTRIES * CACHE_MAX_BLOB_BYTES) as u64,
+    pending_operations: 1,
+    timers: 1,
+    retries: 0,
+    work_per_step: 16,
     evidence_events: 128,
 };
 const FORMAT_LIMITS: CatalogLimits = CatalogLimits {
@@ -2222,27 +2365,68 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         value.host_service = Some(Id("host/filesystem-watch"));
         value
     },
-    host_entry!(
-        "storage/blob/read",
-        Boundary,
-        "reference",
-        "blob",
-        "host/blob-read"
+    entry!(
+        "storage/blob/literal",
+        Source,
+        STORAGE_BLOB_LITERAL,
+        &[],
+        &[STORAGE_BLOB_OUTPUT],
+        ProducesDeclaredType,
+        None,
+        FINITE,
+        PURE
     ),
-    host_entry!(
-        "storage/blob/write",
-        Boundary,
-        "blob",
-        "reference",
-        "host/blob-write"
-    ),
-    host_entry!(
-        "storage/key-value",
-        Boundary,
-        "operation",
-        "result",
-        "host/key-value"
-    ),
+    {
+        let mut value = entry!(
+            "storage/cache/put",
+            Boundary,
+            STORAGE_CACHE_PUT,
+            &[STORAGE_BLOB_INPUT],
+            &[
+                STORAGE_CACHE_HANDLE_OUTPUT,
+                optional_output(STORAGE_CACHE_PUT_RESULT_OUTPUT),
+            ],
+            ProducesDeclaredType,
+            None,
+            STORAGE_CACHE_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/storage-cache-put"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "storage/cache/get",
+            Boundary,
+            STORAGE_CACHE_GET,
+            &[STORAGE_CACHE_HANDLE_INPUT],
+            &[
+                optional_output(STORAGE_BLOB_OUTPUT),
+                optional_output(STORAGE_CACHE_GET_RESULT_OUTPUT),
+            ],
+            ProducesDeclaredType,
+            None,
+            STORAGE_CACHE_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/storage-cache-get"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "storage/cache/remove",
+            Boundary,
+            STORAGE_CACHE_REMOVE,
+            &[STORAGE_CACHE_HANDLE_INPUT],
+            &[optional_output(STORAGE_CACHE_REMOVE_RESULT_OUTPUT)],
+            ProducesDeclaredType,
+            None,
+            STORAGE_CACHE_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/storage-cache-remove"));
+        value
+    },
     host_entry!(
         "process/run",
         Boundary,

@@ -492,6 +492,7 @@ version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

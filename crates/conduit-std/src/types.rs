@@ -16,6 +16,7 @@ pub enum StandardTypeFamily {
     Operational,
     Network,
     Filesystem,
+    Storage,
     Process,
     Cryptography,
 }
@@ -387,6 +388,42 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
         "fs/event",
         "bounded filesystem watch event",
         Filesystem,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "storage/blob",
+        "bounded content-addressed blob chunk",
+        Storage,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "storage/blob-identity",
+        "content digest and byte length",
+        Storage,
+        StandardRepresentation::Domain
+    ),
+    concrete!(
+        "storage/cache-handle",
+        "opaque provider and run scoped cache handle",
+        Storage,
+        StandardRepresentation::Domain
+    ),
+    concrete!(
+        "storage/cache-put-result",
+        "evictable cache put result",
+        Storage,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "storage/cache-get-result",
+        "evictable cache hit or miss result",
+        Storage,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "storage/cache-remove-result",
+        "evictable cache removal result",
+        Storage,
         StandardRepresentation::Structural
     ),
     concrete!(
