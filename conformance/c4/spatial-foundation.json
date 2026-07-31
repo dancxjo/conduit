@@ -1,0 +1,59 @@
+{
+  "schema": "conduit.spatial-foundation-conformance",
+  "schema_version": 0,
+  "numeric_profile": {
+    "translation_unit": "micrometre",
+    "rotation": "q30-unit-quaternion-quarter-turn-z",
+    "handedness": "right",
+    "axes": "x-right-y-forward-z-up",
+    "interpolation": "checked-linear-integer",
+    "projection": "checked-pinhole-millipixel"
+  },
+  "identities": {
+    "transform_type": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+    "point_type": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+    "pixel_type": "sha256:610bd49fff1d3315b4d9621f42ab1dfd0ee3df1e3b7695ba94d1f3c1f1b67e66",
+    "calibration": "sha256:5151515151515151515151515151515151515151515151515151515151515151",
+    "provenance": "sha256:5252525252525252525252525252525252525252525252525252525252525252"
+  },
+  "bounds": {
+    "maximum_frame_id_bytes": 64,
+    "maximum_transform_edges": 16,
+    "maximum_history_values": 2,
+    "maximum_interpolation_window_ticks": 4,
+    "maximum_value_bytes": 256,
+    "maximum_numeric_work": 256,
+    "cord_capacity": 1,
+    "maximum_queued_bytes": 256
+  },
+  "positive": [
+    "explicit-source-target-unit-axes-clock-validity-uncertainty-calibration-provenance",
+    "cross-clock-requires-admitted-conversion",
+    "exact-compose-invert-apply",
+    "bounded-temporal-interpolation",
+    "exact-pinhole-project-unproject",
+    "production-executor-exact-binding",
+    "contract-only-unsupported-host",
+    "cancelled-terminal-evidence"
+  ],
+  "negative": [
+    {"fixture":"frame-cycle","code":"CND-SPATIAL-001"},
+    {"fixture":"unknown-frame","code":"CND-SPATIAL-001"},
+    {"fixture":"wrong-frame","code":"CND-SPATIAL-001"},
+    {"fixture":"unit-mismatch","code":"CND-SPATIAL-002"},
+    {"fixture":"handedness-mismatch","code":"CND-SPATIAL-002"},
+    {"fixture":"axis-mismatch","code":"CND-SPATIAL-002"},
+    {"fixture":"invalid-quaternion","code":"CND-SPATIAL-003"},
+    {"fixture":"singular-transform","code":"CND-SPATIAL-003"},
+    {"fixture":"stale-transform","code":"CND-SPATIAL-004"},
+    {"fixture":"interpolation-boundary","code":"CND-SPATIAL-004"},
+    {"fixture":"clock-mismatch","code":"CND-SPATIAL-005"},
+    {"fixture":"missing-clock-conversion","code":"CND-SPATIAL-005"},
+    {"fixture":"uncertainty-threshold","code":"CND-SPATIAL-006"},
+    {"fixture":"calibration-hash-mismatch","code":"CND-SPATIAL-007"},
+    {"fixture":"history-overflow","code":"CND-SPATIAL-008"},
+    {"fixture":"numeric-work-overflow","code":"CND-SPATIAL-008"},
+    {"fixture":"cancellation","code":"CND-SPATIAL-009"},
+    {"fixture":"unsupported-provider","code":"CND-SPATIAL-010"}
+  ]
+}

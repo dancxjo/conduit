@@ -566,6 +566,7 @@ dependencies = [
  "conduit-panel",
  "conduit-runtime",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

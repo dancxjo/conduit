@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 35] = [
+const REQUIRED_TOUR_LESSONS: [&str; 36] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -25,6 +25,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 35] = [
     "library.bounded-media-values",
     "library.bounded-media-codecs",
     "library.bounded-learned-inference",
+    "library.bounded-spatial-foundation",
     "library.standard-flow-control",
     "library.bounded-state",
     "library.bounded-supervision",
@@ -459,6 +460,91 @@ fn bounded_learned_inference_lesson_exposes_exact_model_and_runtime_facts() {
     let result: Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(result["ok"], true, "{result}");
     assert_eq!(result["display"], "learned:i16:1x2:[35,-3]");
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+
+    let cancelled: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(cancelled["ok"], true, "{cancelled}");
+    assert_eq!(cancelled["terminal"], "cancelled");
+    assert_eq!(cancelled["stdout"], "");
+    assert_eq!(cancelled["stderr"], "");
+}
+
+#[test]
+fn bounded_spatial_lesson_exposes_frames_calibration_and_finite_history() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-spatial-foundation")
+        .expect("bounded spatial lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "source_frame",
+        "target_frame",
+        "unit",
+        "handedness",
+        "axes",
+        "clock",
+        "validity",
+        "uncertainty",
+        "calibration_identity",
+        "provenance_identity",
+        "history_values",
+        "interpolation_window",
+        "numeric_work",
+        "queue_bytes",
+        "pressure",
+        "cancellation",
+        "error",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "spatial/camera/project",
+            "spatial/camera/unproject",
+            "spatial/point/inspect",
+            "spatial/point/literal",
+            "spatial/transform/apply",
+            "spatial/transform/compose",
+            "spatial/transform/interpolate",
+            "spatial/transform/invert",
+            "spatial/transform/literal",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(lesson["library"]["scenarios"].as_array().unwrap().len(), 2);
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(
+        result["display"],
+        "spatial:point:camera:[1010,520,10030]:clock/fixture@11:uncertainty=0"
+    );
     assert_eq!(result["stdout"], "");
     assert_eq!(result["stderr"], "");
 

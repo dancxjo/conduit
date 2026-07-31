@@ -1332,6 +1332,80 @@
       }
     },
     {
+      "id": "library.bounded-spatial-foundation",
+      "chapter": 4,
+      "title": "Frames and calibration without an ambient world",
+      "prerequisites": [
+        "platform.value-envelope-clock-feedback",
+        "platform.cross-host-provider-conformance"
+      ],
+      "objective": "Interpolate one finite transform, apply it to a stamped point, and inspect the result while every frame, axis, clock, uncertainty, calibration, queue, and terminal fact stays explicit.",
+      "prose": "A frame name is not a world model and a calibration hash is not automatic calibration. This lesson uses exact micrometres, right-handed axes, Q30 quarter turns, capacity-one cords, two history values, a four-tick interpolation window, and the ordinary exact executor. The composition scenario adds compose, invert, project, and unproject without introducing a hidden transform tree.",
+      "vocabulary": ["source and target frame", "axis convention", "validity interval", "clock conversion", "uncertainty", "calibration identity"],
+      "source": "panel 0\n\nnode before : spatial/transform/literal {\n  source_frame = \"sensor\" target_frame = \"camera\"\n  unit = \"um\" handedness = \"right\" axes = \"x-right-y-forward-z-up\"\n  translation_x_um = 0 translation_y_um = 0 translation_z_um = 0 quarter_turns_z = 0\n  clock = \"clock/fixture\" stamp_tick = 10 valid_from_tick = 0 valid_until_tick = 20 uncertainty_um = 0\n  calibration_identity = \"sha256:5151515151515151515151515151515151515151515151515151515151515151\"\n  provenance_identity = \"sha256:5252525252525252525252525252525252525252525252525252525252525252\"\n  maximum_output_bytes = 256\n}\nnode after : spatial/transform/literal {\n  source_frame = \"sensor\" target_frame = \"camera\"\n  unit = \"um\" handedness = \"right\" axes = \"x-right-y-forward-z-up\"\n  translation_x_um = 20 translation_y_um = 40 translation_z_um = 60 quarter_turns_z = 0\n  clock = \"clock/fixture\" stamp_tick = 12 valid_from_tick = 0 valid_until_tick = 20 uncertainty_um = 0\n  calibration_identity = \"sha256:5151515151515151515151515151515151515151515151515151515151515151\"\n  provenance_identity = \"sha256:5252525252525252525252525252525252525252525252525252525252525252\"\n  maximum_output_bytes = 256\n}\nnode point : spatial/point/literal {\n  frame = \"sensor\" x_um = 1000 y_um = 500 z_um = 10000\n  clock = \"clock/fixture\" tick = 11 uncertainty_um = 0\n  provenance_identity = \"sha256:5252525252525252525252525252525252525252525252525252525252525252\"\n  unit = \"um\" axes = \"x-right-y-forward-z-up\" maximum_output_bytes = 256\n}\nnode interpolate : spatial/transform/interpolate {\n  tick = 11 maximum_window_ticks = 4 maximum_history_values = 2 maximum_uncertainty_um = 10 maximum_work = 256\n}\nnode apply : spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }\nnode inspect : spatial/point/inspect\nnode output : display/text\n\ncord before.transform -> interpolate.before { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\ncord after.transform -> interpolate.after { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\ncord interpolate.transform -> apply.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\ncord point.point -> apply.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\ncord apply.point -> inspect.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\ncord inspect.summary -> output.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct examples/spatial-transform-interpolate.panel",
+      "commands": [
+        "conduct --check examples/spatial-transform-interpolate.panel",
+        "conduct examples/spatial-transform-interpolate.panel",
+        "conduct --check examples/spatial-transform-compose.panel",
+        "conduct examples/spatial-transform-compose.panel"
+      ],
+      "expected_display": "spatial:point:camera:[1010,520,10030]:clock/fixture@11:uncertainty=0",
+      "profile": "browser-dedicated-worker",
+      "budgets": {"runtime_ticks":128,"queue_bytes":1536,"evidence_events":64},
+      "presentation": {
+        "layout": "bounded-spatial-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": ["contract_id","source_frame","target_frame","unit","handedness","axes","clock","stamp","validity","uncertainty","calibration_identity","provenance_identity","history_values","interpolation_window","numeric_work","queue_bytes","pressure","cancellation","error","terminal"]
+      },
+      "validation": {"kind":"display","value":"spatial:point:camera:[1010,520,10030]:clock/fixture@11:uncertainty=0"},
+      "hints": [
+        "The before and after transforms name the same exact frames, axes, clock, calibration, and rotation; interpolation never searches ambient state.",
+        "Change the point clock, move tick outside 10 through 12, or exceed the uncertainty/history/work bounds to see a typed failure.",
+        "The composition scenario covers compose, invert, project, and unproject through the same exact provider and bounded cords."
+      ],
+      "solution": "Keep frames, numeric profile, clock, validity, uncertainty, calibration, history, work, and cord bounds exact; then inspect ordered pressure, cancellation, error, and terminal evidence.",
+      "accessibility": {
+        "non_audio": "An ordered event table names frames, unit, handedness, axes, clock, validity, uncertainty, calibration, provenance, history, interpolation window, work, queue occupancy, pressure, cancellation, errors, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered spatial event table has focus.",
+        "color_independent": "Exact frame and identity strings, numeric bounds, pressure words, and terminal labels duplicate every cord color or motion cue."
+      },
+      "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"},
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Exact bounded frames, transforms, points, and calibration compose without an ambient world model.",
+        "what": "Two stamped transforms interpolate into one exact transform, which moves a stamped point and yields a bounded textual proof.",
+        "when": "Use this foundation when robotics, vision, mapping, or simulation must exchange spatial values without framework identity or hidden frame lookup.",
+        "wrong": "Cycles, unknown or wrong frames, profile mismatch, invalid quaternion, singularity, staleness, clock mismatch, uncertainty, interpolation, calibration, work, cancellation, and provider failures remain typed and terminal.",
+        "contracts": [
+          {"id":"spatial/transform/literal","kind":"node","outputs":["transform:spatial/transform3"],"policy":"explicit finite source-target transform"},
+          {"id":"spatial/point/literal","kind":"node","outputs":["point:spatial/stamped-point3"],"policy":"explicit finite stamped point"},
+          {"id":"spatial/transform/compose","kind":"node","inputs":["first:spatial/transform3","second:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"checked source-middle-target composition"},
+          {"id":"spatial/transform/invert","kind":"node","inputs":["transform:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"checked exact inverse"},
+          {"id":"spatial/transform/interpolate","kind":"node","inputs":["before:spatial/transform3","after:spatial/transform3"],"outputs":["transform:spatial/transform3"],"policy":"two-value finite-window interpolation"},
+          {"id":"spatial/transform/apply","kind":"node","inputs":["transform:spatial/transform3","point:spatial/stamped-point3"],"outputs":["point:spatial/stamped-point3"],"policy":"frame-clock-stamp checked application"},
+          {"id":"spatial/camera/project","kind":"node","inputs":["point:spatial/stamped-point3"],"outputs":["pixel:spatial/pixel-point"],"policy":"exact checked pinhole projection"},
+          {"id":"spatial/camera/unproject","kind":"node","inputs":["pixel:spatial/pixel-point"],"outputs":["point:spatial/stamped-point3"],"policy":"exact calibration-bound unprojection"},
+          {"id":"spatial/point/inspect","kind":"node","inputs":["point:spatial/stamped-point3"],"outputs":["summary:std/text"],"policy":"bounded textual proof projection"}
+        ],
+        "editable": ["tick:10..12","maximum_history_values:2","maximum_window_ticks:4","maximum_uncertainty_um:10","maximum_work:256","cord_capacity:1"],
+        "provider": "deterministic compiled-in checked-integer spatial provider through the ordinary exact host-service boundary",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact type, frame, profile, clock, validity, uncertainty, calibration, provenance, implementation, and provider artifact bindings",
+          "finite graph, history, interpolation, value, work, queue, and evidence bounds",
+          "ordered literal, interpolation, application, inspection, pressure, cancellation, error, and one terminal cause"
+        ],
+        "docs": ["../../spec/070-bounded-spatial-foundation.md","../../conformance/c4/spatial-foundation.json","../../examples/spatial-transform-interpolate.panel","../../examples/spatial-transform-compose.panel"],
+        "scenarios": [
+          {"id":"spatial-interpolation-standalone","title":"Interpolate and apply one transform","panel":"../../examples/spatial-transform-interpolate.panel","semantics":"Two exact history values produce one bounded-time transform and move a point without ambient lookup."},
+          {"id":"spatial-camera-composition","title":"Compose frames and cross calibration","panel":"../../examples/spatial-transform-compose.panel","semantics":"Compose, invert, apply, project, and unproject retain exact frame, clock, uncertainty, calibration, provider, pressure, and terminal evidence."}
+        ]
+      }
+    },
+    {
       "id": "library.bounded-learned-inference",
       "chapter": 4,
       "title": "Exact learned inference without ambient models",

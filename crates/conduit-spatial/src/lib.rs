@@ -717,6 +717,9 @@ pub fn validate_acyclic_frames(edges: &[(&str, &str)]) -> Result<(), SpatialReas
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sha2::{Digest, Sha256};
+
+    const FIXTURE: &str = include_str!("../../../conformance/c4/spatial-foundation.json");
 
     fn transform(source: &str, target: &str, translation_um: [i64; 3], tick: u64) -> Transform3 {
         Transform3 {
@@ -831,6 +834,54 @@ mod tests {
         assert_eq!(
             project(&behind, &wrong),
             Err(SpatialReason::InvalidCalibration)
+        );
+    }
+
+    #[test]
+    fn profile_mismatch_quaternion_and_singularity_fail_closed() {
+        let mut unit = transform("a", "b", [0; 3], 10);
+        unit.target.unit = LinearUnit::Millimetre;
+        assert_eq!(unit.validate(10), Err(SpatialReason::UnitMismatch));
+        let mut handedness = transform("a", "b", [0; 3], 10);
+        handedness.target.handedness = Handedness::Left;
+        assert_eq!(
+            handedness.validate(10),
+            Err(SpatialReason::HandednessMismatch)
+        );
+        let mut axes = transform("a", "b", [0; 3], 10);
+        axes.target.axes = AxisConvention::XForwardYLeftZUp;
+        assert_eq!(axes.validate(10), Err(SpatialReason::AxisMismatch));
+        let mut quaternion = transform("a", "b", [0; 3], 10);
+        quaternion.rotation = QuaternionQ30::quarter_turn_z(1).unwrap();
+        assert_eq!(
+            quaternion.validate(10),
+            Err(SpatialReason::InvalidQuaternion)
+        );
+        let singular = transform("a", "b", [i64::MIN, 0, 0], 10);
+        assert_eq!(
+            invert(&singular, NumericProfile::FIRST_PROOF, 10),
+            Err(SpatialReason::SingularTransform)
+        );
+    }
+
+    #[test]
+    fn conformance_fixture_owns_the_complete_spatial_matrix() {
+        let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+        assert_eq!(fixture["schema"], "conduit.spatial-foundation-conformance");
+        assert_eq!(fixture["schema_version"], 0);
+        assert_eq!(fixture["positive"].as_array().unwrap().len(), 8);
+        assert_eq!(fixture["negative"].as_array().unwrap().len(), 18);
+        assert_eq!(
+            format!("sha256:{:x}", Sha256::digest(TRANSFORM_DESCRIPTOR)),
+            fixture["identities"]["transform_type"]
+        );
+        assert_eq!(
+            format!("sha256:{:x}", Sha256::digest(POINT_DESCRIPTOR)),
+            fixture["identities"]["point_type"]
+        );
+        assert_eq!(
+            format!("sha256:{:x}", Sha256::digest(PIXEL_DESCRIPTOR)),
+            fixture["identities"]["pixel_type"]
         );
     }
 }

@@ -7587,6 +7587,944 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "spatial/camera/project",
+      "public_source_spelling": "spatial/camera/project",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/camera/project",
+      "schema_version": 0,
+      "semantic_hash": "sha256:bc434e6e07ff6c96ee9bbb0feea6a74462f30a5e865fa9fae9df50287b47db9c",
+      "ports": [
+        {
+          "id": "point",
+          "direction": "input",
+          "value_type": "spatial/stamped-point3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "pixel",
+          "direction": "output",
+          "value_type": "spatial/pixel-point",
+          "type_schema_version": 0,
+          "type_hash": "sha256:610bd49fff1d3315b4d9621f42ab1dfd0ee3df1e3b7695ba94d1f3c1f1b67e66",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "camera_frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "calibration_identity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "fx_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "fy_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cx_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cy_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "width_pixels",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "height_pixels",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "valid_until_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/camera/unproject",
+      "public_source_spelling": "spatial/camera/unproject",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/camera/unproject",
+      "schema_version": 0,
+      "semantic_hash": "sha256:190f34cdbeef9531ffaa6594a5dfec59d23c12476777edb9de1cdc4b053b32c6",
+      "ports": [
+        {
+          "id": "pixel",
+          "direction": "input",
+          "value_type": "spatial/pixel-point",
+          "type_schema_version": 0,
+          "type_hash": "sha256:610bd49fff1d3315b4d9621f42ab1dfd0ee3df1e3b7695ba94d1f3c1f1b67e66",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "point",
+          "direction": "output",
+          "value_type": "spatial/stamped-point3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "camera_frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "calibration_identity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "fx_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "fy_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cx_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cy_millipixel",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "width_pixels",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "height_pixels",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "valid_until_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/point/inspect",
+      "public_source_spelling": "spatial/point/inspect",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/point/inspect",
+      "schema_version": 0,
+      "semantic_hash": "sha256:958af51dbeebea860ae7b9c29be3313a207ffb1780a8a898157f6a1f7403689f",
+      "ports": [
+        {
+          "id": "point",
+          "direction": "input",
+          "value_type": "spatial/stamped-point3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "summary",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "finite-batch",
+          "temporal": "atemporal",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/point/literal",
+      "public_source_spelling": "spatial/point/literal",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/point/literal",
+      "schema_version": 0,
+      "semantic_hash": "sha256:8f92c501689a113834b9fb2f873c65d5697b7ed0202cfd80a986e3d8df4642dc",
+      "ports": [
+        {
+          "id": "point",
+          "direction": "output",
+          "value_type": "spatial/stamped-point3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "x_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "y_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "z_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "clock",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "provenance_identity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "unit",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "axes",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/transform/apply",
+      "public_source_spelling": "spatial/transform/apply",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/transform/apply",
+      "schema_version": 0,
+      "semantic_hash": "sha256:d473b7e1caa3dafeab009f11c33f29807b4181bb9bb137a2fe642a1c2f81b7e9",
+      "ports": [
+        {
+          "id": "transform",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "point",
+          "direction": "input",
+          "value_type": "spatial/stamped-point3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "point",
+          "direction": "output",
+          "value_type": "spatial/stamped-point3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:e8714f349bfdb0ad6958662a5a15593505c948758b82238412b1599b8c6f79a3",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "maximum_uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/transform/compose",
+      "public_source_spelling": "spatial/transform/compose",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/transform/compose",
+      "schema_version": 0,
+      "semantic_hash": "sha256:6b791b1f3fb7a872c154369aa16432c8c777729ed88da5e9cc40dbe35ce45797",
+      "ports": [
+        {
+          "id": "first",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "second",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "transform",
+          "direction": "output",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "maximum_uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/transform/interpolate",
+      "public_source_spelling": "spatial/transform/interpolate",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/transform/interpolate",
+      "schema_version": 0,
+      "semantic_hash": "sha256:71a2de5eb2c1ffc1001b117f090f23b3631a94b4338565c9193e576e43fac4ac",
+      "ports": [
+        {
+          "id": "before",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "after",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "transform",
+          "direction": "output",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_window_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_history_values",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/transform/invert",
+      "public_source_spelling": "spatial/transform/invert",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/transform/invert",
+      "schema_version": 0,
+      "semantic_hash": "sha256:63d15d3fba86f056baba2b0430775d12c54dd257e8193606a58465561ee8da14",
+      "ports": [
+        {
+          "id": "transform",
+          "direction": "input",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "transform",
+          "direction": "output",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "maximum_uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "spatial/transform/literal",
+      "public_source_spelling": "spatial/transform/literal",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.spatial",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.spatial",
+      "export_path": "conduit.domain.spatial/spatial/transform/literal",
+      "schema_version": 0,
+      "semantic_hash": "sha256:22f2f1ea1da5165132af84ed3e0879896234b3444766fdb08c5005b9b2d94219",
+      "ports": [
+        {
+          "id": "transform",
+          "direction": "output",
+          "value_type": "spatial/transform3",
+          "type_schema_version": 0,
+          "type_hash": "sha256:1cbaeaf1ec221c4fac1a92f1ee31e60b79040ce2089d387784f8508f9bdb9d67",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "source_frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "target_frame",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "unit",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "handedness",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "axes",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "translation_x_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "translation_y_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "translation_z_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "quarter_turns_z",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "clock",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "stamp_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "valid_from_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "valid_until_tick",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "uncertainty_um",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "calibration_identity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "provenance_identity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/spatial-foundation.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.spatial/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-spatial-foundation",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "state/cache",
       "public_source_spelling": "state/cache",
       "classification": "portable-standard",

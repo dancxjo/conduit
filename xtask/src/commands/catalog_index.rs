@@ -262,6 +262,8 @@ fn fixture(id: &str, classification: &str) -> &'static str {
         "conformance/c4/media-codecs.json"
     } else if id.starts_with("learned/") {
         "conformance/c4/learned-inference.json"
+    } else if id.starts_with("spatial/") {
+        "conformance/c4/spatial-foundation.json"
     } else if id.starts_with("conduit.media/") {
         "conformance/c4/media-values.json"
     } else if classification == "optional-host-boundary" {
@@ -336,6 +338,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             _,
         ) => Some("library.bounded-media-codecs"),
         (id, _) if id.starts_with("learned/") => Some("library.bounded-learned-inference"),
+        (id, _) if id.starts_with("spatial/") => Some("library.bounded-spatial-foundation"),
         (id, _) if id.starts_with("conduit.media/") => Some("library.bounded-media-values"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
