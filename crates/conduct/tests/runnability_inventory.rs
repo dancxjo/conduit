@@ -76,7 +76,10 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
     if entry.proof == "canonical-storage-cache" {
         command.arg("--enable-storage-cache");
     }
-    if entry.proof == "canonical-process-exec" {
+    if matches!(
+        entry.proof.as_str(),
+        "canonical-process-exec" | "canonical-process-exec-rejection"
+    ) {
         command.arg("--enable-process-exec");
         command
             .arg(&entry.path)
@@ -95,6 +98,38 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
             .expect("process exec conduct completes");
     }
     command.arg(&entry.path).output().expect("conduct executes")
+}
+
+fn invoke_process_source(root: &Path, source: &str, stdin: &[u8]) -> std::process::Output {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let panel = std::env::temp_dir().join(format!(
+        "conduit-process-exec-{}-{}.panel",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::write(&panel, source).expect("temporary process panel writes");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .current_dir(root)
+        .arg("--enable-process-exec")
+        .arg(&panel)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("process fixture conduct starts");
+    child
+        .stdin
+        .take()
+        .expect("process fixture stdin")
+        .write_all(stdin)
+        .expect("process fixture stdin writes");
+    let output = child
+        .wait_with_output()
+        .expect("process fixture conduct completes");
+    fs::remove_file(panel).expect("temporary process panel is removed");
+    output
 }
 
 fn invoke_http(root: &Path, entry: &Entry, request_path: &str) -> (std::process::Output, Vec<u8>) {
@@ -569,9 +604,11 @@ fn process_exec_exact_plan_pins_provider_executable_authority_and_stream_bounds(
     assert_eq!(node.host.as_str(), "conduit/conduct-host");
     let profile = node.execution_profile.expect("execution profile is pinned");
     assert_eq!(profile.limits.max_input_bytes, 64 * 1024);
-    assert_eq!(profile.limits.max_output_bytes, 64 * 1024);
-    assert_eq!(profile.limits.max_pending_operations, 1);
-    assert_eq!(profile.limits.max_timers, 1);
+    assert_eq!(profile.limits.max_output_bytes, 128 * 1024);
+    assert_eq!(profile.limits.max_pending_operations, 3);
+    assert_eq!(profile.limits.max_timers, 2);
+    assert_eq!(profile.limits.max_host_buffer_bytes, 192 * 1024);
+    assert_eq!(profile.limits.cancellation_ticks, 10_000);
     let authority = plan
         .authorities
         .iter()
@@ -587,6 +624,164 @@ fn process_exec_exact_plan_pins_provider_executable_authority_and_stream_bounds(
         "conduit.resource/executable"
     );
     assert!(authority.commit_profile.is_some());
+}
+
+#[test]
+fn process_exec_hosted_profile_covers_literal_argv_streams_exit_overflow_and_cleanup() {
+    let root = root();
+    let source =
+        fs::read_to_string(root.join("examples/process-exec.panel")).expect("process example");
+
+    let empty_argv = source.replace(
+        r#"argv = record(arg0="$(not a shell)", arg1=";", arg2="|")"#,
+        "argv = record()",
+    );
+    let output = invoke_process_source(&root, &empty_argv, b"empty argv\n");
+    assert!(output.status.success());
+    assert_eq!(output.stdout, b"empty argv\n");
+    assert!(output.stderr.is_empty());
+
+    let marker = std::env::temp_dir().join(format!(
+        "conduit-process-shell-marker-{}",
+        std::process::id()
+    ));
+    assert!(!marker.exists());
+    let literal_argv = source.replace(
+        r#"$(not a shell)"#,
+        &format!("$(touch {})", marker.display()),
+    );
+    let output = invoke_process_source(&root, &literal_argv, b"literal argv\n");
+    assert!(output.status.success());
+    assert_eq!(output.stdout, b"literal argv\n");
+    assert!(!marker.exists(), "literal argv never invokes a shell");
+
+    let independent = source.replace(
+        r#"argv = record(arg0="$(not a shell)", arg1=";", arg2="|")"#,
+        r#"argv = record(arg0="--independent-streams")"#,
+    );
+    let output = invoke_process_source(&root, &independent, b"two streams\n");
+    assert!(output.status.success());
+    assert_eq!(output.stdout, b"two streams\n");
+    assert_eq!(output.stderr, b"diagnostic\n");
+
+    let nonzero = source.replace(
+        r#"argv = record(arg0="$(not a shell)", arg1=";", arg2="|")"#,
+        r#"argv = record(arg0="--exit-7")"#,
+    );
+    let output = invoke_process_source(&root, &nonzero, b"");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("CND-EXEC-015"));
+
+    let signaled = source.replace(
+        r#"argv = record(arg0="$(not a shell)", arg1=";", arg2="|")"#,
+        r#"argv = record(arg0="--abort")"#,
+    );
+    let output = invoke_process_source(&root, &signaled, b"");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("CND-EXEC-015"));
+
+    let overflow = independent.replace("maximum_stderr_bytes = 4096", "maximum_stderr_bytes = 4");
+    let output = invoke_process_source(&root, &overflow, b"overflow\n");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("CND-EXEC-014"));
+
+    for cancellation in ["cancel-before-spawn", "cancel-after-spawn"] {
+        let cancelled = empty_argv.replace(
+            r#"cancellation = "none""#,
+            &format!(r#"cancellation = "{cancellation}""#),
+        );
+        let output = invoke_process_source(&root, &cancelled, b"cancel\n");
+        assert_eq!(output.status.code(), Some(2));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("CND-EXEC-009"));
+    }
+
+    let deadline = source
+        .replace(
+            r#"argv = record(arg0="$(not a shell)", arg1=";", arg2="|")"#,
+            r#"argv = record(arg0="--sleep")"#,
+        )
+        .replace("deadline_ticks = 1000", "deadline_ticks = 2");
+    let started = std::time::Instant::now();
+    let output = invoke_process_source(&root, &deadline, b"deadline\n");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("CND-EXEC-012"));
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "deadline cleanup remains finite"
+    );
+
+    let secret = "conduit.secret/process-token-do-not-render";
+    let secret_environment = source.replace(
+        r#"environment = record(LANG="C")"#,
+        &format!(r#"environment = record(TOKEN=secret("{secret}"))"#),
+    );
+    let output = invoke_process_source(&root, &secret_environment, b"");
+    assert_eq!(output.status.code(), Some(2));
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    assert!(diagnostics.contains("CND-EXEC-003"));
+    assert!(!diagnostics.contains(secret));
+}
+
+#[test]
+fn process_exec_resolution_rejects_stale_capacity_resource_and_grant_drift() {
+    let root = root();
+    let source =
+        fs::read_to_string(root.join("examples/process-exec.panel")).expect("process example");
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_process::register_hosted_process_provider(&mut registry)
+        .expect("process provider links");
+    let installed = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .expect("process installed profile resolves");
+
+    let mut stale = installed.input.clone();
+    for candidate in &mut stale.candidates {
+        if candidate.implementation.semantic_contract.id == "conduit.host/process/exec" {
+            candidate.host_report.valid_until_tick = 0;
+        }
+    }
+    stale.seal().expect("stale process fixture reseals");
+    assert_eq!(
+        conduit_compile::compile_source(&source, &stale)
+            .expect_err("stale process observation cannot place")
+            .code(),
+        "CND-CMP-006"
+    );
+
+    let mut exhausted = installed.input.clone();
+    for candidate in &mut exhausted.candidates {
+        if candidate.implementation.semantic_contract.id == "conduit.host/process/exec" {
+            candidate.host_report.available.memory_bytes = 1;
+            candidate.host_report.available.cpu_units = 0;
+        }
+    }
+    exhausted.seal().expect("exhausted process fixture reseals");
+    assert_eq!(
+        conduit_compile::compile_source(&source, &exhausted)
+            .expect_err("exhausted process capacity cannot place")
+            .code(),
+        "CND-CMP-006"
+    );
+
+    for denied in [
+        source.replace(
+            "conduit.executable/process-fixture",
+            "conduit.executable/not-installed",
+        ),
+        source.replace(
+            "conduit.grant/process-exec",
+            "conduit.grant/process-exec-denied",
+        ),
+        source.replace(
+            "conduit.resource/process-working-root",
+            "conduit.resource/process-working-denied",
+        ),
+    ] {
+        let error = conduit_compile::InstalledProfile::observe_registry(&denied, &registry)
+            .err()
+            .expect("drifted process authority fails before spawn");
+        assert_eq!(error.code, "CND-EXEC-010");
+    }
 }
 
 #[test]

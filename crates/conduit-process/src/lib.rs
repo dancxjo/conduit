@@ -225,18 +225,7 @@ fn validate_config(node: &Node) -> Result<(), ResolutionError> {
             "names unsupported provider facts",
         ));
     }
-    let arguments = argv(node)?;
-    if arguments
-        .first()
-        .copied()
-        .is_none_or(|mode| !matches!(mode, "echo" | "independent-streams" | "exit-7" | "sleep"))
-    {
-        return Err(resolution_error(
-            "CND-EXEC-002",
-            node,
-            "does not select a closed-inventory fixture mode",
-        ));
-    }
+    let _arguments = argv(node)?;
     let environment = environment(node)?;
     let environment_bytes = environment
         .iter()
@@ -532,7 +521,7 @@ pub fn fixture_entrypoint() -> Option<ExitCode> {
     if arguments.next().as_deref() != Some(OsString::from(FIXTURE_ENTRYPOINT).as_os_str()) {
         return None;
     }
-    let mode = arguments.next().unwrap_or_default();
+    let first_argument = arguments.next().unwrap_or_default();
     let mut stdin = Vec::with_capacity(PROCESS_MAX_CHUNK_BYTES);
     if io::stdin()
         .take((PROCESS_MAX_STREAM_BYTES as u64).saturating_add(1))
@@ -542,18 +531,18 @@ pub fn fixture_entrypoint() -> Option<ExitCode> {
     {
         return Some(ExitCode::from(125));
     }
-    let result = match mode.to_str() {
-        Some("echo") => io::stdout().write_all(&stdin).map(|()| 0),
-        Some("independent-streams") => io::stdout()
+    let result = match first_argument.to_str() {
+        Some("--independent-streams") => io::stdout()
             .write_all(&stdin)
             .and_then(|()| io::stderr().write_all(b"diagnostic\n"))
             .map(|()| 0),
-        Some("exit-7") => Ok(7),
-        Some("sleep") => {
+        Some("--exit-7") => Ok(7),
+        Some("--abort") => std::process::abort(),
+        Some("--sleep") => {
             thread::sleep(Duration::from_secs(30));
             Ok(0)
         }
-        _ => Ok(126),
+        _ => io::stdout().write_all(&stdin).map(|()| 0),
     };
     Some(ExitCode::from(result.unwrap_or(125)))
 }

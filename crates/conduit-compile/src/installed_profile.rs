@@ -350,6 +350,7 @@ fn candidate(
         HostedPrimitiveImplementation::SupervisionRetry
             | HostedPrimitiveImplementation::SupervisionCircuitBreaker
     );
+    let process_profile = installed.contract.id.as_str() == "conduit.host/process/exec";
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -385,7 +386,9 @@ fn candidate(
             maximum_runtime_protocol: manifest.maximum_runtime_protocol,
             coexistence_memory_bytes: manifest.coexistence_memory_bytes,
         },
-        execution_profile: if host_service_instance.is_some() {
+        execution_profile: if process_profile {
+            process_execution_profile()
+        } else if host_service_instance.is_some() {
             host_service_execution_profile()
         } else if format_profile {
             format_execution_profile()
@@ -456,7 +459,9 @@ fn candidate(
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
-            memory_bytes: if host_service_instance.is_some() {
+            memory_bytes: if process_profile {
+                448 * 1024
+            } else if host_service_instance.is_some() {
                 192 * 1024
             } else if structural_validation_profile {
                 576 * 1024
@@ -470,7 +475,9 @@ fn candidate(
                 2048
             },
             cpu_units: 1,
-            evidence_bytes: if format_profile
+            evidence_bytes: if process_profile {
+                16 * 1024
+            } else if format_profile
                 || buffered_text_profile
                 || data_boundary_profile
                 || structural_validation_profile
@@ -483,8 +490,8 @@ fn candidate(
             } else {
                 256
             },
-            transports: u16::from(host_service_instance.is_some()),
-            timers: if supervision_profile {
+            transports: u16::from(host_service_instance.is_some() && !process_profile),
+            timers: if process_profile || supervision_profile {
                 2
             } else {
                 u16::from(host_service_instance.is_some() || time_profile)
@@ -1170,6 +1177,50 @@ fn host_service_execution_profile() -> ExecutionProfileDocument {
                 category: "port-transactions".to_owned(),
                 accounting: "executor-allocated".to_owned(),
                 bytes: 64 * 1024,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn process_execution_profile() -> ExecutionProfileDocument {
+    ExecutionProfileDocument {
+        id: "conduit/hosted-primitive-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 64 * 1024,
+            max_transactions: 3,
+            max_input_leases: 4,
+            max_input_bytes: conduit_std::PROCESS_MAX_STREAM_BYTES as u64,
+            max_output_reservations: 8,
+            max_output_bytes: (conduit_std::PROCESS_MAX_STREAM_BYTES * 2) as u64,
+            max_pending_operations: 3,
+            max_timers: 2,
+            max_host_buffer_bytes: (conduit_std::PROCESS_MAX_STREAM_BYTES * 3) as u64,
+            implementation_memory_bytes: 448 * 1024,
+            cancellation_ticks: 10_000,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "host-services".to_owned(),
+                accounting: "backend-bounded".to_owned(),
+                bytes: 192 * 1024,
+            },
+            MemoryClaimDocument {
+                category: "pending-operations".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 16 * 1024,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 240 * 1024,
             },
         ],
         checkpoint: None,

@@ -104,6 +104,7 @@ pub enum ExecTerminal {
     Signaled(u8),
     Cancelled { forced: bool },
     DeadlineExceeded { forced: bool },
+    ProviderLost { forced: bool },
     OutputOverflow(OutputStream),
 }
 
@@ -155,6 +156,7 @@ pub struct FakeExecControl {
     pub cancel_before_spawn: bool,
     pub cancel_after_spawn: bool,
     pub deadline_after_spawn: bool,
+    pub provider_loss_after_spawn: bool,
 }
 
 /// Stable process boundary failures.
@@ -297,7 +299,10 @@ pub fn run_fake_exec(
     push(ExecEventKind::StdinClosed, 2, 0)?;
 
     let forced = program == FakeProgram::IgnoreGracefulTermination;
-    let terminal = if control.cancel_after_spawn || control.deadline_after_spawn {
+    let terminal = if control.cancel_after_spawn
+        || control.deadline_after_spawn
+        || control.provider_loss_after_spawn
+    {
         push(
             ExecEventKind::GracefulSignal,
             3 + request.termination.graceful_ticks,
@@ -310,7 +315,9 @@ pub fn run_fake_exec(
                 0,
             )?;
         }
-        if control.deadline_after_spawn {
+        if control.provider_loss_after_spawn {
+            ExecTerminal::ProviderLost { forced }
+        } else if control.deadline_after_spawn {
             ExecTerminal::DeadlineExceeded { forced }
         } else {
             ExecTerminal::Cancelled { forced }
@@ -492,6 +499,36 @@ mod tests {
                 .iter()
                 .any(|event| event.kind == ExecEventKind::ForcedTermination)
         );
+    }
+
+    #[test]
+    fn provider_loss_is_distinct_and_cleans_up() {
+        let request = request(&[]);
+        let mut stdout = [0; 64];
+        let mut stderr = [0; 64];
+        let mut events = [ExecEvent {
+            sequence: 0,
+            tick: 0,
+            kind: ExecEventKind::SpawnCommitted,
+            bytes: 0,
+        }; 16];
+        let result = run_fake_exec(
+            &request,
+            FakeProgram::IgnoreGracefulTermination,
+            FakeExecBuffers {
+                stdin: b"stream",
+                stdout: &mut stdout,
+                stderr: &mut stderr,
+                events: &mut events,
+            },
+            FakeExecControl {
+                provider_loss_after_spawn: true,
+                ..FakeExecControl::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(result.terminal, ExecTerminal::ProviderLost { forced: true });
+        assert!(result.cleanup_complete);
     }
 
     #[test]
