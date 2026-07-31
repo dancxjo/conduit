@@ -2741,8 +2741,14 @@ const HTTP_LISTENER_HOST_OPERATION: Id<'static> = Id("conduit/http-listener-even
 
 enum HttpListenerPhase {
     Accept,
-    Request { connection: u64 },
-    Respond { response: HttpResponsePart },
+    Request {
+        connection: u64,
+        deadline_tick: u64,
+    },
+    Respond {
+        response: HttpResponsePart,
+        deadline_tick: u64,
+    },
 }
 
 /// One persistent exact-run HTTP listener. Each scheduler step admits at most
@@ -2754,6 +2760,7 @@ struct HttpListenerHandler {
     backend: Option<LinuxHttpServingBackend>,
     route_path: String,
     response_body: Vec<u8>,
+    deadline_ticks: u64,
     phase: HttpListenerPhase,
     quiescing: bool,
     cancelled: bool,
@@ -2766,6 +2773,7 @@ impl Default for HttpListenerHandler {
             backend: None,
             route_path: String::new(),
             response_body: Vec::new(),
+            deadline_ticks: 0,
             phase: HttpListenerPhase::Accept,
             quiescing: false,
             cancelled: false,
@@ -2774,12 +2782,17 @@ impl Default for HttpListenerHandler {
 }
 
 impl HttpListenerHandler {
-    fn wait() -> HostedServiceStep {
-        HostedServiceStep::Waiting {
-            interest: HostedServiceInterest::HostOperation {
-                subject: HTTP_LISTENER_HOST_OPERATION,
-            },
+    fn wait(deadline_tick: Option<u64>) -> HostedServiceStep {
+        let mut interests = vec![HostedServiceInterest::HostOperation {
+            subject: HTTP_LISTENER_HOST_OPERATION,
+        }];
+        if let Some(deadline_tick) = deadline_tick {
+            interests.push(HostedServiceInterest::Timer {
+                subject: Id("conduit/http-listener-deadline"),
+                deadline_tick,
+            });
         }
+        HostedServiceStep::waiting_for(interests)
     }
 
     fn initialize(
@@ -2811,7 +2824,7 @@ impl HttpListenerHandler {
             ));
         }
         let listen = required_config(node, "listen")?;
-        let deadline_ticks = required_config(node, "deadline_ms")?
+        let deadline_ticks = required_config(node, "deadline_ticks")?
             .parse::<u64>()
             .map_err(|_| RuntimeError::new("CND-HTTP-008", "invalid HTTP deadline"))?;
         let limits = HttpServiceLimits {
@@ -2899,6 +2912,7 @@ impl HttpListenerHandler {
             .map_err(|_| RuntimeError::new("CND-HTTP-009", "cannot publish bound address"))?;
         self.route_path = required_config(node, "path")?.to_owned();
         self.response_body = required_config(node, "response")?.as_bytes().to_vec();
+        self.deadline_ticks = deadline_ticks;
         self.backend = Some(backend);
         Ok(())
     }
@@ -2914,7 +2928,7 @@ impl Handler for HttpListenerHandler {
         &mut self,
         node: &conduit_panel::Node,
         inputs: &[Value],
-        _context: HostedServiceStepContext,
+        context: HostedServiceStepContext,
         io: &mut RunIo<'_>,
     ) -> Result<HostedServiceStep, RuntimeError> {
         if !inputs.is_empty() {
@@ -2936,7 +2950,7 @@ impl Handler for HttpListenerHandler {
                 return Ok(HostedServiceStep::completed(Vec::new()));
             }
             self.initialize(node, io)?;
-            return Ok(Self::wait());
+            return Ok(Self::wait(None));
         }
         let backend = self
             .backend
@@ -2948,49 +2962,87 @@ impl Handler for HttpListenerHandler {
             }
             HttpListenerPhase::Accept => match backend.poll_accept() {
                 Poll::Ready(Ok(connection)) => {
-                    self.phase = HttpListenerPhase::Request { connection };
-                    Ok(Self::wait())
-                }
-                Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
-                Poll::Pending => Ok(Self::wait()),
-            },
-            HttpListenerPhase::Request { connection } => match backend.poll_exchange(*connection) {
-                Poll::Ready(Ok(HttpExchangeEvent::Request(request))) => {
-                    let response = HttpResponsePart {
-                        exchange: request.exchange,
-                        status: if request.head.method == HttpMethod::Get
-                            && request.head.target.split('?').next()
-                                == Some(self.route_path.as_str())
-                        {
-                            200
-                        } else {
-                            404
-                        },
-                        headers: vec![HttpHeader {
-                            name: "content-type".to_owned(),
-                            value: "text/plain; charset=utf-8".to_owned(),
-                        }],
-                        body: if request.head.method == HttpMethod::Get
-                            && request.head.target.split('?').next()
-                                == Some(self.route_path.as_str())
-                        {
-                            self.response_body.clone()
-                        } else {
-                            b"not found\n".to_vec()
-                        },
-                        terminal: true,
+                    let deadline_tick =
+                        context
+                            .tick
+                            .checked_add(self.deadline_ticks)
+                            .ok_or_else(|| {
+                                RuntimeError::new(
+                                    "CND-HTTP-008",
+                                    "HTTP listener deadline overflowed",
+                                )
+                            })?;
+                    self.phase = HttpListenerPhase::Request {
+                        connection,
+                        deadline_tick,
                     };
-                    self.phase = HttpListenerPhase::Respond { response };
-                    Ok(Self::wait())
+                    Ok(Self::wait(Some(deadline_tick)))
                 }
-                Poll::Ready(Ok(_)) => Err(RuntimeError::new(
-                    "CND-HTTP-010",
-                    "HTTP exchange ended without a request",
-                )),
                 Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
-                Poll::Pending => Ok(Self::wait()),
+                Poll::Pending => Ok(Self::wait(None)),
             },
-            HttpListenerPhase::Respond { response } => {
+            HttpListenerPhase::Request {
+                connection,
+                deadline_tick,
+            } => {
+                let deadline_tick = *deadline_tick;
+                if context.tick >= deadline_tick {
+                    return Err(RuntimeError::new(
+                        "CND-HTTP-017",
+                        "HTTP listener request exceeded its exact deadline",
+                    ));
+                }
+                match backend.poll_exchange(*connection) {
+                    Poll::Ready(Ok(HttpExchangeEvent::Request(request))) => {
+                        let response = HttpResponsePart {
+                            exchange: request.exchange,
+                            status: if request.head.method == HttpMethod::Get
+                                && request.head.target.split('?').next()
+                                    == Some(self.route_path.as_str())
+                            {
+                                200
+                            } else {
+                                404
+                            },
+                            headers: vec![HttpHeader {
+                                name: "content-type".to_owned(),
+                                value: "text/plain; charset=utf-8".to_owned(),
+                            }],
+                            body: if request.head.method == HttpMethod::Get
+                                && request.head.target.split('?').next()
+                                    == Some(self.route_path.as_str())
+                            {
+                                self.response_body.clone()
+                            } else {
+                                b"not found\n".to_vec()
+                            },
+                            terminal: true,
+                        };
+                        self.phase = HttpListenerPhase::Respond {
+                            response,
+                            deadline_tick,
+                        };
+                        Ok(Self::wait(Some(deadline_tick)))
+                    }
+                    Poll::Ready(Ok(_)) => Err(RuntimeError::new(
+                        "CND-HTTP-010",
+                        "HTTP exchange ended without a request",
+                    )),
+                    Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
+                    Poll::Pending => Ok(Self::wait(Some(deadline_tick))),
+                }
+            }
+            HttpListenerPhase::Respond {
+                response,
+                deadline_tick,
+            } => {
+                let deadline_tick = *deadline_tick;
+                if context.tick >= deadline_tick {
+                    return Err(RuntimeError::new(
+                        "CND-HTTP-017",
+                        "HTTP listener response exceeded its exact deadline",
+                    ));
+                }
                 match backend.poll_send(response.exchange.connection, response) {
                     Poll::Ready(Ok(())) => {
                         backend
@@ -3000,11 +3052,11 @@ impl Handler for HttpListenerHandler {
                         if self.quiescing {
                             Ok(HostedServiceStep::completed(Vec::new()))
                         } else {
-                            Ok(Self::wait())
+                            Ok(Self::wait(None))
                         }
                     }
                     Poll::Ready(Err(error)) => Err(http_runtime_error(error)),
-                    Poll::Pending => Ok(Self::wait()),
+                    Poll::Pending => Ok(Self::wait(Some(deadline_tick))),
                 }
             }
         }
@@ -3034,6 +3086,7 @@ impl Handler for HttpListenerHandler {
         self.phase = HttpListenerPhase::Accept;
         self.response_body.clear();
         self.route_path.clear();
+        self.deadline_ticks = 0;
         self.quiescing = false;
         Ok(())
     }
@@ -3053,7 +3106,7 @@ fn required_config<'a>(node: &'a conduit_panel::Node, key: &str) -> Result<&'a s
 }
 
 fn validate_http_listener_config(node: &conduit_panel::Node) -> Result<(), ResolutionError> {
-    let allowed = ["listen", "method", "path", "response", "deadline_ms"];
+    let allowed = ["listen", "method", "path", "response", "deadline_ticks"];
     if let Some(entry) = node
         .config
         .iter()
@@ -3099,7 +3152,7 @@ fn validate_http_listener_config(node: &conduit_panel::Node) -> Result<(), Resol
             message: "HTTP response exceeds the exact bound".to_owned(),
         });
     }
-    let deadline = value("deadline_ms")?
+    let deadline = value("deadline_ticks")?
         .parse::<u64>()
         .map_err(|_| ResolutionError {
             code: "CND-HTTP-008",
@@ -3335,14 +3388,14 @@ mod tests {
         assert_eq!(session.state(), ExactRunState::Waiting);
     }
 
-    fn start_listener(
+    fn start_listener_for_source(
+        source: &str,
         run_id: Id<'static>,
     ) -> (
         conduit_runtime::ExactHostedRunSession,
         ExactRunSessionRegistry,
         std::net::SocketAddr,
     ) {
-        let source = include_str!("../../../examples/http-loopback-listener.panel");
         let mut registry = Registry::hosted_primitives();
         super::register_hosted_http_provider(&mut registry).unwrap();
         let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
@@ -3391,6 +3444,19 @@ mod tests {
             .and_then(|value| value.trim().parse().ok())
             .expect("exact session published its loopback address");
         (session, sessions, address)
+    }
+
+    fn start_listener(
+        run_id: Id<'static>,
+    ) -> (
+        conduit_runtime::ExactHostedRunSession,
+        ExactRunSessionRegistry,
+        std::net::SocketAddr,
+    ) {
+        start_listener_for_source(
+            include_str!("../../../examples/http-loopback-listener.panel"),
+            run_id,
+        )
     }
 
     fn serve_request(
@@ -3489,6 +3555,40 @@ mod tests {
         assert_eq!(
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
+
+    #[test]
+    fn hosted_listener_deadline_wakes_the_same_run_and_fails_before_response() {
+        let source = include_str!("../../../examples/http-loopback-listener.panel")
+            .replace("deadline_ticks = \"5000\"", "deadline_ticks = \"1\"");
+        let (mut session, sessions, address) =
+            start_listener_for_source(&source, Id("run/http/listener-deadline"));
+        let _client = TcpStream::connect(address).unwrap();
+        assert_eq!(
+            session
+                .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION)
+                .unwrap()
+                .state,
+            ExactRunState::Active
+        );
+        pump_until_waiting(&mut session);
+        let deadline = session
+            .next_timer_deadline()
+            .expect("an admitted request has one exact deadline");
+        assert_eq!(
+            session.advance_to(deadline).unwrap().state,
+            ExactRunState::Active
+        );
+        let error = session
+            .pump(1)
+            .expect_err("the timer wake rejects an unresponsive admitted request");
+        assert_eq!(error.code, "CND-HTTP-017");
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Failed)
         );
         session.finalize().unwrap();
         assert_eq!(sessions.active_sessions(), 0);

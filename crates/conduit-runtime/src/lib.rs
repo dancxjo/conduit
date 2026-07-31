@@ -329,7 +329,7 @@ const HTTP_LISTENER_CONFIG: ConfigContract<'static> = ConfigContract {
             identity: ConfigIdentity::Semantic,
         },
         ConfigFieldContract {
-            key: Id("deadline_ms"),
+            key: Id("deadline_ticks"),
             value_type: TEXT_TYPE,
             requirement: ConfigRequirement::Required,
             sensitivity: Sensitivity::Public,
@@ -1481,13 +1481,20 @@ pub enum HostedServiceInterest {
 /// Outcome of one bounded hosted-provider step.
 ///
 /// `Produced` leaves the run live after its outputs have reached their exact
-/// cords. `Waiting` registers one exact scheduler interest; it never spins or
-/// advances a real host clock. `Completed` ends only this provider.
+/// cords. `Waiting` registers one or more exact scheduler interests; it never
+/// spins or advances a real host clock. The selected execution profile bounds
+/// their number and kinds. `Completed` ends only this provider.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HostedServiceStep {
-    Produced { outputs: Vec<Value> },
-    Waiting { interest: HostedServiceInterest },
-    Completed { outputs: Vec<Value> },
+    Produced {
+        outputs: Vec<Value>,
+    },
+    Waiting {
+        interests: Vec<HostedServiceInterest>,
+    },
+    Completed {
+        outputs: Vec<Value>,
+    },
 }
 
 impl HostedServiceStep {
@@ -1499,6 +1506,18 @@ impl HostedServiceStep {
     #[must_use]
     pub fn produced(outputs: Vec<Value>) -> Self {
         Self::Produced { outputs }
+    }
+
+    #[must_use]
+    pub fn waiting(interest: HostedServiceInterest) -> Self {
+        Self::Waiting {
+            interests: vec![interest],
+        }
+    }
+
+    #[must_use]
+    pub fn waiting_for(interests: Vec<HostedServiceInterest>) -> Self {
+        Self::Waiting { interests }
     }
 }
 
@@ -7726,27 +7745,29 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 let (outputs, terminal) = match step {
                     HostedServiceStep::Produced { outputs } => (outputs, false),
                     HostedServiceStep::Completed { outputs } => (outputs, true),
-                    HostedServiceStep::Waiting { interest } => {
-                        let wake = match interest {
-                            HostedServiceInterest::Timer {
-                                subject,
-                                deadline_tick,
-                            } => io.wait_for_timer(subject, deadline_tick),
-                            HostedServiceInterest::HostOperation { subject } => {
-                                io.wait_for_host_operation(subject)
-                            }
-                        };
-                        if let Err(error) = wake {
-                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
-                                "CND-RUN-004",
-                                format!(
-                                    "host service `{}` registered an invalid exact wake: {error}",
-                                    node.id
-                                ),
-                            ));
-                            return SchedulerStep::Failed {
-                                code: Id("conduit/host-service-wake-invalid"),
+                    HostedServiceStep::Waiting { interests } => {
+                        for interest in interests {
+                            let wake = match interest {
+                                HostedServiceInterest::Timer {
+                                    subject,
+                                    deadline_tick,
+                                } => io.wait_for_timer(subject, deadline_tick),
+                                HostedServiceInterest::HostOperation { subject } => {
+                                    io.wait_for_host_operation(subject)
+                                }
                             };
+                            if let Err(error) = wake {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-RUN-004",
+                                    format!(
+                                        "host service `{}` registered an invalid exact wake: {error}",
+                                        node.id
+                                    ),
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/host-service-wake-invalid"),
+                                };
+                            }
                         }
                         return SchedulerStep::Pending;
                     }
@@ -11854,12 +11875,10 @@ impl Handler for Ticker {
         }
         if let Some(deadline_tick) = self.deadline_tick {
             if context.tick < deadline_tick {
-                return Ok(HostedServiceStep::Waiting {
-                    interest: HostedServiceInterest::Timer {
-                        subject: Id("conduit/time-ticker"),
-                        deadline_tick,
-                    },
-                });
+                return Ok(HostedServiceStep::waiting(HostedServiceInterest::Timer {
+                    subject: Id("conduit/time-ticker"),
+                    deadline_tick,
+                }));
             }
             self.deadline_tick = None;
         }
@@ -12935,7 +12954,7 @@ mod tests {
                method = \"GET\"\n\
                path = \"/health\"\n\
                response = \"ok\"\n\
-               deadline_ms = \"1000\"\n\
+               deadline_ticks = \"1000\"\n\
              }",
         )
         .expect("HTTP contract source parses");

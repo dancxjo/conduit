@@ -8,5 +8,5 @@ node server : net/http/listen {
     method = "GET"
     path = "/health"
     response = "conduit http ready\n"
-    deadline_ms = "5000"
+    deadline_ticks = "5000"
 }

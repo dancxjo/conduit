@@ -931,11 +931,11 @@ impl Handler for WatchHandler {
                 value_type: file_watch_contract().outputs[0].value_type,
                 bytes: watch_event_bytes(&event),
             }])),
-            None => Ok(HostedServiceStep::Waiting {
-                interest: HostedServiceInterest::HostOperation {
+            None => Ok(HostedServiceStep::waiting(
+                HostedServiceInterest::HostOperation {
                     subject: FILESYSTEM_WATCH_HOST_OPERATION,
                 },
-            }),
+            )),
         }
     }
 
@@ -1295,11 +1295,9 @@ mod tests {
             handler
                 .step(watcher, &[], HostedServiceStepContext { tick: 10 }, &mut io)
                 .unwrap(),
-            HostedServiceStep::Waiting {
-                interest: HostedServiceInterest::HostOperation {
-                    subject: FILESYSTEM_WATCH_HOST_OPERATION,
-                },
-            }
+            HostedServiceStep::waiting(HostedServiceInterest::HostOperation {
+                subject: FILESYSTEM_WATCH_HOST_OPERATION,
+            })
         );
 
         fs::write(&path, b"changed").unwrap();

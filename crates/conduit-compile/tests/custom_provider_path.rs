@@ -69,11 +69,11 @@ impl Handler for LongLivedWeatherProvider {
             return Ok(HostedServiceStep::completed(Vec::new()));
         }
         self.wakes_seen += 1;
-        Ok(HostedServiceStep::Waiting {
-            interest: HostedServiceInterest::HostOperation {
+        Ok(HostedServiceStep::waiting(
+            HostedServiceInterest::HostOperation {
                 subject: Id("acme.weather/refresh"),
             },
-        })
+        ))
     }
 
     fn cleanup(&mut self, _node: &Node) -> Result<(), RuntimeError> {

@@ -62,7 +62,8 @@ Every linked hosted provider uses the same prepare, start, bounded-step,
 interest, cancel, and cleanup adapter. A finite request/response provider is
 the simple case: its first bounded step returns its exact outputs and declares
 completion. A live provider may instead return outputs and remain active, or
-register one named timer or host-operation interest and become Waiting.
+register one or more plan-bounded timer and host-operation interests and
+become Waiting.
 
 `time/ticker` is the reference timer source: its current contract is an
 open-ended `u64` stream, not a one-shot result. It reserves the first output
@@ -86,12 +87,13 @@ proved by the hosted lifecycle tests.
 
 `net/http/listen` is likewise a live source, not a one-request batch helper.
 Binding, accepting one connection, reading one bounded request, and writing
-one bounded response are distinct nonblocking steps. Between them it retains
-one exact host-operation interest. `Drain` closes admission first, then lets
-an already accepted request reach its declared response and cleanup; `Abort`
-disposes the same bounded remainder immediately. Neither path creates a new
-listener, reuses a completed run, or turns a host readiness callback into
-semantic authority.
+one bounded response are distinct nonblocking steps. An accepted request waits
+for both its exact host-operation and its source-declared deadline tick; the
+same live epoch resumes from either, without reading or jumping a real clock.
+`Drain` closes admission first, then lets an already accepted request reach its
+declared response and cleanup; `Abort` disposes the same bounded remainder
+immediately. Neither path creates a new listener, reuses a completed run, or
+turns a host readiness callback into semantic authority.
 
 Cancellation invokes the provider's bounded stop disposition and cleanup on
 the same scheduler path. Natural completion also runs cleanup before the node
