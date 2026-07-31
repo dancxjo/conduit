@@ -187,7 +187,7 @@ fn unsupported_flow_profiles_fail_during_resolution() {
         ("conduit.std/gate", r#"retained = "unbounded""#),
         ("conduit.std/select", r#"inactive = "drop""#),
     ] {
-        let source = format!("panel 1\nnode invalid : {kind} {{ {config} }}\n");
+        let source = format!("panel 3\nnode invalid : {kind} {{ {config} }}\n");
         let error = Registry::hosted_primitives()
             .resolve(&conduit_panel::parse(&source).unwrap())
             .unwrap_err();

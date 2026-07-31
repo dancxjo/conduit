@@ -33,7 +33,7 @@ impl ModuleLoader for MemoryLoader {
 fn resolver_and_plan_failures_have_structured_adapters() {
     let root = DiagnosticSource::new(
         "mem://fixture/root.panel",
-        b"panel 1\nimport \"./missing.panel\" as missing\n".as_slice(),
+        b"panel 3\nimport \"./missing.panel\" as missing\n".as_slice(),
     );
     let module_error = resolve_modules(
         "mem://fixture/root.panel",
@@ -112,7 +112,7 @@ fn resolver_and_plan_failures_have_structured_adapters() {
 
 #[test]
 fn unsupported_source_schema_has_a_structured_adapter() {
-    let panel = parse("panel 1\nnode app : fixture/handler\n").unwrap();
+    let panel = parse("panel 3\nnode app : fixture/handler\n").unwrap();
     let error = semantic_source_hash_version(&panel, 99).unwrap_err();
     let diagnostic = from_source_schema_error(&error);
     assert_eq!(diagnostic.code, "CND-SRC-011");
@@ -198,7 +198,7 @@ fn every_normative_diagnostic_vector_is_valid_lossless_and_renderable() {
 fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
     let arrow_source = DiagnosticSource::new(
         "mem://fixture/arrow.panel",
-        b"panel 1\ncord microphone.audio tts.text\n".as_slice(),
+        b"panel 3\ncord microphone.audio tts.text\n".as_slice(),
     );
     let arrow = from_parse_error(
         &parse(std::str::from_utf8(&arrow_source.bytes).unwrap()).unwrap_err(),
@@ -216,7 +216,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let comma_source = DiagnosticSource::new(
         "mem://fixture/comma.panel",
-        b"panel 1\nnode value : fixture/all { items = list(true, ) }\n".as_slice(),
+        b"panel 3\nnode value : fixture/all { items = list(true, ) }\n".as_slice(),
     );
     let comma = from_parse_error(
         &parse(std::str::from_utf8(&comma_source.bytes).unwrap()).unwrap_err(),
@@ -226,7 +226,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let secret_source = DiagnosticSource::new(
         "mem://fixture/secret.panel",
-        b"panel 1\nnode value : fixture/secret { token = \"do-not-echo\" }\n".as_slice(),
+        b"panel 3\nnode value : fixture/secret { token = \"do-not-echo\" }\n".as_slice(),
     );
     let secret_error = LoweringDiagnostic {
         code: "CND-LWR-009",
@@ -255,7 +255,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let source = DiagnosticSource::new(
         "mem://fixture/mismatch.panel",
-        b"panel 1\ncord microphone.audio -> tts.text\n".as_slice(),
+        b"panel 3\ncord microphone.audio -> tts.text\n".as_slice(),
     );
     let adapter = from_validation_error(
         ValidationError {
@@ -277,7 +277,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
                     precondition_hash: source.content_hash.clone(),
                     byte_start: 8,
                     byte_end: 41,
-                    replacement: "node adapter : fixture/transcribe\ncord microphone.audio -> adapter.in\ncord adapter.out -> tts.text".to_owned(),
+                    replacement: "node adapter : fixture/transcribe\ncord microphone.audio -> adapter.audio\ncord adapter.text -> tts.text".to_owned(),
                 },
             }),
         },
@@ -289,7 +289,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 fn terminal_color_and_plain_snapshots_are_exact() {
     let source = DiagnosticSource::new(
         "mem://fixture/root.panel",
-        b"panel 1\ncord microphone.audio -> tts.text\n".as_slice(),
+        b"panel 3\ncord microphone.audio -> tts.text\n".as_slice(),
     );
     let diagnostic = from_validation_error(
         ValidationError {

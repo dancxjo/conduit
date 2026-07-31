@@ -57,7 +57,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
     assert_eq!(check["schema"], "conduit.result/v1");
     assert_eq!(check["schema_version"], 1);
     assert_eq!(check["operation"], "check");
-    assert_eq!(check["result"]["panel_version"], 1);
+    assert_eq!(check["result"]["panel_version"], 3);
     assert_eq!(check["result"]["root_nodes"], 3);
     assert_eq!(check["result"]["root_cords"], 2);
 
@@ -90,7 +90,7 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         assert_eq!(record["sequence"], sequence);
     }
     assert_eq!(records[0]["record"], "channel_chunk");
-    assert_eq!(records[0]["channel"], "stdout");
+    assert_eq!(records[0]["channel"], "display");
     assert_eq!(records[0]["encoding"], "hex");
     assert_eq!(records[0]["payload_bytes"], 20);
     assert_eq!(
@@ -121,9 +121,11 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .take()
         .unwrap()
         .write_all(
-            b"panel 1\nnode message : std/literal { value = \"semantic error\\n\" }\n\
+            b"panel 3\nnode message : std/literal { value = \"semantic error\\n\" }\n\
+              node encoded : text/encode-utf8\n\
               node sink : io/stderr\n\
-              cord message.out -> sink.in { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+              cord message.value -> encoded.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
+              cord encoded.bytes -> sink.bytes { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
         )
         .unwrap();
     let output = child.wait_with_output().unwrap();
@@ -214,7 +216,7 @@ fn every_result_and_diagnostic_format_combination_keeps_streams_separate() {
                         .stdin
                         .take()
                         .unwrap()
-                        .write_all(b"panel 1\ncord missing.out absent.in\n")?;
+                        .write_all(b"panel 3\ncord missing.value absent.text\n")?;
                     child.wait_with_output()
                 })
                 .unwrap();
@@ -282,7 +284,7 @@ fn quiet_verbosity_and_malformed_options_preserve_required_output() {
                 .stdin
                 .take()
                 .unwrap()
-                .write_all(b"panel 1\ncord a.out b.in\n")?;
+                .write_all(b"panel 3\ncord a.value b.text\n")?;
             child.wait_with_output()
         })
         .unwrap();

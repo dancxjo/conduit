@@ -415,7 +415,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
 #[test]
 fn panel_detection_is_comment_safe_and_never_reproduces_secrets() {
     let source = br#"# comment
-panel 1
+panel 3
 node value : std/literal { value = secret("credential/material") }
 "#;
     let report = inspect_bytes(
@@ -491,7 +491,7 @@ fn type_detection_and_allocation_limits_fail_closed() {
         ..InspectLimits::default()
     };
     assert_eq!(
-        inspect_bytes(b"panel 1\n", RequestedKind::Auto, None, small)
+        inspect_bytes(b"panel 3\n", RequestedKind::Auto, None, small)
             .unwrap_err()
             .code,
         "CND-INSP-005"
@@ -528,7 +528,7 @@ fn nested_malformed_and_extension_conflicts_are_bounded() {
     );
     assert_eq!(
         inspect_bytes(
-            b"panel 1\n",
+            b"panel 3\n",
             RequestedKind::Panel,
             Some("ndjson"),
             InspectLimits::default()
@@ -689,10 +689,10 @@ fn module_graph_and_reference_traversal_limits_are_enforced() {
     let directory = temporary_directory();
     let panel_root = directory.join("panels");
     std::fs::create_dir_all(&panel_root).unwrap();
-    std::fs::write(panel_root.join("child.panel"), b"panel 1\n").unwrap();
+    std::fs::write(panel_root.join("child.panel"), b"panel 3\n").unwrap();
     std::fs::write(
         panel_root.join("root.panel"),
-        b"panel 1\nimport \"./child.panel\" as child\n",
+        b"panel 3\nimport \"./child.panel\" as child\n",
     )
     .unwrap();
 
@@ -725,10 +725,10 @@ fn module_graph_and_reference_traversal_limits_are_enforced() {
         "CND-SRC-003"
     );
 
-    std::fs::write(directory.join("outside.panel"), b"panel 1\n").unwrap();
+    std::fs::write(directory.join("outside.panel"), b"panel 3\n").unwrap();
     std::fs::write(
         panel_root.join("escape.panel"),
-        b"panel 1\nimport \"../outside.panel\" as outside\n",
+        b"panel 3\nimport \"../outside.panel\" as outside\n",
     )
     .unwrap();
     assert_eq!(
@@ -977,7 +977,7 @@ fn every_serialized_inspection_conformance_vector_executes() {
             let (bytes, requested) = match limit {
                 "max_input_bytes" => {
                     limits.max_input_bytes = 3;
-                    (b"panel 1\n".to_vec(), RequestedKind::Auto)
+                    (b"panel 3\n".to_vec(), RequestedKind::Auto)
                 }
                 "max_record_bytes" => {
                     limits.max_record_bytes = 16;

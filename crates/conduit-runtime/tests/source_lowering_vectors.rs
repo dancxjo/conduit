@@ -1003,12 +1003,12 @@ fn every_normative_port_group_source_vector_has_the_exact_result() {
 #[test]
 fn explicit_and_default_values_have_one_descriptor_with_visible_provenance() {
     let omitted = lower_source(
-        &graph("panel 1\nnode value : fixture/defaulted\n"),
+        &graph("panel 3\nnode value : fixture/defaulted\n"),
         &Catalog,
     )
     .unwrap();
     let explicit = lower_source(
-        &graph("panel 1\nnode value : fixture/defaulted { enabled = true }\n"),
+        &graph("panel 3\nnode value : fixture/defaulted { enabled = true }\n"),
         &Catalog,
     )
     .unwrap();
@@ -1033,25 +1033,25 @@ fn explicit_and_default_values_have_one_descriptor_with_visible_provenance() {
 #[test]
 fn records_are_canonical_and_precision_sensitive_values_remain_exact() {
     let left = lower_source(
-        &graph("panel 1\nnode value : fixture/record { value = record(name=\"a\",count=7) }\n"),
+        &graph("panel 3\nnode value : fixture/record { value = record(name=\"a\",count=7) }\n"),
         &Catalog,
     )
     .unwrap();
     let right = lower_source(
-        &graph("panel 1\nnode value : fixture/record { value = record(count=7,name=\"a\") }\n"),
+        &graph("panel 3\nnode value : fixture/record { value = record(count=7,name=\"a\") }\n"),
         &Catalog,
     )
     .unwrap();
     assert_eq!(left.semantic_hash, right.semantic_hash);
 
     let short = lower_source(
-        &graph("panel 1\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n"),
+        &graph("panel 3\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n"),
         &Catalog,
     )
     .unwrap();
     let precise = lower_source(
         &graph(
-            "panel 1\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
+            "panel 3\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
         ),
         &Catalog,
     )
@@ -1063,15 +1063,15 @@ fn records_are_canonical_and_precision_sensitive_values_remain_exact() {
 fn wrong_types_overflow_and_missing_providers_name_span_and_contract() {
     for (source, code) in [
         (
-            "panel 1\nnode value : fixture/integer { count = \"seven\" }\n",
+            "panel 3\nnode value : fixture/integer { count = \"seven\" }\n",
             "CND-LWR-005",
         ),
         (
-            "panel 1\nnode value : fixture/integer { count = 128 }\n",
+            "panel 3\nnode value : fixture/integer { count = 128 }\n",
             "CND-LWR-006",
         ),
         (
-            "panel 1\nnode value : fixture/provider { value = \"x\" }\n",
+            "panel 3\nnode value : fixture/provider { value = \"x\" }\n",
             "CND-LWR-008",
         ),
     ] {
@@ -1088,7 +1088,7 @@ fn wrong_types_overflow_and_missing_providers_name_span_and_contract() {
 #[test]
 fn diagnostic_value_spans_are_exact_and_exclude_following_trivia() {
     let error = lower_source(
-        &graph("panel 1\nnode n : fixture/integer { count = -129    }\n"),
+        &graph("panel 3\nnode n : fixture/integer { count = -129    }\n"),
         &Catalog,
     )
     .unwrap_err();
@@ -1102,7 +1102,7 @@ fn diagnostic_value_spans_are_exact_and_exclude_following_trivia() {
 #[test]
 fn secret_references_are_plan_bindings_and_never_format_the_reference() {
     let lowered = lower_source(
-        &graph("panel 1\nnode value : fixture/secret { token = secret(\"do-not-print-this\") }\n"),
+        &graph("panel 3\nnode value : fixture/secret { token = secret(\"do-not-print-this\") }\n"),
         &Catalog,
     )
     .unwrap();
@@ -1121,8 +1121,8 @@ fn secret_references_are_plan_bindings_and_never_format_the_reference() {
 
 #[test]
 fn imported_definition_schema_and_multi_file_origins_remain_exact() {
-    let child = "panel 1\nnode configured(count: fixture/i8) { }\nroot configured\n";
-    let entry = "panel 1\nimport \"./child.panel\" as child\n\
+    let child = "panel 3\nnode configured(count: fixture/i8) { }\nroot configured\n";
+    let entry = "panel 3\nimport \"./child.panel\" as child\n\
                  node app : child.configured { count = 7 }\n";
     let graph = resolve_modules(
         "mem://fixture/root.panel",
@@ -1155,7 +1155,7 @@ fn imported_definition_schema_and_multi_file_origins_remain_exact() {
 fn groups_and_pools_lower_to_finite_plan_visible_specs() {
     let lowered = lower_source(
         &graph(
-            "panel 1\n\
+            "panel 3\n\
              port-group routes input : fixture/request-port keyed max 2 { member home member assets }\n\
              port-group workers output : fixture/reply-port indexed max 3\n\
              pool sessions : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 16 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\n",

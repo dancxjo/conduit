@@ -137,19 +137,19 @@ fn panel_result(id: &str) -> Value {
     let source = match id {
         "oversized-panel-source" => "x".repeat(MAXIMUM_PANEL_SOURCE_BYTES + 1),
         "panel-token-flood" => {
-            let mut source = "panel 1\n".to_owned();
+            let mut source = "panel 3\n".to_owned();
             source.push_str(&"a ".repeat(MAXIMUM_PANEL_TOKENS));
             source
         }
         "recursive-source-value" => {
             let depth = usize::from(MAXIMUM_SOURCE_VALUE_DEPTH);
             format!(
-                "panel 1\nnode n : std/literal {{ value = {}0{} }}",
+                "panel 3\nnode n : std/literal {{ value = {}0{} }}",
                 "list(".repeat(depth),
                 ")".repeat(depth)
             )
         }
-        "hostile-diagnostic-text-is-escaped" => "panel 1\n\u{1b}".to_owned(),
+        "hostile-diagnostic-text-is-escaped" => "panel 3\n\u{1b}".to_owned(),
         _ => panic!("unknown panel case {id}"),
     };
     match parse(&source) {

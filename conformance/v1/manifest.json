@@ -1996,7 +1996,7 @@
         {
           "id": "inspection-v1",
           "path": "../c3/inspection-v1.json",
-          "sha256": "sha256:3c26933035f3e9729ba500329e9a517a0480e68a56f8193593e9f59898ace0cf",
+          "sha256": "sha256:a36fbcdf8027ed8aba52cd6a0a9f935e272dec4eb4653fcdae7cf4ca516080c7",
           "operation": "safe-inspection-v1",
           "requirement_ids": [
             "INSP-001",

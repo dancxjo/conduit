@@ -6836,7 +6836,7 @@ mod tests {
     fn format_uses_typed_inputs_named_indexed_and_escaped_placeholders() {
         let panel = parse(
             r#"
-                panel 1
+                panel 3
                 node template : std/literal {
                     value = "{worker} = {{status: {1}; count={2}}}"
                 }
@@ -6877,7 +6877,7 @@ mod tests {
     fn format_rejects_missing_and_extra_values_at_execution() {
         let panel = parse(
             r#"
-                panel 1
+                panel 3
                 node template : std/literal {
                     value = "{} {}"
                 }
@@ -6966,7 +6966,7 @@ mod tests {
     fn resolves_explains_and_runs_a_panel() {
         let panel = parse(
             r#"
-                panel 1
+                panel 3
                 node greeting : std/literal {
                     value = "Hello from Conduit.\n"
                 }
@@ -7007,7 +7007,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_implementations() {
-        let panel = parse("panel 1\nnode mystery : example/missing").expect("panel parses");
+        let panel = parse("panel 3\nnode mystery : example/missing").expect("panel parses");
         let error = Registry::compatibility_demo()
             .resolve(&panel)
             .expect_err("missing implementation");
@@ -7017,11 +7017,11 @@ mod tests {
     #[test]
     fn source_only_module_group_and_pool_forms_require_explicit_lowering() {
         for source in [
-            "panel 1\nimport \"./child.panel\" as child",
-            "panel 1\nport-group routes input : fixture/request indexed max 8",
-            "panel 1\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
-            "panel 1\nnode app { node child : std/literal }\nroot app",
-            "panel 1\nnode source : std/literal using ready",
+            "panel 3\nimport \"./child.panel\" as child",
+            "panel 3\nport-group > routes : fixture/request indexed max 8",
+            "panel 3\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
+            "panel 3\nnode app { node child : std/literal }\nroot app",
+            "panel 3\nnode source : std/literal using ready",
         ] {
             let panel = parse(source).expect("source form parses");
             let error = Registry::compatibility_demo()
@@ -7034,7 +7034,7 @@ mod tests {
     #[test]
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
-            "panel 1\nnode a : io/stdin\nnode b : io/stdout\n\
+            "panel 3\nnode a : io/stdin\nnode b : io/stdout\n\
              cord a.bytes -> b.bytes {\n\
                pressure = sample\n\
                sample_every = 2\n\
@@ -7047,7 +7047,7 @@ mod tests {
         assert_eq!(error.code, "CND-FLW-002");
 
         let coalesce = parse(
-            "panel 1\nnode a : io/stdin\nnode b : io/stdout\n\
+            "panel 3\nnode a : io/stdin\nnode b : io/stdout\n\
              cord a.bytes -> b.bytes {\n\
                pressure = coalesce\n\
                coalescer = conduit/replace-latest\n\
@@ -7065,7 +7065,7 @@ mod tests {
     fn stdin_is_an_explicit_source_node() {
         let panel = parse(
             r#"
-                panel 1
+                panel 3
                 node input : io/stdin
                 node output : io/stdout
                 cord input.bytes -> output.bytes
@@ -7094,17 +7094,17 @@ mod tests {
     fn nested_composites_bind_parameters_export_ports_and_preserve_views() {
         let panel = parse(
             r#"
-                panel 1
+                panel 3
                 composite example/literal-line {
                     node source : std/literal
-                    export output text = source.value
+                    export text > = source.value
                     bind value = source.value
                 }
                 composite example/upper-line {
                     node source : example/literal-line
                     node upper : text/uppercase
                     cord source.text -> upper.text
-                    export output text = upper.text
+                    export text > = upper.text
                     bind value = source.value
                 }
                 node line : example/upper-line { value = "mixed Case" }
@@ -7150,11 +7150,11 @@ mod tests {
     fn composite_boundary_is_substitutable_for_primitive_inputs_and_outputs() {
         let panel = parse(
             r#"
-                panel 1
+                panel 3
                 composite example/uppercase {
                     node worker : text/uppercase
-                    export input text = worker.text
-                    export output text = worker.text
+                    export > text = worker.text
+                    export text > = worker.text
                 }
                 node source : std/literal { value = "boundary" }
                 node transform : example/uppercase
@@ -7187,7 +7187,7 @@ mod tests {
     #[test]
     fn contract_only_http_service_is_not_executable() {
         let panel = parse(
-            "panel 1\n\
+            "panel 3\n\
              node server : net/http/serve-once {\n\
                listen = \"127.0.0.1:0\"\n\
                method = \"GET\"\n\
@@ -7213,52 +7213,52 @@ mod tests {
         let registry = Registry::compatibility_demo();
         for (source, source_code, runtime_code) in [
             (
-                "panel 1\ncomposite example/a { node b : example/b }\n\
+                "panel 3\ncomposite example/a { node b : example/b }\n\
                  composite example/b { node a : example/a }\n\
                  node root : example/a",
                 None,
                 Some("CND-CMP-005"),
             ),
             (
-                "panel 1\ncomposite example/a {\n\
+                "panel 3\ncomposite example/a {\n\
                    node source : io/stdin\n\
-                   export output out = source.out\n\
-                   export output out = source.out\n\
+                   export bytes > = source.bytes\n\
+                   export bytes > = source.bytes\n\
                  }\nnode root : example/a",
                 Some("CND-SRC-002"),
                 None,
             ),
             (
-                "panel 1\ncomposite example/a {\n\
+                "panel 3\ncomposite example/a {\n\
                    node source : io/stdin\n\
-                   export output out = missing.out\n\
+                   export bytes > = missing.bytes\n\
                  }\nnode root : example/a",
                 Some("CND-SRC-009"),
                 None,
             ),
             (
-                "panel 1\ncomposite example/a {\n\
+                "panel 3\ncomposite example/a {\n\
                    node source : io/stdin\n\
-                   export input in = source.out\n\
+                   export > bytes = source.bytes\n\
                  }\nnode root : example/a",
                 None,
                 Some("CND-CMP-003"),
             ),
             (
-                "panel 1\ncomposite example/a {\n\
+                "panel 3\ncomposite example/a {\n\
                    node source : std/literal\n\
-                   export output out = source.out\n\
+                   export value > = source.value\n\
                    bind value = source.missing\n\
                  }\nnode root : example/a { value = x }",
                 None,
                 Some("CND-CMP-003"),
             ),
             (
-                "panel 1\ncomposite example/a {\n\
+                "panel 3\ncomposite example/a {\n\
                    node source : io/stdin\n\
-                   export output out = source.out\n\
+                   export bytes > = source.bytes\n\
                  }\nnode root : example/a\nnode sink : io/stdout\n\
-                 cord root.source.out -> sink.in",
+                 cord root.source.bytes -> sink.bytes",
                 Some("CND-SRC-009"),
                 None,
             ),

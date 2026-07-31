@@ -152,7 +152,7 @@ fn evidence_diagnostic_and_conformance_kinds_keep_machine_streams_clean() {
 
 #[test]
 fn unresolved_selectors_and_secrets_are_reported_without_resolution_or_disclosure() {
-    let source = br#"panel 1
+    let source = br#"panel 3
 node app : fixture/handler using ready {
     credential = secret("canary-secret-material")
 }
@@ -207,7 +207,7 @@ fn unknown_polyglot_malformed_oversized_and_type_conflicts_fail_closed() {
         ),
         (
             "ndjson",
-            b"panel 1\n".to_vec(),
+            b"panel 3\n".to_vec(),
             &["inspect", "--type=panel", "--diagnostic-format=json"],
             "CND-INSP-003",
         ),

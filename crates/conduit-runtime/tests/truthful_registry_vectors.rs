@@ -114,7 +114,7 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
             "{kind}"
         );
         assert_eq!(availability.reason_code, "CND-AVL-001");
-        let panel = parse(&format!("panel 1\nnode node : {kind}\n")).unwrap();
+        let panel = parse(&format!("panel 3\nnode node : {kind}\n")).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)
@@ -180,7 +180,7 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
         );
     }
     let panel = parse(
-        "panel 1\n\
+        "panel 3\n\
          node source : std/literal { value = \"fixture\" }\n\
          node upper : text/uppercase\n\
          node encoded : text/encode-utf8\n\
@@ -242,7 +242,7 @@ fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvabl
     assert_eq!(availability.host_id, None);
     assert_eq!(availability.rejection_reasons, vec!["CND-RES-025"]);
 
-    let panel = parse("panel 1\nnode file : fs/read\n").unwrap();
+    let panel = parse("panel 3\nnode file : fs/read\n").unwrap();
     assert_eq!(
         registry
             .resolve(&panel)
@@ -351,7 +351,7 @@ fn discarded_standard_id_is_unsupported_and_never_aliased() {
             vec!["CND-RES-001"],
             "{discarded}"
         );
-        let panel = parse(&format!("panel 1\nnode legacy : {discarded}\n")).unwrap();
+        let panel = parse(&format!("panel 3\nnode legacy : {discarded}\n")).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)
@@ -367,7 +367,7 @@ fn discarded_standard_id_is_unsupported_and_never_aliased() {
 fn patchbay_receives_registry_facts_without_node_name_inference() {
     let workspace = conduit_patchbay::Workspace::new(
         "doc-1",
-        "panel 1\nnode greeting : std/literal { value = \"hello\" }\n",
+        "panel 3\nnode greeting : std/literal { value = \"hello\" }\n",
     )
     .unwrap();
     let registry = Registry::default();
