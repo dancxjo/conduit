@@ -52,7 +52,18 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 118);
+    assert_eq!(projection.entries.len(), 119);
+    let http_client = projection
+        .entries
+        .iter()
+        .find(|entry| entry.semantic_identity == "net/http/fetch")
+        .unwrap();
+    assert_eq!(http_client.classification, "optional-host-boundary");
+    assert_eq!(http_client.standalone_lesson.status, "published");
+    assert_eq!(
+        http_client.current_provider_observation,
+        "not-recorded-in-catalog"
+    );
     let literal = projection
         .entries
         .iter()
