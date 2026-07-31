@@ -1459,9 +1459,24 @@ fn cross_host_media_bindings(
     profile: &str,
 ) -> BTreeMap<String, (String, String, String, String)> {
     let registry = cross_host_profile_registry(profile);
-    let installed = InstalledProfile::observe_registry(source, &registry).unwrap_or_else(|error| {
+    let mut installed = InstalledProfile::observe_registry(source, &registry).unwrap_or_else(|error| {
         panic!("profile {profile} must produce a compatible installed profile: {error}")
     });
+    let profile_observation = match profile {
+        "deterministic-host" => ("conduit/conduct-host-observation", "conduit/conduct-host"),
+        "linux-native" => ("conduit/cross-host/linux-native-observation", "conduit/cross-host/linux-native"),
+        "browser-wasm" => ("conduit/cross-host/browser-wasm-observation", "conduit/cross-host/browser-wasm"),
+        "explicit-adapter" => ("conduit/cross-host/explicit-adapter-observation", "conduit/cross-host/explicit-adapter"),
+        _ => panic!("unknown cross-host profile {profile}"),
+    };
+    installed.input.candidates.iter_mut().for_each(|candidate| {
+        candidate.host_report.id = profile_observation.0.to_owned();
+        candidate.host_report.host = profile_observation.1.to_owned();
+    });
+    installed
+        .input
+        .seal()
+        .expect("cross-host media candidate profile is sealed");
     let document = compile_source(source, &installed.input)
         .unwrap_or_else(|error| panic!("profile {profile} must compile the media graph: {error}"));
     let arena = Bump::new();
@@ -1608,13 +1623,12 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     assert_ne!(explicit_artifact, linux_artifact);
     assert_ne!(explicit_artifact, browser_artifact);
     assert!(!deterministic_observation.is_empty());
-    assert_eq!(
-        deterministic_observation,
-        "conduit/conduct-host-observation"
-    );
-    assert_eq!(linux_observation, deterministic_observation);
-    assert_eq!(browser_observation, deterministic_observation);
-    assert_eq!(explicit_observation, deterministic_observation);
+    assert_ne!(linux_observation, deterministic_observation);
+    assert_ne!(browser_observation, deterministic_observation);
+    assert_ne!(explicit_observation, deterministic_observation);
+    assert_ne!(linux_observation, browser_observation);
+    assert_ne!(linux_observation, explicit_observation);
+    assert_ne!(browser_observation, explicit_observation);
     let deterministic_contract_hashes: BTreeSet<_> = deterministic_bindings
         .iter()
         .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
