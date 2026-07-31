@@ -1,0 +1,21 @@
+[package]
+name = "conduit-filesystem"
+description = "Bounded opaque-handle filesystem providers for Conduit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-panel = { path = "../conduit-panel" }
+conduit-runtime = { path = "../conduit-runtime" }
+conduit-std = { path = "../conduit-std" }
+libc = "0.2.183"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

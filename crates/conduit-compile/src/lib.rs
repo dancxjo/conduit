@@ -1673,6 +1673,10 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "text/uppercase",
             "supervision/supervisor",
             "net/http/serve-once",
+            "fs/chunk/literal",
+            "fs/read",
+            "fs/write",
+            "fs/watch",
         ]
         .into_iter()
         .map(|id| {
@@ -1695,8 +1699,14 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "std/format-values",
             "std/list/text",
             "std/u64",
+            "std/bool",
             "std/terminal",
             "supervision/decision",
+            "fs/resource",
+            "fs/chunk",
+            "fs/read-result",
+            "fs/write-result",
+            "fs/event",
         ]
         .into_iter()
         .map(|id| {
@@ -1715,6 +1725,7 @@ pub fn builtin_catalog_document() -> Result<CompileCatalogDocument, CompileError
             "conduit/output-text",
             "terminal",
             "decision",
+            "chunk",
         ]
         .into_iter()
         .map(|id| {

@@ -23,6 +23,7 @@ clap = { version = "4.6.4", default-features = false, features = [
 ] }
 conduit-compile = { path = "../conduit-compile" }
 conduit-diagnostics = { path = "../conduit-diagnostics" }
+conduit-filesystem = { path = "../conduit-filesystem" }
 conduit-http = { path = "../conduit-http" }
 conduit-inspect = { path = "../conduit-inspect" }
 conduit-package = { path = "../conduit-package" }

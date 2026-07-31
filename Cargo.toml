@@ -5,6 +5,7 @@ members = [
     "crates/conduit-core",
     "crates/conduit-diagnostics",
     "crates/conduit-embedded",
+    "crates/conduit-filesystem",
     "crates/conduit-http",
     "crates/conduit-inspect",
     "crates/conduit-package",

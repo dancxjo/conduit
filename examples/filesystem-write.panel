@@ -1,15 +1,9 @@
-# Copy one bounded chunk between provider-owned opaque file resources.
+# Write one bounded literal chunk to an opaque provider-owned file resource.
 panel 0
 
-node reader : fs/read {
-    resource = secret("conduit.resource/filesystem-example-read")
-    grant = secret("conduit.grant/filesystem-read")
-    offset = 0
+node source : fs/chunk/literal {
+    value = bytes("636f6e6475697420626f756e6465642066696c6573797374656d0a")
     maximum_bytes = 64
-    chunk_bytes = 64
-    consistency = "snapshot"
-    eof = "terminal"
-    cancellation = "discard"
 }
 
 node writer : fs/write {
@@ -23,7 +17,7 @@ node writer : fs/write {
     cancellation = "close"
 }
 
-cord reader.chunk -> writer.chunk {
+cord source.chunk -> writer.chunk {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64

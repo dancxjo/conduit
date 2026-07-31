@@ -299,7 +299,10 @@ fn candidate(
         .map(|instance| vec![stdout_authority(instance, stdout_granted)])
         .unwrap_or_default();
     if let Some(instance) = host_service_instance {
-        authorities.push(host_service_authority(instance));
+        authorities.extend(host_service_authority(
+            installed.contract.id.as_str(),
+            instance,
+        ));
     }
     let format_profile = matches!(
         installed.implementation,
@@ -454,7 +457,7 @@ fn candidate(
         },
         allocation: BudgetDocument {
             memory_bytes: if host_service_instance.is_some() {
-                64 * 1024
+                192 * 1024
             } else if structural_validation_profile {
                 576 * 1024
             } else if format_profile || buffered_text_profile || data_boundary_profile {
@@ -558,46 +561,71 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
     }
 }
 
-fn host_service_authority(instance: &str) -> AuthorityDecisionDocument {
+fn host_service_authority(contract_id: &str, instance: &str) -> Option<AuthorityDecisionDocument> {
     let host = "conduit/conduct-host";
-    let (resource_lease, commit_profile) = effect_contracts(
-        "http-loopback-listen",
-        instance,
-        "conduit.action/listen",
-        "conduit.resource/ephemeral-loopback-port",
-    );
-    AuthorityDecisionDocument {
-        requirement: "sha256:4848484848484848484848484848484848484848484848484848484848484848"
-            .to_owned(),
+    let (name, requirement, action, resource_kind, resource_id) = match contract_id {
+        "fs/read" => (
+            "filesystem-read",
+            "sha256:3131313131313131313131313131313131313131313131313131313131313131",
+            "conduit.action/read",
+            "conduit.resource/filesystem-file",
+            "conduit.resource/filesystem-example-read",
+        ),
+        "fs/write" => (
+            "filesystem-write",
+            "sha256:3232323232323232323232323232323232323232323232323232323232323232",
+            "conduit.action/write",
+            "conduit.resource/filesystem-file",
+            "conduit.resource/filesystem-example-write",
+        ),
+        "fs/watch" => (
+            "filesystem-watch",
+            "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "conduit.action/watch",
+            "conduit.resource/filesystem-file",
+            "conduit.resource/filesystem-example-watch",
+        ),
+        "net/http/serve-once" => (
+            "http-loopback-listen",
+            "sha256:4848484848484848484848484848484848484848484848484848484848484848",
+            "conduit.action/listen",
+            "conduit.resource/tcp-loopback",
+            "conduit.resource/ephemeral-loopback-port",
+        ),
+        _ => return None,
+    };
+    let (resource_lease, commit_profile) = effect_contracts(name, instance, action, resource_id);
+    Some(AuthorityDecisionDocument {
+        requirement: requirement.to_owned(),
         effect_hash: String::new(),
         grant_hash: String::new(),
         effect: EffectRequirementDocument {
-            id: "conduit.effect/http-loopback-listen".to_owned(),
+            id: format!("conduit.effect/{name}"),
             administrative_class: None,
             policy_budget_class: None,
-            action: "conduit.action/listen".to_owned(),
-            resource_kind: "conduit.resource/tcp-loopback".to_owned(),
-            resource_id: Some("conduit.resource/ephemeral-loopback-port".to_owned()),
+            action: action.to_owned(),
+            resource_kind: resource_kind.to_owned(),
+            resource_id: Some(resource_id.to_owned()),
             requester: instance.to_owned(),
             audience: "conduit/conduct-run".to_owned(),
             constraints: Vec::new(),
             check_at_use: true,
         },
         capability: HostCapabilityDocument {
-            id: "conduit.capability/http-loopback-listen".to_owned(),
-            action: "conduit.action/listen".to_owned(),
-            resource_kind: "conduit.resource/tcp-loopback".to_owned(),
-            resource_id: "conduit.resource/ephemeral-loopback-port".to_owned(),
+            id: format!("conduit.capability/{name}"),
+            action: action.to_owned(),
+            resource_kind: resource_kind.to_owned(),
+            resource_id: resource_id.to_owned(),
             host: host.to_owned(),
             time_basis: "clock/conduct-host".to_owned(),
             observed_at_tick: 10,
             valid_until_tick: 20,
         },
         grant: AuthorityGrantDocument {
-            id: "conduit.grant/http-loopback-listen".to_owned(),
-            action: "conduit.action/listen".to_owned(),
-            resource_kind: "conduit.resource/tcp-loopback".to_owned(),
-            resource_id: "conduit.resource/ephemeral-loopback-port".to_owned(),
+            id: format!("conduit.grant/{name}"),
+            action: action.to_owned(),
+            resource_kind: resource_kind.to_owned(),
+            resource_id: resource_id.to_owned(),
             scope_root: instance.to_owned(),
             scope_descendants: false,
             audience: "conduit/conduct-run".to_owned(),
@@ -607,7 +635,7 @@ fn host_service_authority(instance: &str) -> AuthorityDecisionDocument {
             expires_at_tick: 20,
             issued_for_host: host.to_owned(),
             delegation: "none".to_owned(),
-            audit_id: "conduit.audit/http-loopback-listen".to_owned(),
+            audit_id: format!("conduit.audit/{name}"),
             terminal_policy: "abort".to_owned(),
         },
         status: "active".to_owned(),
@@ -616,7 +644,7 @@ fn host_service_authority(instance: &str) -> AuthorityDecisionDocument {
         policy_budgets: Vec::new(),
         resource_lease,
         commit_profile,
-    }
+    })
 }
 
 fn effect_contracts(
@@ -1087,10 +1115,14 @@ fn host_service_execution_profile() -> ExecutionProfileDocument {
         limits: ExecutionLimitsDocument {
             max_step_work: 30_000,
             max_transactions: 1,
+            max_input_leases: 8,
+            max_input_bytes: 64 * 1024,
+            max_output_reservations: 8,
+            max_output_bytes: 64 * 1024,
             max_pending_operations: 1,
             max_timers: 1,
             max_host_buffer_bytes: 32 * 1024,
-            implementation_memory_bytes: 64 * 1024,
+            implementation_memory_bytes: 192 * 1024,
             cancellation_ticks: 30_000,
             ..ExecutionLimitsDocument::default()
         },
@@ -1099,12 +1131,17 @@ fn host_service_execution_profile() -> ExecutionProfileDocument {
             MemoryClaimDocument {
                 category: "host-services".to_owned(),
                 accounting: "backend-bounded".to_owned(),
-                bytes: 60 * 1024,
+                bytes: 124 * 1024,
             },
             MemoryClaimDocument {
                 category: "pending-operations".to_owned(),
                 accounting: "executor-allocated".to_owned(),
                 bytes: 4 * 1024,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 64 * 1024,
             },
         ],
         checkpoint: None,

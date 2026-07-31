@@ -210,6 +210,14 @@ pub struct Arguments {
     #[arg(long, conflicts_with = "compile_input")]
     pub compatibility_demo: bool,
 
+    /// Explicitly install the bounded example file-write provider.
+    #[arg(long)]
+    pub enable_file_write: bool,
+
+    /// Explicitly install the bounded example file-watch provider.
+    #[arg(long)]
+    pub enable_file_watch: bool,
+
     /// Additive read-only operations.
     #[command(subcommand)]
     pub secondary: Option<SecondaryCommand>,

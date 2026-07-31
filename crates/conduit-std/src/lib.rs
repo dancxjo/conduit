@@ -1044,6 +1044,9 @@ const FILE_READ: ConfigContract<'static> = ConfigContract {
         field("cancellation", TEXT),
     ],
 };
+const FILE_CHUNK_LITERAL: ConfigContract<'static> = ConfigContract {
+    fields: &[field("value", BYTES), field("maximum_bytes", U64)],
+};
 const FILE_WRITE: ConfigContract<'static> = ConfigContract {
     fields: &[
         protected_field("resource", FS_RESOURCE),
@@ -2160,13 +2163,27 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         TIMERS,
         PURE
     ),
+    entry!(
+        "fs/chunk/literal",
+        Source,
+        FILE_CHUNK_LITERAL,
+        &[],
+        &[FS_CHUNK_OUTPUT],
+        ProducesDeclaredType,
+        None,
+        FINITE,
+        PURE
+    ),
     {
         let mut value = entry!(
             "fs/read",
             Boundary,
             FILE_READ,
             &[],
-            &[FS_CHUNK_OUTPUT, FS_READ_RESULT_OUTPUT],
+            &[
+                optional_output(FS_CHUNK_OUTPUT),
+                optional_output(FS_READ_RESULT_OUTPUT),
+            ],
             ProducesDeclaredType,
             None,
             FILE_READ_LIMITS,
@@ -2181,7 +2198,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
             Boundary,
             FILE_WRITE,
             &[FS_CHUNK_INPUT],
-            &[FS_WRITE_RESULT_OUTPUT],
+            &[optional_output(FS_WRITE_RESULT_OUTPUT)],
             ProducesDeclaredType,
             None,
             FILE_WRITE_LIMITS,
@@ -2196,7 +2213,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
             Boundary,
             FILE_WATCH,
             &[],
-            &[FS_EVENT_OUTPUT],
+            &[optional_output(FS_EVENT_OUTPUT)],
             ProducesDeclaredType,
             Monotonic,
             FILE_WATCH_LIMITS,

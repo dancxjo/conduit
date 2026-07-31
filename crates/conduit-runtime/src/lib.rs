@@ -669,6 +669,13 @@ pub fn file_read_contract() -> &'static NodeContract<'static> {
         .expect("standard file-read contract is published")
 }
 
+/// Current published finite file-chunk fixture source.
+#[must_use]
+pub fn file_chunk_literal_contract() -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract("fs/chunk/literal")
+        .expect("standard file-chunk literal contract is published")
+}
+
 /// Current published bounded file-write contract.
 #[must_use]
 pub fn file_write_contract() -> &'static NodeContract<'static> {
@@ -984,6 +991,7 @@ pub enum HostedPrimitiveImplementation {
     DataEncodeUtf8,
     DataDecodeUtf8,
     RecordLiteral,
+    FileChunkLiteral,
     ValidateClosedRecord,
     ValidationDecisionAssert,
     FrameLengthU32Be,
@@ -2206,6 +2214,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 validate_record_literal,
             ),
             (
+                file_chunk_literal_contract(),
+                "file-chunk-literal",
+                HostedPrimitiveImplementation::FileChunkLiteral,
+                || Box::new(FileChunkLiteral),
+                validate_file_chunk_literal,
+            ),
+            (
                 standard_data_contract("std/data/validate-closed-record"),
                 "data-validate-closed-record",
                 HostedPrimitiveImplementation::ValidateClosedRecord,
@@ -2502,6 +2517,11 @@ impl Default for Registry {
                 standard_data_contract("std/record/literal"),
                 (|| Box::new(RecordLiteral) as Box<dyn Handler>) as HandlerFactory,
                 validate_record_literal as ConfigValidator,
+            ),
+            (
+                file_chunk_literal_contract(),
+                (|| Box::new(FileChunkLiteral) as Box<dyn Handler>) as HandlerFactory,
+                validate_file_chunk_literal as ConfigValidator,
             ),
             (
                 standard_data_contract("std/data/validate-closed-record"),
@@ -4576,6 +4596,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::DataEncodeUtf8 => "std/data/encode-utf8",
                 HostedPrimitiveImplementation::DataDecodeUtf8 => "std/data/decode-utf8",
                 HostedPrimitiveImplementation::RecordLiteral => "std/record/literal",
+                HostedPrimitiveImplementation::FileChunkLiteral => "fs/chunk/literal",
                 HostedPrimitiveImplementation::ValidateClosedRecord => {
                     "std/data/validate-closed-record"
                 }
@@ -4744,6 +4765,19 @@ impl ResolvedPanel<'_> {
                     value: encode_record_literal(&resolved.source)?,
                     emitted: false,
                 },
+                HostedPrimitiveImplementation::FileChunkLiteral => {
+                    let Some(SourceValue::Bytes(value)) = resolved.source.config_value("value")
+                    else {
+                        return Err(RuntimeError::new(
+                            "CND-FS-001",
+                            "file chunk literal value disappeared",
+                        ));
+                    };
+                    HostedNodeKind::Literal {
+                        value: value.clone(),
+                        emitted: false,
+                    }
+                }
                 HostedPrimitiveImplementation::ValidateClosedRecord => {
                     let output_cord = |port: &str| {
                         plan.cords.iter().position(|cord| {
@@ -5022,15 +5056,49 @@ impl ResolvedPanel<'_> {
                     HostedNodeKind::Fallback { emitted: false }
                 }
                 HostedPrimitiveImplementation::HostedService => {
-                    if !in_cords.is_empty() || !out_cords.is_empty() {
-                        return Err(RuntimeError::new(
-                            "CND-RUN-007",
-                            "host-service bindings cannot hide value cords",
-                        ));
-                    }
+                    let input_cords = resolved
+                        .definition
+                        .contract
+                        .inputs
+                        .iter()
+                        .flat_map(|port| {
+                            plan.cords
+                                .iter()
+                                .enumerate()
+                                .filter(move |(_, cord)| {
+                                    cord.to.node == planned.instance && cord.to.port == port.id
+                                })
+                                .map(move |(cord, _)| (cord, port.value_type))
+                        })
+                        .collect();
+                    let output_routes = resolved
+                        .definition
+                        .contract
+                        .outputs
+                        .iter()
+                        .map(|port| {
+                            (
+                                port.value_type,
+                                plan.cords
+                                    .iter()
+                                    .enumerate()
+                                    .filter(|(_, cord)| {
+                                        cord.from.node == planned.instance
+                                            && cord.from.port == port.id
+                                    })
+                                    .map(|(cord, _)| cord)
+                                    .collect(),
+                            )
+                        })
+                        .collect();
                     HostedNodeKind::HostedService {
                         handler: (resolved.definition.factory())(),
                         node: resolved.source.clone(),
+                        input_cords,
+                        inputs: Vec::new(),
+                        output_routes,
+                        pending_outputs: Vec::new(),
+                        invoked: false,
                         completed: false,
                     }
                 }
@@ -5568,8 +5636,19 @@ enum HostedNodeKind {
     HostedService {
         handler: Box<dyn Handler>,
         node: Node,
+        input_cords: Vec<(usize, TypeContractRef<'static>)>,
+        inputs: Vec<Option<Value>>,
+        output_routes: Vec<(TypeContractRef<'static>, Vec<usize>)>,
+        pending_outputs: Vec<HostedServiceOutput>,
+        invoked: bool,
         completed: bool,
     },
+}
+
+struct HostedServiceOutput {
+    value: RuntimeValue,
+    cords: Vec<usize>,
+    next_cord: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -6221,25 +6300,164 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
             HostedNodeKind::HostedService {
                 handler,
                 node,
+                input_cords,
+                inputs,
+                output_routes,
+                pending_outputs,
+                invoked,
                 completed,
             } => {
                 if *completed {
                     return SchedulerStep::Completed;
                 }
-                match handler.run(node, &[], &mut self.io.borrow_mut()) {
-                    Ok(outputs) if outputs.is_empty() => {
-                        *completed = true;
-                        SchedulerStep::Completed
+                if inputs.is_empty() && !input_cords.is_empty() {
+                    inputs.resize_with(input_cords.len(), || None);
+                }
+                for (position, (cord, value_type)) in input_cords.iter().enumerate() {
+                    if inputs[position].is_some() {
+                        continue;
                     }
-                    Ok(_) => SchedulerStep::Failed {
-                        code: Id("conduit/host-service-hidden-output"),
-                    },
-                    Err(error) => {
-                        *self.host_failure.borrow_mut() = Some(error);
-                        SchedulerStep::Failed {
-                            code: Id("conduit/host-service-failed"),
+                    match io.receive(*cord) {
+                        Ok(Some(value)) => {
+                            let bytes = self
+                                .store
+                                .borrow()
+                                .get(value.handle)
+                                .unwrap_or_default()
+                                .to_vec();
+                            inputs[position] = Some(Value {
+                                value_type: *value_type,
+                                bytes,
+                            });
+                        }
+                        Ok(None) => {
+                            if matches!(io.input_state(*cord), Ok(FlowQueueState::Completed)) {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-RUN-004",
+                                    format!(
+                                        "host service `{}` completed without required input",
+                                        node.id
+                                    ),
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/host-service-missing-input"),
+                                };
+                            }
+                            let _ = io.wait_for_input(*cord);
+                        }
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-RUN-004",
+                                format!(
+                                    "host service `{}` could not receive exact input: {error}",
+                                    node.id
+                                ),
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/host-service-input-failed"),
+                            };
                         }
                     }
+                }
+                if inputs.iter().any(Option::is_none) {
+                    return SchedulerStep::Pending;
+                }
+                if !*invoked {
+                    let values = inputs.iter().flatten().cloned().collect::<Vec<_>>();
+                    let outputs = match handler.run(node, &values, &mut self.io.borrow_mut()) {
+                        Ok(outputs) => outputs,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/host-service-failed"),
+                            };
+                        }
+                    };
+                    if outputs.len() != output_routes.len()
+                        || outputs
+                            .iter()
+                            .zip(output_routes.iter())
+                            .any(|(output, (expected, _))| output.value_type != *expected)
+                    {
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "CND-RUN-004",
+                            format!(
+                                "host service `{}` emitted outputs outside its exact contract",
+                                node.id
+                            ),
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/host-service-output-mismatch"),
+                        };
+                    }
+                    for (output, (_, cords)) in outputs.into_iter().zip(output_routes.iter()) {
+                        if cords.is_empty() {
+                            continue;
+                        }
+                        let accounted_bytes = match u32::try_from(output.bytes.len()) {
+                            Ok(bytes) => bytes,
+                            Err(_) => {
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/value-store-bound-exceeded"),
+                                };
+                            }
+                        };
+                        let Some(handle) = self.store.borrow_mut().store(output.bytes) else {
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/value-store-bound-exceeded"),
+                            };
+                        };
+                        pending_outputs.push(HostedServiceOutput {
+                            value: RuntimeValue {
+                                handle,
+                                accounted_bytes,
+                                envelope: RuntimeValueEnvelope::EMPTY,
+                            },
+                            cords: cords.clone(),
+                            next_cord: 0,
+                        });
+                    }
+                    *invoked = true;
+                }
+                let mut progressed = false;
+                for output in pending_outputs.iter_mut() {
+                    while output.next_cord < output.cords.len() {
+                        match io.send(output.cords[output.next_cord], output.value, None) {
+                            Ok(SendStatus::Reserved) => {
+                                output.next_cord += 1;
+                                progressed = true;
+                            }
+                            Ok(SendStatus::WouldBlock) => break,
+                            status => {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-RUN-004",
+                                    format!(
+                                        "host service `{}` output was rejected by its exact cord: {status:?}",
+                                        node.id,
+                                    ),
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/host-service-output-failed"),
+                                };
+                            }
+                        }
+                    }
+                }
+                if pending_outputs
+                    .iter()
+                    .all(|output| output.next_cord == output.cords.len())
+                {
+                    *completed = true;
+                    SchedulerStep::Completed
+                } else if progressed {
+                    SchedulerStep::Progress
+                } else {
+                    for output in pending_outputs.iter() {
+                        if output.next_cord < output.cords.len() {
+                            let _ = io.wait_for_output(output.cords[output.next_cord]);
+                        }
+                    }
+                    SchedulerStep::Pending
                 }
             }
             HostedNodeKind::Uppercase => {
@@ -8320,7 +8538,9 @@ pub struct ResolutionError {
 }
 
 impl ResolutionError {
-    fn new(code: &'static str, message: impl Into<String>) -> Self {
+    /// Construct one stable provider/configuration resolution failure.
+    #[must_use]
+    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
@@ -9489,6 +9709,36 @@ fn validate_literal(node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
 
+fn validate_file_chunk_literal(node: &Node) -> Result<(), ResolutionError> {
+    if node.config.len() != 2 || !matches!(node.config_value("value"), Some(SourceValue::Bytes(_)))
+    {
+        return Err(ResolutionError::new(
+            "CND-FS-001",
+            format!(
+                "file chunk literal `{}` requires exact `value` and `maximum_bytes` fields",
+                node.id
+            ),
+        ));
+    }
+    let maximum = match node.config_value("maximum_bytes") {
+        Some(SourceValue::Integer(value)) => usize::try_from(*value).ok(),
+        _ => None,
+    };
+    let value_length = match node.config_value("value") {
+        Some(SourceValue::Bytes(value)) => value.len(),
+        _ => 0,
+    };
+    if maximum.is_none_or(|maximum| {
+        maximum == 0 || maximum > conduit_std::FILESYSTEM_MAX_FILE_BYTES || value_length > maximum
+    }) {
+        return Err(ResolutionError::new(
+            "CND-FS-006",
+            format!("file chunk literal `{}` exceeds its exact bound", node.id),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_format(node: &Node) -> Result<(), ResolutionError> {
     validate_empty_config(node)
 }
@@ -9885,6 +10135,28 @@ impl Handler for Literal {
             .config("value")
             .ok_or_else(|| RuntimeError::new("CND-RUN-004", "literal value disappeared"))?;
         Ok(vec![Value::text(value.as_bytes())])
+    }
+}
+
+struct FileChunkLiteral;
+
+impl Handler for FileChunkLiteral {
+    fn run(
+        &mut self,
+        node: &Node,
+        _inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let Some(SourceValue::Bytes(bytes)) = node.config_value("value") else {
+            return Err(RuntimeError::new(
+                "CND-FS-001",
+                "file chunk literal value disappeared",
+            ));
+        };
+        Ok(vec![Value {
+            value_type: file_chunk_literal_contract().outputs[0].value_type,
+            bytes: bytes.clone(),
+        }])
     }
 }
 

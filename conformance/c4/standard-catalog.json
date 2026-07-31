@@ -71,6 +71,7 @@
     "test/fault-source": ["STD-002", "STD-003"],
     "test/record": ["STD-002", "STD-006"],
     "test/replay": ["STD-002", "STD-006"],
+    "fs/chunk/literal": ["STD-001", "STD-003"],
     "fs/read": ["STD-007", "STD-011"],
     "fs/write": ["STD-007", "STD-012"],
     "fs/watch": ["STD-007", "STD-011"],

@@ -62,6 +62,17 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
     if entry.proof == "canonical-check-rejection" {
         command.arg("--check");
     }
+    if entry.proof == "canonical-file-write" {
+        fs::write(
+            root.join("target/conduit-filesystem-example.bin"),
+            b"replaceable fixture\n",
+        )
+        .expect("file-write target is prepared");
+        command.arg("--enable-file-write");
+    }
+    if entry.proof == "canonical-file-watch" {
+        command.arg("--enable-file-watch");
+    }
     command.arg(&entry.path).output().expect("conduct executes")
 }
 
@@ -322,4 +333,71 @@ fn canonical_http_timeout_is_a_structured_terminal_failure() {
         diagnostics.contains("CND-HTTP-017"),
         "provider timeout remains a structured terminal reason: {diagnostics}"
     );
+}
+
+#[test]
+fn filesystem_exact_plan_pins_provider_authority_resource_and_bounds() {
+    let root = root();
+    let source =
+        fs::read_to_string(root.join("examples/filesystem-read.panel")).expect("read example");
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_filesystem::register_hosted_file_read_provider(&mut registry)
+        .expect("read provider links");
+    let installed = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .expect("filesystem installed profile resolves");
+    let candidate = installed
+        .input
+        .candidates
+        .iter()
+        .find(|candidate| candidate.implementation.semantic_contract.id == "fs/read")
+        .expect("filesystem read candidate");
+    assert_eq!(candidate.implementation.id, "conduit/filesystem-linux-read");
+    assert_eq!(candidate.authorities.len(), 1);
+    assert_eq!(candidate.authorities[0].status, "active");
+    assert_eq!(
+        candidate.authorities[0].grant.id,
+        "conduit.grant/filesystem-read"
+    );
+    assert_eq!(
+        candidate.authorities[0].grant.resource_id,
+        "conduit.resource/filesystem-example-read"
+    );
+
+    let document =
+        conduit_compile::compile_source(&source, &installed.input).expect("exact plan compiles");
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).expect("exact plan loads");
+    let node = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "fs/read")
+        .expect("read node is planned");
+    assert_eq!(
+        node.implementation.id.as_str(),
+        "conduit/filesystem-linux-read"
+    );
+    assert_eq!(
+        node.artifact.as_str(),
+        "conduit/filesystem-linux-read-artifact"
+    );
+    assert_eq!(node.host.as_str(), "conduit/conduct-host");
+    let profile = node.execution_profile.expect("execution profile is pinned");
+    assert_eq!(profile.limits.max_input_bytes, 64 * 1024);
+    assert_eq!(profile.limits.max_output_bytes, 64 * 1024);
+    assert_eq!(profile.limits.max_pending_operations, 1);
+    let authority = plan
+        .authorities
+        .iter()
+        .find(|authority| authority.node == node.instance)
+        .expect("read authority is planned");
+    assert_eq!(authority.grant.id.as_str(), "conduit.grant/filesystem-read");
+    assert_eq!(
+        authority.binding.resource.id.as_str(),
+        "conduit.resource/filesystem-example-read"
+    );
+    assert_eq!(
+        authority.binding.resource.kind.as_str(),
+        "conduit.resource/filesystem-file"
+    );
+    assert!(authority.commit_profile.is_some());
 }

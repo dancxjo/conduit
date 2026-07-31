@@ -315,6 +315,7 @@ dependencies = [
  "conduit-compile",
  "conduit-core",
  "conduit-diagnostics",
+ "conduit-filesystem",
  "conduit-http",
  "conduit-inspect",
  "conduit-package",
@@ -374,6 +375,18 @@ version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-filesystem"
+version = "0.0.0-dev"
+dependencies = [
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "conduit-std",
+ "libc",
+ "tempfile",
 ]
 
 [[package]]

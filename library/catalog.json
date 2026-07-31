@@ -163,7 +163,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -333,7 +333,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -551,7 +551,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -721,7 +721,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -879,7 +879,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -1445,7 +1445,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -2506,7 +2506,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3376,7 +3376,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4416,14 +4416,14 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "fs/read",
-      "public_source_spelling": "fs/read",
+      "semantic_identity": "fs/chunk/literal",
+      "public_source_spelling": "fs/chunk/literal",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.fs",
       "contract_package_artifact": "conduit.contract-package/conduit.host.fs",
-      "export_path": "conduit.host.fs/fs/read",
+      "export_path": "conduit.host.fs/fs/chunk/literal",
       "schema_version": 0,
-      "semantic_hash": "sha256:86eda0f147f89a1f9b9219a7906abd24c377635124acb78b3474f3fc2f8e2a91",
+      "semantic_hash": "sha256:564bcf5062351a573fa63798766a456deb0e64e2b4f4c647e5969f25d79476df",
       "ports": [
         {
           "id": "chunk",
@@ -4441,7 +4441,7 @@
           "loss": "lossless-only",
           "migration": {
             "former": {
-              "contract": "fs/read",
+              "contract": "fs/chunk/literal",
               "id": "out",
               "direction": "output",
               "value_type": "fs/chunk",
@@ -4449,6 +4449,98 @@
               "type_hash": "sha256:32a702bb487bc1205da6914d5bb79a1765e389d8a7af194b7dbc674cf64f5f21",
               "presence": "required",
               "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`fs/chunk/literal` names this output port for its contract-specific `chunk` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:fs/chunk/literal",
+              "exact-plan-cord:fs/chunk/literal.out->fs/chunk/literal.chunk",
+              "conformance-fixture:conformance/c5/registry-availability.json",
+              "provider:conduit/hosted-file-chunk-literal"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "value",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "maximum_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": true,
+      "known_provider_bundles": [
+        {
+          "implementation": "conduit/hosted-file-chunk-literal",
+          "artifact": "conduit/hosted-primitives-artifact",
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
+        }
+      ],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.fs/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.fs.chunk.literal.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.fs.chunk.literal.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "fs/read",
+      "public_source_spelling": "fs/read",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.fs",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.fs",
+      "export_path": "conduit.host.fs/fs/read",
+      "schema_version": 0,
+      "semantic_hash": "sha256:86eda0f147f89a1f9b9219a7906abd24c377635124acb78b3474f3fc2f8e2a91",
+      "ports": [
+        {
+          "id": "chunk",
+          "direction": "output",
+          "value_type": "fs/chunk",
+          "type_schema_version": 0,
+          "type_hash": "sha256:32a702bb487bc1205da6914d5bb79a1765e389d8a7af194b7dbc674cf64f5f21",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "fs/read",
+              "id": "out",
+              "direction": "output",
+              "value_type": "fs/chunk",
+              "type_schema_version": 0,
+              "type_hash": "sha256:32a702bb487bc1205da6914d5bb79a1765e389d8a7af194b7dbc674cf64f5f21",
+              "presence": "optional",
+              "connections": "zero-or-more",
               "values": "zero-or-more",
               "delivery": "stream",
               "temporal": "committed",
@@ -4472,8 +4564,8 @@
           "value_type": "fs/read-result",
           "type_schema_version": 0,
           "type_hash": "sha256:202967ff2f9138b7def7b1f1855c39d7de49fa10aea00845c88a8552e7d876b9",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "exactly-one",
           "delivery": "stream",
           "temporal": "committed",
@@ -4488,8 +4580,8 @@
               "value_type": "fs/read-result",
               "type_schema_version": 0,
               "type_hash": "sha256:202967ff2f9138b7def7b1f1855c39d7de49fa10aea00845c88a8552e7d876b9",
-              "presence": "required",
-              "connections": "exactly-one",
+              "presence": "optional",
+              "connections": "zero-or-more",
               "values": "exactly-one",
               "delivery": "stream",
               "temporal": "committed",
@@ -4559,7 +4651,7 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
+      "compiler_exported": true,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c5/registry-availability.json",
@@ -4593,8 +4685,8 @@
           "value_type": "fs/event",
           "type_schema_version": 0,
           "type_hash": "sha256:289914957429649c34eccc427372b6c49d8799c698e68dc938f32a92f68719a6",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -4609,8 +4701,8 @@
               "value_type": "fs/event",
               "type_schema_version": 0,
               "type_hash": "sha256:289914957429649c34eccc427372b6c49d8799c698e68dc938f32a92f68719a6",
-              "presence": "required",
-              "connections": "exactly-one",
+              "presence": "optional",
+              "connections": "zero-or-more",
               "values": "zero-or-more",
               "delivery": "stream",
               "temporal": "committed",
@@ -4716,7 +4808,7 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
+      "compiler_exported": true,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c5/registry-availability.json",
@@ -4791,8 +4883,8 @@
           "value_type": "fs/write-result",
           "type_schema_version": 0,
           "type_hash": "sha256:7c68df17525284faf752d4da145694e11c5e3bc8f983c2a96d7f3b652c09049c",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "exactly-one",
           "delivery": "stream",
           "temporal": "committed",
@@ -4807,8 +4899,8 @@
               "value_type": "fs/write-result",
               "type_schema_version": 0,
               "type_hash": "sha256:7c68df17525284faf752d4da145694e11c5e3bc8f983c2a96d7f3b652c09049c",
-              "presence": "required",
-              "connections": "exactly-one",
+              "presence": "optional",
+              "connections": "zero-or-more",
               "values": "exactly-one",
               "delivery": "stream",
               "temporal": "committed",
@@ -4878,7 +4970,7 @@
         }
       ],
       "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
+      "compiler_exported": true,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
       "conformance_fixture_owner": "conformance/c5/registry-availability.json",
@@ -4956,7 +5048,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5035,7 +5127,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5114,7 +5206,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8341,7 +8433,7 @@
         {
           "implementation": "conduit/hosted-state-cache",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8571,7 +8663,7 @@
         {
           "implementation": "conduit/hosted-state-cell",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9045,7 +9137,7 @@
         {
           "implementation": "conduit/hosted-state-deduplicate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9489,7 +9581,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9657,7 +9749,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9755,7 +9847,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -9923,7 +10015,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10129,7 +10221,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10372,7 +10464,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10458,7 +10550,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10640,7 +10732,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10726,7 +10818,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10835,7 +10927,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10960,7 +11052,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11067,7 +11159,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11841,7 +11933,7 @@
         {
           "implementation": "conduit/hosted-supervision-circuit-breaker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12424,7 +12516,7 @@
         {
           "implementation": "conduit/hosted-supervision-retry",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13388,7 +13480,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13834,7 +13926,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14004,7 +14096,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14450,7 +14542,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14717,7 +14809,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:65d06825c09e6e91e68f17c6f61fd68a94ab80296d974a81cec860d2898b7d2c"
+          "artifact_digest": "sha256:2a608a16bc79a6c5be726bfac6b46bef374ac350ed2b9761346c4626bfdce2a8"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

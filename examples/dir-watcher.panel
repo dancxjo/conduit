@@ -1,37 +1,19 @@
-# Directory watcher and file processing pipeline.
+# Observe one bounded initial event for an opaque provider-owned file resource.
 panel 0
 
-node watcher : std/file-read {
-    path = "watch_directory"
-}
-
-node filter : conduit/passthrough
-node processor : text/uppercase
-node logger : observe/log
-
-cord watcher.contents -> filter.value {
-    capacity = 16
-    max_value_bytes = 4096
-    max_queued_bytes = 65536
-    low_watermark = 2
-    high_watermark = 16
-    pressure = block
-}
-
-cord filter.value -> processor.text {
-    capacity = 16
-    max_value_bytes = 4096
-    max_queued_bytes = 65536
-    low_watermark = 2
-    high_watermark = 16
-    pressure = block
-}
-
-cord processor.text -> logger.message {
-    capacity = 16
-    max_value_bytes = 4096
-    max_queued_bytes = 65536
-    low_watermark = 2
-    high_watermark = 16
-    pressure = block
+node watcher : fs/watch {
+    resource = secret("conduit.resource/filesystem-example-watch")
+    grant = secret("conduit.grant/filesystem-watch")
+    clock = ref("conduit.clock/monotonic-ticks")
+    clock_schema_version = 0
+    clock_hash = bytes("6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48")
+    event_kinds = "create-change-remove-rename"
+    emit_initial = true
+    coalescing = "none"
+    loss = "explicit-gap"
+    queue_capacity = 4
+    maximum_events = 4
+    overflow = "gap-resync"
+    rename_identity = "preserve-handle"
+    cancellation = "close"
 }
