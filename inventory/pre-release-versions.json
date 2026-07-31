@@ -180,6 +180,7 @@
         "conduit.hazard-closure-fixtures",
         "conduit.http-client-conformance",
         "conduit.http-serving-fixtures",
+        "conduit.media-value-conformance",
         "conduit.performance-baseline",
         "conduit.persistent-budget-fixtures",
         "conduit.reference-distribution",

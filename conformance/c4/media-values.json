@@ -1,0 +1,36 @@
+{
+  "schema": "conduit.media-value-conformance",
+  "schema_version": 0,
+  "numeric_profile": "checked-integer-rational",
+  "types": [
+    "conduit.media/time",
+    "conduit.media/stream",
+    "conduit.media/audio-frame",
+    "conduit.media/video-frame",
+    "conduit.media/packet",
+    "conduit.media/metadata"
+  ],
+  "positive": [
+    "synthetic-s16le-stereo",
+    "synthetic-rgb24-image",
+    "maximum-checked-dimensions",
+    "explicit-discontinuity",
+    "exact-descriptor-compatibility"
+  ],
+  "negative": [
+    "zero-dimension",
+    "plane-stride-mismatch",
+    "unsupported-pixel-format",
+    "unsupported-sample-format",
+    "channel-layout-mismatch",
+    "missing-timestamp",
+    "duplicate-timestamp",
+    "incompatible-time-base",
+    "packet-extradata-mismatch",
+    "metadata-overflow",
+    "byte-overflow",
+    "pressure",
+    "cancellation",
+    "unsupported-host"
+  ]
+}

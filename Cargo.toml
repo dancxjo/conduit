@@ -9,6 +9,7 @@ members = [
     "crates/conduit-filesystem",
     "crates/conduit-http",
     "crates/conduit-inspect",
+    "crates/conduit-media",
     "crates/conduit-package",
     "crates/conduit-panel",
     "crates/conduit-patchbay",

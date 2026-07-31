@@ -256,6 +256,9 @@ containment program is tracked by
 - [`065-bounded-http-client.md`](065-bounded-http-client.md) defines one
   bounded outbound HTTP/HTTPS request operation with exact network, authority,
   TLS, redirect, proxy, cancellation, and terminal boundaries.
+- [`066-bounded-media-values.md`](066-bounded-media-values.md) defines finite
+  host-neutral media time, stream, audio/image frame, packet, metadata, and
+  exact compatibility boundaries without codecs or devices.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)
