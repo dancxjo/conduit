@@ -182,6 +182,7 @@ fn validate(
                 "canonical-file-read",
                 "canonical-file-write",
                 "canonical-file-watch",
+                "canonical-storage-cache",
             ]
             .contains(&entry.proof.as_str())
         {
@@ -356,7 +357,12 @@ mod tests {
         };
         assert!(
             entry.state == "runnable"
-                && !["canonical-run", "canonical-http-loopback"].contains(&entry.proof.as_str())
+                && ![
+                    "canonical-run",
+                    "canonical-http-loopback",
+                    "canonical-storage-cache",
+                ]
+                .contains(&entry.proof.as_str())
         );
     }
 
