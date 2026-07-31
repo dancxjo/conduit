@@ -12079,6 +12079,38 @@ mod tests {
     }
 
     #[test]
+    fn host_value_store_reuses_one_fixed_slot_for_a_million_released_values() {
+        let mut store = HostValueStore::with_limits(1, 1).unwrap();
+        let mut last = 0;
+        for _ in 0..1_000_000 {
+            last = store.store(b"x").expect("released slot is reusable");
+            store.begin_reconciliation();
+            store.finish_reconciliation();
+            assert_eq!(store.usage().resident_slots, 0);
+            assert_eq!(store.usage().resident_bytes, 0);
+        }
+        assert_eq!(store.get(last), None, "released generation stays stale");
+        assert_eq!(store.usage().high_water_slots, 1);
+        assert_eq!(store.usage().high_water_bytes, 1);
+        assert_eq!(store.usage().maximum_slots, 1);
+        assert_eq!(store.usage().maximum_bytes, 1);
+    }
+
+    #[test]
+    fn host_value_store_retires_a_slot_before_generation_wraparound() {
+        let mut store = HostValueStore::with_limits(1, 1).unwrap();
+        store.slots[0].generation = u32::MAX;
+        let last_generation = store.store(b"x").unwrap();
+
+        store.begin_reconciliation();
+        store.finish_reconciliation();
+
+        assert_eq!(store.get(last_generation), None);
+        assert!(store.slots[0].retired);
+        assert!(store.store(b"x").is_none());
+    }
+
+    #[test]
     fn validation_outputs_remain_exact_under_asymmetric_pressure() {
         let value = RuntimeValue {
             handle: 7,
