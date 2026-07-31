@@ -1607,24 +1607,18 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
 
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
-  await expect(page.locator("#scenario option")).toHaveCount(6);
+  await expect(page.locator("#scenario option")).toHaveCount(7);
   await expect(story).toContainText("browser-wasm");
   await expect(story.locator("#library-docs a")).toHaveCount(3);
 
   await story.getByRole("button", { name: "firmware-unsupported" }).click();
   await expect(result).toContainText("rejected before execution with CND-HCF-005");
-  await expect(source).toHaveValue(/node emphasize : text\/uppercase/);
+  await expect(source).toHaveValue(/node wave : conduit\.media\/wave\/literal/);
 
   await page.locator("#scenario").selectOption("explicit-adapter");
   await expect(result).toContainText("admitted by the checked contract");
-  await source.fill(
-    (await source.inputValue()).replace(
-      "Custom contracts need exact conformance and explicit adapters.",
-      "Edited provider lesson.",
-    ),
-  );
   await page.locator("#run").click();
-  await expect(result).toContainText("EDITED PROVIDER LESSON.", {
+  await expect(result).toContainText("wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes", {
     timeout: 20_000,
   });
   await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
