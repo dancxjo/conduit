@@ -105,9 +105,9 @@ pub use runtime_evidence::{
 };
 pub use scheduler::{
     DeterministicExecutor, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
-    SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventKind, SchedulerHighWater,
-    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SchedulerSubject,
-    SendStatus, StepIo, ValueStorageUsage, validate_runtime_value_for_cord,
+    SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventBatch, SchedulerEventKind,
+    SchedulerHighWater, SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep,
+    SchedulerSubject, SendStatus, StepIo, ValueStorageUsage, validate_runtime_value_for_cord,
 };
 pub use session::{
     ExactRunIdentity, ExactRunPump, ExactRunSession, ExactRunSessionRegistry, ExactRunState,
@@ -1886,6 +1886,30 @@ impl ExactHostedRunSession {
 
     pub fn scheduler_events(&self) -> impl Iterator<Item = &SchedulerEvent> {
         self.session.scheduler_events()
+    }
+
+    #[must_use]
+    pub fn retained_event_cursor(&self) -> u64 {
+        self.session.retained_event_cursor()
+    }
+
+    pub fn read_scheduler_events(
+        &self,
+        cursor: u64,
+        maximum_events: u32,
+    ) -> Result<SchedulerEventBatch, RuntimeError> {
+        self.session
+            .read_scheduler_events(cursor, maximum_events)
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
+    }
+
+    pub fn acknowledge_scheduler_events_through(
+        &mut self,
+        cursor: u64,
+    ) -> Result<(), RuntimeError> {
+        self.session
+            .acknowledge_scheduler_events_through(cursor)
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
     }
 
     #[must_use]

@@ -9,8 +9,8 @@ use std::rc::Rc;
 use conduit_core::{SemanticHash, StopPolicy, TerminalClass};
 
 use crate::{
-    DeterministicExecutor, SchedulerError, SchedulerHighWater, SchedulerNode, SchedulerStatus,
-    ValueStorageUsage,
+    DeterministicExecutor, SchedulerError, SchedulerEventBatch, SchedulerHighWater, SchedulerNode,
+    SchedulerStatus, ValueStorageUsage,
 };
 
 /// Immutable identities pinned when an authorized exact run starts.
@@ -42,8 +42,8 @@ pub struct ExactRunPump {
     pub state: ExactRunState,
     pub decisions: u64,
     pub tick: u64,
-    /// The next bounded scheduler-event cursor. Event draining and retention
-    /// policy are added by the dedicated evidence follow-up.
+    /// One-past-the-end monotonic scheduler-event cursor. This cursor never
+    /// rewinds when an external recorder acknowledges retained observations.
     pub event_cursor: u64,
     pub high_water: SchedulerHighWater,
     /// Fixed hosted-value arena residency after this pump. Portable runs have
@@ -304,6 +304,31 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         self.executor().events()
     }
 
+    /// First sequence still retained by this session's fixed event log.
+    #[must_use]
+    pub fn retained_event_cursor(&self) -> u64 {
+        self.executor().retained_event_cursor()
+    }
+
+    /// Reads one bounded caller-owned batch from the retained event window.
+    /// A caller must acknowledge only after its configured evidence provider
+    /// has committed the batch.
+    pub fn read_scheduler_events(
+        &self,
+        cursor: u64,
+        maximum_events: u32,
+    ) -> Result<SchedulerEventBatch, SchedulerError> {
+        self.executor().read_events(cursor, maximum_events)
+    }
+
+    /// Releases an externally committed prefix of the fixed event log.
+    pub fn acknowledge_scheduler_events_through(
+        &mut self,
+        cursor: u64,
+    ) -> Result<(), SchedulerError> {
+        self.executor_mut().acknowledge_events_through(cursor)
+    }
+
     #[must_use]
     pub fn exact_evidence(&self) -> Vec<crate::ExactEvidenceRecord> {
         self.executor().project_exact_evidence(
@@ -376,7 +401,7 @@ impl<N: SchedulerNode> ExactRunSession<N> {
             state: self.state(),
             decisions: self.executor().decisions(),
             tick: self.executor().tick(),
-            event_cursor: u64::try_from(self.executor().event_count()).unwrap_or(u64::MAX),
+            event_cursor: self.executor().next_event_cursor(),
             high_water: self.executor().high_water(),
             value_storage: self.executor().value_storage_usage(),
         }

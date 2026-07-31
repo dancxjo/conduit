@@ -112,6 +112,16 @@ The host admits a finite concurrent-session count and the plan's runtime
 memory before Start. The session retains only its fixed host-I/O capacity and
 the scheduler's plan-accounted queues, timers, operations, and evidence. A
 pump quantum bounds one host turn; it is not an implicit lifetime deadline.
-Long-lived value reclamation, incremental evidence retention, and Patchbay
-Watches build on this boundary and each have their own explicit bounds and
-lifecycle rules.
+
+Scheduler observations have a monotonic run-local cursor. A recorder reads a
+caller-owned bounded batch, commits it through its configured evidence
+provider, and then explicitly acknowledges the batch's exclusive end cursor.
+Only that acknowledged prefix is released from the fixed resident log. A
+stalled or failed recorder therefore consumes its declared event capacity and
+fails closed instead of silently discarding observations. A reader that asks
+for an already released cursor receives the first retained cursor as an
+explicit gap; a reader ahead of the run receives the current end cursor. The
+cursor never reuses sequence numbers when resident slots are reclaimed.
+
+Long-lived value reclamation and Patchbay Watches build on this boundary and
+each have their own explicit bounds and lifecycle rules.

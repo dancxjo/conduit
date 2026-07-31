@@ -7,19 +7,20 @@ use conduit_core::{
     BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction, DuplicationRule,
     EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, EffectCommitProfile,
     EffectDiscontinuity, EffectIdempotency, EffectRequirement, EventClass, EventCorrelation,
-    EventProviderCapabilities, EventStreamContract, EvidencePolicy, EvidenceStreamExtension,
-    ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode, FeedbackBoundaryKind,
-    FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy, FlowCapacity,
-    FlowPolicy, FlowQueueState, FlowWatermarks, ForeignRetention, GrantStatus, HostCapability, Id,
-    ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting,
-    MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor, PlanArtifact, PlanAuthority,
-    PlanCompositeMapping, PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary,
-    PlanHostObservation, PlanResourceBinding, PlanResourceBudget, PlanValidationContext, Pressure,
-    RESOURCE_LEASE_SCHEMA_VERSION, RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline,
-    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract,
-    ResourceRef, ResourceSelector, ResourceSharingMode, RetentionPolicy, RuntimeEvidenceMode,
-    RuntimeEvidencePolicy, SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerDecisionReason,
-    SchedulerPolicy, SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef,
+    EventProviderCapabilities, EventStreamContract, EvidenceCursorStatus, EvidencePolicy,
+    EvidenceStreamExtension, ExecutionLimits, ExecutionPlan, ExecutionProfile, FanOutMode,
+    FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy,
+    FlowCapacity, FlowPolicy, FlowQueueState, FlowWatermarks, ForeignRetention, GrantStatus,
+    HostCapability, Id, ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage,
+    MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, PinnedDescriptor, PlanArtifact,
+    PlanAuthority, PlanCompositeMapping, PlanEventStream, PlanExportBinding, PlanFanOut,
+    PlanFeedbackBoundary, PlanHostObservation, PlanResourceBinding, PlanResourceBudget,
+    PlanValidationContext, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
+    RUNTIME_EVIDENCE_POLICY_VERSION, ReadyQueueDiscipline, ReplayDelivery, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract, ResourceRef, ResourceSelector,
+    ResourceSharingMode, RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy,
+    SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerDecisionReason, SchedulerPolicy,
+    SemanticHash, Sensitivity, StopPolicy, SubscriberCoupling, TypeContractRef,
     UnknownCommitPolicy, ValueEnvelopePolicy, ValueEnvelopeReason, extend_execution_event,
     resolve_authority,
 };
@@ -847,6 +848,56 @@ fn exact_session_waits_across_repeated_pumps_and_wakes_the_same_run() {
             ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
         );
         assert_eq!(run.identity(), &identity);
+    });
+}
+
+#[test]
+fn exact_session_releases_only_acknowledged_event_prefixes_with_monotonic_cursors() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostProgress {
+            remaining: 48,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 48,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(512, 16)).unwrap());
+        let mut cursor = 0;
+        let mut observed = 0_u64;
+
+        while run.state() == ExactRunState::Active {
+            let pump = run.pump(1).unwrap();
+            assert!(pump.event_cursor >= cursor);
+            let batch = run.read_scheduler_events(cursor, 16).unwrap();
+            assert_eq!(batch.status, EvidenceCursorStatus::Available);
+            assert!(!batch.events.is_empty());
+            assert_eq!(batch.events[0].sequence, cursor);
+            cursor = batch.next_cursor;
+            observed += u64::try_from(batch.events.len()).unwrap();
+            run.acknowledge_scheduler_events_through(cursor).unwrap();
+            assert_eq!(run.scheduler_event_count(), 0);
+            assert_eq!(run.retained_event_cursor(), cursor);
+        }
+
+        assert!(
+            observed > 16,
+            "the run outlived its resident event capacity"
+        );
+        assert_eq!(run.scheduler_event_count(), 0);
+        assert_eq!(run.retained_event_cursor(), cursor);
+        assert_eq!(run.pump(1).unwrap().event_cursor, cursor);
+        assert_eq!(
+            run.read_scheduler_events(0, 16).unwrap().status,
+            EvidenceCursorStatus::Gap { resume_at: cursor }
+        );
+        assert!(matches!(
+            run.acknowledge_scheduler_events_through(cursor + 1),
+            Err(SchedulerError::InvalidPolicy)
+        ));
     });
 }
 

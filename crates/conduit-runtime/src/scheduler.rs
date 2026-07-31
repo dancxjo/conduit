@@ -9,12 +9,12 @@ use std::fmt;
 use std::mem::size_of;
 
 use conduit_core::{
-    DuplicationRule, ExecutionPlan, FanOutMode, FlowEventKind, FlowPolicy, FlowQueueState, Id,
-    ImplementationError, ImplementationMachine, InstancePhase, LifecycleUsage, OfferDisposition,
-    PlanResourceBudget, PrepareOutcome, Pressure, ReadyQueueDiscipline, SchedulerDecisionReason,
-    SchedulerPolicy, SemanticHash, Sensitivity, StepObservation, StepOutcome, StepOutcomeKind,
-    StepUsage, StopPolicy, TerminalClass, ValueEnvelopeReason, WakeInterestKind, prepare_all,
-    start_all,
+    DuplicationRule, EvidenceCursorStatus, ExecutionPlan, FanOutMode, FlowEventKind, FlowPolicy,
+    FlowQueueState, Id, ImplementationError, ImplementationMachine, InstancePhase, LifecycleUsage,
+    OfferDisposition, PlanResourceBudget, PrepareOutcome, Pressure, ReadyQueueDiscipline,
+    SchedulerDecisionReason, SchedulerPolicy, SemanticHash, Sensitivity, StepObservation,
+    StepOutcome, StepOutcomeKind, StepUsage, StopPolicy, TerminalClass, ValueEnvelopeReason,
+    WakeInterestKind, classify_evidence_cursor, prepare_all, start_all,
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -660,6 +660,18 @@ pub struct SchedulerEvent {
     pub scheduling_latency_ticks: u64,
     /// Exact deterministic executor ticks charged to the selected step.
     pub processing_latency_ticks: u64,
+}
+
+/// One caller-owned bounded read from the executor's retained observation
+/// window. Cursors are monotonic over the run, even after acknowledged events
+/// are released from the fixed resident log.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SchedulerEventBatch {
+    pub status: EvidenceCursorStatus,
+    /// The cursor to use for the next read. A gap advances this to the first
+    /// retained event; a future cursor is normalized to the current end.
+    pub next_cursor: u64,
+    pub events: Vec<SchedulerEvent>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1820,7 +1832,10 @@ impl FixedReadyQueue {
 
 struct FixedEventLog {
     slots: Box<[Option<SchedulerEvent>]>,
+    head: usize,
     len: usize,
+    high_water: usize,
+    retained_from: u64,
 }
 
 impl FixedEventLog {
@@ -1832,21 +1847,103 @@ impl FixedEventLog {
         values.resize(capacity, None);
         Ok(Self {
             slots: values.into_boxed_slice(),
+            head: 0,
             len: 0,
+            high_water: 0,
+            retained_from: 0,
         })
     }
 
     fn push(&mut self, value: SchedulerEvent) -> Result<(), SchedulerError> {
-        let Some(slot) = self.slots.get_mut(self.len) else {
+        if self.len == self.slots.len() {
             return Err(SchedulerError::EvidenceCapacityExceeded);
-        };
-        *slot = Some(value);
+        }
+        let index = (self.head + self.len) % self.slots.len();
+        self.slots[index] = Some(value);
         self.len += 1;
+        self.high_water = self.high_water.max(self.len);
         Ok(())
     }
 
-    fn as_slice(&self) -> &[Option<SchedulerEvent>] {
-        &self.slots[..self.len]
+    fn events(&self) -> impl Iterator<Item = &SchedulerEvent> {
+        let first_len = self.len.min(self.slots.len().saturating_sub(self.head));
+        self.slots[self.head..self.head + first_len]
+            .iter()
+            .chain(self.slots[..self.len - first_len].iter())
+            .flatten()
+    }
+
+    fn batch(
+        &self,
+        requested: u64,
+        maximum_events: u32,
+        next_sequence: u64,
+    ) -> Result<SchedulerEventBatch, SchedulerError> {
+        if maximum_events == 0
+            || usize::try_from(maximum_events).map_err(|_| SchedulerError::InvalidPolicy)?
+                > self.slots.len()
+        {
+            return Err(SchedulerError::InvalidPolicy);
+        }
+        let status = classify_evidence_cursor(requested, self.retained_from, next_sequence)
+            .map_err(|_| SchedulerError::InvalidPolicy)?;
+        let next_cursor = match status {
+            EvidenceCursorStatus::Available => requested,
+            EvidenceCursorStatus::Gap { resume_at } => resume_at,
+            EvidenceCursorStatus::Future { next_sequence } => next_sequence,
+        };
+        if status != EvidenceCursorStatus::Available {
+            return Ok(SchedulerEventBatch {
+                status,
+                next_cursor,
+                events: Vec::new(),
+            });
+        }
+
+        let offset = usize::try_from(requested - self.retained_from)
+            .map_err(|_| SchedulerError::InvalidPolicy)?;
+        let count = usize::try_from(maximum_events)
+            .map_err(|_| SchedulerError::InvalidPolicy)?
+            .min(self.len.saturating_sub(offset));
+        let mut events = Vec::new();
+        events
+            .try_reserve_exact(count)
+            .map_err(|_| SchedulerError::AllocationFailed)?;
+        events.extend(self.events().skip(offset).take(count).copied());
+        let next_cursor = requested
+            .checked_add(u64::try_from(events.len()).map_err(|_| SchedulerError::InvalidPolicy)?)
+            .ok_or(SchedulerError::ArithmeticOverflow)?;
+        Ok(SchedulerEventBatch {
+            status,
+            next_cursor,
+            events,
+        })
+    }
+
+    fn acknowledge_through(
+        &mut self,
+        cursor: u64,
+        next_sequence: u64,
+    ) -> Result<(), SchedulerError> {
+        if cursor > next_sequence {
+            return Err(SchedulerError::InvalidPolicy);
+        }
+        if cursor <= self.retained_from {
+            return Ok(());
+        }
+        let released = usize::try_from(cursor - self.retained_from)
+            .map_err(|_| SchedulerError::InvalidPolicy)?
+            .min(self.len);
+        for _ in 0..released {
+            self.slots[self.head] = None;
+            self.head = (self.head + 1) % self.slots.len();
+        }
+        self.len -= released;
+        self.retained_from = self
+            .retained_from
+            .checked_add(u64::try_from(released).map_err(|_| SchedulerError::InvalidPolicy)?)
+            .ok_or(SchedulerError::ArithmeticOverflow)?;
+        Ok(())
     }
 }
 
@@ -2119,7 +2216,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             queue_items: self.max_queue_items,
             queue_payload_bytes: self.max_queue_payload_bytes,
             ready_slots: self.max_ready_depth,
-            event_slots: u32::try_from(self.events.len).unwrap_or(u32::MAX),
+            event_slots: u32::try_from(self.events.high_water).unwrap_or(u32::MAX),
             decisions: self.decisions,
         }
     }
@@ -2127,6 +2224,38 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
     #[must_use]
     pub fn event_count(&self) -> usize {
         self.events.len
+    }
+
+    /// First sequence still resident in the fixed event log.
+    #[must_use]
+    pub const fn retained_event_cursor(&self) -> u64 {
+        self.events.retained_from
+    }
+
+    /// One-past-the-end monotonic event cursor for this exact run.
+    #[must_use]
+    pub const fn next_event_cursor(&self) -> u64 {
+        self.next_event_sequence
+    }
+
+    /// Copies at most `maximum_events` retained observations into caller-owned
+    /// storage. The executor retains its fixed log until a matching explicit
+    /// acknowledgement releases the prefix.
+    pub fn read_events(
+        &self,
+        cursor: u64,
+        maximum_events: u32,
+    ) -> Result<SchedulerEventBatch, SchedulerError> {
+        self.events
+            .batch(cursor, maximum_events, self.next_event_sequence)
+    }
+
+    /// Releases the retained prefix ending immediately before `cursor` after
+    /// an external recorder has committed it. Repeated acknowledgements are
+    /// idempotent; acknowledging a future cursor is rejected.
+    pub fn acknowledge_events_through(&mut self, cursor: u64) -> Result<(), SchedulerError> {
+        self.events
+            .acknowledge_through(cursor, self.next_event_sequence)
     }
 
     /// Fixed hosted value-arena accounting, when the installed drivers expose
@@ -2139,7 +2268,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
     }
 
     pub fn events(&self) -> impl Iterator<Item = &SchedulerEvent> {
-        self.events.as_slice().iter().flatten()
+        self.events.events()
     }
 
     pub(crate) fn project_exact_evidence(
