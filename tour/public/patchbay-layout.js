@@ -61,7 +61,7 @@ function stronglyConnectedComponents(nodeIds, outgoing) {
       onStack.delete(member);
       component.push(member);
     } while (member !== nodeId);
-      component.sort(compareIds);
+    component.sort(compareIds);
     components.push(component);
   }
 
