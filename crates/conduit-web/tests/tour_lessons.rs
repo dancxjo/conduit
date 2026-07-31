@@ -293,6 +293,21 @@ fn contract_package_import_lesson_separates_names_meaning_and_availability() {
     );
     assert_eq!(imports["availability"], "contract-only");
     assert_eq!(imports["error"]["code"], "CND-IPK-004");
+    let lock: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/contract-package-imports/contract-package-lock.json"
+    ))
+    .unwrap();
+    let package = &lock["packages"][0];
+    assert_eq!(imports["package_id"], package["package_id"]);
+    assert_eq!(imports["package_digest"], package["artifact_digest"]);
+    assert_eq!(
+        imports["canonical_id"],
+        package["exports"][0]["canonical_id"]
+    );
+    assert_eq!(
+        imports["descriptor_hash"],
+        package["exports"][0]["descriptor_hash"]
+    );
 }
 
 #[test]

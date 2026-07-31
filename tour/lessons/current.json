@@ -1556,7 +1556,7 @@
         "canonical_id": "conduit.dev/std/tee",
         "descriptor_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "package_id": "conduit.dev/std",
-        "package_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "package_digest": "sha256:8b29c65aad9f23cd129bac0ffbeb5dac5ceaa225bb5350a1602c183f8886c5ce",
         "availability": "contract-only",
         "error": {
           "scenario": "missing export",
