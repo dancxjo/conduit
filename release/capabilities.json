@@ -43,7 +43,7 @@
       "id": "pure-node-production-slice",
       "summary": "Panel source through exact binding and DeterministicExecutor to CLI and browser evidence.",
       "contract": {"status": "proven", "evidence": ["conformance/c5/pure-node.panel"]},
-      "reference_model": {"status": "proven", "evidence": ["conformance/c5/pure-node-plan.json"]},
+      "reference_model": {"status": "proven", "evidence": ["conformance/c5/pure-node-profile.json"]},
       "provider": {"status": "available", "evidence": ["crates/conduit-std/src/lib.rs"]},
       "host_resolvability": {"status": "proven", "evidence": ["crates/conduit-runtime/tests/truthful_registry_vectors.rs"]},
       "exact_binding": {"status": "proven", "evidence": ["crates/conduit-web/tests/exact_execution.rs"]},

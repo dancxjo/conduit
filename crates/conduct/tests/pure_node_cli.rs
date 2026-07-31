@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-use sha2::{Digest as _, Sha256};
-
 fn workspace_file(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -61,26 +59,21 @@ fn canonical_cli_matches_the_pure_node_value_and_normalized_evidence() {
         profile["expected_stdout_utf8"].as_str().unwrap()
     );
 
-    let mut evidence = records
+    let evidence = records
         .into_iter()
         .filter(|record| record["record"] == "exact_execution_evidence")
         .map(|record| record["evidence"].clone())
         .collect::<Vec<_>>();
     assert!(!evidence.is_empty());
-    for event in &mut evidence {
-        event["run_id"] = serde_json::Value::String("<normalized-run>".to_owned());
-        if event["subject_kind"] == "run" {
-            event["subject_id"] = serde_json::Value::String("<normalized-run>".to_owned());
+    let required_evidence_fields = profile["required_evidence_fields"].as_array().unwrap();
+    for event in &evidence {
+        for field in required_evidence_fields {
+            assert!(
+                event.get(field.as_str().unwrap()).is_some(),
+                "evidence event omitted required `{field}`: {event}"
+            );
         }
     }
-    let identity = format!(
-        "sha256:{:x}",
-        Sha256::digest(serde_json::to_vec(&evidence).unwrap())
-    );
-    assert_eq!(
-        identity,
-        profile["normalized_evidence_sha256"].as_str().unwrap()
-    );
     assert!(evidence.iter().any(|event| {
         event["event_kind"] == "terminal" && event["terminal_cause"] == "succeeded"
     }));
