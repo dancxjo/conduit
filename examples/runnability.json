@@ -40,6 +40,7 @@
     {"path":"examples/state-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"stored,alpha"},
     {"path":"examples/state-deduplicate.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"one,two"},
     {"path":"examples/stdin-uppercase.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":""},
+    {"path":"examples/storage-cache.panel","state":"runnable","profile":"hosted","proof":"canonical-storage-cache","expected_stdout":""},
     {"path":"examples/supervision-circuit-breaker.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"first,probe"},
     {"path":"examples/supervision-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"job,job"},
     {"path":"examples/supervision-retry.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"job,job"},

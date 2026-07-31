@@ -13,7 +13,9 @@ use conduit_std::{
     GetRequest, PutRequest, RemoveOutcome,
 };
 
-pub const EXAMPLE_CACHE_RESOURCE: &str = "conduit.resource/storage-cache-example";
+pub const EXAMPLE_CACHE_PUT_RESOURCE: &str = "conduit.resource/storage-cache-example-put";
+pub const EXAMPLE_CACHE_GET_RESOURCE: &str = "conduit.resource/storage-cache-example-get";
+pub const EXAMPLE_CACHE_REMOVE_RESOURCE: &str = "conduit.resource/storage-cache-example-remove";
 pub const EXAMPLE_CACHE_DESCRIPTOR: &str = "conduit.descriptor/storage-cache-example";
 pub const EXAMPLE_PROVIDER_EPOCH: u64 = 0x4341_4348_4500_0001;
 pub const EXAMPLE_MAX_RETENTION_TICKS: u64 = 1024;
@@ -52,8 +54,8 @@ fn exact_secret(node: &Node, key: &str, expected: &str) -> bool {
     )
 }
 
-fn validate_shared(node: &Node, grant: &str) -> Result<(), ResolutionError> {
-    if !exact_secret(node, "resource", EXAMPLE_CACHE_RESOURCE)
+fn validate_shared(node: &Node, resource: &str, grant: &str) -> Result<(), ResolutionError> {
+    if !exact_secret(node, "resource", resource)
         || !exact_secret(node, "grant", grant)
         || node.config("descriptor") != Some(EXAMPLE_CACHE_DESCRIPTOR)
         || node.config("cancellation") != Some("discard")
@@ -109,7 +111,11 @@ fn validate_put(node: &Node) -> Result<(), ResolutionError> {
             "cancellation",
         ],
     )?;
-    validate_shared(node, "conduit.grant/storage-cache-put")?;
+    validate_shared(
+        node,
+        EXAMPLE_CACHE_PUT_RESOURCE,
+        "conduit.grant/storage-cache-put",
+    )?;
     validate_positive_bound(node, "retention_ticks", EXAMPLE_MAX_RETENTION_TICKS)?;
     validate_positive_bound(node, "maximum_blob_bytes", CACHE_MAX_BLOB_BYTES as u64)?;
     if node.config("persistence") != Some("evictable")
@@ -146,7 +152,11 @@ fn validate_get(node: &Node) -> Result<(), ResolutionError> {
             "cancellation",
         ],
     )?;
-    validate_shared(node, "conduit.grant/storage-cache-get")?;
+    validate_shared(
+        node,
+        EXAMPLE_CACHE_GET_RESOURCE,
+        "conduit.grant/storage-cache-get",
+    )?;
     validate_positive_bound(node, "maximum_blob_bytes", CACHE_MAX_BLOB_BYTES as u64)?;
     if node.config("integrity") != Some("sha256-before-yield")
         || required_u64_resolution(node, "run_epoch").is_err()
@@ -171,7 +181,11 @@ fn validate_remove(node: &Node) -> Result<(), ResolutionError> {
             "cancellation",
         ],
     )?;
-    validate_shared(node, "conduit.grant/storage-cache-remove")?;
+    validate_shared(
+        node,
+        EXAMPLE_CACHE_REMOVE_RESOURCE,
+        "conduit.grant/storage-cache-remove",
+    )?;
     required_u64_resolution(node, "run_epoch").map(|_| ())
 }
 
@@ -529,7 +543,7 @@ pub fn provider_description() -> Vec<(&'static str, String)> {
             EXAMPLE_MAX_RETENTION_TICKS.to_string(),
         ),
         ("accepted_sensitivity", "public,restricted".to_owned()),
-        ("resource", EXAMPLE_CACHE_RESOURCE.to_owned()),
+        ("descriptor", EXAMPLE_CACHE_DESCRIPTOR.to_owned()),
     ]
 }
 

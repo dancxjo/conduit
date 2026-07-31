@@ -218,6 +218,10 @@ pub struct Arguments {
     #[arg(long)]
     pub enable_file_watch: bool,
 
+    /// Explicitly install the bounded evictable blob-cache provider.
+    #[arg(long)]
+    pub enable_storage_cache: bool,
+
     /// Additive read-only operations.
     #[command(subcommand)]
     pub secondary: Option<SecondaryCommand>,

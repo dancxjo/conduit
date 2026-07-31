@@ -1,0 +1,50 @@
+# Put and retrieve one bounded blob through an opaque run-scoped cache handle.
+panel 0
+
+node blob : storage/blob/literal {
+    value = bytes("626f756e64656420636163686520666978747572650a")
+    maximum_bytes = 64
+}
+
+node put : storage/cache/put {
+    resource = secret("conduit.resource/storage-cache-example-put")
+    grant = secret("conduit.grant/storage-cache-put")
+    descriptor = ref("conduit.descriptor/storage-cache-example")
+    run_epoch = 1
+    now_tick = 10
+    retention_ticks = 100
+    maximum_blob_bytes = 64
+    persistence = "evictable"
+    eviction = "fifo"
+    sensitivity = "restricted"
+    cancellation = "discard"
+}
+
+node get : storage/cache/get {
+    resource = secret("conduit.resource/storage-cache-example-get")
+    grant = secret("conduit.grant/storage-cache-get")
+    descriptor = ref("conduit.descriptor/storage-cache-example")
+    run_epoch = 1
+    now_tick = 11
+    maximum_blob_bytes = 64
+    integrity = "sha256-before-yield"
+    cancellation = "discard"
+}
+
+cord blob.blob -> put.blob {
+    capacity = 1
+    max_value_bytes = 64
+    max_queued_bytes = 64
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+
+cord put.handle -> get.handle {
+    capacity = 1
+    max_value_bytes = 66
+    max_queued_bytes = 66
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

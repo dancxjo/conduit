@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 bumpalo = "3"
+conduit-cache = { path = "../conduit-cache" }
 conduit-compile = { path = "../conduit-compile" }
 conduit-core = { path = "../conduit-core" }
 conduit-panel = { path = "../conduit-panel" }

@@ -73,6 +73,9 @@ fn invoke(root: &Path, entry: &Entry) -> std::process::Output {
     if entry.proof == "canonical-file-watch" {
         command.arg("--enable-file-watch");
     }
+    if entry.proof == "canonical-storage-cache" {
+        command.arg("--enable-storage-cache");
+    }
     command.arg(&entry.path).output().expect("conduct executes")
 }
 
@@ -400,4 +403,86 @@ fn filesystem_exact_plan_pins_provider_authority_resource_and_bounds() {
         "conduit.resource/filesystem-file"
     );
     assert!(authority.commit_profile.is_some());
+}
+
+#[test]
+fn storage_cache_exact_plan_pins_distinct_provider_resource_grant_and_bounds() {
+    let root = root();
+    let source =
+        fs::read_to_string(root.join("examples/storage-cache.panel")).expect("cache example");
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_cache::register_hosted_cache_provider(&mut registry).expect("cache provider links");
+    let installed = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .expect("cache installed profile resolves");
+
+    for (contract, implementation, grant, resource) in [
+        (
+            "storage/cache/put",
+            "conduit/storage-cache-put",
+            "conduit.grant/storage-cache-put",
+            "conduit.resource/storage-cache-example-put",
+        ),
+        (
+            "storage/cache/get",
+            "conduit/storage-cache-get",
+            "conduit.grant/storage-cache-get",
+            "conduit.resource/storage-cache-example-get",
+        ),
+    ] {
+        let candidate = installed
+            .input
+            .candidates
+            .iter()
+            .find(|candidate| candidate.implementation.semantic_contract.id == contract)
+            .expect("cache candidate");
+        assert_eq!(candidate.implementation.id, implementation);
+        assert_eq!(candidate.authorities.len(), 1);
+        assert_eq!(candidate.authorities[0].status, "active");
+        assert_eq!(candidate.authorities[0].grant.id, grant);
+        assert_eq!(candidate.authorities[0].grant.resource_id, resource);
+    }
+
+    let document =
+        conduit_compile::compile_source(&source, &installed.input).expect("exact plan compiles");
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).expect("exact plan loads");
+    for (contract, implementation, grant, resource) in [
+        (
+            "storage/cache/put",
+            "conduit/storage-cache-put",
+            "conduit.grant/storage-cache-put",
+            "conduit.resource/storage-cache-example-put",
+        ),
+        (
+            "storage/cache/get",
+            "conduit/storage-cache-get",
+            "conduit.grant/storage-cache-get",
+            "conduit.resource/storage-cache-example-get",
+        ),
+    ] {
+        let node = plan
+            .nodes
+            .iter()
+            .find(|node| node.contract.id.as_str() == contract)
+            .expect("cache node is planned");
+        assert_eq!(node.implementation.id.as_str(), implementation);
+        assert_eq!(node.artifact.as_str(), "conduit/storage-cache-artifact");
+        assert_eq!(node.host.as_str(), "conduit/conduct-host");
+        let profile = node.execution_profile.expect("execution profile is pinned");
+        assert_eq!(profile.limits.max_input_bytes, 64 * 1024);
+        assert_eq!(profile.limits.max_output_bytes, 64 * 1024);
+        assert_eq!(profile.limits.max_pending_operations, 1);
+        let authority = plan
+            .authorities
+            .iter()
+            .find(|authority| authority.node == node.instance)
+            .expect("cache authority is planned");
+        assert_eq!(authority.grant.id.as_str(), grant);
+        assert_eq!(authority.binding.resource.id.as_str(), resource);
+        assert_eq!(
+            authority.binding.resource.kind.as_str(),
+            "conduit.resource/evictable-blob-cache"
+        );
+        assert!(authority.commit_profile.is_some());
+    }
 }

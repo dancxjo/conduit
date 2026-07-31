@@ -2,8 +2,8 @@ mod support;
 
 use conduit_panel::Node;
 use conduit_runtime::{
-    AvailabilityState, Handler, KV_STORE_CONTRACT, PROCESS_SPAWN_CONTRACT, Registry, RunIo,
-    RuntimeError, Value, file_read_contract, file_write_contract,
+    AvailabilityState, Handler, PROCESS_SPAWN_CONTRACT, Registry, RunIo, RuntimeError, Value,
+    file_read_contract, file_write_contract,
 };
 
 struct Impostor;
@@ -20,11 +20,10 @@ impl Handler for Impostor {
 }
 
 #[test]
-fn file_store_and_process_callbacks_cannot_claim_boundary_conformance() {
+fn file_and_process_callbacks_cannot_claim_boundary_conformance() {
     for contract in [
         file_read_contract(),
         file_write_contract(),
-        &KV_STORE_CONTRACT,
         &PROCESS_SPAWN_CONTRACT,
     ] {
         let mut registry = Registry::default();

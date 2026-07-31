@@ -402,6 +402,8 @@ fn browser_registry() -> Registry {
             .register_compiled_in_host_service(provider)
             .expect("browser filesystem provider identities are unique");
     }
+    conduit_cache::register_hosted_cache_provider(&mut registry)
+        .expect("browser storage-cache provider identities are unique");
     registry
 }
 

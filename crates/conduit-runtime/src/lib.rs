@@ -828,18 +828,6 @@ pub const FAULT_SOURCE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[],
     outputs: &[named_text_output("failure")],
 };
-pub const BLOB_STORE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("storage/blob/store"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("blob")],
-    outputs: &[named_text_output("reference")],
-};
-pub const KV_STORE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("storage/key-value"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("operation")],
-    outputs: &[named_text_output("result")],
-};
 pub const PROCESS_SPAWN_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("process/run"),
     config: EMPTY_CONFIG,
@@ -2638,8 +2626,6 @@ impl Default for Registry {
             file_read_contract(),
             file_write_contract(),
             file_watch_contract(),
-            &BLOB_STORE_CONTRACT,
-            &KV_STORE_CONTRACT,
             &PROCESS_SPAWN_CONTRACT,
             &GPIO_PIN_CONTRACT,
             &SERIAL_PORT_CONTRACT,

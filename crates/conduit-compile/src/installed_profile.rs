@@ -585,6 +585,27 @@ fn host_service_authority(contract_id: &str, instance: &str) -> Option<Authority
             "conduit.resource/filesystem-file",
             "conduit.resource/filesystem-example-watch",
         ),
+        "storage/cache/put" => (
+            "storage-cache-put",
+            "sha256:4141414141414141414141414141414141414141414141414141414141414141",
+            "conduit.action/cache-put",
+            "conduit.resource/evictable-blob-cache",
+            "conduit.resource/storage-cache-example-put",
+        ),
+        "storage/cache/get" => (
+            "storage-cache-get",
+            "sha256:4242424242424242424242424242424242424242424242424242424242424242",
+            "conduit.action/cache-get",
+            "conduit.resource/evictable-blob-cache",
+            "conduit.resource/storage-cache-example-get",
+        ),
+        "storage/cache/remove" => (
+            "storage-cache-remove",
+            "sha256:4343434343434343434343434343434343434343434343434343434343434343",
+            "conduit.action/cache-remove",
+            "conduit.resource/evictable-blob-cache",
+            "conduit.resource/storage-cache-example-remove",
+        ),
         "net/http/serve-once" => (
             "http-loopback-listen",
             "sha256:4848484848484848484848484848484848484848484848484848484848484848",

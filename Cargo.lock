@@ -312,6 +312,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "conduit-cache",
  "conduit-compile",
  "conduit-core",
  "conduit-diagnostics",
@@ -510,6 +511,7 @@ name = "conduit-web"
 version = "0.0.0-dev"
 dependencies = [
  "bumpalo",
+ "conduit-cache",
  "conduit-compile",
  "conduit-core",
  "conduit-panel",

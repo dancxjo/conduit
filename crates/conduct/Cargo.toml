@@ -22,6 +22,7 @@ clap = { version = "4.6.4", default-features = false, features = [
     "usage",
 ] }
 conduit-compile = { path = "../conduit-compile" }
+conduit-cache = { path = "../conduit-cache" }
 conduit-diagnostics = { path = "../conduit-diagnostics" }
 conduit-filesystem = { path = "../conduit-filesystem" }
 conduit-http = { path = "../conduit-http" }
