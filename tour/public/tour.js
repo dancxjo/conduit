@@ -1202,7 +1202,16 @@ async function run() {
     activeWorkerSessionId = sessionId;
     const started = await adapter.request("patchbay-start-exact-run", { sessionId });
     if (!started.ok || !started.value?.ok) {
-      throw new Error(`${started.code || started.value?.code || "start-failed"}: ${started.value?.diagnostic || ""}`);
+      const rejection = {
+        ok: false,
+        code: started.code || started.value?.code || "start-failed",
+        diagnostic: started.value?.diagnostic || "exact session start was rejected",
+      };
+      terminal = true;
+      renderExactResultTimeline(rejection);
+      result.textContent = rejection.diagnostic;
+      recordEvidence({ kind: "run-rejected", lesson: current.id, code: rejection.code });
+      return;
     }
     const operation = activeScenario()?.execution === "cancel-before-first-step"
       ? "patchbay-cancel-exact-run"
@@ -1212,7 +1221,16 @@ async function run() {
       : { sessionId, quantum: 256 });
     if (epoch !== runEpoch) return;
     if (!executed.ok || !executed.value?.ok) {
-      throw new Error(`${executed.code || executed.value?.code || "pump-failed"}: ${executed.value?.diagnostic || ""}`);
+      const rejection = {
+        ok: false,
+        code: executed.code || executed.value?.code || "pump-failed",
+        diagnostic: executed.value?.diagnostic || "exact session pump was rejected",
+      };
+      terminal = true;
+      renderExactResultTimeline(rejection);
+      result.textContent = rejection.diagnostic;
+      recordEvidence({ kind: "run-rejected", lesson: current.id, code: rejection.code });
+      return;
     }
     const value = executed.value;
     terminal = Boolean(value.terminal);
