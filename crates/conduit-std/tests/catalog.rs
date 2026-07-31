@@ -76,7 +76,7 @@ fn semantic_port_names_do_not_encode_direction() {
 
     let udp = STANDARD_CATALOG
         .iter()
-        .find(|entry| entry.contract.id.as_str() == "net/udp/socket")
+        .find(|entry| entry.contract.id.as_str() == "conduit.host/net/udp/datagram")
         .unwrap();
     assert_eq!(udp.contract.inputs[0].id.as_str(), "datagram");
     assert_eq!(udp.contract.outputs[0].id.as_str(), "datagram");
@@ -99,6 +99,56 @@ fn semantic_port_names_do_not_encode_direction() {
         .unwrap();
     assert!(empty.contract.inputs.is_empty());
     assert!(discard.contract.outputs.is_empty());
+}
+
+#[test]
+fn application_socket_catalog_has_only_the_four_exact_current_operations() {
+    for id in [
+        "conduit.host/net/tcp/connect",
+        "conduit.host/net/tcp/listen",
+        "conduit.host/net/udp/connected",
+        "conduit.host/net/udp/datagram",
+    ] {
+        let entry = STANDARD_CATALOG
+            .iter()
+            .find(|entry| entry.contract.id.as_str() == id)
+            .unwrap_or_else(|| panic!("missing {id}"));
+        assert_eq!(entry.family, StandardFamily::Network);
+        assert_eq!(entry.time_basis, TimeBasis::Monotonic);
+        assert!(entry.required_support.deterministic);
+        assert!(entry.required_support.hosted);
+        assert!(!entry.required_support.constrained);
+        assert!(entry.limits.retained_values > 0);
+        assert!(entry.limits.retained_bytes > 0);
+        assert!(entry.limits.pending_operations > 0);
+        assert!(entry.limits.timers > 0);
+        assert!(entry.limits.evidence_events > 0);
+    }
+    assert!(standard_node_contract("net/tcp/socket").is_none());
+    assert!(standard_node_contract("net/udp/socket").is_none());
+
+    let tcp = standard_node_contract("conduit.host/net/tcp/connect").unwrap();
+    assert_eq!(
+        tcp.inputs[0].value_type.contract_id.as_str(),
+        "net/tcp/chunk"
+    );
+    assert_eq!(
+        tcp.outputs[1].value_type.contract_id.as_str(),
+        "net/socket/session"
+    );
+    assert_eq!(
+        tcp.outputs[2].value_type.contract_id.as_str(),
+        "net/socket/result"
+    );
+    let udp = standard_node_contract("conduit.host/net/udp/datagram").unwrap();
+    assert_eq!(
+        udp.inputs[0].value_type.contract_id.as_str(),
+        "net/udp/datagram"
+    );
+    assert_eq!(
+        udp.outputs[0].value_type.contract_id.as_str(),
+        "net/udp/datagram"
+    );
 }
 
 #[test]

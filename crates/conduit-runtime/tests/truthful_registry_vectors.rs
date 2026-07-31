@@ -110,8 +110,10 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "net/wifi/join",
         "net/wifi/access-point",
         "net/interface",
-        "net/tcp/socket",
-        "net/udp/socket",
+        "conduit.host/net/tcp/connect",
+        "conduit.host/net/tcp/listen",
+        "conduit.host/net/udp/connected",
+        "conduit.host/net/udp/datagram",
         "net/dns/resolve",
         "net/http/serve",
     ] {

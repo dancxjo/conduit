@@ -101,7 +101,9 @@
     "net/bridge": ["STD-007", "STD-012"],
     "net/nat": ["STD-007", "STD-012"],
     "net/reachability": ["STD-007", "STD-011"],
-    "net/tcp/socket": ["STD-007", "STD-012"],
-    "net/udp/socket": ["STD-007", "STD-012"]
+    "conduit.host/net/tcp/connect": ["STD-007", "STD-012", "STD-019"],
+    "conduit.host/net/tcp/listen": ["STD-007", "STD-012", "STD-019"],
+    "conduit.host/net/udp/connected": ["STD-007", "STD-012", "STD-019"],
+    "conduit.host/net/udp/datagram": ["STD-007", "STD-012", "STD-019"]
   }
 }

@@ -918,18 +918,6 @@ pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[named_text_input("configuration")],
     outputs: &[named_text_output("state")],
 };
-pub const TCP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/tcp/socket"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("transmit")],
-    outputs: &[named_text_output("received")],
-};
-pub const UDP_SOCKET_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/udp/socket"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("datagram")],
-    outputs: &[named_text_output("datagram")],
-};
 pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/dns/resolve"),
     config: EMPTY_CONFIG,
@@ -2743,8 +2731,6 @@ impl Default for Registry {
             &WIFI_STATION_CONTRACT,
             &WIFI_AP_CONTRACT,
             &NETWORK_INTERFACE_CONTRACT,
-            &TCP_SOCKET_CONTRACT,
-            &UDP_SOCKET_CONTRACT,
             &DNS_RESOLVER_CONTRACT,
             &HTTP_SERVE_ONCE_CONTRACT,
         ];

@@ -307,6 +307,38 @@ const SOCKET_ADDRESS: TypeContractRef<'static> = TypeContractRef {
         0xe4, 0xd6,
     ]),
 };
+const SOCKET_SESSION: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/socket/session"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        178, 60, 218, 192, 43, 170, 112, 86, 148, 49, 73, 97, 141, 183, 118, 14, 133, 185, 11, 93,
+        13, 102, 175, 97, 105, 158, 141, 106, 66, 100, 232, 4,
+    ]),
+};
+const TCP_CHUNK: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/tcp/chunk"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        6, 168, 33, 62, 34, 212, 46, 92, 152, 167, 21, 38, 114, 203, 45, 171, 253, 13, 70, 180,
+        201, 32, 8, 114, 230, 52, 70, 140, 208, 95, 38, 215,
+    ]),
+};
+const UDP_DATAGRAM: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/udp/datagram"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        213, 245, 189, 184, 1, 110, 75, 40, 182, 135, 129, 111, 68, 187, 205, 170, 78, 50, 103,
+        188, 128, 69, 175, 34, 31, 179, 15, 3, 238, 55, 239, 225,
+    ]),
+};
+const SOCKET_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/socket/result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        102, 244, 215, 109, 149, 65, 19, 239, 21, 155, 174, 56, 57, 204, 103, 12, 99, 73, 43, 32,
+        206, 227, 137, 90, 206, 191, 170, 102, 163, 123, 111, 42,
+    ]),
+};
 const HTTP_REQUEST: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("net/http/request"),
     schema_version: 0,
@@ -428,6 +460,48 @@ const PROCESS_STDERR: PortContract<'static> = port(
     "stderr",
     Direction::Output,
     BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const TCP_TRANSMIT: PortContract<'static> = port(
+    "transmit",
+    Direction::Input,
+    TCP_CHUNK,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const TCP_RECEIVED: PortContract<'static> = port(
+    "received",
+    Direction::Output,
+    TCP_CHUNK,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const SOCKET_SESSION_OUTPUT: PortContract<'static> = port(
+    "session",
+    Direction::Output,
+    SOCKET_SESSION,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const SOCKET_RESULT_OUTPUT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    SOCKET_RESULT,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const UDP_DATAGRAM_INPUT: PortContract<'static> = port(
+    "datagram",
+    Direction::Input,
+    UDP_DATAGRAM,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const UDP_DATAGRAM_OUTPUT: PortContract<'static> = port(
+    "datagram",
+    Direction::Output,
+    UDP_DATAGRAM,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Finite,
 );
@@ -1275,6 +1349,90 @@ const PROCESS_EXEC: ConfigContract<'static> = ConfigContract {
         field("cancellation", TEXT),
     ],
 };
+const TCP_CONNECT: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("network_resource", REFERENCE),
+        protected_field("target_grant", REFERENCE),
+        field("local", SOCKET_ADDRESS),
+        field("peer", SOCKET_ADDRESS),
+        field("maximum_sessions", U64),
+        field("maximum_pending_operations", U64),
+        field("maximum_send_bytes", U64),
+        field("maximum_receive_bytes", U64),
+        field("maximum_chunk_bytes", U64),
+        field("maximum_queue_bytes", U64),
+        field("maximum_timers", U64),
+        field("maximum_work", U64),
+        field("maximum_evidence_events", U64),
+        field("deadline_ticks", U64),
+        field("cleanup_ticks", U64),
+        field("cancellation", TEXT),
+    ],
+};
+const TCP_LISTEN: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("network_resource", REFERENCE),
+        protected_field("bind_grant", REFERENCE),
+        field("local", SOCKET_ADDRESS),
+        field("backlog", U64),
+        field("maximum_sessions", U64),
+        field("maximum_accepts", U64),
+        field("maximum_pending_operations", U64),
+        field("maximum_send_bytes", U64),
+        field("maximum_receive_bytes", U64),
+        field("maximum_chunk_bytes", U64),
+        field("maximum_queue_bytes", U64),
+        field("maximum_timers", U64),
+        field("maximum_work", U64),
+        field("maximum_evidence_events", U64),
+        field("deadline_ticks", U64),
+        field("cleanup_ticks", U64),
+        field("cancellation", TEXT),
+    ],
+};
+const UDP_CONNECTED: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("network_resource", REFERENCE),
+        protected_field("target_grant", REFERENCE),
+        field("local", SOCKET_ADDRESS),
+        field("peer", SOCKET_ADDRESS),
+        field("path_mtu_bytes", U64),
+        field("fragmentation", BOOL),
+        field("maximum_pending_operations", U64),
+        field("maximum_send_bytes", U64),
+        field("maximum_receive_bytes", U64),
+        field("maximum_message_bytes", U64),
+        field("maximum_queued_messages", U64),
+        field("maximum_queue_bytes", U64),
+        field("maximum_timers", U64),
+        field("maximum_work", U64),
+        field("maximum_evidence_events", U64),
+        field("deadline_ticks", U64),
+        field("cleanup_ticks", U64),
+        field("cancellation", TEXT),
+    ],
+};
+const UDP_UNCONNECTED: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        protected_field("network_resource", REFERENCE),
+        protected_field("bind_grant", REFERENCE),
+        field("local", SOCKET_ADDRESS),
+        field("path_mtu_bytes", U64),
+        field("fragmentation", BOOL),
+        field("maximum_pending_operations", U64),
+        field("maximum_send_bytes", U64),
+        field("maximum_receive_bytes", U64),
+        field("maximum_message_bytes", U64),
+        field("maximum_queued_messages", U64),
+        field("maximum_queue_bytes", U64),
+        field("maximum_timers", U64),
+        field("maximum_work", U64),
+        field("maximum_evidence_events", U64),
+        field("deadline_ticks", U64),
+        field("cleanup_ticks", U64),
+        field("cancellation", TEXT),
+    ],
+};
 const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
     fields: &[
         protected_field("grant", REFERENCE),
@@ -1434,6 +1592,15 @@ const PROCESS_EXEC_LIMITS: CatalogLimits = CatalogLimits {
     retries: 0,
     work_per_step: PROCESS_MAX_CHUNK_BYTES as u32,
     evidence_events: PROCESS_MAX_EVIDENCE_EVENTS as u32,
+};
+const SOCKET_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: (SOCKET_MAX_SESSIONS + SOCKET_MAX_DATAGRAMS) as u32,
+    retained_bytes: SOCKET_MAX_STREAM_BYTES as u64,
+    pending_operations: 4,
+    timers: 2,
+    retries: 0,
+    work_per_step: SOCKET_MAX_MESSAGE_BYTES as u32,
+    evidence_events: SOCKET_MAX_EVIDENCE_EVENTS as u32,
 };
 const FORMAT_LIMITS: CatalogLimits = CatalogLimits {
     retained_values: 3,
@@ -2632,20 +2799,66 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "observation",
         "host/reachability"
     ),
-    host_entry!(
-        "net/tcp/socket",
-        Network,
-        "transmit",
-        "received",
-        "host/tcp"
-    ),
-    host_entry!(
-        "net/udp/socket",
-        Network,
-        "datagram",
-        "datagram",
-        "host/udp"
-    ),
+    {
+        let mut value = entry!(
+            "conduit.host/net/tcp/connect",
+            Network,
+            TCP_CONNECT,
+            &[TCP_TRANSMIT],
+            &[TCP_RECEIVED, SOCKET_SESSION_OUTPUT, SOCKET_RESULT_OUTPUT],
+            ProducesDeclaredType,
+            Monotonic,
+            SOCKET_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/tcp-connect"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "conduit.host/net/tcp/listen",
+            Network,
+            TCP_LISTEN,
+            &[TCP_TRANSMIT],
+            &[TCP_RECEIVED, SOCKET_SESSION_OUTPUT, SOCKET_RESULT_OUTPUT],
+            ProducesDeclaredType,
+            Monotonic,
+            SOCKET_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/tcp-listen"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "conduit.host/net/udp/connected",
+            Network,
+            UDP_CONNECTED,
+            &[UDP_DATAGRAM_INPUT],
+            &[UDP_DATAGRAM_OUTPUT, SOCKET_RESULT_OUTPUT],
+            ProducesDeclaredType,
+            Monotonic,
+            SOCKET_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/udp-connected"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "conduit.host/net/udp/datagram",
+            Network,
+            UDP_UNCONNECTED,
+            &[UDP_DATAGRAM_INPUT],
+            &[UDP_DATAGRAM_OUTPUT, SOCKET_RESULT_OUTPUT],
+            ProducesDeclaredType,
+            Monotonic,
+            SOCKET_LIMITS,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/udp-datagram"));
+        value
+    },
 ];
 
 /// Looks up one exact published standard contract without allocating.

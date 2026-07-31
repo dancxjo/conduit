@@ -331,6 +331,30 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
         StandardRepresentation::Domain
     ),
     concrete!(
+        "net/socket/session",
+        "socket session identity",
+        Network,
+        StandardRepresentation::Domain
+    ),
+    concrete!(
+        "net/tcp/chunk",
+        "bounded TCP session byte chunk",
+        Network,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "net/udp/datagram",
+        "bounded addressed UDP datagram",
+        Network,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "net/socket/result",
+        "socket terminal result",
+        Network,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
         "net/http/method",
         "HTTP method",
         Network,
@@ -523,6 +547,77 @@ static FORMAT_VALUES_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
     ),
 ];
 
+static SOCKET_SESSION_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "identity",
+        CanonicalValue::Identifier(Id("provider-run-scoped-u64")),
+    ),
+    semantic_field(
+        "maximum_sessions",
+        CanonicalValue::Integer(crate::SOCKET_MAX_SESSIONS as i128),
+    ),
+];
+static TCP_CHUNK_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "session",
+        CanonicalValue::Identifier(Id("net/socket/session")),
+    ),
+    semantic_field("payload", CanonicalValue::Identifier(Id("std/bytes"))),
+    semantic_field(
+        "maximum_bytes",
+        CanonicalValue::Integer(crate::SOCKET_MAX_MESSAGE_BYTES as i128),
+    ),
+    semantic_field(
+        "boundary",
+        CanonicalValue::Identifier(Id("partial-stream-observation")),
+    ),
+];
+static UDP_DATAGRAM_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "source",
+        CanonicalValue::Identifier(Id("net/socket/address")),
+    ),
+    semantic_field(
+        "destination",
+        CanonicalValue::Identifier(Id("net/socket/address")),
+    ),
+    semantic_field("payload", CanonicalValue::Identifier(Id("std/bytes"))),
+    semantic_field(
+        "maximum_bytes",
+        CanonicalValue::Integer(crate::SOCKET_MAX_MESSAGE_BYTES as i128),
+    ),
+    semantic_field("boundary", CanonicalValue::Identifier(Id("one-datagram"))),
+];
+static SOCKET_RESULT_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "session",
+        CanonicalValue::Identifier(Id("net/socket/session")),
+    ),
+    semantic_field(
+        "terminal",
+        CanonicalValue::Set(&[
+            CanonicalValue::Identifier(Id("completed")),
+            CanonicalValue::Identifier(Id("refused")),
+            CanonicalValue::Identifier(Id("reset")),
+            CanonicalValue::Identifier(Id("timed-out")),
+            CanonicalValue::Identifier(Id("cancelled")),
+            CanonicalValue::Identifier(Id("provider-lost")),
+            CanonicalValue::Identifier(Id("send-overflow")),
+            CanonicalValue::Identifier(Id("receive-overflow")),
+            CanonicalValue::Identifier(Id("work-exhausted")),
+            CanonicalValue::Identifier(Id("datagram-oversized")),
+        ]),
+    ),
+    semantic_field(
+        "counts",
+        CanonicalValue::Identifier(Id("sent-received-messages-evidence")),
+    ),
+    semantic_field(
+        "cleanup",
+        CanonicalValue::Identifier(Id("explicit-bounded-completion")),
+    ),
+];
+
 /// Returns the exact host-language-neutral descriptor for one type definition.
 #[must_use]
 pub fn standard_type_descriptor(
@@ -532,6 +627,10 @@ pub fn standard_type_descriptor(
         "std/text" => CanonicalValue::Map(TEXT_DESCRIPTOR_FIELDS),
         "std/integer" => CanonicalValue::Map(INTEGER_DESCRIPTOR_FIELDS),
         "std/format-values" => CanonicalValue::Map(FORMAT_VALUES_DESCRIPTOR_FIELDS),
+        "net/socket/session" => CanonicalValue::Map(SOCKET_SESSION_DESCRIPTOR_FIELDS),
+        "net/tcp/chunk" => CanonicalValue::Map(TCP_CHUNK_DESCRIPTOR_FIELDS),
+        "net/udp/datagram" => CanonicalValue::Map(UDP_DATAGRAM_DESCRIPTOR_FIELDS),
+        "net/socket/result" => CanonicalValue::Map(SOCKET_RESULT_DESCRIPTOR_FIELDS),
         _ => CanonicalValue::Null,
     };
     CanonicalDescriptor {

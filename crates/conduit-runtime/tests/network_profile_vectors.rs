@@ -2,8 +2,8 @@ mod support;
 
 use conduit_panel::Node;
 use conduit_runtime::{
-    AvailabilityState, DNS_RESOLVER_CONTRACT, Handler, Registry, RunIo, RuntimeError,
-    TCP_SOCKET_CONTRACT, UDP_SOCKET_CONTRACT, Value, WIFI_AP_CONTRACT, WIFI_STATION_CONTRACT,
+    AvailabilityState, DNS_RESOLVER_CONTRACT, Handler, Registry, RunIo, RuntimeError, Value,
+    WIFI_AP_CONTRACT, WIFI_STATION_CONTRACT,
 };
 
 struct Impostor;
@@ -21,13 +21,22 @@ impl Handler for Impostor {
 
 #[test]
 fn wifi_socket_and_dns_callbacks_cannot_claim_network_conformance() {
-    for contract in [
+    let mut contracts = vec![
         &WIFI_STATION_CONTRACT,
         &WIFI_AP_CONTRACT,
         &DNS_RESOLVER_CONTRACT,
-        &TCP_SOCKET_CONTRACT,
-        &UDP_SOCKET_CONTRACT,
-    ] {
+    ];
+    contracts.extend(
+        [
+            "conduit.host/net/tcp/connect",
+            "conduit.host/net/tcp/listen",
+            "conduit.host/net/udp/connected",
+            "conduit.host/net/udp/datagram",
+        ]
+        .into_iter()
+        .map(|id| conduit_std::standard_node_contract(id).unwrap()),
+    );
+    for contract in contracts {
         let mut registry = Registry::default();
         let fixture = support::provider(
             contract,

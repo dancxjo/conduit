@@ -4,6 +4,10 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 | Contract | Class | Package | Provider bundles | Standalone lesson | Composition lesson |
 |---|---|---|---:|---|---|
+| `conduit.host/net/tcp/connect` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.tcp.connect.standalone (required) | tour/lessons/current.json#library.conduit.host.net.tcp.connect.composition (required) |
+| `conduit.host/net/tcp/listen` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.tcp.listen.standalone (required) | tour/lessons/current.json#library.conduit.host.net.tcp.listen.composition (required) |
+| `conduit.host/net/udp/connected` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.udp.connected.standalone (required) | tour/lessons/current.json#library.conduit.host.net.udp.connected.composition (required) |
+| `conduit.host/net/udp/datagram` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.udp.datagram.standalone (required) | tour/lessons/current.json#library.conduit.host.net.udp.datagram.composition (required) |
 | `conduit.host/process/exec` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `conduit.std/gate` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
 | `conduit.std/merge` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
@@ -61,8 +65,6 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `net/reachability` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.reachability.standalone (required) | tour/lessons/current.json#library.net.reachability.composition (required) |
 | `net/route` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.route.standalone (required) | tour/lessons/current.json#library.net.route.composition (required) |
 | `net/sse` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.sse.standalone (required) | tour/lessons/current.json#library.net.sse.composition (required) |
-| `net/tcp/socket` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.tcp.socket.standalone (required) | tour/lessons/current.json#library.net.tcp.socket.composition (required) |
-| `net/udp/socket` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.udp.socket.standalone (required) | tour/lessons/current.json#library.net.udp.socket.composition (required) |
 | `net/websocket` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.websocket.standalone (required) | tour/lessons/current.json#library.net.websocket.composition (required) |
 | `net/wifi/access-point` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.wifi.access-point.standalone (required) | tour/lessons/current.json#library.net.wifi.access-point.composition (required) |
 | `net/wifi/join` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.wifi.join.standalone (required) | tour/lessons/current.json#library.net.wifi.join.composition (required) |
