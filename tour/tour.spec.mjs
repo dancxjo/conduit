@@ -366,6 +366,8 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
   const dragHandle = async (from, to) => {
     await expect(from).toBeVisible();
     await expect(to).toBeVisible();
+    await from.scrollIntoViewIfNeeded();
+    await to.scrollIntoViewIfNeeded();
     const fromBox = await from.boundingBox();
     const toBox = await to.boundingBox();
     expect(fromBox).not.toBeNull();
@@ -847,6 +849,284 @@ test("emphasizes one of several diagnostics without replaying unchanged checks",
   expect(after.currentTime).toBeGreaterThan(before.currentTime);
   expect(after.geometry).toBe(before.geometry);
   await expect(page.locator("#diagnostic-console li")).toHaveCount(2);
+});
+
+test("enters and exits the same fullscreen workspace without rebuilding state", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await page.locator("#expanded-view").click();
+  await page.locator('.react-flow__node[data-id="greeting"]').click();
+  await source.evaluate((element) => {
+    element.__conduitLiveEditor = true;
+    element.setSelectionRange(6, 14);
+    element.scrollTop = 18;
+  });
+  const before = await page.evaluate(() => ({
+    sourceRevision: JSON.parse(
+      document.querySelector("#patchbay-editor-status").textContent
+        .match(/r(\d+)/)[1],
+    ),
+    viewport: document.querySelector(".react-flow__viewport")?.style.transform,
+    selection: [
+      document.querySelector("#source").selectionStart,
+      document.querySelector("#source").selectionEnd,
+    ],
+    expanded: document.querySelector("#expanded-view").getAttribute("aria-pressed"),
+  }));
+
+  await page.locator("#workspace-fullscreen").click();
+  const workspace = page.locator("#patchbay-workspace");
+  await expect(workspace).toHaveClass(/patchbay-workspace-active/);
+  await expect.poll(() => page.evaluate(() =>
+    document.fullscreenElement?.id || null
+  )).toBe("patchbay-workspace");
+  await expect(page.locator("#workspace-exit")).toBeFocused();
+  await expect(page.locator("#run")).toBeVisible();
+  await expect(page.locator("#check")).toBeVisible();
+  await expect(page.locator("#logical-view")).toBeVisible();
+  await expect(page.locator("#arrange")).toBeVisible();
+  await expect(page.locator("#workspace-error-count")).toBeVisible();
+  await expect(page.locator("#patchbay-source-window")).toBeVisible();
+  expect(await source.evaluate((element) => element.__conduitLiveEditor)).toBe(true);
+
+  await page.locator("#workspace-exit").click();
+  await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
+  await expect(page.locator("#workspace-fullscreen")).toBeFocused();
+  const after = await page.evaluate(() => ({
+    sourceRevision: JSON.parse(
+      document.querySelector("#patchbay-editor-status").textContent
+        .match(/r(\d+)/)[1],
+    ),
+    viewport: document.querySelector(".react-flow__viewport")?.style.transform,
+    selection: [
+      document.querySelector("#source").selectionStart,
+      document.querySelector("#source").selectionEnd,
+    ],
+    expanded: document.querySelector("#expanded-view").getAttribute("aria-pressed"),
+  }));
+  expect(after).toEqual(before);
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected node: greeting",
+  );
+  await page.locator("#workspace-fullscreen").click();
+  await expect(workspace).toHaveClass(/patchbay-workspace-active/);
+  await page.evaluate(() => document.exitFullscreen());
+  await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
+});
+
+test("falls back honestly and keeps one movable shadeable dockable editor", async ({ page }) => {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () =>
+      Promise.reject(new DOMException("denied", "NotAllowedError"));
+  });
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await source.evaluate((element) => {
+    element.__conduitLiveEditor = "one";
+    element.focus();
+    element.setSelectionRange(8, 16);
+    element.scrollTop = 24;
+  });
+  await page.locator("#workspace-fullscreen").click();
+  const workspace = page.locator("#patchbay-workspace");
+  const editorWindow = page.locator("#patchbay-source-window");
+  await expect(workspace).toHaveClass(/patchbay-workspace-fallback/);
+  await expect(page.locator("#workspace-mode-status")).toHaveText(
+    "In-page fullscreen fallback",
+  );
+  await editorWindow.evaluate((element) =>
+    Promise.all(
+      element.getAnimations({ subtree: true })
+        .map((animation) => animation.finished.catch(() => undefined)),
+    )
+  );
+
+  const titlebar = page.locator(".patchbay-source-titlebar");
+  const beforeDrag = await editorWindow.boundingBox();
+  const titlebarBox = await titlebar.boundingBox();
+  const titleBox = await titlebar.locator("h3").boundingBox();
+  await page.mouse.move(
+    titleBox.x + titleBox.width / 2,
+    titleBox.y + titleBox.height / 2,
+  );
+  await page.mouse.down();
+  await expect(editorWindow).toHaveClass(/workspace-dragging/);
+  await expect(editorWindow).toHaveCSS("transition-duration", "0s");
+  await page.mouse.move(titlebarBox.x + 125, titlebarBox.y + 75);
+  await page.mouse.up();
+  await expect.poll(async () => (await editorWindow.boundingBox()).x)
+    .toBeGreaterThan(beforeDrag.x + 40);
+  await expect.poll(async () => (await editorWindow.boundingBox()).y)
+    .toBeGreaterThan(beforeDrag.y + 20);
+  const afterDrag = await editorWindow.boundingBox();
+  expect(afterDrag.x).toBeGreaterThan(beforeDrag.x + 40);
+  expect(afterDrag.y).toBeGreaterThan(beforeDrag.y + 20);
+
+  const resize = page.locator(".patchbay-editor-resize-handle");
+  const beforeResize = await editorWindow.boundingBox();
+  const resizeBox = await resize.boundingBox();
+  await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(resizeBox.x + 70, resizeBox.y + 55);
+  await page.mouse.up();
+  const afterResize = await editorWindow.boundingBox();
+  expect(afterResize.width).toBeGreaterThan(beforeResize.width + 30);
+  expect(afterResize.height).toBeGreaterThan(beforeResize.height + 20);
+
+  const selection = await source.evaluate((element) => [
+    element.selectionStart,
+    element.selectionEnd,
+    element.scrollTop,
+  ]);
+  await page.locator("#workspace-shade-editor").click();
+  await expect(editorWindow).toHaveClass(/workspace-shaded/);
+  await expect(page.locator("#patchbay-editor-status")).toContainText("diagnostic");
+  await page.locator("#workspace-shade-editor").click();
+  await expect(editorWindow).not.toHaveClass(/workspace-shaded/);
+  await expect(source).toBeFocused();
+  expect(await source.evaluate((element) => [
+    element.selectionStart,
+    element.selectionEnd,
+    element.scrollTop,
+  ])).toEqual(selection);
+  expect(await source.evaluate((element) => element.__conduitLiveEditor)).toBe("one");
+
+  await page.locator("#workspace-dock-editor").click();
+  await expect(editorWindow).toHaveClass(/workspace-docked/);
+  await expect(page.locator("#workspace-dock-editor")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.locator("#workspace-dock-editor").click();
+  await expect(editorWindow).toHaveClass(/workspace-floating/);
+  await page.locator("#workspace-hide-editor").click();
+  await expect(editorWindow).toBeHidden();
+  await expect(page.locator("#workspace-show-editor")).toBeVisible();
+  await page.locator("#workspace-show-editor").click();
+  await expect(editorWindow).toBeVisible();
+
+  await page.setViewportSize({ width: 720, height: 540 });
+  await expect.poll(async () => {
+    const box = await editorWindow.boundingBox();
+    return box.y + box.height;
+  }).toBeLessThanOrEqual(540);
+  const recovered = await editorWindow.boundingBox();
+  expect(recovered.x).toBeGreaterThanOrEqual(0);
+  expect(recovered.y).toBeGreaterThanOrEqual(0);
+  expect(recovered.x + recovered.width).toBeLessThanOrEqual(720);
+  expect(recovered.y + recovered.height).toBeLessThanOrEqual(540);
+
+  await page.locator("#check").click();
+  await expect(workspace).toHaveClass(/patchbay-workspace-active/);
+  await page.locator("#workspace-shade-editor").click();
+  await page.keyboard.press("Escape");
+  await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
+  await page.locator("#workspace-fullscreen").click();
+  await expect(editorWindow).toHaveClass(/workspace-shaded/);
+  await page.locator("#workspace-shade-editor").click();
+  await page.keyboard.press("Escape");
+  await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
+});
+
+test("navigates incomplete source and diagnostics in fullscreen with reduced motion", async ({ page }) => {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () =>
+      Promise.reject(new DOMException("denied", "NotAllowedError"));
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/node first/, { timeout: 20_000 });
+  const original = await source.inputValue();
+  await source.fill(`${original}\nnode provisional :`);
+  await expect(
+    page.locator('[data-id="provisional"] .conduit-faceplate-card'),
+  ).toHaveClass(/faceplate-validity-incomplete/, { timeout: 20_000 });
+  await page.locator("#workspace-fullscreen").click();
+  const workspace = page.locator("#patchbay-workspace");
+  await expect(workspace).toHaveClass(/patchbay-workspace-active/);
+  await expect(page.locator("#workspace-error-count")).not.toHaveAttribute(
+    "data-count",
+    "0",
+  );
+  await expect(page.locator("#patchbay-editor-status")).toContainText("edited");
+  await page.locator("#workspace-error-count").click();
+  await expect(page.locator(".patchbay-workspace-console")).toBeVisible();
+  await page.locator(".diagnostic-console-button").first().click();
+  await expect(source).toBeVisible();
+  expect(await source.evaluate((element) =>
+    element.selectionEnd > element.selectionStart
+  )).toBe(true);
+  await page.locator("#workspace-hide-editor").click();
+  await page.locator('[data-id="first"]').click();
+  await page.locator("#workspace-show-editor").click();
+  await expect(page.locator(".panel-source-selection")).toContainText(
+    "node first",
+  );
+  await expect(workspace).toHaveCSS("animation-name", "none");
+  await expect(page.locator("#patchbay-source-window")).toHaveCSS(
+    "transition-duration",
+    "0s",
+  );
+  await page.locator("#workspace-shade-editor").click();
+  await page.locator("#workspace-shade-editor").click();
+  await expect(
+    page.locator(".patchbay-smart-cord.diagnostic-emphasized .react-flow__edge-path"),
+  ).toHaveCSS("animation-name", "none");
+});
+
+test("window presentation changes do not recreate unchanged diagnostic motion", async ({ page }) => {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () =>
+      Promise.reject(new DOMException("denied", "NotAllowedError"));
+  });
+  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  await expect(page.locator(".patchbay-smart-cord.diagnostic-emphasized")).toHaveCount(1);
+  await page.locator("#workspace-fullscreen").click();
+  const path = page.locator(
+    ".patchbay-smart-cord.diagnostic-emphasized .react-flow__edge-path",
+  );
+  await expect(path).toHaveCSS("animation-name", "patchbay-new-error");
+  const before = await path.evaluate((element) => {
+    element.__workspaceAnimation = element.getAnimations()[0];
+    return element.__workspaceAnimation.currentTime;
+  });
+  await page.locator("#workspace-shade-editor").click();
+  await page.locator("#workspace-dock-editor").click();
+  await page.locator("#workspace-shade-editor").click();
+  const after = await path.evaluate((element) => ({
+    same: element.__workspaceAnimation === element.getAnimations()[0],
+    currentTime: element.getAnimations()[0].currentTime,
+  }));
+  expect(after.same).toBe(true);
+  expect(after.currentTime).toBeGreaterThan(before);
+});
+
+test("standalone Patchbay app exposes the same live fullscreen editor workspace", async ({ page }) => {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () =>
+      Promise.reject(new DOMException("denied", "NotAllowedError"));
+  });
+  await page.goto("/tour/public/patchbay-app.html");
+  const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await source.evaluate((element) => {
+    element.__standaloneEditorIdentity = "live";
+  });
+  await page.locator("#workspace-fullscreen").click();
+  await expect(page.locator("#patchbay-workspace")).toHaveClass(
+    /patchbay-workspace-active/,
+  );
+  await expect(page.locator("#patchbay-source-window")).toBeVisible();
+  expect(
+    await source.evaluate((element) => element.__standaloneEditorIdentity),
+  ).toBe("live");
+  await page.locator("#workspace-shade-editor").click();
+  await expect(page.locator("#patchbay-source-window")).toHaveClass(
+    /workspace-shaded/,
+  );
 });
 
 test("routes cords through free space and keeps labels off node faces", async ({ page }) => {

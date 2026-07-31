@@ -304,6 +304,19 @@ export class PatchbayReactFlowRenderer {
     // React Flow owns interaction. Position updates come from drag callbacks.
   }
 
+  getViewport() {
+    return this.flowInstance?.getViewport?.() || null;
+  }
+
+  setViewport(viewport) {
+    if (!viewport || !this.flowInstance?.setViewport) return;
+    void this.flowInstance.setViewport(viewport, { duration: 0 });
+  }
+
+  notifyResize() {
+    window.dispatchEvent(new Event("resize"));
+  }
+
   updateConfig(nodeId, key, value, kind) {
     if (!this.onTransaction) return;
     this.onTransaction({
@@ -650,7 +663,8 @@ export class PatchbayReactFlowRenderer {
         maxZoom: 3,
         fitView: true,
         fitViewOptions: { maxZoom: 1.2 },
-        onInit: () => {
+        onInit: (instance) => {
+          this.flowInstance = instance;
           this.flowWrapper.dataset.layout = "ready";
         },
       },
