@@ -751,14 +751,14 @@ fn browser_placements_use_generic_resolution_and_partition_with_linux() {
         &LINUX_REF,
         &[],
     );
-    let native_fake = implementation(
-        "fixture/native-fake-portable-transform",
+    let native_fixture = implementation(
+        "fixture/native-fixture-portable-transform",
         ExecutorKind::NativeInProcess,
         &LINUX_REF,
         &[],
     );
-    let native_fake_report = report(
-        "fixture/native-fake-report",
+    let native_fixture_report = report(
+        "fixture/native-fixture-report",
         "native-test-host",
         30,
         budget(64, 8, 8),
@@ -775,10 +775,10 @@ fn browser_placements_use_generic_resolution_and_partition_with_linux() {
         topology: &[],
         authorities: &[],
     };
-    let native_fake_candidate = PlacementCandidate {
-        manifest: &native_fake,
+    let native_fixture_candidate = PlacementCandidate {
+        manifest: &native_fixture,
         artifacts: &artifacts,
-        report: &native_fake_report,
+        report: &native_fixture_report,
         allocation: budget(8, 1, 1),
         capabilities: &[],
         resources: &[],
@@ -786,42 +786,42 @@ fn browser_placements_use_generic_resolution_and_partition_with_linux() {
         authorities: &[],
     };
     let browser_wasm_candidates = [browser_wasm_candidate];
-    let native_fake_candidates = [native_fake_candidate];
+    let native_fixture_candidates = [native_fixture_candidate];
     let browser_wasm_requests = [PlacementRequest {
         instance: InstancePath::new("root/portable-transform").unwrap(),
         semantic_contract: CONTRACT,
         candidates: &browser_wasm_candidates,
     }];
-    let native_fake_requests = [PlacementRequest {
+    let native_fixture_requests = [PlacementRequest {
         instance: InstancePath::new("root/portable-transform").unwrap(),
         semantic_contract: CONTRACT,
-        candidates: &native_fake_candidates,
+        candidates: &native_fixture_candidates,
     }];
     let browser_wasm_plan = resolve_host_placement(
         &browser_wasm_requests,
         policy(&[], ResolverTiePolicy::LowestCanonicalIdentity),
     )
     .unwrap();
-    let native_fake_plan = resolve_host_placement(
-        &native_fake_requests,
+    let native_fixture_plan = resolve_host_placement(
+        &native_fixture_requests,
         policy(&[], ResolverTiePolicy::LowestCanonicalIdentity),
     )
     .unwrap();
     assert_eq!(
         browser_wasm.semantic_contract,
-        native_fake.semantic_contract
+        native_fixture.semantic_contract
     );
     assert_eq!(
         browser_wasm_plan.bindings[0].implementation_id,
         "fixture/browser-wasm-portable-transform"
     );
     assert_eq!(
-        native_fake_plan.bindings[0].implementation_id,
-        "fixture/native-fake-portable-transform"
+        native_fixture_plan.bindings[0].implementation_id,
+        "fixture/native-fixture-portable-transform"
     );
     assert_ne!(
         browser_wasm_plan.bindings[0].implementation_id,
-        native_fake_plan.bindings[0].implementation_id
+        native_fixture_plan.bindings[0].implementation_id
     );
 
     let linux_artifact = artifact("fixture/pico-blob", PICO_DIGEST);
@@ -926,7 +926,7 @@ fn browser_placements_use_generic_resolution_and_partition_with_linux() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|case| case["id"] == "browser-wasm-native-fake-same-contract")
+        .find(|case| case["id"] == "browser-wasm-native-fixture-same-contract")
         .unwrap()["expected"]
         .clone();
     assert_eq!(

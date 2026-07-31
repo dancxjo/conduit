@@ -1534,6 +1534,7 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     let mut accepted_profile_bindings = BTreeMap::new();
     let mut accepted_boundaries = BTreeSet::new();
     let mut accepted_type_relations = BTreeSet::new();
+    let mut rejected_profile_codes = BTreeMap::new();
     for profile in lesson["platform"]["profiles"].as_array().unwrap() {
         let fixture_case = cases
             .iter()
@@ -1560,7 +1561,10 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
                     .expect("fixture case names a type relation"),
             );
         } else {
-            assert_eq!(fixture_case["expected"], profile["code"]);
+            let profile_id = profile["id"].as_str().expect("platform profile has id");
+            let profile_code = profile["code"].as_str().expect("platform profile has rejection code");
+            assert_eq!(fixture_case["expected"], profile_code);
+            rejected_profile_codes.insert(profile_id.to_owned(), profile_code.to_owned());
         }
     }
     assert_eq!(
@@ -1581,6 +1585,19 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     assert_eq!(
         accepted_type_relations.contains("different-explicit-adapter"),
         true
+    );
+    assert_eq!(rejected_profile_codes.len(), 3);
+    assert_eq!(
+        rejected_profile_codes.get("firmware-unsupported"),
+        Some(&"CND-HCF-005".to_string())
+    );
+    assert_eq!(
+        rejected_profile_codes.get("describe-only"),
+        Some(&"CND-HCF-003".to_string())
+    );
+    assert_eq!(
+        rejected_profile_codes.get("provider-lost"),
+        Some(&"CND-HCF-007".to_string())
     );
     let deterministic_bindings = accepted_profile_bindings
         .get("deterministic-host")

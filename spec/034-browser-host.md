@@ -60,6 +60,6 @@ branching on browser names. The generic Rust host resolver independently proves
 all seven placement modes and a bounded ordinary panel partitioned across a
 browser AudioWorklet and Linux remote endpoint. It also resolves one portable
 semantic contract independently to browser WASM and a deterministic native
-fake while retaining distinct implementation identities. Other reference
+fixture while retaining distinct implementation identities. Other reference
 profiles cover offline bounded storage, activation-gated audio, and controlled
 GPU fallback.

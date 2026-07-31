@@ -3672,7 +3672,7 @@
             "stale-report-rejected": "BRW-003",
             "adapter-queue-is-bounded": "BRW-004",
             "concrete-window-worker-service-worklet-wasm-gpu-adapters": "BRW-004",
-            "browser-wasm-native-fake-same-contract": "BRW-004",
+            "browser-wasm-native-fixture-same-contract": "BRW-004",
             "browser-linux-partition-uses-generic-resolver": "BRW-004",
             "presentation-and-host-identities-separate": "BRW-005",
             "unsupported-feature-is-explicit": "BRW-006",
@@ -3692,7 +3692,7 @@
         "positive": [
           "browser-host#report-requires-realm-passport-status",
           "browser-host#concrete-window-worker-service-worklet-wasm-gpu-adapters",
-          "browser-host#browser-wasm-native-fake-same-contract",
+            "browser-host#browser-wasm-native-fixture-same-contract",
           "browser-host#browser-linux-partition-uses-generic-resolver"
         ],
         "negative": [
