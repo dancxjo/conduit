@@ -112,6 +112,13 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
   const hasSelection = Number.isInteger(selectionStart) &&
     Number.isInteger(selectionEnd) &&
     selectionStart < selectionEnd;
+  const relatedRanges = Array.isArray(selectedRange?.related)
+    ? selectedRange.related.filter((range) =>
+      Number.isInteger(range?.start) &&
+      Number.isInteger(range?.end) &&
+      range.start < range.end
+    )
+    : [];
   const semanticAnnotations = metadata?.semantic_available === true &&
       Array.isArray(metadata.annotations)
     ? metadata.annotations.filter((annotation) =>
@@ -124,6 +131,7 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
     : [];
   let output = "";
   let selectionOpen = false;
+  let relatedOpen = false;
 
   for (const { text, tokenStart, kind, attributes } of runs) {
     const tokenEnd = tokenStart + text.length;
@@ -133,6 +141,14 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
     }
     if (hasSelection && selectionEnd > tokenStart && selectionEnd < tokenEnd) {
       boundaries.push(selectionEnd);
+    }
+    for (const range of relatedRanges) {
+      if (range.start > tokenStart && range.start < tokenEnd) {
+        boundaries.push(range.start);
+      }
+      if (range.end > tokenStart && range.end < tokenEnd) {
+        boundaries.push(range.end);
+      }
     }
     for (const annotation of semanticAnnotations) {
       if (annotation.start_utf16 > tokenStart &&
@@ -152,13 +168,27 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
       const selected = hasSelection &&
         fragmentStart >= selectionStart &&
         fragmentEnd <= selectionEnd;
+      const related = relatedRanges.some((range) =>
+        fragmentStart >= range.start && fragmentEnd <= range.end
+      );
 
       if (selected && !selectionOpen) {
         output += '<mark class="panel-source-selection">';
         selectionOpen = true;
       } else if (!selected && selectionOpen) {
+        if (relatedOpen) {
+          output += "</span>";
+          relatedOpen = false;
+        }
         output += "</mark>";
         selectionOpen = false;
+      }
+      if (related && !relatedOpen) {
+        output += '<span class="panel-source-endpoint">';
+        relatedOpen = true;
+      } else if (!related && relatedOpen) {
+        output += "</span>";
+        relatedOpen = false;
       }
 
       const escaped = escapeHtml(
@@ -177,11 +207,13 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
       const renderedAttributes = annotation
         ? semanticAttributes(annotation)
         : attributes;
-      output += renderedKind
+      const rendered = renderedKind
         ? `<span class="panel-token-${renderedKind}"${renderedAttributes}>${escaped}</span>`
         : escaped;
+      output += rendered;
     }
   }
+  if (relatedOpen) output += "</span>";
   if (selectionOpen) output += "</mark>";
 
   // A final newline needs a visible line box to keep overlay scrolling aligned.
@@ -223,8 +255,20 @@ export function attachPanelSourceHighlighting(textarea) {
   textarea.syncHighlight = sync;
   textarea.setSourceHighlightRange = (start, end) => {
     textarea.sourceHighlightRange = Number.isInteger(start) && Number.isInteger(end)
-      ? { start, end }
+      ? { start, end, related: textarea.sourceHighlightRange?.related || [] }
       : null;
+    sync();
+  };
+  textarea.setSourceRelatedRanges = (ranges) => {
+    const related = Array.isArray(ranges)
+      ? ranges.filter(Boolean).map((range) => ({
+        start: range.start_utf16,
+        end: range.end_utf16,
+      }))
+      : [];
+    textarea.sourceHighlightRange = textarea.sourceHighlightRange
+      ? { ...textarea.sourceHighlightRange, related }
+      : { related };
     sync();
   };
   textarea.addEventListener("input", sync);

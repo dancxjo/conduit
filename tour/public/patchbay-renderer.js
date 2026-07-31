@@ -97,6 +97,26 @@ function edgePresentation(edge) {
   };
 }
 
+function endpointForView(edge, side, view) {
+  if (view !== "logical") {
+    return {
+      node: edge[`${side}_node`],
+      port: edge[`${side}_port`],
+    };
+  }
+  const path = edge[`${side}_port_path`];
+  const members = typeof path === "string" ? path.split("/") : [];
+  const portIndex = members.lastIndexOf("port");
+  if (members[0] !== "root" || portIndex < 2 ||
+      portIndex + 2 >= members.length) {
+    return null;
+  }
+  return {
+    node: members.slice(1, portIndex).join("/"),
+    port: members.slice(portIndex + 2).join("/"),
+  };
+}
+
 export class PatchbayReactFlowRenderer {
   constructor(containerElement, options = {}) {
     this.container = containerElement;
@@ -132,15 +152,17 @@ export class PatchbayReactFlowRenderer {
     this.renderFlow();
   }
 
-  setViewModel(viewModel, lessonId = "default") {
+  setViewModel(viewModel, lessonId = "default", topologyView = "logical") {
     this.viewModel = viewModel;
     this.lessonId = lessonId;
+    this.topologyView = topologyView;
     this.renderFlow();
   }
 
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
     this.selectedCordId = null;
+    this.highlightCordEndpoints(null);
     this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
       const shell = card.closest(".react-flow__node");
       card.classList.toggle("selected-faceplate", shell?.dataset.id === nodeId);
@@ -152,7 +174,27 @@ export class PatchbayReactFlowRenderer {
     this.selectedCordId = cordId;
     const projectedEdges = this.viewModel?.topology?.cords || [];
     this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
-      edge.classList.toggle("selected", projectedEdges[index]?.id === cordId);
+      edge.classList.toggle("selected", this.renderedCordIds?.[index] === cordId);
+    });
+    this.highlightCordEndpoints(
+      projectedEdges.find((edge) => edge.id === cordId) || null,
+    );
+  }
+
+  highlightCordEndpoints(cord) {
+    const selectedPaths = new Set(cord
+      ? this.topologyView === "logical"
+        ? [cord.from_port_path, cord.to_port_path]
+        : [
+            `root/${cord.from_node}/port/outgoing/${cord.from_port}`,
+            `root/${cord.to_node}/port/receiving/${cord.to_port}`,
+          ]
+      : []
+    );
+    this.flowWrapper?.querySelectorAll(".faceplate-port-row").forEach((row) => {
+      const selected = selectedPaths.has(row.dataset.semanticPath);
+      row.classList.toggle("selected-cord-endpoint", selected);
+      row.setAttribute("aria-current", selected ? "true" : "false");
     });
   }
 
@@ -205,13 +247,26 @@ export class PatchbayReactFlowRenderer {
       return;
     }
 
-    const projectedNodes = viewModel.topology?.expanded_nodes || [];
-    const projectedEdges = viewModel.topology?.cords || [];
+    const projectedNodes = this.topologyView === "logical"
+      ? viewModel.topology?.logical_nodes || []
+      : viewModel.topology?.expanded_nodes || [];
+    const projectedNodeIds = new Set(projectedNodes.map((node) => node.id));
+    const projectedEdges = (viewModel.topology?.cords || [])
+      .map((edge) => ({
+        edge,
+        source: endpointForView(edge, "from", this.topologyView),
+        target: endpointForView(edge, "to", this.topologyView),
+      }))
+      .filter(({ source, target }) =>
+        source && target &&
+        projectedNodeIds.has(source.node) &&
+        projectedNodeIds.has(target.node)
+      );
     const nodePositions = viewModel.presentation?.node_positions || {};
     const positionForNode = (nodeId, index) =>
       nodePositions[nodeId] || {
-        x: 32 + (index % 2) * 320,
-        y: 40 + Math.floor(index / 2) * 220,
+        x: 32 + (index % 2) * 640,
+        y: 40 + Math.floor(index / 2) * 280,
       };
 
     const compositeIds = new Set(
@@ -219,16 +274,24 @@ export class PatchbayReactFlowRenderer {
     );
     const nodes = projectedNodes.map((node, index) => {
       const configRows = Object.keys(node.config || {}).length;
-      const portRows = Math.max(node.inputs?.length || 0, node.outputs?.length || 0);
-      const nodeHeight = Math.max(160, 132 + Math.max(configRows * 34, portRows * 36));
+      const portRows = (node.inputs?.length || 0) + (node.outputs?.length || 0);
+      const statusRows = [
+        node.availability,
+        node.placement,
+        node.activity,
+      ].filter(Boolean).length;
+      const nodeHeight = Math.max(
+        118,
+        76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0),
+      );
       return {
         id: node.id,
         type: "faceplate",
         position: positionForNode(node.id, index),
         className: "react-flow-node-shell",
-        width: 280,
+        width: 350,
         height: nodeHeight,
-        style: { width: 280, height: nodeHeight },
+        style: { width: 350, height: nodeHeight },
         data: {
         ...node,
         title: node.id,
@@ -258,17 +321,17 @@ export class PatchbayReactFlowRenderer {
       };
     });
 
-    const edges = projectedEdges.map((edge) => {
+    const edges = projectedEdges.map(({ edge, source, target }) => {
       const presentation = edgePresentation(edge);
       const edgeType = patchbayFeatures.legacyLinePlacement && this.legacySmartEdge
         ? "patchbaySmartEdge"
         : "smoothstep";
       return {
         id: edge.id,
-        source: edge.from_node,
-        sourceHandle: edge.from_port,
-        target: edge.to_node,
-        targetHandle: edge.to_port,
+        source: source.node,
+        sourceHandle: source.port,
+        target: target.node,
+        targetHandle: target.port,
         type: edgeType,
         label: presentation.label,
         markerEnd: {
@@ -304,6 +367,7 @@ export class PatchbayReactFlowRenderer {
         selected: edge.id === this.selectedCordId,
       };
     });
+    this.renderedCordIds = edges.map((edge) => edge.id);
 
     const ReactFlowRenderer =
       window.ReactFlow.default || window.ReactFlow.ReactFlow || window.ReactFlow;
@@ -414,7 +478,7 @@ export class PatchbayReactFlowRenderer {
       patchbayFeatures.legacyLinePlacement,
     );
     this.flowWrapper.dataset.nodeCount = String(projectedNodes.length);
-    this.flowWrapper.dataset.edgeCount = String(projectedEdges.length);
+    this.flowWrapper.dataset.edgeCount = String(edges.length);
 
     if (!this.reactRoot) {
       this.reactRoot = window.ReactDOM.createRoot
