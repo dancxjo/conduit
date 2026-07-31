@@ -21,9 +21,10 @@ use conduit_core::{
     SatisfactionMethod, SatisfactionObligation, SatisfactionPin, SatisfactionProof,
     SatisfactionReason, SatisfactionRole, SemanticHash, Sensitivity, StopPolicy,
     SubscriberCoupling, TypeContractRef, UnknownCommitPolicy, UnresolvedPlanConstraint,
-    UnresolvedPlanKind, ValueEnvelopePolicy, WORKLOAD_CONTRACT_SCHEMA_VERSION, WorkloadBudget,
-    WorkloadCapability, WorkloadContract, WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit,
-    resolve_authority, validate_execution_plan,
+    UnresolvedPlanKind, ValueEnvelopePolicy, WORKLOAD_CONTRACT_SCHEMA_VERSION, WatchAdmission,
+    WatchRetention, WatchSubject, WorkloadBudget, WorkloadCapability, WorkloadContract,
+    WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit, resolve_authority,
+    validate_execution_plan,
 };
 
 const ZERO_HASH: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -351,6 +352,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &authorities,
@@ -1947,6 +1949,34 @@ fn current_plan_pins_value_clock_and_feedback_facts() {
             scratch,
         )
         .unwrap();
+
+        let watches = [WatchAdmission {
+            id: Id("watch/cord-0"),
+            subject: WatchSubject::Cord(cords[0].id),
+            representation: envelopes[0].representation,
+            maximum_preview_bytes: 16,
+            maximum_history: 1,
+            minimum_tick_interval: 1,
+            retention: WatchRetention::Latest,
+            sensitivity_ceiling: Sensitivity::Public,
+            reveal_action: None,
+        }];
+        let mut watched = ExecutionPlan {
+            identity: ZERO_HASH,
+            watch_admissions: &watches,
+            ..plan
+        };
+        watched.identity = watched.semantic_hash(scratch).unwrap();
+        validate_execution_plan(
+            &watched,
+            PlanValidationContext {
+                supported_schema_version: EXECUTION_PLAN_SCHEMA_VERSION,
+                now: time(20),
+            },
+            scratch,
+        )
+        .unwrap();
+        assert_ne!(watched.identity, plan.identity);
 
         let without_feedback = ExecutionPlan {
             feedback_boundaries: &[],

@@ -97,8 +97,10 @@ pub fn validate_watch_admissions(
         return Err(WatchAdmissionReason::EmptySlots);
     }
     for (index, slot) in slots.iter().enumerate() {
-        if slot.id.as_str().is_empty()
-            || slot.maximum_preview_bytes == 0
+        if slot.id.as_str().is_empty() {
+            return Err(WatchAdmissionReason::InvalidIdentity);
+        }
+        if slot.maximum_preview_bytes == 0
             || slot.maximum_history == 0
             || slot.minimum_tick_interval == 0
         {
@@ -110,7 +112,9 @@ pub fn validate_watch_admissions(
         if matches!(slot.retention, WatchRetention::Latest) && slot.maximum_history != 1 {
             return Err(WatchAdmissionReason::InvalidRetention);
         }
-        if slot.sensitivity_ceiling != Sensitivity::Public && slot.reveal_action.is_none() {
+        if slot.sensitivity_ceiling != Sensitivity::Public
+            && slot.reveal_action != Some(Id("conduit/data.present"))
+        {
             return Err(WatchAdmissionReason::RevealActionRequired);
         }
     }
@@ -149,6 +153,11 @@ mod tests {
         ring.retention = WatchRetention::Ring;
         ring.maximum_history = 2;
         ring.sensitivity_ceiling = Sensitivity::Restricted;
+        assert_eq!(
+            validate_watch_admissions(0, &[ring]),
+            Err(WatchAdmissionReason::RevealActionRequired)
+        );
+        ring.reveal_action = Some(Id("conduit/data.inspect"));
         assert_eq!(
             validate_watch_admissions(0, &[ring]),
             Err(WatchAdmissionReason::RevealActionRequired)

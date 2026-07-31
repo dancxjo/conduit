@@ -241,6 +241,7 @@ fn with_plan(
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &[],

@@ -42,11 +42,11 @@ use conduit_core::{
     SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
     SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
     ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
-    TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation, WorkloadBudget,
-    WorkloadCapability, WorkloadContract, WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit,
-    analyze_effect_closure, assess_provider_requirement, resolve_authority,
-    validate_administrative_proof, validate_effect_commit_profile, validate_reference_distribution,
-    validate_resource_lease,
+    TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation, WatchAdmission,
+    WatchRetention, WatchSubject, WorkloadBudget, WorkloadCapability, WorkloadContract,
+    WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit, analyze_effect_closure,
+    assess_provider_requirement, resolve_authority, validate_administrative_proof,
+    validate_effect_commit_profile, validate_reference_distribution, validate_resource_lease,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -2500,6 +2500,24 @@ pub struct ValueEnvelopePolicyDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct WatchAdmissionDocument {
+    pub id: String,
+    pub subject_kind: String,
+    pub cord: Option<String>,
+    pub node: Option<String>,
+    pub port: Option<String>,
+    pub direction: Option<String>,
+    pub representation: PinDocument,
+    pub maximum_preview_bytes: u32,
+    pub maximum_history: u16,
+    pub minimum_tick_interval: u64,
+    pub retention: String,
+    pub sensitivity_ceiling: String,
+    pub reveal_action: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ClockConversionDocument {
     pub id: String,
     pub source: String,
@@ -2665,6 +2683,8 @@ pub struct ExactPlanDocument {
     pub cords: Vec<PlanCordDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub value_envelopes: Vec<ValueEnvelopePolicyDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub watch_admissions: Vec<WatchAdmissionDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub clock_conversions: Vec<ClockConversionDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -2844,6 +2864,48 @@ impl ExactPlanDocument {
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
+        let watch_admissions =
+            self.watch_admissions
+                .iter()
+                .map(|watch| {
+                    let subject =
+                        match watch.subject_kind.as_str() {
+                            "cord" => WatchSubject::Cord(id(watch
+                                .cord
+                                .as_deref()
+                                .ok_or_else(|| CompileError::new(CompileReason::PlanInvalid))?)?),
+                            "node-port" => WatchSubject::NodePort {
+                                node: instance(watch.node.as_deref().ok_or_else(|| {
+                                    CompileError::new(CompileReason::PlanInvalid)
+                                })?)?,
+                                port: id(watch.port.as_deref().ok_or_else(|| {
+                                    CompileError::new(CompileReason::PlanInvalid)
+                                })?)?,
+                                direction: direction(watch.direction.as_deref().ok_or_else(
+                                    || CompileError::new(CompileReason::PlanInvalid),
+                                )?)?,
+                            },
+                            _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+                        };
+                    let retention = match watch.retention.as_str() {
+                        "latest" => WatchRetention::Latest,
+                        "ring" => WatchRetention::Ring,
+                        "sample" => WatchRetention::Sample,
+                        _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+                    };
+                    Ok(WatchAdmission {
+                        id: id(&watch.id)?,
+                        subject,
+                        representation: pin(&watch.representation)?,
+                        maximum_preview_bytes: watch.maximum_preview_bytes,
+                        maximum_history: watch.maximum_history,
+                        minimum_tick_interval: watch.minimum_tick_interval,
+                        retention,
+                        sensitivity_ceiling: sensitivity(&watch.sensitivity_ceiling)?,
+                        reveal_action: watch.reveal_action.as_deref().map(id).transpose()?,
+                    })
+                })
+                .collect::<Result<Vec<_>, CompileError>>()?;
         let clock_conversions = self
             .clock_conversions
             .iter()
@@ -3142,6 +3204,7 @@ impl ExactPlanDocument {
             merges: &[],
             event_streams: &[],
             runtime_evidence: None,
+            watch_admissions: arena.alloc_slice_copy(&watch_admissions),
             jobs: &[],
             satisfaction_proofs: &[],
             authorities: arena.alloc_slice_copy(&authorities),
@@ -4010,6 +4073,7 @@ fn compile_topology(
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &plan_authorities,
@@ -6166,6 +6230,43 @@ fn plan_document(
             .to_owned(),
         })
         .collect();
+    let watch_admissions = plan
+        .watch_admissions
+        .iter()
+        .map(|watch| {
+            let (subject_kind, cord, node, port, direction) = match watch.subject {
+                WatchSubject::Cord(cord) => {
+                    ("cord".to_owned(), Some(cord.to_string()), None, None, None)
+                }
+                WatchSubject::NodePort {
+                    node,
+                    port,
+                    direction,
+                } => (
+                    "node-port".to_owned(),
+                    None,
+                    Some(node.as_str().to_owned()),
+                    Some(port.to_string()),
+                    Some(direction.as_str().to_owned()),
+                ),
+            };
+            WatchAdmissionDocument {
+                id: watch.id.to_string(),
+                subject_kind,
+                cord,
+                node,
+                port,
+                direction,
+                representation: pin_document(watch.representation),
+                maximum_preview_bytes: watch.maximum_preview_bytes,
+                maximum_history: watch.maximum_history,
+                minimum_tick_interval: watch.minimum_tick_interval,
+                retention: watch.retention.as_str().to_owned(),
+                sensitivity_ceiling: watch.sensitivity_ceiling.as_str().to_owned(),
+                reveal_action: watch.reveal_action.map(|action| action.to_string()),
+            }
+        })
+        .collect();
     let clock_conversions = plan
         .clock_conversions
         .iter()
@@ -6243,6 +6344,7 @@ fn plan_document(
         nodes,
         cords,
         value_envelopes,
+        watch_admissions,
         clock_conversions,
         feedback_boundaries,
         authorities,
@@ -8748,6 +8850,21 @@ mod tests {
             causation_allowed: true,
             provenance_allowed: true,
             sensitivity_ceiling: "restricted".to_owned(),
+        }];
+        document.watch_admissions = vec![WatchAdmissionDocument {
+            id: "watch/compile-output".to_owned(),
+            subject_kind: "cord".to_owned(),
+            cord: Some(cord.id.clone()),
+            node: None,
+            port: None,
+            direction: None,
+            representation: pin_doc("fixture/value-bytes", 211),
+            maximum_preview_bytes: cord.max_value_bytes.min(32),
+            maximum_history: 1,
+            minimum_tick_interval: 1,
+            retention: "latest".to_owned(),
+            sensitivity_ceiling: "public".to_owned(),
+            reveal_action: None,
         }];
         document.clock_conversions = vec![ClockConversionDocument {
             id: "fixture/device-to-compile-clock".to_owned(),

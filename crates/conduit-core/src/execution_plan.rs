@@ -19,13 +19,15 @@ use crate::{
     ResourceLeaseContract, ResourceLeaseReason, RetentionPolicy, RuntimeEvidencePolicy,
     SatisfactionProof, SatisfactionRole, SemanticHash, StopPolicy, SubscriberCoupling,
     SupervisionActionKind, SupervisionContract, TypeContractRef, ValueEnvelopePolicy,
-    ValueEnvelopeReason, WorkloadCapability, WorkloadContract, WorkloadLimit, admit_workload,
+    ValueEnvelopeReason, WATCH_ADMISSION_SCHEMA_VERSION, WatchAdmission, WatchAdmissionReason,
+    WatchSubject, WorkloadCapability, WorkloadContract, WorkloadLimit, admit_workload,
     analyze_effect_closure, validate_administrative_proof, validate_authority_at_use,
     validate_clock_conversion, validate_distributed_binding, validate_effect_commit_profile,
     validate_feedback_boundary, validate_hazardous_host_binding, validate_job_contract,
     validate_offline_lease, validate_plan_execution_profile, validate_policy_budget_status,
     validate_resource_lease, validate_runtime_evidence_policy, validate_satisfaction_proof,
-    validate_stream_contract, validate_value_envelope_policy, validate_workload_contract,
+    validate_stream_contract, validate_value_envelope_policy, validate_watch_admissions,
+    validate_workload_contract,
 };
 
 /// Current pre-release exact execution-plan schema.
@@ -515,6 +517,8 @@ pub struct ExecutionPlan<'a> {
     pub event_streams: &'a [PlanEventStream<'a>],
     /// Exact executor-evidence projection policy.
     pub runtime_evidence: Option<RuntimeEvidencePolicy<'a>>,
+    /// Finite non-interfering live-value observation slots.
+    pub watch_admissions: &'a [WatchAdmission<'a>],
     /// Durable finite-job facts.
     pub jobs: &'a [PlanJob<'a>],
     /// Accepted implicit-satisfaction proofs.
@@ -555,6 +559,7 @@ pub enum PlanCollection {
     Merges,
     EventStreams,
     RuntimeEvidence,
+    WatchAdmissions,
     Jobs,
     SatisfactionProofs,
     Authorities,
@@ -588,6 +593,7 @@ pub enum PlanDiagnosticCode {
     StructuralOrderingInvalid,
     EventStreamInvalid,
     RuntimeEvidenceInvalid,
+    WatchAdmission(WatchAdmissionReason),
     JobInvalid,
     SatisfactionInvalid,
     Containment(ContainmentReason),
@@ -624,6 +630,7 @@ impl PlanDiagnosticCode {
             Self::StructuralOrderingInvalid => "CND-STR-005",
             Self::EventStreamInvalid => "CND-RSN-003",
             Self::RuntimeEvidenceInvalid => "CND-RTE-002",
+            Self::WatchAdmission(reason) => reason.code(),
             Self::JobInvalid => "CND-JOB-016",
             Self::SatisfactionInvalid => "CND-IMP-017",
             Self::Containment(reason) => reason.code(),
@@ -691,6 +698,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.event_streams.len()))
             .and_then(|value| value.checked_add(usize::from(self.runtime_evidence.is_some())))
+            .and_then(|value| value.checked_add(self.watch_admissions.len()))
             .and_then(|value| value.checked_add(self.jobs.len()))
             .and_then(|value| value.checked_add(self.satisfaction_proofs.len()))
             .and_then(|value| value.checked_add(self.authorities.len()))
@@ -842,6 +850,9 @@ impl ExecutionPlan<'_> {
         }
         if let Some(policy) = self.runtime_evidence {
             push!(hash_runtime_evidence_policy(policy));
+        }
+        for admission in self.watch_admissions {
+            push!(hash_watch_admission(*admission));
         }
         for job in self.jobs {
             push!(hash_job(*job));
@@ -1867,6 +1878,71 @@ pub fn validate_execution_plan(
                 PlanCollection::RuntimeEvidence,
                 None,
             ));
+        }
+    }
+
+    if !plan.watch_admissions.is_empty() {
+        validate_watch_admissions(WATCH_ADMISSION_SCHEMA_VERSION, plan.watch_admissions).map_err(
+            |reason| {
+                error(
+                    PlanDiagnosticCode::WatchAdmission(reason),
+                    PlanCollection::WatchAdmissions,
+                    None,
+                )
+            },
+        )?;
+        for (index, admission) in plan.watch_admissions.iter().enumerate() {
+            let matching_cord = match admission.subject {
+                WatchSubject::Cord(id) => plan.cords.iter().find(|cord| cord.id == id),
+                WatchSubject::NodePort {
+                    node,
+                    port,
+                    direction,
+                } => plan.cords.iter().find(|cord| {
+                    let endpoint = if direction == Direction::Output {
+                        cord.from
+                    } else {
+                        cord.to
+                    };
+                    endpoint.node == node
+                        && endpoint.port == port
+                        && endpoint.direction == direction
+                }),
+            };
+            let Some(cord) = matching_cord else {
+                return Err(indexed(
+                    PlanDiagnosticCode::DanglingReference,
+                    PlanCollection::WatchAdmissions,
+                    index,
+                ));
+            };
+            let envelope = plan
+                .value_envelopes
+                .iter()
+                .find(|policy| policy.cord == cord.id);
+            if envelope.is_none_or(|policy| {
+                policy.representation != admission.representation
+                    || admission.maximum_preview_bytes > policy.maximum_payload_bytes
+                    || admission.sensitivity_ceiling > policy.sensitivity_ceiling
+            }) {
+                return Err(indexed(
+                    PlanDiagnosticCode::WatchAdmission(WatchAdmissionReason::InvalidBound),
+                    PlanCollection::WatchAdmissions,
+                    index,
+                ));
+            }
+            if let Some(action) = admission.reveal_action
+                && !plan
+                    .authorities
+                    .iter()
+                    .any(|authority| authority.effect.action == action)
+            {
+                return Err(indexed(
+                    PlanDiagnosticCode::WatchAdmission(WatchAdmissionReason::RevealActionRequired),
+                    PlanCollection::WatchAdmissions,
+                    index,
+                ));
+            }
         }
     }
 
@@ -3644,6 +3720,84 @@ fn hash_runtime_evidence_policy(
             semantic(
                 "gap_summary_bytes",
                 CanonicalValue::Integer(i128::from(value.gap_summary_bytes)),
+            ),
+        ],
+    )
+}
+
+fn hash_watch_admission(
+    value: WatchAdmission<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    let (subject_kind, node, port, direction, cord) = match value.subject {
+        WatchSubject::Cord(cord) => ("cord", None, None, None, Some(cord)),
+        WatchSubject::NodePort {
+            node,
+            port,
+            direction,
+        } => ("node-port", Some(node), Some(port), Some(direction), None),
+    };
+    descriptor_hash(
+        Id("conduit/watch-admission"),
+        &[
+            semantic("id", CanonicalValue::Identifier(value.id)),
+            semantic("subject_kind", CanonicalValue::Identifier(Id(subject_kind))),
+            semantic(
+                "node",
+                node.map_or(CanonicalValue::Null, |node| {
+                    CanonicalValue::Text(node.as_str())
+                }),
+            ),
+            semantic(
+                "port",
+                port.map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "direction",
+                direction.map_or(CanonicalValue::Null, |direction| {
+                    CanonicalValue::Identifier(Id(direction.as_str()))
+                }),
+            ),
+            semantic(
+                "cord",
+                cord.map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "representation_id",
+                CanonicalValue::Identifier(value.representation.id),
+            ),
+            semantic(
+                "representation_version",
+                CanonicalValue::Integer(i128::from(value.representation.schema_version)),
+            ),
+            semantic(
+                "representation_hash",
+                CanonicalValue::Bytes(value.representation.semantic_hash.as_bytes()),
+            ),
+            semantic(
+                "maximum_preview_bytes",
+                CanonicalValue::Integer(i128::from(value.maximum_preview_bytes)),
+            ),
+            semantic(
+                "maximum_history",
+                CanonicalValue::Integer(i128::from(value.maximum_history)),
+            ),
+            semantic(
+                "minimum_tick_interval",
+                CanonicalValue::Integer(i128::from(value.minimum_tick_interval)),
+            ),
+            semantic(
+                "retention",
+                CanonicalValue::Identifier(Id(value.retention.as_str())),
+            ),
+            semantic(
+                "sensitivity_ceiling",
+                CanonicalValue::Identifier(Id(value.sensitivity_ceiling.as_str())),
+            ),
+            semantic(
+                "reveal_action",
+                value
+                    .reveal_action
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
             ),
         ],
     )
