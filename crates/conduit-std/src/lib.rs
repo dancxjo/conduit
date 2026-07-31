@@ -232,6 +232,15 @@ const RECORD: TypeContractRef<'static> = TypeContractRef {
         0x22, 0xfa,
     ]),
 };
+const VALIDATION_DECISION: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/validation-decision"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0xf9, 0x59, 0x03, 0x96, 0xa8, 0x2c, 0x69, 0xd3, 0x7e, 0xd0, 0xf2, 0x57, 0x46, 0x0e, 0x3c,
+        0xee, 0x36, 0x5e, 0x79, 0x84, 0x6e, 0x1d, 0xd2, 0xa0, 0x0c, 0x83, 0xee, 0x8e, 0x86, 0x67,
+        0x2a, 0xff,
+    ]),
+};
 const REFERENCE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/reference/any"),
     schema_version: 0,
@@ -606,6 +615,76 @@ const TEXT_ITEMS_INPUT: PortContract<'static> = port(
     TerminalContract::Finite,
 );
 const TEXT_JOIN_OUTPUT: PortContract<'static> = batch_text_port("text", Direction::Output);
+const DATA_TEXT_INPUT: PortContract<'static> = port(
+    "text",
+    Direction::Input,
+    TEXT,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const DATA_BYTES_INPUT: PortContract<'static> = port(
+    "bytes",
+    Direction::Input,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const DATA_BYTES_OUTPUT: PortContract<'static> = port(
+    "bytes",
+    Direction::Output,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const DATA_TEXT_OUTPUT: PortContract<'static> = port(
+    "text",
+    Direction::Output,
+    TEXT,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const DATA_PAYLOAD_INPUT: PortContract<'static> = port(
+    "payload",
+    Direction::Input,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const DATA_PAYLOAD_OUTPUT: PortContract<'static> = port(
+    "payload",
+    Direction::Output,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const DATA_CHUNK_INPUT: PortContract<'static> = port(
+    "chunk",
+    Direction::Input,
+    BYTES,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const DATA_CANDIDATE_INPUT: PortContract<'static> = port(
+    "candidate",
+    Direction::Input,
+    RECORD,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Either,
+);
+const DATA_CANDIDATE_OUTPUT: PortContract<'static> = port(
+    "candidate",
+    Direction::Output,
+    RECORD,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
+const DATA_DECISION_OUTPUT: PortContract<'static> = port(
+    "decision",
+    Direction::Output,
+    VALIDATION_DECISION,
+    ValueCardinality::ZeroOrMore,
+    TerminalContract::Finite,
+);
 
 const EMPTY: ConfigContract<'static> = ConfigContract { fields: &[] };
 const BOUNDED: ConfigContract<'static> = ConfigContract {
@@ -640,6 +719,30 @@ const TEXT_JOIN: ConfigContract<'static> = ConfigContract {
         field("maximum_item_bytes", U64),
         field("maximum_separator_bytes", U64),
         field("maximum_output_bytes", U64),
+    ],
+};
+const DATA_CODEC: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("codec", REFERENCE),
+        field("maximum_input_bytes", U64),
+        field("maximum_output_bytes", U64),
+    ],
+};
+const DATA_FRAMING: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("framing", REFERENCE),
+        field("maximum_frame_bytes", U64),
+        field("maximum_partial_bytes", U64),
+        field("maximum_output_bytes", U64),
+    ],
+};
+const DATA_VALIDATION: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("schema", REFERENCE),
+        field("maximum_fields", U64),
+        field("maximum_field_name_bytes", U64),
+        field("maximum_field_value_bytes", U64),
+        field("maximum_work", U64),
     ],
 };
 const STATEFUL: ConfigContract<'static> = ConfigContract {
@@ -799,6 +902,33 @@ const TEXT_JOIN_LIMITS: CatalogLimits = CatalogLimits {
     retries: 0,
     work_per_step: JOIN_MAX_ITEMS as u32,
     evidence_events: 128,
+};
+const DATA_CODEC_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 1,
+    retained_bytes: DATA_MAX_FRAME_BYTES as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: 16,
+    evidence_events: 64,
+};
+const DATA_FRAMING_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 1,
+    retained_bytes: DATA_MAX_FRAME_BYTES as u64 + LENGTH_U32BE_PREFIX_BYTES as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: 16,
+    evidence_events: 128,
+};
+const DATA_VALIDATION_LIMITS: CatalogLimits = CatalogLimits {
+    retained_values: 1,
+    retained_bytes: (DATA_MAX_RECORD_FIELDS * DATA_MAX_FIELD_VALUE_BYTES) as u64,
+    pending_operations: 1,
+    timers: 0,
+    retries: 0,
+    work_per_step: DATA_MAX_RECORD_FIELDS as u32,
+    evidence_events: 64,
 };
 
 const fn node(
@@ -1246,14 +1376,14 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "flow/validate",
+        "std/data/validate-closed-record",
         Transform,
-        TRANSFORM,
-        &[named("candidate", IN_BYTES)],
-        &[OUT_BOOL],
+        DATA_VALIDATION,
+        &[DATA_CANDIDATE_INPUT],
+        &[DATA_CANDIDATE_OUTPUT, DATA_DECISION_OUTPUT],
         ExplicitAdapter,
         None,
-        BUFFERED,
+        DATA_VALIDATION_LIMITS,
         PURE
     ),
     entry!(
@@ -1268,47 +1398,47 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         PURE
     ),
     entry!(
-        "flow/encode",
+        "std/data/encode-utf8",
         Transform,
-        TRANSFORM,
-        &[named("value", IN_BYTES)],
-        &[named("encoded", OUT_RECORD)],
+        DATA_CODEC,
+        &[DATA_TEXT_INPUT],
+        &[DATA_BYTES_OUTPUT],
         ExplicitAdapter,
         None,
-        BUFFERED,
+        DATA_CODEC_LIMITS,
         PURE
     ),
     entry!(
-        "flow/decode",
+        "std/data/decode-utf8",
         Transform,
-        TRANSFORM,
-        &[named("encoded", IN_BYTES)],
-        &[named("decoded", OUT_RECORD)],
+        DATA_CODEC,
+        &[DATA_BYTES_INPUT],
+        &[DATA_TEXT_OUTPUT],
         ExplicitAdapter,
         None,
-        BUFFERED,
+        DATA_CODEC_LIMITS,
         PURE
     ),
     entry!(
-        "flow/frame",
+        "std/data/frame-length-u32be",
         Transform,
-        TRANSFORM,
-        &[named("bytes", IN_BYTES)],
-        &[named("frame", OUT_RECORD)],
+        DATA_FRAMING,
+        &[DATA_PAYLOAD_INPUT],
+        &[DATA_BYTES_OUTPUT],
         ExplicitAdapter,
         None,
-        BUFFERED,
+        DATA_FRAMING_LIMITS,
         PURE
     ),
     entry!(
-        "flow/deframe",
+        "std/data/deframe-length-u32be",
         Transform,
-        TRANSFORM,
-        &[named("frame", IN_BYTES)],
-        &[named("bytes", OUT_RECORD)],
+        DATA_FRAMING,
+        &[DATA_CHUNK_INPUT],
+        &[DATA_PAYLOAD_OUTPUT],
         ExplicitAdapter,
         None,
-        BUFFERED,
+        DATA_FRAMING_LIMITS,
         PURE
     ),
     entry!(

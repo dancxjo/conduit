@@ -306,6 +306,12 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
         StandardRepresentation::Structural
     ),
     concrete!(
+        "std/validation-decision",
+        "typed structural validation decision",
+        Operational,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
         "supervision/decision",
         "supervision decision",
         Operational,

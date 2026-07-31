@@ -643,3 +643,118 @@ fn text_lines_join_fixture_freezes_semantics_and_boundaries() {
     assert!(!lines.required_support.constrained);
     assert!(!join.required_support.constrained);
 }
+
+#[test]
+fn data_boundaries_replace_generic_placeholders_with_exact_profiles() {
+    for displaced in [
+        "flow/validate",
+        "flow/encode",
+        "flow/decode",
+        "flow/frame",
+        "flow/deframe",
+    ] {
+        assert!(
+            STANDARD_CATALOG
+                .iter()
+                .all(|entry| entry.contract.id.as_str() != displaced),
+            "{displaced} remains published"
+        );
+    }
+
+    let expected = [
+        (
+            "std/data/encode-utf8",
+            &["text"][..],
+            &["bytes"][..],
+            &["codec", "maximum_input_bytes", "maximum_output_bytes"][..],
+        ),
+        (
+            "std/data/decode-utf8",
+            &["bytes"][..],
+            &["text"][..],
+            &["codec", "maximum_input_bytes", "maximum_output_bytes"][..],
+        ),
+        (
+            "std/data/frame-length-u32be",
+            &["payload"][..],
+            &["bytes"][..],
+            &[
+                "framing",
+                "maximum_frame_bytes",
+                "maximum_partial_bytes",
+                "maximum_output_bytes",
+            ][..],
+        ),
+        (
+            "std/data/deframe-length-u32be",
+            &["chunk"][..],
+            &["payload"][..],
+            &[
+                "framing",
+                "maximum_frame_bytes",
+                "maximum_partial_bytes",
+                "maximum_output_bytes",
+            ][..],
+        ),
+        (
+            "std/data/validate-closed-record",
+            &["candidate"][..],
+            &["candidate", "decision"][..],
+            &[
+                "schema",
+                "maximum_fields",
+                "maximum_field_name_bytes",
+                "maximum_field_value_bytes",
+                "maximum_work",
+            ][..],
+        ),
+    ];
+    for (id, inputs, outputs, config) in expected {
+        let entry = STANDARD_CATALOG
+            .iter()
+            .find(|entry| entry.contract.id.as_str() == id)
+            .unwrap_or_else(|| panic!("missing {id}"));
+        assert_eq!(
+            entry
+                .contract
+                .inputs
+                .iter()
+                .map(|port| port.id.as_str())
+                .collect::<Vec<_>>(),
+            inputs
+        );
+        assert_eq!(
+            entry
+                .contract
+                .outputs
+                .iter()
+                .map(|port| port.id.as_str())
+                .collect::<Vec<_>>(),
+            outputs
+        );
+        assert_eq!(
+            entry
+                .contract
+                .config
+                .fields
+                .iter()
+                .map(|field| field.key.as_str())
+                .collect::<Vec<_>>(),
+            config
+        );
+        assert!(entry.limits.retained_bytes > 0);
+        assert!(entry.limits.work_per_step > 0);
+    }
+
+    let validator = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "std/data/validate-closed-record")
+        .unwrap();
+    assert_eq!(
+        validator.contract.outputs[1]
+            .value_type
+            .contract_id
+            .as_str(),
+        "std/validation-decision"
+    );
+}

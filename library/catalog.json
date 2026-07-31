@@ -2137,258 +2137,6 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "flow/decode",
-      "public_source_spelling": "flow/decode",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
-      "export_path": "conduit.std.flow/flow/decode",
-      "schema_version": 0,
-      "semantic_hash": "sha256:0797a083162ea9fff948d8503832326d8cf34828992b6efe64134a25cfa12645",
-      "ports": [
-        {
-          "id": "encoded",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/decode",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/decode` names this input port for its contract-specific `encoded` payload or role.",
-            "affected_bindings": [
-              "runtime-contract:flow/decode",
-              "exact-plan-cord:flow/decode.in->flow/decode.encoded",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        },
-        {
-          "id": "decoded",
-          "direction": "output",
-          "value_type": "std/record",
-          "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/decode",
-              "id": "out",
-              "direction": "output",
-              "value_type": "std/record",
-              "type_schema_version": 0,
-              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/decode` names this output port for its contract-specific `decoded` payload or role.",
-            "affected_bindings": [
-              "runtime-contract:flow/decode",
-              "exact-plan-cord:flow/decode.out->flow/decode.decoded",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        }
-      ],
-      "config": [
-        {
-          "key": "implementation",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
-        },
-        {
-          "key": "maximum_outputs_per_input",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.decode.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.decode.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "flow/deframe",
-      "public_source_spelling": "flow/deframe",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
-      "export_path": "conduit.std.flow/flow/deframe",
-      "schema_version": 0,
-      "semantic_hash": "sha256:f95e4c9725e5d030916f6616edfea2c8e1bd9c48d6ae3be2f8e11f465b04a46b",
-      "ports": [
-        {
-          "id": "frame",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/deframe",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/deframe` names this input port for its contract-specific `frame` payload or role.",
-            "affected_bindings": [
-              "runtime-contract:flow/deframe",
-              "exact-plan-cord:flow/deframe.in->flow/deframe.frame",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        },
-        {
-          "id": "bytes",
-          "direction": "output",
-          "value_type": "std/record",
-          "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/deframe",
-              "id": "out",
-              "direction": "output",
-              "value_type": "std/record",
-              "type_schema_version": 0,
-              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/deframe` declares this process boundary specifically as bytes.",
-            "affected_bindings": [
-              "runtime-contract:flow/deframe",
-              "exact-plan-cord:flow/deframe.out->flow/deframe.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        }
-      ],
-      "config": [
-        {
-          "key": "implementation",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
-        },
-        {
-          "key": "maximum_outputs_per_input",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.deframe.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.deframe.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
       "semantic_identity": "flow/demux",
       "public_source_spelling": "flow/demux",
       "classification": "portable-standard",
@@ -2662,132 +2410,6 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.flow.discard.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "flow/encode",
-      "public_source_spelling": "flow/encode",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
-      "export_path": "conduit.std.flow/flow/encode",
-      "schema_version": 0,
-      "semantic_hash": "sha256:d12ede52e47aa5d0ecb69b8c68adc62605d7e314ad25dfb95c6397175879b4d4",
-      "ports": [
-        {
-          "id": "value",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/encode",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/encode` is declared as a type-preserving generic value boundary; its complete TypeContract supplies the substituted value identity.",
-            "affected_bindings": [
-              "runtime-contract:flow/encode",
-              "exact-plan-cord:flow/encode.in->flow/encode.value",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        },
-        {
-          "id": "encoded",
-          "direction": "output",
-          "value_type": "std/record",
-          "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/encode",
-              "id": "out",
-              "direction": "output",
-              "value_type": "std/record",
-              "type_schema_version": 0,
-              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/encode` names this output port for its contract-specific `encoded` payload or role.",
-            "affected_bindings": [
-              "runtime-contract:flow/encode",
-              "exact-plan-cord:flow/encode.out->flow/encode.encoded",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        }
-      ],
-      "config": [
-        {
-          "key": "implementation",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
-        },
-        {
-          "key": "maximum_outputs_per_input",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.encode.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.encode.composition",
         "status": "required"
       },
       "successor": null,
@@ -3646,132 +3268,6 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.flow.fold.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "flow/frame",
-      "public_source_spelling": "flow/frame",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
-      "export_path": "conduit.std.flow/flow/frame",
-      "schema_version": 0,
-      "semantic_hash": "sha256:c08c3a5a5f528ec75a7f735072a4f558a26015b5218b828e7e860da488992c41",
-      "ports": [
-        {
-          "id": "bytes",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/frame",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/frame` declares this process boundary specifically as bytes.",
-            "affected_bindings": [
-              "runtime-contract:flow/frame",
-              "exact-plan-cord:flow/frame.in->flow/frame.bytes",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        },
-        {
-          "id": "frame",
-          "direction": "output",
-          "value_type": "std/record",
-          "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/frame",
-              "id": "out",
-              "direction": "output",
-              "value_type": "std/record",
-              "type_schema_version": 0,
-              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/frame` names this output port for its contract-specific `frame` payload or role.",
-            "affected_bindings": [
-              "runtime-contract:flow/frame",
-              "exact-plan-cord:flow/frame.out->flow/frame.frame",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        }
-      ],
-      "config": [
-        {
-          "key": "implementation",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
-        },
-        {
-          "key": "maximum_outputs_per_input",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.frame.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.frame.composition",
         "status": "required"
       },
       "successor": null,
@@ -4913,106 +4409,6 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.flow.take.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "flow/validate",
-      "public_source_spelling": "flow/validate",
-      "classification": "portable-standard",
-      "package_owner": "conduit.std.flow",
-      "contract_package_artifact": "conduit.contract-package/conduit.std.flow",
-      "export_path": "conduit.std.flow/flow/validate",
-      "schema_version": 0,
-      "semantic_hash": "sha256:52a0c9e36f57ef5ec216cb55b35e6ed4e611268cc11c381cf9c7651d0f6dbbf8",
-      "ports": [
-        {
-          "id": "candidate",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only",
-          "migration": {
-            "former": {
-              "contract": "flow/validate",
-              "id": "in",
-              "direction": "input",
-              "value_type": "std/bytes",
-              "type_schema_version": 0,
-              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-              "presence": "required",
-              "connections": "exactly-one",
-              "values": "zero-or-more",
-              "delivery": "stream",
-              "temporal": "committed",
-              "terminal": "either",
-              "sensitivity": "restricted",
-              "loss": "lossless-only"
-            },
-            "reason": "`flow/validate` names this input port for its contract-specific `candidate` payload or role.",
-            "affected_bindings": [
-              "runtime-contract:flow/validate",
-              "exact-plan-cord:flow/validate.in->flow/validate.candidate",
-              "conformance-fixture:conformance/c4/standard-node-library.json"
-            ],
-            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
-            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
-          }
-        },
-        {
-          "id": "valid",
-          "direction": "output",
-          "value_type": "std/bool",
-          "type_schema_version": 0,
-          "type_hash": "sha256:5caed2cabd6d64f0ba75a243c625b04af0a967bb9239ca102e514bbbb7273e92",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only"
-        }
-      ],
-      "config": [
-        {
-          "key": "implementation",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
-        },
-        {
-          "key": "maximum_outputs_per_input",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.std.flow/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.validate.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.flow.validate.composition",
         "status": "required"
       },
       "successor": null,
@@ -9565,6 +8961,731 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.state.machine.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/data/decode-utf8",
+      "public_source_spelling": "std/data/decode-utf8",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/data/decode-utf8",
+      "schema_version": 0,
+      "semantic_hash": "sha256:c2418f604f061e784a01d40ecb17bc88226979de0fe723f8a67e8cee3655cee9",
+      "ports": [
+        {
+          "id": "bytes",
+          "direction": "input",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/decode-utf8",
+              "id": "in",
+              "direction": "input",
+              "value_type": "std/bytes",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/decode-utf8` declares this process boundary specifically as bytes.",
+            "affected_bindings": [
+              "runtime-contract:std/data/decode-utf8",
+              "exact-plan-cord:std/data/decode-utf8.in->std/data/decode-utf8.bytes",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "text",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/decode-utf8",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/text",
+              "type_schema_version": 0,
+              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/decode-utf8` declares this boundary specifically as checked text.",
+            "affected_bindings": [
+              "runtime-contract:std/data/decode-utf8",
+              "exact-plan-cord:std/data/decode-utf8.out->std/data/decode-utf8.text",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "codec",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+        },
+        {
+          "key": "maximum_input_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.decode-utf8.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.decode-utf8.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/data/deframe-length-u32be",
+      "public_source_spelling": "std/data/deframe-length-u32be",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/data/deframe-length-u32be",
+      "schema_version": 0,
+      "semantic_hash": "sha256:26519c748b0e939ea7e7d3c176673d5fe22ac69e7788b3faa5358b24719839d8",
+      "ports": [
+        {
+          "id": "chunk",
+          "direction": "input",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/deframe-length-u32be",
+              "id": "in",
+              "direction": "input",
+              "value_type": "std/bytes",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/deframe-length-u32be` names this input port for its contract-specific `chunk` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/data/deframe-length-u32be",
+              "exact-plan-cord:std/data/deframe-length-u32be.in->std/data/deframe-length-u32be.chunk",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "payload",
+          "direction": "output",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/deframe-length-u32be",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/bytes",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/deframe-length-u32be` names this output port for its contract-specific `payload` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/data/deframe-length-u32be",
+              "exact-plan-cord:std/data/deframe-length-u32be.out->std/data/deframe-length-u32be.payload",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "framing",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+        },
+        {
+          "key": "maximum_frame_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_partial_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.deframe-length-u32be.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.deframe-length-u32be.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/data/encode-utf8",
+      "public_source_spelling": "std/data/encode-utf8",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/data/encode-utf8",
+      "schema_version": 0,
+      "semantic_hash": "sha256:3085c6c8d097a1ed228536b14cc9f394e3b566d1099f6cff8e4865ac4dfd6cb5",
+      "ports": [
+        {
+          "id": "text",
+          "direction": "input",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/encode-utf8",
+              "id": "in",
+              "direction": "input",
+              "value_type": "std/text",
+              "type_schema_version": 0,
+              "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/encode-utf8` declares this boundary specifically as checked text.",
+            "affected_bindings": [
+              "runtime-contract:std/data/encode-utf8",
+              "exact-plan-cord:std/data/encode-utf8.in->std/data/encode-utf8.text",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "bytes",
+          "direction": "output",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/encode-utf8",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/bytes",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/encode-utf8` declares this process boundary specifically as bytes.",
+            "affected_bindings": [
+              "runtime-contract:std/data/encode-utf8",
+              "exact-plan-cord:std/data/encode-utf8.out->std/data/encode-utf8.bytes",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "codec",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+        },
+        {
+          "key": "maximum_input_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.encode-utf8.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.encode-utf8.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/data/frame-length-u32be",
+      "public_source_spelling": "std/data/frame-length-u32be",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/data/frame-length-u32be",
+      "schema_version": 0,
+      "semantic_hash": "sha256:30c61effa6cc5eb11c0ae5871ac5801af734ef1b148430ef43eeafc6588fb911",
+      "ports": [
+        {
+          "id": "payload",
+          "direction": "input",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/frame-length-u32be",
+              "id": "in",
+              "direction": "input",
+              "value_type": "std/bytes",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/frame-length-u32be` names this input port for its contract-specific `payload` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/data/frame-length-u32be",
+              "exact-plan-cord:std/data/frame-length-u32be.in->std/data/frame-length-u32be.payload",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "bytes",
+          "direction": "output",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/frame-length-u32be",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/bytes",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/frame-length-u32be` declares this process boundary specifically as bytes.",
+            "affected_bindings": [
+              "runtime-contract:std/data/frame-length-u32be",
+              "exact-plan-cord:std/data/frame-length-u32be.out->std/data/frame-length-u32be.bytes",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "framing",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+        },
+        {
+          "key": "maximum_frame_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_partial_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_output_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.frame-length-u32be.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.frame-length-u32be.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "std/data/validate-closed-record",
+      "public_source_spelling": "std/data/validate-closed-record",
+      "classification": "portable-standard",
+      "package_owner": "conduit.std",
+      "contract_package_artifact": "conduit.contract-package/conduit.std",
+      "export_path": "conduit.std/std/data/validate-closed-record",
+      "schema_version": 0,
+      "semantic_hash": "sha256:e51302a9b9dfdb6f9aeac6caab99dd4f9ab5743a0f91d022d523011d48bec3f4",
+      "ports": [
+        {
+          "id": "candidate",
+          "direction": "input",
+          "value_type": "std/record",
+          "type_schema_version": 0,
+          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/validate-closed-record",
+              "id": "in",
+              "direction": "input",
+              "value_type": "std/record",
+              "type_schema_version": 0,
+              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "either",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/validate-closed-record` names this input port for its contract-specific `candidate` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/data/validate-closed-record",
+              "exact-plan-cord:std/data/validate-closed-record.in->std/data/validate-closed-record.candidate",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "candidate",
+          "direction": "output",
+          "value_type": "std/record",
+          "type_schema_version": 0,
+          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/validate-closed-record",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/record",
+              "type_schema_version": 0,
+              "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/validate-closed-record` names this output port for its contract-specific `candidate` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/data/validate-closed-record",
+              "exact-plan-cord:std/data/validate-closed-record.out->std/data/validate-closed-record.candidate",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        },
+        {
+          "id": "decision",
+          "direction": "output",
+          "value_type": "std/validation-decision",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9590396a82c69d37ed0f257460e3cee365e79846e1dd2a00c83ee8e86672aff",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only",
+          "migration": {
+            "former": {
+              "contract": "std/data/validate-closed-record",
+              "id": "out",
+              "direction": "output",
+              "value_type": "std/validation-decision",
+              "type_schema_version": 0,
+              "type_hash": "sha256:f9590396a82c69d37ed0f257460e3cee365e79846e1dd2a00c83ee8e86672aff",
+              "presence": "required",
+              "connections": "exactly-one",
+              "values": "zero-or-more",
+              "delivery": "stream",
+              "temporal": "committed",
+              "terminal": "finite",
+              "sensitivity": "restricted",
+              "loss": "lossless-only"
+            },
+            "reason": "`std/data/validate-closed-record` names this output port for its contract-specific `decision` payload or role.",
+            "affected_bindings": [
+              "runtime-contract:std/data/validate-closed-record",
+              "exact-plan-cord:std/data/validate-closed-record.out->std/data/validate-closed-record.decision",
+              "conformance-fixture:conformance/c4/standard-node-library.json"
+            ],
+            "repository_migration": "pending whole-corpus rewrite and regeneration under issue 185",
+            "compatibility_disposition": "old unreleased identity is removed after repository migration; no alias or draft reader is retained"
+          }
+        }
+      ],
+      "config": [
+        {
+          "key": "schema",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:b9bb209f2cec4eaa985d81cc69f5237e40356f88333600b83304869b93571bc7"
+        },
+        {
+          "key": "maximum_fields",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_field_name_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_field_value_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/standard-node-library.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.std/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.validate-closed-record.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.std.data.validate-closed-record.composition",
         "status": "required"
       },
       "successor": null,
