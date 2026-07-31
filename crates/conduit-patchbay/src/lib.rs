@@ -777,6 +777,8 @@ pub struct PlanSnapshot {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub value_envelopes: Vec<ValueEnvelopeProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub watch_admissions: Vec<WatchAdmissionProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub clock_conversions: Vec<ClockConversionProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub feedback_boundaries: Vec<FeedbackBoundaryProjection>,
@@ -786,6 +788,24 @@ pub struct PlanSnapshot {
     pub effect_commit_profiles: Vec<EffectCommitProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub workloads: Vec<WorkloadProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WatchAdmissionProjection {
+    pub id: String,
+    pub subject_kind: String,
+    pub cord: Option<String>,
+    pub node: Option<String>,
+    pub port: Option<String>,
+    pub direction: Option<String>,
+    pub representation_id: String,
+    pub representation_identity: String,
+    pub maximum_preview_bytes: u32,
+    pub maximum_history: u16,
+    pub minimum_tick_interval: u64,
+    pub retention: String,
+    pub sensitivity_ceiling: String,
+    pub reveal_action: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1133,6 +1153,48 @@ impl PlanSnapshot {
                 .to_owned(),
             })
             .collect();
+        let watch_admissions = plan
+            .watch_admissions
+            .iter()
+            .map(|watch| {
+                let (subject_kind, cord, node, port, direction) = match watch.subject {
+                    conduit_core::WatchSubject::Cord(cord) => (
+                        "cord".to_owned(),
+                        Some(cord.as_str().to_owned()),
+                        None,
+                        None,
+                        None,
+                    ),
+                    conduit_core::WatchSubject::NodePort {
+                        node,
+                        port,
+                        direction,
+                    } => (
+                        "node-port".to_owned(),
+                        None,
+                        Some(node.as_str().to_owned()),
+                        Some(port.as_str().to_owned()),
+                        Some(direction.as_str().to_owned()),
+                    ),
+                };
+                WatchAdmissionProjection {
+                    id: watch.id.as_str().to_owned(),
+                    subject_kind,
+                    cord,
+                    node,
+                    port,
+                    direction,
+                    representation_id: watch.representation.id.as_str().to_owned(),
+                    representation_identity: watch.representation.semantic_hash.to_string(),
+                    maximum_preview_bytes: watch.maximum_preview_bytes,
+                    maximum_history: watch.maximum_history,
+                    minimum_tick_interval: watch.minimum_tick_interval,
+                    retention: watch.retention.as_str().to_owned(),
+                    sensitivity_ceiling: watch.sensitivity_ceiling.as_str().to_owned(),
+                    reveal_action: watch.reveal_action.map(|action| action.as_str().to_owned()),
+                }
+            })
+            .collect();
         let clock_conversions = plan
             .clock_conversions
             .iter()
@@ -1323,6 +1385,7 @@ impl PlanSnapshot {
             source_semantic_hash: plan.source_semantic_hash.to_string(),
             bindings,
             value_envelopes,
+            watch_admissions,
             clock_conversions,
             feedback_boundaries,
             resource_leases,

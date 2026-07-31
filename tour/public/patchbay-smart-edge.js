@@ -12,7 +12,7 @@ const NODE_CLEARANCE = 14;
 const LABEL_CLEARANCE = 16;
 const SEARCH_MARGIN = 96;
 const MAX_SEARCH_CELLS = 24_000;
-const FLOWINESS = 0.32;
+const CABLE_TENSIONS = [1, 0.82, 0.64, 0.46];
 const PATH_SAMPLE_COUNT = 12;
 const SAMPLE_POINTS_PER_CELL = 4;
 const BEZIER_CLEARANCE = NODE_CLEARANCE + 4;
@@ -53,26 +53,13 @@ function cubicHasCollision(bezier, obstacles) {
   return false;
 }
 
-function nativeRouteIsSafe(bezier, nodes, endpointIds, labelText) {
+function nativeRouteIsClear(bezier, nodes, endpointIds) {
   const obstacles = nodes
     .filter((node) => !endpointIds.includes(node.id))
     .map(nodeRectangle)
     .filter(Boolean)
     .map((rect) => inflatedRect(rect, BEZIER_CLEARANCE));
-  if (cubicHasCollision(bezier, obstacles)) return false;
-  if (labelText) {
-    const labelRect = {
-      left: bezier.label.x - Math.max(24, String(labelText).length * 4),
-      right: bezier.label.x + Math.max(24, String(labelText).length * 4),
-      top: bezier.label.y - 14,
-      bottom: bezier.label.y + 14,
-    };
-    if (nodes.some((node) => {
-      const rect = nodeRectangle(node);
-      return rect && rectsOverlap(labelRect, inflatedRect(rect, LABEL_CLEARANCE));
-    })) return false;
-  }
-  return true;
+  return !cubicHasCollision(bezier, obstacles);
 }
 
 function cellKey(x, y) {
@@ -247,7 +234,7 @@ function pointOnCubicBezier(t, p0, c1, c2, p1) {
   };
 }
 
-function pathHasCollision(points, obstacles) {
+function pathHasCollision(points, obstacles, tension) {
   if (points.length < 2) return false;
   if (points.length === 2) {
     return segmentHasCollision(points[0], points[1], obstacles);
@@ -258,12 +245,12 @@ function pathHasCollision(points, obstacles) {
     const previous = points[Math.max(0, index - 1)];
     const next = points[Math.min(points.length - 1, index + 2)];
     const c1 = {
-      x: p0.x + ((p3.x - previous.x) / 6) * FLOWINESS,
-      y: p0.y + ((p3.y - previous.y) / 6) * FLOWINESS,
+      x: p0.x + ((p3.x - previous.x) / 6) * tension,
+      y: p0.y + ((p3.y - previous.y) / 6) * tension,
     };
     const c2 = {
-      x: p3.x - ((next.x - p0.x) / 6) * FLOWINESS,
-      y: p3.y - ((next.y - p0.y) / 6) * FLOWINESS,
+      x: p3.x - ((next.x - p0.x) / 6) * tension,
+      y: p3.y - ((next.y - p0.y) / 6) * tension,
     };
     const segmentLength = Math.max(Math.abs(p3.x - p0.x), Math.abs(p3.y - p0.y));
     const samples = Math.max(
@@ -388,7 +375,7 @@ function simplify(points) {
   return result;
 }
 
-function catmullRomToSmoothPath(points, tension = FLOWINESS) {
+function catmullRomToSmoothPath(points, tension) {
   if (points.length < 2) return "";
   if (points.length === 2) {
     return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
@@ -414,6 +401,39 @@ function catmullRomToSmoothPath(points, tension = FLOWINESS) {
     );
   }
   return commands.join(" ");
+}
+
+function coalesceTightCorners(points) {
+  if (points.length < 5) return points;
+  const result = [...points];
+  const minimumBendRun = GRID * 2;
+  for (let index = result.length - 3; index >= 2; index -= 1) {
+    const previous = result[index - 1];
+    const current = result[index];
+    const next = result[index + 1];
+    const previousRun = Math.hypot(
+      current.x - previous.x,
+      current.y - previous.y,
+    );
+    const nextRun = Math.hypot(next.x - current.x, next.y - current.y);
+    if (previousRun < minimumBendRun || nextRun < minimumBendRun) {
+      result.splice(index, 1);
+    }
+  }
+  return simplify(result);
+}
+
+function cablePath(points, obstacles) {
+  // Prefer a full Catmull-Rom spline so detours read as one hanging cable, not
+  // an orthogonal route with token rounded corners. Tighten the spline only
+  // when the broadest curve would enter a measured node clearance.
+  const cablePoints = coalesceTightCorners(points);
+  for (const tension of CABLE_TENSIONS) {
+    if (!pathHasCollision(cablePoints, obstacles, tension)) {
+      return catmullRomToSmoothPath(cablePoints, tension);
+    }
+  }
+  return null;
 }
 
 function nodeRectangle(node) {
@@ -453,13 +473,11 @@ function endpointEscapePoint(point, node, position) {
   return { x: point.x, y: rect.bottom + distance };
 }
 
-function endpointAwareRoute(routed, source, target) {
+function endpointAwareRoute(routed, source, target, obstacles) {
   if (!routed) return null;
   const points = simplify([source, ...routed.points, target]);
-  const interiorPath = routed.path.replace(/^M\s+[^A-Za-z]+/, "");
   return {
-    path: `M ${source.x} ${source.y} L ${routed.points[0].x} ${routed.points[0].y} ` +
-      `${interiorPath} L ${target.x} ${target.y}`,
+    path: cablePath(points, obstacles) || orthPath(points),
     points,
     label: routed.label,
   };
@@ -529,10 +547,8 @@ function routeAroundNodesWithMargin(source, target, nodes, endpointNodeIds, marg
       const simplified = simplify(points);
       const orthSafe = !orthPathHasCollision(simplified, inflatedObstacles);
       if (!orthSafe) return null;
-      const smoothSafe = !pathHasCollision(simplified, inflatedObstacles);
-      const path = smoothSafe
-        ? catmullRomToSmoothPath(simplified)
-        : orthPath(simplified);
+      const path = cablePath(simplified, inflatedObstacles)
+        || orthPath(simplified);
       const labelPoint = chooseLabelPoint(simplified, inflatedObstacles)
         ?? simplified[Math.floor(simplified.length / 2)];
       if (!path) {
@@ -593,6 +609,11 @@ export function routeAroundNodes(
     targetNode,
     endpointPositions.target,
   );
+  const cableObstacles = nodes
+    .filter((node) => !endpointNodeIds.includes(node.id))
+    .map(nodeRectangle)
+    .filter(Boolean)
+    .map((rect) => inflatedRect(rect, NODE_CLEARANCE));
   for (let envelope = SEARCH_MARGIN; envelope <= SEARCH_MARGIN * 4; envelope += 64) {
     const routed = routeAroundNodesWithMargin(
       routeSource,
@@ -602,7 +623,7 @@ export function routeAroundNodes(
       envelope,
     );
     if (routed) {
-      return endpointAwareRoute(routed, source, target);
+      return endpointAwareRoute(routed, source, target, cableObstacles);
     }
   }
   const fallback = routeAroundBounds(
@@ -614,7 +635,7 @@ export function routeAroundNodes(
       .map((rect) => inflatedRect(rect, NODE_CLEARANCE + SEARCH_MARGIN)),
   );
   if (fallback) {
-    return endpointAwareRoute(fallback, source, target);
+    return endpointAwareRoute(fallback, source, target, cableObstacles);
   }
   return null;
 }
@@ -622,7 +643,11 @@ export function routeAroundNodes(
 export function PatchbaySmartEdge(props) {
   const nodes = window.ReactFlow.useNodes();
   const bezier = nativeBezier(props);
-  if (bezier && nativeRouteIsSafe(bezier, nodes, [props.source, props.target], props.label)) {
+  if (bezier && nativeRouteIsClear(bezier, nodes, [props.source, props.target])) {
+    // Label placement is independent of cable routing. A label near a node
+    // should move; it must not downgrade a clear cable into a step detour.
+    const labelObstacles = nodes.map(nodeRectangle).filter(Boolean);
+    const labelPoint = nudgeLabelOffNodes(bezier.label, labelObstacles);
     return e(window.React.Fragment, null,
       e("path", {
         id: props.id,
@@ -633,12 +658,13 @@ export function PatchbaySmartEdge(props) {
         markerStart: props.markerStart,
         "data-source-node": props.source,
         "data-target-node": props.target,
-        "data-routing-mode": "bezier",
+        "data-routing-mode": "cable",
+        "data-cord-geometry": "cable",
         fill: "none",
       }),
       props.label ? e(window.ReactFlow.EdgeText, {
-        x: bezier.label.x,
-        y: bezier.label.y,
+        x: labelPoint.x,
+        y: labelPoint.y,
         label: props.label,
         labelStyle: props.labelStyle,
         labelBgStyle: props.labelBgStyle,
@@ -677,7 +703,8 @@ export function PatchbaySmartEdge(props) {
       markerStart: props.markerStart,
       "data-source-node": props.source,
       "data-target-node": props.target,
-      "data-routing-mode": routed.path.includes(" C ") ? "detour" : "constrained",
+      "data-routing-mode": routed.path.includes(" C ") ? "cable-detour" : "constrained",
+      "data-cord-geometry": routed.path.includes(" C ") ? "cable" : "step",
       fill: "none",
     }),
     props.label ? e(window.ReactFlow.EdgeText, {

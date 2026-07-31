@@ -4,7 +4,10 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 use wasm_bindgen::prelude::*;
 
-use conduit_compile::{CompileInput, InstalledProfile, compile_source};
+use conduit_compile::{
+    CompileInput, ExactPlanDocument, InstalledProfile, PinDocument, WatchAdmissionDocument,
+    compile_source,
+};
 use conduit_core::{
     EvidenceCursorStatus, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
     SemanticHash, TerminalClass, classify_evidence_cursor,
@@ -13,7 +16,8 @@ use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, ExactExecutionReport, ExactHostedRunSession,
     ExactHostedServiceUseObservation, ExactRunContext, ExactRunIo, ExactRunSessionRegistry,
-    ExactRunState, Handler, Registry, ResolutionError, RunIo, RuntimeError, SchedulerReservation,
+    ExactRunState, ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject,
+    ExactWatchUsage, Handler, Registry, ResolutionError, RunIo, RuntimeError, SchedulerReservation,
     Value, file_read_contract, file_watch_contract, file_write_contract,
     hosted_service_use_observations,
 };
@@ -27,6 +31,7 @@ const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
 const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
 const MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES: u64 = 32 * 1024 * 1024;
 const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
+const MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES: u32 = 256;
 const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
 const BROWSER_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
@@ -61,7 +66,14 @@ struct BrowserExactRun {
     cord_count: usize,
     session: Option<ExactHostedRunSession>,
     use_observations: Vec<ExactHostedServiceUseObservation>,
+    watch_admissions: Vec<BrowserWatchAdmission>,
     terminal: Option<BrowserExactRunTerminal>,
+}
+
+#[derive(Clone)]
+struct BrowserWatchAdmission {
+    id: String,
+    maximum_history: u32,
 }
 
 /// The finite terminal projection retained after the executor and its session
@@ -74,6 +86,7 @@ struct BrowserExactRunTerminal {
     next_event_cursor: u64,
     events: Vec<conduit_runtime::SchedulerEvent>,
     evidence: Vec<conduit_runtime::ExactEvidenceRecord>,
+    watches: BTreeMap<String, ExactWatchBatch>,
     output: Vec<u8>,
     error: Vec<u8>,
     display: Vec<u8>,
@@ -682,6 +695,112 @@ fn browser_evidence_cursor_status(status: EvidenceCursorStatus) -> serde_json::V
     }
 }
 
+fn browser_watch_delta(
+    run: &BrowserExactRun,
+    watch_id: &str,
+    cursor: u64,
+    maximum_records: u32,
+) -> Result<ExactWatchBatch, RuntimeError> {
+    if let Some(session) = run.session.as_ref() {
+        return session.read_watch(watch_id, cursor, maximum_records);
+    }
+    let retained = run
+        .terminal
+        .as_ref()
+        .expect("browser run has either a live session or terminal snapshot")
+        .watches
+        .get(watch_id)
+        .ok_or_else(|| RuntimeError::new("CND-WAT-002", "Watch is not admitted by this plan"))?;
+    let status = classify_evidence_cursor(cursor, retained.earliest_cursor, retained.next_cursor)
+        .map_err(|error| RuntimeError::new("CND-WAT-003", error.to_string()))?;
+    let start = match status {
+        EvidenceCursorStatus::Available => cursor,
+        EvidenceCursorStatus::Gap { resume_at } => resume_at,
+        EvidenceCursorStatus::Future { next_sequence } => next_sequence,
+    };
+    let end = start
+        .saturating_add(u64::from(maximum_records))
+        .min(retained.next_cursor);
+    Ok(ExactWatchBatch {
+        status,
+        earliest_cursor: retained.earliest_cursor,
+        next_cursor: end,
+        records: retained
+            .records
+            .iter()
+            .filter(|record| record.cursor >= start && record.cursor < end)
+            .cloned()
+            .collect(),
+    })
+}
+
+fn browser_watch_usage(usage: ExactWatchUsage) -> serde_json::Value {
+    serde_json::json!({
+        "admitted_slots": usage.admitted_slots,
+        "attached_slots": usage.attached_slots,
+        "retained_observations": usage.retained_observations,
+        "retained_preview_bytes": usage.retained_preview_bytes,
+        "dropped_observations": usage.dropped_observations,
+        "maximum_observations": usage.maximum_observations,
+        "maximum_preview_bytes": usage.maximum_preview_bytes,
+    })
+}
+
+fn browser_watch_observation(record: &ExactWatchObservation) -> serde_json::Value {
+    let subject = match &record.subject {
+        ExactWatchSubject::Cord { cord } => serde_json::json!({
+            "kind": "cord",
+            "cord": cord,
+        }),
+        ExactWatchSubject::NodePort {
+            node,
+            port,
+            direction,
+        } => serde_json::json!({
+            "kind": "node-port",
+            "node": node,
+            "port": port,
+            "direction": direction,
+        }),
+    };
+    let material = match &record.material {
+        ExactWatchMaterial::Preview(bytes) => {
+            let text = (record.representation_id == "std/text")
+                .then(|| std::str::from_utf8(bytes).ok())
+                .flatten();
+            serde_json::json!({
+                "kind": "preview",
+                "bytes": bytes,
+                "text": text,
+            })
+        }
+        ExactWatchMaterial::Redacted => serde_json::json!({"kind": "redacted"}),
+        ExactWatchMaterial::Absent => serde_json::json!({"kind": "absent"}),
+    };
+    serde_json::json!({
+        "cursor": record.cursor,
+        "source_sequence": record.source_sequence,
+        "tick": record.tick,
+        "watch_id": record.watch_id,
+        "subject": subject,
+        "value_handle": record.value_handle,
+        "accounted_bytes": record.accounted_bytes,
+        "representation": {
+            "id": record.representation_id,
+            "schema_version": record.representation_schema_version,
+            "semantic_hash": record.representation_semantic_hash.to_string(),
+        },
+        "sensitivity": record.sensitivity.as_str(),
+        "value_identity": record.value_identity.map(|value| value.to_string()),
+        "provenance": record.provenance.map(|value| value.to_string()),
+        "content_hash": record.content_hash.map(|value| value.to_string()),
+        "original_bytes": record.original_bytes,
+        "truncated": record.truncated,
+        "gap_before": record.gap_before,
+        "material": material,
+    })
+}
+
 fn browser_run_io(run: &BrowserExactRun) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     run.terminal.as_ref().map_or_else(
         || {
@@ -746,6 +865,15 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
             next_event_cursor: session.next_event_cursor(),
             events: session.scheduler_events().copied().collect(),
             evidence: session.exact_evidence(),
+            watches: run
+                .watch_admissions
+                .iter()
+                .map(|watch| {
+                    session
+                        .read_watch(&watch.id, 0, watch.maximum_history)
+                        .map(|batch| (watch.id.clone(), batch))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?,
             output,
             error,
             display,
@@ -761,6 +889,63 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
     Ok(())
 }
 
+fn admit_browser_watches(
+    document: &mut ExactPlanDocument,
+) -> Result<Vec<BrowserWatchAdmission>, RuntimeError> {
+    if document.watch_admissions.is_empty() {
+        document.watch_admissions = document
+            .cords
+            .iter()
+            .map(|cord| WatchAdmissionDocument {
+                id: format!("watch/{}", cord.id),
+                subject_kind: "cord".to_owned(),
+                cord: Some(cord.id.clone()),
+                node: None,
+                port: None,
+                direction: None,
+                representation: PinDocument {
+                    id: cord.from.value_type_id.clone(),
+                    schema_version: cord.from.value_type_schema_version,
+                    semantic_hash: cord.from.value_type_semantic_hash.clone(),
+                },
+                maximum_preview_bytes: cord
+                    .max_value_bytes
+                    .min(MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES),
+                maximum_history: 1,
+                minimum_tick_interval: 1,
+                retention: "latest".to_owned(),
+                sensitivity_ceiling: "public".to_owned(),
+                reveal_action: None,
+            })
+            .collect();
+        let arena = bumpalo::Bump::new();
+        let plan = document
+            .as_plan(&arena)
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        let mut scratch = vec![
+            SemanticHash::from_bytes([0; 32]);
+            plan.validation_scratch_count().map_err(|error| {
+                RuntimeError::new("CND-CMP-002", format!("{error:?}"))
+            })?
+        ];
+        document.identity = plan
+            .semantic_hash(&mut scratch)
+            .map_err(|error| RuntimeError::new("CND-CMP-002", format!("{error:?}")))?
+            .to_string();
+    }
+    document
+        .validate()
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    Ok(document
+        .watch_admissions
+        .iter()
+        .map(|watch| BrowserWatchAdmission {
+            id: watch.id.clone(),
+            maximum_history: u32::from(watch.maximum_history),
+        })
+        .collect())
+}
+
 fn start_browser_exact_run(
     source: &str,
     source_revision: u64,
@@ -770,8 +955,9 @@ fn start_browser_exact_run(
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
     let registry = browser_registry();
     let installed = InstalledProfile::observe_registry(source, &registry)?;
-    let document = compile_source(source, &installed.input)
+    let mut document = compile_source(source, &installed.input)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let watch_admissions = admit_browser_watches(&mut document)?;
     let arena = bumpalo::Bump::new();
     let plan = document
         .as_plan(&arena)
@@ -828,6 +1014,7 @@ fn start_browser_exact_run(
         cord_count,
         session: Some(session),
         use_observations,
+        watch_admissions,
         terminal: None,
     })
 }
@@ -1128,6 +1315,178 @@ pub fn patchbay_read_exact_evidence(
     })
 }
 
+/// Attaches one slot already admitted by the active exact plan. This changes
+/// observation control only; source and plan identities remain pinned.
+#[wasm_bindgen]
+pub fn patchbay_attach_exact_watch(session_id: String, watch_id: String) -> String {
+    if watch_id.is_empty() || watch_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "Watch identity exceeds its fixed bound",
+        })
+        .to_string();
+    }
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "Patchbay session has no exact run",
+            })
+            .to_string();
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "terminal exact run cannot attach a Watch",
+            })
+            .to_string();
+        };
+        match exact_session.attach_watch(&watch_id) {
+            Ok(()) => serde_json::json!({
+                "ok": true,
+                "run_id": run.run_id,
+                "plan_identity": run.plan.identity,
+                "source_semantic_hash": run.plan.source_semantic_hash,
+                "watch_id": watch_id,
+                "attached": true,
+                "usage": browser_watch_usage(exact_session.watch_usage()),
+            })
+            .to_string(),
+            Err(error) => serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string(),
+        }
+    })
+}
+
+/// Detaches one active Watch while preserving its bounded retained window.
+#[wasm_bindgen]
+pub fn patchbay_detach_exact_watch(session_id: String, watch_id: String) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "Patchbay session has no exact run",
+            })
+            .to_string();
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "terminal exact run has no attached Watch",
+            })
+            .to_string();
+        };
+        match exact_session.detach_watch(&watch_id) {
+            Ok(()) => serde_json::json!({
+                "ok": true,
+                "run_id": run.run_id,
+                "plan_identity": run.plan.identity,
+                "source_semantic_hash": run.plan.source_semantic_hash,
+                "watch_id": watch_id,
+                "attached": false,
+                "usage": browser_watch_usage(exact_session.watch_usage()),
+            })
+            .to_string(),
+            Err(error) => serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string(),
+        }
+    })
+}
+
+/// Reads one bounded Watch delta from a live session or its final retained
+/// window. Binary bytes remain bytes; only the exact `std/text`
+/// representation receives a UTF-8 text projection.
+#[wasm_bindgen]
+pub fn patchbay_read_exact_watch(
+    session_id: String,
+    watch_id: String,
+    cursor: u64,
+    maximum_records: u32,
+) -> String {
+    if maximum_records == 0 || u64::from(maximum_records) > MAXIMUM_BROWSER_RUN_PUMP_DECISIONS {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "browser Watch read exceeds its fixed record bound",
+        })
+        .to_string();
+    }
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let sessions = sessions.borrow();
+        let Some(session) = sessions.get(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_ref() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "Patchbay session has no exact run",
+            })
+            .to_string();
+        };
+        match browser_watch_delta(run, &watch_id, cursor, maximum_records) {
+            Ok(batch) => serde_json::json!({
+                "ok": true,
+                "run_id": run.run_id,
+                "plan_identity": run.plan.identity,
+                "source_semantic_hash": run.plan.source_semantic_hash,
+                "watch_id": watch_id,
+                "status": browser_evidence_cursor_status(batch.status),
+                "earliest_cursor": batch.earliest_cursor,
+                "next_cursor": batch.next_cursor,
+                "records": batch
+                    .records
+                    .iter()
+                    .map(browser_watch_observation)
+                    .collect::<Vec<_>>(),
+            })
+            .to_string(),
+            Err(error) => serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string(),
+        }
+    })
+}
+
 /// Advances deterministic browser-host time to an exact pending deadline.
 /// It is an explicit host wake, not a JavaScript executor or clock jump.
 #[wasm_bindgen]
@@ -1415,7 +1774,8 @@ fn validate_patchbay_candidate(
 fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let registry = browser_registry();
     let installed = InstalledProfile::observe_registry(source, &registry).ok()?;
-    let document = compile_source(source, &installed.input).ok()?;
+    let mut document = compile_source(source, &installed.input).ok()?;
+    admit_browser_watches(&mut document).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
     Some(conduit_patchbay::PlanSnapshot::from_exact_plan(&plan))
@@ -3349,9 +3709,10 @@ mod tests {
 
     use super::{
         explain_panel, panel_language_metadata, panel_source_metadata, patchbay_apply_transaction,
-        patchbay_cancel_exact_run, patchbay_move_node, patchbay_notify_host_operation,
-        patchbay_open_session, patchbay_read_exact_evidence, patchbay_replace_source,
-        patchbay_session_view, patchbay_start_exact_run,
+        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
+        patchbay_move_node, patchbay_notify_host_operation, patchbay_open_session,
+        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
+        patchbay_replace_source, patchbay_session_view, patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -3791,6 +4152,85 @@ cord output.value -> sink.result\n\
         assert_eq!(
             terminal_evidence["records"].as_array().map(Vec::len),
             Some(1)
+        );
+    }
+
+    #[test]
+    fn browser_exact_run_exposes_one_public_latest_value_watch_without_identity_drift() {
+        let session_id = "test/browser-latest-watch";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        let plan_identity = started["plan_identity"].clone();
+        let source_identity = started["source_semantic_hash"].clone();
+        let admission = &started["view"]["plan"]["watch_admissions"][0];
+        assert_eq!(admission["retention"], "latest");
+        assert_eq!(admission["maximum_history"], 1);
+        assert_eq!(admission["sensitivity_ceiling"], "public");
+        let watch_id = admission["id"].as_str().expect("Watch identity");
+
+        let attached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("attach JSON");
+        assert_eq!(attached["ok"], true, "{attached}");
+        assert_eq!(attached["plan_identity"], plan_identity);
+        assert_eq!(attached["source_semantic_hash"], source_identity);
+        assert_eq!(attached["usage"]["attached_slots"], 1);
+
+        let detached: Value = serde_json::from_str(&patchbay_detach_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("detach JSON");
+        assert_eq!(detached["ok"], true, "{detached}");
+        assert_eq!(detached["plan_identity"], plan_identity);
+        assert_eq!(detached["usage"]["attached_slots"], 0);
+        let reattached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("reattach JSON");
+        assert_eq!(reattached["ok"], true, "{reattached}");
+
+        let mut pumped: Value = serde_json::json!({"state": "active"});
+        for _ in 0..8 {
+            pumped = serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 64))
+                .expect("pump JSON");
+            assert_eq!(pumped["ok"], true, "{pumped}");
+            if pumped["state"] != "active" {
+                break;
+            }
+        }
+        assert_eq!(pumped["state"], "succeeded", "{pumped}");
+
+        let watched: Value = serde_json::from_str(&patchbay_read_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+            0,
+            1,
+        ))
+        .expect("Watch JSON");
+        assert_eq!(watched["ok"], true, "{watched}");
+        assert_eq!(watched["plan_identity"], plan_identity);
+        assert_eq!(watched["source_semantic_hash"], source_identity);
+        assert_eq!(watched["status"]["kind"], "available");
+        assert_eq!(watched["records"].as_array().map(Vec::len), Some(1));
+        assert_eq!(watched["records"][0]["material"]["kind"], "preview");
+        assert_eq!(watched["records"][0]["material"]["text"], "hello\n");
+        assert_eq!(watched["records"][0]["truncated"], false);
+        assert!(
+            watched["records"][0]["content_hash"]
+                .as_str()
+                .is_some_and(|hash| hash.starts_with("sha256:"))
         );
     }
 

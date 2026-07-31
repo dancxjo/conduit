@@ -795,6 +795,26 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await expect(page.locator(".cord-legend-item")).toHaveCount(4);
 });
 
+test("keeps stacked reverse cords cable-like instead of mixing step geometry", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "conduit-tour-layout/nodes.empty-is-not-never",
+      JSON.stringify({
+        empty: { x: 300, y: 280 },
+        sink: { x: 320, y: 20 },
+      }),
+    );
+  });
+  await page.goto("/tour/public/index.html?lesson=nodes.empty-is-not-never");
+
+  const path = page.locator(".patchbay-smart-cord .react-flow__edge-path");
+  await expect(path).toHaveAttribute("data-cord-geometry", "cable");
+  await expect(path).toHaveAttribute("data-routing-mode", /cable/);
+  const commands = await path.getAttribute("d");
+  expect(commands?.match(/\bC\b/g)?.length).toBeGreaterThanOrEqual(3);
+  expect(commands).not.toMatch(/\b[QL]\b/);
+});
+
 test("renders the direction lesson as an invalid authored graph", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
 

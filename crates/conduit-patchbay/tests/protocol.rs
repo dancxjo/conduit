@@ -335,6 +335,7 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
         source_semantic_hash: old.clone(),
         bindings: Vec::new(),
         value_envelopes: Vec::new(),
+        watch_admissions: Vec::new(),
         clock_conversions: Vec::new(),
         feedback_boundaries: Vec::new(),
         resource_leases: Vec::new(),
