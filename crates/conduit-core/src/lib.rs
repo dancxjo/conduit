@@ -45,6 +45,7 @@ mod supervision;
 mod transition;
 mod type_contract;
 mod value_envelope;
+mod watch;
 mod workload;
 
 pub use authority::{
@@ -335,6 +336,10 @@ pub use value_envelope::{
     VALUE_ENVELOPE_POLICY_SCHEMA_VERSION, ValueEnvelope, ValueEnvelopePolicy, ValueEnvelopeReason,
     ValueTimestamp, convert_clock, validate_clock_conversion, validate_feedback_boundary,
     validate_feedback_graph, validate_value_envelope, validate_value_envelope_policy,
+};
+pub use watch::{
+    WATCH_ADMISSION_SCHEMA_VERSION, WatchAdmission, WatchAdmissionReason, WatchRetention,
+    WatchSubject, validate_watch_admissions,
 };
 pub use workload::{
     DeadlineContract, WORKLOAD_CONTRACT_SCHEMA_VERSION, WorkloadAdmission, WorkloadBudget,
