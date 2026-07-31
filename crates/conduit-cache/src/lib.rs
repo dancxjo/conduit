@@ -552,8 +552,32 @@ mod tests {
     use super::*;
     use conduit_runtime::AvailabilityState;
 
+    static TEST_SERIAL: Mutex<()> = Mutex::new(());
+
+    fn run_handler(
+        handler: &mut dyn Handler,
+        node: &Node,
+        inputs: &[Value],
+    ) -> Result<Vec<Value>, RuntimeError> {
+        let mut input = std::io::empty();
+        let mut output = Vec::new();
+        let mut error = Vec::new();
+        let mut display = Vec::new();
+        handler.run(
+            node,
+            inputs,
+            &mut RunIo {
+                input: &mut input,
+                output: &mut output,
+                error: &mut error,
+                display: &mut display,
+            },
+        )
+    }
+
     #[test]
     fn provider_is_absent_until_explicit_bundle_installation() {
+        let _serial = TEST_SERIAL.lock().unwrap();
         let default = Registry::default();
         assert_eq!(
             default.node_availability("storage/cache/put").state,
@@ -587,6 +611,7 @@ mod tests {
 
     #[test]
     fn exact_handle_encoding_rejects_provider_and_run_drift() {
+        let _serial = TEST_SERIAL.lock().unwrap();
         reset_cache().unwrap();
         let result = CACHE
             .lock()
@@ -612,5 +637,109 @@ mod tests {
             CACHE.lock().unwrap().remove(9, wrong),
             Err(conduit_std::CacheError::WrongRun)
         );
+    }
+
+    #[test]
+    fn deterministic_and_hosted_providers_agree_on_normalized_cache_outcomes() {
+        let _serial = TEST_SERIAL.lock().unwrap();
+        reset_cache().unwrap();
+        let panel = conduit_panel::parse(include_str!("../../../examples/storage-cache.panel"))
+            .expect("cache panel parses");
+        let put_node = panel
+            .nodes
+            .iter()
+            .find(|node| node.id == "put")
+            .expect("put node");
+        let get_node = panel
+            .nodes
+            .iter()
+            .find(|node| node.id == "get")
+            .expect("get node");
+        let mut reference = HostedCache::new(
+            EXAMPLE_PROVIDER_EPOCH,
+            CACHE_MAX_ENTRIES * CACHE_MAX_BLOB_BYTES,
+            EXAMPLE_MAX_RETENTION_TICKS,
+            CacheSensitivity::Restricted,
+        );
+        let request = PutRequest {
+            run_epoch: 1,
+            now_tick: 10,
+            retention_ticks: 100,
+            maximum_blob_bytes: 64,
+            sensitivity: CacheSensitivity::Restricted,
+        };
+        let mut handles = Vec::new();
+        for bytes in [
+            b"first".as_slice(),
+            b"second",
+            b"third",
+            b"fourth",
+            b"fifth",
+        ] {
+            let expected = reference.put(request, bytes).unwrap();
+            let actual = run_handler(
+                &mut PutHandler,
+                put_node,
+                &[Value {
+                    value_type: contract("storage/cache/put").inputs[0].value_type,
+                    bytes: bytes.to_vec(),
+                }],
+            )
+            .unwrap();
+            assert_eq!(decode_handle(&actual[0].bytes).unwrap(), expected.handle);
+            assert_eq!(actual[1].bytes, put_result_bytes(expected));
+            handles.push(expected.handle);
+        }
+
+        for handle in [handles[4], handles[0]] {
+            let mut bytes = [0; 64];
+            let expected = reference
+                .get(
+                    GetRequest {
+                        run_epoch: 1,
+                        now_tick: 11,
+                        maximum_blob_bytes: 64,
+                        handle,
+                    },
+                    &mut bytes,
+                )
+                .unwrap();
+            let actual = run_handler(
+                &mut GetHandler,
+                get_node,
+                &[Value {
+                    value_type: contract("storage/cache/get").inputs[0].value_type,
+                    bytes: encode_handle(handle),
+                }],
+            )
+            .unwrap();
+            assert_eq!(actual[0].bytes, bytes[..expected.bytes_read]);
+            assert_eq!(actual[1].bytes, get_result_bytes(expected));
+        }
+
+        reference.set_available(false);
+        CACHE.lock().unwrap().set_available(false);
+        let expected = reference
+            .get(
+                GetRequest {
+                    run_epoch: 1,
+                    now_tick: 11,
+                    maximum_blob_bytes: 64,
+                    handle: handles[4],
+                },
+                &mut [0; 64],
+            )
+            .unwrap_err();
+        let actual = run_handler(
+            &mut GetHandler,
+            get_node,
+            &[Value {
+                value_type: contract("storage/cache/get").inputs[0].value_type,
+                bytes: encode_handle(handles[4]),
+            }],
+        )
+        .unwrap_err();
+        assert_eq!(actual.code, expected.code());
+        reset_cache().unwrap();
     }
 }

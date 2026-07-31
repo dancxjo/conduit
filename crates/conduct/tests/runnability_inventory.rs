@@ -486,3 +486,66 @@ fn storage_cache_exact_plan_pins_distinct_provider_resource_grant_and_bounds() {
         assert!(authority.commit_profile.is_some());
     }
 }
+
+#[test]
+fn storage_cache_resolution_distinguishes_omission_staleness_capacity_and_grant() {
+    let root = root();
+    let source =
+        fs::read_to_string(root.join("examples/storage-cache.panel")).expect("cache example");
+    let absent = conduit_compile::InstalledProfile::observe_registry(
+        &source,
+        &conduit_runtime::Registry::hosted_primitives(),
+    )
+    .err()
+    .expect("known cache contracts do not imply an installed provider");
+    assert_eq!(absent.code, "CND-IMP-001");
+
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_cache::register_hosted_cache_provider(&mut registry).expect("cache provider links");
+    let installed = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .expect("cache installed profile resolves");
+
+    let mut stale = installed.input.clone();
+    for candidate in &mut stale.candidates {
+        if candidate
+            .implementation
+            .semantic_contract
+            .id
+            .starts_with("storage/")
+        {
+            candidate.host_report.valid_until_tick = 0;
+        }
+    }
+    stale.seal().expect("stale fixture reseals exactly");
+    assert_eq!(
+        conduit_compile::compile_source(&source, &stale)
+            .expect_err("stale reports cannot place cache nodes")
+            .code(),
+        "CND-CMP-006"
+    );
+
+    let mut insufficient = installed.input.clone();
+    for candidate in &mut insufficient.candidates {
+        if candidate.implementation.semantic_contract.id == "storage/cache/put" {
+            candidate.host_report.available.memory_bytes = 1;
+        }
+    }
+    insufficient
+        .seal()
+        .expect("insufficient-capacity fixture reseals exactly");
+    assert_eq!(
+        conduit_compile::compile_source(&source, &insufficient)
+            .expect_err("insufficient capacity cannot place the put")
+            .code(),
+        "CND-CMP-006"
+    );
+
+    let denied_source = source.replace(
+        "conduit.grant/storage-cache-put",
+        "conduit.grant/storage-cache-denied",
+    );
+    let denied = conduit_compile::InstalledProfile::observe_registry(&denied_source, &registry)
+        .err()
+        .expect("a cache handle never substitutes for the required grant");
+    assert_eq!(denied.code, "CND-CACHE-012");
+}

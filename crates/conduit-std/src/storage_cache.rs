@@ -547,6 +547,11 @@ mod tests {
             cache.put(bounded_request, b"123456789"),
             Err(CacheError::Oversized)
         );
+        let mut underprovisioned = CacheStore::<1, 8>::new(1, 4, 10, CacheSensitivity::Restricted);
+        assert_eq!(
+            underprovisioned.put(bounded_request, b"12345"),
+            Err(CacheError::CapacityUnavailable)
+        );
         let handle = cache.put(bounded_request, b"ok").unwrap().handle;
         cache.slots[0].bytes[0] ^= 0xff;
         let mut output = [0; 16];
