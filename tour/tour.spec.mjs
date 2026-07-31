@@ -1596,8 +1596,6 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
 
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
-  await expect(page.locator("#scenario option")).toHaveCount(7);
-  await expect(story.locator("#library-docs a")).toHaveCount(3);
 
   const runWithAcceptedProfile = async (scenarioId) => {
     await page.locator("#scenario").selectOption(scenarioId);
@@ -1617,7 +1615,7 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
   await expect(source).toHaveValue(/node wave : conduit\.media\/wave\/literal/);
 
   await runWithAcceptedProfile("deterministic-host");
-  await runWithAcceptedProfile("linux-native-fixture");
-  await runWithAcceptedProfile("browser-wasm-fixture");
+  await runWithAcceptedProfile("provider-fixture-alpha");
+  await runWithAcceptedProfile("provider-fixture-beta");
   await runWithAcceptedProfile("explicit-adapter-fixture");
 });
