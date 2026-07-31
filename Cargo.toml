@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/conduit-capsule",
     "crates/conduit-conformance",
     "crates/conduit-compile",
     "crates/conduit-cache",
