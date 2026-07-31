@@ -56,6 +56,8 @@ struct ExactBrowserResult {
 struct BrowserExactRun {
     plan: conduit_patchbay::PlanSnapshot,
     run_id: String,
+    node_count: usize,
+    cord_count: usize,
     session: Option<ExactHostedRunSession>,
     use_observations: Vec<ExactHostedServiceUseObservation>,
     terminal: Option<BrowserExactRunTerminal>,
@@ -68,6 +70,9 @@ struct BrowserExactRunTerminal {
     state: ExactRunState,
     high_water: conduit_runtime::SchedulerHighWater,
     evidence: Vec<conduit_runtime::ExactEvidenceRecord>,
+    output: Vec<u8>,
+    error: Vec<u8>,
+    display: Vec<u8>,
 }
 
 /// One revisioned authoring workspace plus, at most, one separately pinned
@@ -606,6 +611,30 @@ fn browser_run_evidence_records(
         })
 }
 
+fn browser_run_io(run: &BrowserExactRun) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    run.terminal.as_ref().map_or_else(
+        || {
+            run.session
+                .as_ref()
+                .expect("live browser run retains its exact session")
+                .with_io(|io| {
+                    (
+                        io.output().to_vec(),
+                        io.error().to_vec(),
+                        io.display().to_vec(),
+                    )
+                })
+        },
+        |terminal| {
+            (
+                terminal.output.clone(),
+                terminal.error.clone(),
+                terminal.display.clone(),
+            )
+        },
+    )
+}
+
 fn browser_session_view(
     session: &BrowserPatchbaySession,
 ) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
@@ -632,10 +661,20 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
             .session
             .take()
             .expect("terminal browser run retains its exact session before finalization");
+        let (output, error, display) = session.with_io(|io| {
+            (
+                io.output().to_vec(),
+                io.error().to_vec(),
+                io.display().to_vec(),
+            )
+        });
         let terminal = BrowserExactRunTerminal {
             state: session.state(),
             high_water: session.high_water(),
             evidence: session.exact_evidence(),
+            output,
+            error,
+            display,
         };
         session.finalize().map_err(|state| {
             RuntimeError::new(
@@ -673,6 +712,8 @@ fn start_browser_exact_run(
     let grant_observations = installed.grant_observations(&plan)?;
     let use_observations = hosted_service_use_observations(&grant_observations);
     let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    let node_count = plan.nodes.len();
+    let cord_count = plan.cords.len();
     let run_id = format!("conduit/browser-run/{session_id}/{source_revision}");
     let resolved = registry
         .resolve(&panel)
@@ -709,6 +750,8 @@ fn start_browser_exact_run(
     Ok(BrowserExactRun {
         plan: plan_snapshot,
         run_id,
+        node_count,
+        cord_count,
         session: Some(session),
         use_observations,
         terminal: None,
@@ -823,13 +866,45 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
         })
         .to_string();
     };
+    let state = browser_run_state(run);
+    let (output, error, display) = browser_run_io(run);
+    let evidence = match browser_run_evidence(run) {
+        Ok(evidence) => evidence,
+        Err(error) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+    };
+    let terminal = match state {
+        ExactRunState::Terminal(class) => Some(terminal_name(class)),
+        ExactRunState::Active | ExactRunState::Waiting | ExactRunState::Quiescing => None,
+    };
+    let completed_nodes = usize::from(matches!(
+        state,
+        ExactRunState::Terminal(TerminalClass::Succeeded)
+    )) * run.node_count;
+    let cords_conducted = usize::from(matches!(
+        state,
+        ExactRunState::Terminal(TerminalClass::Succeeded)
+    )) * run.cord_count;
     match browser_session_view(session) {
         Ok(view) => serde_json::json!({
             "ok": true,
             "run_id": run.run_id,
             "plan_identity": run.plan.identity,
             "source_semantic_hash": run.plan.source_semantic_hash,
-            "state": browser_run_state_name(browser_run_state(run)),
+            "state": browser_run_state_name(state),
+            "terminal": terminal,
+            "completed_nodes": completed_nodes,
+            "cords_conducted": cords_conducted,
+            "stdout": String::from_utf8_lossy(&output),
+            "stderr": String::from_utf8_lossy(&error),
+            "display": String::from_utf8_lossy(&display),
+            "evidence": evidence,
             "view": view,
         })
         .to_string(),

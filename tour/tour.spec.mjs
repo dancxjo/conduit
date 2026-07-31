@@ -61,6 +61,7 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
       });
       const sessionId = opened.value?.session_id;
       const started = await request("patchbay-start-exact-run", { sessionId });
+      const pumped = await request("patchbay-pump-exact-run", { sessionId, quantum: 1 });
       const invalidCandidate = await request("patchbay-apply-transaction", {
         sessionId,
         requestJson: JSON.stringify({
@@ -89,6 +90,7 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         configured,
         opened,
         started,
+        pumped,
         invalidCandidate,
         activeAfterCandidate,
         malformed,
@@ -104,6 +106,7 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   expect(result.configured).toMatchObject({ ok: true, value: { configured: true } });
   expect(result.opened.value).toMatchObject({ ok: true, session_id: "tour/worker-exact-session" });
   expect(result.started.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.pumped.value).toMatchObject({ ok: true, state: "active" });
   expect(result.invalidCandidate.value).toMatchObject({
     ok: true,
     result: { compatibility: { compatible: false, plan_disposition: "unavailable" } },

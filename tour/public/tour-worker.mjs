@@ -1,5 +1,4 @@
 import init, {
-  cancel_panel,
   patchbay_apply_transaction,
   patchbay_advance_exact_run,
   patchbay_cancel_exact_run,
@@ -8,8 +7,6 @@ import init, {
   patchbay_pump_exact_run,
   patchbay_session_view,
   patchbay_start_exact_run,
-  run_panel,
-  run_panel_exact,
 } from "./conduit_web.js";
 import {
   BrowserHostReason,
@@ -18,14 +15,14 @@ import {
 
 let configured = false;
 
+function exactUnsigned(value, field) {
+  if (typeof value === "bigint" && value >= 0n) return value;
+  if (Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+  throw new TypeError(`${field} must be one exact non-negative integer`);
+}
+
 function response(operation, value) {
   switch (operation) {
-    case "run":
-      return run_panel(value.source);
-    case "cancel":
-      return cancel_panel(value.source);
-    case "run-exact":
-      return run_panel_exact(value.source, value.compileInputJson);
     case "patchbay-open-session":
       return patchbay_open_session(value.documentId, value.source);
     case "patchbay-session-view":
@@ -35,9 +32,9 @@ function response(operation, value) {
     case "patchbay-start-exact-run":
       return patchbay_start_exact_run(value.sessionId);
     case "patchbay-pump-exact-run":
-      return patchbay_pump_exact_run(value.sessionId, value.quantum);
+      return patchbay_pump_exact_run(value.sessionId, exactUnsigned(value.quantum, "quantum"));
     case "patchbay-advance-exact-run":
-      return patchbay_advance_exact_run(value.sessionId, value.tick);
+      return patchbay_advance_exact_run(value.sessionId, exactUnsigned(value.tick, "tick"));
     case "patchbay-notify-host-operation":
       return patchbay_notify_host_operation(value.sessionId, value.subject);
     case "patchbay-cancel-exact-run":

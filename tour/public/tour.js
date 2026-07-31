@@ -183,6 +183,7 @@ let patchbaySourceRevision = 0;
 let patchbayPresentationRevision = 0;
 let patchbayView = null;
 let activeAdapter = null;
+let activeWorkerSessionId = null;
 let runEpoch = 0;
 let topologyView = "logical";
 const evidence = [];
@@ -813,12 +814,29 @@ function renderRustProjection(projection) {
   document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
 }
 
-function stopActive(cause, message) {
+async function stopExactSession(cause, message) {
   runEpoch += 1;
   stopTimelinePlayback();
-  if (activeAdapter) {
-    activeAdapter.terminate(cause);
-    activeAdapter = null;
+  const adapter = activeAdapter;
+  const sessionId = activeWorkerSessionId;
+  activeAdapter = null;
+  activeWorkerSessionId = null;
+  if (adapter && sessionId) {
+    try {
+      const cancelled = await adapter.request("patchbay-cancel-exact-run", {
+        sessionId,
+        disposition: "abort",
+      });
+      if (cancelled.ok && cancelled.value?.ok) {
+        renderRustProjection(cancelled.value.view);
+        renderExactResultTimeline(cancelled.value);
+        recordEvidence({ kind: "run-cancelled", state: cancelled.value.state });
+      }
+    } finally {
+      adapter.terminate(cause);
+    }
+  } else if (adapter) {
+    adapter.terminate(cause);
   }
   runButton.disabled = current?.runnability?.state !== "runnable";
   stopButton.disabled = true;
@@ -828,7 +846,7 @@ function stopActive(cause, message) {
 }
 
 function show(lesson) {
-  stopActive("lesson-changed");
+  void stopExactSession("lesson-changed");
   current = lesson;
   workspaceController?.setDocument(lesson.id);
   document.querySelector("#title").textContent = lesson.title;
@@ -1058,7 +1076,7 @@ source.addEventListener("input", () => {
 });
 
 scenarioSelect?.addEventListener("change", () => {
-  stopActive("scenario-changed");
+  void stopExactSession("scenario-changed");
   const scenario = activeScenario();
   if (!scenario) return;
   source.value = scenario.source;
@@ -1128,7 +1146,7 @@ async function run() {
       "CND-PBY-NO-PLAN: no exact plan exists for the current source revision.";
     return;
   }
-  stopActive("superseded");
+  await stopExactSession("superseded");
   const epoch = ++runEpoch;
   const binding = resolveBrowserPlacement(hostReport, {
     tick: 11,
@@ -1166,20 +1184,39 @@ async function run() {
   consoleBadge.className = "badge status-badge running";
   result.textContent = "Executing graph in browser placement worker…";
 
+  let terminal = false;
   try {
     const configured = await adapter.request("configure", {
       wasmUrl: wasmArtifact.url.href,
       wasmSha256: wasmArtifact.artifact.sha256,
     });
     if (!configured.ok) throw new Error(configured.code);
+    const opened = await adapter.request("patchbay-open-session", {
+      documentId: `tour/worker-run/${epoch}`,
+      source: source.value,
+    });
+    if (!opened.ok || !opened.value?.ok) {
+      throw new Error(`${opened.code || opened.value?.code || "open-failed"}: ${opened.value?.diagnostic || ""}`);
+    }
+    const sessionId = opened.value.session_id;
+    activeWorkerSessionId = sessionId;
+    const started = await adapter.request("patchbay-start-exact-run", { sessionId });
+    if (!started.ok || !started.value?.ok) {
+      throw new Error(`${started.code || started.value?.code || "start-failed"}: ${started.value?.diagnostic || ""}`);
+    }
     const operation = activeScenario()?.execution === "cancel-before-first-step"
-      ? "cancel"
-      : "run";
-    const executed = await adapter.request(operation, { source: source.value });
+      ? "patchbay-cancel-exact-run"
+      : "patchbay-pump-exact-run";
+    const executed = await adapter.request(operation, operation === "patchbay-cancel-exact-run"
+      ? { sessionId, disposition: "abort" }
+      : { sessionId, quantum: 256 });
     if (epoch !== runEpoch) return;
-    if (!executed.ok) throw new Error(executed.code);
+    if (!executed.ok || !executed.value?.ok) {
+      throw new Error(`${executed.code || executed.value?.code || "pump-failed"}: ${executed.value?.diagnostic || ""}`);
+    }
     const value = executed.value;
-    if (value.ok) renderRustProjection(value.patchbay);
+    terminal = Boolean(value.terminal);
+    renderRustProjection(value.view);
     renderExactResultTimeline(value);
     const counts = Number.isInteger(value.completed_nodes)
       ? `\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
@@ -1191,12 +1228,14 @@ async function run() {
         ? value.stdout
         : value.stdout || value.display;
     const visibleResult = value.ok
-      ? `${visibleValue || `Run completed: ${value.terminal}.`}${counts}`
+      ? `${visibleValue || (value.terminal
+        ? `Run completed: ${value.terminal}.`
+        : `Run remains ${value.state}; awaiting an admitted wake.`)}${counts}`
       : value.diagnostic;
     const lessonComplete = validation?.kind === "stdout"
-      ? value.ok && value.stdout === validation.value
+      ? value.ok && Boolean(value.terminal) && value.stdout === validation.value
       : validation?.kind === "display"
-        ? value.ok && value.display === validation.value
+        ? value.ok && Boolean(value.terminal) && value.display === validation.value
       : validation?.kind === "terminal"
         ? value.ok && value.terminal === validation.value
         : validation?.kind === "diagnostic"
@@ -1213,23 +1252,28 @@ async function run() {
       lesson: current.id,
       completedNodes: value.completed_nodes,
       cordsConducted: value.cords_conducted,
+      state: value.state,
     });
   } catch (error) {
     if (epoch === runEpoch) result.textContent = `Run failed: ${error}`;
   } finally {
-    if (epoch === runEpoch) {
+    if (epoch === runEpoch && terminal) {
       adapter.terminate("completed");
       activeAdapter = null;
+      activeWorkerSessionId = null;
       runButton.disabled = current.runnability?.state !== "runnable";
       stopButton.disabled = true;
       consoleBadge.textContent = "Idle";
       consoleBadge.className = "badge status-badge idle";
+    } else if (epoch === runEpoch) {
+      consoleBadge.textContent = "Live";
+      consoleBadge.className = "badge status-badge running";
     }
   }
 }
 
 runButton.onclick = run;
-stopButton.onclick = () => stopActive(
+stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
 );
@@ -1247,7 +1291,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.querySelector("#reset").onclick = () => {
-  stopActive("reset");
+  void stopExactSession("reset");
   localStorage.setItem(recoveryKey(current.id), source.value);
   localStorage.removeItem(layoutKey(current.id));
   source.value = authoredSource();

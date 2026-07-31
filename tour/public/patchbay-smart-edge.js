@@ -571,7 +571,7 @@ export function PatchbaySmartEdge(props) {
   );
 
   if (!routed) {
-    return e(window.ReactFlow.SmoothStepEdge, props);
+    return e(window.ReactFlow.StepEdge, props);
   }
 
   const labelObstacles = nodes.map(nodeRectangle).filter(Boolean);

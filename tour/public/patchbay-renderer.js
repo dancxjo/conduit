@@ -501,7 +501,7 @@ export class PatchbayReactFlowRenderer {
     )?.edge.id;
     const edges = projectedEdges.map(({ edge, source, target }) => {
       const presentation = edgePresentation(edge);
-      const edgeType = this.legacySmartEdge ? "patchbaySmartEdge" : "smoothstep";
+      const edgeType = this.legacySmartEdge ? "patchbaySmartEdge" : "step";
       return {
         id: edge.id,
         source: source.node,
