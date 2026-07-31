@@ -356,6 +356,11 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
 test("draws bounded cords and exposes draggable rewire ends", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");
+  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
+    "data-layout",
+    "ready",
+  );
   await source.fill(
     "panel 0\n\n" +
     "node first : std/literal { value = \"first\" }\n" +
