@@ -31,10 +31,22 @@ export function panel_source_metadata(source: string): string;
 export function parse_panel(source: string): string;
 
 /**
+ * Advances deterministic browser-host time to an exact pending deadline.
+ * It is an explicit host wake, not a JavaScript executor or clock jump.
+ */
+export function patchbay_advance_exact_run(session_id: string, tick: bigint): string;
+
+/**
  * Applies one typed candidate transaction against persistent session
  * revisions. Candidate source is resolved and exactly planned before commit.
  */
 export function patchbay_apply_transaction(session_id: string, request_json: string): string;
+
+/**
+ * Requests the exact plan-visible stop disposition for the active browser
+ * run. `drain` and `abort` stay distinct through the shared runtime session.
+ */
+export function patchbay_cancel_exact_run(session_id: string, disposition: string): string;
 
 /**
  * Applies a presentation-only visual move through the same Patchbay protocol.
@@ -47,6 +59,11 @@ export function patchbay_move_node(source: string, node_id: string, x: number, y
 export function patchbay_open_session(document_id: string, source: string): string;
 
 /**
+ * Runs one bounded cooperative turn of the active browser-worker exact run.
+ */
+export function patchbay_pump_exact_run(session_id: string, quantum: bigint): string;
+
+/**
  * Applies a source transaction through the production Patchbay protocol.
  * The browser receives only the separate source/semantic/presentation facts.
  */
@@ -56,6 +73,13 @@ export function patchbay_replace_source(source: string, replacement: string): st
  * Returns the current authoritative Rust projection for a Patchbay session.
  */
 export function patchbay_session_view(session_id: string): string;
+
+/**
+ * Explicitly starts one browser-worker exact run from the current source
+ * revision. This is the only operation that may create a new run epoch;
+ * authoring and checking remain non-actuating.
+ */
+export function patchbay_start_exact_run(session_id: string): string;
 
 /**
  * Observes compiled-in browser providers and executes their exact plan.
@@ -82,11 +106,15 @@ export interface InitOutput {
     readonly panel_language_metadata: () => [number, number];
     readonly panel_source_metadata: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
+    readonly patchbay_advance_exact_run: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly patchbay_cancel_exact_run: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly patchbay_open_session: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly patchbay_pump_exact_run: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_session_view: (a: number, b: number) => [number, number];
+    readonly patchbay_start_exact_run: (a: number, b: number) => [number, number];
     readonly run_panel: (a: number, b: number) => [number, number];
     readonly run_panel_compatibility_demo: (a: number, b: number) => [number, number];
     readonly run_panel_exact: (a: number, b: number, c: number, d: number) => [number, number];

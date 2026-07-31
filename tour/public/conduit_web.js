@@ -102,6 +102,28 @@ export function parse_panel(source) {
 }
 
 /**
+ * Advances deterministic browser-host time to an exact pending deadline.
+ * It is an explicit host wake, not a JavaScript executor or clock jump.
+ * @param {string} session_id
+ * @param {bigint} tick
+ * @returns {string}
+ */
+export function patchbay_advance_exact_run(session_id, tick) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_advance_exact_run(ptr0, len0, tick);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Applies one typed candidate transaction against persistent session
  * revisions. Candidate source is resolved and exactly planned before commit.
  * @param {string} session_id
@@ -117,6 +139,30 @@ export function patchbay_apply_transaction(session_id, request_json) {
         const ptr1 = passStringToWasm0(request_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
         const ret = wasm.patchbay_apply_transaction(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Requests the exact plan-visible stop disposition for the active browser
+ * run. `drain` and `abort` stay distinct through the shared runtime session.
+ * @param {string} session_id
+ * @param {string} disposition
+ * @returns {string}
+ */
+export function patchbay_cancel_exact_run(session_id, disposition) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(disposition, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_cancel_exact_run(ptr0, len0, ptr1, len1);
         deferred3_0 = ret[0];
         deferred3_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -174,6 +220,27 @@ export function patchbay_open_session(document_id, source) {
 }
 
 /**
+ * Runs one bounded cooperative turn of the active browser-worker exact run.
+ * @param {string} session_id
+ * @param {bigint} quantum
+ * @returns {string}
+ */
+export function patchbay_pump_exact_run(session_id, quantum) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_pump_exact_run(ptr0, len0, quantum);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Applies a source transaction through the production Patchbay protocol.
  * The browser receives only the separate source/semantic/presentation facts.
  * @param {string} source
@@ -209,6 +276,28 @@ export function patchbay_session_view(session_id) {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.patchbay_session_view(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Explicitly starts one browser-worker exact run from the current source
+ * revision. This is the only operation that may create a new run epoch;
+ * authoring and checking remain non-actuating.
+ * @param {string} session_id
+ * @returns {string}
+ */
+export function patchbay_start_exact_run(session_id) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_start_exact_run(ptr0, len0);
         deferred2_0 = ret[0];
         deferred2_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

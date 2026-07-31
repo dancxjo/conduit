@@ -10,9 +10,11 @@ use conduit_core::{
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, ExactExecutionReport, ExactRunContext, Handler, Registry,
-    ResolutionError, RunIo, RuntimeError, SchedulerReservation, Value, file_read_contract,
-    file_watch_contract, file_write_contract,
+    CompiledInHostService, ExactExecutionReport, ExactHostedRunSession,
+    ExactHostedServiceUseObservation, ExactRunContext, ExactRunIo, ExactRunSessionRegistry,
+    ExactRunState, Handler, Registry, ResolutionError, RunIo, RuntimeError, SchedulerReservation,
+    Value, file_read_contract, file_watch_contract, file_write_contract,
+    hosted_service_use_observations,
 };
 use conduit_std::{
     FileHandle, FileSlot, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
@@ -22,6 +24,8 @@ use conduit_std::{
 const MAXIMUM_PATCHBAY_SESSIONS: usize = 8;
 const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
 const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
+const MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES: u64 = 32 * 1024 * 1024;
+const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
 const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
 const BROWSER_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
@@ -32,8 +36,10 @@ const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
 ];
 
 thread_local! {
-    static PATCHBAY_SESSIONS: RefCell<BTreeMap<String, conduit_patchbay::Workspace>> =
+    static PATCHBAY_SESSIONS: RefCell<BTreeMap<String, BrowserPatchbaySession>> =
         const { RefCell::new(BTreeMap::new()) };
+    static BROWSER_RUN_SESSIONS: RefCell<Option<ExactRunSessionRegistry>> =
+        const { RefCell::new(None) };
 }
 
 struct ExactBrowserResult {
@@ -42,6 +48,33 @@ struct ExactBrowserResult {
     error: Vec<u8>,
     display: Vec<u8>,
     patchbay: serde_json::Value,
+}
+
+/// Browser-worker-owned exact-run state. The compiler arena, source document,
+/// and registry are not retained: `ExactHostedRunSession` owns only the
+/// admitted runtime state that was pinned at Start.
+struct BrowserExactRun {
+    plan: conduit_patchbay::PlanSnapshot,
+    run_id: String,
+    session: Option<ExactHostedRunSession>,
+    use_observations: Vec<ExactHostedServiceUseObservation>,
+    terminal: Option<BrowserExactRunTerminal>,
+}
+
+/// The finite terminal projection retained after the executor and its session
+/// admission have been released. This is not a second runtime or an evidence
+/// store: it is the bounded final observation already emitted by that run.
+struct BrowserExactRunTerminal {
+    state: ExactRunState,
+    high_water: conduit_runtime::SchedulerHighWater,
+    evidence: Vec<conduit_runtime::ExactEvidenceRecord>,
+}
+
+/// One revisioned authoring workspace plus, at most, one separately pinned
+/// active exact run. Candidate source edits mutate only `workspace`.
+struct BrowserPatchbaySession {
+    workspace: conduit_patchbay::Workspace,
+    run: Option<BrowserExactRun>,
 }
 
 fn browser_filesystem() -> MemoryFilesystem<1, 256, 8> {
@@ -479,6 +512,209 @@ fn patchbay_rejection(
     .to_string()
 }
 
+fn browser_run_registry() -> Result<ExactRunSessionRegistry, RuntimeError> {
+    BROWSER_RUN_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        if sessions.is_none() {
+            *sessions = Some(
+                ExactRunSessionRegistry::new(
+                    MAXIMUM_PATCHBAY_SESSIONS,
+                    MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES,
+                )
+                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?,
+            );
+        }
+        Ok(sessions
+            .as_ref()
+            .expect("browser exact-run registry was initialized")
+            .clone())
+    })
+}
+
+fn patchbay_high_water(
+    high_water: conduit_runtime::SchedulerHighWater,
+) -> conduit_patchbay::PatchbayHighWaterProjection {
+    conduit_patchbay::PatchbayHighWaterProjection {
+        queue_items: high_water.queue_items,
+        queue_payload_bytes: high_water.queue_payload_bytes,
+        ready_slots: high_water.ready_slots,
+        event_slots: high_water.event_slots,
+        decisions: high_water.decisions,
+    }
+}
+
+fn patchbay_run_snapshot(run: &BrowserExactRun) -> conduit_patchbay::RunSnapshot {
+    let state = match browser_run_state(run) {
+        ExactRunState::Terminal(_) => conduit_patchbay::RunState::Terminal,
+        ExactRunState::Active | ExactRunState::Waiting | ExactRunState::Quiescing => {
+            conduit_patchbay::RunState::Running
+        }
+    };
+    conduit_patchbay::RunSnapshot {
+        run_id: run.run_id.clone(),
+        plan_identity: run.plan.identity.clone(),
+        source_semantic_hash: run.plan.source_semantic_hash.clone(),
+        state,
+    }
+}
+
+fn browser_run_evidence(run: &BrowserExactRun) -> Result<Vec<serde_json::Value>, RuntimeError> {
+    browser_run_evidence_records(run)
+        .iter()
+        .map(|event| {
+            serde_json::to_value(event)
+                .map_err(|error| RuntimeError::new("CND-PBY-009", error.to_string()))
+        })
+        .collect()
+}
+
+fn browser_run_state(run: &BrowserExactRun) -> ExactRunState {
+    run.terminal
+        .as_ref()
+        .map(|terminal| terminal.state)
+        .unwrap_or_else(|| {
+            run.session
+                .as_ref()
+                .expect("live browser run retains its exact session")
+                .state()
+        })
+}
+
+fn browser_run_high_water(run: &BrowserExactRun) -> conduit_runtime::SchedulerHighWater {
+    run.terminal
+        .as_ref()
+        .map(|terminal| terminal.high_water)
+        .unwrap_or_else(|| {
+            run.session
+                .as_ref()
+                .expect("live browser run retains its exact session")
+                .high_water()
+        })
+}
+
+fn browser_run_evidence_records(
+    run: &BrowserExactRun,
+) -> Vec<conduit_runtime::ExactEvidenceRecord> {
+    run.terminal
+        .as_ref()
+        .map(|terminal| terminal.evidence.clone())
+        .unwrap_or_else(|| {
+            run.session
+                .as_ref()
+                .expect("live browser run retains its exact session")
+                .exact_evidence()
+        })
+}
+
+fn browser_session_view(
+    session: &BrowserPatchbaySession,
+) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
+    let (plan, run, high_water, evidence) = match session.run.as_ref() {
+        Some(active) => (
+            Some(active.plan.clone()),
+            Some(patchbay_run_snapshot(active)),
+            Some(patchbay_high_water(browser_run_high_water(active))),
+            browser_run_evidence(active).map_err(|error| conduit_patchbay::ProtocolError {
+                code: error.code,
+                message: error.to_string(),
+                diagnostics: Vec::new(),
+                disposition: conduit_patchbay::EditDisposition::Rejected,
+            })?,
+        ),
+        None => (None, None, None, Vec::new()),
+    };
+    authoritative_patchbay_view(&session.workspace, plan, run, high_water, &evidence)
+}
+
+fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), RuntimeError> {
+    if run.terminal.is_none() && matches!(browser_run_state(run), ExactRunState::Terminal(_)) {
+        let mut session = run
+            .session
+            .take()
+            .expect("terminal browser run retains its exact session before finalization");
+        let terminal = BrowserExactRunTerminal {
+            state: session.state(),
+            high_water: session.high_water(),
+            evidence: session.exact_evidence(),
+        };
+        session.finalize().map_err(|state| {
+            RuntimeError::new(
+                "CND-RUN-009",
+                format!("terminal browser run could not finalize: {state:?}"),
+            )
+        })?;
+        run.terminal = Some(terminal);
+    }
+    Ok(())
+}
+
+fn start_browser_exact_run(
+    source: &str,
+    source_revision: u64,
+    session_id: &str,
+) -> Result<BrowserExactRun, RuntimeError> {
+    let panel = conduit_panel::parse(source)
+        .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
+    let registry = browser_registry();
+    let installed = InstalledProfile::observe_registry(source, &registry)?;
+    let document = compile_source(source, &installed.input)
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let arena = bumpalo::Bump::new();
+    let plan = document
+        .as_plan(&arena)
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    if plan.budget.memory_bytes > MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES {
+        return Err(RuntimeError::new(
+            "CND-RUN-009",
+            "browser active-run capacity is smaller than the exact plan memory budget",
+        ));
+    }
+    let bindings = installed.bindings(&plan)?;
+    let grant_observations = installed.grant_observations(&plan)?;
+    let use_observations = hosted_service_use_observations(&grant_observations);
+    let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    let run_id = format!("conduit/browser-run/{session_id}/{source_revision}");
+    let resolved = registry
+        .resolve(&panel)
+        .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    let context = ExactRunContext {
+        semantic_source_hash: plan.source_semantic_hash,
+        plan_epoch: source_revision,
+        run_id: conduit_core::Id(&run_id),
+        grant_observations: &grant_observations,
+        validation: conduit_core::PlanValidationContext {
+            supported_schema_version: plan.schema_version,
+            now: plan.created_at,
+        },
+        scheduler_policy: SchedulerPolicy {
+            schema_version: SCHEDULER_CONTRACT_VERSION,
+            ready_queue: ReadyQueueDiscipline::RoundRobin,
+            max_decisions: MAXIMUM_BROWSER_RUN_PUMP_DECISIONS,
+            max_tick: 512,
+            max_consecutive_yields: 8,
+            max_events: if plan.nodes.len() > 4 { 256 } else { 128 },
+        },
+        reservation: SchedulerReservation {
+            available_runtime_memory_bytes: plan.budget.memory_bytes,
+            executor_overhead_limit_bytes: plan.budget.memory_bytes,
+        },
+    };
+    let session = resolved.start_exact_session(
+        &plan,
+        &bindings,
+        context,
+        &browser_run_registry()?,
+        ExactRunIo::for_plan(&plan)?,
+    )?;
+    Ok(BrowserExactRun {
+        plan: plan_snapshot,
+        run_id,
+        session: Some(session),
+        use_observations,
+        terminal: None,
+    })
+}
+
 /// Opens one finite, revisioned Patchbay authoring session.
 #[wasm_bindgen]
 pub fn patchbay_open_session(document_id: String, source: String) -> String {
@@ -512,11 +748,29 @@ pub fn patchbay_open_session(document_id: String, source: String) -> String {
             })
             .to_string();
         }
-        let view = match authoritative_patchbay_view(&workspace, None, None, None, &[]) {
+        if sessions
+            .get(&document_id)
+            .and_then(|session| session.run.as_ref())
+            .is_some_and(|run| !matches!(browser_run_state(run), ExactRunState::Terminal(_)))
+        {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "cannot replace a Patchbay workspace while its exact run is live",
+                "diagnostics": [],
+                "disposition": "rejected",
+            })
+            .to_string();
+        }
+        let session = BrowserPatchbaySession {
+            workspace,
+            run: None,
+        };
+        let view = match browser_session_view(&session) {
             Ok(view) => view,
             Err(error) => return patchbay_error(error),
         };
-        sessions.insert(document_id.clone(), workspace);
+        sessions.insert(document_id.clone(), session);
         serde_json::json!({
             "ok": true,
             "session_id": document_id,
@@ -531,7 +785,7 @@ pub fn patchbay_open_session(document_id: String, source: String) -> String {
 pub fn patchbay_session_view(session_id: String) -> String {
     PATCHBAY_SESSIONS.with(|sessions| {
         let sessions = sessions.borrow();
-        let Some(workspace) = sessions.get(&session_id) else {
+        let Some(session) = sessions.get(&session_id) else {
             return serde_json::json!({
                 "ok": false,
                 "code": "CND-PBY-011",
@@ -541,10 +795,230 @@ pub fn patchbay_session_view(session_id: String) -> String {
             })
             .to_string();
         };
-        match authoritative_patchbay_view(workspace, None, None, None, &[]) {
+        match browser_session_view(session) {
             Ok(view) => serde_json::json!({"ok": true, "view": view}).to_string(),
-            Err(error) => patchbay_rejection(error, workspace),
+            Err(error) => patchbay_rejection(error, &session.workspace),
         }
+    })
+}
+
+fn browser_run_state_name(state: ExactRunState) -> &'static str {
+    match state {
+        ExactRunState::Active => "active",
+        ExactRunState::Waiting => "waiting",
+        ExactRunState::Quiescing => "quiescing",
+        ExactRunState::Terminal(TerminalClass::Succeeded) => "succeeded",
+        ExactRunState::Terminal(TerminalClass::Cancelled) => "cancelled",
+        ExactRunState::Terminal(TerminalClass::Disconnected) => "disconnected",
+        ExactRunState::Terminal(TerminalClass::Failed) => "failed",
+    }
+}
+
+fn browser_run_result(session: &BrowserPatchbaySession) -> String {
+    let Some(run) = session.run.as_ref() else {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-015",
+            "diagnostic": "Patchbay session has no active exact run",
+        })
+        .to_string();
+    };
+    match browser_session_view(session) {
+        Ok(view) => serde_json::json!({
+            "ok": true,
+            "run_id": run.run_id,
+            "plan_identity": run.plan.identity,
+            "source_semantic_hash": run.plan.source_semantic_hash,
+            "state": browser_run_state_name(browser_run_state(run)),
+            "view": view,
+        })
+        .to_string(),
+        Err(error) => patchbay_rejection(error, &session.workspace),
+    }
+}
+
+/// Explicitly starts one browser-worker exact run from the current source
+/// revision. This is the only operation that may create a new run epoch;
+/// authoring and checking remain non-actuating.
+#[wasm_bindgen]
+pub fn patchbay_start_exact_run(session_id: String) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        if session
+            .run
+            .as_ref()
+            .is_some_and(|run| !matches!(browser_run_state(run), ExactRunState::Terminal(_)))
+        {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "Patchbay session already owns a live exact run",
+            })
+            .to_string();
+        }
+        let source = session.workspace.source().source.clone();
+        let source_revision = session.workspace.source().revision;
+        match start_browser_exact_run(&source, source_revision, &session_id) {
+            Ok(run) => {
+                session.run = Some(run);
+                browser_run_result(session)
+            }
+            Err(error) => serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string(),
+        }
+    })
+}
+
+/// Runs one bounded cooperative turn of the active browser-worker exact run.
+#[wasm_bindgen]
+pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
+    if quantum == 0 || quantum > MAXIMUM_BROWSER_RUN_PUMP_DECISIONS {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "browser exact-run pump quantum exceeds its fixed bound",
+        })
+        .to_string();
+    }
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return browser_run_result(session);
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return browser_run_result(session);
+        };
+        let result = exact_session.pump(quantum, &run.use_observations);
+        if let Err(error) = result {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        if let Err(error) = finalize_browser_run_if_terminal(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        browser_run_result(session)
+    })
+}
+
+/// Advances deterministic browser-host time to an exact pending deadline.
+/// It is an explicit host wake, not a JavaScript executor or clock jump.
+#[wasm_bindgen]
+pub fn patchbay_advance_exact_run(session_id: String, tick: u64) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return browser_run_result(session);
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return browser_run_result(session);
+        };
+        let result = exact_session.advance_to(tick, &run.use_observations);
+        if let Err(error) = result {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        if let Err(error) = finalize_browser_run_if_terminal(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        browser_run_result(session)
+    })
+}
+
+/// Requests the exact plan-visible stop disposition for the active browser
+/// run. `drain` and `abort` stay distinct through the shared runtime session.
+#[wasm_bindgen]
+pub fn patchbay_cancel_exact_run(session_id: String, disposition: String) -> String {
+    let stop = match disposition.as_str() {
+        "drain" => conduit_core::StopPolicy::Drain,
+        "abort" => conduit_core::StopPolicy::Abort,
+        _ => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-012",
+                "diagnostic": "browser exact-run cancellation must be `drain` or `abort`",
+            })
+            .to_string();
+        }
+    };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return browser_run_result(session);
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return browser_run_result(session);
+        };
+        if let Err(error) = exact_session.cancel(stop) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        if let Err(error) = finalize_browser_run_if_terminal(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        browser_run_result(session)
     })
 }
 
@@ -595,7 +1069,7 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
     };
     PATCHBAY_SESSIONS.with(|sessions| {
         let mut sessions = sessions.borrow_mut();
-        let Some(workspace) = sessions.get_mut(&session_id) else {
+        let Some(session) = sessions.get_mut(&session_id) else {
             return serde_json::json!({
                 "ok": false,
                 "code": "CND-PBY-011",
@@ -606,23 +1080,23 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
             .to_string();
         };
         let registry = browser_registry();
-        let result = workspace.apply_validated(
+        let result = session.workspace.apply_validated(
             request,
             |contract_id| availability_projection(&registry, contract_id),
             validate_patchbay_candidate,
         );
         match result {
-            Ok(result) => match authoritative_patchbay_view(workspace, None, None, None, &[]) {
+            Ok(result) => match browser_session_view(session) {
                 Ok(view) => serde_json::json!({
                     "ok": true,
                     "result": result,
                     "view": view,
-                    "history_retained": workspace.history().len(),
+                    "history_retained": session.workspace.history().len(),
                 })
                 .to_string(),
-                Err(error) => patchbay_rejection(error, workspace),
+                Err(error) => patchbay_rejection(error, &session.workspace),
             },
-            Err(error) => patchbay_rejection(error, workspace),
+            Err(error) => patchbay_rejection(error, &session.workspace),
         }
     })
 }
@@ -1260,12 +1734,14 @@ fn authoritative_patchbay_view(
     let plan = resolved_view
         .as_ref()
         .and_then(|_| exact_plan.or_else(|| exact_plan_snapshot(source_text)));
+    // An active run is pinned to `plan`, not to the mutable authoring
+    // workspace. A candidate source revision can therefore remain visible
+    // while the prior valid epoch continues independently. The plan identity
+    // still has to match exactly; a caller cannot project an arbitrary run
+    // onto a different resolved plan.
     let matching_run = run.filter(|run| {
-        plan.as_ref().is_some_and(|plan| {
-            run.plan_identity == plan.identity
-                && workspace.source().semantic_hash.as_deref()
-                    == Some(run.source_semantic_hash.as_str())
-        })
+        plan.as_ref()
+            .is_some_and(|plan| run.plan_identity == plan.identity)
     });
     let mut expanded_nodes = resolved_view.as_ref().map_or_else(Vec::new, |view| {
         view.nodes
@@ -2607,7 +3083,8 @@ mod tests {
 
     use super::{
         explain_panel, panel_language_metadata, panel_source_metadata, patchbay_apply_transaction,
-        patchbay_move_node, patchbay_open_session, patchbay_replace_source, patchbay_session_view,
+        patchbay_cancel_exact_run, patchbay_move_node, patchbay_open_session,
+        patchbay_replace_source, patchbay_session_view, patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -2949,6 +3426,64 @@ cord output.value -> sink.result\n\
                 .is_some_and(|identity| identity.starts_with("sha256:"))
         );
         assert_eq!(replaced["result"]["candidate_revision"]["source"], 1);
+    }
+
+    #[test]
+    fn browser_exact_run_stays_pinned_while_a_candidate_source_revision_changes() {
+        let session_id = "test/browser-active-run";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true);
+
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        assert_eq!(started["state"], "active");
+        let active_plan_source = started["source_semantic_hash"].clone();
+
+        let replacement = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session_id,
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{
+                "ReplaceSource": {"source": SOURCE.replace("hello", "candidate")}
+            }]
+        });
+        let edited: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session_id.to_owned(),
+            replacement.to_string(),
+        ))
+        .expect("candidate edit JSON");
+        assert_eq!(edited["ok"], true, "{edited}");
+        assert_eq!(
+            edited["result"]["compatibility"]["plan_disposition"],
+            "candidate-only"
+        );
+
+        let view: Value = serde_json::from_str(&patchbay_session_view(session_id.to_owned()))
+            .expect("active view JSON");
+        assert_eq!(view["ok"], true, "{view}");
+        assert_eq!(
+            view["view"]["run"]["source_semantic_hash"],
+            active_plan_source
+        );
+        assert_ne!(
+            view["view"]["source"]["semantic_hash"], active_plan_source,
+            "candidate source must not rewrite the active epoch",
+        );
+
+        let cancelled: Value = serde_json::from_str(&patchbay_cancel_exact_run(
+            session_id.to_owned(),
+            "abort".to_owned(),
+        ))
+        .expect("cancel JSON");
+        assert_eq!(cancelled["ok"], true, "{cancelled}");
+        assert_eq!(cancelled["state"], "cancelled");
+        assert_eq!(cancelled["view"]["run"]["state"], "Terminal");
     }
 
     #[test]
