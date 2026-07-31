@@ -4570,14 +4570,14 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/http/fetch",
       "schema_version": 0,
-      "semantic_hash": "sha256:15bff1ff5d402a853e3a5dbc46bc59a3718429998c1aa43e1cda82893449a6d7",
+      "semantic_hash": "sha256:95ca24962eea4c18a07cbfd4ffb486faefafd7534cc63429b1c1ff843ecde2fb",
       "ports": [
         {
           "id": "request",
           "direction": "input",
           "value_type": "net/http/request",
           "type_schema_version": 0,
-          "type_hash": "sha256:3fd541f40bab96204ffb993e4c76a4a9540d0eab57d1ea717237adf24fbe470c",
+          "type_hash": "sha256:3450a3ade914b6723091d4f5666bac921e93652224a3d519691088fac75fda81",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -4592,7 +4592,7 @@
           "direction": "output",
           "value_type": "net/http/response",
           "type_schema_version": 0,
-          "type_hash": "sha256:6061a82b39ac26c9e725c011eb8b792dff12dddeedf99f10a278a9f3b50e86a1",
+          "type_hash": "sha256:252e5369f63287075f3c0e14d97b302e37fee5f9ca54166f77dd2cc6e744548a",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -4601,23 +4601,98 @@
           "terminal": "either",
           "sensitivity": "restricted",
           "loss": "lossless-only"
+        },
+        {
+          "id": "result",
+          "direction": "output",
+          "value_type": "net/http/client-result",
+          "type_schema_version": 0,
+          "type_hash": "sha256:21e395ed72fecde7c9a274ac15d88fb91b0f5adea22fd95700ea40b1c59c4fcf",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "grant",
+          "key": "network_resource",
           "value_type": "std/reference/any",
           "type_schema_version": 0,
           "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
-          "key": "maximum_request_bytes",
-          "value_type": "std/u64",
+          "key": "outbound_grant",
+          "value_type": "std/reference/any",
           "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "address",
+          "value_type": "net/socket/address",
+          "type_schema_version": 0,
+          "type_hash": "sha256:073db6726d1c2aa9dff770e996e16c7c449a8b5a39b927c937e09460b53ce4d6"
+        },
+        {
+          "key": "authority",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "dns_observation",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "provider_observation",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "tls_policy",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "trust_handle",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "client_certificate_handle",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "client_private_key_handle",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "proxy_resource",
+          "value_type": "std/reference/any",
+          "type_schema_version": 0,
+          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+        },
+        {
+          "key": "redirect_policy",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_connections",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
@@ -4627,13 +4702,103 @@
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_request_headers",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_request_header_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_request_body_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_response_headers",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_response_header_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_response_body_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_body_chunk_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_redirects",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_buffer_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_timers",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "deadline_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cleanup_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "cancellation",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         }
       ],
       "catalog_membership": "portable-catalog",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "conformance_fixture_owner": "conformance/c4/http-client.json",
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
@@ -4663,7 +4828,7 @@
           "direction": "input",
           "value_type": "net/http/response",
           "type_schema_version": 0,
-          "type_hash": "sha256:6061a82b39ac26c9e725c011eb8b792dff12dddeedf99f10a278a9f3b50e86a1",
+          "type_hash": "sha256:252e5369f63287075f3c0e14d97b302e37fee5f9ca54166f77dd2cc6e744548a",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -4678,7 +4843,7 @@
           "direction": "output",
           "value_type": "net/http/request",
           "type_schema_version": 0,
-          "type_hash": "sha256:3fd541f40bab96204ffb993e4c76a4a9540d0eab57d1ea717237adf24fbe470c",
+          "type_hash": "sha256:3450a3ade914b6723091d4f5666bac921e93652224a3d519691088fac75fda81",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",

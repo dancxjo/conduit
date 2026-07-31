@@ -248,6 +248,8 @@ fn fixture(id: &str, classification: &str) -> &'static str {
         "conformance/c4/supervision.json"
     } else if id == "net/http/serve-once" {
         "conformance/c5/http-serving.json"
+    } else if id == "net/http/fetch" {
+        "conformance/c4/http-client.json"
     } else if classification == "optional-host-boundary" {
         "conformance/c5/registry-availability.json"
     } else {

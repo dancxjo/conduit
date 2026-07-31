@@ -356,13 +356,19 @@ pub static STANDARD_TYPE_CATALOG: &[StandardTypeDefinition] = &[
     ),
     concrete!(
         "net/http/request",
-        "bounded HTTP request",
+        "bounded HTTP client request",
         Network,
         StandardRepresentation::Structural
     ),
     concrete!(
         "net/http/response",
-        "bounded HTTP response",
+        "bounded HTTP client response",
+        Network,
+        StandardRepresentation::Structural
+    ),
+    concrete!(
+        "net/http/client-result",
+        "HTTP client terminal result",
         Network,
         StandardRepresentation::Structural
     ),
@@ -597,6 +603,100 @@ static SOCKET_RESULT_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
     ),
 ];
 
+static HTTP_REQUEST_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field("method", CanonicalValue::Identifier(Id("net/http/method"))),
+    semantic_field(
+        "scheme",
+        CanonicalValue::Set(&[
+            CanonicalValue::Identifier(Id("http")),
+            CanonicalValue::Identifier(Id("https")),
+        ]),
+    ),
+    semantic_field(
+        "authority_target",
+        CanonicalValue::Identifier(Id("explicit-no-ambient-resolution")),
+    ),
+    semantic_field(
+        "headers",
+        CanonicalValue::Identifier(Id("ordered-bounded-redacted")),
+    ),
+    semantic_field(
+        "body",
+        CanonicalValue::Identifier(Id("finite-ordered-byte-stream")),
+    ),
+    semantic_field(
+        "redirects",
+        CanonicalValue::Identifier(Id("explicit-policy-and-limit")),
+    ),
+    semantic_field(
+        "deadline_cancellation",
+        CanonicalValue::Identifier(Id("explicit-terminal")),
+    ),
+];
+
+static HTTP_RESPONSE_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field("status", CanonicalValue::Identifier(Id("net/http/status"))),
+    semantic_field(
+        "headers",
+        CanonicalValue::Identifier(Id("ordered-bounded-redacted")),
+    ),
+    semantic_field(
+        "body",
+        CanonicalValue::Identifier(Id("finite-ordered-byte-stream")),
+    ),
+    semantic_field(
+        "partiality",
+        CanonicalValue::Identifier(Id("committed-head-and-observed-bytes")),
+    ),
+    semantic_field(
+        "transport_security",
+        CanonicalValue::Identifier(Id("exact-separate-evidence")),
+    ),
+];
+
+static HTTP_CLIENT_RESULT_DESCRIPTOR_FIELDS: &[MapField<'static>] = &[
+    semantic_field(
+        "terminal",
+        CanonicalValue::Set(&[
+            CanonicalValue::Identifier(Id("completed")),
+            CanonicalValue::Identifier(Id("destination-denied")),
+            CanonicalValue::Identifier(Id("stale-observation")),
+            CanonicalValue::Identifier(Id("certificate-failed")),
+            CanonicalValue::Identifier(Id("hostname-failed")),
+            CanonicalValue::Identifier(Id("redirect-loop")),
+            CanonicalValue::Identifier(Id("redirect-limit")),
+            CanonicalValue::Identifier(Id("downgrade-rejected")),
+            CanonicalValue::Identifier(Id("header-overflow")),
+            CanonicalValue::Identifier(Id("body-overflow")),
+            CanonicalValue::Identifier(Id("timed-out")),
+            CanonicalValue::Identifier(Id("partial-response")),
+            CanonicalValue::Identifier(Id("cancelled")),
+            CanonicalValue::Identifier(Id("commit-unknown")),
+            CanonicalValue::Identifier(Id("pool-exhausted")),
+            CanonicalValue::Identifier(Id("proxy-binding-rejected")),
+            CanonicalValue::Identifier(Id("provider-lost")),
+            CanonicalValue::Identifier(Id("work-overflow")),
+            CanonicalValue::Identifier(Id("evidence-overflow")),
+        ]),
+    ),
+    semantic_field(
+        "commit",
+        CanonicalValue::Set(&[
+            CanonicalValue::Identifier(Id("not-committed")),
+            CanonicalValue::Identifier(Id("committed")),
+            CanonicalValue::Identifier(Id("unknown")),
+        ]),
+    ),
+    semantic_field(
+        "counts",
+        CanonicalValue::Identifier(Id("status-body-redirect-evidence")),
+    ),
+    semantic_field(
+        "cleanup",
+        CanonicalValue::Identifier(Id("explicit-bounded-completion")),
+    ),
+];
+
 /// Returns the exact host-language-neutral descriptor for one type definition.
 #[must_use]
 pub fn standard_type_descriptor(
@@ -609,6 +709,9 @@ pub fn standard_type_descriptor(
         "net/socket/session" => CanonicalValue::Map(SOCKET_SESSION_DESCRIPTOR_FIELDS),
         "net/udp/datagram" => CanonicalValue::Map(UDP_DATAGRAM_DESCRIPTOR_FIELDS),
         "net/socket/result" => CanonicalValue::Map(SOCKET_RESULT_DESCRIPTOR_FIELDS),
+        "net/http/request" => CanonicalValue::Map(HTTP_REQUEST_DESCRIPTOR_FIELDS),
+        "net/http/response" => CanonicalValue::Map(HTTP_RESPONSE_DESCRIPTOR_FIELDS),
+        "net/http/client-result" => CanonicalValue::Map(HTTP_CLIENT_RESULT_DESCRIPTOR_FIELDS),
         _ => CanonicalValue::Null,
     };
     CanonicalDescriptor {

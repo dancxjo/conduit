@@ -335,18 +335,27 @@ const HTTP_REQUEST: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("net/http/request"),
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0x3f, 0xd5, 0x41, 0xf4, 0x0b, 0xab, 0x96, 0x20, 0x4f, 0xfb, 0x99, 0x3e, 0x4c, 0x76, 0xa4,
-        0xa9, 0x54, 0x0d, 0x0e, 0xab, 0x57, 0xd1, 0xea, 0x71, 0x72, 0x37, 0xad, 0xf2, 0x4f, 0xbe,
-        0x47, 0x0c,
+        0x34, 0x50, 0xa3, 0xad, 0xe9, 0x14, 0xb6, 0x72, 0x30, 0x91, 0xd4, 0xf5, 0x66, 0x6b, 0xac,
+        0x92, 0x1e, 0x93, 0x65, 0x22, 0x24, 0xa3, 0xd5, 0x19, 0x69, 0x10, 0x88, 0xfa, 0xc7, 0x5f,
+        0xda, 0x81,
     ]),
 };
 const HTTP_RESPONSE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("net/http/response"),
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0x60, 0x61, 0xa8, 0x2b, 0x39, 0xac, 0x26, 0xc9, 0xe7, 0x25, 0xc0, 0x11, 0xeb, 0x8b, 0x79,
-        0x2d, 0xff, 0x12, 0xdd, 0xde, 0xed, 0xf9, 0x9f, 0x10, 0xa2, 0x78, 0xa9, 0xf3, 0xb5, 0x0e,
-        0x86, 0xa1,
+        0x25, 0x2e, 0x53, 0x69, 0xf6, 0x32, 0x87, 0x07, 0x5f, 0x3c, 0x0e, 0x14, 0xd9, 0x7b, 0x30,
+        0x2e, 0x37, 0xfe, 0xe5, 0xf9, 0xca, 0x54, 0x16, 0x6f, 0x77, 0xdd, 0x2c, 0xc6, 0xe7, 0x44,
+        0x54, 0x8a,
+    ]),
+};
+const HTTP_CLIENT_RESULT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("net/http/client-result"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([
+        0x21, 0xe3, 0x95, 0xed, 0x72, 0xfe, 0xcd, 0xe7, 0xc9, 0xa2, 0x74, 0xac, 0x15, 0xd8, 0x8f,
+        0xb9, 0x1b, 0x0f, 0x5a, 0xde, 0xa2, 0x2f, 0xd9, 0x57, 0x00, 0xea, 0x40, 0xb1, 0xc5, 0x9c,
+        0x4f, 0xcf,
     ]),
 };
 const FS_RESOURCE: TypeContractRef<'static> = TypeContractRef {
@@ -874,6 +883,13 @@ const OUT_HTTP_RESPONSE: PortContract<'static> = port(
     HTTP_RESPONSE,
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
+);
+const OUT_HTTP_CLIENT_RESULT: PortContract<'static> = port(
+    "result",
+    Direction::Output,
+    HTTP_CLIENT_RESULT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
 );
 const FORMAT_TEMPLATE: PortContract<'static> = port(
     "template",
@@ -1427,10 +1443,35 @@ const UDP_UNCONNECTED: ConfigContract<'static> = ConfigContract {
 };
 const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
     fields: &[
-        protected_field("grant", REFERENCE),
-        field("maximum_request_bytes", U64),
-        field("maximum_response_bytes", U64),
+        protected_field("network_resource", REFERENCE),
+        protected_field("outbound_grant", REFERENCE),
+        field("address", SOCKET_ADDRESS),
+        field("authority", TEXT),
+        protected_field("dns_observation", REFERENCE),
+        protected_field("provider_observation", REFERENCE),
+        protected_field("tls_policy", REFERENCE),
+        optional_protected_field("trust_handle", REFERENCE),
+        optional_protected_field("client_certificate_handle", REFERENCE),
+        optional_protected_field("client_private_key_handle", REFERENCE),
+        optional_protected_field("proxy_resource", REFERENCE),
+        field("redirect_policy", TEXT),
+        field("maximum_connections", U64),
         field("maximum_pending", U64),
+        field("maximum_request_headers", U64),
+        field("maximum_request_header_bytes", U64),
+        field("maximum_request_body_bytes", U64),
+        field("maximum_response_headers", U64),
+        field("maximum_response_header_bytes", U64),
+        field("maximum_response_body_bytes", U64),
+        field("maximum_body_chunk_bytes", U64),
+        field("maximum_redirects", U64),
+        field("maximum_retained_buffer_bytes", U64),
+        field("maximum_timers", U64),
+        field("maximum_work", U64),
+        field("maximum_evidence_events", U64),
+        field("deadline_ticks", U64),
+        field("cleanup_ticks", U64),
+        field("cancellation", TEXT),
     ],
 };
 const HTTP_SERVE: ConfigContract<'static> = ConfigContract {
@@ -1465,6 +1506,20 @@ const fn protected_field(
         key: Id(key),
         value_type,
         requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Restricted,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Plan,
+    }
+}
+
+const fn optional_protected_field(
+    key: &'static str,
+    value_type: TypeContractRef<'static>,
+) -> ConfigFieldContract<'static> {
+    ConfigFieldContract {
+        key: Id(key),
+        value_type,
+        requirement: ConfigRequirement::Optional,
         sensitivity: Sensitivity::Restricted,
         mutability: ConfigMutability::PreStart,
         identity: ConfigIdentity::Plan,
@@ -2699,7 +2754,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "net/http/fetch",
         HTTP_FETCH,
         &[IN_HTTP_REQUEST],
-        &[OUT_HTTP_RESPONSE],
+        &[OUT_HTTP_RESPONSE, OUT_HTTP_CLIENT_RESULT],
         "host/http-client"
     ),
     typed_host_entry!(

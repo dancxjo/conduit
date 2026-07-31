@@ -431,6 +431,62 @@ fn polymorphic_flow_contracts_publish_type_relationships_not_byte_placeholders()
 
 #[test]
 fn http_contracts_use_domain_types_without_claiming_a_provider() {
+    let fetch = STANDARD_CATALOG
+        .iter()
+        .find(|entry| entry.contract.id.as_str() == "net/http/fetch")
+        .unwrap();
+    assert_eq!(
+        fetch.contract.inputs[0].value_type.contract_id.as_str(),
+        "net/http/request"
+    );
+    assert_eq!(
+        fetch.contract.outputs[0].value_type.contract_id.as_str(),
+        "net/http/response"
+    );
+    assert_eq!(
+        fetch.contract.outputs[1].value_type.contract_id.as_str(),
+        "net/http/client-result"
+    );
+    for required in [
+        "network_resource",
+        "outbound_grant",
+        "address",
+        "authority",
+        "dns_observation",
+        "provider_observation",
+        "tls_policy",
+        "redirect_policy",
+        "maximum_connections",
+        "maximum_pending",
+        "maximum_request_headers",
+        "maximum_request_header_bytes",
+        "maximum_request_body_bytes",
+        "maximum_response_headers",
+        "maximum_response_header_bytes",
+        "maximum_response_body_bytes",
+        "maximum_body_chunk_bytes",
+        "maximum_redirects",
+        "maximum_retained_buffer_bytes",
+        "maximum_timers",
+        "maximum_work",
+        "maximum_evidence_events",
+        "deadline_ticks",
+        "cleanup_ticks",
+        "cancellation",
+    ] {
+        assert!(
+            fetch
+                .contract
+                .config
+                .fields
+                .iter()
+                .any(|field| field.key.as_str() == required),
+            "missing HTTP client field {required}"
+        );
+    }
+    assert_eq!(fetch.host_service.unwrap().as_str(), "host/http-client");
+    assert!(fetch.required_support.hosted);
+
     let serve = STANDARD_CATALOG
         .iter()
         .find(|entry| entry.contract.id.as_str() == "net/http/serve")
