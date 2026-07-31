@@ -82,6 +82,7 @@ fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() 
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 152,
                 run_id: Id("run/acme-weather/1"),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

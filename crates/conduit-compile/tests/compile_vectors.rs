@@ -485,6 +485,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 1,
                 run_id: conduit_core::Id("fixture/run"),
+                grant_observations: &[],
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -524,6 +525,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 1,
                 run_id: conduit_core::Id("fixture/run"),
+                grant_observations: &[],
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -563,6 +565,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 1,
                 run_id: conduit_core::Id("fixture/run"),
+                grant_observations: &[],
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -602,6 +605,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 1,
                 run_id: conduit_core::Id("fixture/run"),
+                grant_observations: &[],
                 validation: conduit_core::PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -678,6 +682,7 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
         semantic_source_hash: plan.source_semantic_hash,
         plan_epoch: 121,
         run_id,
+        grant_observations: &[],
         validation: conduit_core::PlanValidationContext {
             supported_schema_version: plan.schema_version,
             now: plan.created_at,

@@ -50,6 +50,7 @@ fn run_result(
             semantic_source_hash: plan.source_semantic_hash,
             plan_epoch: 129,
             run_id: Id(run_id),
+            grant_observations: &[],
             validation: PlanValidationContext {
                 supported_schema_version: plan.schema_version,
                 now: plan.created_at,
@@ -106,6 +107,7 @@ fn cancel_exact(source: &str, run_id: &'static str) -> ExactExecutionReport {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 129,
                 run_id: Id(run_id),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

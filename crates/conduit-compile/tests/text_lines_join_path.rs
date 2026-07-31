@@ -117,6 +117,7 @@ fn text_lines_and_join_survive_exact_plan_and_production_execution() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 126,
                 run_id: Id("run/text-lines-join/1"),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -164,6 +165,7 @@ fn text_lines_and_join_survive_exact_plan_and_production_execution() {
                     semantic_source_hash: plan.source_semantic_hash,
                     plan_epoch: 126,
                     run_id: Id("run/text-lines-join/cancel-base"),
+                    grant_observations: &[],
                     validation: PlanValidationContext {
                         supported_schema_version: plan.schema_version,
                         now: plan.created_at,
@@ -252,6 +254,7 @@ fn maximum_join_requeues_fairly_with_lines_under_tiny_steps() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 189,
                 run_id: Id("run/text-lines-join/maximum"),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -364,6 +367,7 @@ fn maximum_line_scanning_and_copying_span_bounded_steps() {
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 189,
                 run_id: Id("run/text-lines/maximum"),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

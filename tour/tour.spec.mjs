@@ -173,6 +173,31 @@ test("highlights panel source while retaining the native editor surface", async 
       "}\nnode value : fixture/source implements speech/recognizer\n",
   );
 
+  await source.fill(
+    "panel 0\ncomposite example/uppercase {\n" +
+      "  node worker : text/uppercase\n" +
+      "  export > text = worker.text\n" +
+      "  export value < = worker.text\n" +
+      "}\n",
+  );
+  await expect(highlight).toHaveAttribute("data-semantic-metadata", "available");
+  await expect(highlight.locator(".panel-token-port-receiving")).toHaveText([
+    "text",
+    "text",
+    "value",
+    "text",
+  ]);
+  await expect(highlight.locator(".panel-token-port-sigil-receiving")).toHaveText([
+    ">",
+    "<",
+  ]);
+  await expect(
+    highlight.locator(".panel-token-port-receiving").filter({ hasText: /^value$/ }),
+  ).toHaveAttribute(
+    "data-semantic-path",
+    "definition/example/uppercase/port/receiving/value",
+  );
+
   await source.fill('panel 0\ninterface broken {\n  > audio : "not > metadata"\n');
   await expect(highlight).toHaveAttribute("data-semantic-metadata", "unavailable");
   await expect(highlight.locator(".panel-token-port")).toHaveCount(0);

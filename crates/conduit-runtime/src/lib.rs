@@ -17,7 +17,8 @@ use conduit_core::{
     CanonicalValue, CompatibilityOutcome, ConfigContract, ConfigFieldContract, ConfigIdentity,
     ConfigMutability, ConfigRequirement, ConnectionCardinality, Delivery, DescriptorRef, Direction,
     Endpoint as CoreEndpoint, ExecutionPlan, ExecutorKind, FieldDisposition, FlowCapacity,
-    FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, Id, ImplementationMachine,
+    FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, GrantStatus, Id,
+    ImplementationMachine,
     LossAcceptance, ManifestArtifactRef, ManifestEntrypoint, MapField, MemoryAccounting,
     NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph, PlanNode, PortContract,
     PortFlowConstraints, Presence, Pressure, ReplacementSupport, ResolvedPlanNode, SampleSchedule,
@@ -1137,6 +1138,134 @@ pub struct ExactRunContext<'a> {
     pub validation: conduit_core::PlanValidationContext<'a>,
     pub scheduler_policy: SchedulerPolicy,
     pub reservation: SchedulerReservation,
+    /// Fresh grant/revocation observations supplied by the run authority
+    /// boundary. Effects cannot infer an active grant from the sealed plan.
+    pub grant_observations: &'a [ExactGrantObservation<'a>],
+}
+
+/// One use-time grant observation. The immutable grant remains in the exact
+/// plan; this separate fact can revoke it before any hosted effect occurs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExactGrantObservation<'a> {
+    pub grant: Id<'a>,
+    pub status: GrantStatus<'a>,
+}
+
+/// One exact authority binding projected for a selected hosted service.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactHostedServiceAuthority {
+    pub effect_hash: SemanticHash,
+    pub action: String,
+    pub resource_kind: String,
+    pub resource_id: String,
+    pub resource_binding_id: String,
+    pub grant_id: String,
+    pub constraints: Vec<(String, SemanticHash)>,
+}
+
+/// Executor-built facts supplied to a hosted service before invocation.
+/// Source cannot construct this value or replace its plan-derived contents.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactHostedServiceBinding {
+    pub instance: String,
+    pub implementation_id: String,
+    pub artifact_id: String,
+    pub host_id: String,
+    pub host_observation_id: String,
+    pub use_time_tick: u64,
+    pub authorities: Vec<ExactHostedServiceAuthority>,
+}
+
+fn validate_use_time_grants(
+    plan: &ExecutionPlan<'_>,
+    context: ExactRunContext<'_>,
+) -> Result<(), RuntimeError> {
+    let required = plan
+        .authorities
+        .iter()
+        .map(|authority| authority.grant.id.as_str())
+        .collect::<BTreeSet<_>>();
+    let supplied = context
+        .grant_observations
+        .iter()
+        .map(|observation| observation.grant.as_str())
+        .collect::<BTreeSet<_>>();
+    if required != supplied || supplied.len() != context.grant_observations.len() {
+        return Err(RuntimeError::new(
+            "CND-RUN-010",
+            "use-time grant observations do not exactly cover the plan authorities",
+        ));
+    }
+    for authority in plan.authorities {
+        let observation = context
+            .grant_observations
+            .iter()
+            .find(|observation| observation.grant == authority.grant.id)
+            .expect("exact grant inventory was checked");
+        conduit_core::validate_authority_at_use(
+            authority.binding,
+            authority.effect,
+            context.validation.now,
+            authority.capability,
+            conduit_core::ObservedGrant {
+                grant: authority.grant,
+                status: observation.status,
+            },
+        )
+        .map_err(|error| RuntimeError::new("CND-RUN-010", error.to_string()))?;
+    }
+    Ok(())
+}
+
+fn exact_host_service_binding(
+    plan: &ExecutionPlan<'_>,
+    node: &ResolvedPlanNode<'_>,
+    use_time_tick: u64,
+) -> Result<ExactHostedServiceBinding, RuntimeError> {
+    let authorities = plan
+        .authorities
+        .iter()
+        .filter(|authority| authority.node == node.instance)
+        .map(|authority| {
+            let resource = plan
+                .resources
+                .iter()
+                .find(|resource| {
+                    resource.node == node.instance
+                        && resource.resource == authority.binding.resource
+                        && resource.host_observation == node.host_observation
+                })
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-RUN-010",
+                        "hosted service authority lacks its exact resource binding",
+                    )
+                })?;
+            Ok(ExactHostedServiceAuthority {
+                effect_hash: authority.effect_hash,
+                action: authority.effect.action.to_string(),
+                resource_kind: authority.binding.resource.kind.to_string(),
+                resource_id: authority.binding.resource.id.to_string(),
+                resource_binding_id: resource.id.to_string(),
+                grant_id: authority.grant.id.to_string(),
+                constraints: authority
+                    .effect
+                    .constraints
+                    .iter()
+                    .map(|constraint| (constraint.id.to_string(), constraint.semantic_hash))
+                    .collect(),
+            })
+        })
+        .collect::<Result<Vec<_>, RuntimeError>>()?;
+    Ok(ExactHostedServiceBinding {
+        instance: node.instance.as_str().to_owned(),
+        implementation_id: node.implementation.id.to_string(),
+        artifact_id: node.artifact.to_string(),
+        host_id: node.host.to_string(),
+        host_observation_id: node.host_observation.to_string(),
+        use_time_tick,
+        authorities,
+    })
 }
 
 /// Bounded observations returned by one terminal exact-plan execution.
@@ -1152,6 +1281,16 @@ pub struct ExactExecutionReport {
 }
 
 pub trait Handler {
+    /// Installs the exact executor binding for this invocation. Pure handlers
+    /// need no binding; effectful handlers override this and fail closed when
+    /// `run` is attempted without it.
+    fn bind_exact(
+        &mut self,
+        _binding: ExactHostedServiceBinding,
+    ) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
     fn run(
         &mut self,
         node: &Node,
@@ -4558,6 +4697,7 @@ impl ResolvedPanel<'_> {
     ) -> Result<ExactExecutionReport, RuntimeError> {
         validate_hosted_execution_plan(plan, context.validation)
             .map_err(|error| RuntimeError::new(error.code.as_str(), error.to_string()))?;
+        validate_use_time_grants(plan, context)?;
         let topology = self
             .exact_topology()
             .map_err(|error| RuntimeError::new(error.code, error.message))?;
@@ -5140,6 +5280,12 @@ impl ResolvedPanel<'_> {
                     HostedNodeKind::Fallback { emitted: false }
                 }
                 HostedPrimitiveImplementation::HostedService => {
+                    let mut handler = (resolved.definition.factory())();
+                    handler.bind_exact(exact_host_service_binding(
+                        plan,
+                        planned,
+                        context.validation.now.tick,
+                    )?)?;
                     let input_cords = resolved
                         .definition
                         .contract
@@ -5176,7 +5322,7 @@ impl ResolvedPanel<'_> {
                         })
                         .collect();
                     HostedNodeKind::HostedService {
-                        handler: (resolved.definition.factory())(),
+                        handler,
                         node: resolved.source.clone(),
                         input_cords,
                         inputs: Vec::new(),

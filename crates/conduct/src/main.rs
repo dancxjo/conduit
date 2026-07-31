@@ -735,6 +735,14 @@ fn execute_run(
     let bindings = installed_profile
         .ok_or_else(|| RuntimeError::new("CND-RUN-007", "installed provider profile is absent"))?
         .bindings(&plan)?;
+    let grant_observations = plan
+        .authorities
+        .iter()
+        .map(|authority| conduit_runtime::ExactGrantObservation {
+            grant: authority.grant.id,
+            status: conduit_core::GrantStatus::Active,
+        })
+        .collect::<Vec<_>>();
     resolved
         .run_exact_report(
             &plan,
@@ -759,6 +767,7 @@ fn execute_run(
                     available_runtime_memory_bytes: plan.budget.memory_bytes,
                     executor_overhead_limit_bytes: plan.budget.memory_bytes,
                 },
+                grant_observations: &grant_observations,
             },
             io,
         )

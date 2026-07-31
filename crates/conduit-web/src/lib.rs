@@ -2102,14 +2102,17 @@ fn annotate_directional_declaration(
 
     let before = source.get(start..id_start).unwrap_or_default();
     let after = source.get(id_start + id.len()..end).unwrap_or_default();
-    let sigil = if direction == "receiving" {
-        before.rfind('>').map(|relative| start + relative)
-    } else {
-        after
-            .find('>')
-            .map(|relative| id_start + id.len() + relative)
-            .or_else(|| before.rfind('<').map(|relative| start + relative))
-    };
+    // The parser establishes direction. Source presentation may put either
+    // flow sigil before or after the declared name, so locate its authored
+    // position rather than inferring one from the parser direction.
+    let sigil = before
+        .rfind(['>', '<'])
+        .map(|relative| start + relative)
+        .or_else(|| {
+            after
+                .find(['>', '<'])
+                .map(|relative| id_start + id.len() + relative)
+        });
     if let Some(sigil_start) = sigil {
         annotations.push(annotation(
             source,
@@ -2526,6 +2529,7 @@ fn run_panel_exact_inner(
             semantic_source_hash: plan.source_semantic_hash,
             plan_epoch: 1,
             run_id: conduit_core::Id("conduit/browser-run"),
+            grant_observations: &[],
             validation: conduit_core::PlanValidationContext {
                 supported_schema_version: plan.schema_version,
                 now: plan.created_at,
@@ -2673,6 +2677,7 @@ interface fixture/duplex {\n\
 composite fixture/box {\n\
   node worker : fixture/sink\n\
   export > audio = worker.result\n\
+  export value < = worker.result\n\
 }\n\
 node output : fixture/source\n\
 node sink : fixture/sink\n\
@@ -2716,13 +2721,26 @@ cord output.value -> sink.result\n\
                 && entry.1 == "receiving"
                 && entry.2.ends_with("/export/audio/target/worker/result")
         }));
+        assert!(names.contains(&(
+            "value",
+            "receiving",
+            "definition/fixture/box/port/receiving/value"
+        )));
         assert_eq!(
             annotations
                 .iter()
                 .filter(|entry| entry["kind"] == "port-sigil")
                 .count(),
-            5
+            6
         );
+        assert!(annotations.iter().any(|entry| {
+            let start = entry["start_byte"].as_u64().unwrap() as usize;
+            let end = entry["end_byte"].as_u64().unwrap() as usize;
+            entry["kind"] == "port-sigil"
+                && &source[start..end] == "<"
+                && entry["direction"] == "receiving"
+                && entry["semantic_path"] == "definition/fixture/box/port/receiving/value"
+        }));
         assert!(!annotations.iter().any(|entry| {
             let start = entry["start_byte"].as_u64().unwrap() as usize;
             source[..start].ends_with("comment.")

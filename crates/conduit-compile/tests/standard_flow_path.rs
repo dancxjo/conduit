@@ -53,6 +53,7 @@ fn exact_report(
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 124,
                 run_id: Id(run_id),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -109,6 +110,7 @@ fn cancel_exact(source: &str, run_id: &'static str) -> conduit_runtime::ExactExe
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 124,
                 run_id: Id(run_id),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -470,6 +472,7 @@ cord right_encoded.bytes -> right_sink.bytes {{ capacity = 1 max_value_bytes = 1
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 124,
                 run_id: Id("run/conduit.std/zip/unpaired-fail"),
+                grant_observations: &[],
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
