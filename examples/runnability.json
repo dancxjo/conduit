@@ -43,6 +43,7 @@
     {"path":"examples/workload-deadline-admission.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"DEADLINE GUARANTEES STAY SEPARATE FROM MEASUREMENTS.\n"},
     {"path":"examples/wifi-ap-isolated.panel","state":"contract-only","profile":"device","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/wifi-station-join.panel","state":"contract-only","profile":"device","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
+    {"path":"fixtures/contract-package-imports/alias.panel","state":"contract-only","profile":"deterministic","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"fixtures/invalid/type-or-port-mismatch.panel","state":"illustrative/unavailable","profile":"deterministic","proof":"canonical-check-rejection","expected_diagnostic":"CND-CMP-003"},
     {"path":"fixtures/invalid/zero-capacity.panel","state":"illustrative/unavailable","profile":"deterministic","proof":"canonical-check-rejection","expected_diagnostic":"CND-FLW-001"}
   ]
