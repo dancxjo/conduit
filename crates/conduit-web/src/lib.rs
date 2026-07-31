@@ -1565,19 +1565,19 @@ mod tests {
     fn source_metadata_uses_parser_direction_and_exact_semantic_spans() {
         let source = "panel 3\n\
 interface fixture/duplex {\n\
-  > in : fixture/text\n\
-  in > : fixture/text\n\
+  > value : fixture/text\n\
+  result > : fixture/text\n\
   > audio : fixture/audio\n\
   committed > : fixture/text\n\
 }\n\
 composite fixture/box {\n\
   node worker : fixture/sink\n\
-  export > audio = worker.in\n\
+  export > audio = worker.result\n\
 }\n\
 node output : fixture/source\n\
 node sink : fixture/sink\n\
-cord output.in -> sink.in\n\
-# > comment.in and \"string.out >\" are not ports\n";
+cord output.value -> sink.result\n\
+# > comment.value and \"string.out >\" are not ports\n";
         let metadata: Value =
             serde_json::from_str(&panel_source_metadata(source.to_owned())).unwrap();
         assert_eq!(metadata["semantic_available"], true);
@@ -1596,25 +1596,29 @@ cord output.in -> sink.in\n\
             })
             .collect::<Vec<_>>();
         assert!(names.contains(&(
-            "in",
+            "value",
             "receiving",
-            "interface/fixture/duplex/port/receiving/in"
+            "interface/fixture/duplex/port/receiving/value"
         )));
         assert!(names.contains(&(
-            "in",
+            "result",
             "outgoing",
-            "interface/fixture/duplex/port/outgoing/in"
+            "interface/fixture/duplex/port/outgoing/result"
         )));
         assert!(names.iter().any(|entry| {
-            entry.0 == "in" && entry.1 == "outgoing" && entry.2.ends_with("/from/output/in")
+            entry.0 == "value"
+                && entry.1 == "outgoing"
+                && entry.2.ends_with("/from/output/value")
         }));
         assert!(names.iter().any(|entry| {
-            entry.0 == "in" && entry.1 == "receiving" && entry.2.ends_with("/to/sink/in")
-        }));
-        assert!(names.iter().any(|entry| {
-            entry.0 == "in"
+            entry.0 == "result"
                 && entry.1 == "receiving"
-                && entry.2.ends_with("/export/audio/target/worker/in")
+                && entry.2.ends_with("/to/sink/result")
+        }));
+        assert!(names.iter().any(|entry| {
+            entry.0 == "result"
+                && entry.1 == "receiving"
+                && entry.2.ends_with("/export/audio/target/worker/result")
         }));
         assert_eq!(
             annotations
