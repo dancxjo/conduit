@@ -1141,6 +1141,113 @@
       }
     },
     {
+      "id": "library.bounded-supervision",
+      "chapter": 4,
+      "title": "Retry and break without changing the plan",
+      "prerequisites": [
+        "library.bounded-state",
+        "library.explicit-time"
+      ],
+      "objective": "Run bounded retry and a finite circuit breaker while inspecting typed terminal causes, attempt identities, exact backoff, observation windows, cooldown, cancellation, and exhaustion.",
+      "prose": "Retry repeats one already admitted operation against the same implementation, resources, and grants. Backoff is the retry policy descriptor, not a duplicate node. The circuit breaker counts an exact finite outcome set and moves deterministically through closed, open, and half-open states under the same injected clock.",
+      "vocabulary": [
+        "typed terminal observation",
+        "attempt identity",
+        "backoff policy",
+        "commit point",
+        "half-open probe"
+      ],
+      "source": "panel 0\n\nnode request_source : std/literal { value = \"first\\nprobe\\n\" }\nnode requests : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\nnode terminal_source : std/literal { value = \"eligible-failure\\nsuccess\\n\" }\nnode terminals : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\nnode breaker : supervision/circuit-breaker { terminal_schema = ref(\"conduit.supervision/text-terminal-observation\") terminal_schema_version = 0 terminal_schema_hash = bytes(\"354ceb6902073d56e0cd8ea1ee1aa11372fcecab51db988677c9c5b569d141c6\") clock = ref(\"conduit.clock/monotonic-ticks\") clock_schema_version = 0 clock_hash = bytes(\"6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48\") counted_outcomes = \"failed\" maximum_observations = 3 failure_threshold = 1 cooldown_ticks = 2 maximum_half_open_probes = 1 maximum_pending = 1 reset = \"explicit\" terminal = \"complete\" restart = \"closed\" checkpoint = \"unsupported\" }\nnode join : std/text/join { separator = \",\" maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }\nnode display : display/text\n\ncord request_source.value -> requests.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord requests.line -> breaker.request { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }\ncord terminal_source.value -> terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord terminals.line -> breaker.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }\ncord breaker.admitted -> join.item { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }\ncord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --run examples/supervision-circuit-breaker.panel",
+      "commands": [
+        "conduct --run examples/supervision-retry.panel",
+        "conduct --run examples/supervision-circuit-breaker.panel",
+        "conduct --run examples/supervision-compose.panel"
+      ],
+      "expected_display": "first,probe",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 256,
+        "queue_bytes": 512,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "bounded-supervision-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "terminal_schema",
+          "attempt",
+          "generation",
+          "deadline_tick",
+          "backoff",
+          "breaker_state",
+          "observation_window",
+          "decision",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "first,probe"
+      },
+      "hints": [
+        "Retry never selects a new provider or grant; compare each attempt binding in the exact plan.",
+        "Change fixed to exponential and keep the cap below the operation deadline.",
+        "A committed failure needs explicit replay permission; reconcile-before-retry alone does not permit replay after commit."
+      ],
+      "solution": "Pin the terminal schema and clock, bound attempts, deadlines, observations, timers, and evidence, then declare idempotency, commit replay, backoff, counted outcomes, cooldown, probe, restart, and checkpoint policies.",
+      "accessibility": {
+        "non_audio": "An ordered event table names each request, typed terminal cause, attempt and generation, retry decision, delay, breaker transition, probe admission, cancellation, exhaustion, and final terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step through the ordered supervision evidence.",
+        "color_independent": "Attempt numbers, state words, decision labels, deadlines, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Retry and circuit breaker consume exact typed terminal observations without changing active plan bindings or authority.",
+        "what": "Retry emits finitely many attempts under one plan-visible idempotency, commit, deadline, and backoff policy. Circuit breaker counts a finite failure window and admits one bounded half-open probe after cooldown.",
+        "when": "Use retry for a retryable already-admitted operation and circuit breaker to stop admitting work after a declared pattern of runtime terminal outcomes.",
+        "wrong": "Universal retryability, replay after commit without permission, ambient time or randomness, unbounded attempts or history, provider fallback, hidden authority changes, and a separate backoff box fail closed.",
+        "contracts": [
+          {"id":"supervision/retry","inputs":["request:T","terminal:typed observation","entropy:optional injected u64"],"outputs":["attempt:T"],"policy":"finite attempts/deadline; exact idempotency and commit replay; fixed or capped exponential backoff"},
+          {"id":"supervision/circuit-breaker","inputs":["request:T","terminal:typed observation"],"outputs":["admitted:T"],"policy":"finite counted window; closed/open/half-open; bounded cooldown and probes"}
+        ],
+        "editable": [
+          "retry.maximum_attempts:1..8",
+          "retry.initial_backoff_ticks:1..1000000",
+          "breaker.failure_threshold:1..16",
+          "breaker.cooldown_ticks:1..1000000"
+        ],
+        "provider": "hosted exact-plan deterministic executor with injected clock and optional injected entropy",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact terminal schema, clock, entropy, implementation, artifact, resource, and grant identities",
+          "subject terminal observation, decision, attempt identity, not-before tick, and exhaustion",
+          "breaker counted window, closed/open/half-open transition, probe admission, reset, and cooldown",
+          "bounded cancellation and one exact final terminal cause"
+        ],
+        "docs": [
+          "../../spec/046-standard-node-library.md",
+          "../../examples/supervision-retry.panel",
+          "../../examples/supervision-circuit-breaker.panel",
+          "../../examples/supervision-compose.panel",
+          "../../conformance/c4/supervision.json"
+        ],
+        "scenarios": [
+          {"id":"retry","title":"Eligible failure then success","panel":"../../examples/supervision-retry.panel","semantics":"One exact request is attempted twice against unchanged bindings with a finite fixed delay."},
+          {"id":"breaker","title":"Open then half-open probe","panel":"../../examples/supervision-circuit-breaker.panel","semantics":"One counted failure opens the breaker; cooldown admits exactly one successful half-open probe."},
+          {"id":"composition","title":"Retry through a breaker","panel":"../../examples/supervision-compose.panel","semantics":"Retry produces bounded attempts while the breaker independently controls admission from the same typed terminal schedule."}
+        ]
+      }
+    },
+    {
       "id": "library.explicit-time",
       "chapter": 4,
       "title": "Explicit bounded time",

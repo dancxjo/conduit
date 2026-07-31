@@ -319,6 +319,9 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             Some("library.explicit-time")
         }
         ("state/cell" | "state/deduplicate" | "state/cache", _) => Some("library.bounded-state"),
+        ("supervision/retry" | "supervision/circuit-breaker", _) => {
+            Some("library.bounded-supervision")
+        }
         (
             "std/record/literal"
             | "std/data/encode-utf8"

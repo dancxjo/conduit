@@ -103,6 +103,9 @@ binding, resource binding, grant, cancellation scope, and enough evidence
 capacity for every attempt. Every attempt retains those identities. Retry
 cannot discover or select another provider, enlarge a request, mint or
 delegate a grant, reset a persistent budget, or change a hazardous admission.
+Backoff is one exact retry policy descriptor: fixed or capped exponential,
+with jitter only from an admitted injected-entropy input. It is not a separate
+standard node or a hidden second policy.
 
 Fallback is an explicitly planned compatible choice. It cannot mean “try a
 more permissive provider.” Standard retry, fallback, circuit-breaker,

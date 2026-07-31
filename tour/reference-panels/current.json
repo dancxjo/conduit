@@ -34,14 +34,6 @@
       "runnability": {"state":"contract-only","profile":"browser","code":"CND-IMP-001","reason":"no HTTP client provider or local-service grant is bound"}
     },
     {
-      "id": "network-health",
-      "title": "Network Health & Circuit Breaker",
-      "objective": "Inspect UDP, health, breaker, and backoff contracts",
-      "prose": "Contract-only: UDP and timing providers are unavailable in the browser host.",
-      "source_path": "../../examples/network-health.panel",
-      "runnability": {"state":"contract-only","profile":"browser","code":"CND-IMP-001","reason":"UDP, health, breaker, and timing providers are not installed"}
-    },
-    {
       "id": "wifi-station-join",
       "title": "Wi-Fi Station Profile",
       "objective": "Inspect a device Wi-Fi station contract",

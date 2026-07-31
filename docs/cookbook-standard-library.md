@@ -221,22 +221,25 @@ empties deduplicate/cache state.
 
 ## 5. Resilience & Supervision Nodes
 
-### Circuit Breaker & Exponential Backoff
+### Retry, Backoff Policy, and Circuit Breaker
 
-State: **contract-only**; breaker, timing, and HTTP client providers are not
-installed.
-```panel
-panel 0
+State: **runnable** with exact hosted providers.
 
-node request_src : std/literal { value = "query" }
-node breaker : supervision/circuit-breaker
-node backoff_retry : supervision/backoff
-node client : net/http/fetch { endpoint = "https://api.example.com/v1" }
-
-cord request_src.value -> breaker.request { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
-cord breaker.admitted -> backoff_retry.request { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
-cord backoff_retry.ready -> client.request { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
+```sh
+cargo run -p conduct -- examples/supervision-retry.panel
+cargo run -p conduct -- examples/supervision-circuit-breaker.panel
+cargo run -p conduct -- examples/supervision-compose.panel
 ```
+
+Retry consumes typed terminal observations and emits at most the configured
+number of attempts against the same exact implementation, resources, and
+grants. Fixed or capped exponential backoff is one plan-visible retry policy;
+it is not a second node. Jitter requires an injected entropy value.
+
+The breaker retains a finite outcome window, opens at its declared threshold,
+waits on the injected clock, and admits only the configured half-open probes.
+Committed effects, exhausted attempts, stale descriptors, missing entropy,
+and unsupported checkpoint or restart policies fail closed.
 
 ---
 

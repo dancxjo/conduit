@@ -84,7 +84,6 @@ pub enum StandardNodeKind {
     BoundedCache,
     CircuitBreaker,
     HealthGate,
-    Backoff,
     StateSnapshot,
     StateRestore,
     WifiStation,
@@ -281,7 +280,6 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::InjectedClock
             | StandardNodeKind::ControlGate
             | StandardNodeKind::CircuitBreaker
-            | StandardNodeKind::Backoff
             | StandardNodeKind::HealthGate
             | StandardNodeKind::WifiStation
             | StandardNodeKind::WifiAccessPoint
@@ -325,7 +323,6 @@ pub fn validate_standard_node_contract(
             | StandardNodeKind::BoundedCache
             | StandardNodeKind::CircuitBreaker
             | StandardNodeKind::HealthGate
-            | StandardNodeKind::Backoff
             | StandardNodeKind::StateSnapshot
             | StandardNodeKind::StateRestore
             | StandardNodeKind::WifiStation
