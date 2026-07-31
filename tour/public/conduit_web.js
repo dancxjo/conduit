@@ -148,6 +148,30 @@ export function patchbay_apply_transaction(session_id, request_json) {
 }
 
 /**
+ * Attaches one slot already admitted by the active exact plan. This changes
+ * observation control only; source and plan identities remain pinned.
+ * @param {string} session_id
+ * @param {string} watch_id
+ * @returns {string}
+ */
+export function patchbay_attach_exact_watch(session_id, watch_id) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_attach_exact_watch(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * Requests the exact plan-visible stop disposition for the active browser
  * run. `drain` and `abort` stay distinct through the shared runtime session.
  * @param {string} session_id
@@ -163,6 +187,29 @@ export function patchbay_cancel_exact_run(session_id, disposition) {
         const ptr1 = passStringToWasm0(disposition, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
         const ret = wasm.patchbay_cancel_exact_run(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Detaches one active Watch while preserving its bounded retained window.
+ * @param {string} session_id
+ * @param {string} watch_id
+ * @returns {string}
+ */
+export function patchbay_detach_exact_watch(session_id, watch_id) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_detach_exact_watch(ptr0, len0, ptr1, len1);
         deferred3_0 = ret[0];
         deferred3_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -286,6 +333,33 @@ export function patchbay_read_exact_evidence(session_id, cursor, maximum_events)
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Reads one bounded Watch delta from a live session or its final retained
+ * window. Binary bytes remain bytes; only the exact `std/text`
+ * representation receives a UTF-8 text projection.
+ * @param {string} session_id
+ * @param {string} watch_id
+ * @param {bigint} cursor
+ * @param {number} maximum_records
+ * @returns {string}
+ */
+export function patchbay_read_exact_watch(session_id, watch_id, cursor, maximum_records) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_read_exact_watch(ptr0, len0, ptr1, len1, cursor, maximum_records);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 

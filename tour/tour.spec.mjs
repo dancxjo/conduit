@@ -61,7 +61,22 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
       });
       const sessionId = opened.value?.session_id;
       const started = await request("patchbay-start-exact-run", { sessionId });
+      const watchId = started.value?.view?.plan?.watch_admissions?.[0]?.id;
+      const attachedWatch = await request("patchbay-attach-exact-watch", {
+        sessionId,
+        watchId,
+      });
       const pumped = await request("patchbay-pump-exact-run", { sessionId, quantum: 1 });
+      const watch = await request("patchbay-read-exact-watch", {
+        sessionId,
+        watchId,
+        cursor: 0,
+        maximumRecords: 1,
+      });
+      const detachedWatch = await request("patchbay-detach-exact-watch", {
+        sessionId,
+        watchId,
+      });
       const evidence = await request("patchbay-read-exact-evidence", {
         sessionId,
         cursor: 0,
@@ -100,7 +115,10 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         configured,
         opened,
         started,
+        attachedWatch,
         pumped,
+        watch,
+        detachedWatch,
         evidence,
         repeatedEvidence,
         invalidCandidate,
@@ -118,7 +136,33 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   expect(result.configured).toMatchObject({ ok: true, value: { configured: true } });
   expect(result.opened.value).toMatchObject({ ok: true, session_id: "tour/worker-exact-session" });
   expect(result.started.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.started.value.view.plan.watch_admissions[0]).toMatchObject({
+    retention: "latest",
+    maximum_history: 1,
+    sensitivity_ceiling: "public",
+  });
+  expect(result.attachedWatch.value).toMatchObject({
+    ok: true,
+    attached: true,
+    plan_identity: result.started.value.plan_identity,
+    source_semantic_hash: result.started.value.source_semantic_hash,
+  });
   expect(result.pumped.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.watch.value).toMatchObject({
+    ok: true,
+    status: { kind: "available" },
+    plan_identity: result.started.value.plan_identity,
+    source_semantic_hash: result.started.value.source_semantic_hash,
+    records: [{
+      material: { kind: "preview", text: "hello\n" },
+      truncated: false,
+    }],
+  });
+  expect(result.detachedWatch.value).toMatchObject({
+    ok: true,
+    attached: false,
+    usage: { attached_slots: 0, retained_observations: 1 },
+  });
   expect(result.evidence.value).toMatchObject({
     ok: true,
     status: { kind: "available" },
