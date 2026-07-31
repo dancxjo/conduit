@@ -190,26 +190,26 @@ test("covers Chapters 0-3 and exposes production topology projections", async ({
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   const logicalReceiving = page.locator("#panel-port-list").getByRole("button", {
-    name: /box, in, receiving port, type std\/text/,
+    name: /box, text, receiving port, type std\/text/,
   });
   const logicalOutgoing = page.locator("#panel-port-list").getByRole("button", {
-    name: /box, out, outgoing port, type std\/text/,
+    name: /box, value, outgoing port, type std\/text/,
   });
-  await expect(logicalReceiving).toContainText("box: > in");
-  await expect(logicalOutgoing).toContainText("box: out >");
+  await expect(logicalReceiving).toContainText("box: > text");
+  await expect(logicalOutgoing).toContainText("box: value >");
   await logicalReceiving.click();
   await expect(page.locator("#selected-node-label")).toContainText(
-    "Selected in, receiving port: root/box/port/receiving/in",
+    "Selected text, receiving port: root/box/port/receiving/text",
   );
-  await expect(page.locator(".panel-source-selection")).toHaveText("in");
+  await expect(page.locator(".panel-source-selection")).toHaveText("text");
   await page.locator("#expanded-view").click();
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#topology")).toContainText(
     "box.worker : text/uppercase",
   );
-  await expect(page.locator("#panel-port-list")).toContainText("box.worker: > in");
-  await expect(page.locator("#panel-port-list")).toContainText("box.worker: out >");
+  await expect(page.locator("#panel-port-list")).toContainText("box.worker: > text");
+  await expect(page.locator("#panel-port-list")).toContainText("box.worker: text >");
   await page.locator("#logical-view").click();
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "false");
@@ -225,7 +225,7 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
   await source.fill(
     (await source.inputValue())
       .replace("node greeting ", "node salutation ")
-      .replace("greeting.out", "salutation.out"),
+      .replace("greeting.value", "salutation.value"),
   );
   await page.locator("#run").click();
   await expect(page.locator("#result")).toContainText("✓ Lesson complete!", {
@@ -252,40 +252,40 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   expect(firstNodeBox?.y).toBeLessThan((canvasBox?.y ?? 0) + (canvasBox?.height ?? 0));
   await expect(page.locator(".availability-tag")).toHaveCount(2);
   const receiving = page.locator(".react-flow__node").getByRole("button", {
-    name: "in, receiving port; type std/text",
+    name: "value, receiving port; type std/text",
     exact: true,
   });
   const outgoing = page.locator(".react-flow__node").getByRole("button", {
-    name: "out, outgoing port; type std/text",
+    name: "text, outgoing port; type std/text",
     exact: true,
   });
-  await expect(receiving).toContainText("> in");
-  await expect(outgoing).toContainText("out >");
+  await expect(receiving).toContainText("> value");
+  await expect(outgoing).toContainText("text >");
   expect(
     await page.locator(".faceplate-jack").allTextContents(),
   ).toEqual(expect.not.arrayContaining([expect.stringContaining("<")]));
-  await expect(page.locator("#panel-port-list")).toContainText("> in");
-  await expect(page.locator("#panel-port-list")).toContainText("out >");
+  await expect(page.locator("#panel-port-list")).toContainText("> value");
+  await expect(page.locator("#panel-port-list")).toContainText("text >");
   await expect(page.locator("#panel-connection-list")).toContainText(
-    "greeting.out > → > output.in",
+    "greeting.value > → > output.text",
   );
   await outgoing.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#selected-node-label")).toContainText(
-    "Selected out, outgoing port: root/greeting/port/outgoing/out",
+    "Selected text, outgoing port: root/greeting/port/outgoing/text",
   );
-  await expect(page.locator(".panel-source-selection")).toHaveText("out");
+  await expect(page.locator(".panel-source-selection")).toHaveText("text");
   const selectedEndpoint = await page.locator("#source").evaluate((element) =>
     element.value.slice(element.selectionStart, element.selectionEnd)
   );
-  expect(selectedEndpoint).toBe("out");
+  expect(selectedEndpoint).toBe("text");
 
   const greeting = page.locator('[data-id="greeting"]');
   await greeting.getByTitle("Collapse Faceplate").click();
   await expect(greeting.getByRole("button", {
-    name: "out, outgoing port; type std/text",
+    name: "text, outgoing port; type std/text",
     exact: true,
-  })).toContainText("out >");
+  })).toContainText("text >");
   await greeting.getByTitle("Expand Faceplate").click();
 });
 
@@ -297,15 +297,15 @@ test("keeps semantic port direction redundant across presentation media", async 
   });
   await page.goto("/tour/public/index.html");
   const receiving = page.locator(".react-flow__node").getByRole("button", {
-    name: "in, receiving port; type std/text",
+    name: "value, receiving port; type std/text",
     exact: true,
   });
   const outgoing = page.locator(".react-flow__node").getByRole("button", {
-    name: "out, outgoing port; type std/text",
+    name: "text, outgoing port; type std/text",
     exact: true,
   });
-  await expect(receiving).toContainText("> in");
-  await expect(outgoing).toContainText("out >");
+  await expect(receiving).toContainText("> value");
+  await expect(outgoing).toContainText("text >");
   await expect(receiving.locator("..")).toHaveAttribute(
     "data-port-direction",
     "receiving",
@@ -330,8 +330,8 @@ test("keeps semantic port direction redundant across presentation media", async 
     forcedColors: "none",
     reducedMotion: "no-preference",
   });
-  await expect(receiving).toContainText("> in");
-  await expect(outgoing).toContainText("out >");
+  await expect(receiving).toContainText("> value");
+  await expect(outgoing).toContainText("text >");
 });
 
 test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
@@ -369,7 +369,7 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
       hasText: /^cord$/,
     }),
   ).toHaveCount(1);
-  expect(highlighted).toContain("cord greeting.out -> output.in");
+  expect(highlighted).toContain("cord greeting.value -> output.text");
   expect(highlighted).toContain("pressure = block");
   const nativeSelection = await page.locator("#source").evaluate((element) =>
     element.value.slice(element.selectionStart, element.selectionEnd)
@@ -528,6 +528,164 @@ test("styles cords from their projected type and pressure policy", async ({ page
     "1 slots · 0↗1 · block(fifo)",
   );
   await expect(page.locator(".cord-legend-item")).toHaveCount(4);
+});
+
+test("routes cords through free space and keeps labels off node faces", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.CONDUIT_PATCHBAY_FEATURES = { legacyLinePlacement: true };
+  });
+  await page.goto("/tour/public/index.html");
+
+  const panelSource = "panel 3\n\n" +
+    "node source : std/literal {\n" +
+    "  value = \"source\"\n" +
+    "}\n" +
+    "node transform : text/uppercase\n" +
+    "node sink : display/text\n\n" +
+    "cord source.value -> transform.text {\n" +
+    "  capacity = 1\n" +
+    "  max_value_bytes = 1024\n" +
+    "  max_queued_bytes = 1024\n" +
+    "  low_watermark = 0\n" +
+    "  high_watermark = 1\n" +
+    "  pressure = block\n" +
+    "}\n\n" +
+    "cord transform.text -> sink.text {\n" +
+    "  capacity = 1\n" +
+    "  max_value_bytes = 1024\n" +
+    "  max_queued_bytes = 1024\n" +
+    "  low_watermark = 0\n" +
+    "  high_watermark = 1\n" +
+    "  pressure = block\n" +
+    "}\n";
+  const source = page.locator("#source");
+  await source.fill(panelSource);
+  await source.dispatchEvent("input");
+  await expect(page.locator(".react-flow__edge")).toHaveCount(2);
+
+  const flow = page.locator("#cy");
+  const flowBox = await flow.boundingBox();
+  expect(flowBox).not.toBeNull();
+
+  const dragNodeTo = async (nodeId, absoluteX, absoluteY) => {
+    const node = page.locator(`.react-flow__node[data-id="${nodeId}"]`);
+    await expect(node).toHaveCount(1);
+    const nodeBox = await node.boundingBox();
+    expect(nodeBox).not.toBeNull();
+    await page.mouse.move(
+      nodeBox.x + nodeBox.width / 2,
+      nodeBox.y + nodeBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(absoluteX, absoluteY, { steps: 8 });
+    await page.mouse.up();
+  };
+
+  await dragNodeTo(
+    "source",
+    flowBox.x + 180,
+    flowBox.y + 140,
+  );
+  await dragNodeTo(
+    "transform",
+    flowBox.x + flowBox.width - 260,
+    flowBox.y + 140,
+  );
+  await dragNodeTo(
+    "sink",
+    flowBox.x + 180,
+    flowBox.y + 360,
+  );
+
+  const edge = page.locator(".patchbay-smart-cord").nth(1);
+  await expect(edge).toHaveCount(1);
+  await expect
+    .poll(async () => edge.locator(".react-flow__edge-path").getAttribute("d"))
+    .not.toBe("");
+
+  const hasCollision = await edge.evaluate((edgeElement, clearance) => {
+    const path = edgeElement.querySelector(".react-flow__edge-path");
+    if (!path) return false;
+    const totalLength = path.getTotalLength();
+    if (!Number.isFinite(totalLength) || totalLength <= 0) return false;
+    const sampleCount = 240;
+    const nodes = Array.from(document.querySelectorAll(".react-flow__node")).map((node) => {
+      const bounds = node.getBoundingClientRect();
+      return {
+        left: bounds.left - clearance,
+        right: bounds.right + clearance,
+        top: bounds.top - clearance,
+        bottom: bounds.bottom + clearance,
+      };
+    });
+    for (let index = 0; index <= sampleCount; index += 1) {
+      const ratio = index / sampleCount;
+      if (ratio < 0.05 || ratio > 0.95) continue;
+      const point = path.getPointAtLength(totalLength * ratio);
+      const screenPoint = point.matrixTransform(path.getScreenCTM());
+      const hits = nodes.some((bounds) =>
+        screenPoint.x > bounds.left &&
+        screenPoint.x < bounds.right &&
+        screenPoint.y > bounds.top &&
+        screenPoint.y < bounds.bottom,
+      );
+      if (hits) {
+        return true;
+      }
+    }
+    return false;
+  }, 12);
+  expect(hasCollision).toBe(false);
+
+  const labelCollides = await edge.evaluate((edgeElement, clearance) => {
+    const label = edgeElement.querySelector(".react-flow__edge-textbg");
+    if (!label) return false;
+    const rect = label.getBoundingClientRect();
+    return Array.from(document.querySelectorAll(".react-flow__node")).some((node) => {
+      const bounds = node.getBoundingClientRect();
+      return rect.left < bounds.right + clearance &&
+        rect.right > bounds.left - clearance &&
+        rect.top < bounds.bottom + clearance &&
+        rect.bottom > bounds.top - clearance;
+    });
+  }, 6);
+  expect(labelCollides).toBe(false);
+
+  await dragNodeTo("transform", flowBox.x + 200, flowBox.y + 420);
+  await expect.poll(async () => {
+    return edge.evaluate((edgeElement, clearance) => {
+      const path = edgeElement.querySelector(".react-flow__edge-path");
+      if (!path) return false;
+      const totalLength = path.getTotalLength();
+      if (!Number.isFinite(totalLength) || totalLength <= 0) return false;
+      const sampleCount = 280;
+      const nodes = Array.from(document.querySelectorAll(".react-flow__node")).map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return {
+          left: bounds.left - clearance,
+          right: bounds.right + clearance,
+          top: bounds.top - clearance,
+          bottom: bounds.bottom + clearance,
+        };
+      });
+      for (let index = 0; index <= sampleCount; index += 1) {
+        const ratio = index / sampleCount;
+        if (ratio < 0.05 || ratio > 0.95) continue;
+        const point = path.getPointAtLength(totalLength * ratio);
+        const screenPoint = point.matrixTransform(path.getScreenCTM());
+        const hits = nodes.some((bounds) =>
+          screenPoint.x > bounds.left &&
+          screenPoint.x < bounds.right &&
+          screenPoint.y > bounds.top &&
+          screenPoint.y < bounds.bottom,
+        );
+        if (hits) {
+          return true;
+        }
+      }
+      return false;
+    }, 12);
+  }).toBe(false);
 });
 
 test("reference panels expose canonical contract-only status and disable Run", async ({ page }) => {

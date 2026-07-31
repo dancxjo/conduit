@@ -4,9 +4,9 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 use wasm_bindgen::prelude::*;
 
-use conduit_compile::{CompileInput, InstalledProfile, compile_source};
+use conduit_compile::{compile_source, CompileInput, InstalledProfile};
 use conduit_core::{
-    ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, TerminalClass,
+    ReadyQueueDiscipline, SchedulerPolicy, TerminalClass, SCHEDULER_CONTRACT_VERSION,
 };
 use conduit_runtime::{ExactExecutionReport, ExactRunContext, RuntimeError, SchedulerReservation};
 
@@ -1511,11 +1511,9 @@ mod tests {
             metadata["identifier_compatible_syntax_words"],
             serde_json::json!(["input", "output"])
         );
-        assert!(
-            metadata["syntax_words"]
-                .as_array()
-                .is_some_and(|words| words.contains(&Value::String("output".to_owned())))
-        );
+        assert!(metadata["syntax_words"]
+            .as_array()
+            .is_some_and(|words| words.contains(&Value::String("output".to_owned()))));
 
         let source = SOURCE.replace("hello", "héllo");
         let opened: Value = serde_json::from_str(&patchbay_open_session(
@@ -1542,8 +1540,12 @@ mod tests {
             "UTF-8 and browser UTF-16 offsets must remain distinct"
         );
         for (field, expected, path) in [
-            ("from_port_range", "out", "root/greeting/port/outgoing/out"),
-            ("to_port_range", "in", "root/output/port/receiving/in"),
+            (
+                "from_port_range",
+                "value",
+                "root/greeting/port/outgoing/value",
+            ),
+            ("to_port_range", "text", "root/output/port/receiving/text"),
         ] {
             let endpoint = &cord[field];
             let endpoint_start = endpoint["start_byte"].as_u64().unwrap() as usize;
@@ -1674,11 +1676,9 @@ cord output.in -> sink.in\n\
         ))
         .expect("explanation JSON");
         assert_eq!(explained["ok"], true);
-        assert!(
-            explained["logical"]
-                .as_str()
-                .is_some_and(|value| value.contains("composite transform : example/upper"))
-        );
+        assert!(explained["logical"]
+            .as_str()
+            .is_some_and(|value| value.contains("composite transform : example/upper")));
         assert!(explained["expanded"].as_str().is_some_and(|value| {
             value.contains("transform.worker : text/uppercase")
                 || value.contains("transform.worker : text/uppercase")
@@ -1722,29 +1722,27 @@ cord output.in -> sink.in\n\
         );
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["display_label"],
-            "out >"
+            "value >"
         );
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["accessible_label"],
-            "out, outgoing port"
+            "value, outgoing port"
         );
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][0]["outputs"][0]["semantic_path"],
-            "root/greeting/port/outgoing/out"
+            "root/greeting/port/outgoing/value"
         );
         assert_eq!(
             opened["view"]["topology"]["logical_nodes"][1]["inputs"][0]["display_label"],
-            "> in"
+            "> text"
         );
         assert_eq!(
             opened["view"]["topology"]["cords"][0]["compatibility"]["compatible"],
             true
         );
-        assert!(
-            opened["view"]["topology"]["logical_nodes"][0]
-                .get("fake_activity")
-                .is_none()
-        );
+        assert!(opened["view"]["topology"]["logical_nodes"][0]
+            .get("fake_activity")
+            .is_none());
 
         let request = serde_json::json!({
             "protocol_version": 1,
@@ -1845,24 +1843,20 @@ cord box.uppercased -> sink.text\n";
                 .len(),
             2
         );
-        assert!(
-            opened["view"]["topology"]["expanded_nodes"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|node| node["id"] == "box.worker")
-        );
-        assert!(
-            opened["view"]["topology"]["logical_nodes"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .find(|node| node["id"] == "box")
-                .is_some_and(|node| {
-                    node["inputs"].as_array().unwrap().len() == 1
-                        && node["outputs"].as_array().unwrap().len() == 1
-                })
-        );
+        assert!(opened["view"]["topology"]["expanded_nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|node| node["id"] == "box.worker"));
+        assert!(opened["view"]["topology"]["logical_nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["id"] == "box")
+            .is_some_and(|node| {
+                node["inputs"].as_array().unwrap().len() == 1
+                    && node["outputs"].as_array().unwrap().len() == 1
+            }));
         let request = serde_json::json!({
             "protocol_version": 1,
             "document_id": "test/composite",

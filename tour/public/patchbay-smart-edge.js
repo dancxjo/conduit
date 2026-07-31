@@ -8,19 +8,280 @@
 
 const e = window.React.createElement;
 const GRID = 16;
-const NODE_CLEARANCE = 16;
+const NODE_CLEARANCE = 14;
+const LABEL_CLEARANCE = 16;
 const SEARCH_MARGIN = 96;
 const MAX_SEARCH_CELLS = 24_000;
 const FLOWINESS = 0.32;
+const PATH_SAMPLE_COUNT = 12;
+const SAMPLE_POINTS_PER_CELL = 4;
 
 function cellKey(x, y) {
   return `${x},${y}`;
+}
+
+function inflatedRect(rect, margin) {
+  return {
+    left: rect.left - margin,
+    top: rect.top - margin,
+    right: rect.right + margin,
+    bottom: rect.bottom + margin,
+  };
+}
+
+function pointInRect(point, rect, inclusive = false) {
+  if (inclusive) {
+    return point.x >= rect.left &&
+      point.x <= rect.right &&
+      point.y >= rect.top &&
+      point.y <= rect.bottom;
+  }
+  return point.x > rect.left &&
+    point.x < rect.right &&
+    point.y > rect.top &&
+    point.y < rect.bottom;
 }
 
 function pointForCell(cell, origin) {
   return {
     x: origin.x + cell.x * GRID,
     y: origin.y + cell.y * GRID,
+  };
+}
+
+function cellArea(point) {
+  const half = GRID / 2;
+  return {
+    left: point.x - half,
+    right: point.x + half,
+    top: point.y - half,
+    bottom: point.y + half,
+  };
+}
+
+function rectsOverlap(a, b) {
+  return a.left <= b.right &&
+    a.right >= b.left &&
+    a.top <= b.bottom &&
+    a.bottom >= b.top;
+}
+
+function segmentIntersectsRect(p1, p2, rect) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const distance = Math.max(Math.abs(dx), Math.abs(dy));
+  const steps = Math.max(
+    1,
+    Math.ceil(distance / (GRID / SAMPLE_POINTS_PER_CELL)),
+  );
+  for (let step = 0; step <= steps; step += 1) {
+    const ratio = step / steps;
+    const point = {
+      x: p1.x + dx * ratio,
+      y: p1.y + dy * ratio,
+    };
+    if (pointInRect(point, rect, true)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function segmentHasCollision(p1, p2, obstacles) {
+  return obstacles.some((obstacle) => segmentIntersectsRect(p1, p2, obstacle));
+}
+
+function segmentsFromPoints(points) {
+  const segments = [];
+  for (let index = 0; index < points.length - 1; index += 1) {
+    segments.push({ from: points[index], to: points[index + 1] });
+  }
+  return segments;
+}
+
+function pointDistanceToRect(point, rect) {
+  const dx = point.x < rect.left
+    ? rect.left - point.x
+    : point.x > rect.right
+      ? point.x - rect.right
+      : 0;
+  const dy = point.y < rect.top
+    ? rect.top - point.y
+    : point.y > rect.bottom
+      ? point.y - rect.bottom
+      : 0;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function pointIsSafe(point, obstacles, clearance = LABEL_CLEARANCE) {
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return false;
+  return !obstacles.some((obstacle) =>
+    pointInRect(point, inflatedRect(obstacle, clearance))
+  );
+}
+
+function chooseLabelPoint(points, obstacles, clearance = LABEL_CLEARANCE) {
+  let bestCandidate = null;
+  const segments = segmentsFromPoints(points);
+  for (const segment of segments) {
+    const deltaX = segment.to.x - segment.from.x;
+    const deltaY = segment.to.y - segment.from.y;
+    const length = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+    if (length < 40) continue;
+    const probes = 5;
+    for (let probe = 1; probe < probes; probe += 1) {
+      const ratio = probe / probes;
+      const point = {
+        x: segment.from.x + deltaX * ratio,
+        y: segment.from.y + deltaY * ratio,
+      };
+      if (!pointIsSafe(point, obstacles, clearance)) continue;
+      const distance = obstacles.length === 0
+        ? Infinity
+        : Math.min(...obstacles.map((rect) => pointDistanceToRect(point, rect)));
+      if (!bestCandidate || distance > bestCandidate.distance) {
+        bestCandidate = { point, distance };
+      }
+    }
+  }
+  return bestCandidate?.point ?? null;
+}
+
+function pointOnCubicBezier(t, p0, c1, c2, p1) {
+  const oneMinusT = 1 - t;
+  const a = oneMinusT ** 3;
+  const b = 3 * oneMinusT ** 2 * t;
+  const c = 3 * oneMinusT * t ** 2;
+  const d = t ** 3;
+  return {
+    x: a * p0.x + b * c1.x + c * c2.x + d * p1.x,
+    y: a * p0.y + b * c1.y + c * c2.y + d * p1.y,
+  };
+}
+
+function pathHasCollision(points, obstacles) {
+  if (points.length < 2) return false;
+  if (points.length === 2) {
+    return segmentHasCollision(points[0], points[1], obstacles);
+  }
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const p0 = points[index];
+    const p3 = points[index + 1];
+    const previous = points[Math.max(0, index - 1)];
+    const next = points[Math.min(points.length - 1, index + 2)];
+    const c1 = {
+      x: p0.x + ((p3.x - previous.x) / 6) * FLOWINESS,
+      y: p0.y + ((p3.y - previous.y) / 6) * FLOWINESS,
+    };
+    const c2 = {
+      x: p3.x - ((next.x - p0.x) / 6) * FLOWINESS,
+      y: p3.y - ((next.y - p0.y) / 6) * FLOWINESS,
+    };
+    const segmentLength = Math.max(Math.abs(p3.x - p0.x), Math.abs(p3.y - p0.y));
+    const samples = Math.max(
+      PATH_SAMPLE_COUNT,
+      Math.ceil(segmentLength / (GRID / 2)),
+    );
+    for (let step = 0; step <= samples; step += 1) {
+      const ratio = step / samples;
+      const point = pointOnCubicBezier(ratio, p0, c1, c2, p3);
+      if (obstacles.some((obstacle) => pointInRect(point, obstacle, true))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function orthPathHasCollision(points, obstacles) {
+  return segmentsFromPoints(points).some((segment) =>
+    segmentHasCollision(segment.from, segment.to, obstacles),
+  );
+}
+
+function orthPath(points) {
+  if (points.length === 0) return "";
+  return points.map((point, index) =>
+    `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`
+  ).join(" ");
+}
+
+function routeLength(points) {
+  let total = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    total += Math.abs(next.x - current.x) + Math.abs(next.y - current.y);
+  }
+  return total;
+}
+
+/**
+ * Produces a deterministic outer route around the full obstacle envelope when
+ * grid-based A* cannot find a path within its bounded search window.
+ */
+function routeAroundBounds(source, target, obstacles) {
+  const expandedBounds = obstacles.flatMap((rect) => [
+    rect.left,
+    rect.right,
+    rect.top,
+    rect.bottom,
+  ]);
+  const left = Math.min(source.x, target.x, ...expandedBounds) - SEARCH_MARGIN;
+  const right = Math.max(source.x, target.x, ...expandedBounds) + SEARCH_MARGIN;
+  const top = Math.min(source.y, target.y, ...expandedBounds) - SEARCH_MARGIN;
+  const bottom = Math.max(source.y, target.y, ...expandedBounds) + SEARCH_MARGIN;
+
+  const margin = SEARCH_MARGIN;
+  const candidates = [];
+
+  candidates.push([
+    { x: source.x, y: source.y },
+    { x: source.x, y: top - margin },
+    { x: target.x, y: top - margin },
+    { x: target.x, y: target.y },
+  ]);
+  candidates.push([
+    { x: source.x, y: source.y },
+    { x: source.x, y: bottom + margin },
+    { x: target.x, y: bottom + margin },
+    { x: target.x, y: target.y },
+  ]);
+  candidates.push([
+    { x: source.x, y: source.y },
+    { x: left - margin, y: source.y },
+    { x: left - margin, y: target.y },
+    { x: target.x, y: target.y },
+  ]);
+  candidates.push([
+    { x: source.x, y: source.y },
+    { x: right + margin, y: source.y },
+    { x: right + margin, y: target.y },
+    { x: target.x, y: target.y },
+  ]);
+
+  let best = null;
+  for (const candidate of candidates) {
+    const simplified = simplify(candidate);
+    if (!orthPathHasCollision(simplified, obstacles)) {
+      const length = routeLength(simplified);
+      if (best === null || length < best.length) {
+        best = {
+          path: orthPath(simplified),
+          points: simplified,
+          length,
+        };
+      }
+    }
+  }
+
+  if (!best) return null;
+  const labelPoint = chooseLabelPoint(best.points, obstacles)
+    ?? best.points[Math.floor(best.points.length / 2)];
+  return {
+    path: best.path,
+    points: best.points,
+    label: labelPoint,
   };
 }
 
@@ -73,28 +334,23 @@ function nodeRectangle(node) {
   const height = node.height || (node.__rf && node.__rf.height) || 0;
   if (!width || !height) return null;
   return {
-    left: position.x - NODE_CLEARANCE,
-    top: position.y - NODE_CLEARANCE,
-    right: position.x + width + NODE_CLEARANCE,
-    bottom: position.y + height + NODE_CLEARANCE,
+    left: position.x,
+    top: position.y,
+    right: position.x + width,
+    bottom: position.y + height,
   };
 }
 
-/**
- * Computes a bounded orthogonal A* route around measured node rectangles.
- * Returns null when a bounded route cannot be found so rendering can fall
- * back to React Flow's built-in smooth-step edge.
- */
-export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
+function routeAroundNodesWithMargin(source, target, nodes, endpointNodeIds, margin) {
   const obstacles = nodes
     .filter((node) => !endpointNodeIds.includes(node.id))
     .map(nodeRectangle)
     .filter(Boolean);
 
-  const left = Math.min(source.x, target.x, ...obstacles.map((rect) => rect.left)) - SEARCH_MARGIN;
-  const top = Math.min(source.y, target.y, ...obstacles.map((rect) => rect.top)) - SEARCH_MARGIN;
-  const right = Math.max(source.x, target.x, ...obstacles.map((rect) => rect.right)) + SEARCH_MARGIN;
-  const bottom = Math.max(source.y, target.y, ...obstacles.map((rect) => rect.bottom)) + SEARCH_MARGIN;
+  const left = Math.min(source.x, target.x, ...obstacles.map((rect) => rect.left)) - margin;
+  const top = Math.min(source.y, target.y, ...obstacles.map((rect) => rect.top)) - margin;
+  const right = Math.max(source.x, target.x, ...obstacles.map((rect) => rect.right)) + margin;
+  const bottom = Math.max(source.y, target.y, ...obstacles.map((rect) => rect.bottom)) + margin;
   const origin = {
     x: Math.floor(left / GRID) * GRID,
     y: Math.floor(top / GRID) * GRID,
@@ -109,14 +365,16 @@ export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
   });
   const start = toCell(source);
   const goal = toCell(target);
+  const inflatedObstacles = obstacles
+    .map((rect) => inflatedRect(rect, NODE_CLEARANCE));
   const blocked = (cell) => {
     if ((cell.x === start.x && cell.y === start.y) ||
-        (cell.x === goal.x && cell.y === goal.y)) return false;
+        (cell.x === goal.x && cell.y === goal.y)) {
+      return false;
+    }
     const point = pointForCell(cell, origin);
-    return obstacles.some((rect) =>
-      point.x >= rect.left && point.x <= rect.right &&
-      point.y >= rect.top && point.y <= rect.bottom
-    );
+    const area = cellArea(point);
+    return inflatedObstacles.some((rect) => rectsOverlap(area, rect));
   };
 
   const open = [{ ...start, score: 0 }];
@@ -126,7 +384,7 @@ export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
   const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
   while (open.length) {
-    open.sort((a, b) => a.score - b.score);
+    open.sort((a, b) => a.score - b.score || a.y - b.y || a.x - b.x);
     const current = open.shift();
     const currentKey = cellKey(current.x, current.y);
     if (visited.has(currentKey)) continue;
@@ -145,17 +403,37 @@ export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
       points[0] = source;
       points[points.length - 1] = target;
       const simplified = simplify(points);
+      const orthSafe = !orthPathHasCollision(simplified, inflatedObstacles);
+      if (!orthSafe) return null;
+      const smoothSafe = !pathHasCollision(simplified, inflatedObstacles);
+      const path = smoothSafe
+        ? catmullRomToSmoothPath(simplified)
+        : orthPath(simplified);
+      const labelPoint = chooseLabelPoint(simplified, inflatedObstacles)
+        ?? simplified[Math.floor(simplified.length / 2)];
+      if (!path) {
+        return {
+          path: orthPath(simplified),
+          points: simplified,
+          label: labelPoint,
+        };
+      }
       return {
-        path: catmullRomToSmoothPath(simplified),
+        path,
         points: simplified,
+        label: labelPoint,
       };
     }
 
     for (const [dx, dy] of directions) {
       const next = { x: current.x + dx, y: current.y + dy };
-      if (next.x < 0 || next.y < 0 || next.x >= columns || next.y >= rows || blocked(next)) {
+      if (next.x < 0 || next.y < 0 || next.x >= columns || next.y >= rows ||
+          blocked(next)) {
         continue;
       }
+      const nextPoint = pointForCell(next, origin);
+      const currentPoint = pointForCell(current, origin);
+      if (segmentHasCollision(currentPoint, nextPoint, inflatedObstacles)) continue;
       const nextKey = cellKey(next.x, next.y);
       const nextCost = cost.get(currentKey) + 1;
       if (nextCost >= (cost.get(nextKey) ?? Infinity)) continue;
@@ -164,6 +442,38 @@ export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
       const heuristic = Math.abs(goal.x - next.x) + Math.abs(goal.y - next.y);
       open.push({ ...next, score: nextCost + heuristic });
     }
+  }
+  return null;
+}
+
+/**
+ * Computes a bounded orthogonal A* route around measured node rectangles.
+ * Expands the search envelope in stages until a collision-free route is found.
+ */
+export function routeAroundNodes(source, target, nodes, endpointNodeIds = []) {
+  for (let envelope = SEARCH_MARGIN; envelope <= SEARCH_MARGIN * 4; envelope += 64) {
+    const routed = routeAroundNodesWithMargin(
+      source,
+      target,
+      nodes,
+      endpointNodeIds,
+      envelope,
+    );
+    if (routed) {
+      return routed;
+    }
+  }
+  const fallback = routeAroundBounds(
+    source,
+    target,
+    nodes
+      .filter((node) => !endpointNodeIds.includes(node.id))
+      .map(nodeRectangle)
+      .filter(Boolean)
+      .map((rect) => inflatedRect(rect, NODE_CLEARANCE + SEARCH_MARGIN)),
+  );
+  if (fallback) {
+    return fallback;
   }
   return null;
 }
@@ -181,7 +491,7 @@ export function PatchbaySmartEdge(props) {
     return e(window.ReactFlow.SmoothStepEdge, props);
   }
 
-  const middle = routed.points[Math.floor(routed.points.length / 2)];
+  const labelPoint = routed.label || routed.points[Math.floor(routed.points.length / 2)];
   return e(window.React.Fragment, null,
     e("path", {
       id: props.id,
@@ -193,8 +503,8 @@ export function PatchbaySmartEdge(props) {
       fill: "none",
     }),
     props.label ? e(window.ReactFlow.EdgeText, {
-      x: middle.x,
-      y: middle.y,
+      x: labelPoint.x,
+      y: labelPoint.y,
       label: props.label,
       labelStyle: props.labelStyle,
       labelBgStyle: props.labelBgStyle,
