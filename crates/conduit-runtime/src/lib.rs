@@ -1736,7 +1736,7 @@ struct CompatibilityExecutable {
 #[derive(Debug)]
 struct RegisteredNode {
     contract: &'static NodeContract<'static>,
-    executable: Option<RegisteredExecutable>,
+    executables: Vec<RegisteredExecutable>,
     compatibility_executable: Option<CompatibilityExecutable>,
 }
 
@@ -1758,16 +1758,10 @@ struct HostedProviderDefinition {
 }
 
 impl RegisteredNode {
-    fn factory(&self) -> HandlerFactory {
-        self.executable
-            .as_ref()
-            .map(|executable| executable.factory)
-            .or_else(|| {
-                self.compatibility_executable
-                    .as_ref()
-                    .map(|executable| executable.factory)
-            })
-            .expect("resolved node has executable implementation")
+    fn select_executable(&self, source: &Node) -> Option<&RegisteredExecutable> {
+        self.executables
+            .iter()
+            .find(|executable| (executable.validate_config)(source).is_ok())
     }
 }
 
@@ -2023,28 +2017,35 @@ impl Registry {
     /// exact host registry.
     #[must_use]
     pub fn installed_providers(&self) -> Vec<InstalledHostedProvider> {
-        self.nodes
-            .values()
-            .filter_map(|node| {
-                let executable = node.executable.as_ref()?;
-                let artifact_ref = executable.manifest.artifacts.first()?;
-                let artifact = executable.artifacts.iter().copied().find(|artifact| {
-                    artifact.id == artifact_ref.id && artifact.digest == artifact_ref.digest
-                })?;
+        let mut providers = Vec::new();
+        for node in self.nodes.values() {
+            for executable in &node.executables {
+                let Some(artifact_ref) = executable.manifest.artifacts.first() else {
+                    continue;
+                };
+                let artifact = executable
+                    .artifacts
+                    .iter()
+                    .copied()
+                    .find(|artifact| {
+                        artifact.id == artifact_ref.id && artifact.digest == artifact_ref.digest
+                    })
+                    .expect("registered executable references a known artifact");
                 let implementation = Self::installed_hosted_providers()
                     .iter()
                     .find(|installed| installed.manifest.id == executable.manifest.id)
                     .map_or(HostedPrimitiveImplementation::HostedService, |installed| {
                         installed.implementation
                     });
-                Some(InstalledHostedProvider {
+                providers.push(InstalledHostedProvider {
                     contract: node.contract,
                     manifest: executable.manifest,
                     artifact,
                     implementation,
-                })
-            })
-            .collect()
+                });
+            }
+        }
+        providers
     }
 
     pub fn register_interface(&mut self, interface: OwnedInterfaceContract) {
@@ -2143,19 +2144,16 @@ impl Registry {
             })?;
         }
 
-        self.nodes.insert(
-            contract.id.as_str(),
-            RegisteredNode {
-                contract,
-                executable: Some(RegisteredExecutable {
-                    manifest,
-                    artifacts,
-                    factory,
-                    validate_config,
-                }),
-                compatibility_executable: None,
-            },
-        );
+        let registered = self
+            .nodes
+            .get_mut(canonical_target_id)
+            .expect("canonical contract should exist after resolution");
+        registered.executables.push(RegisteredExecutable {
+            manifest,
+            artifacts,
+            factory,
+            validate_config,
+        });
         Ok(())
     }
 
@@ -2165,7 +2163,7 @@ impl Registry {
             contract.id.as_str(),
             RegisteredNode {
                 contract,
-                executable: None,
+                executables: Vec::new(),
                 compatibility_executable: None,
             },
         );
@@ -2415,61 +2413,50 @@ impl Registry {
     ) -> NodeAvailability {
         if let Some(registered) = self.get_registered_node(contract_id) {
             let canonical_id = registered.contract.id.as_str();
-            if let Some(ref exec) = registered.executable {
+            let expected_hash = OwnedNodeSchema::from_contract(registered.contract).semantic_hash();
+            let mut reasons = Vec::new();
+            if registered.executables.is_empty() {
+                reasons.push("CND-RES-008".to_owned());
+            }
+            for executable in &registered.executables {
                 let manifest_canonical = self
-                    .resolve_canonical_id(exec.manifest.semantic_contract.id.as_str())
-                    .unwrap_or(exec.manifest.semantic_contract.id.as_str());
-
-                let expected_hash =
-                    OwnedNodeSchema::from_contract(registered.contract).semantic_hash();
+                    .resolve_canonical_id(executable.manifest.semantic_contract.id.as_str())
+                    .unwrap_or(executable.manifest.semantic_contract.id.as_str());
 
                 if manifest_canonical != canonical_id {
-                    // Cross-contract mismatch
-                    NodeAvailability {
-                        contract_id: canonical_id.to_owned(),
-                        state: AvailabilityState::ContractOnly,
-                        reason_code: "CND-AVL-001".to_owned(),
-                        implementation_id: None,
-                        host_id: None,
-                        plan_identity: None,
-                        run_id: None,
-                        rejection_reasons: vec!["CND-RES-008".to_owned()],
-                    }
-                } else if exec.manifest.semantic_contract.semantic_hash != expected_hash {
-                    // Contract hash mismatch
-                    NodeAvailability {
-                        contract_id: canonical_id.to_owned(),
-                        state: AvailabilityState::ContractOnly,
-                        reason_code: "CND-AVL-001".to_owned(),
-                        implementation_id: None,
-                        host_id: None,
-                        plan_identity: None,
-                        run_id: None,
-                        rejection_reasons: vec!["CND-RES-002".to_owned()],
-                    }
+                    reasons.push("CND-RES-008".to_owned());
+                } else if executable.manifest.semantic_contract.semantic_hash != expected_hash {
+                    reasons.push("CND-RES-002".to_owned());
                 } else {
-                    NodeAvailability {
+                    return NodeAvailability {
                         contract_id: canonical_id.to_owned(),
                         state: AvailabilityState::ProviderAvailable,
                         reason_code: "CND-AVL-002".to_owned(),
-                        implementation_id: Some(exec.manifest.id.to_string()),
+                        implementation_id: Some(executable.manifest.id.to_string()),
                         host_id: None,
                         plan_identity: None,
                         run_id: None,
                         rejection_reasons: vec!["CND-RES-025".to_owned()],
-                    }
+                    };
                 }
-            } else {
-                NodeAvailability {
-                    contract_id: canonical_id.to_owned(),
-                    state: AvailabilityState::ContractOnly,
-                    reason_code: "CND-AVL-001".to_owned(),
-                    implementation_id: None,
-                    host_id: None,
-                    plan_identity: None,
-                    run_id: None,
-                    rejection_reasons: vec!["CND-RES-008".to_owned()],
-                }
+            }
+            if reasons.is_empty() {
+                reasons.push("CND-RES-008".to_owned());
+            }
+            if registered.compatibility_executable.is_some() {
+                reasons.push("CND-RES-025".to_owned());
+            }
+            // Contract-only or invalid provider facts; no executable satisfies
+            // availability requirements.
+            NodeAvailability {
+                contract_id: canonical_id.to_owned(),
+                state: AvailabilityState::ContractOnly,
+                reason_code: "CND-AVL-001".to_owned(),
+                implementation_id: None,
+                host_id: None,
+                plan_identity: None,
+                run_id: None,
+                rejection_reasons: reasons,
             }
         } else {
             NodeAvailability {
@@ -3078,7 +3065,7 @@ impl Default for Registry {
          -> RegisteredNode {
             RegisteredNode {
                 contract,
-                executable: None,
+                executables: Vec::new(),
                 compatibility_executable: None,
             }
         };
@@ -3282,7 +3269,7 @@ impl Default for Registry {
                 contract.id.as_str(),
                 RegisteredNode {
                     contract,
-                    executable: None,
+                    executables: Vec::new(),
                     compatibility_executable: None,
                 },
             );
@@ -3292,7 +3279,7 @@ impl Default for Registry {
                 .entry(entry.contract.id.as_str())
                 .or_insert(RegisteredNode {
                     contract: &entry.contract,
-                    executable: None,
+                    executables: Vec::new(),
                     compatibility_executable: None,
                 });
         }
@@ -3441,10 +3428,13 @@ impl Registry {
                     format!("no ready implementation for `{}`", source.kind),
                 )
             })?;
-            let validate_config = definition
-                .executable
+            let executable = if self.allow_installed_resolution {
+                definition.select_executable(&source)
+            } else {
+                None
+            };
+            let validate_config = executable
                 .as_ref()
-                .filter(|_| self.allow_installed_resolution)
                 .map(|executable| executable.validate_config)
                 .or_else(|| {
                     definition
@@ -3460,7 +3450,11 @@ impl Registry {
                 )
             })?;
             validate_config(&source)?;
-            nodes.push(ResolvedNode { source, definition });
+            nodes.push(ResolvedNode {
+                source,
+                definition,
+                executable,
+            });
         }
 
         let mut cords = Vec::with_capacity(expanded.cords.len());
@@ -4491,6 +4485,21 @@ fn validate_instance_id(id: &str) -> Result<(), ResolutionError> {
 struct ResolvedNode<'a> {
     source: Node,
     definition: &'a RegisteredNode,
+    executable: Option<&'a RegisteredExecutable>,
+}
+
+impl<'a> ResolvedNode<'a> {
+    fn executable_factory(&self) -> HandlerFactory {
+        self.executable
+            .map(|executable| executable.factory)
+            .or_else(|| {
+                self.definition
+                    .compatibility_executable
+                    .as_ref()
+                    .map(|executable| executable.factory)
+            })
+            .expect("resolved node has executable implementation")
+    }
 }
 
 /// A source cord with resolved numeric endpoints.
@@ -5716,7 +5725,7 @@ impl ResolvedPanel<'_> {
                     HostedNodeKind::Fallback { emitted: false }
                 }
                 HostedPrimitiveImplementation::HostedService => {
-                    let mut handler = (resolved.definition.factory())();
+                    let mut handler = (resolved.executable_factory())();
                     handler.bind_exact(exact_host_service_binding(
                         plan,
                         planned,
@@ -6015,7 +6024,7 @@ impl ResolvedPanel<'_> {
                 }
 
                 let resolved = &self.nodes[node_index];
-                let mut handler = (resolved.definition.factory())();
+                let mut handler = (resolved.executable_factory())();
                 let node_outputs = handler.run(&resolved.source, &inputs, io)?;
                 if node_outputs.len() != resolved.definition.contract.outputs.len() {
                     return Err(RuntimeError::new(

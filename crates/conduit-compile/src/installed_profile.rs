@@ -99,46 +99,49 @@ impl InstalledProfile {
         let mut implementations = BTreeMap::new();
         let mut candidates = Vec::with_capacity(required.len());
         for (contract_id, (contract_hash, instances)) in required {
-            let installed = providers
+            let matching = providers
                 .iter()
-                .find(|provider| {
+                .filter(|provider| {
                     provider.contract.id.as_str() == contract_id
                         && provider.manifest.semantic_contract.semantic_hash == contract_hash
                 })
-                .ok_or_else(|| {
-                    RuntimeError::new(
-                        "CND-RUN-007",
-                        format!("no installed provider implements `{contract_id}`"),
-                    )
-                })?;
+                .collect::<Vec<_>>();
+            if matching.is_empty() {
+                return Err(RuntimeError::new(
+                    "CND-RUN-007",
+                    format!("no installed provider implements `{contract_id}`"),
+                ));
+            }
             let stdout_instance = (contract_id == "io/stdout")
                 .then(|| instances.first().cloned())
                 .flatten();
-            let host_service_instances = if installed.implementation
-                == HostedPrimitiveImplementation::HostedService
-            {
-                instances
-                    .iter()
-                    .map(|instance| {
-                        let constraints = panel
-                            .nodes
-                            .iter()
-                            .find(|node| {
-                                node.id == *instance || instance.ends_with(&format!("/{}", node.id))
-                            })
-                            .map_or_else(Vec::new, hosted_service_authority_constraints);
-                        (instance.clone(), constraints)
-                    })
-                    .collect::<Vec<_>>()
-            } else {
-                Vec::new()
-            };
-            candidates.push(candidate(
-                installed,
-                stdout_instance.as_deref(),
-                &host_service_instances,
-                stdout_granted,
-            ));
+            for installed in matching {
+                let host_service_instances = if installed.implementation
+                    == HostedPrimitiveImplementation::HostedService
+                {
+                    instances
+                        .iter()
+                        .map(|instance| {
+                            let constraints = panel
+                                .nodes
+                                .iter()
+                                .find(|node| {
+                                    node.id == *instance || instance.ends_with(&format!("/{}", node.id))
+                                })
+                                .map_or_else(Vec::new, hosted_service_authority_constraints);
+                            (instance.clone(), constraints)
+                        })
+                        .collect::<Vec<_>>()
+                } else {
+                    Vec::new()
+                };
+                candidates.push(candidate(
+                    installed,
+                    stdout_instance.as_deref(),
+                    &host_service_instances,
+                    stdout_granted,
+                ));
+            }
         }
         let mut catalog = builtin_catalog_document()
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
