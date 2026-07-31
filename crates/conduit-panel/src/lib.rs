@@ -1024,7 +1024,14 @@ impl Parser {
                     if matches!(self.current().kind, TokenKind::String(_)) {
                         imports.push(self.parse_import()?);
                     } else {
-                        package_imports.push(self.parse_package_import()?);
+                        let import = self.parse_package_import()?;
+                        if package_imports.len() == MAXIMUM_PACKAGE_IMPORTS {
+                            return Err(self.error_code(
+                                "CND-SEC-001",
+                                "package import declaration limit exceeded",
+                            ));
+                        }
+                        package_imports.push(import);
                     }
                 }
                 "interface" => interfaces.push(self.parse_interface()?),
@@ -1122,9 +1129,6 @@ impl Parser {
             pools,
             supervisions,
         };
-        if panel.package_imports.len() > MAXIMUM_PACKAGE_IMPORTS {
-            return Err(self.error_code("CND-SEC-001", "package import declaration limit exceeded"));
-        }
         validate_source_symbols(panel, self.current().line, self.current().column)
     }
 

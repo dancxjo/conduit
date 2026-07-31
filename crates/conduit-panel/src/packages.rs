@@ -489,6 +489,16 @@ fn validate_lock(lock: &ContractPackageLock) -> Result<(), PackageResolutionErro
     }
     let mut packages = BTreeSet::new();
     for package in &lock.packages {
+        if package.exports.len() > MAXIMUM_CONTRACT_PACKAGE_EXPORTS {
+            return Err(error(
+                "CND-IPK-008",
+                None,
+                format!(
+                    "locked package `{}` exceeds the export-pin bound",
+                    package.package_id
+                ),
+            ));
+        }
         if !valid_package_id(&package.package_id) || !packages.insert(package.package_id.as_str()) {
             return Err(error(
                 "CND-IPK-002",
@@ -618,18 +628,37 @@ fn valid_descriptor(export: &ContractPackageExport) -> bool {
     };
     descriptor.get("id").and_then(serde_json::Value::as_str) == Some(export.canonical_id.as_str())
         && descriptor.get("kind").and_then(serde_json::Value::as_str) == Some(kind)
-        && [
-            "provider",
-            "implementation",
-            "artifact_location",
-            "download",
-            "url",
-            "authority",
-            "grant",
-            "install",
-        ]
-        .iter()
-        .all(|forbidden| !descriptor.contains_key(*forbidden))
+        && descriptor_contains_only_semantic_facts(&export.descriptor)
+}
+
+fn descriptor_contains_only_semantic_facts(value: &serde_json::Value) -> bool {
+    match value {
+        serde_json::Value::Object(fields) => fields.iter().all(|(name, value)| {
+            !matches!(
+                name.as_str(),
+                "provider"
+                    | "implementation"
+                    | "artifact"
+                    | "artifact_location"
+                    | "download"
+                    | "fetch"
+                    | "url"
+                    | "authority"
+                    | "grant"
+                    | "install"
+                    | "enrollment"
+                    | "prompt"
+                    | "execute"
+            ) && descriptor_contains_only_semantic_facts(value)
+        }),
+        serde_json::Value::Array(values) => {
+            values.iter().all(descriptor_contains_only_semantic_facts)
+        }
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => true,
+    }
 }
 
 fn bind_export(

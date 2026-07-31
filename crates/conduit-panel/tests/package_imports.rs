@@ -1,8 +1,9 @@
 use conduit_panel::{
     ContractExportKind, ContractPackageArtifact, ContractPackageDependency, ContractPackageExport,
     ContractPackageLock, ContractPackageManifest, LoadedModule, LockedContractPackage,
-    LockedExport, MAXIMUM_CONTRACT_PACKAGE_BYTES, ModuleLoader, PackageImportSelection, parse,
-    resolve_module_package_imports, resolve_modules, resolve_package_imports,
+    LockedExport, MAXIMUM_CONTRACT_PACKAGE_BYTES, MAXIMUM_CONTRACT_PACKAGE_EXPORTS, ModuleLoader,
+    PackageImportSelection, parse, resolve_module_package_imports, resolve_modules,
+    resolve_package_imports,
 };
 use sha2::{Digest as _, Sha256};
 use std::collections::BTreeMap;
@@ -373,6 +374,18 @@ fn package_and_source_import_bounds_fail_before_unbounded_retention() {
     let source = format!("panel 3\nimport example.dev/parts/{{{names}}}\n");
     let failure = parse(&source).unwrap_err();
     assert_eq!(failure.code, "CND-SEC-001");
+
+    let imports = (0..=conduit_panel::MAXIMUM_PACKAGE_IMPORTS)
+        .map(|index| format!("import example.dev/parts/{{probe as probe{index}}}\n"))
+        .collect::<String>();
+    let failure = parse(&format!("panel 3\n{imports}")).unwrap_err();
+    assert_eq!(failure.code, "CND-SEC-001");
+
+    let mut oversized_lock = lock;
+    oversized_lock.packages[0].exports =
+        vec![oversized_lock.packages[0].exports[0].clone(); MAXIMUM_CONTRACT_PACKAGE_EXPORTS + 1];
+    let failure = resolve_package_imports(&panel, &oversized_lock, &[]).unwrap_err();
+    assert_eq!(failure.code, "CND-IPK-008");
 }
 
 #[test]
@@ -538,6 +551,33 @@ fn semantic_descriptors_cannot_smuggle_fetch_install_or_authority_instructions()
         packages: vec![locked],
     };
     let panel = parse("panel 3\nimport example.dev/parts/{probe}\n").unwrap();
+    let failure = resolve_package_imports(
+        &panel,
+        &lock,
+        &[ContractPackageArtifact {
+            bytes: &bytes,
+            mirror: None,
+        }],
+    )
+    .unwrap_err();
+    assert_eq!(failure.code, "CND-IPK-001");
+
+    manifest.exports[0].descriptor = serde_json::json!({
+        "id": "example.dev/parts/probe",
+        "kind": "node",
+        "ports": [],
+        "metadata": {
+            "install": {
+                "url": "https://example.invalid/provider"
+            }
+        }
+    });
+    let (bytes, locked) = seal_manifest(manifest.clone());
+    let lock = ContractPackageLock {
+        schema: "conduit.contract-package-lock".to_owned(),
+        draft: 0,
+        packages: vec![locked],
+    };
     let failure = resolve_package_imports(
         &panel,
         &lock,
