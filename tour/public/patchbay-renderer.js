@@ -214,7 +214,7 @@ export class PatchbayReactFlowRenderer {
     this.onPortSelect = options.onPortSelect || null;
     this.onSelectionClear = options.onSelectionClear || null;
     this.onOpenNested = options.onOpenNested || null;
-    this.legacySmartEdge = null;
+    this.patchbaySmartEdge = null;
   }
 
   init() {
@@ -230,14 +230,14 @@ export class PatchbayReactFlowRenderer {
     this.container.appendChild(this.liveRunStatus);
     import("./patchbay-smart-edge.js")
       .then((legacy) => {
-        this.legacySmartEdge = legacy.PatchbaySmartEdge || null;
+        this.patchbaySmartEdge = legacy.PatchbaySmartEdge || null;
       })
       .catch((error) => {
         console.error(
           "patchbay smart-edge module unavailable, using built-in React Flow routing:",
           error,
         );
-        this.legacySmartEdge = null;
+        this.patchbaySmartEdge = null;
       })
       .finally(() => {
         this.renderFlow();
@@ -501,7 +501,7 @@ export class PatchbayReactFlowRenderer {
     )?.edge.id;
     const edges = projectedEdges.map(({ edge, source, target }) => {
       const presentation = edgePresentation(edge);
-      const edgeType = this.legacySmartEdge ? "patchbaySmartEdge" : "step";
+      const edgeType = this.patchbaySmartEdge ? "patchbaySmartEdge" : "bezier";
       return {
         id: edge.id,
         source: source.node,
@@ -582,9 +582,9 @@ export class PatchbayReactFlowRenderer {
     };
 
     const edgeTypes = {};
-    if (this.legacySmartEdge) {
+    if (this.patchbaySmartEdge) {
       edgeTypes.patchbaySmartEdge = (props) =>
-        e(this.legacySmartEdge, {
+        e(this.patchbaySmartEdge, {
           ...props,
           className: `${props.className || ""} ${props.data?.presentationClass || ""}`,
           markerEnd: props.markerEnd,

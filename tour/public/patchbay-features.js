@@ -1,10 +1,7 @@
 const configuredFeatures = window.CONDUIT_PATCHBAY_FEATURES || {};
 
-/**
- * Legacy edge routing and manual placement are retained temporarily for
- * comparison, but must not enter the normal Patchbay rendering path.
- */
+/** Presentation feature flags for the Patchbay renderer. Routing itself is
+ * selected by the hybrid edge from measured layout and native Bézier safety. */
 export const patchbayFeatures = Object.freeze({
   legacyLinePlacement: configuredFeatures.legacyLinePlacement === true
 });
-

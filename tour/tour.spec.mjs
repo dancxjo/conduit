@@ -1292,7 +1292,6 @@ test("routes cords through free space by default and keeps labels off node faces
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await source.fill(panelSource);
   await expect(page.locator(".react-flow__edge")).toHaveCount(2);
-
   const flow = page.locator("#cy");
   const flowBox = await flow.boundingBox();
   expect(flowBox).not.toBeNull();
@@ -1333,6 +1332,9 @@ test("routes cords through free space by default and keeps labels off node faces
 
   const edge = page.locator(".patchbay-smart-cord").nth(1);
   await expect(edge).toHaveCount(1);
+  await expect.poll(async () =>
+    edge.locator(".react-flow__edge-path").getAttribute("d")
+  ).toMatch(/C/);
   await expect
     .poll(async () => edge.locator(".react-flow__edge-path").getAttribute("d"))
     .not.toBe("");

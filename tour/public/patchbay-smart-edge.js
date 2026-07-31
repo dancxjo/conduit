@@ -15,6 +15,65 @@ const MAX_SEARCH_CELLS = 24_000;
 const FLOWINESS = 0.32;
 const PATH_SAMPLE_COUNT = 12;
 const SAMPLE_POINTS_PER_CELL = 4;
+const BEZIER_CLEARANCE = NODE_CLEARANCE + 4;
+
+function nativeBezier(props) {
+  const [path, labelX, labelY] = window.ReactFlow.getBezierPath({
+    sourceX: props.sourceX,
+    sourceY: props.sourceY,
+    sourcePosition: props.sourcePosition,
+    targetX: props.targetX,
+    targetY: props.targetY,
+    targetPosition: props.targetPosition,
+    curvature: 0.25,
+  });
+  const values = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
+  if (values.length < 8) return null;
+  return {
+    path,
+    label: { x: labelX, y: labelY },
+    points: [
+      { x: values[0], y: values[1] },
+      { x: values[2], y: values[3] },
+      { x: values[4], y: values[5] },
+      { x: values[6], y: values[7] },
+    ],
+  };
+}
+
+function cubicHasCollision(bezier, obstacles) {
+  const [p0, c1, c2, p1] = bezier.points;
+  for (let index = 0; index <= 160; index += 1) {
+    const t = index / 160;
+    const point = pointOnCubicBezier(t, p0, c1, c2, p1);
+    if (obstacles.some((obstacle) => pointInRect(point, obstacle, true))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function nativeRouteIsSafe(bezier, nodes, endpointIds, labelText) {
+  const obstacles = nodes
+    .filter((node) => !endpointIds.includes(node.id))
+    .map(nodeRectangle)
+    .filter(Boolean)
+    .map((rect) => inflatedRect(rect, BEZIER_CLEARANCE));
+  if (cubicHasCollision(bezier, obstacles)) return false;
+  if (labelText) {
+    const labelRect = {
+      left: bezier.label.x - Math.max(24, String(labelText).length * 4),
+      right: bezier.label.x + Math.max(24, String(labelText).length * 4),
+      top: bezier.label.y - 14,
+      bottom: bezier.label.y + 14,
+    };
+    if (nodes.some((node) => {
+      const rect = nodeRectangle(node);
+      return rect && rectsOverlap(labelRect, inflatedRect(rect, LABEL_CLEARANCE));
+    })) return false;
+  }
+  return true;
+}
 
 function cellKey(x, y) {
   return `${x},${y}`;
@@ -562,6 +621,32 @@ export function routeAroundNodes(
 
 export function PatchbaySmartEdge(props) {
   const nodes = window.ReactFlow.useNodes();
+  const bezier = nativeBezier(props);
+  if (bezier && nativeRouteIsSafe(bezier, nodes, [props.source, props.target], props.label)) {
+    return e(window.React.Fragment, null,
+      e("path", {
+        id: props.id,
+        className: "react-flow__edge-path",
+        d: bezier.path,
+        style: props.style,
+        markerEnd: props.markerEnd,
+        markerStart: props.markerStart,
+        "data-source-node": props.source,
+        "data-target-node": props.target,
+        "data-routing-mode": "bezier",
+        fill: "none",
+      }),
+      props.label ? e(window.ReactFlow.EdgeText, {
+        x: bezier.label.x,
+        y: bezier.label.y,
+        label: props.label,
+        labelStyle: props.labelStyle,
+        labelBgStyle: props.labelBgStyle,
+        labelBgPadding: props.labelBgPadding,
+        labelBgBorderRadius: props.labelBgBorderRadius,
+      }) : null,
+    );
+  }
   const routed = routeAroundNodes(
     { x: props.sourceX, y: props.sourceY },
     { x: props.targetX, y: props.targetY },
@@ -571,7 +656,10 @@ export function PatchbaySmartEdge(props) {
   );
 
   if (!routed) {
-    return e(window.ReactFlow.StepEdge, props);
+    return e(window.ReactFlow.StepEdge, {
+      ...props,
+      "data-routing-mode": "constrained",
+    });
   }
 
   const labelObstacles = nodes.map(nodeRectangle).filter(Boolean);
@@ -589,6 +677,7 @@ export function PatchbaySmartEdge(props) {
       markerStart: props.markerStart,
       "data-source-node": props.source,
       "data-target-node": props.target,
+      "data-routing-mode": routed.path.includes(" C ") ? "detour" : "constrained",
       fill: "none",
     }),
     props.label ? e(window.ReactFlow.EdgeText, {
