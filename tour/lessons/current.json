@@ -2308,7 +2308,7 @@
         "platform.workload-admission-deadline"
       ],
       "objective": "Run one unchanged media graph while comparing exact provider chains across deterministic, Linux/process, browser/WASM, firmware, and describe-only profiles.",
-      "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose deterministic, FFmpeg, SoX, and browser/WASM realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
+      "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose profile-appropriate fixture and adapter-aware realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
       "vocabulary": [
         "host profile",
         "optional provider",

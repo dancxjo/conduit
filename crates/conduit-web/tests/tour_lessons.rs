@@ -1,6 +1,8 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-use conduit_runtime::Registry;
+use bumpalo::Bump;
+use conduit_compile::{compile_source, InstalledProfile};
+use conduit_runtime::{CompiledInHostService, Handler, Registry, RunIo, Value};
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
@@ -1288,6 +1290,180 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
     assert_eq!(fields, ["bindings", "workloads"].into_iter().collect());
 }
 
+fn cross_host_profile_registry(profile: &str) -> Registry {
+    let mut registry = Registry::hosted_primitives();
+    match profile {
+        "deterministic-host" => {
+            conduit_media::register_deterministic_media_providers(&mut registry)
+                .expect("deterministic media providers are available");
+            conduit_media::register_deterministic_codec_providers(&mut registry)
+                .expect("deterministic codec providers are available");
+        }
+        "linux-native" | "explicit-adapter" => {
+            conduit_media::register_deterministic_media_providers(&mut registry)
+                .expect("deterministic media providers are available");
+            conduit_media::register_media_codec_contracts(&mut registry);
+            if profile == "linux-native" {
+                register_linux_codec_fixture_providers(&mut registry)
+                    .expect("linux codec fixture providers are available");
+            } else {
+                register_explicit_adapter_codec_fixture_providers(&mut registry)
+                    .expect("explicit adapter codec fixture providers are available");
+            }
+        }
+        "browser-wasm" => {
+            conduit_media::register_deterministic_media_providers(&mut registry)
+                .expect("deterministic media providers are available");
+            conduit_media::register_media_codec_contracts(&mut registry);
+            register_browser_codec_fixture_providers(&mut registry)
+                .expect("browser codec fixture providers are available");
+        }
+        other => panic!("unknown cross-host profile {other}"),
+    }
+    registry
+}
+
+fn register_codec_fixture_provider(
+    registry: &mut Registry,
+    providers: &[(
+        &'static conduit_runtime::NodeContract<'static>,
+        &'static str,
+        &'static str,
+        &'static str,
+    )],
+) -> Result<(), conduit_runtime::RuntimeError> {
+    struct FixtureCodecProvider;
+
+    impl Handler for FixtureCodecProvider {
+        fn run(
+            &mut self,
+            _node: &conduit_panel::Node,
+            _inputs: &[Value],
+            _io: &mut RunIo<'_>,
+        ) -> Result<Vec<Value>, conduit_runtime::RuntimeError> {
+            Ok(Vec::new())
+        }
+    }
+    static NO_AUTHORITIES: [conduit_core::SemanticHash; 0] = [];
+    for (contract, implementation_id, artifact_id, entrypoint) in providers {
+        registry.register_compiled_in_host_service(CompiledInHostService {
+            contract,
+            implementation_id,
+            artifact_id,
+            entrypoint,
+            source_bytes: include_bytes!("../../../crates/conduit-media/src/codec.rs"),
+            required_authorities: &NO_AUTHORITIES,
+            factory: || Box::new(FixtureCodecProvider),
+            validate_config: |_node: &conduit_panel::Node| Ok(()),
+        })?;
+    }
+    Ok(())
+}
+
+fn register_linux_codec_fixture_providers(registry: &mut Registry) -> Result<(), conduit_runtime::RuntimeError> {
+    register_codec_fixture_provider(
+        registry,
+        &[
+            (
+                &conduit_media::DEMUX_CONTRACT,
+                "conduit.media/wave-demux-linux-native-fixture",
+                "conduit.media/wave-demux-linux-native-fixture-artifact",
+                "media-wave-demux-linux-native-fixture",
+            ),
+            (
+                &conduit_media::DECODE_CONTRACT,
+                "conduit.media/pcm-decode-linux-native-fixture",
+                "conduit.media/pcm-decode-linux-native-fixture-artifact",
+                "media-pcm-decode-linux-native-fixture",
+            ),
+        ],
+    )
+}
+
+fn register_browser_codec_fixture_providers(
+    registry: &mut Registry,
+) -> Result<(), conduit_runtime::RuntimeError> {
+    register_codec_fixture_provider(
+        registry,
+        &[
+            (
+                &conduit_media::DEMUX_CONTRACT,
+                "conduit.media/wave-demux-browser-wasm-fixture",
+                "conduit.media/wave-demux-browser-wasm-fixture-artifact",
+                "media-wave-demux-browser-wasm-fixture",
+            ),
+            (
+                &conduit_media::DECODE_CONTRACT,
+                "conduit.media/pcm-decode-browser-wasm-fixture",
+                "conduit.media/pcm-decode-browser-wasm-fixture-artifact",
+                "media-pcm-decode-browser-wasm-fixture",
+            ),
+        ],
+    )
+}
+
+fn register_explicit_adapter_codec_fixture_providers(
+    registry: &mut Registry,
+) -> Result<(), conduit_runtime::RuntimeError> {
+    register_codec_fixture_provider(
+        registry,
+        &[
+            (
+                &conduit_media::DEMUX_CONTRACT,
+                "conduit.media/wave-demux-explicit-adapter-fixture",
+                "conduit.media/wave-demux-explicit-adapter-fixture-artifact",
+                "media-wave-demux-explicit-adapter-fixture",
+            ),
+            (
+                &conduit_media::DECODE_CONTRACT,
+                "conduit.media/pcm-decode-explicit-adapter-fixture",
+                "conduit.media/pcm-decode-explicit-adapter-fixture-artifact",
+                "media-pcm-decode-explicit-adapter-fixture",
+            ),
+        ],
+    )
+}
+
+fn cross_host_media_bindings(
+    source: &str,
+    profile: &str,
+) -> BTreeMap<String, (String, String, String, String)> {
+    let registry = cross_host_profile_registry(profile);
+    let installed = InstalledProfile::observe_registry(source, &registry)
+        .unwrap_or_else(|error| {
+            panic!("profile {profile} must produce a compatible installed profile: {error}")
+        });
+    let document = compile_source(source, &installed.input)
+        .unwrap_or_else(|error| panic!("profile {profile} must compile the media graph: {error}"));
+    let arena = Bump::new();
+    let plan = document
+        .as_plan(&arena)
+        .unwrap_or_else(|error| panic!("profile {profile} must produce an execution plan: {error}"));
+    let bindings = installed
+        .bindings(&plan)
+        .unwrap_or_else(|error| panic!("profile {profile} must compute exact bindings: {error}"));
+    let _ = bindings;
+
+    plan.nodes
+        .iter()
+        .filter_map(|node| {
+            let contract = node.contract.id.as_str();
+            if !contract.starts_with("conduit.media/") {
+                return None;
+            }
+            Some((
+                contract.to_owned(),
+                (
+                    node.implementation.id.to_string(),
+                    node.contract.semantic_hash.to_string(),
+                    node.artifact.to_string(),
+                    node.host_observation.to_string(),
+                ),
+            ))
+        })
+        .collect()
+}
+
 #[test]
 fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
@@ -1308,7 +1484,12 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     assert_eq!(result["display"], lesson["expected_display"]);
     assert_eq!(result["terminal"], "succeeded");
 
+    let source = lesson["source"].as_str().unwrap();
     let cases = fixture["cases"].as_array().unwrap();
+    let mut accepted_profile_ids = BTreeSet::new();
+    let mut accepted_profile_bindings = BTreeMap::new();
+    let mut accepted_boundaries = BTreeSet::new();
+    let mut accepted_type_relations = BTreeSet::new();
     for profile in lesson["platform"]["profiles"].as_array().unwrap() {
         let fixture_case = cases
             .iter()
@@ -1316,10 +1497,81 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
             .expect("lesson profile names a conformance case");
         if profile["admission"] == "accepted" {
             assert_eq!(fixture_case["expected"], "bound");
+            let profile_id = profile["id"]
+                .as_str()
+                .expect("platform profile names its accepted profile id");
+            accepted_profile_ids.insert(profile_id.to_owned());
+            accepted_profile_bindings
+                .insert(profile_id.to_owned(), cross_host_media_bindings(source, profile_id));
+            accepted_boundaries.insert(
+                fixture_case["boundary"].as_str().expect("fixture case names a boundary"),
+            );
+            accepted_type_relations.insert(
+                fixture_case["type_relation"]
+                    .as_str()
+                    .expect("fixture case names a type relation"),
+            );
         } else {
             assert_eq!(fixture_case["expected"], profile["code"]);
         }
     }
+    assert_eq!(
+        accepted_profile_ids,
+        ["deterministic-host", "linux-native", "browser-wasm", "explicit-adapter"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
+    );
+    assert_eq!(accepted_boundaries.contains("native"), true);
+    assert_eq!(accepted_boundaries.contains("wasm-browser"), true);
+    assert_eq!(accepted_type_relations.contains("exact"), true);
+    assert_eq!(accepted_type_relations.contains("different-explicit-adapter"), true);
+    let deterministic_bindings = accepted_profile_bindings
+        .get("deterministic-host")
+        .expect("deterministic-host profile is accepted");
+    let linux_bindings = accepted_profile_bindings
+        .get("linux-native")
+        .expect("linux-native profile is accepted");
+    let browser_bindings = accepted_profile_bindings
+        .get("browser-wasm")
+        .expect("browser-wasm profile is accepted");
+    let explicit_bindings = accepted_profile_bindings
+        .get("explicit-adapter")
+        .expect("explicit-adapter profile is accepted");
+    let deterministic_decode = deterministic_bindings["conduit.media/audio/decode"].0.clone();
+    let linux_decode = linux_bindings["conduit.media/audio/decode"].0.clone();
+    let browser_decode = browser_bindings["conduit.media/audio/decode"].0.clone();
+    let deterministic_artifact = deterministic_bindings["conduit.media/audio/decode"].2.clone();
+    let linux_artifact = linux_bindings["conduit.media/audio/decode"].2.clone();
+    let browser_artifact = browser_bindings["conduit.media/audio/decode"].2.clone();
+    assert_ne!(deterministic_decode, linux_decode);
+    assert_ne!(deterministic_decode, browser_decode);
+    assert_ne!(linux_decode, browser_decode);
+    assert_ne!(deterministic_artifact, linux_artifact);
+    assert_ne!(deterministic_artifact, browser_artifact);
+    assert_ne!(linux_artifact, browser_artifact);
+    let deterministic_contract_hashes: BTreeSet<_> = deterministic_bindings
+        .iter()
+        .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
+        .collect();
+    assert_eq!(
+        deterministic_contract_hashes,
+        explicit_bindings
+            .iter()
+            .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
+            .collect()
+    );
+    let linux_contract_hashes: BTreeSet<_> = linux_bindings
+        .iter()
+        .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
+        .collect();
+    let browser_contract_hashes: BTreeSet<_> = browser_bindings
+        .iter()
+        .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
+        .collect();
+    assert_eq!(deterministic_contract_hashes.len(), deterministic_bindings.len());
+    assert_eq!(linux_contract_hashes, deterministic_contract_hashes);
+    assert_eq!(browser_contract_hashes, deterministic_contract_hashes);
     let fields = lesson["presentation"]["patchbay_fields"]
         .as_array()
         .unwrap()
