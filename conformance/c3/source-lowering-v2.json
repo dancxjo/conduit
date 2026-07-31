@@ -6,123 +6,123 @@
     {
       "id": "authored-identity-excludes-root-selection",
       "assertion": "source-root-selection",
-      "source": "panel 1\nnode alpha : fixture/handler\nnode beta : fixture/handler\nroot alpha\nroot beta\n",
+      "source": "panel 3\nnode alpha : fixture/handler\nnode beta : fixture/handler\nroot alpha\nroot beta\n",
       "selected_roots": ["alpha", "beta"],
       "expected": {"v1_relation": "different", "v2_relation": "equal"}
     },
     {
       "id": "resolved-root-selection-enters-lowering-identity",
       "assertion": "lowering-root-selection",
-      "source": "panel 1\nnode alpha : fixture/handler\nnode beta : fixture/handler\nroot alpha\nroot beta\n",
+      "source": "panel 3\nnode alpha : fixture/handler\nnode beta : fixture/handler\nroot alpha\nroot beta\n",
       "selected_roots": ["alpha", "beta"],
       "expected": {"relation": "different", "targets": ["alpha", "beta"]}
     },
     {
       "id": "implicit-sole-root-normalizes-with-explicit-selection",
       "assertion": "implicit-explicit-root",
-      "source": "panel 1\nnode app : fixture/handler\nroot app\n",
+      "source": "panel 3\nnode app : fixture/handler\nroot app\n",
       "expected": {"relation": "equal", "implicit_mode": "implicit-sole", "explicit_mode": "explicit"}
     },
     {
       "id": "trivia-preserves-authored-and-lowered-identity",
       "assertion": "compare",
-      "source": "panel 1\nnode app : fixture/handler using ready\n",
-      "comparison_source": "# trivia\npanel 1   node app:fixture/handler using ready\n",
+      "source": "panel 3\nnode app : fixture/handler using ready\n",
+      "comparison_source": "# trivia\npanel 3   node app:fixture/handler using ready\n",
       "expected": {"source_relation": "equal", "lowering_relation": "equal", "content_relation": "different"}
     },
     {
       "id": "constraint-is-retained-and-identity-bearing",
       "assertion": "constraint",
-      "source": "panel 1\nnode app : fixture/handler using ready\n",
-      "comparison_source": "panel 1\nnode app : fixture/handler using fallback\n",
+      "source": "panel 3\nnode app : fixture/handler using ready\n",
+      "comparison_source": "panel 3\nnode app : fixture/handler using fallback\n",
       "expected": {"constraint": "ready", "relation": "different", "origin_line": 2, "origin_column": 34}
     },
     {
       "id": "ordinary-cord-is-retained-and-identity-bearing",
       "assertion": "cord",
-      "source": "panel 1\nnode source : fixture/handler\nnode sink : fixture/handler\ncord source.out -> sink.in { capacity = 1 }\n",
-      "comparison_source": "panel 1\nnode source : fixture/handler\nnode sink : fixture/handler\ncord source.out -> sink.in { capacity = 2 }\n",
+      "source": "panel 3\nnode source : fixture/handler\nnode sink : fixture/handler\ncord source.value -> sink.value { capacity = 1 }\n",
+      "comparison_source": "panel 3\nnode source : fixture/handler\nnode sink : fixture/handler\ncord source.value -> sink.value { capacity = 2 }\n",
       "expected": {"cords": 1, "capacity": 1, "relation": "different", "origin_line": 4}
     },
     {
       "id": "composite-child-and-export-are-retained",
       "assertion": "export",
-      "source": "panel 1\nnode box {\n  node child : fixture/handler\n  export output child.left as out\n}\n",
-      "comparison_source": "panel 1\nnode box {\n  node child : fixture/handler\n  export output child.right as out\n}\n",
+      "source": "panel 3\nnode box {\n  node child : fixture/handler\n  export result > = child.left\n}\n",
+      "comparison_source": "panel 3\nnode box {\n  node child : fixture/handler\n  export result > = child.right\n}\n",
       "expected": {"composites": 1, "children": 1, "exports": 1, "target_ends": "/node/child/port/left", "relation": "different", "origin_line": 4}
     },
     {
       "id": "configuration-binding-is-retained",
       "assertion": "binding",
-      "source": "panel 1\nnode box(p: fixture/i8) {\n  node child : fixture/handler\n  bind p = child.left\n}\n",
-      "comparison_source": "panel 1\nnode box(p: fixture/i8) {\n  node child : fixture/handler\n  bind p = child.right\n}\n",
+      "source": "panel 3\nnode box(p: fixture/i8) {\n  node child : fixture/handler\n  bind p = child.left\n}\n",
+      "comparison_source": "panel 3\nnode box(p: fixture/i8) {\n  node child : fixture/handler\n  bind p = child.right\n}\n",
       "expected": {"composites": 1, "bindings": 1, "target_ends": "/node/child/config/left", "relation": "different", "origin_line": 4}
     },
     {
       "id": "nested-imported-topology-retains-content-identified-origins",
       "assertion": "imported-topology",
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 1\nimport \"./child.panel\" as child\nnode outer {\n  node nested : child.inner\n  export output nested.out as out\n}\nroot outer\n",
+      "source": "panel 3\nimport \"./child.panel\" as child\nnode outer {\n  node nested : child.inner\n  export result > = nested.result\n}\nroot outer\n",
       "modules": {
-        "mem://fixture/child.panel": "panel 1\nnode inner {\n  node value : fixture/handler using ready\n  node sink : fixture/handler\n  cord value.out -> sink.in\n  export output value.out as out\n}\nroot inner\n"
+        "mem://fixture/child.panel": "panel 3\nnode inner {\n  node value : fixture/handler using ready\n  node sink : fixture/handler\n  cord value.result -> sink.value\n  export result > = value.result\n}\nroot inner\n"
       },
       "expected": {"composites": 2, "children": 3, "cords": 1, "exports": 2, "constraints": 1, "child_origin_uri": "mem://fixture/child.panel", "child_export_line": 6}
     },
     {
       "id": "v1-reader-preserves-frozen-result",
       "assertion": "v1-preservation",
-      "source": "panel 1\nnode app : fixture/handler\n",
+      "source": "panel 3\nnode app : fixture/handler\n",
       "expected": {"schema_version": 1, "relation": "equal"}
     },
     {
       "id": "v1-migration-relowers-exact-source",
       "assertion": "migration",
-      "source": "panel 1\nnode app : fixture/handler using ready\n",
+      "source": "panel 3\nnode app : fixture/handler using ready\n",
       "expected": {"outcome": "migrated", "schema_version": 2, "constraint": "ready"}
     },
     {
       "id": "stale-v1-migration-is-rejected",
       "assertion": "stale-migration",
-      "source": "panel 1\nnode app : fixture/handler\n",
-      "comparison_source": "panel 1\nnode other : fixture/handler\n",
+      "source": "panel 3\nnode app : fixture/handler\n",
+      "comparison_source": "panel 3\nnode other : fixture/handler\n",
       "expected": {"outcome": "rejected", "code": "CND-LWR-012"}
     },
     {
       "id": "origin-free-v1-migration-is-ambiguous",
       "assertion": "ambiguous-migration",
-      "source": "panel 1\n",
+      "source": "panel 3\n",
       "expected": {"outcome": "rejected", "code": "CND-LWR-012"}
     },
     {
       "id": "unsupported-source-schema-version",
       "assertion": "unsupported-source-version",
-      "source": "panel 1\nnode app : fixture/handler\n",
+      "source": "panel 3\nnode app : fixture/handler\n",
       "schema_version": 99,
       "expected": {"outcome": "rejected", "code": "CND-SRC-011"}
     },
     {
       "id": "unsupported-lowering-schema-version",
       "assertion": "unsupported-lowering-version",
-      "source": "panel 1\nnode app : fixture/handler\n",
+      "source": "panel 3\nnode app : fixture/handler\n",
       "schema_version": 99,
       "expected": {"outcome": "rejected", "code": "CND-LWR-011"}
     },
     {
       "id": "dangling-export-is-rejected",
       "assertion": "parse-diagnostic",
-      "source": "panel 1\nnode inner { node value : fixture/handler export output value.out as out }\nnode outer { node child : inner export output child.missing as out }\n",
+      "source": "panel 3\nnode inner { node value : fixture/handler export result > = value.result }\nnode outer { node child : inner export result > = child.missing }\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-009"}
     },
     {
       "id": "dangling-binding-is-rejected",
       "assertion": "parse-diagnostic",
-      "source": "panel 1\nnode box(p: fixture/i8) { node child : fixture/handler bind missing = child.value }\n",
+      "source": "panel 3\nnode box(p: fixture/i8) { node child : fixture/handler bind missing = child.value }\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-003"}
     },
     {
       "id": "boundary-bypass-remains-rejected",
       "assertion": "parse-diagnostic",
-      "source": "panel 1\nnode box { node inner : fixture/handler export output inner.out as out }\nnode app : box\nnode sink : fixture/handler\ncord app.inner.out -> sink.in\n",
+      "source": "panel 3\nnode box { node inner : fixture/handler export result > = inner.result }\nnode app : box\nnode sink : fixture/handler\ncord app.inner.result -> sink.value\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-009"}
     }
   ]

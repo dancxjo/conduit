@@ -109,7 +109,7 @@ impl conduit_runtime::Handler for AsrHandler {
 Domain users author `.panel` source files referencing your domain node:
 
 ```panel
-panel 1
+panel 3
 
 node audio_source : std/literal {
     value = "sample_audio_pcm_payload"
@@ -118,7 +118,7 @@ node audio_source : std/literal {
 node asr : tongues/asr-recognizer
 node output_log : observe/log
 
-cord audio_source.out -> asr.audio {
+cord audio_source.value -> asr.audio {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288
@@ -127,7 +127,7 @@ cord audio_source.out -> asr.audio {
     pressure = block
 }
 
-cord asr.transcript -> output_log.in {
+cord asr.transcript -> output_log.message {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288

@@ -5,7 +5,7 @@ use conduit_runtime::{Registry, RunIo};
 fn display_text_uses_the_presentation_channel_not_process_stdout() {
     let panel = parse(
         r#"
-            panel 1
+            panel 3
             node message : std/literal { value = "visible text" }
             node display : display/text
             cord message.value -> display.text
@@ -62,7 +62,7 @@ fn tee_node_duplicates_flow_to_multiple_sinks() {
 fn fallback_node_selects_primary_or_fallback() {
     let panel = parse(
         r#"
-            panel 1
+            panel 3
             node primary : std/literal { value = "primary data" }
             node secondary : std/literal { value = "fallback data" }
             node router : flow/fallback

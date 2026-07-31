@@ -1,12 +1,12 @@
 {
   "suite": "conduit.panel-interface-satisfaction-v1",
-  "source_ast_schema_version": 4,
+  "source_ast_schema_version": 5,
   "lowering_schema_version": 4,
   "cases": [
     {
       "id": "valid-primitive-interface-satisfaction",
       "assertion": "diagnostic",
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : fixture/text\n  output final : fixture/text\n}\nnode worker : fixture/speech-node implements speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : fixture/text\n  final > : fixture/text\n}\nnode worker : fixture/speech-node implements speech/recognizer\n",
       "expected": {
         "outcome": "accepted"
       }
@@ -14,7 +14,7 @@
     {
       "id": "valid-composite-interface-satisfaction",
       "assertion": "diagnostic",
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : fixture/text\n  output final : fixture/text\n}\nnode worker implements speech/recognizer {\n  node child : fixture/speech-node\n  export input child.audio as audio\n  export output child.final as final\n}\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : fixture/text\n  final > : fixture/text\n}\nnode worker implements speech/recognizer {\n  node child : fixture/speech-node\n  export > audio = child.audio\n  export final > = child.final\n}\n",
       "expected": {
         "outcome": "accepted"
       }
@@ -22,7 +22,7 @@
     {
       "id": "missing-required-port-rejected",
       "assertion": "diagnostic",
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : fixture/text\n  output final : fixture/text\n}\nnode worker : fixture/incomplete-node implements speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : fixture/text\n  final > : fixture/text\n}\nnode worker : fixture/incomplete-node implements speech/recognizer\n",
       "expected": {
         "outcome": "rejected",
         "code": "CND-LWR-013"
@@ -31,7 +31,7 @@
     {
       "id": "wrong-direction-rejected",
       "assertion": "diagnostic",
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : fixture/text\n  output final : fixture/text\n}\nnode worker : fixture/swapped-directions implements speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : fixture/text\n  final > : fixture/text\n}\nnode worker : fixture/swapped-directions implements speech/recognizer\n",
       "expected": {
         "outcome": "rejected",
         "code": "CND-LWR-013"
@@ -40,7 +40,7 @@
     {
       "id": "type-contract-mismatch-rejected",
       "assertion": "diagnostic",
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : fixture/bool\n  output final : fixture/text\n}\nnode worker : fixture/speech-node implements speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : fixture/bool\n  final > : fixture/text\n}\nnode worker : fixture/speech-node implements speech/recognizer\n",
       "expected": {
         "outcome": "rejected",
         "code": "CND-LWR-013"
@@ -49,7 +49,7 @@
     {
       "id": "optional-member-absent-accepted",
       "assertion": "diagnostic",
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : fixture/text\n  output final : fixture/text\n  output partial : fixture/text optional\n}\nnode worker : fixture/speech-node implements speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : fixture/text\n  final > : fixture/text\n  partial > : fixture/text optional\n}\nnode worker : fixture/speech-node implements speech/recognizer\n",
       "expected": {
         "outcome": "accepted"
       }
@@ -57,7 +57,7 @@
     {
       "id": "absent-interface-contract-rejected",
       "assertion": "diagnostic",
-      "source": "panel 2\nnode worker : fixture/speech-node implements speech/missing\n",
+      "source": "panel 3\nnode worker : fixture/speech-node implements speech/missing\n",
       "expected": {
         "outcome": "rejected",
         "code": "CND-LWR-013"

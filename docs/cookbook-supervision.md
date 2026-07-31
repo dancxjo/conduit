@@ -10,15 +10,15 @@ State: **contract-only**. Exact policy, implementation, host, authority,
 timer, and allocation bindings are deliberately absent from this snippet.
 
 ```panel
-panel 2
+panel 3
 
 node request : std/literal {
     value = "work"
 }
-node output : io/stdout
+node output : display/text
 node request_policy : supervision/supervisor
 
-cord request.out -> output.in
+cord request.value -> output.text
 supervise request with request_policy
 ```
 

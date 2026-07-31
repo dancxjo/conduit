@@ -1,12 +1,12 @@
 {
   "suite": "conduit.panel-grammar-v1",
-  "grammar_version": 1,
+  "grammar_version": 3,
   "cases": [
     {
       "id": "minimal",
       "mode": "parse",
       "productions": ["document", "version", "instance", "cord", "endpoint", "cord-policy"],
-      "source": "panel 1\nnode source : std/literal { value = \"hello\" }\nnode sink : io/stdout\ncord source.out -> sink.in\n",
+      "source": "panel 3\nnode source : std/literal { value = \"hello\" }\nnode sink : display/text\ncord source.value -> sink.text\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -15,7 +15,7 @@
       "id": "import-alias-pin",
       "mode": "parse",
       "productions": ["import", "string", "qualified-name"],
-      "source": "panel 1\nimport \"./nodes.panel\" as nodes pin \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n",
+      "source": "panel 3\nimport \"./nodes.panel\" as nodes pin \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -24,7 +24,7 @@
       "id": "definition-parameters-constraint-export",
       "mode": "parse",
       "productions": ["definition", "parameter-list", "parameter", "constraint", "export", "binding", "comment"],
-      "source": "# retained comment\npanel 1\nnode reply(language: language_tag = \"en\") {\n  node source : std/literal using ready\n  node sink : io/stdout\n  cord source.out -> sink.in\n  export output source.out as audio\n  bind language = source.value\n}\nroot reply\n",
+      "source": "# retained comment\npanel 3\nnode reply(language: language_tag = \"en\") {\n  node source : std/literal using ready\n  node sink : display/text\n  cord source.value -> sink.text\n  export audio > = source.value\n  bind language = source.value\n}\nroot reply\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -33,7 +33,7 @@
       "id": "multiple-roots-selected",
       "mode": "parse",
       "productions": ["root"],
-      "source": "panel 1\nnode first { node a : std/literal }\nnode second { node b : std/literal }\nroot first\nroot second\n",
+      "source": "panel 3\nnode first { node a : std/literal }\nnode second { node b : std/literal }\nroot first\nroot second\n",
       "selected_root": "second",
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -42,7 +42,7 @@
       "id": "port-groups",
       "mode": "parse",
       "productions": ["port-group", "keyed-group", "indexed-group", "group-member"],
-      "source": "panel 1\nnode router {\n  node handler : fixture/handler\n  port-group routes output : fixture/reply keyed max 3 { member home member assets }\n  export output handler.routes[home] as home\n}\nport-group workers output : fixture/reply indexed max 8\nroot router\n",
+      "source": "panel 3\nnode router {\n  node handler : fixture/handler\n  port-group routes > : fixture/reply keyed max 3 { member home member assets }\n  export home > = handler.routes[home]\n}\nport-group workers > : fixture/reply indexed max 8\nroot router\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -51,7 +51,7 @@
       "id": "nested-definitions",
       "mode": "parse",
       "productions": ["definition", "instance", "export", "root"],
-      "source": "panel 1\nnode inner {\n  node value : fixture/source\n  export output value.out as out\n}\nnode outer {\n  node child : inner\n  export output child.out as out\n}\nroot outer\n",
+      "source": "panel 3\nnode inner {\n  node value : fixture/source\n  export result > = value.result\n}\nnode outer {\n  node child : inner\n  export result > = child.result\n}\nroot outer\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -60,7 +60,7 @@
       "id": "bounded-pools",
       "mode": "parse",
       "productions": ["pool", "pool-policy", "admission", "supervision", "cleanup"],
-      "source": "panel 1\npool rejectors : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fail_together cleanup = abort }\npool blockers : fixture/handler { maximum = 8 admission = block deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = drain }\npool queued : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 32 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\npool failed : fixture/handler { maximum = 8 admission = fail deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fallback fallback = fixture/fallback cleanup = abort }\n",
+      "source": "panel 3\npool rejectors : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fail_together cleanup = abort }\npool blockers : fixture/handler { maximum = 8 admission = block deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = drain }\npool queued : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 32 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\npool failed : fixture/handler { maximum = 8 admission = fail deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fallback fallback = fixture/fallback cleanup = abort }\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -69,7 +69,7 @@
       "id": "pressure-policies",
       "mode": "parse",
       "productions": ["pressure-policy", "number"],
-      "source": "panel 1\nnode a : fixture/source\nnode b : fixture/sink\ncord a.out -> b.in { capacity = 4 pressure = sample sample_every = 3 sample_offset = 1 }\ncord a.out -> b.in { capacity = 4 pressure = coalesce coalescer = fixture/latest }\ncord a.out -> b.in { capacity = 4 pressure = drop-disposable }\n",
+      "source": "panel 3\nnode a : fixture/source\nnode b : fixture/sink\ncord a.value -> b.value { capacity = 4 pressure = sample sample_every = 3 sample_offset = 1 }\ncord a.value -> b.value { capacity = 4 pressure = coalesce coalescer = fixture/latest }\ncord a.value -> b.value { capacity = 4 pressure = drop-disposable }\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -78,8 +78,8 @@
       "id": "format-equivalence",
       "mode": "parse",
       "productions": ["trivia"],
-      "source": "panel 1\nnode value : std/literal { value = \"same\" }\n",
-      "equivalent_source": "# different trivia\npanel 1   node value:std/literal{\nvalue=\"same\"\n}\n",
+      "source": "panel 3\nnode value : std/literal { value = \"same\" }\n",
+      "equivalent_source": "# different trivia\npanel 3   node value:std/literal{\nvalue=\"same\"\n}\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -88,7 +88,7 @@
       "id": "typed-literal-forms",
       "mode": "parse",
       "productions": ["source-value", "boolean", "integer", "literal-call", "record-field"],
-      "source": "panel 1\nnode value : fixture/all { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") token = secret(\"binding\") amount = decimal(\"0.100\") items = list(true,false) nested = record(name=\"nested\",count=7) }\n",
+      "source": "panel 3\nnode value : fixture/all { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") token = secret(\"binding\") amount = decimal(\"0.100\") items = list(true,false) nested = record(name=\"nested\",count=7) }\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -97,7 +97,7 @@
       "id": "invalid-exact-decimal",
       "mode": "parse",
       "productions": ["source-value", "literal-call"],
-      "source": "panel 1\nnode value : fixture/all { amount = decimal(\"1e-3\") }\n",
+      "source": "panel 3\nnode value : fixture/all { amount = decimal(\"1e-3\") }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-010"
@@ -106,7 +106,7 @@
       "id": "trailing-literal-comma",
       "mode": "parse",
       "productions": ["source-value", "literal-call"],
-      "source": "panel 1\nnode value : fixture/all { items = list(true,) }\n",
+      "source": "panel 3\nnode value : fixture/all { items = list(true,) }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-001"
@@ -124,7 +124,7 @@
       "id": "duplicate-symbol",
       "mode": "parse",
       "productions": ["instance"],
-      "source": "panel 1\nnode same : fixture/a\nnode same : fixture/b\n",
+      "source": "panel 3\nnode same : fixture/a\nnode same : fixture/b\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-002"
@@ -133,7 +133,7 @@
       "id": "malformed-cord",
       "mode": "parse",
       "productions": ["cord"],
-      "source": "panel 1\nnode a : fixture/a\nnode b : fixture/b\ncord a.out b.in\n",
+      "source": "panel 3\nnode a : fixture/a\nnode b : fixture/b\ncord a.value b.value\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-001"
@@ -142,7 +142,7 @@
       "id": "boundary-bypass",
       "mode": "parse",
       "productions": ["endpoint", "export"],
-      "source": "panel 1\nnode box { node inner : fixture/source export output inner.out as out }\nnode app : box\nnode sink : fixture/sink\ncord app.inner.out -> sink.in\n",
+      "source": "panel 3\nnode box { node inner : fixture/source export result > = inner.result }\nnode app : box\nnode sink : fixture/sink\ncord app.inner.result -> sink.value\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-009"
@@ -151,7 +151,7 @@
       "id": "multiple-roots-unselected",
       "mode": "parse",
       "productions": ["root"],
-      "source": "panel 1\nnode first { node a : fixture/a }\nnode second { node b : fixture/b }\nroot first\nroot second\n",
+      "source": "panel 3\nnode first { node a : fixture/a }\nnode second { node b : fixture/b }\nroot first\nroot second\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-006"
@@ -160,7 +160,7 @@
       "id": "zero-group-maximum",
       "mode": "parse",
       "productions": ["port-group"],
-      "source": "panel 1\nport-group routes input : fixture/request indexed max 0\n",
+      "source": "panel 3\nport-group > routes : fixture/request indexed max 0\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-008"
@@ -169,7 +169,7 @@
       "id": "duplicate-group-member",
       "mode": "parse",
       "productions": ["group-member"],
-      "source": "panel 1\nport-group routes input : fixture/request keyed max 2 { member home member home }\n",
+      "source": "panel 3\nport-group > routes : fixture/request keyed max 2 { member home member home }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-002"
@@ -178,7 +178,7 @@
       "id": "unbounded-pool",
       "mode": "parse",
       "productions": ["pool", "pool-policy"],
-      "source": "panel 1\npool sessions : fixture/handler { admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }\n",
+      "source": "panel 3\npool sessions : fixture/handler { admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-008"
@@ -188,7 +188,7 @@
       "mode": "resolve",
       "productions": ["import", "module-resolution"],
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 1\nimport \"./missing.panel\" as missing\n",
+      "source": "panel 3\nimport \"./missing.panel\" as missing\n",
       "modules": {},
       "selected_root": null,
       "round_trip": false,
@@ -199,9 +199,9 @@
       "mode": "resolve",
       "productions": ["import", "module-resolution"],
       "entry_uri": "mem://fixture/a.panel",
-      "source": "panel 1\nimport \"./b.panel\" as b\n",
+      "source": "panel 3\nimport \"./b.panel\" as b\n",
       "modules": {
-        "mem://fixture/b.panel": "panel 1\nimport \"./a.panel\" as a\n"
+        "mem://fixture/b.panel": "panel 3\nimport \"./a.panel\" as a\n"
       },
       "selected_root": null,
       "round_trip": false,
@@ -212,9 +212,9 @@
       "mode": "resolve",
       "productions": ["import", "module-resolution"],
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 1\nimport \"./child.panel\" as child pin \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n",
+      "source": "panel 3\nimport \"./child.panel\" as child pin \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n",
       "modules": {
-        "mem://fixture/child.panel": "panel 1\n"
+        "mem://fixture/child.panel": "panel 3\n"
       },
       "selected_root": null,
       "round_trip": false,
@@ -225,9 +225,9 @@
       "mode": "resolve",
       "productions": ["import", "module-resolution", "qualified-name"],
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 1\nimport \"./child.panel\" as child pin \"sha256:3047fa702fe3ec8def0174dc668fe395604e4b58979773f1edacd12aa84a82be\"\nnode app { node worker : child.worker }\nroot app\n",
+      "source": "panel 3\nimport \"./child.panel\" as child pin \"sha256:33b12cf0284ce8df197d227863008846a95e53e687e0956707659e0a169da228\"\nnode app { node worker : child.worker }\nroot app\n",
       "modules": {
-        "mem://fixture/child.panel": "panel 1\nnode worker { node value : fixture/value }\nroot worker\n"
+        "mem://fixture/child.panel": "panel 3\nnode worker { node value : fixture/value }\nroot worker\n"
       },
       "selected_root": null,
       "round_trip": false,

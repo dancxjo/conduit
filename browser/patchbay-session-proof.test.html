@@ -13,10 +13,10 @@
   const assert = (condition, message) => {
     if (!condition) throw new Error(message);
   };
-  const source = `panel 1
+  const source = `panel 3
 node greeting : std/literal { value = "hello" }
-node output : io/stdout
-cord greeting.out -> output.in {
+node output : display/text
+cord greeting.value -> output.text {
   capacity = 1
   max_value_bytes = 64
   max_queued_bytes = 64
@@ -68,7 +68,7 @@ cord greeting.out -> output.in {
       request("browser/proof", 0, 1, [{
         Connect: {
           from_node: "greeting",
-          from_port: "out",
+          from_port: "value",
           to_node: "greeting",
           to_port: "missing",
           bounds: {

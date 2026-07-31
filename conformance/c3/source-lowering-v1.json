@@ -92,147 +92,147 @@
     {
       "id": "literal-forms",
       "assertion": "lower",
-      "source": "panel 1\nnode value : fixture/all-literals { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") items = list(true,false) nested = record(name=\"nested\",count=7) amount = decimal(\"0.10000000000000001\") }\n",
+      "source": "panel 3\nnode value : fixture/all-literals { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") items = list(true,false) nested = record(name=\"nested\",count=7) amount = decimal(\"0.10000000000000001\") }\n",
       "result": {"outcome": "accepted"}
     },
     {
       "id": "explicit-default-equivalence",
       "assertion": "compare",
-      "source": "panel 1\nnode value : fixture/defaulted { enabled = true }\n",
-      "comparison_source": "panel 1\nnode value : fixture/defaulted\n",
+      "source": "panel 3\nnode value : fixture/defaulted { enabled = true }\n",
+      "comparison_source": "panel 3\nnode value : fixture/defaulted\n",
       "result": {"outcome": "accepted", "relation": "equal", "provenance": ["authored", "schema-default"]}
     },
     {
       "id": "nested-record",
       "assertion": "lower",
-      "source": "panel 1\nnode value : fixture/record { value = record(name=\"nested\",count=-8) }\n",
+      "source": "panel 3\nnode value : fixture/record { value = record(name=\"nested\",count=-8) }\n",
       "result": {"outcome": "accepted"}
     },
     {
       "id": "integer-minimum",
       "assertion": "lower",
-      "source": "panel 1\nnode value : fixture/integer { count = -128 }\n",
+      "source": "panel 3\nnode value : fixture/integer { count = -128 }\n",
       "result": {"outcome": "accepted"}
     },
     {
       "id": "integer-maximum",
       "assertion": "lower",
-      "source": "panel 1\nnode value : fixture/integer { count = 127 }\n",
+      "source": "panel 3\nnode value : fixture/integer { count = 127 }\n",
       "result": {"outcome": "accepted"}
     },
     {
       "id": "integer-overflow",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/integer { count = 128 }\n",
+      "source": "panel 3\nnode value : fixture/integer { count = 128 }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-006", "expected_contract": "fixture/i8", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "canonical-map-order",
       "assertion": "compare",
-      "source": "panel 1\nnode value : fixture/record { value = record(name=\"same\",count=7) }\n",
-      "comparison_source": "panel 1\nnode value : fixture/record { value = map(count=7,name=\"same\") }\n",
+      "source": "panel 3\nnode value : fixture/record { value = record(name=\"same\",count=7) }\n",
+      "comparison_source": "panel 3\nnode value : fixture/record { value = map(count=7,name=\"same\") }\n",
       "result": {"outcome": "accepted", "relation": "equal"}
     },
     {
       "id": "precision-sensitive",
       "assertion": "compare",
-      "source": "panel 1\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n",
-      "comparison_source": "panel 1\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
+      "source": "panel 3\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n",
+      "comparison_source": "panel 3\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
       "result": {"outcome": "accepted", "relation": "different"}
     },
     {
       "id": "secret-reference",
       "assertion": "secret",
-      "source": "panel 1\nnode value : fixture/secret { token = secret(\"fixture-do-not-echo\") }\n",
+      "source": "panel 3\nnode value : fixture/secret { token = secret(\"fixture-do-not-echo\") }\n",
       "result": {"outcome": "accepted", "provenance": "plan-binding", "ordinary_output": "[REDACTED]"}
     },
     {
       "id": "nested-secret-reference",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/record { value = record(name=secret(\"nested-do-not-echo\"),count=7) }\n",
+      "source": "panel 3\nnode value : fixture/record { value = record(name=secret(\"nested-do-not-echo\"),count=7) }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-009", "expected_contract": "fixture/record", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "protected-literal",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/secret { token = \"actual-do-not-echo\" }\n",
+      "source": "panel 3\nnode value : fixture/secret { token = \"actual-do-not-echo\" }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-009", "expected_contract": "fixture/secret-ref", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "imported-schema",
       "assertion": "lower",
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 1\nimport \"./child.panel\" as child\nnode app : child.configured { count = 7 }\n",
-      "modules": {"mem://fixture/child.panel": "panel 1\nnode configured(count: fixture/i8) { }\nroot configured\n"},
+      "source": "panel 3\nimport \"./child.panel\" as child\nnode app : child.configured { count = 7 }\n",
+      "modules": {"mem://fixture/child.panel": "panel 3\nnode configured(count: fixture/i8) { }\nroot configured\n"},
       "result": {"outcome": "accepted", "origin_uri": "mem://fixture/root.panel", "origin_line": 3}
     },
     {
       "id": "imported-default-origin",
       "assertion": "lower",
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 1\nimport \"./child.panel\" as child\nnode app : child.configured\n",
-      "modules": {"mem://fixture/child.panel": "panel 1\nnode configured(count: fixture/i8 = 7) { }\nroot configured\n"},
+      "source": "panel 3\nimport \"./child.panel\" as child\nnode app : child.configured\n",
+      "modules": {"mem://fixture/child.panel": "panel 3\nnode configured(count: fixture/i8 = 7) { }\nroot configured\n"},
       "result": {"outcome": "accepted", "provenance": "schema-default", "origin_uri": "mem://fixture/child.panel", "origin_line": 2}
     },
     {
       "id": "definition-format-equivalence",
       "assertion": "compare",
-      "source": "panel 1\nnode configured(count: fixture/i8 = 7) { }\nnode app : configured\n",
-      "comparison_source": "# trivia changes content identity only\npanel 1 node configured ( count : fixture/i8 = 7 ) { }\nnode app:configured\n",
+      "source": "panel 3\nnode configured(count: fixture/i8 = 7) { }\nnode app : configured\n",
+      "comparison_source": "# trivia changes content identity only\npanel 3 node configured ( count : fixture/i8 = 7 ) { }\nnode app:configured\n",
       "result": {"outcome": "accepted", "relation": "equal"}
     },
     {
       "id": "unknown-field",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/defaulted { unknown = true }\n",
+      "source": "panel 3\nnode value : fixture/defaulted { unknown = true }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-002", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "duplicate-field",
       "assertion": "parse-diagnostic",
-      "source": "panel 1\nnode value : fixture/defaulted { enabled = true enabled = false }\n",
+      "source": "panel 3\nnode value : fixture/defaulted { enabled = true enabled = false }\n",
       "result": {"outcome": "rejected", "code": "CND-SRC-002", "origin_line": 2}
     },
     {
       "id": "wrong-type",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/integer { count = \"seven\" }\n",
+      "source": "panel 3\nnode value : fixture/integer { count = \"seven\" }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-005", "expected_contract": "fixture/i8", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "missing-required",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/integer\n",
+      "source": "panel 3\nnode value : fixture/integer\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-004", "expected_contract": "fixture/i8"}
     },
     {
       "id": "provider-unavailable",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode value : fixture/provider { value = \"opaque\" }\n",
+      "source": "panel 3\nnode value : fixture/provider { value = \"opaque\" }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-008", "expected_contract": "fixture/unavailable", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "invalid-default",
       "assertion": "diagnostic",
-      "source": "panel 1\nnode configured(count: fixture/i8 = \"seven\") { }\nnode app : configured\n",
+      "source": "panel 3\nnode configured(count: fixture/i8 = \"seven\") { }\nnode app : configured\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-007", "expected_contract": "fixture/i8", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "groups-and-pools",
       "assertion": "lower",
-      "source": "panel 1\nport-group routes input : fixture/request-port keyed max 2 { member home member assets }\nport-group workers output : fixture/reply-port indexed max 3\npool sessions : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 16 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\n",
+      "source": "panel 3\nport-group > routes : fixture/request-port keyed max 2 { member home member assets }\nport-group workers > : fixture/reply-port indexed max 3\npool sessions : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 16 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\n",
       "result": {"outcome": "accepted", "expanded_group_ports": 5, "pool_maximum": 8, "template_contract": "fixture/handler"}
     },
     {
       "id": "unknown-group-contract",
       "assertion": "diagnostic",
-      "source": "panel 1\nport-group routes input : fixture/missing-port indexed max 1\n",
+      "source": "panel 3\nport-group > routes : fixture/missing-port indexed max 1\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-001", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     },
     {
       "id": "unknown-pool-template",
       "assertion": "diagnostic",
-      "source": "panel 1\npool sessions : fixture/missing-handler { maximum = 1 admission = reject deadline_ms = 100 idle_timeout_ms = 100 supervision = isolate cleanup = abort }\n",
+      "source": "panel 3\npool sessions : fixture/missing-handler { maximum = 1 admission = reject deadline_ms = 100 idle_timeout_ms = 100 supervision = isolate cleanup = abort }\n",
       "result": {"outcome": "rejected", "code": "CND-LWR-001", "origin_uri": "mem://fixture/root.panel", "origin_line": 2}
     }
   ]

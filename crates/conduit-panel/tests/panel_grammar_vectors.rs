@@ -19,7 +19,7 @@ impl ModuleLoader for MemoryLoader {
 #[test]
 fn every_grammar_vector_has_the_exact_outcome_and_diagnostic() {
     let suite: Value = serde_json::from_str(FIXTURES).unwrap();
-    assert_eq!(suite["grammar_version"], 1);
+    assert_eq!(suite["grammar_version"], 3);
     for case in suite["cases"].as_array().unwrap() {
         let id = case["id"].as_str().unwrap();
         let source = case["source"].as_str().unwrap();

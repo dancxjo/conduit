@@ -23,22 +23,22 @@ it does not identify an installed speech implementation.
 Declare reusable named interfaces using the `interface` keyword in `.panel` source files:
 
 ```panel
-panel 2
+panel 3
 
 interface speech/recognizer {
-  input audio : std/text
-  output final : std/text
-  output partial : std/text optional
+  > audio : std/text
+  final > : std/text
+  partial > : std/text optional
 }
 
 # Primitive node declaring interface satisfaction
-node asr_primary : io/stdout implements speech/recognizer
+node asr_primary : tongues/asr-recognizer implements speech/recognizer
 
 # Composite node declaring interface satisfaction via transparent exports
 node speech_pipeline implements speech/recognizer {
-  node sink : io/stdout
-  export input sink.in as audio
-  export output sink.in as final
+  node recognizer : tongues/asr-recognizer
+  export > audio = recognizer.audio
+  export final > = recognizer.transcript
 }
 ```
 

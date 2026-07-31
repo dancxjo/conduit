@@ -62,7 +62,7 @@ fn inspect_panel_human_json_stdin_and_explicit_type_agree() {
     assert!(human.status.success());
     assert!(human.stderr.is_empty());
     let human = String::from_utf8(human.stdout).unwrap();
-    assert!(human.starts_with("panel-source v1: valid\n"));
+    assert!(human.starts_with("panel-source v3: valid\n"));
     assert!(human.contains("identity sha256:"));
     assert!(human.contains("nodes 3"));
 

@@ -19,7 +19,7 @@ impl ModuleLoader for MemoryLoader {
 #[test]
 fn every_interface_vector_has_the_exact_outcome_and_diagnostic() {
     let suite: Value = serde_json::from_str(FIXTURES).unwrap();
-    assert_eq!(suite["grammar_version"], 2);
+    assert_eq!(suite["grammar_version"], 3);
     for case in suite["cases"].as_array().unwrap() {
         let id = case["id"].as_str().unwrap();
         let source = case["source"].as_str().unwrap();
@@ -37,9 +37,9 @@ fn every_interface_vector_has_the_exact_outcome_and_diagnostic() {
                 if let Some(equivalent) = case["equivalent_source"].as_str() {
                     let equivalent = parse_document_with_root(equivalent, selected_root);
                     assert_eq!(
-                        document.semantic_hash_v4(),
-                        equivalent.semantic_hash_v4(),
-                        "{id}: formatting changed source semantic identity v4"
+                        document.semantic_hash_v5(),
+                        equivalent.semantic_hash_v5(),
+                        "{id}: formatting changed source semantic identity v5"
                     );
                 }
                 document

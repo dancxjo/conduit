@@ -1,12 +1,12 @@
 {
   "suite": "conduit.panel-interface-syntax-v1",
-  "grammar_version": 2,
+  "grammar_version": 3,
   "cases": [
     {
       "id": "interface-declaration-and-implements-claim",
       "mode": "parse",
       "productions": ["interface", "implements"],
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n  input cancel : conduit/cancellation\n  output final : speech/transcript\n}\nnode app implements speech/recognizer {\n  node child : tongues/whisper\n  export input child.audio as audio\n  export input child.cancel as cancel\n  export output child.final as final\n}\nnode instance : tongues/whisper implements speech/recognizer\nroot app\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n  > cancel : conduit/cancellation\n  final > : speech/transcript\n}\nnode app implements speech/recognizer {\n  node child : tongues/whisper\n  export > audio = child.audio\n  export > cancel = child.cancel\n  export final > = child.final\n}\nnode instance : tongues/whisper implements speech/recognizer\nroot app\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted",
@@ -16,48 +16,48 @@
       "id": "optional-interface-member",
       "mode": "parse",
       "productions": ["interface"],
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n  output partial : speech/transcript-delta optional\n}\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n  partial > : speech/transcript-delta optional\n}\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted",
       "code": "-"
     },
     {
-      "id": "interface-format-equivalence-v4-hash",
+      "id": "interface-format-equivalence-v5-hash",
       "mode": "parse",
       "productions": ["interface", "implements", "trivia"],
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\nnode worker : tongues/whisper implements speech/recognizer\n",
-      "equivalent_source": "# formatted trivia\npanel 2  interface speech/recognizer {\ninput audio:audio/pcm-stream\n}\nnode worker:tongues/whisper implements speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n}\nnode worker : tongues/whisper implements speech/recognizer\n",
+      "equivalent_source": "# formatted trivia\npanel 3  interface speech/recognizer {\n> audio:audio/pcm-stream\n}\nnode worker:tongues/whisper implements speech/recognizer\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted",
       "code": "-"
     },
     {
-      "id": "interface-under-panel-1-rejected",
+      "id": "english-interface-direction-rejected",
       "mode": "parse",
       "productions": ["interface", "version"],
-      "source": "panel 1\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected",
-      "code": "CND-SRC-007"
+      "code": "CND-SRC-001"
     },
     {
-      "id": "implements-under-panel-1-rejected",
+      "id": "doubled-interface-sigil-rejected",
       "mode": "parse",
-      "productions": ["implements", "version"],
-      "source": "panel 1\nnode worker : tongues/whisper implements speech/recognizer\n",
+      "productions": ["interface", "version"],
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio > : audio/pcm-stream\n}\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected",
-      "code": "CND-SRC-007"
+      "code": "CND-SRC-001"
     },
     {
       "id": "duplicate-interface-declaration",
       "mode": "parse",
       "productions": ["interface"],
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\ninterface speech/recognizer {\n  output final : speech/transcript\n}\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n}\ninterface speech/recognizer {\n  final > : speech/transcript\n}\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected",
@@ -67,7 +67,7 @@
       "id": "duplicate-interface-member",
       "mode": "parse",
       "productions": ["interface"],
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n  input audio : audio/pcm-stream\n}\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n  > audio : audio/pcm-stream\n}\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected",
@@ -77,7 +77,7 @@
       "id": "duplicate-implements-claim",
       "mode": "parse",
       "productions": ["implements"],
-      "source": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\nnode worker : tongues/whisper implements speech/recognizer, speech/recognizer\n",
+      "source": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n}\nnode worker : tongues/whisper implements speech/recognizer, speech/recognizer\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected",
@@ -88,9 +88,9 @@
       "mode": "resolve",
       "productions": ["import", "implements", "module-resolution"],
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 2\nimport \"./interfaces.panel\" as contracts\nnode worker : tongues/whisper implements contracts.speech/recognizer\n",
+      "source": "panel 3\nimport \"./interfaces.panel\" as contracts\nnode worker : tongues/whisper implements contracts.speech/recognizer\n",
       "modules": {
-        "mem://fixture/interfaces.panel": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\n"
+        "mem://fixture/interfaces.panel": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n}\n"
       },
       "selected_root": null,
       "round_trip": false,
@@ -102,9 +102,9 @@
       "mode": "resolve",
       "productions": ["import", "implements", "module-resolution"],
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 2\nimport \"./interfaces.panel\" as contracts\nnode worker : tongues/whisper implements contracts.speech/missing\n",
+      "source": "panel 3\nimport \"./interfaces.panel\" as contracts\nnode worker : tongues/whisper implements contracts.speech/missing\n",
       "modules": {
-        "mem://fixture/interfaces.panel": "panel 2\ninterface speech/recognizer {\n  input audio : audio/pcm-stream\n}\n"
+        "mem://fixture/interfaces.panel": "panel 3\ninterface speech/recognizer {\n  > audio : audio/pcm-stream\n}\n"
       },
       "selected_root": null,
       "round_trip": false,

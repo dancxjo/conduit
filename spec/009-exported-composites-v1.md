@@ -33,14 +33,14 @@ The executable seed grammar adds reusable definitions:
 composite example/upper-line {
     node source : std/literal
     node upper : text/uppercase
-    cord source.out -> upper.in
-    export output text = upper.out
+    cord source.value -> upper.text
+    export text > = upper.text
     bind value = source.value
 }
 
 node line : example/upper-line { value = "hello" }
-node sink : io/stdout
-cord line.text -> sink.in
+node sink : display/text
+cord line.text -> sink.text
 ```
 
 Definitions may contain primitive or composite child instances. The top-level
@@ -74,7 +74,7 @@ contract is accepted. Exporting adds no adapter, queue, loss, authority,
 declassification, or terminal behavior.
 
 Outside cords resolve only against explicit exports. A reference such as
-`root.child.out` cannot cross `root` unless `root` exports that port.
+`root.child.result` cannot cross `root` unless `root` exports that port.
 Internals may be shown in expanded diagnostics but visibility does not grant
 patchability.
 

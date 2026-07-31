@@ -45,7 +45,7 @@ byte-placeholder contract.
 
 ## 1. Text Formatting
 
-State: **runnable** on the hosted profile (`format` and `stdout` have exact
+State: **runnable** on the hosted profile (`format` and `display/text` have exact
 installed bindings).
 
 `std/text/format` is the ordinary typed `template + values -> text` filter.
@@ -57,7 +57,7 @@ placeholders, unsupported kinds, and output overflow terminate with exact
 `format/...` codes during execution.
 
 ```panel
-panel 1
+panel 3
 
 node template : std/literal {
     value = "{worker} processed {count} records; payload = {{ok}}.\n"
@@ -69,11 +69,11 @@ node values : std/format-values/literal {
     )
 }
 node message : std/text/format
-node sink : io/stdout
+node sink : display/text
 
-cord template.out -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord values.out -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
-cord message.out -> sink.in { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
+cord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
+cord message.text -> sink.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
 ```
 
 The exact grammar, type descriptors, wire representation, limits, normalized
@@ -142,14 +142,14 @@ source.
 
 ### Zip, gate, and select
 
-- `conduit.std/zip` pairs `in1` and `in2` and atomically publishes correlated
+- `conduit.std/zip` pairs `left` and `right` and atomically publishes correlated
   `left` and `right` outputs. `unpaired = "fail"` rejects an early terminal
   remainder; `unpaired = "drop"` is the explicit lossy alternative.
 - `conduit.std/gate` processes control before data in a step. `initial` is `open` or
   `closed`; the hosted profile supports `retained = "block"`, so a closed gate
   propagates pressure instead of hiding a retained value or loss.
-- `conduit.std/select` processes control before the selected input. `initial` is
-  `in1` or `in2`; `inactive = "block"` preserves inactive-input pressure and
+- `conduit.std/select` processes `selector` before the selected input. `initial` is
+  `left` or `right`; `inactive = "block"` preserves inactive-input pressure and
   rejects implicit loss.
 
 Checked standalone panels:
@@ -167,28 +167,28 @@ demonstrates why the nodes are separate ordinary graph boundaries.
 
 State: **contract-only**; counter and cell providers are not installed.
 ```panel
-panel 1
+panel 3
 
 node tick_gen : state/counter
 node state_cell : state/cell { initial = "STATE_IDLE" }
-node display : io/stdout
+node display : display/text
 
-cord tick_gen.out -> state_cell.in { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
-cord state_cell.out -> display.in { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
+cord tick_gen.count -> state_cell.update { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
+cord state_cell.current -> display.text { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
 ```
 
 ### Deduplication
 
 State: **contract-only**; stdin and deduplication providers are not installed.
 ```panel
-panel 1
+panel 3
 
 node raw_events : io/stdin
 node dedup : state/deduplicate
 node sink : io/stdout
 
-cord raw_events.out -> dedup.in { capacity = 16 max_value_bytes = 4096 max_queued_bytes = 65536 low_watermark = 4 high_watermark = 16 pressure = drop_disposable }
-cord dedup.out -> sink.in { capacity = 16 max_value_bytes = 4096 max_queued_bytes = 65536 low_watermark = 4 high_watermark = 16 pressure = block }
+cord raw_events.bytes -> dedup.candidate { capacity = 16 max_value_bytes = 4096 max_queued_bytes = 65536 low_watermark = 4 high_watermark = 16 pressure = drop_disposable }
+cord dedup.unique -> sink.bytes { capacity = 16 max_value_bytes = 4096 max_queued_bytes = 65536 low_watermark = 4 high_watermark = 16 pressure = block }
 ```
 
 ---
@@ -200,16 +200,16 @@ cord dedup.out -> sink.in { capacity = 16 max_value_bytes = 4096 max_queued_byte
 State: **contract-only**; breaker, timing, and HTTP client providers are not
 installed.
 ```panel
-panel 1
+panel 3
 
 node request_src : std/literal { value = "query" }
 node breaker : supervision/circuit-breaker
 node backoff_retry : supervision/backoff
 node client : net/http/fetch { endpoint = "https://api.example.com/v1" }
 
-cord request_src.out -> breaker.in { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
-cord breaker.out -> backoff_retry.in { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
-cord backoff_retry.out -> client.in { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
+cord request_src.value -> breaker.request { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
+cord breaker.admitted -> backoff_retry.request { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
+cord backoff_retry.ready -> client.request { capacity = 8 max_value_bytes = 2048 max_queued_bytes = 16384 low_watermark = 2 high_watermark = 8 pressure = block }
 ```
 
 ---
@@ -221,12 +221,12 @@ cord backoff_retry.out -> client.in { capacity = 8 max_value_bytes = 2048 max_qu
 State: **contract-only** on a device profile; no device capability, permission,
 grant, or Wi-Fi provider is implied.
 ```panel
-panel 1
+panel 3
 
 node sta : net/wifi/join { ssid = "OfficeNet" }
 node status_logger : observe/log
 
-cord sta.out -> status_logger.in { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+cord sta.state -> status_logger.message { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
 ```
 
 ### GPIO Hardware Control
@@ -234,12 +234,12 @@ cord sta.out -> status_logger.in { capacity = 4 max_value_bytes = 1024 max_queue
 State: **contract-only** on a device profile; no GPIO provider or actuation
 grant is implied.
 ```panel
-panel 1
+panel 3
 
 node button : device/gpio/pin { pin = 4 mode = "read" }
 node led : device/gpio/pin { pin = 13 mode = "write" }
 
-cord button.out -> led.in { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
+cord button.state -> led.command { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
 ```
 
 ---

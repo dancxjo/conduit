@@ -1191,7 +1191,7 @@ fn every_normative_panel_interface_satisfaction_v1_vector_has_the_exact_result()
         "../../../conformance/c3/panel-interface-satisfaction-v1.json"
     ))
     .unwrap();
-    assert_eq!(fixture["source_ast_schema_version"], 4);
+    assert_eq!(fixture["source_ast_schema_version"], 5);
     assert_eq!(fixture["lowering_schema_version"], 4);
 
     for case in fixture["cases"].as_array().unwrap() {

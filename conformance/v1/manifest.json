@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar-v1",
           "path": "../c3/panel-grammar-v1.json",
-          "sha256": "sha256:ee2f8977eeabbc57ed7c6525a0d0f797f5a69516b5467b7dd21b650755b497c7",
+          "sha256": "sha256:55c86329dea3098fc98ae5f4dd5dfc3d1967cf4154ae84de8b9fba7f926ea27d",
           "operation": "panel-source-v1",
           "requirement_ids": [
             "SRC-001",
@@ -1101,7 +1101,7 @@
         {
           "id": "source-lowering-v1",
           "path": "../c3/source-lowering-v1.json",
-          "sha256": "sha256:36310c75e9103bc11407eb4d94ca498561c01cc2c0a2af2319895b56290d783f",
+          "sha256": "sha256:757aca5ed1c31aaa721ed231f2a7272e5b88e669bc43cf64d6fa1554806a3f1a",
           "operation": "source-lowering-v1",
           "requirement_ids": [
             "LWR-001",
@@ -1205,7 +1205,7 @@
         {
           "id": "port-group-source-v1",
           "path": "../c2/port-group-correlation-v1.json",
-          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "sha256": "sha256:b5a953b4b7b24b5a165985869ff270a7246f54286df6199a20983cf4ad8c94d5",
           "operation": "port-group-source-v1",
           "requirement_ids": [
             "PGC-001",
@@ -1246,7 +1246,7 @@
         {
           "id": "port-group-plan-v2",
           "path": "../c2/port-group-correlation-v1.json",
-          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "sha256": "sha256:b5a953b4b7b24b5a165985869ff270a7246f54286df6199a20983cf4ad8c94d5",
           "operation": "port-group-plan-v2",
           "requirement_ids": [
             "PGC-002",
@@ -1276,7 +1276,7 @@
         {
           "id": "correlation-family-v1",
           "path": "../c2/port-group-correlation-v1.json",
-          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "sha256": "sha256:b5a953b4b7b24b5a165985869ff270a7246f54286df6199a20983cf4ad8c94d5",
           "operation": "correlation-family-v1",
           "requirement_ids": [
             "COR-001",
@@ -1304,7 +1304,7 @@
         {
           "id": "correlation-propagation-v1",
           "path": "../c2/port-group-correlation-v1.json",
-          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "sha256": "sha256:b5a953b4b7b24b5a165985869ff270a7246f54286df6199a20983cf4ad8c94d5",
           "operation": "correlation-propagation-v1",
           "requirement_ids": [
             "COR-001",
@@ -1333,7 +1333,7 @@
         {
           "id": "correlation-allocation-rejection-v1",
           "path": "../c2/port-group-correlation-v1.json",
-          "sha256": "sha256:6542351e1d89218f4c64300163ebfadcf910d45af5576ac6e7ee428652ea920a",
+          "sha256": "sha256:b5a953b4b7b24b5a165985869ff270a7246f54286df6199a20983cf4ad8c94d5",
           "operation": "correlation-allocation-rejection-v1",
           "requirement_ids": [
             "PGC-008",
@@ -1508,7 +1508,7 @@
         {
           "id": "conduct-cli-command-v1",
           "path": "../c3/conduct-cli-v1.json",
-          "sha256": "sha256:fc581865fbb40dd5f0f2ca7db0936fdb3ce85378fbc9b86cf74ebe10ea375306",
+          "sha256": "sha256:c8a76ee980db7a7946ca73b83b35fce2624c69f040d3c318ef59ed9994fc5676",
           "operation": "conduct-cli-command-v1",
           "requirement_ids": [
             "CLI-001",
@@ -1544,7 +1544,7 @@
         {
           "id": "conduct-cli-presentation-v1",
           "path": "../c3/conduct-cli-v1.json",
-          "sha256": "sha256:fc581865fbb40dd5f0f2ca7db0936fdb3ce85378fbc9b86cf74ebe10ea375306",
+          "sha256": "sha256:c8a76ee980db7a7946ca73b83b35fce2624c69f040d3c318ef59ed9994fc5676",
           "operation": "conduct-cli-presentation-v1",
           "requirement_ids": [
             "CLI-005",
@@ -1619,7 +1619,7 @@
         {
           "id": "source-lowering-v2",
           "path": "../c3/source-lowering-v2.json",
-          "sha256": "sha256:aac0c3c4c2feed5e09371bacc71b58f968b793a251d3deb460412481d338c7da",
+          "sha256": "sha256:8c54525e443e04e52a2c24d0e76eaea0e296dc6ea3366d3257fd033ecbadf3a4",
           "operation": "source-lowering-v2",
           "requirement_ids": [
             "SL2-001",

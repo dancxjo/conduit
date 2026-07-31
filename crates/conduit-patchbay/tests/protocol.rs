@@ -5,7 +5,7 @@ use conduit_patchbay::{
     project_supervision,
 };
 
-const SOURCE: &str = "panel 1\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : io/stdout\ncord greeting.out -> output.in\n";
+const SOURCE: &str = "panel 3\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
 const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol-v1.json");
 
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
@@ -23,7 +23,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog-v1.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog/v1");
-    assert_eq!(projection.entries.len(), 111);
+    assert_eq!(projection.entries.len(), 114);
     let literal = projection
         .entries
         .iter()
@@ -703,11 +703,11 @@ fn workspace_semantic_does_not_emit_contract_only_by_default() {
 
 #[test]
 fn typed_source_edits_are_atomic_and_history_is_finite() {
-    let source = "panel 1\n\
+    let source = "panel 3\n\
 node greeting : std/literal {\n\
   value = \"hello\"\n\
 }\n\
-node output : io/stdout\n";
+node output : display/text\n";
     let mut workspace =
         Workspace::new_with_history("tour/typed", source, 3).expect("source parses");
     let configured = workspace
@@ -732,9 +732,9 @@ node output : io/stdout\n";
             &workspace,
             vec![EditOperation::Connect {
                 from_node: "greeting".to_owned(),
-                from_port: "out".to_owned(),
+                from_port: "value".to_owned(),
                 to_node: "output".to_owned(),
-                to_port: "in".to_owned(),
+                to_port: "text".to_owned(),
                 bounds: conduit_patchbay::CordEditBounds {
                     capacity_items: 1,
                     max_value_bytes: 64,
@@ -798,9 +798,9 @@ fn invalid_typed_edits_do_not_mutate_the_workspace() {
             &workspace,
             vec![EditOperation::Connect {
                 from_node: "greeting".to_owned(),
-                from_port: "out".to_owned(),
+                from_port: "value".to_owned(),
                 to_node: "output".to_owned(),
-                to_port: "in".to_owned(),
+                to_port: "text".to_owned(),
                 bounds: conduit_patchbay::CordEditBounds {
                     capacity_items: 0,
                     max_value_bytes: 64,

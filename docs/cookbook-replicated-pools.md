@@ -8,7 +8,7 @@ State: **contract-only**. The referenced template and its exact implementation,
 host, authority, and resource bindings are not installed by this snippet.
 
 ```panel
-panel 1
+panel 3
 
 pool workers : fixture/worker {
   maximum = 4
