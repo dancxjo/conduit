@@ -1439,6 +1439,9 @@ pub struct ExactGrantObservation<'a> {
 /// and must not retain stale host observations between wakes.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactHostedServiceUseObservation {
+    /// Whether the exact selected provider remains available at this wake.
+    /// This is a live host observation, separate from grant and lease state.
+    pub provider_available: bool,
     pub grant_id: String,
     pub grant_active: bool,
     pub resource_binding_id: String,
@@ -1450,6 +1453,7 @@ pub struct ExactHostedServiceUseObservation {
 impl<'a> From<ExactGrantObservation<'a>> for ExactHostedServiceUseObservation {
     fn from(observation: ExactGrantObservation<'a>) -> Self {
         Self {
+            provider_available: true,
             grant_id: observation.grant.to_string(),
             grant_active: matches!(observation.status, GrantStatus::Active),
             resource_binding_id: observation.resource_binding.to_string(),
@@ -1758,6 +1762,12 @@ fn validate_hosted_service_wake(
                     "hosted wake lacks its fresh grant observation",
                 )
             })?;
+        if !observation.provider_available {
+            return Err(RuntimeError::new(
+                "CND-RUN-012",
+                "hosted provider is unavailable at the retained wake",
+            ));
+        }
         if !observation.grant_active
             || observation.resource_binding_id != authority.resource_binding_id
             || observation.resource_lease_id != authority.resource_lease_id

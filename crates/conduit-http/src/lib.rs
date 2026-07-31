@@ -3658,4 +3658,22 @@ mod tests {
         session.finalize().unwrap();
         assert_eq!(sessions.active_sessions(), 0);
     }
+
+    #[test]
+    fn hosted_listener_rejects_provider_loss_before_the_callback_runs() {
+        let (mut session, sessions, address, mut observations) =
+            start_listener(Id("run/http/listener-provider-lost"));
+        let _client = TcpStream::connect(address).unwrap();
+        observations[0].provider_available = false;
+        let error = session
+            .notify_host_operation(super::HTTP_LISTENER_HOST_OPERATION, &observations)
+            .expect_err("a lost provider must fail before the listener callback");
+        assert_eq!(error.code, "CND-RUN-012");
+        assert_eq!(
+            session.state(),
+            ExactRunState::Terminal(conduit_core::TerminalClass::Failed)
+        );
+        session.finalize().unwrap();
+        assert_eq!(sessions.active_sessions(), 0);
+    }
 }
