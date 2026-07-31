@@ -84,6 +84,7 @@ impl InstalledProfile {
             || required
                 .keys()
                 .any(|id| id.starts_with("conduit.host/net/"))
+            || required.keys().any(|id| id.starts_with("conduit.media/"))
             || required.keys().any(|id| {
                 matches!(
                     id.as_str(),

@@ -1,0 +1,49 @@
+{
+  "schema": "conduit.media-codec-conformance",
+  "schema_version": 0,
+  "profile_identity": "sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979",
+  "container": "wave",
+  "codec": "pcm-s16le",
+  "profile": "stereo-48000-192",
+  "extradata_identity": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fixture_content_identity": "sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d",
+  "bounds": {
+    "maximum_input_bytes": 1024,
+    "maximum_output_bytes": 1024,
+    "maximum_tracks": 1,
+    "maximum_packets": 1,
+    "maximum_reorder_depth": 0,
+    "maximum_retained_bytes": 1024,
+    "maximum_metadata_entries": 0,
+    "maximum_work": 4096,
+    "flush": "exact-terminal"
+  },
+  "positive": [
+    "content-addressed-selection",
+    "probe-one-track",
+    "fragmented-equals-coalesced",
+    "demux-decode",
+    "encode-mux",
+    "exact-round-trip",
+    "production-executor",
+    "cancelled-terminal",
+    "known-contract-unsupported-provider"
+  ],
+  "negative": [
+    "wrong-container",
+    "wrong-codec",
+    "wrong-profile",
+    "wrong-extradata",
+    "fragment-overflow",
+    "reordered-timestamp",
+    "truncated-container",
+    "malformed-container",
+    "metadata-overflow",
+    "output-overflow",
+    "retained-buffer-overflow",
+    "work-overflow",
+    "flush-cancellation",
+    "missing-provider",
+    "stale-provider"
+  ]
+}

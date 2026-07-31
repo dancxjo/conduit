@@ -250,6 +250,16 @@ fn fixture(id: &str, classification: &str) -> &'static str {
         "conformance/c5/http-serving.json"
     } else if id == "net/http/fetch" {
         "conformance/c4/http-client.json"
+    } else if matches!(
+        id,
+        "conduit.media/wave/literal"
+            | "conduit.media/container/probe"
+            | "conduit.media/container/demux"
+            | "conduit.media/container/mux"
+            | "conduit.media/audio/decode"
+            | "conduit.media/audio/encode"
+    ) {
+        "conformance/c4/media-codecs.json"
     } else if id.starts_with("conduit.media/") {
         "conformance/c4/media-values.json"
     } else if classification == "optional-host-boundary" {
@@ -314,6 +324,15 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "storage/cache/remove",
             _,
         ) => Some("library.evictable-storage-cache"),
+        (
+            "conduit.media/wave/literal"
+            | "conduit.media/container/probe"
+            | "conduit.media/container/demux"
+            | "conduit.media/container/mux"
+            | "conduit.media/audio/decode"
+            | "conduit.media/audio/encode",
+            _,
+        ) => Some("library.bounded-media-codecs"),
         (id, _) if id.starts_with("conduit.media/") => Some("library.bounded-media-values"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,
@@ -358,6 +377,7 @@ fn validate_semantic_port_inventory(entries: &[Entry]) -> Result<(), String> {
 fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     let mut registry = Registry::default();
     conduit_media::register_media_contracts(&mut registry);
+    conduit_media::register_media_codec_contracts(&mut registry);
     let standard = conduit_std::STANDARD_CATALOG
         .iter()
         .map(|entry| entry.contract.id.as_str())

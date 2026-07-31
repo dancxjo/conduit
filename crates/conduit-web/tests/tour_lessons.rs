@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 33] = [
+const REQUIRED_TOUR_LESSONS: [&str; 34] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -23,6 +23,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 33] = [
     "platform.panel-capsules",
     "library.typed-text-format",
     "library.bounded-media-values",
+    "library.bounded-media-codecs",
     "library.standard-flow-control",
     "library.bounded-state",
     "library.bounded-supervision",
@@ -299,6 +300,85 @@ fn bounded_media_lesson_exposes_exact_time_layout_pressure_and_terminal_facts() 
     assert_eq!(
         result["display"],
         "audio:s16le:48000:stereo:192video:rgb24:2x2"
+    );
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+
+    let cancelled: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(cancelled["ok"], true, "{cancelled}");
+    assert_eq!(cancelled["terminal"], "cancelled");
+    assert_eq!(cancelled["stdout"], "");
+    assert_eq!(cancelled["stderr"], "");
+}
+
+#[test]
+fn bounded_media_codec_lesson_exposes_exact_provider_framing_and_flush_facts() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-media-codecs")
+        .expect("bounded media codec lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "provider_artifact",
+        "profile_identity",
+        "extradata_identity",
+        "tracks",
+        "packets",
+        "reorder_depth",
+        "retained_bytes",
+        "metadata_entries",
+        "output_bytes",
+        "work",
+        "pressure",
+        "flush",
+        "cancellation",
+        "error",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.media/audio/decode",
+            "conduit.media/audio/encode",
+            "conduit.media/container/demux",
+            "conduit.media/container/mux",
+            "conduit.media/container/probe",
+            "conduit.media/wave/literal",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(lesson["library"]["scenarios"].as_array().unwrap().len(), 2);
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(
+        result["display"],
+        "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes"
     );
     assert_eq!(result["stdout"], "");
     assert_eq!(result["stderr"], "");

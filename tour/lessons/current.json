@@ -1211,6 +1211,127 @@
       }
     },
     {
+      "id": "library.bounded-media-codecs",
+      "chapter": 4,
+      "title": "Exact PCM/WAVE operations without ambient codecs",
+      "prerequisites": [
+        "library.bounded-media-values",
+        "platform.cross-host-provider-conformance"
+      ],
+      "objective": "Probe one content-addressed WAVE fixture through an exact bounded provider, then compose encode, mux, demux, and decode without format guessing or hidden buffering.",
+      "prose": "Knowing what an audio frame or packet means does not install a codec. Each operation binds the same exact RIFF/WAVE, PCM S16LE, stereo 48 kHz profile and empty extradata identity, while its byte, track, packet, reorder, retained-buffer, metadata, work, flush, pressure, cancellation, and terminal facts stay finite and visible.",
+      "vocabulary": [
+        "container probe",
+        "demux and mux",
+        "decode and encode",
+        "codec profile",
+        "extradata identity",
+        "terminal flush"
+      ],
+      "source": "panel 0\n\nnode wave : conduit.media/wave/literal { fixture = \"silence-pcm-s16le-stereo-48000-192\" content_identity = \"sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d\" maximum_output_bytes = 1024 }\nnode probe : conduit.media/container/probe { container = \"wave\" codec = \"pcm-s16le\" profile = \"stereo-48000-192\" extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\" maximum_input_bytes = 1024 maximum_output_bytes = 1024 maximum_tracks = 1 maximum_packets = 1 maximum_reorder_depth = 0 maximum_retained_bytes = 1024 maximum_metadata_entries = 0 maximum_work = 4096 flush = \"exact-terminal\" }\nnode output : display/text\n\ncord wave.container -> probe.container { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\ncord probe.summary -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct examples/media-wave-probe.panel",
+      "commands": [
+        "conduct --check examples/media-wave-probe.panel",
+        "conduct examples/media-wave-probe.panel",
+        "conduct --check examples/media-wave-roundtrip.panel",
+        "conduct examples/media-wave-roundtrip.panel"
+      ],
+      "expected_display": "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 96,
+        "queue_bytes": 8192,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "bounded-media-codec-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "provider_artifact",
+          "profile_identity",
+          "container",
+          "codec",
+          "profile",
+          "extradata_identity",
+          "tracks",
+          "packets",
+          "timestamp",
+          "reorder_depth",
+          "retained_bytes",
+          "metadata_entries",
+          "output_bytes",
+          "work",
+          "queue",
+          "pressure",
+          "flush",
+          "cancellation",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes"
+      },
+      "hints": [
+        "The SHA-256 profile, empty extradata, and fixture content identities are part of the exact configuration; changing one is an unsupported binding, not a request to guess.",
+        "Split WAVE input at any byte boundary and the normalized track and packet remain identical, but retained bytes and work never exceed their declared ceilings.",
+        "Malformed or truncated bytes, timestamp reorder, overflow, cancellation during flush, and an unavailable provider terminate explicitly without partial output."
+      ],
+      "solution": "Select the checked WAVE fixture and exact PCM profile, preserve the explicit one-track and one-packet bounds, and inspect the provider artifact, ordered evidence, and terminal cause before treating the operation as available.",
+      "accessibility": {
+        "non_audio": "An ordered event table names provider artifact, profile and extradata identities, container and codec, track and packet counts, timestamp and reorder depth, retained and output bytes, metadata, work, queue pressure, flush, cancellation, errors, and the terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered codec event table has focus.",
+        "color_independent": "Exact identity strings, numeric bounds, operation names, pressure words, and terminal labels duplicate every cord color or motion cue."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "One exact PCM/WAVE provider proves codec and container operations without implying that media-aware hosts install codecs.",
+        "what": "Probe validates a finite content-addressed WAVE value; demux, mux, decode, and encode cross exact packet and audio-frame boundaries through independently named contracts.",
+        "when": "Use these operations when a graph needs observable provider selection, replacement, placement, bounds, cancellation, and evidence around codec or container work.",
+        "wrong": "Wrong codec, profile, extradata or content identity, changed chunk framing semantics, reordered timestamps, truncation, malformed bytes, metadata or output overflow, flush cancellation, and missing or stale providers fail closed.",
+        "contracts": [
+          {"id":"conduit.media/wave/literal","kind":"node","outputs":["container:conduit.media/container-chunk"],"policy":"one checked content-addressed finite WAVE fixture"},
+          {"id":"conduit.media/container/probe","kind":"node","inputs":["container:conduit.media/container-chunk"],"outputs":["summary:std/text"],"policy":"exact complete-container validation"},
+          {"id":"conduit.media/container/demux","kind":"node","inputs":["container:conduit.media/container-chunk"],"outputs":["packet:conduit.media/packet"],"policy":"one track and one packet with zero reorder depth"},
+          {"id":"conduit.media/container/mux","kind":"node","inputs":["packet:conduit.media/packet"],"outputs":["container:conduit.media/container-chunk"],"policy":"exact terminal WAVE flush"},
+          {"id":"conduit.media/audio/decode","kind":"node","inputs":["packet:conduit.media/packet"],"outputs":["frame:conduit.media/audio-frame"],"policy":"exact PCM profile and extradata"},
+          {"id":"conduit.media/audio/encode","kind":"node","inputs":["frame:conduit.media/audio-frame"],"outputs":["packet:conduit.media/packet"],"policy":"exact PCM profile and finite packet"}
+        ],
+        "editable": [
+          "profile:stereo-48000-192",
+          "maximum_input_bytes:1024",
+          "maximum_output_bytes:1024",
+          "maximum_work:4096"
+        ],
+        "provider": "deterministic compiled-in PCM/WAVE provider through the ordinary exact host-service boundary",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "exact contract, implementation, artifact, container, codec, profile, extradata, and typed port bindings",
+          "finite track, packet, timestamp, reorder, retained-buffer, metadata, output-byte, work, and queue bounds",
+          "ordered probe, encode, mux, demux, decode, pressure, cancellation, flush, error, and one terminal cause"
+        ],
+        "docs": [
+          "../../spec/068-bounded-media-codecs.md",
+          "../../conformance/c4/media-codecs.json",
+          "../../examples/media-wave-probe.panel",
+          "../../examples/media-wave-roundtrip.panel"
+        ],
+        "scenarios": [
+          {"id":"wave-probe-standalone","title":"Probe one exact WAVE value","panel":"../../examples/media-wave-probe.panel","semantics":"The checked content-addressed WAVE fixture is validated and summarized under explicit byte, track, metadata, and work bounds."},
+          {"id":"pcm-wave-roundtrip","title":"Encode, mux, demux, and decode","panel":"../../examples/media-wave-roundtrip.panel","semantics":"An exact PCM audio frame crosses packet and WAVE boundaries and returns to the same normalized frame while every operation retains its own provider and evidence identity."}
+        ]
+      }
+    },
+    {
       "id": "library.standard-flow-control",
       "chapter": 4,
       "title": "Bounded flow control",

@@ -368,6 +368,8 @@ fn browser_registry() -> Registry {
     let mut registry = Registry::hosted_primitives();
     conduit_media::register_deterministic_media_providers(&mut registry)
         .expect("deterministic media providers have distinct identities");
+    conduit_media::register_deterministic_codec_providers(&mut registry)
+        .expect("deterministic codec providers have distinct identities");
     for provider in [
         CompiledInHostService {
             contract: file_read_contract(),

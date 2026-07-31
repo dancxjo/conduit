@@ -1418,6 +1418,38 @@ test("typed text lesson shares format, lines, join, and ordered evidence", async
   await expect(result).toContainText("Hello, robot.", { timeout: 20_000 });
 });
 
+test("PCM WAVE lesson runs exact codec and container providers", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=library.bounded-media-codecs",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+
+  await expect(story).toBeVisible();
+  for (const contract of [
+    "conduit.media/wave/literal",
+    "conduit.media/container/probe",
+    "conduit.media/container/demux",
+    "conduit.media/container/mux",
+    "conduit.media/audio/decode",
+    "conduit.media/audio/encode",
+  ]) {
+    await expect(story).toContainText(contract);
+  }
+  await expect(page.locator("#scenario option")).toHaveCount(2);
+  await expect(page.locator("#runnability-state")).toContainText(
+    "runnable · browser",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#evidence")).toContainText(
+    '"event_kind": "terminal"',
+  );
+});
+
 test("value envelope platform lesson links checked admission to an exact run", async ({ page }) => {
   await page.goto(
     "/tour/public/index.html?lesson=platform.value-envelope-clock-feedback",

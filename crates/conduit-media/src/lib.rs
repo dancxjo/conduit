@@ -4,6 +4,10 @@
 //! codecs, devices, host discovery, implicit conversion, or another event
 //! model.
 
+mod codec;
+
+pub use codec::*;
+
 use sha2::{Digest, Sha256};
 
 use conduit_core::{
@@ -45,7 +49,7 @@ pub const VIDEO_FRAME_TYPE: TypeContractRef<'static> = TypeContractRef {
         0xb2, 0x0f,
     ]),
 };
-const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
+pub(crate) const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/text"),
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
@@ -134,8 +138,8 @@ pub const VIDEO_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &TEXT_OUTPUT,
 };
 
-const AUDIO_VALUE: &[u8] = b"CMA0T\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
-const AUDIO_SILENCE_VALUE: &[u8] = b"CMA0S\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
+pub(crate) const AUDIO_VALUE: &[u8] = b"CMA0T\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
+pub(crate) const AUDIO_SILENCE_VALUE: &[u8] = b"CMA0S\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xc0synthetic-pcm";
 const VIDEO_VALUE: &[u8] = b"CMV0R\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01synthetic-rgb";
 const VIDEO_GRAY_VALUE: &[u8] = b"CMV0G\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01synthetic-gray";
 
