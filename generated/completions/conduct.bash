@@ -41,7 +41,7 @@ _conduct() {
 
     case "${cmd}" in
         conduct)
-            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --compile-input --compatibility-demo --help --version inspect compile package"
+            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --compile-input --compatibility-demo --enable-file-write --enable-file-watch --help --version inspect compile package"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

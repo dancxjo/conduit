@@ -27,6 +27,8 @@ _conduct() {
 '(-q --quiet)*-v[Add bounded resolution status detail; repeat for future detail levels]' \
 '--verbose-diagnostics[Include related spans, notes, paths, and causes]' \
 '(--compile-input)--compatibility-demo[Run the finite batch compatibility demo instead of an exact plan]' \
+'--enable-file-write[Explicitly install the bounded example file-write provider]' \
+'--enable-file-watch[Explicitly install the bounded example file-watch provider]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

@@ -1,6 +1,6 @@
 # Print an optspec for argparse to handle cmd's options that are independent of any subcommand.
 function __fish_conduct_global_optspecs
-    string join \n check explain run format= diagnostic-format= color= q/quiet v verbose-diagnostics compile-input= compatibility-demo h/help V/version
+    string join \n check explain run format= diagnostic-format= color= q/quiet v verbose-diagnostics compile-input= compatibility-demo enable-file-write enable-file-watch h/help V/version
 end
 
 function __fish_conduct_needs_command
@@ -40,6 +40,8 @@ complete -c conduct -n "__fish_conduct_needs_command" -s q -l quiet -d 'Suppress
 complete -c conduct -n "__fish_conduct_needs_command" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
 complete -c conduct -n "__fish_conduct_needs_command" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
 complete -c conduct -n "__fish_conduct_needs_command" -l compatibility-demo -d 'Run the finite batch compatibility demo instead of an exact plan'
+complete -c conduct -n "__fish_conduct_needs_command" -l enable-file-write -d 'Explicitly install the bounded example file-write provider'
+complete -c conduct -n "__fish_conduct_needs_command" -l enable-file-watch -d 'Explicitly install the bounded example file-watch provider'
 complete -c conduct -n "__fish_conduct_needs_command" -s h -l help -d 'Print help'
 complete -c conduct -n "__fish_conduct_needs_command" -s V -l version -d 'Print version'
 complete -c conduct -n "__fish_conduct_needs_command" -a "inspect" -d 'Validate and describe one artifact without executing it'
