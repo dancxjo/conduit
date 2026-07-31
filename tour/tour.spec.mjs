@@ -1171,34 +1171,38 @@ test("routes cords through free space and keeps labels off node faces", async ({
   const flowBox = await flow.boundingBox();
   expect(flowBox).not.toBeNull();
 
-  const dragNodeTo = async (nodeId, absoluteX, absoluteY) => {
+  const dragNodeTo = async (nodeId, relativeX, relativeY) => {
     const node = page.locator(`.react-flow__node[data-id="${nodeId}"]`);
     await expect(node).toHaveCount(1);
+    await node.scrollIntoViewIfNeeded();
     const nodeBox = await node.boundingBox();
+    const currentFlowBox = await flow.boundingBox();
     expect(nodeBox).not.toBeNull();
-    await page.mouse.move(
-      nodeBox.x + nodeBox.width / 2,
-      nodeBox.y + nodeBox.height / 2,
-    );
+    expect(currentFlowBox).not.toBeNull();
+    await page.mouse.move(nodeBox.x + nodeBox.width / 2, nodeBox.y + 20);
     await page.mouse.down();
-    await page.mouse.move(absoluteX, absoluteY, { steps: 8 });
+    await page.mouse.move(
+      currentFlowBox.x + relativeX,
+      currentFlowBox.y + relativeY,
+      { steps: 8 },
+    );
     await page.mouse.up();
   };
 
   await dragNodeTo(
     "source",
-    flowBox.x + flowBox.width / 2,
-    flowBox.y + 190,
+    flowBox.width / 2,
+    190,
   );
   await dragNodeTo(
     "transform",
-    flowBox.x + flowBox.width / 2,
-    flowBox.y + 60,
+    flowBox.width / 2,
+    60,
   );
   await dragNodeTo(
     "sink",
-    flowBox.x + flowBox.width / 2,
-    flowBox.y + 320,
+    flowBox.width / 2,
+    320,
   );
 
   const edge = page.locator(".patchbay-smart-cord").nth(1);
@@ -1207,7 +1211,7 @@ test("routes cords through free space and keeps labels off node faces", async ({
     .poll(async () => edge.locator(".react-flow__edge-path").getAttribute("d"))
     .not.toBe("");
 
-  const hasCollision = await edge.evaluate((edgeElement, clearance) => {
+  await expect.poll(async () => edge.evaluate((edgeElement, clearance) => {
     const path = edgeElement.querySelector(".react-flow__edge-path");
     if (!path) return false;
     const totalLength = path.getTotalLength();
@@ -1244,10 +1248,9 @@ test("routes cords through free space and keeps labels off node faces", async ({
       }
     }
     return false;
-  }, 12);
-  expect(hasCollision).toBe(false);
+  }, 12)).toBe(false);
 
-  const labelCollides = await edge.evaluate((edgeElement, clearance) => {
+  await expect.poll(async () => edge.evaluate((edgeElement, clearance) => {
     const label = edgeElement.querySelector(".react-flow__edge-textbg");
     if (!label) return false;
     const rect = label.getBoundingClientRect();
@@ -1258,10 +1261,9 @@ test("routes cords through free space and keeps labels off node faces", async ({
         rect.top < bounds.bottom + clearance &&
         rect.bottom > bounds.top - clearance;
     });
-  }, 6);
-  expect(labelCollides).toBe(false);
+  }, 6)).toBe(false);
 
-  await dragNodeTo("transform", flowBox.x + 80, flowBox.y + 70);
+  await dragNodeTo("transform", 80, 70);
   await expect.poll(async () => {
     return edge.evaluate((edgeElement, clearance) => {
       const path = edgeElement.querySelector(".react-flow__edge-path");
