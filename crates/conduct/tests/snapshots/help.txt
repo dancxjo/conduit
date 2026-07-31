@@ -33,6 +33,10 @@ Options:
           Resolve and run against this explicit compile-input snapshot
       --compatibility-demo
           Run the finite batch compatibility demo instead of an exact plan
+      --enable-file-write
+          Explicitly install the bounded example file-write provider
+      --enable-file-watch
+          Explicitly install the bounded example file-watch provider
   -h, --help
           Print help
   -V, --version
