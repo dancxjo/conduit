@@ -2170,6 +2170,546 @@ pub fn register_hosted_http_provider(registry: &mut Registry) -> Result<(), Regi
     })
 }
 
+pub const HTTP_CLIENT_LOOPBACK_RESOURCE: &str = "conduit.resource/http-loopback";
+pub const HTTP_CLIENT_LOOPBACK_GRANT: &str = "conduit.grant/http-loopback-request";
+
+/// Explicitly link the bounded numeric-loopback request constructor and HTTP
+/// client provider. Publishing their contracts does not install either
+/// implementation.
+pub fn register_hosted_http_client_provider(registry: &mut Registry) -> Result<(), RegistryError> {
+    static NO_AUTHORITIES: [SemanticHash; 0] = [];
+    static REQUIRED_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x49; 32])];
+    let literal = conduit_std::standard_node_contract("net/http/request/literal")
+        .expect("HTTP request literal is in the checked standard catalog");
+    registry.register_compiled_in_host_service(CompiledInHostService {
+        contract: literal,
+        implementation_id: "conduit/http-request-literal",
+        artifact_id: "conduit/http-request-literal-artifact",
+        entrypoint: "http-request-literal",
+        source_bytes: include_bytes!("client.rs"),
+        required_authorities: &NO_AUTHORITIES,
+        factory: || Box::new(HttpRequestLiteralHandler),
+        validate_config: validate_http_request_literal_config,
+    })?;
+    let fetch = conduit_std::standard_node_contract("net/http/fetch")
+        .expect("HTTP fetch is in the checked standard catalog");
+    registry.register_compiled_in_host_service(CompiledInHostService {
+        contract: fetch,
+        implementation_id: "conduit/http-linux-client",
+        artifact_id: "conduit/http-linux-client-artifact",
+        entrypoint: "http-linux-client",
+        source_bytes: include_bytes!("client.rs"),
+        required_authorities: &REQUIRED_AUTHORITIES,
+        factory: || Box::new(HttpFetchHandler),
+        validate_config: validate_http_fetch_config,
+    })
+}
+
+struct HttpRequestLiteralHandler;
+
+impl Handler for HttpRequestLiteralHandler {
+    fn run(
+        &mut self,
+        node: &conduit_panel::Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(RuntimeError::new(
+                "CND-HTTP-CL-001",
+                "HTTP request literal does not accept hidden inputs",
+            ));
+        }
+        validate_http_request_literal_config(node)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        let method =
+            HttpMethod::parse(required_config(node, "method")?).map_err(http_runtime_error)?;
+        let scheme = match required_config(node, "scheme")? {
+            "http" => client::ClientScheme::Http,
+            "https" => client::ClientScheme::Https,
+            _ => {
+                return Err(RuntimeError::new(
+                    "CND-HTTP-CL-002",
+                    "HTTP request scheme must be http or https",
+                ));
+            }
+        };
+        let redirects = parse_redirect_policy(required_config(node, "redirect_policy")?)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        let request = client::ClientRequest {
+            method,
+            scheme,
+            authority: required_config(node, "authority")?,
+            target: required_config(node, "target")?,
+            headers: &[],
+            body: required_bytes_config(node, "body")?,
+            redirects,
+        };
+        let bytes = client::encode_request_literal(request)
+            .map_err(|terminal| http_client_runtime_error(terminal, "request encoding failed"))?;
+        Ok(vec![Value {
+            value_type: conduit_std::standard_type_reference("net/http/request")
+                .expect("HTTP request type is current"),
+            bytes,
+        }])
+    }
+}
+
+struct HttpFetchHandler;
+
+impl Handler for HttpFetchHandler {
+    fn run(
+        &mut self,
+        node: &conduit_panel::Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        validate_http_fetch_config(node)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        let [input] = inputs else {
+            return Err(RuntimeError::new(
+                "CND-HTTP-CL-003",
+                "HTTP fetch requires exactly one request value",
+            ));
+        };
+        let request = client::decode_request_literal(&input.bytes).map_err(|terminal| {
+            http_client_runtime_error(terminal, "request representation is malformed")
+        })?;
+        let address = required_config(node, "address")?
+            .parse::<SocketAddr>()
+            .map_err(|_| RuntimeError::new("CND-HTTP-CL-004", "numeric address is invalid"))?;
+        let endpoint = client_endpoint(address);
+        let limits = http_client_limits(node)?;
+        let redirects = parse_redirect_policy(required_config(node, "redirect_policy")?)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        if request.redirects != redirects {
+            return Err(RuntimeError::new(
+                "CND-HTTP-CL-005",
+                "request redirect policy differs from the exact plan",
+            ));
+        }
+        let binding = client::ClientBinding {
+            endpoint,
+            authority: required_config(node, "authority")?,
+            network_resource: required_secret_runtime(node, "network_resource")?,
+            outbound_grant: required_secret_runtime(node, "outbound_grant")?,
+            tls_policy: required_secret_runtime(node, "tls_policy")?,
+            trust_handle: optional_secret_config(node, "trust_handle"),
+            client_certificate_handle: optional_secret_config(node, "client_certificate_handle"),
+            client_private_key_handle: optional_secret_config(node, "client_private_key_handle"),
+            proxy_resource: optional_secret_config(node, "proxy_resource"),
+            dns_observation_fresh: true,
+            provider_observation_fresh: true,
+            destination_allowed: true,
+            limits,
+        };
+        let mut body = vec![0_u8; limits.maximum_response_body_bytes];
+        let mut evidence = vec![None; limits.maximum_evidence_events];
+        // Source-facing trust values are opaque identities, never filesystem
+        // paths. The CLI loopback provider therefore admits plaintext only;
+        // direct API users supply a host-side ClientTrustHandle for HTTPS.
+        let result = client::run_linux_client(binding, request, None, &mut body, &mut evidence);
+        let mut values = Vec::with_capacity(2);
+        if result.response_bytes > 0 || result.status.is_some() {
+            values.push(Value {
+                value_type: conduit_std::standard_type_reference("net/http/response")
+                    .expect("HTTP response type is current"),
+                bytes: encode_client_response(
+                    result.status.unwrap_or(0),
+                    &body[..result.response_bytes],
+                ),
+            });
+        }
+        values.push(Value {
+            value_type: conduit_std::standard_type_reference("net/http/client-result")
+                .expect("HTTP client result type is current"),
+            bytes: encode_client_result(result),
+        });
+        Ok(values)
+    }
+}
+
+fn encode_client_response(status: u16, body: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(10 + body.len());
+    bytes.extend_from_slice(b"CHR0");
+    bytes.extend_from_slice(&status.to_be_bytes());
+    bytes.extend_from_slice(&(body.len() as u32).to_be_bytes());
+    bytes.extend_from_slice(body);
+    bytes
+}
+
+fn encode_client_result(result: client::ClientResult) -> Vec<u8> {
+    format!(
+        "terminal={:?};status={};bytes={};redirects={};commit={:?};cleanup={}",
+        result.terminal,
+        result.status.unwrap_or(0),
+        result.response_bytes,
+        result.redirects,
+        result.commit,
+        result.cleanup_completed
+    )
+    .into_bytes()
+}
+
+fn client_endpoint(address: SocketAddr) -> client::NumericEndpoint {
+    let mut bytes = [0_u8; 16];
+    match address.ip() {
+        IpAddr::V4(ip) => bytes[12..].copy_from_slice(&ip.octets()),
+        IpAddr::V6(ip) => bytes = ip.octets(),
+    }
+    client::NumericEndpoint {
+        address: bytes,
+        port: address.port(),
+    }
+}
+
+fn parse_redirect_policy(value: &str) -> Result<client::RedirectPolicy, ResolutionError> {
+    match value {
+        "return" => Ok(client::RedirectPolicy::Return),
+        "same-authority" => Ok(client::RedirectPolicy::FollowSameAuthority),
+        "granted-authorities" => Ok(client::RedirectPolicy::FollowGrantedAuthorities),
+        _ => Err(ResolutionError {
+            code: "CND-HTTP-CL-006",
+            message: "HTTP redirect policy is invalid".to_owned(),
+        }),
+    }
+}
+
+fn validate_http_request_literal_config(node: &conduit_panel::Node) -> Result<(), ResolutionError> {
+    let allowed = [
+        "method",
+        "scheme",
+        "authority",
+        "target",
+        "body",
+        "redirect_policy",
+    ];
+    validate_exact_http_client_keys(node, &allowed)?;
+    let method = required_resolution_config(node, "method")?;
+    HttpMethod::parse(method).map_err(|_| ResolutionError {
+        code: "CND-HTTP-CL-007",
+        message: "HTTP request method is invalid".to_owned(),
+    })?;
+    if !matches!(
+        required_resolution_config(node, "scheme")?,
+        "http" | "https"
+    ) {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-002",
+            message: "HTTP request scheme must be http or https".to_owned(),
+        });
+    }
+    if required_resolution_config(node, "authority")?.is_empty()
+        || !required_resolution_config(node, "target")?.starts_with('/')
+    {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-008",
+            message: "HTTP authority and absolute target are required".to_owned(),
+        });
+    }
+    parse_redirect_policy(required_resolution_config(node, "redirect_policy")?)?;
+    if !matches!(
+        node.config_value("body"),
+        Some(conduit_panel::SourceValue::Bytes(_))
+    ) {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-015",
+            message: "HTTP request body must be an explicit bytes value".to_owned(),
+        });
+    }
+    Ok(())
+}
+
+const HTTP_FETCH_KEYS: &[&str] = &[
+    "network_resource",
+    "outbound_grant",
+    "address",
+    "authority",
+    "dns_observation",
+    "provider_observation",
+    "tls_policy",
+    "trust_handle",
+    "client_certificate_handle",
+    "client_private_key_handle",
+    "proxy_resource",
+    "redirect_policy",
+    "maximum_connections",
+    "maximum_pending",
+    "maximum_request_headers",
+    "maximum_request_header_bytes",
+    "maximum_request_body_bytes",
+    "maximum_response_headers",
+    "maximum_response_header_bytes",
+    "maximum_response_body_bytes",
+    "maximum_body_chunk_bytes",
+    "maximum_redirects",
+    "maximum_retained_buffer_bytes",
+    "maximum_timers",
+    "maximum_work",
+    "maximum_evidence_events",
+    "deadline_ticks",
+    "cleanup_ticks",
+    "cancellation",
+];
+
+fn validate_http_fetch_config(node: &conduit_panel::Node) -> Result<(), ResolutionError> {
+    validate_exact_http_client_keys(node, HTTP_FETCH_KEYS)?;
+    let address = required_resolution_config(node, "address")?
+        .parse::<SocketAddr>()
+        .map_err(|_| ResolutionError {
+            code: "CND-HTTP-CL-004",
+            message: "HTTP client address must be numeric".to_owned(),
+        })?;
+    if !address.ip().is_loopback() || address.port() == 0 {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-009",
+            message: "checked HTTP client provider admits exact loopback endpoints only".to_owned(),
+        });
+    }
+    for (key, expected) in [
+        ("network_resource", HTTP_CLIENT_LOOPBACK_RESOURCE),
+        ("outbound_grant", HTTP_CLIENT_LOOPBACK_GRANT),
+        (
+            "dns_observation",
+            "conduit.observation/http-loopback-address",
+        ),
+        (
+            "provider_observation",
+            "conduit.observation/http-client-linked",
+        ),
+    ] {
+        if required_secret_resolution(node, key)? != expected {
+            return Err(ResolutionError {
+                code: "CND-HTTP-CL-010",
+                message: format!("HTTP client `{key}` is outside the checked profile"),
+            });
+        }
+    }
+    if required_resolution_config(node, "authority")?.is_empty() {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-008",
+            message: "HTTP authority is required".to_owned(),
+        });
+    }
+    if !matches!(
+        required_secret_resolution(node, "tls_policy")?,
+        "conduit.http/plaintext-explicit" | "conduit.http/direct-tls"
+    ) {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-011",
+            message: "HTTP client TLS policy is invalid".to_owned(),
+        });
+    }
+    if required_resolution_config(node, "cancellation")? != "abort-and-cleanup" {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-012",
+            message: "HTTP client cancellation policy is invalid".to_owned(),
+        });
+    }
+    parse_redirect_policy(required_resolution_config(node, "redirect_policy")?)?;
+    http_client_limits_resolution(node)?;
+    Ok(())
+}
+
+fn validate_exact_http_client_keys(
+    node: &conduit_panel::Node,
+    allowed: &[&str],
+) -> Result<(), ResolutionError> {
+    if let Some(entry) = node
+        .config
+        .iter()
+        .find(|entry| !allowed.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError {
+            code: "CND-SRC-002",
+            message: format!("HTTP client has unknown field `{}`", entry.key),
+        });
+    }
+    Ok(())
+}
+
+fn required_resolution_config<'a>(
+    node: &'a conduit_panel::Node,
+    key: &str,
+) -> Result<&'a str, ResolutionError> {
+    node.config(key).ok_or_else(|| ResolutionError {
+        code: "CND-SRC-002",
+        message: format!("HTTP client requires `{key}`"),
+    })
+}
+
+fn http_client_limit_value(
+    node: &conduit_panel::Node,
+    key: &str,
+) -> Result<usize, ResolutionError> {
+    match node.config_value(key) {
+        Some(conduit_panel::SourceValue::Integer(value)) => {
+            usize::try_from(*value).map_err(|_| ResolutionError {
+                code: "CND-HTTP-CL-013",
+                message: format!("HTTP client limit `{key}` is invalid"),
+            })
+        }
+        _ => Err(ResolutionError {
+            code: "CND-HTTP-CL-013",
+            message: format!("HTTP client limit `{key}` is invalid"),
+        }),
+    }
+}
+
+fn http_client_limits_resolution(
+    node: &conduit_panel::Node,
+) -> Result<client::ClientLimits, ResolutionError> {
+    let value = |key| http_client_limit_value(node, key);
+    let limits = client::ClientLimits {
+        maximum_connections: u16::try_from(value("maximum_connections")?).map_err(|_| {
+            ResolutionError {
+                code: "CND-HTTP-CL-013",
+                message: "HTTP client connection limit is invalid".to_owned(),
+            }
+        })?,
+        maximum_pending: u16::try_from(value("maximum_pending")?).map_err(|_| ResolutionError {
+            code: "CND-HTTP-CL-013",
+            message: "HTTP client pending limit is invalid".to_owned(),
+        })?,
+        maximum_request_headers: u16::try_from(value("maximum_request_headers")?).map_err(
+            |_| ResolutionError {
+                code: "CND-HTTP-CL-013",
+                message: "HTTP client request header limit is invalid".to_owned(),
+            },
+        )?,
+        maximum_request_header_bytes: value("maximum_request_header_bytes")?,
+        maximum_request_body_bytes: value("maximum_request_body_bytes")?,
+        maximum_response_headers: u16::try_from(value("maximum_response_headers")?).map_err(
+            |_| ResolutionError {
+                code: "CND-HTTP-CL-013",
+                message: "HTTP client response header limit is invalid".to_owned(),
+            },
+        )?,
+        maximum_response_header_bytes: value("maximum_response_header_bytes")?,
+        maximum_response_body_bytes: value("maximum_response_body_bytes")?,
+        maximum_body_chunk_bytes: value("maximum_body_chunk_bytes")?,
+        maximum_redirects: u16::try_from(value("maximum_redirects")?).map_err(|_| {
+            ResolutionError {
+                code: "CND-HTTP-CL-013",
+                message: "HTTP client redirect limit is invalid".to_owned(),
+            }
+        })?,
+        maximum_retained_buffer_bytes: value("maximum_retained_buffer_bytes")?,
+        maximum_timers: u16::try_from(value("maximum_timers")?).map_err(|_| ResolutionError {
+            code: "CND-HTTP-CL-013",
+            message: "HTTP client timer limit is invalid".to_owned(),
+        })?,
+        maximum_work: value("maximum_work")?,
+        maximum_evidence_events: value("maximum_evidence_events")?,
+        deadline_ticks: u64::try_from(value("deadline_ticks")?).map_err(|_| ResolutionError {
+            code: "CND-HTTP-CL-013",
+            message: "HTTP client deadline is invalid".to_owned(),
+        })?,
+        cleanup_ticks: u64::try_from(value("cleanup_ticks")?).map_err(|_| ResolutionError {
+            code: "CND-HTTP-CL-013",
+            message: "HTTP client cleanup deadline is invalid".to_owned(),
+        })?,
+    };
+    // Reuse the deterministic boundary's complete validation without opening
+    // a socket: an invalid binding returns before evidence or commit.
+    let probe = client::run_deterministic_client(
+        client::ClientBinding {
+            endpoint: client::NumericEndpoint {
+                address: [0; 16],
+                port: 1,
+            },
+            authority: "probe",
+            network_resource: "probe",
+            outbound_grant: "probe",
+            tls_policy: "conduit.http/plaintext-explicit",
+            trust_handle: None,
+            client_certificate_handle: None,
+            client_private_key_handle: None,
+            proxy_resource: None,
+            dns_observation_fresh: true,
+            provider_observation_fresh: true,
+            destination_allowed: true,
+            limits,
+        },
+        client::ClientRequest {
+            method: HttpMethod::Get,
+            scheme: client::ClientScheme::Http,
+            authority: "probe",
+            target: "/",
+            headers: &[],
+            body: &[],
+            redirects: client::RedirectPolicy::Return,
+        },
+        client::DeterministicExchange {
+            responses: &[],
+            fault: client::ClientFault::None,
+            observed_proxy: None,
+        },
+        &mut [],
+        &mut [None; 2],
+    );
+    if probe.terminal != client::ClientTerminal::Completed {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-013",
+            message: "HTTP client limits are outside the bounded profile".to_owned(),
+        });
+    }
+    Ok(limits)
+}
+
+fn http_client_limits(node: &conduit_panel::Node) -> Result<client::ClientLimits, RuntimeError> {
+    http_client_limits_resolution(node)
+        .map_err(|error| RuntimeError::new(error.code, error.message))
+}
+
+fn http_client_runtime_error(
+    terminal: client::ClientTerminal,
+    message: &'static str,
+) -> RuntimeError {
+    RuntimeError::new("CND-HTTP-CL-014", format!("{message}: {terminal:?}"))
+}
+
+fn required_bytes_config<'a>(
+    node: &'a conduit_panel::Node,
+    key: &str,
+) -> Result<&'a [u8], RuntimeError> {
+    match node.config_value(key) {
+        Some(conduit_panel::SourceValue::Bytes(value)) => Ok(value),
+        _ => Err(RuntimeError::new(
+            "CND-SRC-002",
+            format!("HTTP client `{}` requires bytes `{key}`", node.id),
+        )),
+    }
+}
+
+fn required_secret_resolution<'a>(
+    node: &'a conduit_panel::Node,
+    key: &str,
+) -> Result<&'a str, ResolutionError> {
+    match node.config_value(key) {
+        Some(conduit_panel::SourceValue::SecretReference(value)) => Ok(value),
+        _ => Err(ResolutionError {
+            code: "CND-SRC-002",
+            message: format!("HTTP client requires protected `{key}`"),
+        }),
+    }
+}
+
+fn required_secret_runtime<'a>(
+    node: &'a conduit_panel::Node,
+    key: &str,
+) -> Result<&'a str, RuntimeError> {
+    required_secret_resolution(node, key)
+        .map_err(|error| RuntimeError::new(error.code, error.message))
+}
+
+fn optional_secret_config<'a>(node: &'a conduit_panel::Node, key: &str) -> Option<&'a str> {
+    match node.config_value(key) {
+        Some(conduit_panel::SourceValue::SecretReference(value)) => Some(value),
+        _ => None,
+    }
+}
+
 struct ServeOnceHandler;
 
 impl Handler for ServeOnceHandler {

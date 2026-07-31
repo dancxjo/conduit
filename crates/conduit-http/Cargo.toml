@@ -11,6 +11,7 @@ rust-version.workspace = true
 conduit-core = { path = "../conduit-core" }
 conduit-panel = { path = "../conduit-panel" }
 conduit-runtime = { path = "../conduit-runtime" }
+conduit-std = { path = "../conduit-std" }
 rustls = { version = "0.23.35", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-pemfile = "2.2.0"
 sha2 = "0.10.9"

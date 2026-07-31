@@ -870,6 +870,13 @@ const OUT_HTTP_REQUEST: PortContract<'static> = port(
     ValueCardinality::ZeroOrMore,
     TerminalContract::Either,
 );
+const OUT_HTTP_REQUEST_ONCE: PortContract<'static> = port(
+    "request",
+    Direction::Output,
+    HTTP_REQUEST,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
 const IN_HTTP_RESPONSE: PortContract<'static> = port(
     "response",
     Direction::Input,
@@ -1472,6 +1479,16 @@ const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
         field("deadline_ticks", U64),
         field("cleanup_ticks", U64),
         field("cancellation", TEXT),
+    ],
+};
+const HTTP_REQUEST_LITERAL: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("method", TEXT),
+        field("scheme", TEXT),
+        field("authority", TEXT),
+        field("target", TEXT),
+        field("body", BYTES),
+        field("redirect_policy", TEXT),
     ],
 };
 const HTTP_SERVE: ConfigContract<'static> = ConfigContract {
@@ -2750,11 +2767,29 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "compressed",
         "host/compression"
     ),
+    {
+        let mut value = entry!(
+            "net/http/request/literal",
+            Source,
+            HTTP_REQUEST_LITERAL,
+            &[],
+            &[OUT_HTTP_REQUEST_ONCE],
+            ProducesDeclaredType,
+            None,
+            FINITE,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/http-request-literal"));
+        value
+    },
     typed_host_entry!(
         "net/http/fetch",
         HTTP_FETCH,
         &[IN_HTTP_REQUEST],
-        &[OUT_HTTP_RESPONSE, OUT_HTTP_CLIENT_RESULT],
+        &[
+            optional_output(OUT_HTTP_RESPONSE),
+            optional_output(OUT_HTTP_CLIENT_RESULT),
+        ],
         "host/http-client"
     ),
     typed_host_entry!(

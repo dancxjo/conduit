@@ -688,6 +688,13 @@ fn host_service_authority(contract_id: &str, instance: &str) -> Option<Authority
             "conduit.resource/tcp-loopback",
             "conduit.resource/ephemeral-loopback-port",
         ),
+        "net/http/fetch" => (
+            "http-loopback-request",
+            "sha256:4949494949494949494949494949494949494949494949494949494949494949",
+            "conduit.action/request",
+            "conduit.resource/http-loopback",
+            "conduit.resource/http-loopback",
+        ),
         _ => return None,
     };
     let (resource_lease, commit_profile) = effect_contracts(name, instance, action, resource_id);

@@ -643,6 +643,115 @@ fn method_name(method: HttpMethod) -> &'static str {
     }
 }
 
+fn method_tag(method: HttpMethod) -> u8 {
+    match method {
+        HttpMethod::Get => 1,
+        HttpMethod::Head => 2,
+        HttpMethod::Post => 3,
+        HttpMethod::Put => 4,
+        HttpMethod::Patch => 5,
+        HttpMethod::Delete => 6,
+        HttpMethod::Options => 7,
+    }
+}
+
+fn method_from_tag(tag: u8) -> Option<HttpMethod> {
+    Some(match tag {
+        1 => HttpMethod::Get,
+        2 => HttpMethod::Head,
+        3 => HttpMethod::Post,
+        4 => HttpMethod::Put,
+        5 => HttpMethod::Patch,
+        6 => HttpMethod::Delete,
+        7 => HttpMethod::Options,
+        _ => return None,
+    })
+}
+
+/// Encode the checked request-literal representation used at the exact
+/// runtime boundary. Headers remain available to typed API callers; the
+/// repository's checked literal intentionally emits none.
+pub fn encode_request_literal(request: ClientRequest<'_>) -> Result<Vec<u8>, ClientTerminal> {
+    if !request.headers.is_empty()
+        || request.authority.len() > u16::MAX as usize
+        || request.target.len() > u16::MAX as usize
+        || request.body.len() > u32::MAX as usize
+    {
+        return Err(ClientTerminal::HeaderOverflow);
+    }
+    let mut bytes = Vec::with_capacity(
+        15_usize
+            .saturating_add(request.authority.len())
+            .saturating_add(request.target.len())
+            .saturating_add(request.body.len()),
+    );
+    bytes.extend_from_slice(b"CHC0");
+    bytes.push(method_tag(request.method));
+    bytes.push(match request.scheme {
+        ClientScheme::Http => 1,
+        ClientScheme::Https => 2,
+    });
+    bytes.push(match request.redirects {
+        RedirectPolicy::Return => 1,
+        RedirectPolicy::FollowSameAuthority => 2,
+        RedirectPolicy::FollowGrantedAuthorities => 3,
+    });
+    bytes.extend_from_slice(&(request.authority.len() as u16).to_be_bytes());
+    bytes.extend_from_slice(&(request.target.len() as u16).to_be_bytes());
+    bytes.extend_from_slice(&(request.body.len() as u32).to_be_bytes());
+    bytes.extend_from_slice(request.authority.as_bytes());
+    bytes.extend_from_slice(request.target.as_bytes());
+    bytes.extend_from_slice(request.body);
+    Ok(bytes)
+}
+
+pub fn decode_request_literal(bytes: &[u8]) -> Result<ClientRequest<'_>, ClientTerminal> {
+    if bytes.len() < 15 || &bytes[..4] != b"CHC0" {
+        return Err(ClientTerminal::BodyOverflow);
+    }
+    let method = method_from_tag(bytes[4]).ok_or(ClientTerminal::BodyOverflow)?;
+    let scheme = match bytes[5] {
+        1 => ClientScheme::Http,
+        2 => ClientScheme::Https,
+        _ => return Err(ClientTerminal::BodyOverflow),
+    };
+    let redirects = match bytes[6] {
+        1 => RedirectPolicy::Return,
+        2 => RedirectPolicy::FollowSameAuthority,
+        3 => RedirectPolicy::FollowGrantedAuthorities,
+        _ => return Err(ClientTerminal::BodyOverflow),
+    };
+    let authority_len = usize::from(u16::from_be_bytes([bytes[7], bytes[8]]));
+    let target_len = usize::from(u16::from_be_bytes([bytes[9], bytes[10]]));
+    let body_len = usize::try_from(u32::from_be_bytes([
+        bytes[11], bytes[12], bytes[13], bytes[14],
+    ]))
+    .map_err(|_| ClientTerminal::BodyOverflow)?;
+    let authority_end = 15_usize
+        .checked_add(authority_len)
+        .ok_or(ClientTerminal::BodyOverflow)?;
+    let target_end = authority_end
+        .checked_add(target_len)
+        .ok_or(ClientTerminal::BodyOverflow)?;
+    let body_end = target_end
+        .checked_add(body_len)
+        .ok_or(ClientTerminal::BodyOverflow)?;
+    if body_end != bytes.len() {
+        return Err(ClientTerminal::BodyOverflow);
+    }
+    Ok(ClientRequest {
+        method,
+        scheme,
+        authority: std::str::from_utf8(&bytes[15..authority_end])
+            .map_err(|_| ClientTerminal::BodyOverflow)?,
+        target: std::str::from_utf8(&bytes[authority_end..target_end])
+            .map_err(|_| ClientTerminal::BodyOverflow)?,
+        headers: &[],
+        body: &bytes[target_end..body_end],
+        redirects,
+    })
+}
+
 fn encode_request(
     request: ClientRequest<'_>,
     maximum_header_bytes: usize,
@@ -1253,5 +1362,16 @@ mod tests {
             event.kind == ClientEvidenceKind::RequestCommitted
                 && event.commit == CommitState::Committed
         }));
+    }
+
+    #[test]
+    fn checked_request_literal_round_trips_exactly() {
+        let mut original = request(ClientScheme::Https);
+        original.method = HttpMethod::Post;
+        original.body = b"payload";
+        original.redirects = RedirectPolicy::FollowSameAuthority;
+        let encoded = encode_request_literal(original).unwrap();
+        assert_eq!(decode_request_literal(&encoded).unwrap(), original);
+        assert!(decode_request_literal(&encoded[..encoded.len() - 1]).is_err());
     }
 }

@@ -2,7 +2,7 @@ use std::{
     collections::BTreeSet,
     fs,
     io::{BufRead, BufReader, Read, Write},
-    net::TcpStream,
+    net::{TcpListener, TcpStream},
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -201,6 +201,37 @@ fn invoke_http(root: &Path, entry: &Entry, request_path: &str) -> (std::process:
     )
 }
 
+fn invoke_http_client(root: &Path, entry: &Entry) -> std::process::Output {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("HTTP client proof binds");
+    let address = listener.local_addr().expect("HTTP client proof address");
+    let source = fs::read_to_string(root.join(&entry.path))
+        .expect("HTTP client source reads")
+        .replace("127.0.0.1:38153", &address.to_string());
+    let panel = std::env::temp_dir().join(format!(
+        "conduit-http-client-runnability-{}.panel",
+        std::process::id()
+    ));
+    fs::write(&panel, source).expect("HTTP client proof panel writes");
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("HTTP client proof accepts");
+        let mut request = [0_u8; 4096];
+        let read = stream.read(&mut request).expect("HTTP request reads");
+        assert!(request[..read].starts_with(b"GET /health HTTP/1.1\r\n"));
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nready")
+            .expect("HTTP response writes");
+    });
+    let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .current_dir(root)
+        .arg("--enable-http-client-loopback")
+        .arg(&panel)
+        .output()
+        .expect("HTTP client conduct executes");
+    server.join().expect("HTTP client proof server completes");
+    fs::remove_file(panel).expect("HTTP client proof panel is removed");
+    output
+}
+
 #[test]
 fn every_checked_panel_has_one_verified_runnability_state() {
     let root = root();
@@ -303,6 +334,13 @@ fn every_checked_panel_has_one_verified_runnability_state() {
                 "{} rejects an unknown route deterministically",
                 entry.path
             );
+            continue;
+        }
+        if entry.proof == "canonical-http-client-loopback" {
+            let output = invoke_http_client(&root, entry);
+            assert!(output.status.success(), "{} must run", entry.path);
+            assert_eq!(output.stdout, b"", "{} has clean stdout", entry.path);
+            assert_eq!(output.stderr, b"", "{} has clean stderr", entry.path);
             continue;
         }
         let output = invoke(&root, entry);

@@ -65,6 +65,7 @@ fn digest(bytes: &[u8]) -> String {
 fn is_executable_proof(proof: &str) -> bool {
     [
         "canonical-run",
+        "canonical-http-client-loopback",
         "canonical-http-loopback",
         "canonical-file-read",
         "canonical-file-write",
@@ -363,8 +364,9 @@ mod tests {
     }
 
     #[test]
-    fn socket_loopback_is_an_executable_proof() {
+    fn loopback_providers_are_executable_proofs() {
         assert!(is_executable_proof("canonical-socket-loopback"));
+        assert!(is_executable_proof("canonical-http-client-loopback"));
     }
 
     #[test]

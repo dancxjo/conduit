@@ -32,6 +32,7 @@ _conduct() {
 '--enable-storage-cache[Explicitly install the bounded evictable blob-cache provider]' \
 '--enable-process-exec[Explicitly install the bounded closed-inventory process provider]' \
 '--enable-socket-loopback[Explicitly install the bounded numeric-loopback socket providers]' \
+'--enable-http-client-loopback[Explicitly install the bounded numeric-loopback HTTP client provider]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

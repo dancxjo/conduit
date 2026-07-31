@@ -1,0 +1,49 @@
+# One exact bounded outbound HTTP request to a checked numeric loopback
+# resource. The runnable conformance test owns the peer on this fixed port.
+panel 0
+
+node request : net/http/request/literal {
+    method = "GET"
+    scheme = "http"
+    authority = "loopback.test"
+    target = "/health"
+    body = bytes("")
+    redirect_policy = "return"
+}
+
+node client : net/http/fetch {
+    network_resource = secret("conduit.resource/http-loopback")
+    outbound_grant = secret("conduit.grant/http-loopback-request")
+    address = "127.0.0.1:38153"
+    authority = "loopback.test"
+    dns_observation = secret("conduit.observation/http-loopback-address")
+    provider_observation = secret("conduit.observation/http-client-linked")
+    tls_policy = secret("conduit.http/plaintext-explicit")
+    redirect_policy = "return"
+    maximum_connections = 1
+    maximum_pending = 1
+    maximum_request_headers = 16
+    maximum_request_header_bytes = 4096
+    maximum_request_body_bytes = 16384
+    maximum_response_headers = 16
+    maximum_response_header_bytes = 4096
+    maximum_response_body_bytes = 65536
+    maximum_body_chunk_bytes = 4096
+    maximum_redirects = 0
+    maximum_retained_buffer_bytes = 81920
+    maximum_timers = 2
+    maximum_work = 131072
+    maximum_evidence_events = 32
+    deadline_ticks = 5000
+    cleanup_ticks = 1000
+    cancellation = "abort-and-cleanup"
+}
+
+cord request.request -> client.request {
+    capacity = 1
+    max_value_bytes = 32768
+    max_queued_bytes = 32768
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

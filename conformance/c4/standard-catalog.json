@@ -83,6 +83,7 @@
     "secret/reference": ["STD-007", "STD-012"],
     "crypto/operation": ["STD-007", "STD-012"],
     "data/compress": ["STD-007", "STD-011"],
+    "net/http/request/literal": ["STD-001", "STD-003"],
     "net/http/fetch": ["STD-007", "STD-012"],
     "net/http/serve": ["STD-007", "STD-012"],
     "net/websocket": ["STD-007", "STD-012"],

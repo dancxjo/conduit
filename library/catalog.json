@@ -4593,8 +4593,8 @@
           "value_type": "net/http/response",
           "type_schema_version": 0,
           "type_hash": "sha256:252e5369f63287075f3c0e14d97b302e37fee5f9ca54166f77dd2cc6e744548a",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -4608,8 +4608,8 @@
           "value_type": "net/http/client-result",
           "type_schema_version": 0,
           "type_hash": "sha256:21e395ed72fecde7c9a274ac15d88fb91b0f5adea22fd95700ea40b1c59c4fcf",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "exactly-one",
           "delivery": "stream",
           "temporal": "committed",
@@ -4807,6 +4807,89 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.net.http.fetch.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/http/request/literal",
+      "public_source_spelling": "net/http/request/literal",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/http/request/literal",
+      "schema_version": 0,
+      "semantic_hash": "sha256:ca2bd1d2deb01b6e4020a8ae73a2d56510c6ff9845baf7c6fa208d4227d2eafe",
+      "ports": [
+        {
+          "id": "request",
+          "direction": "output",
+          "value_type": "net/http/request",
+          "type_schema_version": 0,
+          "type_hash": "sha256:3450a3ade914b6723091d4f5666bac921e93652224a3d519691088fac75fda81",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "method",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "scheme",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "authority",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "target",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "body",
+          "value_type": "std/bytes",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074"
+        },
+        {
+          "key": "redirect_policy",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.http.request.literal.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.http.request.literal.composition",
         "status": "required"
       },
       "successor": null,

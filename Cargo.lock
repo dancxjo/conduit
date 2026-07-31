@@ -410,6 +410,7 @@ dependencies = [
  "conduit-core",
  "conduit-panel",
  "conduit-runtime",
+ "conduit-std",
  "rcgen",
  "rustls",
  "rustls-pemfile",
