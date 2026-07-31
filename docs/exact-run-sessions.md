@@ -56,12 +56,31 @@ It starts this same hosted session, pumps it cooperatively to terminal, then
 returns its normalized report. It is not a second runtime and does not change
 the meaning of a persistent run.
 
+## Hosted provider adapter
+
+Every linked hosted provider uses the same prepare, start, bounded-step,
+interest, cancel, and cleanup adapter. A finite request/response provider is
+the simple case: its first bounded step returns its exact outputs and declares
+completion. A live provider may instead return outputs and remain active, or
+register one named timer or host-operation interest and become Waiting.
+
+The scheduler, not a provider callback, owns the clock and wake registry. A
+deterministic host can advance an admitted test clock. A real host registers
+the provider's finite timer and wakes the same run later; it must not jump time
+to make a callback look ready. Wrong or late named wakes do not resume another
+provider or another epoch.
+
+Cancellation invokes the provider's bounded stop disposition and cleanup on
+the same scheduler path. Natural completion also runs cleanup before the node
+is terminal. Provider-owned callbacks, queues, timers, tasks, and buffers must
+be declared in the selected execution profile and admitted by the exact plan.
+
 ## Bounds
 
 The host admits a finite concurrent-session count and the plan's runtime
 memory before Start. The session retains only its fixed host-I/O capacity and
 the scheduler's plan-accounted queues, timers, operations, and evidence. A
 pump quantum bounds one host turn; it is not an implicit lifetime deadline.
-Long-lived value reclamation, incremental evidence retention, provider wakes,
-and Patchbay Watches build on this boundary and each have their own explicit
-bounds and lifecycle rules.
+Long-lived value reclamation, incremental evidence retention, and Patchbay
+Watches build on this boundary and each have their own explicit bounds and
+lifecycle rules.

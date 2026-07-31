@@ -1456,6 +1456,51 @@ pub struct ExactHostedServiceBinding {
     pub authorities: Vec<ExactHostedServiceAuthority>,
 }
 
+/// Exact time supplied to one bounded hosted-provider step.
+///
+/// The scheduler owns this value. A provider can request a later wake, but it
+/// cannot advance the clock itself.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HostedServiceStepContext {
+    pub tick: u64,
+}
+
+/// One named wake a hosted provider may request after a bounded step.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostedServiceInterest {
+    Timer {
+        subject: Id<'static>,
+        deadline_tick: u64,
+    },
+    HostOperation {
+        subject: Id<'static>,
+    },
+}
+
+/// Outcome of one bounded hosted-provider step.
+///
+/// `Produced` leaves the run live after its outputs have reached their exact
+/// cords. `Waiting` registers one exact scheduler interest; it never spins or
+/// advances a real host clock. `Completed` ends only this provider.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum HostedServiceStep {
+    Produced { outputs: Vec<Value> },
+    Waiting { interest: HostedServiceInterest },
+    Completed { outputs: Vec<Value> },
+}
+
+impl HostedServiceStep {
+    #[must_use]
+    pub fn completed(outputs: Vec<Value>) -> Self {
+        Self::Completed { outputs }
+    }
+
+    #[must_use]
+    pub fn produced(outputs: Vec<Value>) -> Self {
+        Self::Produced { outputs }
+    }
+}
+
 /// Hashes one domain-owned, plan-visible hosted-effect constraint. The id
 /// supplies the semantic domain; the value remains exact opaque bytes.
 #[must_use]
@@ -1655,9 +1700,14 @@ impl ExactHostedRunSession {
     }
 
     pub fn cancel(&mut self, stop: conduit_core::StopPolicy) -> Result<ExactRunPump, RuntimeError> {
-        self.session
+        let pump = self
+            .session
             .cancel(stop)
-            .map_err(|error| self.take_scheduler_error(error))
+            .map_err(|error| self.take_scheduler_error(error))?;
+        if let Some(error) = self.host_failure.borrow_mut().take() {
+            return Err(error);
+        }
+        Ok(pump)
     }
 
     #[must_use]
@@ -1724,19 +1774,69 @@ impl ExactHostedRunSession {
 }
 
 pub trait Handler {
-    /// Installs the exact executor binding for this invocation. Pure handlers
-    /// need no binding; effectful handlers override this and fail closed when
-    /// `run` is attempted without it.
+    /// Installs the exact executor binding for this provider. Pure providers
+    /// need no binding; effectful providers override this and fail closed when
+    /// execution is attempted without it.
     fn bind_exact(&mut self, _binding: ExactHostedServiceBinding) -> Result<(), RuntimeError> {
         Ok(())
     }
 
-    fn run(
+    /// Validates and binds the provider during the scheduler prepare phase.
+    fn prepare(
+        &mut self,
+        _node: &Node,
+        binding: ExactHostedServiceBinding,
+    ) -> Result<(), RuntimeError> {
+        self.bind_exact(binding)
+    }
+
+    /// Activates an already prepared provider when the exact run starts.
+    fn start(&mut self, _node: &Node) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    /// Performs one bounded provider step through the one current hosted
+    /// adapter. Existing finite request/response handlers inherit this
+    /// implementation; long-lived providers override it to produce values or
+    /// register one exact wake interest at a time.
+    fn step(
         &mut self,
         node: &Node,
         inputs: &[Value],
+        _context: HostedServiceStepContext,
         io: &mut RunIo<'_>,
-    ) -> Result<Vec<Value>, RuntimeError>;
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        self.run(node, inputs, io).map(HostedServiceStep::completed)
+    }
+
+    /// Begins the provider's bounded stop disposition.
+    fn cancel(
+        &mut self,
+        _node: &Node,
+        _stop: conduit_core::StopPolicy,
+    ) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    /// Releases provider-owned finite resources after cancellation or natural
+    /// completion.
+    fn cleanup(&mut self, _node: &Node) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    /// Finite convenience implementation used by the default `step` adapter.
+    /// Long-lived providers override `step` and need not implement this.
+    fn run(
+        &mut self,
+        _node: &Node,
+        _inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        Err(RuntimeError::new(
+            "CND-RUN-004",
+            "hosted provider implements neither a bounded step nor finite run",
+        ))
+    }
 }
 
 pub type HandlerFactory = fn() -> Box<dyn Handler>;
@@ -5771,12 +5871,8 @@ impl ResolvedPanel<'_> {
                     HostedNodeKind::Fallback { emitted: false }
                 }
                 HostedPrimitiveImplementation::HostedService => {
-                    let mut handler = (resolved.executable_factory())();
-                    handler.bind_exact(exact_host_service_binding(
-                        plan,
-                        planned,
-                        context.validation.now.tick,
-                    )?)?;
+                    let binding =
+                        exact_host_service_binding(plan, planned, context.validation.now.tick)?;
                     let input_cords = resolved
                         .definition
                         .contract
@@ -5813,13 +5909,14 @@ impl ResolvedPanel<'_> {
                         })
                         .collect();
                     HostedNodeKind::HostedService {
-                        handler,
+                        handler: (resolved.executable_factory())(),
                         node: resolved.source.clone(),
+                        binding,
                         input_cords,
                         inputs: Vec::new(),
                         output_routes,
                         pending_outputs: Vec::new(),
-                        invoked: false,
+                        completion_pending: false,
                         completed: false,
                     }
                 }
@@ -5901,7 +5998,12 @@ impl ResolvedPanel<'_> {
             context.reservation,
             scheduled_nodes,
         )
-        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        .map_err(|error| {
+            host_failure
+                .borrow_mut()
+                .take()
+                .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
+        })?;
         let session = ExactRunSession::new(
             admission,
             ExactRunIdentity {
@@ -5941,6 +6043,9 @@ impl ResolvedPanel<'_> {
                     .take()
                     .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
             })?;
+            if let Some(error) = host_failure.borrow_mut().take() {
+                return Err(error);
+            }
         }
         let quantum = context.scheduler_policy.max_decisions.max(1);
         let status = loop {
@@ -6632,11 +6737,12 @@ enum HostedNodeKind {
     HostedService {
         handler: Box<dyn Handler>,
         node: Node,
+        binding: ExactHostedServiceBinding,
         input_cords: Vec<(usize, TypeContractRef<'static>)>,
         inputs: Vec<Option<Value>>,
         output_routes: Vec<(TypeContractRef<'static>, Vec<usize>)>,
         pending_outputs: Vec<HostedServiceOutput>,
-        invoked: bool,
+        completion_pending: bool,
         completed: bool,
     },
 }
@@ -6806,11 +6912,40 @@ struct HostedSchedulerDriver<'r, 'i> {
 
 impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
     fn prepare(&mut self) -> Result<conduit_core::LifecycleUsage, Id<'static>> {
+        if let HostedNodeKind::HostedService {
+            handler,
+            node,
+            binding,
+            ..
+        } = &mut self.kind
+            && let Err(error) = handler.prepare(node, binding.clone())
+        {
+            *self.host_failure.borrow_mut() = Some(error);
+            return Err(Id("conduit/host-service-prepare-failed"));
+        }
         Ok(conduit_core::LifecycleUsage::default())
     }
 
     fn start(&mut self) -> Result<conduit_core::LifecycleUsage, Id<'static>> {
+        if let HostedNodeKind::HostedService { handler, node, .. } = &mut self.kind
+            && let Err(error) = handler.start(node)
+        {
+            *self.host_failure.borrow_mut() = Some(error);
+            return Err(Id("conduit/host-service-start-failed"));
+        }
         Ok(conduit_core::LifecycleUsage::default())
+    }
+
+    fn cancel(&mut self, stop: conduit_core::StopPolicy) {
+        if let HostedNodeKind::HostedService { handler, node, .. } = &mut self.kind {
+            if let Err(error) = handler.cancel(node, stop) {
+                *self.host_failure.borrow_mut() = Some(error);
+                return;
+            }
+            if let Err(error) = handler.cleanup(node) {
+                *self.host_failure.borrow_mut() = Some(error);
+            }
+        }
     }
 
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
@@ -7439,11 +7574,67 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 inputs,
                 output_routes,
                 pending_outputs,
-                invoked,
+                completion_pending,
                 completed,
+                ..
             } => {
                 if *completed {
                     return SchedulerStep::Completed;
+                }
+                if !pending_outputs.is_empty() {
+                    let mut progressed = false;
+                    for output in pending_outputs.iter_mut() {
+                        while output.next_cord < output.cords.len() {
+                            match io.send(output.cords[output.next_cord], output.value, None) {
+                                Ok(SendStatus::Reserved) => {
+                                    output.next_cord += 1;
+                                    progressed = true;
+                                }
+                                Ok(SendStatus::WouldBlock) => break,
+                                status => {
+                                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                        "CND-RUN-004",
+                                        format!(
+                                            "host service `{}` output was rejected by its exact cord: {status:?}",
+                                            node.id,
+                                        ),
+                                    ));
+                                    return SchedulerStep::Failed {
+                                        code: Id("conduit/host-service-output-failed"),
+                                    };
+                                }
+                            }
+                        }
+                    }
+                    if pending_outputs
+                        .iter()
+                        .all(|output| output.next_cord == output.cords.len())
+                    {
+                        pending_outputs.clear();
+                        if *completion_pending {
+                            if let Err(error) = handler.cleanup(node) {
+                                *self.host_failure.borrow_mut() = Some(error);
+                                return SchedulerStep::Failed {
+                                    code: Id("conduit/host-service-cleanup-failed"),
+                                };
+                            }
+                            *completed = true;
+                            return SchedulerStep::Completed;
+                        }
+                        return SchedulerStep::Progress;
+                    }
+                    if !progressed {
+                        for output in pending_outputs.iter() {
+                            if output.next_cord < output.cords.len() {
+                                let _ = io.wait_for_output(output.cords[output.next_cord]);
+                            }
+                        }
+                    }
+                    return if progressed {
+                        SchedulerStep::Progress
+                    } else {
+                        SchedulerStep::Pending
+                    };
                 }
                 if inputs.is_empty() && !input_cords.is_empty() {
                     inputs.resize_with(input_cords.len(), || None);
@@ -7497,102 +7688,112 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 if inputs.iter().any(Option::is_none) {
                     return SchedulerStep::Pending;
                 }
-                if !*invoked {
-                    let values = inputs.iter().flatten().cloned().collect::<Vec<_>>();
-                    let outputs = match self.io.with_run_io(|io| handler.run(node, &values, io)) {
-                        Ok(outputs) => outputs,
-                        Err(error) => {
-                            *self.host_failure.borrow_mut() = Some(error);
-                            return SchedulerStep::Failed {
-                                code: Id("conduit/host-service-failed"),
-                            };
-                        }
-                    };
-                    if outputs.len() != output_routes.len()
-                        || outputs
-                            .iter()
-                            .zip(output_routes.iter())
-                            .any(|(output, (expected, _))| output.value_type != *expected)
-                    {
-                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
-                            "CND-RUN-004",
-                            format!(
-                                "host service `{}` emitted outputs outside its exact contract",
-                                node.id
-                            ),
-                        ));
+                let values = inputs.iter().flatten().cloned().collect::<Vec<_>>();
+                let step = match self.io.with_run_io(|run_io| {
+                    handler.step(
+                        node,
+                        &values,
+                        HostedServiceStepContext { tick: io.tick() },
+                        run_io,
+                    )
+                }) {
+                    Ok(step) => step,
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(error);
                         return SchedulerStep::Failed {
-                            code: Id("conduit/host-service-output-mismatch"),
+                            code: Id("conduit/host-service-failed"),
                         };
                     }
-                    for (output, (_, cords)) in outputs.into_iter().zip(output_routes.iter()) {
-                        if cords.is_empty() {
-                            continue;
-                        }
-                        let accounted_bytes = match u32::try_from(output.bytes.len()) {
-                            Ok(bytes) => bytes,
-                            Err(_) => {
-                                return SchedulerStep::Failed {
-                                    code: Id("conduit/value-store-bound-exceeded"),
-                                };
+                };
+                inputs.clear();
+                let (outputs, terminal) = match step {
+                    HostedServiceStep::Produced { outputs } => (outputs, false),
+                    HostedServiceStep::Completed { outputs } => (outputs, true),
+                    HostedServiceStep::Waiting { interest } => {
+                        let wake = match interest {
+                            HostedServiceInterest::Timer {
+                                subject,
+                                deadline_tick,
+                            } => io.wait_for_timer(subject, deadline_tick),
+                            HostedServiceInterest::HostOperation { subject } => {
+                                io.wait_for_host_operation(subject)
                             }
                         };
-                        let Some(handle) = self.store.borrow_mut().store(&output.bytes) else {
+                        if let Err(error) = wake {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-RUN-004",
+                                format!(
+                                    "host service `{}` registered an invalid exact wake: {error}",
+                                    node.id
+                                ),
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/host-service-wake-invalid"),
+                            };
+                        }
+                        return SchedulerStep::Pending;
+                    }
+                };
+                if outputs.len() != output_routes.len()
+                    || outputs
+                        .iter()
+                        .zip(output_routes.iter())
+                        .any(|(output, (expected, _))| output.value_type != *expected)
+                {
+                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                        "CND-RUN-004",
+                        format!(
+                            "host service `{}` emitted outputs outside its exact contract",
+                            node.id
+                        ),
+                    ));
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/host-service-output-mismatch"),
+                    };
+                }
+                for (output, (_, cords)) in outputs.into_iter().zip(output_routes.iter()) {
+                    if cords.is_empty() {
+                        continue;
+                    }
+                    let accounted_bytes = match u32::try_from(output.bytes.len()) {
+                        Ok(bytes) => bytes,
+                        Err(_) => {
                             return SchedulerStep::Failed {
                                 code: Id("conduit/value-store-bound-exceeded"),
                             };
+                        }
+                    };
+                    let Some(handle) = self.store.borrow_mut().store(&output.bytes) else {
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/value-store-bound-exceeded"),
                         };
-                        pending_outputs.push(HostedServiceOutput {
-                            value: RuntimeValue {
-                                handle,
-                                accounted_bytes,
-                                envelope: RuntimeValueEnvelope::EMPTY,
-                            },
-                            cords: cords.clone(),
-                            next_cord: 0,
-                        });
-                    }
-                    *invoked = true;
+                    };
+                    pending_outputs.push(HostedServiceOutput {
+                        value: RuntimeValue {
+                            handle,
+                            accounted_bytes,
+                            envelope: RuntimeValueEnvelope::EMPTY,
+                        },
+                        cords: cords.clone(),
+                        next_cord: 0,
+                    });
                 }
-                let mut progressed = false;
-                for output in pending_outputs.iter_mut() {
-                    while output.next_cord < output.cords.len() {
-                        match io.send(output.cords[output.next_cord], output.value, None) {
-                            Ok(SendStatus::Reserved) => {
-                                output.next_cord += 1;
-                                progressed = true;
-                            }
-                            Ok(SendStatus::WouldBlock) => break,
-                            status => {
-                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
-                                    "CND-RUN-004",
-                                    format!(
-                                        "host service `{}` output was rejected by its exact cord: {status:?}",
-                                        node.id,
-                                    ),
-                                ));
-                                return SchedulerStep::Failed {
-                                    code: Id("conduit/host-service-output-failed"),
-                                };
-                            }
+                *completion_pending = terminal;
+                if pending_outputs.is_empty() {
+                    if terminal {
+                        if let Err(error) = handler.cleanup(node) {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/host-service-cleanup-failed"),
+                            };
                         }
+                        *completed = true;
+                        SchedulerStep::Completed
+                    } else {
+                        SchedulerStep::Progress
                     }
-                }
-                if pending_outputs
-                    .iter()
-                    .all(|output| output.next_cord == output.cords.len())
-                {
-                    *completed = true;
-                    SchedulerStep::Completed
-                } else if progressed {
-                    SchedulerStep::Progress
                 } else {
-                    for output in pending_outputs.iter() {
-                        if output.next_cord < output.cords.len() {
-                            let _ = io.wait_for_output(output.cords[output.next_cord]);
-                        }
-                    }
-                    SchedulerStep::Pending
+                    SchedulerStep::Progress
                 }
             }
             HostedNodeKind::Uppercase => {
