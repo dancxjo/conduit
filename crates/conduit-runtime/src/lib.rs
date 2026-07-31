@@ -5637,6 +5637,7 @@ impl ResolvedPanel<'_> {
                     )
                     .map_err(state_runtime_error)?,
                     envelopes: Vec::with_capacity(conduit_std::STATE_MAX_ENTRIES),
+                    retained_values: Vec::with_capacity(conduit_std::STATE_MAX_ENTRIES),
                     pending_output: None,
                     maximum_key_bytes: source_usize(&resolved.source, "maximum_key_bytes")?,
                     maximum_value_bytes: source_usize(&resolved.source, "maximum_value_bytes")?,
@@ -6564,6 +6565,7 @@ enum HostedNodeKind {
     StateCache {
         state: conduit_std::CacheState<{ conduit_std::STATE_MAX_ENTRIES }>,
         envelopes: Vec<(conduit_std::StateIdentity, RuntimeValueEnvelope)>,
+        retained_values: Vec<(conduit_std::StateIdentity, RuntimeValue)>,
         pending_output: Option<RuntimeValue>,
         maximum_key_bytes: usize,
         maximum_value_bytes: usize,
@@ -6690,14 +6692,20 @@ impl HostedNodeKind {
                 pending_output: pending,
                 ..
             }
-            | Self::StateCache {
-                pending_output: pending,
-                ..
-            }
             | Self::SupervisionCircuitBreaker {
                 pending_output: pending,
                 ..
             } => mark(*pending),
+            Self::StateCache {
+                retained_values,
+                pending_output,
+                ..
+            } => {
+                for (_, value) in retained_values {
+                    mark(Some(*value));
+                }
+                mark(*pending_output);
+            }
             Self::ValidateClosedRecord {
                 candidate,
                 decision,
@@ -8412,6 +8420,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
             HostedNodeKind::StateCache {
                 state,
                 envelopes,
+                retained_values,
                 pending_output,
                 maximum_key_bytes,
                 maximum_value_bytes,
@@ -8468,6 +8477,11 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                     code: Id("conduit/value-store-bound-exceeded"),
                                 };
                             };
+                            let retained_value = RuntimeValue {
+                                handle,
+                                accounted_bytes: u32::try_from(value.len()).unwrap_or(u32::MAX),
+                                envelope: RuntimeValueEnvelope::EMPTY,
+                            };
                             match state.insert(conduit_std::CacheEntry {
                                 key: identity,
                                 value_handle: handle,
@@ -8476,10 +8490,12 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                 Ok(conduit_std::CacheInsert::Inserted { evicted }) => {
                                     if let Some(evicted) = evicted {
                                         envelopes.retain(|(key, _)| *key != evicted);
+                                        retained_values.retain(|(key, _)| *key != evicted);
                                     }
                                 }
                                 Ok(conduit_std::CacheInsert::Updated) => {
                                     envelopes.retain(|(key, _)| *key != identity);
+                                    retained_values.retain(|(key, _)| *key != identity);
                                 }
                                 Err(error) => {
                                     *self.host_failure.borrow_mut() =
@@ -8490,6 +8506,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                 }
                             }
                             envelopes.push((identity, request_value.envelope));
+                            retained_values.push((identity, retained_value));
                             state_response_value(&self.store, b"stored", request_value.envelope)
                         }
                         StateCacheRequest::Get { key } => {
@@ -8522,6 +8539,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                             let removed = state.invalidate(identity);
                             if removed {
                                 envelopes.retain(|(key, _)| *key != identity);
+                                retained_values.retain(|(key, _)| *key != identity);
                             }
                             state_response_value(
                                 &self.store,
@@ -8532,6 +8550,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                         StateCacheRequest::Reset => {
                             state.restart();
                             envelopes.clear();
+                            retained_values.clear();
                             state_response_value(&self.store, b"reset", request_value.envelope)
                         }
                     };
