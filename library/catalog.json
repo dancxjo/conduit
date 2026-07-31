@@ -4802,12 +4802,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.http.fetch.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.http.fetch.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -4885,12 +4885,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.http.request.literal.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.http.request.literal.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,

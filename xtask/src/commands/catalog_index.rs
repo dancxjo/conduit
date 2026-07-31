@@ -304,6 +304,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.host/net/udp/datagram",
             _,
         ) => Some("library.bounded-sockets"),
+        ("net/http/request/literal" | "net/http/fetch", _) => Some("library.bounded-http-client"),
         (
             "storage/blob/literal"
             | "storage/cache/put"

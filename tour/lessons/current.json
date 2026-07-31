@@ -2487,6 +2487,171 @@
       }
     },
     {
+      "id": "library.bounded-http-client",
+      "chapter": 4,
+      "title": "Bounded outbound HTTP",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.resource-lease-effect-commit",
+        "platform.workload-admission-deadline"
+      ],
+      "objective": "Compose one typed HTTP request with an explicitly admitted client while inspecting destination, TLS, redirect, pressure, cancellation, commit, cleanup, and terminal evidence.",
+      "prose": "The request value carries method, scheme, authority, target, finite headers and a finite body stream. The client separately binds a numeric address, fresh DNS and provider observations, an exact network resource and grant, TLS and proxy policy, finite pools and buffers, redirect authority, deadlines, cancellation, and cleanup. TLS never substitutes for Conduit authority, and HTTPS never downgrades to plaintext.",
+      "vocabulary": [
+        "numeric endpoint",
+        "DNS observation",
+        "outbound grant",
+        "TLS trust handle",
+        "redirect authority",
+        "commit certainty",
+        "partial response"
+      ],
+      "source": "panel 0\n\nnode request : net/http/request/literal {\n    method = \"GET\"\n    scheme = \"http\"\n    authority = \"loopback.test\"\n    target = \"/health\"\n    body = bytes(\"\")\n    redirect_policy = \"return\"\n}\n\nnode client : net/http/fetch {\n    network_resource = secret(\"conduit.resource/http-loopback\")\n    outbound_grant = secret(\"conduit.grant/http-loopback-request\")\n    address = \"127.0.0.1:38153\"\n    authority = \"loopback.test\"\n    dns_observation = secret(\"conduit.observation/http-loopback-address\")\n    provider_observation = secret(\"conduit.observation/http-client-linked\")\n    tls_policy = secret(\"conduit.http/plaintext-explicit\")\n    redirect_policy = \"return\"\n    maximum_connections = 1\n    maximum_pending = 1\n    maximum_request_headers = 16\n    maximum_request_header_bytes = 4096\n    maximum_request_body_bytes = 16384\n    maximum_response_headers = 16\n    maximum_response_header_bytes = 4096\n    maximum_response_body_bytes = 65536\n    maximum_body_chunk_bytes = 4096\n    maximum_redirects = 0\n    maximum_retained_buffer_bytes = 81920\n    maximum_timers = 2\n    maximum_work = 131072\n    maximum_evidence_events = 32\n    deadline_ticks = 5000\n    cleanup_ticks = 1000\n    cancellation = \"abort-and-cleanup\"\n}\n\ncord request.request -> client.request {\n    capacity = 1\n    max_value_bytes = 32768\n    max_queued_bytes = 32768\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --enable-http-client-loopback examples/http-client-loopback.panel",
+      "commands": [
+        "conduct --check examples/http-client-loopback.panel",
+        "conduct --enable-http-client-loopback --explain examples/http-client-loopback.panel",
+        "conduct --enable-http-client-loopback examples/http-client-loopback.panel"
+      ],
+      "expected_diagnostic": "CND-IMP-001",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 5000,
+        "queue_bytes": 32768,
+        "evidence_events": 32
+      },
+      "presentation": {
+        "layout": "http-client-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "provider_state",
+          "scheme",
+          "authority",
+          "numeric_address",
+          "dns_observation",
+          "network_resource",
+          "grant",
+          "tls_policy",
+          "proxy_resource",
+          "redirect",
+          "request_commit",
+          "response_head",
+          "body_chunk",
+          "pressure",
+          "cancellation",
+          "cleanup",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-IMP-001"
+      },
+      "hints": [
+        "The typed authority and checked numeric address are separate facts; no ambient resolver is consulted at execution.",
+        "Redirects are new destination admissions. A required HTTPS request cannot downgrade to HTTP.",
+        "The browser has no outbound HTTP provider. Export the panel to an explicitly enabled hosted Conduct profile."
+      ],
+      "solution": "Construct one finite typed request, bind it to a fresh exact destination, network resource, outbound grant, TLS and proxy policy, and declare finite request, response, pool, queue, work, evidence, deadline, cancellation, and cleanup bounds.",
+      "accessibility": {
+        "non_audio": "An ordered text table names the request, destination observations, provider state, resource, grant, TLS and proxy policy, redirect decision, commit certainty, body chunks, pressure, cancellation, cleanup, error, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus ArrowRight to inspect the ordered HTTP evidence when the lesson story has focus.",
+        "color_independent": "Schemes, authorities, observation freshness, grant state, redirect decisions, commit states, byte counts, errors, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection",
+        "reason": "Browsers do not expose the checked outbound HTTP provider; hosted loopback execution requires the explicit --enable-http-client-loopback gate."
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "A typed request literal and opt-in client keep HTTP semantics separate from exact destination, network, authority, TLS, proxy, and bounded host execution.",
+        "what": "The literal produces one finite request value. The client consumes that value and emits a bounded response stream plus one terminal result with explicit redirect, partiality, commit, cancellation, cleanup, and provider-loss evidence.",
+        "when": "Use the literal to author or adapt a request and the client only when the host has supplied an exact numeric destination observation, outbound grant, network resource, provider observation, and TLS policy.",
+        "wrong": "Ambient DNS, proxy, cookie, credential, or certificate discovery; unbounded bodies, headers, pools, redirects, work, or evidence; HTTPS downgrade; cross-authority redirect without a new grant; and conflating TLS authentication with Conduit authority all fail closed.",
+        "contracts": [
+          {
+            "id": "net/http/request/literal",
+            "kind": "node",
+            "instance": "request",
+            "outputs": [
+              "request:net/http/request finite stream"
+            ],
+            "descriptor_hash": "sha256:ca2bd1d2deb01b6e4020a8ae73a2d56510c6ff9845baf7c6fa208d4227d2eafe"
+          },
+          {
+            "id": "net/http/fetch",
+            "kind": "node",
+            "instance": "client",
+            "inputs": [
+              "request:net/http/request finite stream"
+            ],
+            "outputs": [
+              "response:net/http/response bounded stream",
+              "result:net/http/client-result terminal"
+            ],
+            "descriptor_hash": "sha256:95ca24962eea4c18a07cbfd4ffb486faefafd7534cc63429b1c1ff843ecde2fb"
+          }
+        ],
+        "editable": [
+          "request.method:GET|HEAD|POST|PUT|DELETE|PATCH",
+          "request.scheme:http|https",
+          "request.target:absolute-path",
+          "client.redirect_policy:return|follow-same-authority|follow-granted-authorities",
+          "client.maximum_response_body_bytes:1..1048576",
+          "client.deadline_ticks:1..10000",
+          "client.cancellation:abort-and-cleanup"
+        ],
+        "provider": "explicit opt-in Linux numeric-loopback provider plus deterministic conformance provider; deliberately unavailable in browsers",
+        "profile": "hosted-exact-http-client",
+        "expected_evidence": [
+          "contract known, provider enabled, fresh DNS and provider observations, exact network resource, active outbound grant, and admitted finite pool",
+          "typed method, scheme, authority, target, request header and body bounds, TLS and proxy bindings, response bounds, redirect budget, deadline, work, cleanup, and evidence ceilings",
+          "request commit certainty, response head, bounded body chunks, redirect observation and admission, cancellation, cleanup, and one normalized terminal result",
+          "browser and constrained-provider omission as CND-IMP-001 without ambient DNS, proxy, cookie, credential, certificate, retry, forwarding, or plaintext fallback"
+        ],
+        "docs": [
+          "../../spec/065-bounded-http-client.md",
+          "../../conformance/c4/http-client.json",
+          "../../examples/http-client-loopback.panel"
+        ],
+        "scenarios": [
+          {
+            "id": "request-literal-standalone",
+            "title": "Typed request standalone",
+            "semantics": "Method, scheme, authority, target, finite headers, body, and redirect policy form one exact request value without network access."
+          },
+          {
+            "id": "request-client-composition",
+            "title": "Request and client composition",
+            "panel": "../../examples/http-client-loopback.panel",
+            "semantics": "A capacity-one blocking cord carries the request into a separately admitted, bounded, authority-checked host effect."
+          },
+          {
+            "id": "redirect-and-downgrade",
+            "title": "Redirect admission",
+            "semantics": "Same-authority and granted-authority redirects consume a finite budget; loops, missing grants, and HTTPS downgrade terminate exactly."
+          },
+          {
+            "id": "cancel-partial-provider-loss",
+            "title": "Terminal distinctions",
+            "semantics": "Timeout, cancellation before or after commit, partial response, unknown commit, pool exhaustion, and provider loss remain distinct and cleanup is bounded."
+          },
+          {
+            "id": "browser-unsupported",
+            "title": "Browser provider unavailable",
+            "diagnostic": "CND-IMP-001",
+            "semantics": "The browser fails closed because no outbound HTTP provider is installed; it does not emulate, forward, or use ambient fetch."
+          }
+        ]
+      }
+    },
+    {
       "id": "library.bounded-filesystem",
       "chapter": 4,
       "title": "Bounded file boundaries",

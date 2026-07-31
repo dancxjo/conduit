@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 30] = [
+const REQUIRED_TOUR_LESSONS: [&str; 31] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -28,6 +28,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 30] = [
     "library.explicit-data-boundaries",
     "library.bounded-process-exec",
     "library.bounded-sockets",
+    "library.bounded-http-client",
     "library.bounded-filesystem",
     "library.evictable-storage-cache",
     "library.contract-package-imports",
@@ -1071,6 +1072,70 @@ fn bounded_socket_lesson_keeps_transports_distinct_and_browser_support_honest() 
         "browser-unsupported",
     ] {
         assert!(scenario_ids.contains(required));
+    }
+}
+
+#[test]
+fn bounded_http_client_lesson_exposes_authority_limits_and_terminal_evidence() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-http-client")
+        .expect("bounded HTTP client lesson is selectable");
+    assert_eq!(lesson["runnability"]["state"], "contract-only");
+    assert_eq!(lesson["runnability"]["proof"], "resolver-rejection");
+    assert_eq!(lesson["expected_diagnostic"], "CND-IMP-001");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        ["net/http/fetch", "net/http/request/literal"]
+            .into_iter()
+            .collect()
+    );
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "numeric_address",
+        "dns_observation",
+        "network_resource",
+        "grant",
+        "tls_policy",
+        "redirect",
+        "request_commit",
+        "body_chunk",
+        "cancellation",
+        "cleanup",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    for required in [
+        "request-literal-standalone",
+        "request-client-composition",
+        "redirect-and-downgrade",
+        "cancel-partial-provider-loss",
+        "browser-unsupported",
+    ] {
+        assert!(
+            scenarios.iter().any(|scenario| scenario["id"] == required),
+            "lesson includes {required}"
+        );
     }
 }
 
