@@ -2602,7 +2602,7 @@
           "request.method:GET|HEAD|POST|PUT|DELETE|PATCH",
           "request.scheme:http|https",
           "request.target:absolute-path",
-          "client.redirect_policy:return|follow-same-authority|follow-granted-authorities",
+          "client.redirect_policy:return|same-authority|granted-authorities",
           "client.maximum_response_body_bytes:1..1048576",
           "client.deadline_ticks:1..10000",
           "client.cancellation:abort-and-cleanup"

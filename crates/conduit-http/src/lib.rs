@@ -2527,7 +2527,16 @@ fn validate_http_fetch_config(node: &conduit_panel::Node) -> Result<(), Resoluti
             message: "HTTP client cancellation policy is invalid".to_owned(),
         });
     }
-    parse_redirect_policy(required_resolution_config(node, "redirect_policy")?)?;
+    if parse_redirect_policy(required_resolution_config(node, "redirect_policy")?)?
+        != client::RedirectPolicy::Return
+    {
+        return Err(ResolutionError {
+            code: "CND-HTTP-CL-017",
+            message:
+                "checked Linux loopback provider supports the explicit return-redirect policy only"
+                    .to_owned(),
+        });
+    }
     http_client_limits_resolution(node)?;
     Ok(())
 }

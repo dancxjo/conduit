@@ -45,6 +45,13 @@ fn http_client_exact_plan_pins_provider_resource_grant_and_limits() {
         client.artifact.as_str(),
         "conduit/http-linux-client-artifact"
     );
+    assert_eq!(client.host.as_str(), "conduit/conduct-host");
+    assert!(
+        client
+            .required_resources
+            .iter()
+            .any(|resource| resource.as_str() == conduit_http::HTTP_CLIENT_LOOPBACK_RESOURCE)
+    );
     let authority = plan
         .authorities
         .iter()
@@ -64,6 +71,22 @@ fn http_client_exact_plan_pins_provider_resource_grant_and_limits() {
     assert!(profile.limits.max_pending_operations > 0);
     assert!(profile.limits.max_input_bytes > 0);
     assert!(profile.limits.max_output_bytes > 0);
+}
+
+#[test]
+fn hosted_http_client_rejects_an_unsupported_redirect_profile_before_execution() {
+    let source = fs::read_to_string(root().join("examples/http-client-loopback.panel"))
+        .unwrap()
+        .replace(
+            "redirect_policy = \"return\"",
+            "redirect_policy = \"same-authority\"",
+        );
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
+    let error = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .err()
+        .expect("unsupported hosted redirect policy fails during resolution");
+    assert_eq!(error.code, "CND-HTTP-CL-017");
 }
 
 #[test]
