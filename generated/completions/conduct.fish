@@ -1,6 +1,6 @@
 # Print an optspec for argparse to handle cmd's options that are independent of any subcommand.
 function __fish_conduct_global_optspecs
-    string join \n check explain run format= diagnostic-format= color= q/quiet v verbose-diagnostics compile-input= compatibility-demo enable-file-write enable-file-watch enable-storage-cache enable-media-ffmpeg enable-media-sox enable-process-exec enable-socket-loopback enable-http-client-loopback h/help V/version
+    string join \n check explain run format= diagnostic-format= color= q/quiet v verbose-diagnostics compile-input= compatibility-demo enable-file-write enable-file-watch enable-storage-cache enable-process-exec enable-socket-loopback enable-http-client-loopback h/help V/version
 end
 
 function __fish_conduct_needs_command
@@ -43,8 +43,6 @@ complete -c conduct -n "__fish_conduct_needs_command" -l compatibility-demo -d '
 complete -c conduct -n "__fish_conduct_needs_command" -l enable-file-write -d 'Explicitly install the bounded example file-write provider'
 complete -c conduct -n "__fish_conduct_needs_command" -l enable-file-watch -d 'Explicitly install the bounded example file-watch provider'
 complete -c conduct -n "__fish_conduct_needs_command" -l enable-storage-cache -d 'Explicitly install the bounded evictable blob-cache provider'
-complete -c conduct -n "__fish_conduct_needs_command" -l enable-media-ffmpeg -d 'Explicitly install the bounded FFmpeg-overlapping media providers'
-complete -c conduct -n "__fish_conduct_needs_command" -l enable-media-sox -d 'Explicitly install the bounded SoX-overlapping media providers'
 complete -c conduct -n "__fish_conduct_needs_command" -l enable-process-exec -d 'Explicitly install the bounded closed-inventory process provider'
 complete -c conduct -n "__fish_conduct_needs_command" -l enable-socket-loopback -d 'Explicitly install the bounded numeric-loopback socket providers'
 complete -c conduct -n "__fish_conduct_needs_command" -l enable-http-client-loopback -d 'Explicitly install the bounded numeric-loopback HTTP client provider'

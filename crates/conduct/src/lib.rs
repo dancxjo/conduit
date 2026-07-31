@@ -282,14 +282,6 @@ pub struct Arguments {
     #[arg(long)]
     pub enable_storage_cache: bool,
 
-    /// Explicitly install the bounded FFmpeg-overlapping media providers.
-    #[arg(long)]
-    pub enable_media_ffmpeg: bool,
-
-    /// Explicitly install the bounded SoX-overlapping media providers.
-    #[arg(long)]
-    pub enable_media_sox: bool,
-
     /// Explicitly install the bounded closed-inventory process provider.
     #[arg(long)]
     pub enable_process_exec: bool,
