@@ -171,7 +171,8 @@ if (hostReport.ok === false) {
   throw new Error(`${hostReport.code}:${hostReport.detail}`);
 }
 
-let current = lessons.lessons[0];
+let current = lessons.lessons.find((lesson) => lesson.id === "welcome.hello-panel")
+  || lessons.lessons[0];
 let acceptedSource = "";
 let selectedNode = null;
 let selectedCord = null;
