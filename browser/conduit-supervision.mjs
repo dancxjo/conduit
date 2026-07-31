@@ -2,7 +2,7 @@
 // It consumes an exact finite binding and never discovers actions, mutates a
 // plan, acquires authority, or treats domain values as terminal observations.
 
-export const SUPERVISION_CONTRACT_VERSION = 1;
+export const SUPERVISION_CONTRACT_VERSION = 0;
 
 export const SupervisionReason = Object.freeze({
   InvalidContract: "CND-SUP-001",

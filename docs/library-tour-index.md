@@ -118,7 +118,3 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `time/timer` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.timer.standalone (required) | tour/lessons/current.json#library.time.timer.composition (required) |
 | `time/window` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.window.standalone (required) | tour/lessons/current.json#library.time.window.composition (required) |
 | `transport/zenoh` | optional-host-boundary | `conduit.host.transport` | 0 | tour/lessons/current.json#library.transport.zenoh.standalone (required) | tour/lessons/current.json#library.transport.zenoh.composition (required) |
-
-## Removed duplicate/provisional spellings
-
-- `flow/{tee,merge,zip,gate,select}` is removed. Its exact replacement uses the corresponding `conduit.std/*` identity; no compatibility alias remains active.

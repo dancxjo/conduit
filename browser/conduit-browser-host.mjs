@@ -1,8 +1,8 @@
-// Browser host adapter v1. This module deliberately has no DOM or Patchbay
+// Current browser host adapter. This module deliberately has no DOM or Patchbay
 // dependency: a browser can be an execution host and a presentation client at
 // the same time, but those are separate identities.
 
-export const BROWSER_HOST_SCHEMA_VERSION = 1;
+export const BROWSER_HOST_SCHEMA_VERSION = 0;
 
 export const PermissionState = Object.freeze({
   Granted: "granted",

@@ -119,8 +119,8 @@ pub fn run(
 
     // REQUEST struct: magic(4s), version(H), nonce(16s), plan(32s), max_decisions(I)
     let mut request = Vec::with_capacity(58);
-    request.extend_from_slice(b"CNH1");
-    request.extend_from_slice(&1u16.to_be_bytes()); // PROTOCOL_VERSION = 1
+    request.extend_from_slice(b"CNH0");
+    request.extend_from_slice(&0u16.to_be_bytes());
     request.extend_from_slice(&nonce);
     request.extend_from_slice(&expected_plan);
     request.extend_from_slice(&opts.maximum_decisions.to_be_bytes());
@@ -151,7 +151,7 @@ pub fn run(
 
         let written = unsafe { libc::write(fd, request.as_ptr() as *const _, request.len()) };
         if written < 0 || written as usize != request.len() {
-            return Err("failed to write complete CNH1 request to serial port".into());
+            return Err("failed to write complete CNH0 request to serial port".into());
         }
 
         let deadline =
@@ -207,7 +207,7 @@ pub fn run(
         let decisions = u32::from_be_bytes(header_buf[143..147].try_into().unwrap());
         let count = u16::from_be_bytes(header_buf[147..149].try_into().unwrap());
 
-        if magic != b"CNR1"
+        if magic != b"CNR0"
             || version != 1
             || response_nonce != nonce
             || plan != expected_plan
@@ -255,7 +255,7 @@ pub fn run(
             let value_length = u16::from_be_bytes(ev_buf[90..92].try_into().unwrap()) as usize;
             let val_bytes = &ev_buf[92..108];
 
-            if ev_magic != b"CNE1"
+            if ev_magic != b"CNE0"
                 || ev_version != 1
                 || ev_nonce != nonce
                 || ev_plan != expected_plan

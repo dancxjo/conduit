@@ -10,12 +10,12 @@ lint:
 test:
     cargo test --workspace
     cargo run -p conduit-conformance -- reference conformance/current/manifest.json
-    python3 conformance/c1/verify_canonical_v1.py
+    cargo xtask verify-canonical
 
 embedded:
     cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
     cargo check -p conduit-embedded --target thumbv6m-none-eabi
-    python3 tools/embedded_gate.py
+    cargo xtask embedded-gate
 
 msrv:
     cargo +1.85.0 check --workspace --all-targets
@@ -29,7 +29,7 @@ cli-assets-check:
     cargo run -p conduct --bin generate-conduct-assets -- --check
 
 perf:
-    python3 tools/performance_gate.py
+    cargo xtask performance-gate
 
 sup: fmt lint test embedded perf
 

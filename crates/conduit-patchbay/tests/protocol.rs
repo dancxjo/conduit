@@ -81,6 +81,12 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
 fn library_catalog_projection_rejects_duplicate_and_observation_claims() {
     let mut document: serde_json::Value =
         serde_json::from_str(include_str!("../../../library/catalog.json")).unwrap();
+    document["schema_version"] = 1.into();
+    let error = project_library_catalog(&document.to_string()).unwrap_err();
+    assert_eq!(error.code, "CND-PBY-014");
+
+    let mut document: serde_json::Value =
+        serde_json::from_str(include_str!("../../../library/catalog.json")).unwrap();
     let first = document["entries"][0]["semantic_identity"]
         .as_str()
         .unwrap()

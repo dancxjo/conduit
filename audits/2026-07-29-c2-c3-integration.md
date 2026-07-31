@@ -1,34 +1,44 @@
-# C2/C3 semantic-kernel and authoring integration audit
+# Historical record: C2/C3 semantic-kernel and authoring integration audit
+
+> **Historical record — non-normative.**
+>
+> Audit date: 2026-07-29. Audited baseline:
+> `b65e377009e3cad8f23401f39fd118700efcb37b`.
+>
+> This file records conclusions and vocabulary used at that exact baseline.
+> Its schema numbers, “frozen” claims, compatibility tables, sequencing
+> instructions, and command transcript do not describe the current repository
+> and must not guide implementation. The current one-draft policy is
+> [pre-release versioning](../docs/pre-release-versioning.md): migrate owned
+> artifacts once, replace unreleased drafts in place, and delete displaced
+> readers, writers, aliases, migrators, hash domains, fixtures, and fallbacks.
 
 Issue: [#53](https://github.com/dancxjo/conduit/issues/53)
-
-Audit date: 2026-07-29
-
-Audited baseline: `b65e377009e3cad8f23401f39fd118700efcb37b`
 
 Conformance baseline: `conduit.conformance`, manifest revision 4,
 13 suites, 206 normative cases
 
-## Decision
+## Decision recorded at the audited baseline
 
-The C2 semantic kernel is internally coherent and remains suitable as the
+At that baseline, the C2 semantic kernel appeared internally coherent and suitable as the
 portable foundation for later implementation and scheduler contracts. The C3
 diagnostic boundary is also coherent. No second graph, compatibility,
 diagnostic, plan, or evidence model is needed.
 
-The authoring-to-planning boundary is not completely frozen. Two findings need
-versioned downstream work:
+The audit identified two authoring-to-planning findings and assigned them to
+then-future work:
 
 1. selected-root state currently participates in the authored source hash, and
    the lowered source omits plan-relevant topology and `using` constraints;
-   [#64](https://github.com/dancxjo/conduit/issues/64) owns the versioned
+   [#64](https://github.com/dancxjo/conduit/issues/64) was assigned the
    correction;
 2. port-group member spans, complete-contract validation, explicit maxima,
    exports, and evidence identity need reconciliation by
    [#44](https://github.com/dancxjo/conduit/issues/44).
 
-These findings do not justify changing the meaning of any frozen v1 artifact.
-They do constrain downstream sequencing:
+The audit then treated unreleased repository drafts as compatibility
+commitments. That interpretation was superseded by #191 and created no
+released obligation. The following status notes are historical only:
 
 - **#44 is authorized to proceed** as the owning semantic reconciliation
   ticket, subject to the findings below and #64's corrected lowering boundary.
@@ -108,10 +118,10 @@ or boundary coverage.
 | #15 | all literals/defaults/imports/groups/pools | unknown/missing/mistyped/provider errors | integer limits, protected binding, source origins | map/default/definition format equivalence | nested secret smuggling and protected literal echo attempts |
 | #16 | human/ANSI/JSON render and guarded fixes | stale fix and provider indeterminacy | redaction, multi-file, non-UTF-8 bytes | JSON/fix round trip | malformed schema/spans/fixes, overlapping edits, protected argument leakage |
 
-## Persisted field inventory
+## Historical persisted field inventory
 
-This inventory is the compatibility surface downstream issues must reference
-rather than duplicate:
+This table records fields observed at the audited baseline. It is not a current
+compatibility surface or an instruction to retain a displaced draft:
 
 | Record | Persisted semantic fields |
 |---|---|
@@ -129,9 +139,12 @@ rather than duplicate:
 | lowered source | node path/contract/config/provenance/hash, group member/direction/maximum/port hash/origin, pool policies/bounds/template/hash/origin, source map, aggregate hash; missing topology/constraints are A1 |
 | `Diagnostic` | schema/code/severity/message, primary/related spans, public or redacted arguments, notes/help, guarded unapplied fixes, semantic path, causal codes |
 
-## Persisted schema and compatibility commitments
+## Superseded schema and compatibility claims
 
-| Identity or record | Version/domain | Compatibility commitment |
+The third column records claims made by the audit at the time. None created a
+release obligation, and none overrides the current-draft policy.
+
+| Identity or record | Historical version/domain | Claim recorded at the baseline |
 |---|---|---|
 | canonical descriptor bytes | `conduit.canonical` | byte-for-byte frozen vectors; annotations/default elision do not become semantic |
 | type reference | three-field reference version 1 | exact ID, schema revision, and semantic hash; no version-number inference |
@@ -149,9 +162,9 @@ rather than duplicate:
 
 ## Findings and owners
 
-### A1 — versioned authoring-boundary correction
+### A1 — authoring-boundary correction recorded at the baseline
 
-Classification: **versioned schema correction**
+Historical classification: **schema correction**
 
 Evidence:
 
@@ -171,14 +184,14 @@ Impact: caller root choice can alter authored source identity, while
 plan-relevant topology or `using` changes can disappear at the lowering
 boundary.
 
-Owner: [#64](https://github.com/dancxjo/conduit/issues/64), coordinated with
-#44 and #61. Frozen v1 meaning is retained; the correction must be explicitly
-versioned with migration fixtures.
+Historical owner: [#64](https://github.com/dancxjo/conduit/issues/64),
+coordinated with #44 and #61. The audit's instruction to retain and version
+the unreleased form is superseded; it created no current reader or migration
+obligation.
 
 ### A2 — port-group reconciliation
 
-Classification: **missing validation/fixture and versioned plan correction if
-the explicit maximum cannot be added compatibly**
+Historical classification: **missing validation/fixture and plan correction**
 
 Evidence:
 
@@ -196,9 +209,9 @@ Evidence:
 Impact: grammar-v1 forms are finite, but #44's complete semantic contract is
 not yet proven.
 
-Owner: [#44](https://github.com/dancxjo/conduit/issues/44). It must preserve
-grammar-v1 meaning and use a versioned plan correction if explicit maximum or
-identity fields cannot be added without changing schema 1.
+Historical owner: [#44](https://github.com/dancxjo/conduit/issues/44). The
+audit's instruction to preserve the unreleased grammar and add a versioned
+correction is superseded by replacement-in-place policy.
 
 ### A3 — implementation execution profile is downstream plan data
 
@@ -210,10 +223,10 @@ current plan has no distinct representation identity or exact limits for
 retained values, per-step scratch, simultaneous leases/reservations, tasks,
 pending host operations, or foreign-runtime queues.
 
-Owner: [#56](https://github.com/dancxjo/conduit/issues/56). It may define a
-versioned implementation execution-profile descriptor and plan reference. It
-must not add language/runtime fields to `PortContract`, `TypeContractRef`, or
-semantic node contracts.
+Historical owner: [#56](https://github.com/dancxjo/conduit/issues/56). The
+semantic separation from `PortContract`, `TypeContractRef`, and semantic node
+contracts remains a design fact; the versioning direction in this snapshot is
+not current policy.
 
 ### A4 — scheduler sequencing
 
@@ -284,10 +297,11 @@ checks without changing any persisted semantic data.
 | core privileges no language, ABI, async framework, host, transport, or backend | **Pass.** `conduit-core` remains borrowed, allocator-free, `no_std`, and domain-neutral. |
 | canonical `conduct [--check\|--explain\|--run] [PANEL\|-]` remains intact | **Pass.** check, explain, explicit run, default run, stdin, diagnostic stderr, and clean value stdout were exercised. |
 
-## Validation record
+## Historical validation transcript
 
-All commands passed on the final audit change from a clean linked worktree with
-no carried repository-local generated artifacts:
+The following commands passed at the audited baseline. They are a transcript,
+not current runnable operator instructions; some named paths were later
+replaced:
 
 ```text
 just sup
@@ -313,13 +327,10 @@ Direct inspection additionally covered public types and reference direction in
 `conduit-runtime`, hosted diagnostic adapters/rendering, the entire manifest,
 all C2/C3 specifications, and the frozen fixture representatives.
 
-## Freeze outcome
+## Historical outcome
 
-The existing C2 schemas and #16 diagnostic schema are frozen at their stated
-v1 meanings. Downstream work may extend them only through explicit versioned
-descriptors/references and migration rules.
-
-The C3 source/lowering boundary is frozen only as a readable v1 input. It is
-not approved as the complete planning boundary until #64 and the relevant #44
-findings land. This is a controlled versioned correction, not permission to
-reinterpret existing source or fixture identities.
+The audit originally described several unreleased forms as frozen and
+readable. #191 superseded that conclusion before Conduit's first release.
+Current code and artifacts retain one schema-0 form only; Git history preserves
+the abandoned drafts. Exact semantic identity and substitution facts remain
+product behavior, not draft-reader obligations.

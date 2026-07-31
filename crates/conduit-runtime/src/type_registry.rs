@@ -73,7 +73,7 @@ pub trait TypeContractProvider {
 ///
 /// The report does not apply adapters or turn provider observations into
 /// authority. A hosted resolver can use these stable inputs to construct the
-/// portable `SatisfactionProof` pinned by plan schema 7.
+/// portable `SatisfactionProof` pinned by the current plan schema.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TypeSatisfactionReport<'a> {
     pub decision: CompatibilityDecision<'a>,

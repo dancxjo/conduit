@@ -46,6 +46,7 @@ pub struct LibraryLessonProjection {
 #[derive(Deserialize)]
 struct LibraryCatalogDocument {
     schema: String,
+    schema_version: u32,
     entries: Vec<LibraryCatalogDocumentEntry>,
 }
 
@@ -74,6 +75,7 @@ pub fn project_library_catalog(json: &str) -> Result<LibraryCatalogProjection, P
     let document: LibraryCatalogDocument = serde_json::from_str(json)
         .map_err(|_| rejected("CND-PBY-014", "invalid library catalog document"))?;
     if document.schema != "conduit.library-catalog"
+        || document.schema_version != 0
         || document.entries.len() > MAXIMUM_LIBRARY_CATALOG_ENTRIES
     {
         return Err(rejected(

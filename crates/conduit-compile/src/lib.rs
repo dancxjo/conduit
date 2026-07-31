@@ -947,8 +947,8 @@ pub struct PoolBindingDocument {
     pub worst_case_budget: BudgetDocument,
     pub child_nodes: u16,
     pub child_cords: u16,
-    /// Host-resolved runtime reservation facts. Required for pool plans at
-    /// schema 16; absent only while reading current pre-runtime inputs.
+    /// Host-resolved runtime reservation facts. Required for current pool
+    /// plans; absent only in pre-runtime inputs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime: Option<PoolRuntimeBindingDocument>,
 }
@@ -3595,7 +3595,7 @@ fn compile_topology(
             cooldown_timer: id(&binding.cooldown_timer)?,
         });
     }
-    // This v1 compile-input/document workflow has no field for live
+    // The current compile-input/document workflow has no field for live
     // distributed-session requirements. Fail closed instead of emitting an
     // plan whose cross-host cord would have hidden transport semantics. A
     // planner using the current core API must supply an exact

@@ -281,7 +281,7 @@ pub enum ConfigContractIdentityError<'a> {
     InvalidCanonicalField(Id<'a>),
     /// Two fields unexpectedly produced one exact identity.
     DuplicateFieldIdentity,
-    /// The field count cannot fit canonical form version 1.
+    /// The field count cannot fit the current canonical form.
     LengthOverflow,
 }
 

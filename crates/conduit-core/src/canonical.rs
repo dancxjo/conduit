@@ -69,7 +69,7 @@ pub struct MapField<'a> {
     pub disposition: FieldDisposition<'a>,
 }
 
-/// Encoding-independent abstract value accepted by canonical form version 1.
+/// Encoding-independent abstract value accepted by the current canonical form.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CanonicalValue<'a> {
     /// Null.
@@ -112,7 +112,7 @@ pub enum CanonicalError<E> {
     DuplicateMapKey,
     /// Two set members are canonically equal.
     DuplicateSetValue,
-    /// A collection or byte string cannot be represented by the v1 length.
+    /// A collection or byte string cannot be represented by the bounded length.
     LengthOverflow,
     /// Nested collections exceed [`MAX_CANONICAL_DEPTH`].
     NestingTooDeep,
@@ -162,7 +162,7 @@ impl fmt::Display for SemanticHash {
 }
 
 impl CanonicalDescriptor<'_> {
-    /// Streams the canonical v1 descriptor bytes.
+    /// Streams the current canonical descriptor bytes.
     pub fn write_canonical<S: CanonicalSink>(
         &self,
         sink: &mut S,

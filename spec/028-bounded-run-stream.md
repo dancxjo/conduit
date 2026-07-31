@@ -4,21 +4,18 @@ Status: C3/C4 normative hosted transport and presentation contract
 
 Run-stream schema marker: `0`
 
-This document corrects the compatibility-channel framing introduced by
+This document defines the current channel framing introduced alongside
 specification 020. It preserves presentation bytes, semantic values, executor
 transactions, immutable evidence, diagnostics, and status as distinct facts.
 It does not infer a value, event, node, port, type, or transaction from an
 implementation `Read` or `Write` boundary.
 
-## current form withdrawal
+## Current form
 
-`conduit.run` remains current in specification 020 and
-`conformance/c3/conduct-output.json` as the exact pre-release contract that
-called an arbitrary process write a `record = "value"`. Conduit deliberately
-withdraws that writer before a release rather than silently changing version
-1. Current `conduct --run --format=ndjson` output is exclusively
-`conduit.run`. Readers recognize current only to reject it as withdrawn and
-reject every other unsupported schema/version combination without fallback.
+Current `conduct --run --format=ndjson` output is exclusively `conduit.run`
+schema `0`. Its only process-stream representation is the nonsemantic
+`channel_chunk` record defined below. Every other schema/name combination is
+unsupported; no displaced reader or writer is retained.
 
 Finite `conduit.result`, diagnostics, human output, and the ordinary
 `conduct [--check|--explain|--run] [PANEL|-]` interface are unchanged.
@@ -28,7 +25,7 @@ Finite `conduit.result`, diagnostics, human output, and the ordinary
 Every compact newline-terminated record contains:
 
 - `schema = "conduit.run"`;
-- `schema_version = 2`;
+- `schema_version = 0`;
 - a zero-based contiguous global `sequence`; and
 - an explicit `record` discriminator.
 
@@ -40,15 +37,15 @@ with stable reason `run-stream-sequence-overflow`.
 Diagnostics, terminal status, and progress remain on stderr under
 specifications 016, 018, and 020. They are never run-stream records.
 
-## Bounded compatibility channel chunks
+## Bounded channel chunks
 
-Displaced runtime stdout and stderr writes become `channel_chunk` records:
+Runtime stdout and stderr writes become `channel_chunk` records:
 
 ```json
 {"schema":"conduit.run","schema_version":0,"sequence":7,"record":"channel_chunk","channel":"stdout","encoding":"hex","payload_bytes":3,"payload_hex":"616263"}
 ```
 
-The hosted compatibility limits are:
+The hosted channel limits are:
 
 | Quantity | Maximum |
 |---|---:|
@@ -81,8 +78,8 @@ is retained without claiming a clock or scheduler order.
 
 ## Structured executor records
 
-Typed publications and immutable evidence do not pass through the
-compatibility channel writer. They use dedicated methods on the outer stream
+Typed publications and immutable evidence do not pass through the channel
+writer. They use dedicated methods on the outer stream
 and arrive from executor-owned transactions or observations.
 
 The current implementation provides a direct `execution_event` path accepting the
@@ -118,26 +115,26 @@ termination with no diagnostic. Every other output failure remains
 `CND-IO-002` on diagnostic stderr. No recovery path appends another record
 after a non-broken output failure.
 
-## Conformance and migration
+## Conformance
 
 `conformance/c3/conduct-run-stream.json` freezes limits, split and
 coalesced reconstruction, nonsemantic classification, global interleaving,
 arithmetic boundaries, partial failures, clean machine stdout, direct
 structured evidence, and version policy.
 
-The historical current fixture is unchanged. This is intentional evidence of the
-withdrawn contract, not a second supported writer. Migrating a consumer means
-selecting current and treating `channel_chunk` only as compatibility I/O. A
-consumer that needs semantic publications or evidence must select the
-corresponding structured discriminator and validate its nested identity.
+The fixture includes rejected nonzero and foreign-name inputs, but only schema
+`0` is a current artifact. A consumer treats `channel_chunk` only as
+nonsemantic process I/O. A consumer that needs semantic publications or
+evidence selects the corresponding structured discriminator and validates its
+nested identity.
 
 ## Normative requirements
 
 | ID | Obligation |
 |---|---|
 | RUN-001 | Emit current run NDJSON exclusively as tagged `conduit.run` records |
-| RUN-002 | Preserve current bytes as historical fixtures while explicitly rejecting the withdrawn writer |
-| RUN-003 | Represent compatibility stdout/stderr writes only as nonsemantic `channel_chunk` records |
+| RUN-002 | Accept only schema `0` and reject every other outer schema/name combination |
+| RUN-003 | Represent stdout/stderr writes only as nonsemantic `channel_chunk` records |
 | RUN-004 | Limit decoded chunks to 4,096 bytes, hex payloads to 8,192 bytes, and serialized channel records to 8,448 bytes |
 | RUN-005 | Check sequence, multiplication, serialized-size, and write-count arithmetic before committing output |
 | RUN-006 | Split large writes without staging or allocating in proportion to the arbitrary whole input slice |

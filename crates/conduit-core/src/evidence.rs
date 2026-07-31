@@ -8,10 +8,10 @@ use crate::{
     InstancePath, MapField, SemanticHash, Sensitivity, TerminalClass, TypeContractRef,
 };
 
-/// Exact event-envelope schema supported by the v1 validator.
+/// Exact event-envelope schema supported by the current validator.
 pub const EXECUTION_EVENT_SCHEMA_VERSION: u32 = 0;
 
-/// Maximum direct derivation inputs in the allocator-free v1 envelope.
+/// Maximum direct derivation inputs in the current allocator-free envelope.
 pub const MAX_EVENT_DERIVATIONS: usize = 16;
 
 /// Clock category. Its named basis is carried separately.

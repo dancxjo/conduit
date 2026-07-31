@@ -294,7 +294,7 @@ impl Presence {
 }
 
 impl PortContract<'_> {
-    /// Streams the stable version 1 port descriptor.
+    /// Streams the current port descriptor.
     pub fn write_canonical<S: CanonicalSink>(
         &self,
         sink: &mut S,
@@ -516,7 +516,7 @@ pub fn assess_port_connection<'a>(
 /// Assesses whether a candidate same-direction port preserves a required port.
 ///
 /// The caller supplies the type decision in the variance direction required by
-/// `COM-008`. Other v1 semantic fields use conservative directional rules.
+/// `COM-008`. Other current semantic fields use conservative directional rules.
 #[must_use]
 pub fn assess_port_substitution<'a>(
     required: PortContract<'a>,

@@ -10,7 +10,7 @@ use crate::{
     TerminalCauseCode, TypeContractRef,
 };
 
-/// Maximum constraint references in the allocator-free v1 descriptor.
+/// Maximum constraint references in the current allocator-free descriptor.
 pub const MAX_AUTHORITY_CONSTRAINTS: usize = 8;
 
 /// One concrete host resource.
@@ -39,7 +39,7 @@ pub struct AuthorityConstraintRef<'a> {
 pub struct EffectRequirement<'a> {
     pub id: Id<'a>,
     /// Domain-owned class requiring administrative containment. `None` is an
-    /// ordinary effect and preserves the v1 requirement identity.
+    /// ordinary effect and preserves the current requirement identity.
     pub administrative_class: Option<PinnedDescriptor<'a>>,
     /// Domain-owned class selecting one or more persistent governance budgets.
     /// `None` preserves the earlier requirement identity.

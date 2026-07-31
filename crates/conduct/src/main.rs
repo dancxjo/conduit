@@ -1678,12 +1678,12 @@ mod tests {
             );
             assert!(
                 !expected["cursor_control"].as_bool().unwrap(),
-                "{case_id}: version 1 never emits cursor control"
+                "{case_id}: current presentation never emits cursor control"
             );
             if let Some(spinner) = expected.get("spinner") {
                 assert!(
                     !spinner.as_bool().unwrap(),
-                    "{case_id}: version 1 has no spinner"
+                    "{case_id}: current presentation has no spinner"
                 );
             }
         }

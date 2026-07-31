@@ -1381,7 +1381,7 @@ impl HilRequest {
     pub const ENCODED_BYTES: usize = 58;
 
     pub fn encode(&self, output: &mut [u8; Self::ENCODED_BYTES]) {
-        output[..4].copy_from_slice(b"CNH1");
+        output[..4].copy_from_slice(b"CNH0");
         output[4..6].copy_from_slice(&self.protocol_version.to_be_bytes());
         output[6..22].copy_from_slice(&self.nonce);
         output[22..54].copy_from_slice(self.expected_plan_hash.as_bytes());
@@ -1390,7 +1390,7 @@ impl HilRequest {
 
     pub fn decode(input: &[u8; Self::ENCODED_BYTES]) -> Result<Self, EmbeddedError> {
         let protocol_version = u16::from_be_bytes([input[4], input[5]]);
-        if &input[..4] != b"CNH1" || protocol_version != HIL_PROTOCOL_VERSION {
+        if &input[..4] != b"CNH0" || protocol_version != HIL_PROTOCOL_VERSION {
             return Err(EmbeddedError::UnsupportedHilProtocol);
         }
         let mut nonce = [0; 16];
@@ -1453,7 +1453,7 @@ impl HilRunHeader {
     pub const ENCODED_BYTES: usize = 149;
 
     pub fn encode(&self, output: &mut [u8; Self::ENCODED_BYTES]) {
-        output[..4].copy_from_slice(b"CNR1");
+        output[..4].copy_from_slice(b"CNR0");
         output[4..6].copy_from_slice(&self.protocol_version.to_be_bytes());
         output[6..22].copy_from_slice(&self.nonce);
         output[22..54].copy_from_slice(self.plan_hash.as_bytes());
@@ -1468,7 +1468,7 @@ impl HilRunHeader {
 
     pub fn decode(input: &[u8; Self::ENCODED_BYTES]) -> Result<Self, EmbeddedError> {
         let protocol_version = u16::from_be_bytes([input[4], input[5]]);
-        if &input[..4] != b"CNR1" || protocol_version != HIL_PROTOCOL_VERSION {
+        if &input[..4] != b"CNR0" || protocol_version != HIL_PROTOCOL_VERSION {
             return Err(EmbeddedError::UnsupportedHilProtocol);
         }
         let mut nonce = [0; 16];
@@ -1511,7 +1511,7 @@ impl HilEventFrame {
     pub const ENCODED_BYTES: usize = 108;
 
     pub fn encode(&self, output: &mut [u8; Self::ENCODED_BYTES]) -> Result<(), EmbeddedError> {
-        output[..4].copy_from_slice(b"CNE1");
+        output[..4].copy_from_slice(b"CNE0");
         output[4..6].copy_from_slice(&HIL_PROTOCOL_VERSION.to_be_bytes());
         output[6..22].copy_from_slice(&self.nonce);
         output[22..54].copy_from_slice(self.event.plan.as_bytes());
@@ -1540,7 +1540,7 @@ impl HilEventFrame {
     }
 
     pub fn decode(input: &[u8; Self::ENCODED_BYTES]) -> Result<Self, EmbeddedError> {
-        if &input[..4] != b"CNE1"
+        if &input[..4] != b"CNE0"
             || u16::from_be_bytes([input[4], input[5]]) != HIL_PROTOCOL_VERSION
         {
             return Err(EmbeddedError::UnsupportedHilProtocol);

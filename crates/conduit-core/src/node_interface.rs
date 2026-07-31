@@ -24,7 +24,7 @@ pub const NODE_INTERFACE_CONTRACT_SCHEMA_VERSION: u32 = 0;
 /// Exact schema of a node-interface satisfaction proof.
 pub const NODE_INTERFACE_PROOF_SCHEMA_VERSION: u32 = 0;
 
-/// Portable bound on members in one version-1 interface.
+/// Portable bound on members in one current interface.
 pub const MAX_NODE_INTERFACE_MEMBERS: usize = 64;
 
 /// Portable bound on non-port semantic requirements in one interface.
@@ -117,13 +117,13 @@ pub struct NodeInterfaceContract<'a> {
     pub members: &'a [NodeInterfaceMember<'a>],
     /// Finite exact configuration, lifecycle, effect, or provider-owned facts.
     ///
-    /// An empty slice explicitly defers all such facets in schema version 1;
+    /// An empty slice explicitly defers all such facets in the current schema;
     /// the resulting proof makes no claim about them.
     pub requirements: &'a [NodeInterfaceRequirement<'a>],
 }
 
 impl<'a> NodeInterfaceContract<'a> {
-    /// Validates version-1 interface invariants.
+    /// Validates current interface invariants.
     pub fn validate(&self) -> Result<(), NodeInterfaceContractError<'a>> {
         validate_namespaced_id(self.id)?;
         if self.members.len() > MAX_NODE_INTERFACE_MEMBERS {
