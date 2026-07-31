@@ -223,6 +223,11 @@ export class PatchbayReactFlowRenderer {
     this.flowWrapper.id = "patchbay-flow-root";
     this.flowWrapper.className = "patchbay-flow-container";
     this.container.appendChild(this.flowWrapper);
+    this.liveRunStatus = document.createElement("p");
+    this.liveRunStatus.className = "patchbay-live-run-status";
+    this.liveRunStatus.setAttribute("role", "status");
+    this.liveRunStatus.setAttribute("aria-live", "polite");
+    this.container.appendChild(this.liveRunStatus);
     import("./patchbay-smart-edge.js")
       .then((legacy) => {
         this.legacySmartEdge = legacy.PatchbaySmartEdge || null;
@@ -243,6 +248,7 @@ export class PatchbayReactFlowRenderer {
     this.viewModel = viewModel;
     this.lessonId = lessonId;
     this.topologyView = topologyView;
+    this.updateRunPresentation(viewModel);
     const renderIdentity = JSON.stringify([
       viewModel?.source?.identity,
       viewModel?.source?.revision,
@@ -261,6 +267,33 @@ export class PatchbayReactFlowRenderer {
     if (renderIdentity === this.lastRenderIdentity) return;
     this.lastRenderIdentity = renderIdentity;
     this.renderFlow();
+  }
+
+  updateRunPresentation(viewModel) {
+    if (!this.flowWrapper) return;
+    const run = viewModel?.run;
+    const state = run?.state || "Prepared";
+    const sourceRevision = viewModel?.source?.revision;
+    const activeSource = run?.source_semantic_hash;
+    const candidateSource = viewModel?.semantic?.source_semantic_hash;
+    const candidateChanged = Boolean(
+      activeSource && candidateSource && activeSource !== candidateSource,
+    );
+    this.flowWrapper.dataset.runState = state.toLowerCase();
+    this.flowWrapper.dataset.activeEpoch = run?.plan_identity || "";
+    this.flowWrapper.dataset.candidateRevision = String(sourceRevision ?? "");
+    this.flowWrapper.dataset.candidateChanged = String(candidateChanged);
+    if (!this.liveRunStatus) return;
+    if (!run) {
+      this.liveRunStatus.textContent = "No exact run started.";
+      return;
+    }
+    const lifecycle = state.toLowerCase();
+    const candidate = candidateChanged
+      ? ` Candidate revision ${sourceRevision} is separate from this active epoch.`
+      : "";
+    this.liveRunStatus.textContent =
+      `Exact run ${run.run_id} is ${lifecycle}; active plan ${run.plan_identity}.${candidate}`;
   }
 
   selectNode(nodeId) {

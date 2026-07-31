@@ -1393,7 +1393,7 @@ impl RunSnapshot {
         } else if events.is_empty() {
             RunState::Prepared
         } else {
-            RunState::Running
+            RunState::Active
         };
         Ok(Self {
             run_id: run_id.to_owned(),
@@ -1407,7 +1407,12 @@ impl RunSnapshot {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum RunState {
     Prepared,
-    Running,
+    /// The exact session has runnable work.
+    Active,
+    /// The exact session is retained but has no work until an admitted wake.
+    Waiting,
+    /// The session is draining work admitted before its stop boundary.
+    Quiescing,
     Terminal,
 }
 

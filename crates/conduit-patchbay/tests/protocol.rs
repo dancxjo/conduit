@@ -345,7 +345,7 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
         run_id: "run/1".to_owned(),
         plan_identity: plan.identity,
         source_semantic_hash: plan.source_semantic_hash,
-        state: RunState::Running,
+        state: RunState::Active,
     };
     let result = workspace
         .apply(request(

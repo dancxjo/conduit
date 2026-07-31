@@ -282,6 +282,10 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(canvas).toHaveAttribute("data-legacy-line-placement", "false");
   await expect(canvas).toHaveAttribute("data-node-count", "2");
   await expect(canvas).toHaveAttribute("data-edge-count", "1");
+  await expect(canvas).toHaveAttribute("data-run-state", "prepared");
+  await expect(page.locator(".patchbay-live-run-status")).toHaveText(
+    "No exact run started.",
+  );
   await expect(page.locator(".conduit-faceplate-card")).toHaveCount(2, {
     timeout: 20_000,
   });

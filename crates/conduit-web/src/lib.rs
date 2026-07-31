@@ -546,9 +546,9 @@ fn patchbay_high_water(
 fn patchbay_run_snapshot(run: &BrowserExactRun) -> conduit_patchbay::RunSnapshot {
     let state = match browser_run_state(run) {
         ExactRunState::Terminal(_) => conduit_patchbay::RunState::Terminal,
-        ExactRunState::Active | ExactRunState::Waiting | ExactRunState::Quiescing => {
-            conduit_patchbay::RunState::Running
-        }
+        ExactRunState::Active => conduit_patchbay::RunState::Active,
+        ExactRunState::Waiting => conduit_patchbay::RunState::Waiting,
+        ExactRunState::Quiescing => conduit_patchbay::RunState::Quiescing,
     };
     conduit_patchbay::RunSnapshot {
         run_id: run.run_id.clone(),
@@ -3442,6 +3442,7 @@ cord output.value -> sink.result\n\
             .expect("start JSON");
         assert_eq!(started["ok"], true, "{started}");
         assert_eq!(started["state"], "active");
+        assert_eq!(started["view"]["run"]["state"], "Active");
         let active_plan_source = started["source_semantic_hash"].clone();
 
         let replacement = serde_json::json!({

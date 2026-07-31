@@ -1115,6 +1115,27 @@ pre {
   position: relative;
 }
 
+.patchbay-live-run-status {
+  margin: 0.4rem 0 0;
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.patchbay-flow-container[data-run-state="active"] + .patchbay-live-run-status {
+  color: #86efac;
+}
+
+.patchbay-flow-container[data-run-state="waiting"] + .patchbay-live-run-status,
+.patchbay-flow-container[data-run-state="quiescing"] + .patchbay-live-run-status {
+  color: #fcd34d;
+}
+
+.patchbay-flow-container[data-run-state="terminal"] + .patchbay-live-run-status {
+  color: #cbd5e1;
+}
+
 .patchbay-flow-container > div,
 .patchbay-flow-container svg {
   width: 100%;
