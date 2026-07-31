@@ -1588,13 +1588,10 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         .map(str::to_owned)
         .collect()
     );
-    assert_eq!(accepted_boundaries.contains("native"), true);
-    assert_eq!(accepted_boundaries.contains("wasm-browser"), true);
-    assert_eq!(accepted_type_relations.contains("exact"), true);
-    assert_eq!(
-        accepted_type_relations.contains("different-explicit-adapter"),
-        true
-    );
+    assert!(accepted_boundaries.contains("native"));
+    assert!(accepted_boundaries.contains("wasm-browser"));
+    assert!(accepted_type_relations.contains("exact"));
+    assert!(accepted_type_relations.contains("different-explicit-adapter"));
     assert_eq!(rejected_profile_codes.len(), 3);
     assert_eq!(
         rejected_profile_codes.get("firmware-unsupported"),
