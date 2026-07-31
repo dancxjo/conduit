@@ -5256,7 +5256,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.domain.learned",
       "export_path": "conduit.domain.learned/learned/infer",
       "schema_version": 0,
-      "semantic_hash": "sha256:b4170046c5baa6c828227140c7171cb0a7f4837121e57b45963cd8afebcf120d",
+      "semantic_hash": "sha256:631e6e56ef9a8db06d3f16c4667642d740f22eaa76089a9e747dade3378d2758",
       "ports": [
         {
           "id": "model",
@@ -5322,6 +5322,12 @@
           "value_type": "std/text",
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "opset",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
           "key": "graph_identity",
@@ -5452,12 +5458,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.domain.learned/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.infer.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.infer.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -5471,7 +5477,7 @@
       "contract_package_artifact": "conduit.contract-package/conduit.domain.learned",
       "export_path": "conduit.domain.learned/learned/model/literal",
       "schema_version": 0,
-      "semantic_hash": "sha256:badb4d2c4461ca7f5593be76481d66dae397e41803df11d49733b6a0fb2e13c1",
+      "semantic_hash": "sha256:60e0c16ffca90c3006617d65f64431e138cae5189454c1d623c028a95b8c4a16",
       "ports": [
         {
           "id": "model",
@@ -5515,6 +5521,12 @@
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
+          "key": "opset",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
           "key": "graph_identity",
           "value_type": "std/text",
           "type_schema_version": 0,
@@ -5549,6 +5561,12 @@
           "value_type": "std/text",
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_artifact_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
       "catalog_membership": "host-registry",
@@ -5559,12 +5577,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.domain.learned/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.model.literal.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.model.literal.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -5620,12 +5638,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.domain.learned/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.tensor.inspect.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.tensor.inspect.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -5709,12 +5727,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.domain.learned/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.tensor.literal.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.learned.tensor.literal.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-learned-inference",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,

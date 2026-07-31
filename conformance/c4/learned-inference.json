@@ -9,6 +9,7 @@
   "provider_profile_identity": "sha256:feec98311a5b83c749b82f6ccaadcf5557e7791c94c3f247fc1a3cea7b1c78c9",
   "binding": {
     "format": "conduit-fixed-linear",
+    "opset": 0,
     "runtime": "conduit.learned/runtime/rust-fixed-linear",
     "device": "conduit.learned/device/cpu-reference",
     "resource": "conduit.learned/resource/cpu-reference-0",
@@ -21,6 +22,7 @@
     "tolerance": "none"
   },
   "bounds": {
+    "maximum_artifact_bytes": 64,
     "maximum_batch": 1,
     "maximum_input_bytes": 64,
     "maximum_output_bytes": 64,

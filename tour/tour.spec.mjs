@@ -1450,6 +1450,35 @@ test("PCM WAVE lesson runs exact codec and container providers", async ({ page }
   );
 });
 
+test("learned inference lesson keeps model runtime and device identities exact", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=library.bounded-learned-inference",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+
+  await expect(story).toBeVisible();
+  for (const contract of [
+    "learned/model/literal",
+    "learned/tensor/literal",
+    "learned/infer",
+    "learned/tensor/inspect",
+  ]) {
+    await expect(story).toContainText(contract);
+  }
+  await expect(page.locator("#scenario option")).toHaveCount(2);
+  await expect(page.locator("#runnability-state")).toContainText(
+    "runnable · browser",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText("learned:i16:1x2:[35,-3]", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#evidence")).toContainText(
+    '"event_kind": "terminal"',
+  );
+});
+
 test("value envelope platform lesson links checked admission to an exact run", async ({ page }) => {
   await page.goto(
     "/tour/public/index.html?lesson=platform.value-envelope-clock-feedback",

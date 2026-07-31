@@ -335,6 +335,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.media/audio/encode",
             _,
         ) => Some("library.bounded-media-codecs"),
+        (id, _) if id.starts_with("learned/") => Some("library.bounded-learned-inference"),
         (id, _) if id.starts_with("conduit.media/") => Some("library.bounded-media-values"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         _ => None,

@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 34] = [
+const REQUIRED_TOUR_LESSONS: [&str; 35] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -24,6 +24,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 34] = [
     "library.typed-text-format",
     "library.bounded-media-values",
     "library.bounded-media-codecs",
+    "library.bounded-learned-inference",
     "library.standard-flow-control",
     "library.bounded-state",
     "library.bounded-supervision",
@@ -380,6 +381,84 @@ fn bounded_media_codec_lesson_exposes_exact_provider_framing_and_flush_facts() {
         result["display"],
         "wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes"
     );
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+
+    let cancelled: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(cancelled["ok"], true, "{cancelled}");
+    assert_eq!(cancelled["terminal"], "cancelled");
+    assert_eq!(cancelled["stdout"], "");
+    assert_eq!(cancelled["stderr"], "");
+}
+
+#[test]
+fn bounded_learned_inference_lesson_exposes_exact_model_and_runtime_facts() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-learned-inference")
+        .expect("bounded learned inference lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "semantic_model_identity",
+        "artifact_identity",
+        "input_schema_identity",
+        "output_schema_identity",
+        "runtime_identity",
+        "device_identity",
+        "resource_identity",
+        "provider_artifact",
+        "batch",
+        "state_bytes",
+        "retained_bytes",
+        "work",
+        "determinism",
+        "tolerance",
+        "pressure",
+        "cancellation",
+        "provider_loss",
+        "error",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "learned/infer",
+            "learned/model/literal",
+            "learned/tensor/inspect",
+            "learned/tensor/literal",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(lesson["library"]["scenarios"].as_array().unwrap().len(), 2);
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(result["display"], "learned:i16:1x2:[35,-3]");
     assert_eq!(result["stdout"], "");
     assert_eq!(result["stderr"], "");
 

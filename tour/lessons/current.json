@@ -1332,6 +1332,131 @@
       }
     },
     {
+      "id": "library.bounded-learned-inference",
+      "chapter": 4,
+      "title": "Exact learned inference without ambient models",
+      "prerequisites": [
+        "platform.workload-admission-deadline",
+        "platform.cross-host-provider-conformance"
+      ],
+      "objective": "Run one content-addressed fixed-shape model through an exact runtime, device, resource, and provider binding, then compose its bounded result with an ordinary text node.",
+      "prose": "A model purpose is not its artifact bytes, and artifact bytes do not install a runtime or authorize a device. This lesson keeps the input and output schemas, batch, state, retained bytes, work, determinism, tolerance, pressure, cancellation, provider loss, and terminal evidence finite and visible.",
+      "vocabulary": [
+        "model purpose",
+        "artifact identity",
+        "tensor schema",
+        "runtime and device",
+        "resource binding",
+        "determinism tolerance"
+      ],
+      "source": "panel 0\n\nnode model : learned/model/literal {\n  fixture = \"fixed-linear-i16-2x4\"\n  semantic_model_identity = \"sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25\"\n  artifact_identity = \"sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c\"\n  format = \"conduit-fixed-linear\" opset = 0\n  graph_identity = \"sha256:604a0e059d430170f5d94f7c5275e133b1b4b8ee7f3a890e5b43fdc514c53eb9\"\n  provenance_identity = \"sha256:0124a373ef4fbfda15e53e63c791b4763887659b211e41ca1fd400399a992e59\"\n  policy_identity = \"sha256:46fca87089fe51d208ece004b58cb443861ca2a7f2714f0089c387c0f23f3fb0\"\n  license = \"CC0-1.0\"\n  input_schema_identity = \"sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988\"\n  output_schema_identity = \"sha256:9fa614c446b8791315cee5d015192640aaecbfbb385823dde094a37f19f50ae3\"\n  maximum_artifact_bytes = 64\n}\nnode input : learned/tensor/literal {\n  fixture = \"input-i16-1x4\"\n  schema_identity = \"sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988\"\n  dtype = \"i16le\" shape = \"1x4\" layout = \"row-major\"\n  maximum_output_bytes = 64 sensitivity = \"public\"\n}\nnode infer : learned/infer {\n  semantic_model_identity = \"sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25\"\n  artifact_identity = \"sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c\"\n  format = \"conduit-fixed-linear\" opset = 0\n  graph_identity = \"sha256:604a0e059d430170f5d94f7c5275e133b1b4b8ee7f3a890e5b43fdc514c53eb9\"\n  input_schema_identity = \"sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988\"\n  output_schema_identity = \"sha256:9fa614c446b8791315cee5d015192640aaecbfbb385823dde094a37f19f50ae3\"\n  runtime_identity = \"conduit.learned/runtime/rust-fixed-linear\"\n  device_identity = \"conduit.learned/device/cpu-reference\"\n  resource_identity = \"conduit.learned/resource/cpu-reference-0\"\n  provider_profile_identity = \"sha256:feec98311a5b83c749b82f6ccaadcf5557e7791c94c3f247fc1a3cea7b1c78c9\"\n  dtype = \"i16le\" input_shape = \"1x4\" output_shape = \"1x2\" layout = \"row-major\"\n  maximum_batch = 1 maximum_input_bytes = 64 maximum_output_bytes = 64\n  maximum_retained_bytes = 128 maximum_state_bytes = 0 maximum_work = 256\n  state_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  determinism = \"exact\" tolerance = \"none\"\n}\nnode inspect : learned/tensor/inspect\nnode output : display/text\n\ncord model.model -> infer.model { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord input.tensor -> infer.tensor { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord infer.tensor -> inspect.tensor { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord inspect.summary -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct examples/learned-fixed-inference.panel",
+      "commands": [
+        "conduct --check examples/learned-fixed-inference.panel",
+        "conduct examples/learned-fixed-inference.panel",
+        "conduct --check examples/learned-inference-compose.panel",
+        "conduct examples/learned-inference-compose.panel"
+      ],
+      "expected_display": "learned:i16:1x2:[35,-3]",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 96,
+        "queue_bytes": 512,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "bounded-learned-inference-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "semantic_model_identity",
+          "artifact_identity",
+          "graph_identity",
+          "opset",
+          "input_schema_identity",
+          "output_schema_identity",
+          "runtime_identity",
+          "device_identity",
+          "resource_identity",
+          "provider_artifact",
+          "dtype",
+          "shape",
+          "layout",
+          "batch",
+          "state_bytes",
+          "retained_bytes",
+          "work",
+          "determinism",
+          "tolerance",
+          "pressure",
+          "cancellation",
+          "provider_loss",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "learned:i16:1x2:[35,-3]"
+      },
+      "hints": [
+        "The model purpose, artifact hash, graph, schemas, runtime, device, resource, and provider artifact are separate exact identities.",
+        "The first provider admits only i16le row-major 1x4 to 1x2, batch one, empty state, and the declared byte, retained-memory, and work ceilings.",
+        "Missing or stale providers, wrong schemas or devices, exhaustion, sensitivity denial, cancellation, and provider loss terminate explicitly without partial output."
+      ],
+      "solution": "Keep every identity and finite bound exact, run the checked fixed-linear provider, and inspect the ordered plan, pressure, cancellation, and terminal evidence before treating inference as available.",
+      "accessibility": {
+        "non_audio": "An ordered event table names model, artifact, graph, schema, runtime, device, resource, and provider identities; dtype, shape, layout, batch, state, retained bytes, work, determinism, tolerance, pressure, cancellation, provider loss, errors, and the terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered inference event table has focus.",
+        "color_independent": "Exact identity strings, numeric bounds, schema labels, pressure words, and terminal labels duplicate every cord color or motion cue."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "One exact fixed-shape provider proves bounded inference without implying that model-aware hosts install runtimes or devices.",
+        "what": "A content-addressed model and finite tensor enter one exact inference binding; a bounded inspector projects the exact 1x2 result.",
+        "when": "Use this boundary when placement, replacement, admission, device/resource selection, cancellation, provider loss, and evidence matter across interchangeable inference implementations.",
+        "wrong": "Wrong artifact, format, graph, schema, dtype, shape, layout, device, resource, state, determinism tolerance, sensitivity, or finite limit fails closed; missing/stale providers and provider loss remain distinct.",
+        "contracts": [
+          {"id":"learned/model/literal","kind":"node","outputs":["model:learned/model-artifact"],"policy":"one checked content-addressed finite model artifact"},
+          {"id":"learned/tensor/literal","kind":"node","outputs":["tensor:learned/tensor"],"policy":"one exact i16le 1x4 row-major input"},
+          {"id":"learned/infer","kind":"node","inputs":["model:learned/model-artifact","tensor:learned/tensor"],"outputs":["tensor:learned/tensor"],"policy":"exact runtime/device/resource/provider and finite batch/state/work binding"},
+          {"id":"learned/tensor/inspect","kind":"node","inputs":["tensor:learned/tensor"],"outputs":["summary:std/text"],"policy":"bounded exact tensor proof projection"}
+        ],
+        "editable": [
+          "maximum_batch:1",
+          "maximum_artifact_bytes:64",
+          "maximum_input_bytes:64",
+          "maximum_output_bytes:64",
+          "maximum_retained_bytes:128",
+          "maximum_work:256"
+        ],
+        "provider": "deterministic compiled-in fixed-linear Rust provider through the ordinary exact host-service boundary",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "distinct semantic model, artifact, graph, schema, runtime, device, resource, implementation, and provider artifact bindings",
+          "finite dtype, shape, layout, batch, state, input, output, retained-byte, work, queue, and evidence bounds",
+          "ordered literal, inference, inspection, pressure, cancellation, provider-loss, error, and one terminal cause"
+        ],
+        "docs": [
+          "../../spec/069-bounded-learned-inference.md",
+          "../../conformance/c4/learned-inference.json",
+          "../../examples/learned-fixed-inference.panel",
+          "../../examples/learned-inference-compose.panel"
+        ],
+        "scenarios": [
+          {"id":"fixed-inference-standalone","title":"Run one exact fixed-shape model","panel":"../../examples/learned-fixed-inference.panel","semantics":"The checked model and tensor pass through one exact runtime, device, resource, provider, schema, state, and finite-bound selection."},
+          {"id":"inference-text-composition","title":"Compose inference with a standard text node","panel":"../../examples/learned-inference-compose.panel","semantics":"The learned result crosses an explicit bounded text projection before an ordinary uppercase node, without making tensor values universal."}
+        ]
+      }
+    },
+    {
       "id": "library.standard-flow-control",
       "chapter": 4,
       "title": "Bounded flow control",

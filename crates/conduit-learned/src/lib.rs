@@ -101,17 +101,19 @@ const fn field(
     }
 }
 
-const MODEL_FIELDS: [ConfigFieldContract<'static>; 10] = [
+const MODEL_FIELDS: [ConfigFieldContract<'static>; 12] = [
     field("fixture", TEXT_TYPE),
     field("semantic_model_identity", TEXT_TYPE),
     field("artifact_identity", TEXT_TYPE),
     field("format", TEXT_TYPE),
+    field("opset", U64_TYPE),
     field("graph_identity", TEXT_TYPE),
     field("provenance_identity", TEXT_TYPE),
     field("policy_identity", TEXT_TYPE),
     field("license", TEXT_TYPE),
     field("input_schema_identity", TEXT_TYPE),
     field("output_schema_identity", TEXT_TYPE),
+    field("maximum_artifact_bytes", U64_TYPE),
 ];
 const TENSOR_FIELDS: [ConfigFieldContract<'static>; 7] = [
     field("fixture", TEXT_TYPE),
@@ -122,10 +124,11 @@ const TENSOR_FIELDS: [ConfigFieldContract<'static>; 7] = [
     field("maximum_output_bytes", U64_TYPE),
     field("sensitivity", TEXT_TYPE),
 ];
-const INFERENCE_FIELDS: [ConfigFieldContract<'static>; 23] = [
+const INFERENCE_FIELDS: [ConfigFieldContract<'static>; 24] = [
     field("semantic_model_identity", TEXT_TYPE),
     field("artifact_identity", TEXT_TYPE),
     field("format", TEXT_TYPE),
+    field("opset", U64_TYPE),
     field("graph_identity", TEXT_TYPE),
     field("input_schema_identity", TEXT_TYPE),
     field("output_schema_identity", TEXT_TYPE),
@@ -438,12 +441,14 @@ fn validate_model_config(node: &Node) -> Result<(), ResolutionError> {
         && node.config("semantic_model_identity") == Some(MODEL_PURPOSE_IDENTITY)
         && node.config("artifact_identity") == Some(MODEL_ARTIFACT_IDENTITY)
         && node.config("format") == Some("conduit-fixed-linear")
+        && exact_u64(node, "opset") == Some(0)
         && node.config("graph_identity") == Some(MODEL_GRAPH_IDENTITY)
         && node.config("provenance_identity") == Some(PROVENANCE_IDENTITY)
         && node.config("policy_identity") == Some(POLICY_IDENTITY)
         && node.config("license") == Some("CC0-1.0")
         && node.config("input_schema_identity") == Some(INPUT_SCHEMA_IDENTITY)
-        && node.config("output_schema_identity") == Some(OUTPUT_SCHEMA_IDENTITY))
+        && node.config("output_schema_identity") == Some(OUTPUT_SCHEMA_IDENTITY)
+        && exact_u64(node, "maximum_artifact_bytes") == Some(64))
     .then_some(())
     .ok_or_else(|| {
         ResolutionError::new(
@@ -476,6 +481,7 @@ fn validate_inference_config(node: &Node) -> Result<(), ResolutionError> {
         && node.config("semantic_model_identity") == Some(MODEL_PURPOSE_IDENTITY)
         && node.config("artifact_identity") == Some(MODEL_ARTIFACT_IDENTITY)
         && node.config("format") == Some("conduit-fixed-linear")
+        && exact_u64(node, "opset") == Some(0)
         && node.config("graph_identity") == Some(MODEL_GRAPH_IDENTITY)
         && node.config("input_schema_identity") == Some(INPUT_SCHEMA_IDENTITY)
         && node.config("output_schema_identity") == Some(OUTPUT_SCHEMA_IDENTITY)
@@ -655,6 +661,8 @@ mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
 
+    const FIXTURE: &str = include_str!("../../../conformance/c4/learned-inference.json");
+
     #[test]
     fn fixed_inference_is_exact_and_content_addressed() {
         assert_eq!(
@@ -752,6 +760,27 @@ mod tests {
                 .installed_providers()
                 .iter()
                 .all(|provider| !LEARNED_CONTRACTS.contains(&provider.contract))
+        );
+    }
+
+    #[test]
+    fn conformance_fixture_owns_the_complete_first_inference_matrix() {
+        let fixture: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+        assert_eq!(fixture["schema"], "conduit.learned-inference-conformance");
+        assert_eq!(fixture["schema_version"], 0);
+        assert_eq!(fixture["semantic_model_identity"], MODEL_PURPOSE_IDENTITY);
+        assert_eq!(fixture["artifact_identity"], MODEL_ARTIFACT_IDENTITY);
+        assert_eq!(fixture["input_schema_identity"], INPUT_SCHEMA_IDENTITY);
+        assert_eq!(fixture["output_schema_identity"], OUTPUT_SCHEMA_IDENTITY);
+        assert_eq!(fixture["positive"].as_array().unwrap().len(), 7);
+        assert_eq!(fixture["negative"].as_array().unwrap().len(), 16);
+        assert_ne!(
+            InferenceReason::Cancelled.code(),
+            InferenceReason::ProviderLost.code()
+        );
+        assert_ne!(
+            InferenceReason::UnsupportedDevice.code(),
+            InferenceReason::SchemaMismatch.code()
         );
     }
 }

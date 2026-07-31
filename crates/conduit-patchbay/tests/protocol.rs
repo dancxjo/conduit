@@ -52,7 +52,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 129);
+    assert_eq!(projection.entries.len(), 133);
     let media = projection
         .entries
         .iter()
@@ -76,6 +76,19 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     assert!(codec.known_provider_bundles.is_empty());
     assert_eq!(
         codec.current_provider_observation,
+        "not-recorded-in-catalog"
+    );
+    let learned = projection
+        .entries
+        .iter()
+        .find(|entry| entry.semantic_identity == "learned/infer")
+        .unwrap();
+    assert_eq!(learned.classification, "reusable-domain-package");
+    assert_eq!(learned.package_owner, "conduit.domain.learned");
+    assert_eq!(learned.standalone_lesson.status, "published");
+    assert!(learned.known_provider_bundles.is_empty());
+    assert_eq!(
+        learned.current_provider_observation,
         "not-recorded-in-catalog"
     );
     let http_client = projection

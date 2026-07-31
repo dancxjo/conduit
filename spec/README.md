@@ -266,6 +266,9 @@ containment program is tracked by
 - [`068-bounded-media-codecs.md`](068-bounded-media-codecs.md) separates exact
   probe, demux, mux, decode, and encode providers from media values and proves
   one bounded content-addressed PCM/WAVE profile.
+- [`069-bounded-learned-inference.md`](069-bounded-learned-inference.md) defines
+  distinct content-addressed model, schema, runtime, device, resource, and
+  provider identities with one finite deterministic inference proof.
 
 The retrospective
 [`C2/C3 integration audit`](../audits/2026-07-29-c2-c3-integration.md)

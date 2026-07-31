@@ -5,12 +5,14 @@ node model : learned/model/literal {
   semantic_model_identity = "sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25"
   artifact_identity = "sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c"
   format = "conduit-fixed-linear"
+  opset = 0
   graph_identity = "sha256:604a0e059d430170f5d94f7c5275e133b1b4b8ee7f3a890e5b43fdc514c53eb9"
   provenance_identity = "sha256:0124a373ef4fbfda15e53e63c791b4763887659b211e41ca1fd400399a992e59"
   policy_identity = "sha256:46fca87089fe51d208ece004b58cb443861ca2a7f2714f0089c387c0f23f3fb0"
   license = "CC0-1.0"
   input_schema_identity = "sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988"
   output_schema_identity = "sha256:9fa614c446b8791315cee5d015192640aaecbfbb385823dde094a37f19f50ae3"
+  maximum_artifact_bytes = 64
 }
 node input : learned/tensor/literal {
   fixture = "input-i16-1x4"
@@ -22,6 +24,7 @@ node infer : learned/infer {
   semantic_model_identity = "sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25"
   artifact_identity = "sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c"
   format = "conduit-fixed-linear"
+  opset = 0
   graph_identity = "sha256:604a0e059d430170f5d94f7c5275e133b1b4b8ee7f3a890e5b43fdc514c53eb9"
   input_schema_identity = "sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988"
   output_schema_identity = "sha256:9fa614c446b8791315cee5d015192640aaecbfbb385823dde094a37f19f50ae3"

@@ -101,6 +101,7 @@ fn inference_schema_runtime_device_resource_and_bounds_fail_closed() {
             "conduit.learned/runtime/missing",
             "CND-LEARN-006",
         ),
+        ("opset = 0", "opset = 1", "CND-LEARN-002"),
         (
             "conduit.learned/device/cpu-reference",
             "conduit.learned/device/missing",
