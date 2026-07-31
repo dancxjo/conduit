@@ -1,0 +1,63 @@
+panel 0
+
+node request_source : std/literal { value = "job\n" }
+node requests : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+node retry_terminal_source : std/literal { value = "eligible-failure\nsuccess\n" }
+node retry_terminals : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+node retry : supervision/retry {
+    terminal_schema = ref("conduit.supervision/text-terminal-observation")
+    terminal_schema_version = 0
+    terminal_schema_hash = bytes("354ceb6902073d56e0cd8ea1ee1aa11372fcecab51db988677c9c5b569d141c6")
+    clock = ref("conduit.clock/monotonic-ticks")
+    clock_schema_version = 0
+    clock_hash = bytes("6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48")
+    maximum_attempts = 3
+    deadline_ticks = 200
+    idempotency = "idempotent"
+    committed_replay = "forbid"
+    backoff = "exponential"
+    initial_backoff_ticks = 2
+    maximum_backoff_ticks = 4
+    jitter = "none"
+    jitter_ticks = 0
+    entropy = ref("conduit.entropy/injected-u64")
+    entropy_schema_version = 0
+    entropy_hash = bytes("0c58168fc45bea9f3263c9b2fe4ddce3e61035e1f3c6ff8d1259ec69ff294aea")
+    maximum_pending = 1
+    cancellation = "discard"
+    exhaustion = "terminal"
+    restart = "new-generation"
+    checkpoint = "unsupported"
+}
+node breaker_terminal_source : std/literal { value = "eligible-failure\nsuccess\n" }
+node breaker_terminals : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+node breaker : supervision/circuit-breaker {
+    terminal_schema = ref("conduit.supervision/text-terminal-observation")
+    terminal_schema_version = 0
+    terminal_schema_hash = bytes("354ceb6902073d56e0cd8ea1ee1aa11372fcecab51db988677c9c5b569d141c6")
+    clock = ref("conduit.clock/monotonic-ticks")
+    clock_schema_version = 0
+    clock_hash = bytes("6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48")
+    counted_outcomes = "failed"
+    maximum_observations = 3
+    failure_threshold = 1
+    cooldown_ticks = 2
+    maximum_half_open_probes = 1
+    maximum_pending = 1
+    reset = "explicit"
+    terminal = "complete"
+    restart = "closed"
+    checkpoint = "unsupported"
+}
+node join : std/text/join { separator = "," maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }
+node display : display/text
+
+cord request_source.value -> requests.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord requests.line -> retry.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord retry_terminal_source.value -> retry_terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord retry_terminals.line -> retry.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+cord retry.attempt -> breaker.request { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+cord breaker_terminal_source.value -> breaker_terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord breaker_terminals.line -> breaker.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+cord breaker.admitted -> join.item { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+cord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

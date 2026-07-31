@@ -816,6 +816,53 @@ const STATE_CACHE: ConfigContract<'static> = ConfigContract {
         field("checkpoint", TEXT),
     ],
 };
+const SUPERVISION_RETRY: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("terminal_schema", REFERENCE),
+        field("terminal_schema_version", U64),
+        field("terminal_schema_hash", BYTES),
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("maximum_attempts", U64),
+        field("deadline_ticks", U64),
+        field("idempotency", TEXT),
+        field("committed_replay", TEXT),
+        field("backoff", TEXT),
+        field("initial_backoff_ticks", U64),
+        field("maximum_backoff_ticks", U64),
+        field("jitter", TEXT),
+        field("jitter_ticks", U64),
+        field("entropy", REFERENCE),
+        field("entropy_schema_version", U64),
+        field("entropy_hash", BYTES),
+        field("maximum_pending", U64),
+        field("cancellation", TEXT),
+        field("exhaustion", TEXT),
+        field("restart", TEXT),
+        field("checkpoint", TEXT),
+    ],
+};
+const SUPERVISION_CIRCUIT_BREAKER: ConfigContract<'static> = ConfigContract {
+    fields: &[
+        field("terminal_schema", REFERENCE),
+        field("terminal_schema_version", U64),
+        field("terminal_schema_hash", BYTES),
+        field("clock", REFERENCE),
+        field("clock_schema_version", U64),
+        field("clock_hash", BYTES),
+        field("counted_outcomes", TEXT),
+        field("maximum_observations", U64),
+        field("failure_threshold", U64),
+        field("cooldown_ticks", U64),
+        field("maximum_half_open_probes", U64),
+        field("maximum_pending", U64),
+        field("reset", TEXT),
+        field("terminal", TEXT),
+        field("restart", TEXT),
+        field("checkpoint", TEXT),
+    ],
+};
 const TRANSFORM: ConfigContract<'static> = ConfigContract {
     fields: &[
         field("implementation", REFERENCE),
@@ -1816,38 +1863,36 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         BUFFERED,
         PURE
     ),
-    entry!(
+    generic_entry!(
         "supervision/retry",
         Supervision,
-        STATEFUL,
-        &[named("request", IN_BYTES), named("command", CONTROL)],
-        &[named("attempt", OUT_BYTES)],
+        SUPERVISION_RETRY,
+        &[
+            named("request", TEXT_ITEMS_INPUT),
+            named("terminal", TEXT_ITEMS_INPUT),
+            optional_input(named("entropy", TEXT_ITEMS_INPUT))
+        ],
+        &[named("attempt", TEXT_LINES_OUTPUT)],
         Preserving,
         Monotonic,
         RETRY,
-        PURE
+        FORMAT_SUPPORT,
+        IDENTITY_GENERIC
     ),
-    entry!(
-        "supervision/backoff",
-        Supervision,
-        TIMED,
-        &[named("request", IN_BYTES), named("command", CONTROL)],
-        &[named("ready", OUT_BYTES)],
-        Preserving,
-        Monotonic,
-        RETRY,
-        PURE
-    ),
-    entry!(
+    generic_entry!(
         "supervision/circuit-breaker",
         Supervision,
-        STATEFUL,
-        &[named("request", IN_BYTES), named("command", CONTROL)],
-        &[named("admitted", OUT_BYTES)],
+        SUPERVISION_CIRCUIT_BREAKER,
+        &[
+            named("request", TEXT_ITEMS_INPUT),
+            named("terminal", TEXT_ITEMS_INPUT)
+        ],
+        &[named("admitted", TEXT_LINES_OUTPUT)],
         Preserving,
         Monotonic,
         RETRY,
-        PURE
+        FORMAT_SUPPORT,
+        IDENTITY_GENERIC
     ),
     entry!(
         "supervision/supervisor",

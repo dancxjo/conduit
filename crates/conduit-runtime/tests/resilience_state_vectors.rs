@@ -1,9 +1,7 @@
 mod support;
 
 use conduit_panel::Node;
-use conduit_runtime::{
-    AvailabilityState, CIRCUIT_BREAKER_CONTRACT, Handler, Registry, RunIo, RuntimeError, Value,
-};
+use conduit_runtime::{AvailabilityState, Handler, Registry, RunIo, RuntimeError, Value};
 
 struct Impostor;
 
@@ -20,7 +18,7 @@ impl Handler for Impostor {
 
 #[test]
 fn resilience_callbacks_cannot_claim_behavioral_conformance() {
-    let contract = &CIRCUIT_BREAKER_CONTRACT;
+    let contract = conduit_std::standard_node_contract("supervision/circuit-breaker").unwrap();
     let mut registry = Registry::default();
     let fixture = support::provider(
         contract,

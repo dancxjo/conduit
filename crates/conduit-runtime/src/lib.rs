@@ -624,6 +624,16 @@ const STATE_CACHE_REQUEST_HASH: &[u8; 32] = &[
     0xe0, 0xa2, 0x09, 0xf8, 0xdd, 0xb8, 0xa8, 0xfb, 0x85, 0x50, 0x74, 0x36, 0x30, 0xc7, 0x86, 0x6c,
     0x03, 0xf2, 0xda, 0xb4, 0x87, 0x04, 0xfe, 0x66, 0x09, 0x2e, 0x23, 0x85, 0x8e, 0x41, 0xcb, 0x29,
 ];
+const SUPERVISION_TERMINAL_DESCRIPTOR: &str = "conduit.supervision/text-terminal-observation";
+const SUPERVISION_TERMINAL_HASH: &[u8; 32] = &[
+    0x35, 0x4c, 0xeb, 0x69, 0x02, 0x07, 0x3d, 0x56, 0xe0, 0xcd, 0x8e, 0xa1, 0xee, 0x1a, 0xa1, 0x13,
+    0x72, 0xfc, 0xec, 0xab, 0x51, 0xdb, 0x98, 0x86, 0x77, 0xc9, 0xc5, 0xb5, 0x69, 0xd1, 0x41, 0xc6,
+];
+const SUPERVISION_ENTROPY_DESCRIPTOR: &str = "conduit.entropy/injected-u64";
+const SUPERVISION_ENTROPY_HASH: &[u8; 32] = &[
+    0x0c, 0x58, 0x16, 0x8f, 0xc4, 0x5b, 0xea, 0x9f, 0x32, 0x63, 0xc9, 0xb2, 0xfe, 0x4d, 0xdc, 0xe3,
+    0xe6, 0x10, 0x35, 0xe1, 0xf3, 0xc6, 0xff, 0x8d, 0x12, 0x59, 0xec, 0x69, 0xff, 0x29, 0x4a, 0xea,
+];
 const CLOSED_RECORD_REQUIRED_FIELDS: &[conduit_std::RequiredField<'static>] = &[
     conduit_std::RequiredField {
         name: "name",
@@ -645,6 +655,10 @@ fn standard_time_contract(id: &str) -> &'static NodeContract<'static> {
 
 fn standard_state_contract(id: &str) -> &'static NodeContract<'static> {
     conduit_std::standard_node_contract(id).expect("standard state contract is published")
+}
+
+fn standard_supervision_contract(id: &str) -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract(id).expect("standard supervision contract is published")
 }
 pub const FORMAT_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("std/text/format"),
@@ -833,23 +847,11 @@ pub const COUNTER_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[named_text_input("event")],
     outputs: &[named_text_output("count")],
 };
-pub const CIRCUIT_BREAKER_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("supervision/circuit-breaker"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("request")],
-    outputs: &[named_text_output("admitted")],
-};
 pub const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("supervision/health-gate"),
     config: EMPTY_CONFIG,
     inputs: &[named_text_input("observation")],
     outputs: &[named_text_output("healthy")],
-};
-pub const BACKOFF_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("supervision/backoff"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("request")],
-    outputs: &[named_text_output("ready")],
 };
 pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/wifi/join"),
@@ -983,6 +985,8 @@ pub enum HostedPrimitiveImplementation {
     StateCell,
     StateDeduplicate,
     StateCache,
+    SupervisionRetry,
+    SupervisionCircuitBreaker,
     Stdout,
     Stderr,
     DisplayText,
@@ -1761,6 +1765,22 @@ impl Registry {
                 validate,
             );
         }
+        for (id, validate) in [
+            (
+                "supervision/retry",
+                validate_supervision_retry as ConfigValidator,
+            ),
+            (
+                "supervision/circuit-breaker",
+                validate_supervision_circuit_breaker as ConfigValidator,
+            ),
+        ] {
+            install(
+                standard_supervision_contract(id),
+                || Box::new(StateCompatibilityHandler),
+                validate,
+            );
+        }
         install(&STDOUT_CONTRACT, || Box::new(Stdout), validate_empty_config);
         install(&STDERR_CONTRACT, || Box::new(Stderr), validate_empty_config);
         install(
@@ -2034,6 +2054,20 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 HostedPrimitiveImplementation::StateCache,
                 || Box::new(StateCompatibilityHandler),
                 validate_state_cache,
+            ),
+            (
+                standard_supervision_contract("supervision/retry"),
+                "supervision-retry",
+                HostedPrimitiveImplementation::SupervisionRetry,
+                || Box::new(StateCompatibilityHandler),
+                validate_supervision_retry,
+            ),
+            (
+                standard_supervision_contract("supervision/circuit-breaker"),
+                "supervision-circuit-breaker",
+                HostedPrimitiveImplementation::SupervisionCircuitBreaker,
+                || Box::new(StateCompatibilityHandler),
+                validate_supervision_circuit_breaker,
             ),
             (
                 &STDOUT_CONTRACT,
@@ -2351,9 +2385,9 @@ impl Default for Registry {
             &COUNTER_CONTRACT,
             standard_state_contract("state/deduplicate"),
             standard_state_contract("state/cache"),
-            &CIRCUIT_BREAKER_CONTRACT,
+            standard_supervision_contract("supervision/retry"),
+            standard_supervision_contract("supervision/circuit-breaker"),
             &HEALTH_GATE_CONTRACT,
-            &BACKOFF_CONTRACT,
             &WIFI_STATION_CONTRACT,
             &WIFI_AP_CONTRACT,
             &NETWORK_INTERFACE_CONTRACT,
@@ -4280,6 +4314,10 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::StateCell => "state/cell",
                 HostedPrimitiveImplementation::StateDeduplicate => "state/deduplicate",
                 HostedPrimitiveImplementation::StateCache => "state/cache",
+                HostedPrimitiveImplementation::SupervisionRetry => "supervision/retry",
+                HostedPrimitiveImplementation::SupervisionCircuitBreaker => {
+                    "supervision/circuit-breaker"
+                }
                 HostedPrimitiveImplementation::Stdout => "io/stdout",
                 HostedPrimitiveImplementation::Stderr => "io/stderr",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
@@ -4578,6 +4616,91 @@ impl ResolvedPanel<'_> {
                     maximum_key_bytes: source_usize(&resolved.source, "maximum_key_bytes")?,
                     maximum_value_bytes: source_usize(&resolved.source, "maximum_value_bytes")?,
                 },
+                HostedPrimitiveImplementation::SupervisionRetry => {
+                    let to_u64 = |key| {
+                        u64::try_from(source_usize(&resolved.source, key)?).map_err(|_| {
+                            RuntimeError::new(
+                                "CND-SVP-001",
+                                format!("supervision `{key}` does not fit u64"),
+                            )
+                        })
+                    };
+                    let maximum_attempts =
+                        u16::try_from(source_usize(&resolved.source, "maximum_attempts")?)
+                            .map_err(|_| {
+                                RuntimeError::new(
+                                    "CND-SVP-001",
+                                    "retry attempt bound does not fit u16",
+                                )
+                            })?;
+                    HostedNodeKind::SupervisionRetry {
+                        request_cord: planned_input_cord(plan, planned.instance, "request")?,
+                        terminal_cord: planned_input_cord(plan, planned.instance, "terminal")?,
+                        entropy_cord: plan.cords.iter().position(|cord| {
+                            cord.to.node == planned.instance && cord.to.port.as_str() == "entropy"
+                        }),
+                        request: None,
+                        pending_output: None,
+                        pending_outcome: None,
+                        state: None,
+                        awaiting_outcome: false,
+                        maximum_attempts,
+                        deadline_ticks: to_u64("deadline_ticks")?,
+                        policy: conduit_std::BackoffPolicy {
+                            mode: if resolved.source.config("backoff") == Some("fixed") {
+                                conduit_std::BackoffMode::Fixed
+                            } else {
+                                conduit_std::BackoffMode::Exponential
+                            },
+                            initial_ticks: to_u64("initial_backoff_ticks")?,
+                            maximum_ticks: to_u64("maximum_backoff_ticks")?,
+                            jitter_ticks: to_u64("jitter_ticks")?,
+                        },
+                        permission: match resolved.source.config("idempotency") {
+                            Some("idempotent") => conduit_std::RetryPermission::Idempotent,
+                            Some("reconcile-before-retry") => {
+                                conduit_std::RetryPermission::ReconcileBeforeRetry
+                            }
+                            _ => conduit_std::RetryPermission::Forbidden,
+                        },
+                        committed_replay_permitted: resolved.source.config("committed_replay")
+                            == Some("permit"),
+                        generation: 0,
+                    }
+                }
+                HostedPrimitiveImplementation::SupervisionCircuitBreaker => {
+                    let maximum_observations =
+                        source_usize(&resolved.source, "maximum_observations")?;
+                    let failure_threshold = source_usize(&resolved.source, "failure_threshold")?;
+                    let cooldown_ticks = u64::try_from(source_usize(
+                        &resolved.source,
+                        "cooldown_ticks",
+                    )?)
+                    .map_err(|_| {
+                        RuntimeError::new("CND-SVP-001", "breaker cooldown does not fit u64")
+                    })?;
+                    let maximum_half_open_probes =
+                        u16::try_from(source_usize(&resolved.source, "maximum_half_open_probes")?)
+                            .map_err(|_| {
+                                RuntimeError::new(
+                                    "CND-SVP-001",
+                                    "breaker probe bound does not fit u16",
+                                )
+                            })?;
+                    HostedNodeKind::SupervisionCircuitBreaker {
+                        request_cord: planned_input_cord(plan, planned.instance, "request")?,
+                        terminal_cord: planned_input_cord(plan, planned.instance, "terminal")?,
+                        pending_output: None,
+                        state: conduit_std::CircuitBreakerState::new(
+                            maximum_observations,
+                            failure_threshold,
+                            cooldown_ticks,
+                            maximum_half_open_probes,
+                        )
+                        .map_err(supervision_runtime_error)?,
+                        awaiting_outcome: false,
+                    }
+                }
                 HostedPrimitiveImplementation::Stdout => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::Stderr => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
@@ -5103,6 +5226,29 @@ enum HostedNodeKind {
         pending_output: Option<RuntimeValue>,
         maximum_key_bytes: usize,
         maximum_value_bytes: usize,
+    },
+    SupervisionRetry {
+        request_cord: usize,
+        terminal_cord: usize,
+        entropy_cord: Option<usize>,
+        request: Option<RuntimeValue>,
+        pending_output: Option<RuntimeValue>,
+        pending_outcome: Option<conduit_std::AttemptOutcome>,
+        state: Option<conduit_std::RetryState>,
+        awaiting_outcome: bool,
+        maximum_attempts: u16,
+        deadline_ticks: u64,
+        policy: conduit_std::BackoffPolicy,
+        permission: conduit_std::RetryPermission,
+        committed_replay_permitted: bool,
+        generation: u32,
+    },
+    SupervisionCircuitBreaker {
+        request_cord: usize,
+        terminal_cord: usize,
+        pending_output: Option<RuntimeValue>,
+        state: conduit_std::CircuitBreakerState<{ conduit_std::SUPERVISION_MAX_OBSERVATIONS }>,
+        awaiting_outcome: bool,
     },
     TimeTransform {
         behavior: TimeBehavior,
@@ -6771,6 +6917,399 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 let _ = io.wait_for_input(in_cord);
                 SchedulerStep::Pending
             }
+            HostedNodeKind::SupervisionRetry {
+                request_cord,
+                terminal_cord,
+                entropy_cord,
+                request,
+                pending_output,
+                pending_outcome,
+                state,
+                awaiting_outcome,
+                maximum_attempts,
+                deadline_ticks,
+                policy,
+                permission,
+                committed_replay_permitted,
+                generation,
+            } => {
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            *awaiting_outcome = true;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if let Some(outcome) = *pending_outcome {
+                    let entropy = if policy.jitter_ticks == 0 {
+                        None
+                    } else {
+                        let Some(entropy_cord) = *entropy_cord else {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-SVP-008",
+                                "retry jitter requires an exact injected entropy cord",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-SVP-008"),
+                            };
+                        };
+                        let entropy = match io.receive(entropy_cord) {
+                            Ok(Some(value)) => {
+                                let bytes = self
+                                    .store
+                                    .borrow()
+                                    .get(value.handle)
+                                    .unwrap_or_default()
+                                    .to_vec();
+                                match std::str::from_utf8(&bytes)
+                                    .ok()
+                                    .and_then(|text| text.parse::<u64>().ok())
+                                {
+                                    Some(entropy) => entropy,
+                                    None => {
+                                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                            "CND-SVP-008",
+                                            "injected entropy must be one exact u64",
+                                        ));
+                                        return SchedulerStep::Failed {
+                                            code: Id("CND-SVP-008"),
+                                        };
+                                    }
+                                }
+                            }
+                            _ if matches!(
+                                io.input_state(entropy_cord),
+                                Ok(FlowQueueState::Completed)
+                            ) =>
+                            {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-SVP-008",
+                                    "retry entropy ended before the retry decision",
+                                ));
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-SVP-008"),
+                                };
+                            }
+                            _ => {
+                                let _ = io.wait_for_input(entropy_cord);
+                                return SchedulerStep::Pending;
+                            }
+                        };
+                        Some(entropy)
+                    };
+                    let Some(retry) = state.as_mut() else {
+                        return SchedulerStep::Failed {
+                            code: Id("CND-SVP-009"),
+                        };
+                    };
+                    let decision = match retry.observe(io.tick(), outcome, entropy) {
+                        Ok(decision) => decision,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() =
+                                Some(supervision_runtime_error(error));
+                            return SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            };
+                        }
+                    };
+                    *pending_outcome = None;
+                    match decision {
+                        conduit_std::RetryDecision::Succeeded { .. } => {
+                            *request = None;
+                            *state = None;
+                            *awaiting_outcome = false;
+                            return recorded_time_progress(io);
+                        }
+                        conduit_std::RetryDecision::Retry { .. } => {
+                            *awaiting_outcome = false;
+                            return recorded_time_progress(io);
+                        }
+                        conduit_std::RetryDecision::Exhausted { .. } => {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-SVP-005",
+                                "retry attempt budget is exhausted",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-SVP-005"),
+                            };
+                        }
+                    }
+                }
+                if !*awaiting_outcome
+                    && let (Some(retry), Some(value)) = (state.as_mut(), *request)
+                    && retry.next_not_before_tick().is_some()
+                {
+                    match retry.ready(io.tick()) {
+                        Ok(true) => {
+                            *pending_output = Some(value);
+                            return recorded_time_progress(io);
+                        }
+                        Ok(false) => {
+                            let deadline = retry
+                                .next_not_before_tick()
+                                .expect("pending retry owns one exact timer");
+                            let _ = io.wait_for_timer(Id("conduit/supervision-backoff"), deadline);
+                            return SchedulerStep::Pending;
+                        }
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() =
+                                Some(supervision_runtime_error(error));
+                            return SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            };
+                        }
+                    }
+                }
+                if *awaiting_outcome {
+                    match io.receive(*terminal_cord) {
+                        Ok(Some(value)) => {
+                            let bytes = self
+                                .store
+                                .borrow()
+                                .get(value.handle)
+                                .unwrap_or_default()
+                                .to_vec();
+                            *pending_outcome = match bytes.as_slice() {
+                                b"success" => Some(conduit_std::AttemptOutcome::Succeeded),
+                                b"eligible-failure" => {
+                                    Some(conduit_std::AttemptOutcome::EligibleFailure)
+                                }
+                                b"committed-failure" => {
+                                    Some(conduit_std::AttemptOutcome::CommittedFailure)
+                                }
+                                b"cancel" => {
+                                    if let Some(retry) = state.as_mut() {
+                                        retry.cancel();
+                                    }
+                                    *request = None;
+                                    *state = None;
+                                    *awaiting_outcome = false;
+                                    return SchedulerStep::Progress;
+                                }
+                                _ => {
+                                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                        "CND-SVP-020",
+                                        "retry terminal must be success, eligible-failure, committed-failure, or cancel",
+                                    ));
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-SVP-020"),
+                                    };
+                                }
+                            };
+                            return SchedulerStep::Progress;
+                        }
+                        _ if matches!(
+                            io.input_state(*terminal_cord),
+                            Ok(FlowQueueState::Completed)
+                        ) =>
+                        {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-SVP-020",
+                                "retry terminal stream ended with an active attempt",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-SVP-020"),
+                            };
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(*terminal_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                match io.receive(*request_cord) {
+                    Ok(Some(value)) => {
+                        let now = io.tick();
+                        let Some(deadline_tick) = now.checked_add(*deadline_ticks) else {
+                            return SchedulerStep::Failed {
+                                code: Id("CND-SVP-003"),
+                            };
+                        };
+                        *generation = match generation.checked_add(1) {
+                            Some(generation) => generation,
+                            None => {
+                                return SchedulerStep::Failed {
+                                    code: Id("CND-SVP-001"),
+                                };
+                            }
+                        };
+                        let retry = match conduit_std::RetryState::new(
+                            *maximum_attempts,
+                            deadline_tick,
+                            *policy,
+                            *permission,
+                            *committed_replay_permitted,
+                            *generation,
+                        ) {
+                            Ok(retry) => retry,
+                            Err(error) => {
+                                *self.host_failure.borrow_mut() =
+                                    Some(supervision_runtime_error(error));
+                                return SchedulerStep::Failed {
+                                    code: Id(error.code()),
+                                };
+                            }
+                        };
+                        *request = Some(value);
+                        *state = Some(retry);
+                        *pending_output = Some(value);
+                        SchedulerStep::Progress
+                    }
+                    _ if matches!(io.input_state(*request_cord), Ok(FlowQueueState::Completed))
+                        && matches!(
+                            io.input_state(*terminal_cord),
+                            Ok(FlowQueueState::Completed)
+                        ) =>
+                    {
+                        SchedulerStep::Completed
+                    }
+                    _ => {
+                        let _ = io.wait_for_input(*request_cord);
+                        SchedulerStep::Pending
+                    }
+                }
+            }
+            HostedNodeKind::SupervisionCircuitBreaker {
+                request_cord,
+                terminal_cord,
+                pending_output,
+                state,
+                awaiting_outcome,
+            } => {
+                let Some(&out_cord) = self.out_cords.first() else {
+                    return SchedulerStep::Completed;
+                };
+                if let Some(value) = *pending_output {
+                    return match io.send(out_cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            *pending_output = None;
+                            *awaiting_outcome = true;
+                            SchedulerStep::Progress
+                        }
+                        Ok(_) | Err(_) => {
+                            let _ = io.wait_for_output(out_cord);
+                            SchedulerStep::Pending
+                        }
+                    };
+                }
+                if *awaiting_outcome {
+                    match io.receive(*terminal_cord) {
+                        Ok(Some(value)) => {
+                            let bytes = self
+                                .store
+                                .borrow()
+                                .get(value.handle)
+                                .unwrap_or_default()
+                                .to_vec();
+                            if bytes == b"reset" {
+                                state.reset();
+                                *awaiting_outcome = false;
+                                return SchedulerStep::Progress;
+                            }
+                            let outcome = match bytes.as_slice() {
+                                b"success" => conduit_std::BreakerOutcome::Success,
+                                b"eligible-failure" | b"committed-failure" => {
+                                    conduit_std::BreakerOutcome::CountedFailure
+                                }
+                                b"ignored-failure" => conduit_std::BreakerOutcome::IgnoredFailure,
+                                b"cancel" => {
+                                    state.cancel();
+                                    return SchedulerStep::Completed;
+                                }
+                                _ => {
+                                    *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                        "CND-SVP-021",
+                                        "breaker terminal must be success, eligible-failure, committed-failure, ignored-failure, reset, or cancel",
+                                    ));
+                                    return SchedulerStep::Failed {
+                                        code: Id("CND-SVP-021"),
+                                    };
+                                }
+                            };
+                            if let Err(error) = state.observe(io.tick(), outcome) {
+                                *self.host_failure.borrow_mut() =
+                                    Some(supervision_runtime_error(error));
+                                return SchedulerStep::Failed {
+                                    code: Id(error.code()),
+                                };
+                            }
+                            *awaiting_outcome = false;
+                            return SchedulerStep::Progress;
+                        }
+                        _ if matches!(
+                            io.input_state(*terminal_cord),
+                            Ok(FlowQueueState::Completed)
+                        ) =>
+                        {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-SVP-021",
+                                "breaker terminal stream ended with an admitted request",
+                            ));
+                            return SchedulerStep::Failed {
+                                code: Id("CND-SVP-021"),
+                            };
+                        }
+                        _ => {
+                            let _ = io.wait_for_input(*terminal_cord);
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+                if let conduit_std::BreakerState::Open { until_tick } = state.state()
+                    && io.tick() < until_tick
+                {
+                    let _ =
+                        io.wait_for_timer(Id("conduit/supervision-breaker-cooldown"), until_tick);
+                    return SchedulerStep::Pending;
+                }
+                match io.receive(*request_cord) {
+                    Ok(Some(value)) => match state.admit(io.tick()) {
+                        Ok(conduit_std::BreakerAdmission::Admitted) => {
+                            *pending_output = Some(value);
+                            SchedulerStep::Progress
+                        }
+                        Ok(conduit_std::BreakerAdmission::RejectedOpen { until_tick }) => {
+                            let _ = io.wait_for_timer(
+                                Id("conduit/supervision-breaker-cooldown"),
+                                until_tick,
+                            );
+                            SchedulerStep::Pending
+                        }
+                        Ok(conduit_std::BreakerAdmission::RejectedProbeLimit) => {
+                            let _ = io.wait_for_input(*terminal_cord);
+                            SchedulerStep::Pending
+                        }
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() =
+                                Some(supervision_runtime_error(error));
+                            SchedulerStep::Failed {
+                                code: Id(error.code()),
+                            }
+                        }
+                    },
+                    _ if matches!(io.input_state(*request_cord), Ok(FlowQueueState::Completed))
+                        && matches!(
+                            io.input_state(*terminal_cord),
+                            Ok(FlowQueueState::Completed)
+                        ) =>
+                    {
+                        SchedulerStep::Completed
+                    }
+                    _ => {
+                        let _ = io.wait_for_input(*request_cord);
+                        SchedulerStep::Pending
+                    }
+                }
+            }
             HostedNodeKind::TimeTransform {
                 behavior,
                 duration_ticks,
@@ -8380,6 +8919,274 @@ fn validate_validation_decision_assert(node: &Node) -> Result<(), ResolutionErro
     Ok(())
 }
 
+fn required_supervision_bound(
+    node: &Node,
+    key: &str,
+    maximum: u64,
+    allow_zero: bool,
+) -> Result<u64, ResolutionError> {
+    let Some(SourceValue::Integer(value)) = node.config_value(key) else {
+        return Err(ResolutionError::new(
+            "CND-SVP-010",
+            format!("node `{}` requires integer `{key}`", node.id),
+        ));
+    };
+    let value = u64::try_from(*value).map_err(|_| {
+        ResolutionError::new(
+            "CND-SVP-012",
+            format!("node `{}` has negative `{key}`", node.id),
+        )
+    })?;
+    if (!allow_zero && value == 0) || value > maximum {
+        return Err(ResolutionError::new(
+            "CND-SVP-012",
+            format!("node `{}` exceeds `{key}` provider bound", node.id),
+        ));
+    }
+    Ok(value)
+}
+
+fn validate_supervision_descriptor(
+    node: &Node,
+    descriptor_key: &str,
+    version_key: &str,
+    hash_key: &str,
+    expected_descriptor: &str,
+    expected_hash: &[u8; 32],
+) -> Result<(), ResolutionError> {
+    if node.config(descriptor_key) != Some(expected_descriptor)
+        || !matches!(
+            node.config_value(version_key),
+            Some(SourceValue::Integer(0))
+        )
+    {
+        return Err(ResolutionError::new(
+            "CND-SVP-011",
+            format!("node `{}` requests an unsupported descriptor", node.id),
+        ));
+    }
+    let Some(SourceValue::Bytes(hash)) = node.config_value(hash_key) else {
+        return Err(ResolutionError::new(
+            "CND-SVP-010",
+            format!("node `{}` requires bytes `{hash_key}`", node.id),
+        ));
+    };
+    if hash.as_slice() != expected_hash {
+        return Err(ResolutionError::new(
+            "CND-SVP-011",
+            format!("node `{}` requests a stale descriptor hash", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_exact_supervision_fields(
+    node: &Node,
+    expected: &[&str],
+) -> Result<(), ResolutionError> {
+    if node.config.len() != expected.len()
+        || node
+            .config
+            .iter()
+            .any(|entry| !expected.contains(&entry.key.as_str()))
+    {
+        return Err(ResolutionError::new(
+            "CND-SVP-010",
+            format!(
+                "node `{}` has an incomplete exact supervision profile",
+                node.id
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_supervision_clock(node: &Node) -> Result<(), ResolutionError> {
+    validate_supervision_descriptor(
+        node,
+        "clock",
+        "clock_schema_version",
+        "clock_hash",
+        TIME_CLOCK_DESCRIPTOR,
+        TIME_CLOCK_HASH,
+    )
+}
+
+fn validate_supervision_retry(node: &Node) -> Result<(), ResolutionError> {
+    validate_exact_supervision_fields(
+        node,
+        &[
+            "terminal_schema",
+            "terminal_schema_version",
+            "terminal_schema_hash",
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "maximum_attempts",
+            "deadline_ticks",
+            "idempotency",
+            "committed_replay",
+            "backoff",
+            "initial_backoff_ticks",
+            "maximum_backoff_ticks",
+            "jitter",
+            "jitter_ticks",
+            "entropy",
+            "entropy_schema_version",
+            "entropy_hash",
+            "maximum_pending",
+            "cancellation",
+            "exhaustion",
+            "restart",
+            "checkpoint",
+        ],
+    )?;
+    validate_supervision_descriptor(
+        node,
+        "terminal_schema",
+        "terminal_schema_version",
+        "terminal_schema_hash",
+        SUPERVISION_TERMINAL_DESCRIPTOR,
+        SUPERVISION_TERMINAL_HASH,
+    )?;
+    validate_supervision_clock(node)?;
+    validate_supervision_descriptor(
+        node,
+        "entropy",
+        "entropy_schema_version",
+        "entropy_hash",
+        SUPERVISION_ENTROPY_DESCRIPTOR,
+        SUPERVISION_ENTROPY_HASH,
+    )?;
+    let attempts = required_supervision_bound(
+        node,
+        "maximum_attempts",
+        u64::from(conduit_std::SUPERVISION_MAX_ATTEMPTS),
+        false,
+    )?;
+    let deadline = required_supervision_bound(
+        node,
+        "deadline_ticks",
+        conduit_std::SUPERVISION_MAX_DURATION_TICKS,
+        false,
+    )?;
+    let initial = required_supervision_bound(
+        node,
+        "initial_backoff_ticks",
+        conduit_std::SUPERVISION_MAX_DURATION_TICKS,
+        false,
+    )?;
+    let maximum = required_supervision_bound(
+        node,
+        "maximum_backoff_ticks",
+        conduit_std::SUPERVISION_MAX_DURATION_TICKS,
+        false,
+    )?;
+    let jitter = required_supervision_bound(
+        node,
+        "jitter_ticks",
+        conduit_std::SUPERVISION_MAX_DURATION_TICKS,
+        true,
+    )?;
+    let idempotency = node.config("idempotency");
+    if attempts == 0
+        || deadline <= initial
+        || maximum < initial
+        || maximum >= deadline
+        || jitter > maximum
+        || !matches!(
+            idempotency,
+            Some("forbidden" | "idempotent" | "reconcile-before-retry")
+        )
+        || !matches!(node.config("committed_replay"), Some("forbid" | "permit"))
+        || (node.config("committed_replay") == Some("permit") && idempotency != Some("idempotent"))
+        || !matches!(node.config("backoff"), Some("fixed" | "exponential"))
+        || !matches!(node.config("jitter"), Some("none" | "injected"))
+        || (node.config("jitter") == Some("none") && jitter != 0)
+        || (node.config("jitter") == Some("injected") && jitter == 0)
+        || required_supervision_bound(node, "maximum_pending", 1, false)? != 1
+        || node.config("cancellation") != Some("discard")
+        || node.config("exhaustion") != Some("terminal")
+        || node.config("restart") != Some("new-generation")
+        || node.config("checkpoint") != Some("unsupported")
+    {
+        return Err(ResolutionError::new(
+            "CND-SVP-012",
+            format!("node `{}` has unsupported retry semantics", node.id),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_supervision_circuit_breaker(node: &Node) -> Result<(), ResolutionError> {
+    validate_exact_supervision_fields(
+        node,
+        &[
+            "terminal_schema",
+            "terminal_schema_version",
+            "terminal_schema_hash",
+            "clock",
+            "clock_schema_version",
+            "clock_hash",
+            "counted_outcomes",
+            "maximum_observations",
+            "failure_threshold",
+            "cooldown_ticks",
+            "maximum_half_open_probes",
+            "maximum_pending",
+            "reset",
+            "terminal",
+            "restart",
+            "checkpoint",
+        ],
+    )?;
+    validate_supervision_descriptor(
+        node,
+        "terminal_schema",
+        "terminal_schema_version",
+        "terminal_schema_hash",
+        SUPERVISION_TERMINAL_DESCRIPTOR,
+        SUPERVISION_TERMINAL_HASH,
+    )?;
+    validate_supervision_clock(node)?;
+    let observations = required_supervision_bound(
+        node,
+        "maximum_observations",
+        conduit_std::SUPERVISION_MAX_OBSERVATIONS as u64,
+        false,
+    )?;
+    let threshold = required_supervision_bound(
+        node,
+        "failure_threshold",
+        conduit_std::SUPERVISION_MAX_OBSERVATIONS as u64,
+        false,
+    )?;
+    required_supervision_bound(
+        node,
+        "cooldown_ticks",
+        conduit_std::SUPERVISION_MAX_DURATION_TICKS,
+        false,
+    )?;
+    required_supervision_bound(node, "maximum_half_open_probes", u64::from(u16::MAX), false)?;
+    if threshold > observations
+        || node.config("counted_outcomes") != Some("failed")
+        || required_supervision_bound(node, "maximum_pending", 1, false)? != 1
+        || node.config("reset") != Some("explicit")
+        || node.config("terminal") != Some("complete")
+        || node.config("restart") != Some("closed")
+        || node.config("checkpoint") != Some("unsupported")
+    {
+        return Err(ResolutionError::new(
+            "CND-SVP-012",
+            format!(
+                "node `{}` has unsupported circuit-breaker semantics",
+                node.id
+            ),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_contract_config(_node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
@@ -9220,6 +10027,10 @@ fn time_runtime_error(error: conduit_std::TimeError) -> RuntimeError {
 }
 
 fn state_runtime_error(error: conduit_std::StateError) -> RuntimeError {
+    RuntimeError::new(error.code(), error.code())
+}
+
+fn supervision_runtime_error(error: conduit_std::SupervisionError) -> RuntimeError {
     RuntimeError::new(error.code(), error.code())
 }
 

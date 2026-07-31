@@ -60,7 +60,6 @@
     "state/history": ["STD-002", "STD-006"],
     "state/checkpoint": ["STD-002", "STD-006"],
     "supervision/retry": ["STD-004", "STD-005"],
-    "supervision/backoff": ["STD-002", "STD-005"],
     "supervision/circuit-breaker": ["STD-002", "STD-005"],
     "supervision/supervisor": ["STD-002", "STD-005"],
     "supervision/health-gate": ["STD-002", "STD-005"],

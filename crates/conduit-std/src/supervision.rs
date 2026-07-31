@@ -107,16 +107,9 @@ pub enum AttemptOutcome {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RetryDecision {
-    Succeeded {
-        attempt: u16,
-    },
-    Retry {
-        attempt: u16,
-        not_before_tick: u64,
-    },
-    Exhausted {
-        attempts: u16,
-    },
+    Succeeded { attempt: u16 },
+    Retry { attempt: u16, not_before_tick: u64 },
+    Exhausted { attempts: u16 },
 }
 
 /// Bounded state for one operation against one immutable exact binding.
@@ -199,8 +192,7 @@ impl RetryState {
             return Err(SupervisionError::RetryForbidden);
         }
         if outcome == AttemptOutcome::CommittedFailure
-            && !(self.permission == RetryPermission::Idempotent
-                && self.committed_replay_permitted)
+            && !(self.permission == RetryPermission::Idempotent && self.committed_replay_permitted)
         {
             self.terminal = true;
             return Err(SupervisionError::ReplayAfterCommitForbidden);
@@ -349,9 +341,7 @@ impl<const N: usize> CircuitBreakerState<N> {
             if now < until_tick {
                 return Ok(BreakerAdmission::RejectedOpen { until_tick });
             }
-            self.state = BreakerState::HalfOpen {
-                admitted_probes: 0,
-            };
+            self.state = BreakerState::HalfOpen { admitted_probes: 0 };
         }
         match self.state {
             BreakerState::Closed => Ok(BreakerAdmission::Admitted),
@@ -362,9 +352,7 @@ impl<const N: usize> CircuitBreakerState<N> {
                 Ok(BreakerAdmission::Admitted)
             }
             BreakerState::HalfOpen { .. } => Ok(BreakerAdmission::RejectedProbeLimit),
-            BreakerState::Open { until_tick } => {
-                Ok(BreakerAdmission::RejectedOpen { until_tick })
-            }
+            BreakerState::Open { until_tick } => Ok(BreakerAdmission::RejectedOpen { until_tick }),
         }
     }
 
@@ -539,10 +527,7 @@ mod tests {
             Ok(BreakerAdmission::RejectedOpen { until_tick: 8 })
         );
         assert_eq!(breaker.admit(8), Ok(BreakerAdmission::Admitted));
-        assert_eq!(
-            breaker.admit(8),
-            Ok(BreakerAdmission::RejectedProbeLimit)
-        );
+        assert_eq!(breaker.admit(8), Ok(BreakerAdmission::RejectedProbeLimit));
         assert_eq!(
             breaker.observe(8, BreakerOutcome::Success),
             Ok(BreakerState::Closed)

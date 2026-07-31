@@ -342,6 +342,11 @@ fn candidate(
             | HostedPrimitiveImplementation::StateDeduplicate
             | HostedPrimitiveImplementation::StateCache
     );
+    let supervision_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::SupervisionRetry
+            | HostedPrimitiveImplementation::SupervisionCircuitBreaker
+    );
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -393,6 +398,8 @@ fn candidate(
             time_execution_profile()
         } else if state_profile {
             state_execution_profile()
+        } else if supervision_profile {
+            supervision_execution_profile()
         } else {
             execution_profile()
         },
@@ -454,7 +461,7 @@ fn candidate(
                 128 * 1024
             } else if structural_flow_profile {
                 8 * 1024
-            } else if time_profile || state_profile {
+            } else if time_profile || state_profile || supervision_profile {
                 256 * 1024
             } else {
                 2048
@@ -468,13 +475,17 @@ fn candidate(
                 8 * 1024
             } else if structural_flow_profile {
                 4 * 1024
-            } else if time_profile || state_profile {
+            } else if time_profile || state_profile || supervision_profile {
                 8 * 1024
             } else {
                 256
             },
             transports: u16::from(host_service_instance.is_some()),
-            timers: u16::from(host_service_instance.is_some() || time_profile),
+            timers: if supervision_profile {
+                2
+            } else {
+                u16::from(host_service_instance.is_some() || time_profile)
+            },
             ..BudgetDocument::default()
         },
         lifecycle_policy: pin("conduit/finite-lifecycle", 60),
@@ -943,6 +954,54 @@ fn state_execution_profile() -> ExecutionProfileDocument {
             max_retained_values: conduit_std::STATE_MAX_ENTRIES as u16,
             max_retained_bytes: VALUE_BYTES,
             max_pending_operations: 1,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "retained".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: VALUE_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "pending-operations".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 256,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - VALUE_BYTES - 256,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
+fn supervision_execution_profile() -> ExecutionProfileDocument {
+    const VALUE_BYTES: u64 = 65_536;
+    const MEMORY_BYTES: u64 = 256 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-supervision-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 8,
+            max_input_leases: 1,
+            max_input_bytes: VALUE_BYTES,
+            max_output_reservations: 1,
+            max_output_bytes: VALUE_BYTES,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_retained_values: 4,
+            max_retained_bytes: VALUE_BYTES,
+            max_pending_operations: 1,
+            max_timers: 2,
             implementation_memory_bytes: MEMORY_BYTES,
             cancellation_ticks: 1,
             ..ExecutionLimitsDocument::default()
