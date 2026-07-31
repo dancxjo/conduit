@@ -990,6 +990,253 @@ pub struct RunIo<'a> {
     pub display: &'a mut dyn Write,
 }
 
+/// Fixed-capacity host I/O retained by a persistent exact-run session.
+///
+/// All four channels share one preallocated store. Their live portions are
+/// compacted in a deterministic channel order, so input, stdout, stderr, and
+/// display output can coexist without a hidden growable host queue.
+pub struct ExactRunIo {
+    storage: Vec<u8>,
+    input_len: usize,
+    output_len: usize,
+    error_len: usize,
+    display_len: usize,
+}
+
+#[derive(Clone, Copy)]
+enum ExactRunIoChannel {
+    Input,
+    Output,
+    Error,
+    Display,
+}
+
+impl ExactRunIo {
+    /// Creates one empty owned I/O boundary with exactly the plan-admitted
+    /// host-buffer capacity.
+    pub fn new(capacity_bytes: u64) -> Result<Self, RuntimeError> {
+        let capacity = usize::try_from(capacity_bytes).map_err(|_| {
+            RuntimeError::new("CND-RUN-009", "host I/O capacity does not fit the platform")
+        })?;
+        let mut storage = Vec::new();
+        storage
+            .try_reserve_exact(capacity)
+            .map_err(|_| RuntimeError::new("CND-SCH-005", "host I/O allocation failed"))?;
+        storage.resize(capacity, 0);
+        Ok(Self {
+            storage,
+            input_len: 0,
+            output_len: 0,
+            error_len: 0,
+            display_len: 0,
+        })
+    }
+
+    /// Creates an owned I/O boundary using the plan's exact aggregate
+    /// host-buffer allowance.
+    pub fn for_plan(plan: &ExecutionPlan<'_>) -> Result<Self, RuntimeError> {
+        Self::new(exact_host_io_capacity(plan)?)
+    }
+
+    /// Adds bounded host input to the active session. This is an explicit host
+    /// action; it never creates a new plan epoch or scheduler run.
+    pub fn push_input(&mut self, bytes: &[u8]) -> Result<(), RuntimeError> {
+        self.append(ExactRunIoChannel::Input, bytes)
+    }
+
+    #[must_use]
+    pub fn capacity_bytes(&self) -> u64 {
+        u64::try_from(self.storage.len()).unwrap_or(u64::MAX)
+    }
+
+    #[must_use]
+    pub fn input(&self) -> &[u8] {
+        self.channel(ExactRunIoChannel::Input)
+    }
+
+    #[must_use]
+    pub fn output(&self) -> &[u8] {
+        self.channel(ExactRunIoChannel::Output)
+    }
+
+    #[must_use]
+    pub fn error(&self) -> &[u8] {
+        self.channel(ExactRunIoChannel::Error)
+    }
+
+    #[must_use]
+    pub fn display(&self) -> &[u8] {
+        self.channel(ExactRunIoChannel::Display)
+    }
+
+    fn read_input(&mut self, destination: &mut [u8]) -> usize {
+        let count = destination.len().min(self.input_len);
+        destination[..count].copy_from_slice(&self.storage[..count]);
+        let total = self.total_len();
+        self.storage.copy_within(count..total, 0);
+        self.input_len -= count;
+        count
+    }
+
+    fn append(&mut self, channel: ExactRunIoChannel, bytes: &[u8]) -> Result<(), RuntimeError> {
+        let next = self
+            .total_len()
+            .checked_add(bytes.len())
+            .ok_or_else(|| RuntimeError::new("CND-SCH-005", "host I/O size overflowed"))?;
+        if next > self.storage.len() {
+            return Err(RuntimeError::new(
+                "CND-SCH-005",
+                "host I/O exceeded its plan-admitted capacity",
+            ));
+        }
+        let (start, length) = self.channel_range(channel);
+        let insert_at = start + length;
+        let total = self.total_len();
+        self.storage
+            .copy_within(insert_at..total, insert_at + bytes.len());
+        self.storage[insert_at..insert_at + bytes.len()].copy_from_slice(bytes);
+        match channel {
+            ExactRunIoChannel::Input => self.input_len += bytes.len(),
+            ExactRunIoChannel::Output => self.output_len += bytes.len(),
+            ExactRunIoChannel::Error => self.error_len += bytes.len(),
+            ExactRunIoChannel::Display => self.display_len += bytes.len(),
+        }
+        Ok(())
+    }
+
+    fn channel(&self, channel: ExactRunIoChannel) -> &[u8] {
+        let (start, length) = self.channel_range(channel);
+        &self.storage[start..start + length]
+    }
+
+    fn channel_range(&self, channel: ExactRunIoChannel) -> (usize, usize) {
+        match channel {
+            ExactRunIoChannel::Input => (0, self.input_len),
+            ExactRunIoChannel::Output => (self.input_len, self.output_len),
+            ExactRunIoChannel::Error => (self.input_len + self.output_len, self.error_len),
+            ExactRunIoChannel::Display => (
+                self.input_len + self.output_len + self.error_len,
+                self.display_len,
+            ),
+        }
+    }
+
+    fn total_len(&self) -> usize {
+        self.input_len + self.output_len + self.error_len + self.display_len
+    }
+}
+
+struct ExactRunIoReader(Rc<RefCell<ExactRunIo>>);
+
+impl Read for ExactRunIoReader {
+    fn read(&mut self, destination: &mut [u8]) -> std::io::Result<usize> {
+        Ok(self.0.borrow_mut().read_input(destination))
+    }
+}
+
+struct ExactRunIoWriter {
+    io: Rc<RefCell<ExactRunIo>>,
+    channel: ExactRunIoChannel,
+}
+
+impl Write for ExactRunIoWriter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.io
+            .borrow_mut()
+            .append(self.channel, bytes)
+            .map_err(|error| std::io::Error::other(error.message))?;
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn with_exact_run_io<T>(
+    io: &Rc<RefCell<ExactRunIo>>,
+    operation: impl FnOnce(&mut RunIo<'_>) -> T,
+) -> T {
+    let mut input = ExactRunIoReader(Rc::clone(io));
+    let mut output = ExactRunIoWriter {
+        io: Rc::clone(io),
+        channel: ExactRunIoChannel::Output,
+    };
+    let mut error = ExactRunIoWriter {
+        io: Rc::clone(io),
+        channel: ExactRunIoChannel::Error,
+    };
+    let mut display = ExactRunIoWriter {
+        io: Rc::clone(io),
+        channel: ExactRunIoChannel::Display,
+    };
+    operation(&mut RunIo {
+        input: &mut input,
+        output: &mut output,
+        error: &mut error,
+        display: &mut display,
+    })
+}
+
+#[derive(Clone)]
+enum HostedRunIo<'r, 'i> {
+    Owned(Rc<RefCell<ExactRunIo>>),
+    Borrowed(Rc<RefCell<&'r mut RunIo<'i>>>),
+}
+
+impl HostedRunIo<'_, '_> {
+    fn read_input(&self, destination: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Owned(io) => Ok(io.borrow_mut().read_input(destination)),
+            Self::Borrowed(io) => io.borrow_mut().input.read(destination),
+        }
+    }
+
+    fn write_channel(&self, channel: ExactRunIoChannel, bytes: &[u8]) -> std::io::Result<()> {
+        match self {
+            Self::Owned(io) => io
+                .borrow_mut()
+                .append(channel, bytes)
+                .map_err(|error| std::io::Error::other(error.message)),
+            Self::Borrowed(io) => {
+                let mut io = io.borrow_mut();
+                match channel {
+                    ExactRunIoChannel::Input => Err(std::io::Error::other(
+                        "hosted implementations cannot write exact-run input",
+                    )),
+                    ExactRunIoChannel::Output => io.output.write_all(bytes),
+                    ExactRunIoChannel::Error => io.error.write_all(bytes),
+                    ExactRunIoChannel::Display => io.display.write_all(bytes),
+                }
+            }
+        }
+    }
+
+    fn with_run_io<T>(&self, operation: impl FnOnce(&mut RunIo<'_>) -> T) -> T {
+        match self {
+            Self::Owned(io) => with_exact_run_io(io, operation),
+            Self::Borrowed(io) => operation(&mut io.borrow_mut()),
+        }
+    }
+}
+
+fn exact_host_io_capacity(plan: &ExecutionPlan<'_>) -> Result<u64, RuntimeError> {
+    plan.nodes.iter().try_fold(0_u64, |total, node| {
+        let profile = node.execution_profile.ok_or_else(|| {
+            RuntimeError::new(
+                "CND-RUN-009",
+                format!(
+                    "planned node `{}` has no execution profile",
+                    node.instance.as_str()
+                ),
+            )
+        })?;
+        total
+            .checked_add(profile.limits.max_host_buffer_bytes)
+            .ok_or_else(|| RuntimeError::new("CND-SCH-005", "host I/O capacity overflowed"))
+    })
+}
+
 /// Behavior-specific hosted implementation selected by an exact binding.
 ///
 /// This is deliberately not inferred from a semantic contract. A caller must
@@ -1326,15 +1573,21 @@ pub struct ExactExecutionReport {
 
 /// Hosted exact-run ownership retained across cooperative scheduler turns.
 ///
-/// It owns the admitted executor and all implementation state. The host I/O
-/// boundary remains explicitly borrowed from the caller; a later browser-host
-/// adapter supplies its own bounded worker-owned I/O buffers.
-pub struct ExactHostedRunSession<'r, 'i> {
-    session: ExactRunSession<HostedSchedulerDriver<'r, 'i>>,
+/// It owns the admitted executor, implementation state, and one fixed,
+/// plan-admitted host-I/O store. No caller stack frame or plan arena is
+/// retained after Start returns.
+pub struct ExactHostedRunSession {
+    session: ExactRunSession<HostedSchedulerDriver<'static, 'static>>,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
+    io: Rc<RefCell<ExactRunIo>>,
 }
 
-impl ExactHostedRunSession<'_, '_> {
+type StartedHostedSession<'r, 'i> = (
+    ExactRunSession<HostedSchedulerDriver<'r, 'i>>,
+    Rc<RefCell<Option<RuntimeError>>>,
+);
+
+impl ExactHostedRunSession {
     #[must_use]
     pub fn identity(&self) -> &ExactRunIdentity {
         self.session.identity()
@@ -1414,6 +1667,16 @@ impl ExactHostedRunSession<'_, '_> {
             Ok(_) => Ok(()),
             Err(state) => Err(state),
         }
+    }
+
+    /// Appends bounded input to this active session's owned host-I/O store.
+    pub fn push_input(&self, bytes: &[u8]) -> Result<(), RuntimeError> {
+        self.io.borrow_mut().push_input(bytes)
+    }
+
+    /// Reads one bounded host-I/O snapshot without exposing the mutable store.
+    pub fn with_io<T>(&self, operation: impl FnOnce(&ExactRunIo) -> T) -> T {
+        operation(&self.io.borrow())
     }
 
     fn take_scheduler_error(&self, error: SchedulerError) -> RuntimeError {
@@ -4829,14 +5092,43 @@ impl ResolvedPanel<'_> {
 
     /// Atomically admits and starts one persistent exact-run session. It does
     /// not execute a node step; callers drive it through bounded `pump` turns.
-    pub fn start_exact_session<'p, 'r, 'i>(
+    pub fn start_exact_session<'p>(
         &self,
         plan: &'p ExecutionPlan<'p>,
         bindings: &ExactHostedBindings,
         context: ExactRunContext<'p>,
         sessions: &ExactRunSessionRegistry,
-        io: &'r mut RunIo<'i>,
-    ) -> Result<ExactHostedRunSession<'r, 'i>, RuntimeError> {
+        io: ExactRunIo,
+    ) -> Result<ExactHostedRunSession, RuntimeError> {
+        if io.capacity_bytes() != exact_host_io_capacity(plan)? {
+            return Err(RuntimeError::new(
+                "CND-RUN-009",
+                "owned host I/O capacity does not match the exact plan",
+            ));
+        }
+        let io = Rc::new(RefCell::new(io));
+        let (session, host_failure) = self.start_exact_session_with_io(
+            plan,
+            bindings,
+            context,
+            sessions,
+            HostedRunIo::Owned(Rc::clone(&io)),
+        )?;
+        Ok(ExactHostedRunSession {
+            session,
+            host_failure,
+            io,
+        })
+    }
+
+    fn start_exact_session_with_io<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        sessions: &ExactRunSessionRegistry,
+        io: HostedRunIo<'r, 'i>,
+    ) -> Result<StartedHostedSession<'r, 'i>, RuntimeError> {
         let admission = sessions
             .admit(context.reservation.available_runtime_memory_bytes)
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
@@ -4941,7 +5233,6 @@ impl ResolvedPanel<'_> {
         let store = Rc::new(RefCell::new(HostValueStore::with_limit(
             maximum_value_store_bytes,
         )));
-        let io_cell = Rc::new(RefCell::new(io));
         let host_failure = Rc::new(RefCell::new(None));
         let mut scheduled_nodes = Vec::with_capacity(plan.nodes.len());
         for (node_index, planned) in plan.nodes.iter().enumerate() {
@@ -5538,7 +5829,7 @@ impl ResolvedPanel<'_> {
                 driver: HostedSchedulerDriver {
                     kind,
                     store: Rc::clone(&store),
-                    io: Rc::clone(&io_cell),
+                    io: io.clone(),
                     in_cords,
                     out_cords,
                     maximum_input_bytes,
@@ -5566,10 +5857,7 @@ impl ResolvedPanel<'_> {
             },
             executor,
         );
-        Ok(ExactHostedRunSession {
-            session,
-            host_failure,
-        })
+        Ok((session, host_failure))
     }
 
     fn run_exact_report_controlled<'p, 'r, 'i>(
@@ -5583,20 +5871,42 @@ impl ResolvedPanel<'_> {
         let sessions =
             ExactRunSessionRegistry::new(1, context.reservation.available_runtime_memory_bytes)
                 .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-        let mut session = self.start_exact_session(plan, bindings, context, &sessions, io)?;
+        let borrowed_io = Rc::new(RefCell::new(io));
+        let (mut session, host_failure) = self.start_exact_session_with_io(
+            plan,
+            bindings,
+            context,
+            &sessions,
+            HostedRunIo::Borrowed(borrowed_io),
+        )?;
         if let Some(stop) = initial_stop {
-            session.cancel(stop)?;
+            session.cancel(stop).map_err(|error| {
+                host_failure
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
+            })?;
         }
         let quantum = context.scheduler_policy.max_decisions.max(1);
         let status = loop {
-            session.pump(quantum)?;
+            session.pump(quantum).map_err(|error| {
+                host_failure
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
+            })?;
             match session.scheduler_status() {
                 SchedulerStatus::Running => continue,
                 SchedulerStatus::Stalled => {
                     let Some(deadline) = session.next_timer_deadline() else {
                         break SchedulerStatus::Stalled;
                     };
-                    session.advance_to(deadline)?;
+                    session.advance_to(deadline).map_err(|error| {
+                        host_failure
+                            .borrow_mut()
+                            .take()
+                            .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
+                    })?;
                 }
                 terminal => break terminal,
             }
@@ -6064,14 +6374,14 @@ fn stage_validation_output(
 struct HostedSchedulerDriver<'r, 'i> {
     kind: HostedNodeKind,
     store: Rc<RefCell<HostValueStore>>,
-    io: Rc<RefCell<&'r mut RunIo<'i>>>,
+    io: HostedRunIo<'r, 'i>,
     in_cords: Vec<usize>,
     out_cords: Vec<usize>,
     maximum_input_bytes: u32,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
 }
 
-impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
+impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
     fn prepare(&mut self) -> Result<conduit_core::LifecycleUsage, Id<'static>> {
         Ok(conduit_core::LifecycleUsage::default())
     }
@@ -6635,30 +6945,42 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                         .saturating_sub(bytes.len());
                     if remaining == 0 {
                         let mut extra = [0_u8; 1];
-                        match self.io.borrow_mut().input.read(&mut extra) {
-                            Ok(0) => break,
-                            Ok(_) => {
-                                return SchedulerStep::Failed {
-                                    code: Id("io/stdin-bound-exceeded"),
-                                };
-                            }
-                            Err(_) => {
+                        let extra_read = match self.io.read_input(&mut extra) {
+                            Ok(read) => read,
+                            Err(error) => {
+                                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                    "CND-RUN-004",
+                                    format!("failed to read exact stdin: {error}"),
+                                ));
                                 return SchedulerStep::Failed {
                                     code: Id("io/stdin-read-error"),
                                 };
                             }
+                        };
+                        if extra_read == 0 {
+                            break;
                         }
+                        return SchedulerStep::Failed {
+                            code: Id("io/stdin-bound-exceeded"),
+                        };
                     }
                     let read_limit = remaining.min(chunk.len());
-                    match self.io.borrow_mut().input.read(&mut chunk[..read_limit]) {
-                        Ok(0) => break,
-                        Ok(read) => bytes.extend_from_slice(&chunk[..read]),
-                        Err(_) => {
+                    let read = match self.io.read_input(&mut chunk[..read_limit]) {
+                        Ok(read) => read,
+                        Err(error) => {
+                            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                                "CND-RUN-004",
+                                format!("failed to read exact stdin: {error}"),
+                            ));
                             return SchedulerStep::Failed {
                                 code: Id("io/stdin-read-error"),
                             };
                         }
+                    };
+                    if read == 0 {
+                        break;
                     }
+                    bytes.extend_from_slice(&chunk[..read]);
                 }
                 let Some(handle) = self.store.borrow_mut().store(bytes.clone()) else {
                     return SchedulerStep::Failed {
@@ -6754,7 +7076,7 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 }
                 if !*invoked {
                     let values = inputs.iter().flatten().cloned().collect::<Vec<_>>();
-                    let outputs = match handler.run(node, &values, &mut self.io.borrow_mut()) {
+                    let outputs = match self.io.with_run_io(|io| handler.run(node, &values, io)) {
                         Ok(outputs) => outputs,
                         Err(error) => {
                             *self.host_failure.borrow_mut() = Some(error);
@@ -6904,7 +7226,11 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 if let Ok(Some(val)) = io.receive(in_cord) {
                     let store = self.store.borrow();
                     let bytes = store.get(val.handle).unwrap_or(&[]);
-                    if self.io.borrow_mut().output.write_all(bytes).is_err() {
+                    if self
+                        .io
+                        .write_channel(ExactRunIoChannel::Output, bytes)
+                        .is_err()
+                    {
                         return SchedulerStep::Failed {
                             code: Id("io/stdout-write-error"),
                         };
@@ -6925,7 +7251,11 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                 if let Ok(Some(val)) = io.receive(in_cord) {
                     let store = self.store.borrow();
                     let bytes = store.get(val.handle).unwrap_or(&[]);
-                    if self.io.borrow_mut().error.write_all(bytes).is_err() {
+                    if self
+                        .io
+                        .write_channel(ExactRunIoChannel::Error, bytes)
+                        .is_err()
+                    {
                         return SchedulerStep::Failed {
                             code: Id("io/stderr-write-error"),
                         };
@@ -6947,7 +7277,10 @@ impl<'r, 'i> SchedulerNode for HostedSchedulerDriver<'r, 'i> {
                     let store = self.store.borrow();
                     let bytes = store.get(val.handle).unwrap_or(&[]);
                     if std::str::from_utf8(bytes).is_err()
-                        || self.io.borrow_mut().display.write_all(bytes).is_err()
+                        || self
+                            .io
+                            .write_channel(ExactRunIoChannel::Display, bytes)
+                            .is_err()
                     {
                         return SchedulerStep::Failed {
                             code: Id("display/text-write-error"),

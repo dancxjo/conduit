@@ -15,7 +15,7 @@ use conduit_core::{
 };
 use conduit_panel::parse;
 use conduit_runtime::{
-    AvailabilityState, ExactHostedBinding, ExactHostedBindings, ExactRunContext,
+    AvailabilityState, ExactHostedBinding, ExactHostedBindings, ExactRunContext, ExactRunIo,
     ExactRunSessionRegistry, HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
 };
 
@@ -57,16 +57,24 @@ fn profile(ordinal: u8) -> ExecutionProfileDocument {
             max_output_bytes: 1024,
             max_transactions: 1,
             max_fragments_per_step: 1,
-            implementation_memory_bytes: 2048,
+            max_host_buffer_bytes: 1024,
+            implementation_memory_bytes: 3 * 1024,
             cancellation_ticks: 1,
             ..ExecutionLimitsDocument::default()
         },
         representations: Vec::new(),
-        memory_claims: vec![MemoryClaimDocument {
-            category: "port-transactions".to_owned(),
-            accounting: "executor-allocated".to_owned(),
-            bytes: 2048,
-        }],
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "host-services".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 1024,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: 2048,
+            },
+        ],
         checkpoint: None,
     }
 }
@@ -152,7 +160,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             current_constraints: Vec::new(),
         },
         allocation: BudgetDocument {
-            memory_bytes: 2048,
+            memory_bytes: 3 * 1024,
             cpu_units: 1,
             ..BudgetDocument::default()
         },
@@ -742,23 +750,25 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
     assert_ne!(format.implementation.semantic_hash, plan.identity);
 
     let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
-    let mut input = &b""[..];
-    let mut session_output = Vec::new();
-    let mut session_error = Vec::new();
-    let mut session_display = Vec::new();
-    let mut session_io = RunIo {
-        input: &mut input,
-        output: &mut session_output,
-        error: &mut session_error,
-        display: &mut session_display,
-    };
+    let insufficient_io = resolved
+        .start_exact_session(
+            &plan,
+            &bindings,
+            context(conduit_core::Id("fixture/format-insufficient-io")),
+            &sessions,
+            ExactRunIo::new(0).unwrap(),
+        )
+        .err()
+        .expect("persistent Start must reject I/O outside the exact plan capacity");
+    assert_eq!(insufficient_io.code, "CND-RUN-009");
+    assert_eq!(sessions.active_sessions(), 0);
     let mut session = resolved
         .start_exact_session(
             &plan,
             &bindings,
             context(conduit_core::Id("fixture/format-run")),
             &sessions,
-            &mut session_io,
+            ExactRunIo::for_plan(&plan).unwrap(),
         )
         .unwrap();
     assert_eq!(sessions.active_sessions(), 1);
@@ -777,9 +787,8 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
     assert_eq!(session.exact_evidence(), report.evidence);
     assert!(session.finalize().is_ok());
     assert_eq!(sessions.active_sessions(), 0);
-    drop(session);
     assert_eq!(
-        session_display,
+        session.with_io(|io| io.display().to_vec()),
         b"Hello, operator. Payload: {status = ready}\n"
     );
 
@@ -802,6 +811,70 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
         .unwrap();
     assert_eq!(cancelled.terminal, conduit_core::TerminalClass::Cancelled);
     assert!(cancelled.evidence_bytes <= plan.budget.evidence_bytes);
+}
+
+#[test]
+fn persistent_hosted_session_owns_io_after_the_plan_arena_is_released() {
+    const SOURCE: &str = "panel 0\n\
+node source : std/literal { value = \"owned session\" }\n\
+node sink : display/text\n\
+cord source.value -> sink.text\n";
+
+    let installed = InstalledProfile::observe(SOURCE).unwrap();
+    let document = compile_source(SOURCE, &installed.input).unwrap();
+    let sessions = ExactRunSessionRegistry::new(1, document.budget.memory_bytes).unwrap();
+    let mut session = {
+        let arena = Bump::new();
+        let plan = document.as_plan(&arena).unwrap();
+        let panel = parse(SOURCE).unwrap();
+        let registry = Registry::hosted_primitives();
+        let resolved = registry.resolve(&panel).unwrap();
+        let bindings = installed.bindings(&plan).unwrap();
+        resolved
+            .start_exact_session(
+                &plan,
+                &bindings,
+                ExactRunContext {
+                    semantic_source_hash: plan.source_semantic_hash,
+                    plan_epoch: 41,
+                    run_id: conduit_core::Id("fixture/owned-plan-arena"),
+                    grant_observations: &[],
+                    validation: conduit_core::PlanValidationContext {
+                        supported_schema_version: plan.schema_version,
+                        now: plan.created_at,
+                    },
+                    scheduler_policy: SchedulerPolicy {
+                        schema_version: SCHEDULER_CONTRACT_VERSION,
+                        ready_queue: ReadyQueueDiscipline::RoundRobin,
+                        max_decisions: 128,
+                        max_tick: 256,
+                        max_consecutive_yields: 8,
+                        max_events: 64,
+                    },
+                    reservation: SchedulerReservation {
+                        available_runtime_memory_bytes: plan.budget.memory_bytes,
+                        executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                    },
+                },
+                &sessions,
+                ExactRunIo::for_plan(&plan).unwrap(),
+            )
+            .unwrap()
+    };
+    assert_eq!(session.high_water().decisions, 0);
+    while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
+        session.pump(1).unwrap();
+    }
+    assert_eq!(
+        session.state(),
+        conduit_runtime::ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+    );
+    assert_eq!(
+        session.with_io(|io| io.display().to_vec()),
+        b"owned session"
+    );
+    assert!(session.finalize().is_ok());
+    assert_eq!(sessions.active_sessions(), 0);
 }
 
 #[test]

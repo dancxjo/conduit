@@ -272,6 +272,12 @@ impl RuntimePlan {
 }
 
 fn runtime_plan_storage_bytes(plan: &ExecutionPlan<'_>) -> Result<u64, SchedulerError> {
+    let host_io_bytes = plan.nodes.iter().try_fold(0_u64, |total, node| {
+        let profile = node.execution_profile.ok_or(SchedulerError::InvalidPlan)?;
+        total
+            .checked_add(profile.limits.max_host_buffer_bytes)
+            .ok_or(SchedulerError::ArithmeticOverflow)
+    })?;
     let node_ids = plan.nodes.iter().try_fold(0_u64, |total, node| {
         [
             node.instance.as_str(),
@@ -324,6 +330,7 @@ fn runtime_plan_storage_bytes(plan: &ExecutionPlan<'_>) -> Result<u64, Scheduler
         )?,
         node_ids.ok_or(SchedulerError::ArithmeticOverflow)?,
         cord_ids.ok_or(SchedulerError::ArithmeticOverflow)?,
+        host_io_bytes,
     ]
     .into_iter()
     .try_fold(0_u64, u64::checked_add)

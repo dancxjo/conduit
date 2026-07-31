@@ -162,7 +162,7 @@ impl ExactRunSessionAdmission {
 pub struct ExactRunSession<N: SchedulerNode> {
     identity: ExactRunIdentity,
     executor: Option<DeterministicExecutor<N>>,
-    admission: ExactRunSessionAdmission,
+    admission: Option<ExactRunSessionAdmission>,
     stop: Option<StopPolicy>,
 }
 
@@ -173,7 +173,10 @@ impl<N: SchedulerNode> Drop for ExactRunSession<N> {
             .as_ref()
             .is_some_and(|executor| !is_terminal(executor.status()))
         {
-            self.admission.mark_live_session_abandoned();
+            self.admission
+                .as_ref()
+                .expect("live exact-run session retains its admission")
+                .mark_live_session_abandoned();
         }
     }
 }
@@ -188,7 +191,7 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         Self {
             identity,
             executor: Some(executor),
-            admission,
+            admission: Some(admission),
             stop: None,
         }
     }
@@ -280,8 +283,10 @@ impl<N: SchedulerNode> ExactRunSession<N> {
 
     /// The finite runtime reservation held for this session's complete life.
     #[must_use]
-    pub const fn reserved_session_bytes(&self) -> u64 {
-        self.admission.reserved_bytes
+    pub fn reserved_session_bytes(&self) -> u64 {
+        self.admission
+            .as_ref()
+            .map_or(0, |admission| admission.reserved_bytes)
     }
 
     #[must_use]
@@ -298,7 +303,13 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     /// error leaves this same session retained and usable by the caller.
     pub fn finalize(&mut self) -> Result<DeterministicExecutor<N>, ExactRunState> {
         if is_terminal(self.executor().status()) {
-            Ok(self.executor.take().expect("terminal executor is retained"))
+            let executor = self.executor.take().expect("terminal executor is retained");
+            let admission = self
+                .admission
+                .take()
+                .expect("terminal executor retains its admission");
+            drop(admission);
+            Ok(executor)
         } else {
             Err(self.state())
         }

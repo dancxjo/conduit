@@ -66,11 +66,13 @@ host observation.
 
 All runtime-plan copies, queue payload reservations, feedback slots,
 ready/wait entries, transaction staging, scheduler events, implementation
-state, host-provided buffers, concurrent-session slots, and aggregate reserved
-session memory are finite and admitted before Start. The runtime-plan copy is
-charged as executor overhead alongside scheduler metadata. A long-lived run
-may have no lifetime decision deadline; that does not make a pump, queue,
-timer, value, observer, or evidence store unbounded.
+state, owned host-I/O storage, concurrent-session slots, and aggregate
+reserved session memory are finite and admitted before Start. Exact host I/O
+uses one fixed shared store for input, stdout, stderr, and display output; its
+capacity is the aggregate plan profile host-buffer allowance and is charged as
+executor overhead alongside scheduler metadata. A long-lived run may have no
+lifetime decision deadline; that does not make a pump, queue, timer, value,
+observer, or evidence store unbounded.
 
 `SchedulerPolicy.max_decisions` is an optional lifetime decision deadline:
 zero means no decision-count deadline. A positive value remains a terminal
@@ -90,7 +92,11 @@ calls, one-decision quantum yield, named host wake, timer wake, Drain, Abort,
 terminal-only finalization, capacity failure, and exact identity retention.
 The existing finite `run_exact_report` helper is convenience only: it starts a
 session, cooperatively pumps it to terminal, and projects its bounded evidence.
-It must not become a second executor or a compatibility path.
+For the duration of that finite call it may borrow the caller's streams so a
+blocking hosted implementation can publish and flush its process diagnostics.
+It still uses the same exact session and executor; only `Start` produces a
+persistent session, whose I/O boundary is owned. The helper must not become a
+second executor or a compatibility path.
 
 ## Normative requirements
 

@@ -482,6 +482,16 @@ fn candidate(
         HostedPrimitiveImplementation::SupervisionRetry
             | HostedPrimitiveImplementation::SupervisionCircuitBreaker
     );
+    let host_io_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Stdin
+            | HostedPrimitiveImplementation::StdinStream
+            | HostedPrimitiveImplementation::Stdout
+            | HostedPrimitiveImplementation::Stderr
+            | HostedPrimitiveImplementation::StdoutStream
+            | HostedPrimitiveImplementation::StderrStream
+            | HostedPrimitiveImplementation::DisplayText
+    );
     let process_profile = installed.contract.id.as_str() == "conduit.host/process/exec";
     let socket_profile = installed
         .contract
@@ -529,6 +539,8 @@ fn candidate(
             socket_execution_profile()
         } else if has_host_service {
             host_service_execution_profile()
+        } else if host_io_profile {
+            host_io_execution_profile()
         } else if format_profile {
             format_execution_profile()
         } else if buffered_text_profile {
@@ -604,6 +616,8 @@ fn candidate(
                 256 * 1024
             } else if has_host_service {
                 192 * 1024
+            } else if host_io_profile {
+                3 * 1024
             } else if structural_validation_profile {
                 576 * 1024
             } else if format_profile || buffered_text_profile || data_boundary_profile {
@@ -970,6 +984,46 @@ fn execution_profile() -> ExecutionProfileDocument {
             accounting: "executor-allocated".to_owned(),
             bytes: 2048,
         }],
+        checkpoint: None,
+    }
+}
+
+fn host_io_execution_profile() -> ExecutionProfileDocument {
+    const BUFFER_BYTES: u64 = 1024;
+    const MEMORY_BYTES: u64 = 3 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-io-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 4,
+            max_input_leases: 1,
+            max_input_bytes: BUFFER_BYTES,
+            max_output_reservations: 1,
+            max_output_bytes: BUFFER_BYTES,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_host_buffer_bytes: BUFFER_BYTES,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "host-services".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: BUFFER_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - BUFFER_BYTES,
+            },
+        ],
         checkpoint: None,
     }
 }
