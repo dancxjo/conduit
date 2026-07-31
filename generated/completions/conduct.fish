@@ -142,23 +142,24 @@ complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen
 complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
 complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
 complete -c conduct -n "__fish_conduct_using_subcommand package; and __fish_seen_subcommand_from extract" -s h -l help -d 'Print help'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
 json\t''
 ndjson\t''"
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
 json\t''"
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
 always\t''
 never\t''"
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -s h -l help -d 'Print help'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -f -a "pack" -d 'Create one canonical capsule JSON document without fetching artifacts'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -f -a "inspect" -d 'Validate and describe a capsule without executing its source'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -f -a "check" -d 'Validate the capsule and parse its authored panel offline'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -f -a "unpack" -d 'Write source and optional auxiliary documents to a new directory'
-complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check unpack diff" -f -a "diff" -d 'Compare authored, lock, reference, and presentation identities'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -s h -l help -d 'Print help'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -f -a "pack" -d 'Create one canonical capsule JSON document without fetching artifacts'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -f -a "inspect" -d 'Validate and describe a capsule without executing its source'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -f -a "check" -d 'Validate the capsule and parse its authored panel offline'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -f -a "explain" -d 'Resolve and explain the capsule source without fetching artifacts'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -f -a "unpack" -d 'Write source and optional auxiliary documents to a new directory'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and not __fish_seen_subcommand_from pack inspect check explain unpack diff" -f -a "diff" -d 'Compare authored, lock, reference, and presentation identities'
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from pack" -l lock -r -F
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from pack" -l presentation -r -F
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from pack" -l references -r -F
@@ -199,6 +200,18 @@ complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from check" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from check" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from check" -s h -l help -d 'Print help'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
+json\t''
+ndjson\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -l diagnostic-format -d 'Select human or lossless JSON diagnostics on stderr' -r -f -a "human\t''
+json\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -l color -d 'Select diagnostic terminal styling' -r -f -a "auto\t''
+always\t''
+never\t''"
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -s q -l quiet -d 'Suppress nonessential status and progress, never values or diagnostics'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -s v -d 'Add bounded resolution status detail; repeat for future detail levels'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -l verbose-diagnostics -d 'Include related spans, notes, paths, and causes'
+complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from explain" -s h -l help -d 'Print help'
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from unpack" -l output-dir -r -F
 complete -c conduct -n "__fish_conduct_using_subcommand capsule; and __fish_seen_subcommand_from unpack" -l format -d 'Select human, finite JSON, or streaming NDJSON primary output' -r -f -a "human\t''
 json\t''

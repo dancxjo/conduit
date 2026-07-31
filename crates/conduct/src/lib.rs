@@ -80,6 +80,8 @@ pub enum CapsuleOperation {
     Inspect(CapsulePathArguments),
     /// Validate the capsule and parse its authored panel offline.
     Check(CapsulePathArguments),
+    /// Resolve and explain the capsule source without fetching artifacts.
+    Explain(CapsulePathArguments),
     /// Write source and optional auxiliary documents to a new directory.
     Unpack(CapsuleUnpackArguments),
     /// Compare authored, lock, reference, and presentation identities.

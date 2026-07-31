@@ -58,6 +58,16 @@ fn pack_check_inspect_diff_and_unpack_preserve_identity_layers() {
     assert_eq!(checked["operation"], "capsule-check");
     assert_eq!(checked["result"]["root_nodes"], 3);
 
+    let explained = command()
+        .args(["capsule", "explain", "--format=json"])
+        .arg(&first)
+        .output()
+        .unwrap();
+    assert!(explained.status.success());
+    let explained: serde_json::Value = serde_json::from_slice(&explained.stdout).unwrap();
+    assert_eq!(explained["operation"], "capsule-explain");
+    assert_eq!(explained["result"]["nodes"].as_array().unwrap().len(), 3);
+
     let diff = command()
         .args(["capsule", "diff", "--format=json"])
         .arg(&first)

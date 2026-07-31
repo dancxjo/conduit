@@ -34,6 +34,9 @@ _conduct() {
             conduct__subcmd__capsule,diff)
                 cmd="conduct__subcmd__capsule__subcmd__diff"
                 ;;
+            conduct__subcmd__capsule,explain)
+                cmd="conduct__subcmd__capsule__subcmd__explain"
+                ;;
             conduct__subcmd__capsule,inspect)
                 cmd="conduct__subcmd__capsule__subcmd__inspect"
                 ;;
@@ -89,7 +92,7 @@ _conduct() {
             return 0
             ;;
         conduct__subcmd__capsule)
-            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help pack inspect check unpack diff"
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help pack inspect check explain unpack diff"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -141,6 +144,32 @@ _conduct() {
             return 0
             ;;
         conduct__subcmd__capsule__subcmd__diff)
+            opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "human json ndjson" -- "${cur}"))
+                    return 0
+                    ;;
+                --diagnostic-format)
+                    COMPREPLY=($(compgen -W "human json" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        conduct__subcmd__capsule__subcmd__explain)
             opts="-q -v -h --format --diagnostic-format --color --quiet --verbose-diagnostics --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

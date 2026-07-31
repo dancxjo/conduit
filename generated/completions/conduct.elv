@@ -135,6 +135,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand pack 'Create one canonical capsule JSON document without fetching artifacts'
             cand inspect 'Validate and describe a capsule without executing its source'
             cand check 'Validate the capsule and parse its authored panel offline'
+            cand explain 'Resolve and explain the capsule source without fetching artifacts'
             cand unpack 'Write source and optional auxiliary documents to a new directory'
             cand diff 'Compare authored, lock, reference, and presentation identities'
         }
@@ -165,6 +166,17 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --help 'Print help'
         }
         &'conduct;capsule;check'= {
+            cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
+            cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
+            cand --color 'Select diagnostic terminal styling'
+            cand -q 'Suppress nonessential status and progress, never values or diagnostics'
+            cand --quiet 'Suppress nonessential status and progress, never values or diagnostics'
+            cand -v 'Add bounded resolution status detail; repeat for future detail levels'
+            cand --verbose-diagnostics 'Include related spans, notes, paths, and causes'
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'conduct;capsule;explain'= {
             cand --format 'Select human, finite JSON, or streaming NDJSON primary output'
             cand --diagnostic-format 'Select human or lossless JSON diagnostics on stderr'
             cand --color 'Select diagnostic terminal styling'

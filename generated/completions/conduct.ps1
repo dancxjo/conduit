@@ -145,6 +145,7 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             [CompletionResult]::new('pack', 'pack', [CompletionResultType]::ParameterValue, 'Create one canonical capsule JSON document without fetching artifacts')
             [CompletionResult]::new('inspect', 'inspect', [CompletionResultType]::ParameterValue, 'Validate and describe a capsule without executing its source')
             [CompletionResult]::new('check', 'check', [CompletionResultType]::ParameterValue, 'Validate the capsule and parse its authored panel offline')
+            [CompletionResult]::new('explain', 'explain', [CompletionResultType]::ParameterValue, 'Resolve and explain the capsule source without fetching artifacts')
             [CompletionResult]::new('unpack', 'unpack', [CompletionResultType]::ParameterValue, 'Write source and optional auxiliary documents to a new directory')
             [CompletionResult]::new('diff', 'diff', [CompletionResultType]::ParameterValue, 'Compare authored, lock, reference, and presentation identities')
             break
@@ -178,6 +179,18 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             break
         }
         'conduct;capsule;check' {
+            [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
+            [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress nonessential status and progress, never values or diagnostics')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Add bounded resolution status detail; repeat for future detail levels')
+            [CompletionResult]::new('--verbose-diagnostics', '--verbose-diagnostics', [CompletionResultType]::ParameterName, 'Include related spans, notes, paths, and causes')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'conduct;capsule;explain' {
             [CompletionResult]::new('--format', '--format', [CompletionResultType]::ParameterName, 'Select human, finite JSON, or streaming NDJSON primary output')
             [CompletionResult]::new('--diagnostic-format', '--diagnostic-format', [CompletionResultType]::ParameterName, 'Select human or lossless JSON diagnostics on stderr')
             [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Select diagnostic terminal styling')

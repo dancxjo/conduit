@@ -1412,6 +1412,27 @@ fn run_capsule(
                 serde_json::to_value(result).expect("capsule check serializes"),
             )
         }
+        CapsuleOperation::Explain(explain) => {
+            let document = read_capsule(&explain.capsule, presentation)?;
+            let panel = parse(&document.source).map_err(|_| {
+                capsule_cli_error(
+                    "CND-CAP-003",
+                    "validated capsule source no longer parses",
+                    presentation,
+                )
+            })?;
+            let registry = Registry::hosted_primitives();
+            let resolved = registry.resolve(&panel).map_err(|error| {
+                cli_error(from_resolution_error(&error), presentation, Vec::new())
+            })?;
+            let view = resolved.view();
+            (
+                "capsule-explain",
+                explain.capsule.display().to_string(),
+                resolved.explain(),
+                serde_json::to_value(view).expect("resolved capsule view serializes"),
+            )
+        }
         CapsuleOperation::Unpack(unpack) => {
             let document = read_capsule(&unpack.capsule, presentation)?;
             fs::create_dir(&unpack.output_dir).map_err(|error| {
