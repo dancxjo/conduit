@@ -326,7 +326,8 @@ export class PatchbayReactFlowRenderer {
     }
 
     const topologyIdentity = [
-      ...nodes.map((node) => `node:${node.id}`),
+      ...nodes.map((node) =>
+        `node:${node.id}:${node.position.x}:${node.position.y}`),
       ...edges.map((edge) => `cord:${edge.id}`),
     ].join("\0");
     const flow = e(

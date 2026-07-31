@@ -46,6 +46,7 @@ done
 grep --fixed-strings "Drag nodes to adjust presentation layout" "${browser_log}"
 grep --fixed-strings "exact dedicated-worker placement" "${browser_log}"
 grep --fixed-strings 'data-projection="rust-authoritative"' "${browser_log}"
+grep --fixed-strings 'data-layout-algorithm="layered"' "${browser_log}"
 grep --fixed-strings 'data-testid="rf__node-greeting"' "${browser_log}"
 grep --fixed-strings 'visibility: visible' "${browser_log}"
 grep --fixed-strings 'class="react-flow__edge-path"' "${browser_log}"

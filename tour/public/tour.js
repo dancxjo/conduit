@@ -9,6 +9,7 @@ import init, {
 } from "./conduit_web.js";
 import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 import { patchbayFeatures } from "./patchbay-features.js";
+import { autoArrangeOperations } from "./patchbay-layout.js";
 import {
   attachPanelSourceHighlighting,
   configurePanelLanguage,
@@ -21,6 +22,7 @@ const result = document.querySelector("#result");
 const runButton = document.querySelector("#run");
 const stopButton = document.querySelector("#stop");
 const undoResetButton = document.querySelector("#undo-reset");
+const arrangeButton = document.querySelector("#arrange");
 const consoleBadge = document.querySelector("#console-status-badge");
 const selectedNodeLabel = document.querySelector("#selected-node-label");
 const moveLeftBtn = document.querySelector("#move-left");
@@ -366,6 +368,29 @@ function openPatchbaySession() {
     return true;
   }
   updateCytoscapeGraph();
+  autoArrangePatchbay();
+  return true;
+}
+
+function autoArrangePatchbay() {
+  if (!patchbayView) return false;
+  const operations = autoArrangeOperations(patchbayView);
+  for (let offset = 0; offset < operations.length;
+    offset += MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION) {
+    const arranged = applyPatchbayOperations(
+      operations.slice(
+        offset,
+        offset + MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION,
+      ),
+      { skipRender: true },
+    );
+    if (!arranged.ok) return false;
+  }
+  updateCytoscapeGraph();
+  if (cyContainer) cyContainer.dataset.layoutAlgorithm = "layered";
+  result.textContent = operations.length === 0
+    ? "No topology items were available to arrange."
+    : `Arranged ${operations.length} topology item${operations.length === 1 ? "" : "s"} by dataflow.`;
   return true;
 }
 
@@ -394,7 +419,9 @@ function applyPatchbayOperations(operations, options = {}) {
   }
   positions = transaction.result.presentation.node_positions;
   rememberLayout(current.id, positions, patchbayView);
-  if (!options.preserveFaceplateFocus) updateCytoscapeGraph();
+  if (!options.preserveFaceplateFocus && !options.skipRender) {
+    updateCytoscapeGraph();
+  }
   return transaction;
 }
 
@@ -965,6 +992,12 @@ scenarioSelect.addEventListener("change", () => {
 });
 
 document.querySelector("#check").onclick = check;
+if (arrangeButton) {
+  arrangeButton.onclick = () => {
+    localStorage.removeItem(layoutKey(current.id));
+    autoArrangePatchbay();
+  };
+}
 document.querySelector("#logical-view").onclick = () => {
   topologyView = "logical";
   renderTopology();
@@ -1123,6 +1156,7 @@ document.addEventListener("keydown", (event) => {
 document.querySelector("#reset").onclick = () => {
   stopActive("reset");
   localStorage.setItem(recoveryKey(current.id), source.value);
+  localStorage.removeItem(layoutKey(current.id));
   source.value = authoredSource();
   syncSourceHighlight();
   acceptedSource = source.value;
