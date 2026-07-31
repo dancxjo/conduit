@@ -223,16 +223,20 @@ export class PatchbayReactFlowRenderer {
     this.flowWrapper.id = "patchbay-flow-root";
     this.flowWrapper.className = "patchbay-flow-container";
     this.container.appendChild(this.flowWrapper);
-
-    if (patchbayFeatures.legacyLinePlacement) {
-      import("./patchbay-smart-edge.js").then((legacy) => {
+    import("./patchbay-smart-edge.js")
+      .then((legacy) => {
         this.legacySmartEdge = legacy.PatchbaySmartEdge || null;
+      })
+      .catch((error) => {
+        console.error(
+          "patchbay smart-edge module unavailable, using built-in React Flow routing:",
+          error,
+        );
+        this.legacySmartEdge = null;
+      })
+      .finally(() => {
         this.renderFlow();
       });
-      return;
-    }
-
-    this.renderFlow();
   }
 
   setViewModel(viewModel, lessonId = "default", topologyView = "logical") {
@@ -352,10 +356,6 @@ export class PatchbayReactFlowRenderer {
         '<div class="card-subtitle error-text">React Flow libraries unavailable.</div>';
       return;
     }
-    if (patchbayFeatures.legacyLinePlacement && !this.legacySmartEdge) {
-      return;
-    }
-
     const viewModel = this.viewModel;
     if (!viewModel) {
       this.flowWrapper.dataset.projection = "unavailable";
@@ -468,9 +468,7 @@ export class PatchbayReactFlowRenderer {
     )?.edge.id;
     const edges = projectedEdges.map(({ edge, source, target }) => {
       const presentation = edgePresentation(edge);
-      const edgeType = patchbayFeatures.legacyLinePlacement && this.legacySmartEdge
-        ? "patchbaySmartEdge"
-        : "smoothstep";
+      const edgeType = this.legacySmartEdge ? "patchbaySmartEdge" : "smoothstep";
       return {
         id: edge.id,
         source: source.node,
@@ -551,7 +549,7 @@ export class PatchbayReactFlowRenderer {
     };
 
     const edgeTypes = {};
-    if (patchbayFeatures.legacyLinePlacement && this.legacySmartEdge) {
+    if (this.legacySmartEdge) {
       edgeTypes.patchbaySmartEdge = (props) =>
         e(this.legacySmartEdge, {
           ...props,

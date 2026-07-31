@@ -1134,10 +1134,7 @@ test("standalone Patchbay app exposes the same live fullscreen editor workspace"
   );
 });
 
-test("routes cords through free space and keeps labels off node faces", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.CONDUIT_PATCHBAY_FEATURES = { legacyLinePlacement: true };
-  });
+test("routes cords through free space by default and keeps labels off node faces", async ({ page }) => {
   await page.goto("/tour/public/index.html");
 
   const panelSource = "panel 0\n\n" +
