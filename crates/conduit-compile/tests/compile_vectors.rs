@@ -873,6 +873,15 @@ cord source.value -> sink.text\n";
         session.with_io(|io| io.display().to_vec()),
         b"owned session"
     );
+    let values = session
+        .value_storage_usage()
+        .expect("hosted session exposes its fixed value arena");
+    assert_eq!(values.resident_slots, 0);
+    assert_eq!(values.resident_bytes, 0);
+    assert!(values.high_water_slots > 0);
+    assert!(values.high_water_bytes > 0);
+    assert!(values.high_water_slots <= values.maximum_slots);
+    assert!(values.high_water_bytes <= values.maximum_bytes);
     assert!(session.finalize().is_ok());
     assert_eq!(sessions.active_sessions(), 0);
 }

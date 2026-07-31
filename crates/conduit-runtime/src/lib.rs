@@ -107,7 +107,7 @@ pub use scheduler::{
     DeterministicExecutor, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
     SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventKind, SchedulerHighWater,
     SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SchedulerSubject,
-    SendStatus, StepIo, validate_runtime_value_for_cord,
+    SendStatus, StepIo, ValueStorageUsage, validate_runtime_value_for_cord,
 };
 pub use session::{
     ExactRunIdentity, ExactRunPump, ExactRunSession, ExactRunSessionRegistry, ExactRunState,
@@ -1237,6 +1237,36 @@ fn exact_host_io_capacity(plan: &ExecutionPlan<'_>) -> Result<u64, RuntimeError>
     })
 }
 
+fn exact_host_value_slot_capacity(plan: &ExecutionPlan<'_>) -> Result<u32, RuntimeError> {
+    let queued = plan
+        .cords
+        .iter()
+        .try_fold(0_u64, |total, cord| {
+            total.checked_add(u64::from(cord.flow.capacity.items()))
+        })
+        .ok_or_else(|| RuntimeError::new("CND-SCH-005", "value slot capacity overflowed"))?;
+    let retained = plan.nodes.iter().try_fold(0_u64, |total, node| {
+        let profile = node.execution_profile.ok_or_else(|| {
+            RuntimeError::new(
+                "CND-RUN-009",
+                format!(
+                    "planned node `{}` has no execution profile",
+                    node.instance.as_str()
+                ),
+            )
+        })?;
+        total
+            .checked_add(u64::from(profile.limits.max_input_leases))
+            .and_then(|total| total.checked_add(u64::from(profile.limits.max_output_reservations)))
+            .and_then(|total| total.checked_add(u64::from(profile.limits.max_retained_values)))
+            .ok_or_else(|| RuntimeError::new("CND-SCH-005", "value slot capacity overflowed"))
+    })?;
+    queued
+        .checked_add(retained)
+        .and_then(|total| u32::try_from(total).ok())
+        .ok_or_else(|| RuntimeError::new("CND-SCH-005", "value slot capacity overflowed"))
+}
+
 /// Behavior-specific hosted implementation selected by an exact binding.
 ///
 /// This is deliberately not inferred from a semantic contract. A caller must
@@ -1649,6 +1679,12 @@ impl ExactHostedRunSession {
     #[must_use]
     pub fn high_water(&self) -> SchedulerHighWater {
         self.session.high_water()
+    }
+
+    /// Current and high-water occupancy of this session's fixed value arena.
+    #[must_use]
+    pub fn value_storage_usage(&self) -> Option<ValueStorageUsage> {
+        self.session.value_storage_usage()
     }
 
     pub fn scheduler_events(&self) -> impl Iterator<Item = &SchedulerEvent> {
@@ -5246,9 +5282,11 @@ impl ResolvedPanel<'_> {
         let maximum_value_store_bytes = maximum_value_store_bytes.ok_or_else(|| {
             RuntimeError::new("CND-RUN-009", "planned value-store bound overflowed")
         })?;
-        let store = Rc::new(RefCell::new(HostValueStore::with_limit(
+        let maximum_value_store_slots = exact_host_value_slot_capacity(plan)?;
+        let store = Rc::new(RefCell::new(HostValueStore::with_limits(
             maximum_value_store_bytes,
-        )));
+            maximum_value_store_slots,
+        )?));
         let host_failure = Rc::new(RefCell::new(None));
         let mut scheduled_nodes = Vec::with_capacity(plan.nodes.len());
         for (node_index, planned) in plan.nodes.iter().enumerate() {
@@ -6080,36 +6118,276 @@ impl ResolvedPanel<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
+struct HostValueSlot {
+    generation: u32,
+    offset: u32,
+    length: u32,
+    occupied: bool,
+    marked_live: bool,
+    retired: bool,
+}
+
+#[derive(Clone, Copy)]
+struct HostValueFreeSpan {
+    offset: u32,
+    length: u32,
+}
+
+/// Fixed-capacity, generation-safe payload storage for one hosted session.
+///
+/// Handles name a slot and generation rather than a grow-only vector index.
+/// The scheduler marks values reachable from cords and node state after every
+/// turn, then returns every unmarked slot and byte range to this arena.
 struct HostValueStore {
-    values: Vec<Vec<u8>>,
+    arena: Vec<u8>,
+    slots: Vec<HostValueSlot>,
+    free_slots: Vec<u32>,
+    free_spans: Vec<HostValueFreeSpan>,
     retained_bytes: u64,
+    high_water_bytes: u64,
+    high_water_slots: u32,
+    active_slots: u32,
     maximum_bytes: u64,
 }
 
 impl HostValueStore {
-    fn with_limit(maximum_bytes: u64) -> Self {
-        Self {
-            values: Vec::new(),
-            retained_bytes: 0,
-            maximum_bytes,
+    fn with_limits(maximum_bytes: u64, maximum_slots: u32) -> Result<Self, RuntimeError> {
+        let capacity = usize::try_from(maximum_bytes).map_err(|_| {
+            RuntimeError::new(
+                "CND-RUN-009",
+                "value-store capacity does not fit the platform",
+            )
+        })?;
+        let slots = usize::try_from(maximum_slots).map_err(|_| {
+            RuntimeError::new(
+                "CND-RUN-009",
+                "value-store slot count does not fit the platform",
+            )
+        })?;
+        let mut arena = Vec::new();
+        arena
+            .try_reserve_exact(capacity)
+            .map_err(|_| RuntimeError::new("CND-SCH-005", "value-store allocation failed"))?;
+        arena.resize(capacity, 0);
+
+        let mut slot_table = Vec::new();
+        slot_table
+            .try_reserve_exact(slots)
+            .map_err(|_| RuntimeError::new("CND-SCH-005", "value-store allocation failed"))?;
+        slot_table.resize(
+            slots,
+            HostValueSlot {
+                generation: 1,
+                offset: 0,
+                length: 0,
+                occupied: false,
+                marked_live: false,
+                retired: false,
+            },
+        );
+        let mut free_slots = Vec::new();
+        free_slots
+            .try_reserve_exact(slots)
+            .map_err(|_| RuntimeError::new("CND-SCH-005", "value-store allocation failed"))?;
+        for slot in (0..maximum_slots).rev() {
+            free_slots.push(slot);
         }
+        let mut free_spans = Vec::new();
+        free_spans
+            .try_reserve_exact(slots.saturating_add(1))
+            .map_err(|_| RuntimeError::new("CND-SCH-005", "value-store allocation failed"))?;
+        if maximum_bytes != 0 {
+            free_spans.push(HostValueFreeSpan {
+                offset: 0,
+                length: u32::try_from(maximum_bytes).map_err(|_| {
+                    RuntimeError::new(
+                        "CND-RUN-009",
+                        "value-store capacity exceeds handle representation",
+                    )
+                })?,
+            });
+        }
+        Ok(Self {
+            arena,
+            slots: slot_table,
+            free_slots,
+            free_spans,
+            retained_bytes: 0,
+            high_water_bytes: 0,
+            high_water_slots: 0,
+            active_slots: 0,
+            maximum_bytes,
+        })
     }
 
-    fn store(&mut self, bytes: Vec<u8>) -> Option<u64> {
-        let byte_count = u64::try_from(bytes.len()).ok()?;
-        let retained_bytes = self.retained_bytes.checked_add(byte_count)?;
-        if retained_bytes > self.maximum_bytes {
+    fn store(&mut self, bytes: &[u8]) -> Option<u64> {
+        let length = u32::try_from(bytes.len()).ok()?;
+        let next_bytes = self.retained_bytes.checked_add(u64::from(length))?;
+        if next_bytes > self.maximum_bytes {
             return None;
         }
-        let handle = self.values.len() as u64;
-        self.values.push(bytes);
-        self.retained_bytes = retained_bytes;
-        Some(handle)
+        let slot_index = self.free_slots.pop()?;
+        let offset = match self.allocate_range(length) {
+            Some(offset) => offset,
+            None => {
+                self.free_slots.push(slot_index);
+                return None;
+            }
+        };
+        let slot = self.slots.get_mut(usize::try_from(slot_index).ok()?)?;
+        debug_assert!(!slot.occupied && !slot.retired);
+        let start = usize::try_from(offset).ok()?;
+        let end = start.checked_add(bytes.len())?;
+        self.arena.get_mut(start..end)?.copy_from_slice(bytes);
+        slot.offset = offset;
+        slot.length = length;
+        slot.occupied = true;
+        slot.marked_live = false;
+        self.retained_bytes = next_bytes;
+        self.active_slots = self.active_slots.checked_add(1)?;
+        self.high_water_bytes = self.high_water_bytes.max(self.retained_bytes);
+        self.high_water_slots = self.high_water_slots.max(self.active_slots);
+        Some(encode_host_value_handle(slot_index, slot.generation))
     }
 
     fn get(&self, handle: u64) -> Option<&[u8]> {
-        self.values.get(handle as usize).map(|v| v.as_slice())
+        let (slot_index, generation) = decode_host_value_handle(handle)?;
+        let slot = self.slots.get(usize::try_from(slot_index).ok()?)?;
+        if !slot.occupied || slot.generation != generation {
+            return None;
+        }
+        let start = usize::try_from(slot.offset).ok()?;
+        let end = start.checked_add(usize::try_from(slot.length).ok()?)?;
+        self.arena.get(start..end)
     }
+
+    fn begin_reconciliation(&mut self) {
+        for slot in &mut self.slots {
+            if slot.occupied {
+                slot.marked_live = false;
+            }
+        }
+    }
+
+    fn mark_live(&mut self, value: RuntimeValue) {
+        let Some((slot_index, generation)) = decode_host_value_handle(value.handle) else {
+            return;
+        };
+        let Ok(slot_index) = usize::try_from(slot_index) else {
+            return;
+        };
+        let Some(slot) = self.slots.get_mut(slot_index) else {
+            return;
+        };
+        if slot.occupied && slot.generation == generation {
+            slot.marked_live = true;
+        }
+    }
+
+    fn finish_reconciliation(&mut self) {
+        for slot_index in 0..self.slots.len() {
+            if self.slots[slot_index].occupied && !self.slots[slot_index].marked_live {
+                self.release_slot(slot_index);
+            }
+        }
+    }
+
+    fn usage(&self) -> ValueStorageUsage {
+        ValueStorageUsage {
+            resident_slots: self.active_slots,
+            resident_bytes: self.retained_bytes,
+            high_water_slots: self.high_water_slots,
+            high_water_bytes: self.high_water_bytes,
+            maximum_slots: u32::try_from(self.slots.len()).unwrap_or(u32::MAX),
+            maximum_bytes: self.maximum_bytes,
+        }
+    }
+
+    fn allocate_range(&mut self, length: u32) -> Option<u32> {
+        if length == 0 {
+            return Some(0);
+        }
+        let index = self
+            .free_spans
+            .iter()
+            .position(|span| span.length >= length)?;
+        let span = &mut self.free_spans[index];
+        let offset = span.offset;
+        if span.length == length {
+            self.free_spans.remove(index);
+        } else {
+            span.offset = span.offset.checked_add(length)?;
+            span.length -= length;
+        }
+        Some(offset)
+    }
+
+    fn release_slot(&mut self, slot_index: usize) {
+        let slot = self.slots[slot_index];
+        debug_assert!(slot.occupied);
+        self.retained_bytes -= u64::from(slot.length);
+        self.active_slots = self.active_slots.saturating_sub(1);
+        if slot.length != 0 {
+            self.release_range(HostValueFreeSpan {
+                offset: slot.offset,
+                length: slot.length,
+            });
+        }
+        let slot = &mut self.slots[slot_index];
+        slot.occupied = false;
+        slot.marked_live = false;
+        slot.offset = 0;
+        slot.length = 0;
+        if let Some(next_generation) = slot.generation.checked_add(1) {
+            slot.generation = next_generation;
+            self.free_slots
+                .push(u32::try_from(slot_index).expect("slot index is bounded"));
+        } else {
+            slot.retired = true;
+        }
+    }
+
+    fn release_range(&mut self, range: HostValueFreeSpan) {
+        let index = self
+            .free_spans
+            .partition_point(|span| span.offset < range.offset);
+        self.free_spans.insert(index, range);
+        if index > 0 {
+            let previous = self.free_spans[index - 1];
+            if previous.offset.checked_add(previous.length) == Some(range.offset) {
+                self.free_spans[index - 1].length = previous
+                    .length
+                    .checked_add(range.length)
+                    .expect("bounded arena span cannot overflow");
+                self.free_spans.remove(index);
+            }
+        }
+        let index = self
+            .free_spans
+            .partition_point(|span| span.offset <= range.offset)
+            .saturating_sub(1);
+        if index + 1 < self.free_spans.len() {
+            let current = self.free_spans[index];
+            let next = self.free_spans[index + 1];
+            if current.offset.checked_add(current.length) == Some(next.offset) {
+                self.free_spans[index].length = current
+                    .length
+                    .checked_add(next.length)
+                    .expect("bounded arena span cannot overflow");
+                self.free_spans.remove(index + 1);
+            }
+        }
+    }
+}
+
+fn encode_host_value_handle(slot: u32, generation: u32) -> u64 {
+    (u64::from(generation) << 32) | u64::from(slot)
+}
+
+fn decode_host_value_handle(handle: u64) -> Option<(u32, u32)> {
+    let generation = (handle >> 32) as u32;
+    (generation != 0).then_some((handle as u32, generation))
 }
 
 #[derive(Clone, Copy)]
@@ -6169,7 +6447,7 @@ fn state_response_value(
     bytes: &[u8],
     envelope: RuntimeValueEnvelope,
 ) -> Result<RuntimeValue, RuntimeError> {
-    let handle = store.borrow_mut().store(bytes.to_vec()).ok_or_else(|| {
+    let handle = store.borrow_mut().store(bytes).ok_or_else(|| {
         RuntimeError::new(
             "conduit/value-store-bound-exceeded",
             "state response exceeded the exact value-store bound",
@@ -6361,6 +6639,127 @@ enum HostedNodeKind {
     },
 }
 
+impl HostedNodeKind {
+    fn mark_retained_values(&self, store: &mut HostValueStore) {
+        let mut mark = |value: Option<RuntimeValue>| {
+            if let Some(value) = value {
+                store.mark_live(value);
+            }
+        };
+        match self {
+            Self::Format {
+                template,
+                values,
+                output,
+                ..
+            } => {
+                mark(*template);
+                mark(*values);
+                mark(*output);
+            }
+            Self::Lines {
+                input,
+                pending_output,
+                ..
+            }
+            | Self::FrameLengthU32Be {
+                input,
+                pending_output,
+                ..
+            }
+            | Self::DeframeLengthU32Be {
+                input,
+                pending_output,
+                ..
+            } => {
+                mark(*input);
+                mark(*pending_output);
+            }
+            Self::Join {
+                inputs,
+                pending_output,
+                ..
+            } => {
+                for value in inputs {
+                    mark(Some(*value));
+                }
+                mark(*pending_output);
+            }
+            Self::DataUtf8 { pending, .. }
+            | Self::StateDeduplicate {
+                pending_output: pending,
+                ..
+            }
+            | Self::StateCache {
+                pending_output: pending,
+                ..
+            }
+            | Self::SupervisionCircuitBreaker {
+                pending_output: pending,
+                ..
+            } => mark(*pending),
+            Self::ValidateClosedRecord {
+                candidate,
+                decision,
+                ..
+            } => {
+                mark(*candidate);
+                mark(*decision);
+            }
+            Self::StateCell {
+                initial_value,
+                current,
+                pending_output,
+                ..
+            } => {
+                mark(*initial_value);
+                mark(*current);
+                mark(*pending_output);
+            }
+            Self::SupervisionRetry {
+                request,
+                pending_output,
+                ..
+            } => {
+                mark(*request);
+                mark(*pending_output);
+            }
+            Self::TimeTransform {
+                retained,
+                pending_output,
+                ..
+            } => {
+                mark(*retained);
+                mark(*pending_output);
+            }
+            Self::Tee { retained, .. } => mark(*retained),
+            Self::Zip { left, right, .. } => {
+                mark(*left);
+                mark(*right);
+            }
+            Self::HostedService {
+                pending_outputs, ..
+            } => {
+                for output in pending_outputs {
+                    mark(Some(output.value));
+                }
+            }
+            Self::Literal { .. }
+            | Self::Stdin { .. }
+            | Self::Uppercase
+            | Self::Stdout
+            | Self::Stderr
+            | Self::DisplayText
+            | Self::PassThrough
+            | Self::ValidationDecisionAssert { .. }
+            | Self::Merge { .. }
+            | Self::Gate { .. }
+            | Self::Select { .. }
+            | Self::Fallback { .. } => {}
+        }
+    }
+}
+
 struct HostedServiceOutput {
     value: RuntimeValue,
     cords: Vec<usize>,
@@ -6415,7 +6814,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 if self.out_cords.is_empty() {
                     return SchedulerStep::Completed;
                 }
-                let Some(handle) = self.store.borrow_mut().store(value.clone()) else {
+                let Some(handle) = self.store.borrow_mut().store(value) else {
                     return SchedulerStep::Failed {
                         code: Id("conduit/value-store-bound-exceeded"),
                     };
@@ -6520,7 +6919,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                             };
                         }
                     };
-                    let Some(handle) = self.store.borrow_mut().store(formatted) else {
+                    let Some(handle) = self.store.borrow_mut().store(&formatted) else {
                         return SchedulerStep::Failed {
                             code: Id("conduit/value-store-bound-exceeded"),
                         };
@@ -6616,7 +7015,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     *output_cursor = 0;
                     *retained_bytes = 0;
                     let accounted_bytes = bytes.len() as u32;
-                    let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                    let Some(handle) = self.store.borrow_mut().store(&bytes) else {
                         return SchedulerStep::Failed {
                             code: Id("conduit/value-store-bound-exceeded"),
                         };
@@ -6920,7 +7319,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 }
                 let accounted_bytes = output.len() as u32;
                 let joined = std::mem::take(output);
-                let Some(handle) = self.store.borrow_mut().store(joined) else {
+                let Some(handle) = self.store.borrow_mut().store(&joined) else {
                     return SchedulerStep::Failed {
                         code: Id("conduit/value-store-bound-exceeded"),
                     };
@@ -6998,7 +7397,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     }
                     bytes.extend_from_slice(&chunk[..read]);
                 }
-                let Some(handle) = self.store.borrow_mut().store(bytes.clone()) else {
+                let Some(handle) = self.store.borrow_mut().store(&bytes) else {
                     return SchedulerStep::Failed {
                         code: Id("conduit/value-store-bound-exceeded"),
                     };
@@ -7130,7 +7529,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                 };
                             }
                         };
-                        let Some(handle) = self.store.borrow_mut().store(output.bytes) else {
+                        let Some(handle) = self.store.borrow_mut().store(&output.bytes) else {
                             return SchedulerStep::Failed {
                                 code: Id("conduit/value-store-bound-exceeded"),
                             };
@@ -7202,7 +7601,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     let text = std::str::from_utf8(bytes).unwrap_or("");
                     let upper_bytes = text.to_uppercase().into_bytes();
                     drop(store);
-                    let Some(handle) = self.store.borrow_mut().store(upper_bytes.clone()) else {
+                    let Some(handle) = self.store.borrow_mut().store(&upper_bytes) else {
                         return SchedulerStep::Failed {
                             code: Id("conduit/value-store-bound-exceeded"),
                         };
@@ -7542,7 +7941,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 };
                 let encoded = encode_structural_decision(structural);
                 let accounted_bytes = encoded.len() as u32;
-                let Some(handle) = self.store.borrow_mut().store(encoded) else {
+                let Some(handle) = self.store.borrow_mut().store(&encoded) else {
                     return SchedulerStep::Failed {
                         code: Id("conduit/value-store-bound-exceeded"),
                     };
@@ -7701,7 +8100,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 }
                 let bytes = core::mem::take(output);
                 let accounted_bytes = bytes.len() as u32;
-                let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                let Some(handle) = self.store.borrow_mut().store(&bytes) else {
                     return SchedulerStep::Failed {
                         code: Id("conduit/value-store-bound-exceeded"),
                     };
@@ -7798,7 +8197,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                         code: Id("CND-DAT-002"),
                                     };
                                 }
-                                let Some(handle) = self.store.borrow_mut().store(bytes) else {
+                                let Some(handle) = self.store.borrow_mut().store(&bytes) else {
                                     return SchedulerStep::Failed {
                                         code: Id("conduit/value-store-bound-exceeded"),
                                     };
@@ -7882,7 +8281,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 if !*initialized {
                     *initialized = true;
                     if let Some(bytes) = initial_bytes.take() {
-                        let Some(handle) = self.store.borrow_mut().store(bytes.clone()) else {
+                        let Some(handle) = self.store.borrow_mut().store(&bytes) else {
                             return SchedulerStep::Failed {
                                 code: Id("conduit/value-store-bound-exceeded"),
                             };
@@ -8064,7 +8463,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                 };
                             }
                             let identity: conduit_std::StateIdentity = Sha256::digest(key).into();
-                            let Some(handle) = self.store.borrow_mut().store(value.to_vec()) else {
+                            let Some(handle) = self.store.borrow_mut().store(value) else {
                                 return SchedulerStep::Failed {
                                     code: Id("conduit/value-store-bound-exceeded"),
                                 };
@@ -9155,6 +9554,27 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 }
             }
         }
+    }
+
+    fn begin_value_reconciliation(&mut self) {
+        self.store.borrow_mut().begin_reconciliation();
+    }
+
+    fn mark_value_live(&mut self, value: RuntimeValue) {
+        self.store.borrow_mut().mark_live(value);
+    }
+
+    fn mark_retained_values(&mut self) {
+        let mut store = self.store.borrow_mut();
+        self.kind.mark_retained_values(&mut store);
+    }
+
+    fn finish_value_reconciliation(&mut self) {
+        self.store.borrow_mut().finish_reconciliation();
+    }
+
+    fn value_storage_usage(&self) -> Option<ValueStorageUsage> {
+        Some(self.store.borrow().usage())
     }
 }
 
@@ -11617,6 +12037,27 @@ impl Handler for FallbackHandler {
 mod tests {
     use super::*;
     use conduit_panel::parse;
+
+    #[test]
+    fn host_value_store_reclaims_bytes_and_rejects_a_stale_generation() {
+        let mut store = HostValueStore::with_limits(8, 1).unwrap();
+        let first = store.store(b"value").unwrap();
+        assert_eq!(store.get(first), Some(&b"value"[..]));
+        assert_eq!(store.usage().resident_bytes, 5);
+
+        store.begin_reconciliation();
+        store.finish_reconciliation();
+        assert_eq!(store.usage().resident_slots, 0);
+        assert_eq!(store.usage().resident_bytes, 0);
+        assert_eq!(store.get(first), None);
+
+        let second = store.store(b"next").unwrap();
+        assert_ne!(first, second);
+        assert_eq!(store.get(first), None);
+        assert_eq!(store.get(second), Some(&b"next"[..]));
+        assert_eq!(store.usage().high_water_slots, 1);
+        assert_eq!(store.usage().high_water_bytes, 5);
+    }
 
     #[test]
     fn validation_outputs_remain_exact_under_asymmetric_pressure() {

@@ -10,6 +10,7 @@ use conduit_core::{SemanticHash, StopPolicy, TerminalClass};
 
 use crate::{
     DeterministicExecutor, SchedulerError, SchedulerHighWater, SchedulerNode, SchedulerStatus,
+    ValueStorageUsage,
 };
 
 /// Immutable identities pinned when an authorized exact run starts.
@@ -297,6 +298,13 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     #[must_use]
     pub fn high_water(&self) -> SchedulerHighWater {
         self.executor().high_water()
+    }
+
+    /// Current and high-water payload storage for hosts that expose a fixed
+    /// value arena. Portable drivers return no host-specific measurement.
+    #[must_use]
+    pub fn value_storage_usage(&self) -> Option<ValueStorageUsage> {
+        self.executor().value_storage_usage()
     }
 
     /// Releases the owned scheduler only after it is terminal. A nonterminal

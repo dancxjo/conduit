@@ -539,6 +539,24 @@ pub trait SchedulerNode {
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep;
 
     fn cancel(&mut self, _stop: StopPolicy) {}
+
+    /// Begins one bounded reconciliation of implementation-owned value
+    /// storage. Portable drivers have no external value arena by default.
+    fn begin_value_reconciliation(&mut self) {}
+
+    /// Marks a queue-owned value as live for the current reconciliation.
+    fn mark_value_live(&mut self, _value: RuntimeValue) {}
+
+    /// Marks values retained by implementation state as live.
+    fn mark_retained_values(&mut self) {}
+
+    /// Releases unmarked values from the implementation's bounded arena.
+    fn finish_value_reconciliation(&mut self) {}
+
+    /// Fixed host value-arena accounting, when this driver exposes one.
+    fn value_storage_usage(&self) -> Option<ValueStorageUsage> {
+        None
+    }
 }
 
 /// One already-instantiated driver and its portable implementation validator.
@@ -588,6 +606,19 @@ pub struct SchedulerHighWater {
     pub ready_slots: u32,
     pub event_slots: u32,
     pub decisions: u64,
+}
+
+/// Current and high-water occupancy of host-owned payload storage.
+///
+/// This is runtime accounting, not a semantic input or authority fact.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ValueStorageUsage {
+    pub resident_slots: u32,
+    pub resident_bytes: u64,
+    pub high_water_slots: u32,
+    pub high_water_bytes: u64,
+    pub maximum_slots: u32,
+    pub maximum_bytes: u64,
 }
 
 /// Deterministic run state.
@@ -839,6 +870,15 @@ impl RuntimeCord {
         }
         let slot = (self.head + usize::from(offset)) % self.slots.len();
         self.slots[slot].map(|entry| entry.value)
+    }
+
+    fn visit_values(&self, mut visit: impl FnMut(RuntimeValue)) {
+        for offset in 0..self.len {
+            let slot = (self.head + usize::from(offset)) % self.slots.len();
+            if let Some(entry) = self.slots[slot] {
+                visit(entry.value);
+            }
+        }
     }
 
     fn size_at(&self, offset: u16) -> Option<u32> {
@@ -2078,6 +2118,15 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         self.events.len
     }
 
+    /// Fixed hosted value-arena accounting, when the installed drivers expose
+    /// one. The value is a measurement, not a semantic input.
+    #[must_use]
+    pub fn value_storage_usage(&self) -> Option<ValueStorageUsage> {
+        self.drivers
+            .first()
+            .and_then(SchedulerNode::value_storage_usage)
+    }
+
     pub fn events(&self) -> impl Iterator<Item = &SchedulerEvent> {
         self.events.as_slice().iter().flatten()
     }
@@ -2115,6 +2164,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             self.status,
             SchedulerStatus::Running | SchedulerStatus::Stalled
         ) {
+            self.reconcile_host_values();
             return Ok(self.status);
         }
         if self
@@ -2128,6 +2178,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             self.status = SchedulerStatus::Stalled;
             self.check_cancellation_deadline()?;
             self.refresh_terminal_status()?;
+            self.reconcile_host_values();
             return Ok(self.status);
         };
         self.enqueued[entry.node] = false;
@@ -2164,6 +2215,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         self.wake_due_timers()?;
         self.check_cancellation_deadline()?;
         self.refresh_terminal_status()?;
+        self.reconcile_host_values();
         Ok(self.status)
     }
 
@@ -2259,6 +2311,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
                 0,
             )?;
         }
+        self.reconcile_host_values();
         Ok(())
     }
 
@@ -2774,6 +2827,22 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         Ok(())
     }
 
+    fn reconcile_host_values(&mut self) {
+        if self.drivers.is_empty() {
+            return;
+        }
+        self.drivers[0].begin_value_reconciliation();
+        for cord in &self.cords {
+            cord.visit_values(|value| self.drivers[0].mark_value_live(value));
+        }
+        for node in 0..self.drivers.len() {
+            if !matches!(self.machines[node].phase(), InstancePhase::Terminal(_)) {
+                self.drivers[node].mark_retained_values();
+            }
+        }
+        self.drivers[0].finish_value_reconciliation();
+    }
+
     fn fail(&mut self, error: SchedulerError) -> Result<SchedulerStatus, SchedulerError> {
         self.status = SchedulerStatus::Failed(error);
         for cord in 0..self.cords.len() {
@@ -2793,6 +2862,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             0,
             0,
         );
+        self.reconcile_host_values();
         Err(error)
     }
 }
