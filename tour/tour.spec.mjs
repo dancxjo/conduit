@@ -353,6 +353,50 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await greeting.getByTitle("Expand Faceplate").click();
 });
 
+test("draws bounded cords and exposes draggable rewire ends", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+  const source = page.locator("#source");
+  await source.fill(
+    "panel 0\n\n" +
+    "node first : std/literal { value = \"first\" }\n" +
+    "node primary : display/text\n",
+  );
+  await expect(page.locator(".react-flow__node")).toHaveCount(2);
+
+  const dragHandle = async (from, to) => {
+    const fromBox = await from.boundingBox();
+    const toBox = await to.boundingBox();
+    expect(fromBox).not.toBeNull();
+    expect(toBox).not.toBeNull();
+    await page.mouse.move(
+      fromBox.x + fromBox.width / 2,
+      fromBox.y + fromBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      toBox.x + toBox.width / 2,
+      toBox.y + toBox.height / 2,
+      { steps: 8 },
+    );
+    await page.mouse.up();
+  };
+  const handle = (nodeId) => page.locator(
+    `.react-flow__node[data-id="${nodeId}"] .jack-handle`,
+  );
+
+  await dragHandle(handle("first"), handle("primary"));
+  await expect(page.locator(".react-flow__edge")).toHaveCount(1);
+  await expect(source).toHaveValue(/cord first\.value -> primary\.text/);
+  await expect(source).toHaveValue(/max_queued_bytes = 1024/);
+
+  await page.locator(".react-flow__edge-textbg").click();
+  const updaters = page.locator(
+    ".react-flow__edge.selected .react-flow__edgeupdater",
+  );
+  await expect(updaters).toHaveCount(2);
+  await expect(updaters.first()).toHaveCSS("pointer-events", "all");
+});
+
 test("renders composite exports as public faceplate ports", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   await page.getByRole("button", { name: "Inside / outside" }).click();

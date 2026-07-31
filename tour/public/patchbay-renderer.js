@@ -10,6 +10,68 @@ import { patchbayFeatures } from "./patchbay-features.js";
 
 const e = window.React.createElement;
 
+const DEFAULT_CORD_BOUNDS = Object.freeze({
+  capacity_items: 1,
+  max_value_bytes: 1024,
+  max_queued_bytes: 1024,
+  low_watermark_items: 0,
+  high_watermark_items: 1,
+  pressure: "block",
+});
+
+function connectOperation(connection, bounds = DEFAULT_CORD_BOUNDS) {
+  if (!connection?.source || !connection?.sourceHandle ||
+      !connection?.target || !connection?.targetHandle) {
+    return null;
+  }
+  return {
+    Connect: {
+      from_node: connection.source,
+      from_port: connection.sourceHandle,
+      to_node: connection.target,
+      to_port: connection.targetHandle,
+      bounds: { ...bounds },
+    },
+  };
+}
+
+function normalizeConnection(connection, nodes) {
+  const portDirection = (nodeId, portId) => {
+    const node = nodes.find((candidate) => candidate.id === nodeId);
+    if (node?.outputs?.some((port) => port.id === portId)) return "output";
+    if (node?.inputs?.some((port) => port.id === portId)) return "input";
+    return null;
+  };
+  const sourceDirection = portDirection(connection?.source, connection?.sourceHandle);
+  const targetDirection = portDirection(connection?.target, connection?.targetHandle);
+  if (sourceDirection === "output" && targetDirection === "input") {
+    return connection;
+  }
+  if (sourceDirection === "input" && targetDirection === "output") {
+    return {
+      source: connection.target,
+      sourceHandle: connection.targetHandle,
+      target: connection.source,
+      targetHandle: connection.sourceHandle,
+    };
+  }
+  return null;
+}
+
+function projectedCordBounds(cord) {
+  const bounds = {
+    capacity_items: cord?.capacity_items,
+    max_value_bytes: cord?.max_value_bytes,
+    max_queued_bytes: cord?.max_queued_bytes,
+    low_watermark_items: cord?.low_watermark_items,
+    high_watermark_items: cord?.high_watermark_items,
+    pressure: cord?.pressure === "block(fifo)" ? "block" : cord?.pressure,
+  };
+  return Object.values(bounds).every((value) => value !== null && value !== undefined)
+    ? bounds
+    : null;
+}
+
 function classToken(value) {
   return value
     .replace(/[^a-z0-9]+/gi, "-")
@@ -353,6 +415,7 @@ export class PatchbayReactFlowRenderer {
         diagnosticAnchors: diagnosticAnchors.filter(
           (anchor) => anchor.owner_node === node.id,
         ),
+        isConnectable: this.topologyView === "logical",
         isComposite: compositeIds.has(node.id),
         isSelected: node.id === this.selectedNodeId,
         onConfigChange: (nodeId, key, value, kind) =>
@@ -499,9 +562,39 @@ export class PatchbayReactFlowRenderer {
         nodeTypes,
         edgeTypes,
         edgesSelectable: true,
+        elevateEdgesOnSelect: true,
         nodesDraggable: true,
-        nodesConnectable: false,
+        nodesConnectable: this.topologyView === "logical",
         elementsSelectable: true,
+        connectionMode: window.ReactFlow.ConnectionMode.Loose,
+        onConnect: (connection) => {
+          const normalizedConnection = normalizeConnection(connection, projectedNodes);
+          const operation = connectOperation(normalizedConnection);
+          if (!operation || !this.onTransaction) return;
+          this.onTransaction(operation, { syncSource: true });
+        },
+        onEdgeUpdate: (oldEdge, connection) => {
+          if (!this.onTransaction) return;
+          const cord = (viewModel.topology?.cords || [])
+            .find((candidate) => candidate.id === oldEdge.id);
+          const bounds = projectedCordBounds(cord);
+          const replacement = connectOperation(
+            normalizeConnection(connection, projectedNodes),
+            bounds,
+          );
+          if (!cord || !bounds || !replacement) return;
+          this.onTransaction([
+            { Disconnect: { cord_id: cord.id } },
+            replacement,
+          ], { syncSource: true });
+        },
+        onEdgesDelete: (deletedEdges) => {
+          if (!this.onTransaction || deletedEdges.length === 0) return;
+          this.onTransaction(
+            deletedEdges.map((edge) => ({ Disconnect: { cord_id: edge.id } })),
+            { syncSource: true },
+          );
+        },
         onNodeClick: (_event, node) => {
           this.selectedNodeId = node.id;
           this.selectedCordId = null;
@@ -531,11 +624,6 @@ export class PatchbayReactFlowRenderer {
               this.selectedCordId = null;
               this.onNodeSelect(nodeId);
             }
-          } else if ((this.selectedNodeId || this.selectedCordId) &&
-              this.onSelectionClear) {
-            this.selectedNodeId = null;
-            this.selectedCordId = null;
-            this.onSelectionClear();
           }
         },
         onPaneClick: () => {
