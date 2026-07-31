@@ -296,6 +296,13 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             _,
         ) => Some("library.bounded-process-exec"),
         (
+            "conduit.host/net/tcp/connect"
+            | "conduit.host/net/tcp/listen"
+            | "conduit.host/net/udp/connected"
+            | "conduit.host/net/udp/datagram",
+            _,
+        ) => Some("library.bounded-sockets"),
+        (
             "storage/blob/literal"
             | "storage/cache/put"
             | "storage/cache/get"

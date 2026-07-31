@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 29] = [
+const REQUIRED_TOUR_LESSONS: [&str; 30] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -27,6 +27,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 29] = [
     "library.explicit-time",
     "library.explicit-data-boundaries",
     "library.bounded-process-exec",
+    "library.bounded-sockets",
     "library.bounded-filesystem",
     "library.evictable-storage-cache",
     "library.contract-package-imports",
@@ -990,6 +991,87 @@ fn bounded_process_lesson_is_selectable_and_honest_about_browser_support() {
             .unwrap()["diagnostic"],
         "CND-IMP-001"
     );
+}
+
+#[test]
+fn bounded_socket_lesson_keeps_transports_distinct_and_browser_support_honest() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-sockets")
+        .expect("bounded socket lesson is selectable");
+    assert_eq!(lesson["runnability"]["state"], "contract-only");
+    assert_eq!(lesson["runnability"]["proof"], "resolver-rejection");
+    assert_eq!(lesson["expected_diagnostic"], "CND-IMP-001");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.host/net/tcp/connect",
+            "conduit.host/net/tcp/listen",
+            "conduit.host/net/udp/connected",
+            "conduit.host/net/udp/datagram",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "network_resource",
+        "grant",
+        "session",
+        "accept",
+        "stream_chunk",
+        "datagram",
+        "mtu",
+        "half_close",
+        "eof",
+        "loss",
+        "duplicate",
+        "reorder",
+        "cancellation",
+        "cleanup",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .unwrap()
+            .contains("ordered text table")
+    );
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 5);
+    let scenario_ids = scenarios
+        .iter()
+        .map(|scenario| scenario["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "tcp-connect-composition",
+        "tcp-listen-composition",
+        "udp-connected-standalone",
+        "udp-unconnected-standalone",
+        "browser-unsupported",
+    ] {
+        assert!(scenario_ids.contains(required));
+    }
 }
 
 #[test]

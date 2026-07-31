@@ -4,10 +4,10 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 | Contract | Class | Package | Provider bundles | Standalone lesson | Composition lesson |
 |---|---|---|---:|---|---|
-| `conduit.host/net/tcp/connect` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.tcp.connect.standalone (required) | tour/lessons/current.json#library.conduit.host.net.tcp.connect.composition (required) |
-| `conduit.host/net/tcp/listen` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.tcp.listen.standalone (required) | tour/lessons/current.json#library.conduit.host.net.tcp.listen.composition (required) |
-| `conduit.host/net/udp/connected` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.udp.connected.standalone (required) | tour/lessons/current.json#library.conduit.host.net.udp.connected.composition (required) |
-| `conduit.host/net/udp/datagram` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.conduit.host.net.udp.datagram.standalone (required) | tour/lessons/current.json#library.conduit.host.net.udp.datagram.composition (required) |
+| `conduit.host/net/tcp/connect` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
+| `conduit.host/net/tcp/listen` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
+| `conduit.host/net/udp/connected` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
+| `conduit.host/net/udp/datagram` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
 | `conduit.host/process/exec` | optional-host-boundary | `conduit.host.process` | 0 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `conduit.std/gate` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |
 | `conduit.std/merge` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.standard-flow-control (published) | tour/lessons/current.json#library.standard-flow-control (published) |

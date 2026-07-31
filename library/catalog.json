@@ -183,12 +183,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.tcp.connect.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.tcp.connect.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -377,12 +377,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.tcp.listen.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.tcp.listen.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -562,12 +562,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.udp.connected.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.udp.connected.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,
@@ -741,12 +741,12 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.udp.datagram.standalone",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.conduit.host.net.udp.datagram.composition",
-        "status": "required"
+        "artifact": "tour/lessons/current.json#library.bounded-sockets",
+        "status": "published"
       },
       "successor": null,
       "deprecation": null,

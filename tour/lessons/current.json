@@ -2305,6 +2305,188 @@
       }
     },
     {
+      "id": "library.bounded-sockets",
+      "chapter": 4,
+      "title": "Bounded TCP and UDP sockets",
+      "prerequisites": [
+        "nodes.types-mean-promises",
+        "platform.resource-lease-effect-commit",
+        "platform.workload-admission-deadline"
+      ],
+      "objective": "Compare TCP connect and listen streams with connected and unconnected UDP datagrams while inspecting exact resources, grants, finite pressure, cancellation, cleanup, and transport-specific evidence.",
+      "prose": "Raw application sockets are four optional host boundaries. TCP preserves ordered stream bytes, partial reads and writes, half-close, EOF, connect, and accept lifecycle. UDP preserves individual addressed datagrams and makes MTU, loss, duplication, and reordering distinct. None of these nodes performs DNS, interface setup, routing, firewall mutation, TLS, HTTP, or a public-reachability claim.",
+      "vocabulary": [
+        "numeric address",
+        "session identity",
+        "accept bound",
+        "half-close and EOF",
+        "datagram boundary",
+        "MTU policy",
+        "transport loss"
+      ],
+      "source": "panel 0\n\nnode socket : conduit.host/net/udp/connected {\n    network_resource = secret(\"conduit.resource/socket-loopback\")\n    target_grant = secret(\"conduit.grant/socket-udp-connected\")\n    local = \"127.0.0.1:0\"\n    peer = \"127.0.0.1:0\"\n    path_mtu_bytes = 1200\n    fragmentation = false\n    maximum_pending_operations = 4\n    maximum_send_bytes = 4096\n    maximum_receive_bytes = 4096\n    maximum_message_bytes = 1200\n    maximum_queued_messages = 4\n    maximum_queue_bytes = 4096\n    maximum_timers = 2\n    maximum_work = 8192\n    maximum_evidence_events = 64\n    deadline_ticks = 1000\n    cleanup_ticks = 100\n    cancellation = \"none\"\n}\n",
+      "command": "conduct --enable-socket-loopback examples/socket-tcp-connect.panel",
+      "commands": [
+        "conduct --enable-socket-loopback examples/socket-tcp-connect.panel",
+        "conduct --enable-socket-loopback examples/socket-tcp-listen.panel",
+        "conduct --enable-socket-loopback examples/socket-udp-connected.panel",
+        "conduct --enable-socket-loopback examples/socket-udp-datagram.panel"
+      ],
+      "expected_diagnostic": "CND-IMP-001",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 1000,
+        "queue_bytes": 4096,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "socket-transport-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "provider_state",
+          "network_resource",
+          "grant",
+          "local_address",
+          "peer_address",
+          "session",
+          "accept",
+          "stream_chunk",
+          "datagram",
+          "mtu",
+          "queue",
+          "pressure",
+          "half_close",
+          "eof",
+          "loss",
+          "duplicate",
+          "reorder",
+          "cancellation",
+          "cleanup",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-IMP-001"
+      },
+      "hints": [
+        "A TCP chunk is a scheduling observation, never an application message boundary.",
+        "An unconnected UDP datagram carries its explicit destination and reported source; no ambient resolver is consulted.",
+        "The browser has no raw socket provider. Export the panel to an explicitly enabled hosted Conduct profile."
+      ],
+      "solution": "Choose exactly one transport operation, bind numeric addresses and an exact network resource and grant, state all session, accept, byte, datagram, queue, timer, work, deadline, cancellation, and cleanup limits, and place DNS, TLS, and HTTP behind their own typed contracts.",
+      "accessibility": {
+        "non_audio": "An ordered text table names the selected transport, provider state, resource, grant, addresses, session or datagram identity, sequence, bounds, pressure, cancellation, cleanup, error, and terminal cause.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus ArrowRight to inspect the ordered socket evidence when the lesson story has focus.",
+        "color_independent": "Transport names, sequence numbers, address roles, bounds, loss words, errors, and terminal text duplicate every graph color."
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection",
+        "reason": "Browsers do not expose the installed raw socket provider; hosted loopback execution requires the explicit --enable-socket-loopback gate."
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Four opt-in socket nodes keep TCP stream/session semantics and UDP addressed-datagram semantics separate and bounded.",
+        "what": "TCP connect and listen exchange ordered bounded bytes and report session and terminal lifecycle. Connected UDP pins one peer; unconnected UDP retains explicit per-datagram addressing. All operations have finite queues, deadlines, cancellation, cleanup, and evidence.",
+        "when": "Use these nodes only as the raw transport boundary beneath a higher typed protocol or application contract on a host with an exact socket provider and grant.",
+        "wrong": "Ambient DNS, implicit interface or route selection, firewall mutation, public-listener claims, plaintext fallback for required TLS, unbounded sessions, treating TCP chunks as messages, and treating UDP as reliable or ordered all fail the boundary.",
+        "contracts": [
+          {
+            "id": "conduit.host/net/tcp/connect",
+            "kind": "node",
+            "instance": "client",
+            "inputs": ["transmit:std/bytes stream"],
+            "outputs": ["received:std/bytes stream", "session:net/socket/session lifecycle", "result:net/socket/result terminal"],
+            "descriptor_hash": "sha256:30906a619ee0ce06ef6e1c2c3b02e1c91ef3e6cacbace97d39374fa94fc8060d"
+          },
+          {
+            "id": "conduit.host/net/tcp/listen",
+            "kind": "node",
+            "instance": "listener",
+            "inputs": ["transmit:std/bytes stream"],
+            "outputs": ["received:std/bytes stream", "session:net/socket/session lifecycle", "result:net/socket/result terminal"],
+            "descriptor_hash": "sha256:f45354a3c9fa4d06c334242d4888ad6aec9372594346d1a8fcb71a61f31561a0"
+          },
+          {
+            "id": "conduit.host/net/udp/connected",
+            "kind": "node",
+            "instance": "connected",
+            "inputs": ["datagram:net/udp/datagram"],
+            "outputs": ["datagram:net/udp/datagram", "result:net/socket/result terminal"],
+            "descriptor_hash": "sha256:8d9bbeb57da01eb3d12f7650c3242bf19d41ea5f00fe1258f52f0f85b7cc1bd1"
+          },
+          {
+            "id": "conduit.host/net/udp/datagram",
+            "kind": "node",
+            "instance": "unconnected",
+            "inputs": ["datagram:net/udp/datagram"],
+            "outputs": ["datagram:net/udp/datagram", "result:net/socket/result terminal"],
+            "descriptor_hash": "sha256:0fe04e13c63c4e3a5b9f34f6ac15de0e96071a3f387047bd23b451ccd0b83fde"
+          }
+        ],
+        "editable": [
+          "socket.path_mtu_bytes:1..4096",
+          "socket.fragmentation:true|false",
+          "socket.maximum_queued_messages:1..16",
+          "socket.deadline_ticks:1..10000",
+          "socket.cancellation:none|cancel-before-commit|cancel-after-commit"
+        ],
+        "provider": "explicit opt-in Linux numeric-loopback provider; deliberately unavailable in browsers",
+        "profile": "hosted-exact-socket",
+        "expected_evidence": [
+          "contract known, provider enabled, fresh topology and capacity report, exact network resource, operation-specific active grant, and admitted lease",
+          "numeric local and peer roles plus bounded sessions, accepts, bytes, chunks, datagrams, MTU, queues, pending operations, timers, work, deadline, cleanup, and evidence",
+          "ordered connect or listen/accept commit, partial stream I/O and half-close/EOF, or addressed datagram send/receive with explicit loss, duplicate, reorder, and oversize outcomes",
+          "browser and constrained-provider omission as CND-IMP-001 without DNS, emulation, forwarding, or ambient fallback"
+        ],
+        "docs": [
+          "../../spec/064-bounded-application-sockets.md",
+          "../../examples/socket-tcp-connect.panel",
+          "../../examples/socket-tcp-listen.panel",
+          "../../examples/socket-udp-connected.panel",
+          "../../examples/socket-udp-datagram.panel"
+        ],
+        "scenarios": [
+          {
+            "id": "tcp-connect-composition",
+            "title": "TCP client composition",
+            "panel": "../../examples/socket-tcp-connect.panel",
+            "semantics": "Bounded stdin bytes cross one pinned client session and return through an independently bounded receive cord."
+          },
+          {
+            "id": "tcp-listen-composition",
+            "title": "TCP listener and accept",
+            "panel": "../../examples/socket-tcp-listen.panel",
+            "semantics": "Bind and listen authority, backlog, accepted session identity, half-close, EOF, and cleanup remain explicit without a firewall or reachability claim."
+          },
+          {
+            "id": "udp-connected-standalone",
+            "title": "Connected UDP standalone",
+            "panel": "../../examples/socket-udp-connected.panel",
+            "semantics": "One peer is pinned while datagram boundaries, MTU, loss, duplication, and reordering remain visible."
+          },
+          {
+            "id": "udp-unconnected-standalone",
+            "title": "Unconnected addressed UDP",
+            "panel": "../../examples/socket-udp-datagram.panel",
+            "semantics": "Each datagram carries explicit address metadata and no resolver is invoked."
+          },
+          {
+            "id": "browser-unsupported",
+            "title": "Browser provider unavailable",
+            "diagnostic": "CND-IMP-001",
+            "semantics": "The browser fails closed because no raw socket provider is installed; it does not emulate or forward a network request."
+          }
+        ]
+      }
+    },
+    {
       "id": "library.bounded-filesystem",
       "chapter": 4,
       "title": "Bounded file boundaries",
