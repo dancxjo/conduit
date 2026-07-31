@@ -4,7 +4,7 @@ use conduit_runtime::Registry;
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 32] = [
+const REQUIRED_TOUR_LESSONS: [&str; 33] = [
     "welcome.hello-panel",
     "welcome.pull-the-cord",
     "welcome.change-message",
@@ -20,6 +20,7 @@ const REQUIRED_TOUR_LESSONS: [&str; 32] = [
     "panels.reuse-without-copying",
     "panels.tiny-instrument",
     "patchbay.observes-patchbay",
+    "platform.panel-capsules",
     "library.typed-text-format",
     "library.bounded-media-values",
     "library.standard-flow-control",
@@ -200,6 +201,34 @@ fn tour_lessons_declare_verified_browser_runnability() {
             assert_eq!(lesson["validation"]["kind"], "diagnostic");
             assert_eq!(lesson["validation"]["value"], expected);
         }
+    }
+}
+
+#[test]
+fn panel_capsule_lesson_keeps_program_plan_live_and_evidence_distinct() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "platform.panel-capsules")
+        .expect("panel capsule lesson is selectable");
+    let prose = lesson["prose"].as_str().unwrap();
+    for term in ["capsule", "exact plan", "live epoch", "evidence"] {
+        assert!(prose.contains(term), "lesson explains {term}");
+    }
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap();
+    for field in [
+        "program_identity",
+        "presentation_identity",
+        "exact_plan_identity",
+        "run_epoch",
+        "evidence_cursor",
+    ] {
+        assert!(fields.iter().any(|value| value == field), "shows {field}");
     }
 }
 

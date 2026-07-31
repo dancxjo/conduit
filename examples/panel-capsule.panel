@@ -1,0 +1,15 @@
+panel 0
+
+node lesson : std/literal {
+    value = "PROGRAM, PLAN, LIVE STATE, AND EVIDENCE STAY DISTINCT.\n"
+}
+node output : display/text
+
+cord lesson.value -> output.text {
+    capacity = 1
+    max_value_bytes = 128
+    max_queued_bytes = 128
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}

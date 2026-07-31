@@ -2981,6 +2981,74 @@
       }
     },
     {
+      "id": "platform.panel-capsules",
+      "chapter": 3,
+      "title": "One program, four different records",
+      "prerequisites": [
+        "patchbay.observes-patchbay",
+        "nodes.types-mean-promises"
+      ],
+      "objective": "Keep the readable authored program separate from the exact plan, the currently active run, and the evidence that run leaves behind.",
+      "prose": "The capsule carries the exact Panel source, its named revision, lock facts, explicit artifact identities, and optional layout. Checking it offline proves that the authored document is well formed; it does not prove that this machine has a provider or authority. Resolve creates a separate exact plan. Starting that plan creates a live epoch. Execution appends bounded evidence. Editing source or moving a box never rewrites an already admitted plan, live epoch, or evidence record.",
+      "vocabulary": [
+        "program capsule",
+        "source revision",
+        "exact plan",
+        "live epoch",
+        "evidence"
+      ],
+      "source": "panel 0\n\nnode lesson : std/literal {\n    value = \"PROGRAM, PLAN, LIVE STATE, AND EVIDENCE STAY DISTINCT.\\n\"\n}\nnode output : display/text\n\ncord lesson.value -> output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct examples/panel-capsule.panel",
+      "commands": [
+        "conduct capsule pack examples/panel-capsule.panel --output panel-capsule.json",
+        "conduct capsule check panel-capsule.json",
+        "conduct compile examples/panel-capsule.panel --input compile-input.json --output exact-plan.json",
+        "conduct examples/panel-capsule.panel"
+      ],
+      "expected_display": "PROGRAM, PLAN, LIVE STATE, AND EVIDENCE STAY DISTINCT.\n",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 8,
+        "queue_bytes": 128,
+        "evidence_events": 16
+      },
+      "presentation": {
+        "layout": "program-plan-live-evidence-story",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "source_revision",
+          "source_semantic_identity",
+          "program_identity",
+          "presentation_identity",
+          "exact_plan_identity",
+          "run_epoch",
+          "evidence_cursor"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "PROGRAM, PLAN, LIVE STATE, AND EVIDENCE STAY DISTINCT.\n"
+      },
+      "hints": [
+        "Move a node: only the presentation identity changes.",
+        "Edit the message: a new candidate source and program revision appear, while the current run stays pinned.",
+        "Check can succeed offline even when a referenced optional provider or artifact is unavailable."
+      ],
+      "solution": "Review source, lock, and artifact-reference changes as program changes; resolve them into a distinct exact plan; admit a new epoch through the ordinary transition; and read bounded evidence without treating it as source.",
+      "accessibility": {
+        "non_audio": "An ordered text table labels program source, exact plan, live epoch, and evidence as four separate identities and states which operation can change each one.",
+        "reduced_motion": true,
+        "keyboard": "Tab moves through program, plan, live epoch, and evidence; ArrowRight steps through existing evidence only.",
+        "color_independent": "Each layer has a written name, identity, and change rule; color is never the only distinction."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      }
+    },
+    {
       "id": "library.contract-package-imports",
       "chapter": 4,
       "title": "Imports name meaning; plans provide machines",

@@ -35,6 +35,7 @@
     {"path":"examples/media-audio-frame.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"audio:s16le:48000:stereo:192"},
     {"path":"examples/media-frame-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"audio:s16le:48000:stereo:192video:rgb24:2x2"},
     {"path":"examples/ollama-text.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
+    {"path":"examples/panel-capsule.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"PROGRAM, PLAN, LIVE STATE, AND EVIDENCE STAY DISTINCT.\n"},
     {"path":"examples/patchbay.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"TOUR/META-LESSON\n"},
     {"path":"examples/process-exec-adapter.panel","state":"runnable","profile":"hosted","proof":"canonical-process-exec","expected_stdout":"bounded process bytes\n"},
     {"path":"examples/process-exec-cancel.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-process-exec-rejection","expected_diagnostic":"CND-EXEC-009"},
