@@ -364,20 +364,24 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
   await expect(page.locator(".react-flow__node")).toHaveCount(2);
 
   const dragHandle = async (from, to) => {
+    await expect(from).toBeVisible();
+    await expect(to).toBeVisible();
     const fromBox = await from.boundingBox();
     const toBox = await to.boundingBox();
     expect(fromBox).not.toBeNull();
     expect(toBox).not.toBeNull();
+    await from.hover();
+    await page.mouse.down();
     await page.mouse.move(
-      fromBox.x + fromBox.width / 2,
+      fromBox.x + fromBox.width / 2 + 1,
       fromBox.y + fromBox.height / 2,
     );
-    await page.mouse.down();
     await page.mouse.move(
       toBox.x + toBox.width / 2,
       toBox.y + toBox.height / 2,
       { steps: 8 },
     );
+    await to.hover();
     await page.mouse.up();
   };
   const handle = (nodeId) => page.locator(
