@@ -18,12 +18,11 @@ use conduit_core::{
     ConfigMutability, ConfigRequirement, ConnectionCardinality, Delivery, DescriptorRef, Direction,
     Endpoint as CoreEndpoint, ExecutionPlan, ExecutorKind, FieldDisposition, FlowCapacity,
     FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, GrantStatus, Id,
-    ImplementationMachine,
-    LossAcceptance, ManifestArtifactRef, ManifestEntrypoint, MapField, MemoryAccounting,
-    NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph, PlanNode, PortContract,
-    PortFlowConstraints, Presence, Pressure, ReplacementSupport, ResolvedPlanNode, SampleSchedule,
-    SchedulerPolicy, SemanticHash, Sensitivity, TemporalContract, TerminalClass, TerminalContract,
-    TraitProof, TypeContractRef, ValueCardinality, assess_port_connection,
+    ImplementationMachine, LossAcceptance, ManifestArtifactRef, ManifestEntrypoint, MapField,
+    MemoryAccounting, NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph, PlanNode,
+    PortContract, PortFlowConstraints, Presence, Pressure, ReplacementSupport, ResolvedPlanNode,
+    SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity, TemporalContract, TerminalClass,
+    TerminalContract, TraitProof, TypeContractRef, ValueCardinality, assess_port_connection,
     assess_type_contract_exact, validate_artifact_manifest, validate_implementation_manifest,
     validate_plan_graph,
 };
@@ -1149,6 +1148,12 @@ pub struct ExactRunContext<'a> {
 pub struct ExactGrantObservation<'a> {
     pub grant: Id<'a>,
     pub status: GrantStatus<'a>,
+    /// Currently observed resource binding and lease identities. These are
+    /// live host facts, not authority values copied from the plan.
+    pub resource_binding: Id<'a>,
+    pub resource_lease: Id<'a>,
+    pub lease_valid_until_tick: u64,
+    pub lease_available: bool,
 }
 
 /// One exact authority binding projected for a selected hosted service.
@@ -1174,6 +1179,18 @@ pub struct ExactHostedServiceBinding {
     pub host_observation_id: String,
     pub use_time_tick: u64,
     pub authorities: Vec<ExactHostedServiceAuthority>,
+}
+
+/// Hashes one domain-owned, plan-visible hosted-effect constraint. The id
+/// supplies the semantic domain; the value remains exact opaque bytes.
+#[must_use]
+pub fn hosted_effect_constraint_hash(id: &str, value: &[u8]) -> SemanticHash {
+    let mut hash = Sha256::new();
+    hash.update(b"conduit.hosted-effect-constraint\0");
+    hash.update(id.as_bytes());
+    hash.update(b"\0");
+    hash.update(value);
+    SemanticHash::from_bytes(hash.finalize().into())
 }
 
 fn validate_use_time_grants(
@@ -1213,6 +1230,35 @@ fn validate_use_time_grants(
             },
         )
         .map_err(|error| RuntimeError::new("CND-RUN-010", error.to_string()))?;
+        let resource = plan
+            .resources
+            .iter()
+            .find(|resource| {
+                resource.node == authority.node && resource.resource == authority.binding.resource
+            })
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    "CND-RUN-010",
+                    "use-time authority lacks its exact resource binding",
+                )
+            })?;
+        let lease = resource.lease.ok_or_else(|| {
+            RuntimeError::new(
+                "CND-RUN-010",
+                "use-time authority lacks its exact resource lease",
+            )
+        })?;
+        if observation.resource_binding != resource.id
+            || observation.resource_lease != lease.id
+            || !observation.lease_available
+            || observation.lease_valid_until_tick > lease.expires_at_tick
+            || context.validation.now.tick >= observation.lease_valid_until_tick
+        {
+            return Err(RuntimeError::new(
+                "CND-RUN-010",
+                "use-time resource binding or lease observation drifted",
+            ));
+        }
     }
     Ok(())
 }
@@ -1284,10 +1330,7 @@ pub trait Handler {
     /// Installs the exact executor binding for this invocation. Pure handlers
     /// need no binding; effectful handlers override this and fail closed when
     /// `run` is attempted without it.
-    fn bind_exact(
-        &mut self,
-        _binding: ExactHostedServiceBinding,
-    ) -> Result<(), RuntimeError> {
+    fn bind_exact(&mut self, _binding: ExactHostedServiceBinding) -> Result<(), RuntimeError> {
         Ok(())
     }
 

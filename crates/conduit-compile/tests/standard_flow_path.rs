@@ -42,6 +42,7 @@ fn exact_report(
     let panel = conduit_panel::parse(source).unwrap();
     let resolved = registry.resolve(&panel).unwrap();
     let bindings = installed.bindings(&plan).unwrap();
+    let grant_observations = installed.grant_observations(&plan).unwrap();
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
@@ -53,7 +54,7 @@ fn exact_report(
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 124,
                 run_id: Id(run_id),
-                grant_observations: &[],
+                grant_observations: &grant_observations,
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -99,6 +100,7 @@ fn cancel_exact(source: &str, run_id: &'static str) -> conduit_runtime::ExactExe
     let panel = conduit_panel::parse(source).unwrap();
     let resolved = registry.resolve(&panel).unwrap();
     let bindings = installed.bindings(&plan).unwrap();
+    let grant_observations = installed.grant_observations(&plan).unwrap();
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
@@ -110,7 +112,7 @@ fn cancel_exact(source: &str, run_id: &'static str) -> conduit_runtime::ExactExe
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 124,
                 run_id: Id(run_id),
-                grant_observations: &[],
+                grant_observations: &grant_observations,
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,
@@ -461,6 +463,7 @@ cord right_encoded.bytes -> right_sink.bytes {{ capacity = 1 max_value_bytes = 1
     let panel = conduit_panel::parse(&failing).unwrap();
     let resolved = registry.resolve(&panel).unwrap();
     let bindings = installed.bindings(&plan).unwrap();
+    let grant_observations = installed.grant_observations(&plan).unwrap();
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
@@ -472,7 +475,7 @@ cord right_encoded.bytes -> right_sink.bytes {{ capacity = 1 max_value_bytes = 1
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 124,
                 run_id: Id("run/conduit.std/zip/unpaired-fail"),
-                grant_observations: &[],
+                grant_observations: &grant_observations,
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

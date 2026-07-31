@@ -448,13 +448,9 @@ fn http_contracts_use_domain_types_without_claiming_a_provider() {
         "net/http/client-result"
     );
     for required in [
-        "network_resource",
-        "outbound_grant",
         "address",
         "authority",
-        "dns_observation",
-        "provider_observation",
-        "tls_policy",
+        "transport",
         "redirect_policy",
         "maximum_connections",
         "maximum_pending",

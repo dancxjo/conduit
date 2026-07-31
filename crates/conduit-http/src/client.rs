@@ -1,8 +1,10 @@
 //! Exact bounded outbound HTTP client semantics.
 //!
 //! This module owns HTTP request/response behavior only. Resolution supplies
-//! numeric endpoint, network, authority, TLS, proxy, grant, observation, and
-//! limit facts before this code may commit an effect.
+//! numeric endpoint, network, authority, TLS, proxy, grant, and limit facts
+//! before this code may commit an effect. Freshness and grant status are
+//! checked by the exact executor and are deliberately not caller-settable
+//! booleans in this provider binding.
 
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
@@ -48,8 +50,6 @@ pub enum CommitState {
 pub enum ClientTerminal {
     Completed,
     DestinationDenied,
-    StaleDnsObservation,
-    StaleProviderObservation,
     CertificateFailed,
     HostnameFailed,
     RedirectLoop,
@@ -180,9 +180,6 @@ pub struct ClientBinding<'a> {
     pub client_certificate_handle: Option<&'a str>,
     pub client_private_key_handle: Option<&'a str>,
     pub proxy_resource: Option<&'a str>,
-    pub dns_observation_fresh: bool,
-    pub provider_observation_fresh: bool,
-    pub destination_allowed: bool,
     pub limits: ClientLimits,
 }
 
@@ -323,15 +320,6 @@ pub fn run_deterministic_client(
         || !request.target.starts_with('/')
     {
         return reject(ClientTerminal::DestinationDenied);
-    }
-    if !binding.destination_allowed {
-        return reject(ClientTerminal::DestinationDenied);
-    }
-    if !binding.dns_observation_fresh {
-        return reject(ClientTerminal::StaleDnsObservation);
-    }
-    if !binding.provider_observation_fresh {
-        return reject(ClientTerminal::StaleProviderObservation);
     }
     if request.scheme == ClientScheme::Https
         && (binding.tls_policy == "plaintext" || binding.trust_handle.is_none())
@@ -811,29 +799,35 @@ fn load_client_config(handle: &ClientTrustHandle) -> Result<ClientConfig, Client
         .with_no_client_auth())
 }
 
-fn open_client_io(
-    binding: ClientBinding<'_>,
-    request: ClientRequest<'_>,
-    trust: Option<&ClientTrustHandle>,
-) -> Result<ClientIo, ClientTerminal> {
-    let timeout = Duration::from_millis(binding.limits.deadline_ticks);
-    let socket = TcpStream::connect_timeout(&endpoint_address(binding.endpoint), timeout)
-        .map_err(|_| ClientTerminal::ProviderLost)?;
-    socket
-        .set_read_timeout(Some(timeout))
-        .and_then(|()| socket.set_write_timeout(Some(timeout)))
-        .map_err(|_| ClientTerminal::ProviderLost)?;
-    if request.scheme == ClientScheme::Http {
-        return Ok(ClientIo::Plain(socket));
+/// The only socket-opening boundary in the outbound client. Hosted handlers
+/// reach it through `run_linux_client` after exact-plan authority admission.
+struct LinuxClientEffectBackend;
+
+impl LinuxClientEffectBackend {
+    fn open(
+        binding: ClientBinding<'_>,
+        request: ClientRequest<'_>,
+        trust: Option<&ClientTrustHandle>,
+    ) -> Result<ClientIo, ClientTerminal> {
+        let timeout = Duration::from_millis(binding.limits.deadline_ticks);
+        let socket = TcpStream::connect_timeout(&endpoint_address(binding.endpoint), timeout)
+            .map_err(|_| ClientTerminal::ProviderLost)?;
+        socket
+            .set_read_timeout(Some(timeout))
+            .and_then(|()| socket.set_write_timeout(Some(timeout)))
+            .map_err(|_| ClientTerminal::ProviderLost)?;
+        if request.scheme == ClientScheme::Http {
+            return Ok(ClientIo::Plain(socket));
+        }
+        let trust = trust.ok_or(ClientTerminal::CertificateFailed)?;
+        let server_name = ServerName::try_from(request.authority.to_owned())
+            .map_err(|_| ClientTerminal::HostnameFailed)?;
+        let connection = ClientConnection::new(Arc::new(load_client_config(trust)?), server_name)
+            .map_err(|_| ClientTerminal::CertificateFailed)?;
+        Ok(ClientIo::Tls(Box::new(StreamOwned::new(
+            connection, socket,
+        ))))
     }
-    let trust = trust.ok_or(ClientTerminal::CertificateFailed)?;
-    let server_name = ServerName::try_from(request.authority.to_owned())
-        .map_err(|_| ClientTerminal::HostnameFailed)?;
-    let connection = ClientConnection::new(Arc::new(load_client_config(trust)?), server_name)
-        .map_err(|_| ClientTerminal::CertificateFailed)?;
-    Ok(ClientIo::Tls(Box::new(StreamOwned::new(
-        connection, socket,
-    ))))
 }
 
 fn parse_response(
@@ -891,7 +885,7 @@ fn parse_response(
 
 /// Execute one numeric-address Linux HTTP/1.1 request. This provider performs
 /// no DNS, proxy discovery, cookie lookup, credential lookup, or retry.
-pub fn run_linux_client(
+pub(crate) fn run_linux_client(
     binding: ClientBinding<'_>,
     request: ClientRequest<'_>,
     trust: Option<&ClientTrustHandle>,
@@ -947,7 +941,7 @@ pub fn run_linux_client(
             return terminal_result(terminal, None, 0, 0, CommitState::NotCommitted);
         }
     };
-    let mut io = match open_client_io(binding, request, trust) {
+    let mut io = match LinuxClientEffectBackend::open(binding, request, trust) {
         Ok(io) => io,
         Err(terminal) => {
             return terminal_result(terminal, None, 0, 0, CommitState::NotCommitted);
@@ -1110,9 +1104,6 @@ mod tests {
             client_certificate_handle: None,
             client_private_key_handle: None,
             proxy_resource: None,
-            dns_observation_fresh: true,
-            provider_observation_fresh: true,
-            destination_allowed: true,
             limits: ClientLimits::checked_fixture(),
         }
     }
@@ -1175,19 +1166,7 @@ mod tests {
     }
 
     #[test]
-    fn resolution_and_authority_fail_before_commit() {
-        let mut denied = binding();
-        denied.destination_allowed = false;
-        assert_eq!(
-            run(denied, request(ClientScheme::Http), &[], ClientFault::None).commit,
-            CommitState::NotCommitted
-        );
-        let mut stale = binding();
-        stale.provider_observation_fresh = false;
-        assert_eq!(
-            run(stale, request(ClientScheme::Http), &[], ClientFault::None).terminal,
-            ClientTerminal::StaleProviderObservation
-        );
+    fn ambient_proxy_fails_before_commit() {
         let surprise = DeterministicExchange {
             responses: &[],
             fault: ClientFault::None,

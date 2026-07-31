@@ -5,6 +5,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::thread;
 
+use conduit_core::{
+    AuthorityTime, Id, PlanValidationContext, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
+    SchedulerPolicy,
+};
+use conduit_runtime::{ExactRunContext, RunIo, SchedulerReservation};
+
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -29,6 +35,14 @@ fn http_client_exact_plan_pins_provider_resource_grant_and_limits() {
     conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
     let installed =
         conduit_compile::InstalledProfile::observe_registry(&source, &registry).unwrap();
+    let observed_authority = installed
+        .input
+        .candidates
+        .iter()
+        .flat_map(|candidate| &candidate.authorities)
+        .find(|authority| authority.grant.id == conduit_http::HTTP_CLIENT_LOOPBACK_GRANT)
+        .unwrap();
+    assert_eq!(observed_authority.effect.constraints.len(), 3);
     let document = conduit_compile::compile_source(&source, &installed.input).unwrap();
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).unwrap();
@@ -66,11 +80,207 @@ fn http_client_exact_plan_pins_provider_resource_grant_and_limits() {
         conduit_http::HTTP_CLIENT_LOOPBACK_RESOURCE
     );
     assert_eq!(authority.effect.action.as_str(), "conduit.action/request");
+    assert_eq!(authority.effect.constraints.len(), 3);
+    for (id, value) in [
+        ("conduit.constraint/http-authority", "loopback.test"),
+        ("conduit.constraint/http-endpoint", "127.0.0.1:38153"),
+        ("conduit.constraint/http-transport", "http"),
+    ] {
+        assert!(authority.effect.constraints.iter().any(|constraint| {
+            constraint.id.as_str() == id
+                && constraint.semantic_hash
+                    == conduit_runtime::hosted_effect_constraint_hash(id, value.as_bytes())
+        }));
+    }
     assert!(authority.commit_profile.is_some());
     let profile = client.execution_profile.unwrap();
     assert!(profile.limits.max_pending_operations > 0);
     assert!(profile.limits.max_input_bytes > 0);
     assert!(profile.limits.max_output_bytes > 0);
+}
+
+#[test]
+fn authored_network_authority_and_dns_facts_are_rejected() {
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
+    let base = fs::read_to_string(root().join("examples/http-client-loopback.panel")).unwrap();
+    for key in [
+        "network_resource",
+        "outbound_grant",
+        "dns_observation",
+        "provider_observation",
+        "tls_policy",
+        "trust_handle",
+        "resource_lease",
+        "host_observation",
+        "destination_allowed",
+    ] {
+        let source = base.replace(
+            "    address =",
+            &format!("    {key} = secret(\"forged/fresh\")\n    address ="),
+        );
+        let error = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+            .err()
+            .expect("source-authored authority is outside the current grammar");
+        assert_eq!(error.code, "CND-SRC-002", "{key}");
+    }
+}
+
+#[test]
+fn hostname_resolution_is_not_an_http_handler_effect() {
+    let source = fs::read_to_string(root().join("examples/http-client-loopback.panel"))
+        .unwrap()
+        .replace("127.0.0.1:38153", "localhost:38153");
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
+    let error = conduit_compile::InstalledProfile::observe_registry(&source, &registry)
+        .err()
+        .expect("the checked provider accepts only already-observed numeric endpoints");
+    assert_eq!(error.code, "CND-HTTP-CL-004");
+}
+
+#[test]
+fn compatibility_handler_cannot_bypass_the_exact_effect_backend() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let source = fs::read_to_string(root().join("examples/http-client-loopback.panel"))
+        .unwrap()
+        .replace(
+            "127.0.0.1:38153",
+            &listener.local_addr().unwrap().to_string(),
+        );
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
+    let panel = conduit_panel::parse(&source).unwrap();
+    let resolved = registry.resolve(&panel).unwrap();
+    let mut input = &b""[..];
+    let mut output = Vec::new();
+    let mut error_output = Vec::new();
+    let mut display = Vec::new();
+    let error = resolved
+        .run_batch(&mut RunIo {
+            input: &mut input,
+            output: &mut output,
+            error: &mut error_output,
+            display: &mut display,
+        })
+        .unwrap_err();
+    assert_eq!(error.code, "CND-HTTP-CL-020");
+    assert!(matches!(
+        listener.accept().unwrap_err().kind(),
+        std::io::ErrorKind::WouldBlock
+    ));
+}
+
+#[test]
+fn dns_and_doh_execution_remain_blocked_by_http_provider_registration() {
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
+    for (contract, expected) in [
+        ("net/dns/resolve", "CND-IMP-001"),
+        ("net/dns/doh", "CND-IMP-001"),
+    ] {
+        let panel =
+            conduit_panel::parse(&format!("panel 0\nnode resolver : {contract}\n")).unwrap();
+        let error = registry
+            .resolve(&panel)
+            .expect_err("HTTP installation cannot create a DNS execution path");
+        assert_eq!(error.code, expected, "{contract}");
+    }
+}
+
+#[test]
+fn revoked_grant_stale_provider_and_lease_drift_stop_before_socket_use() {
+    for case in ["revoked", "stale-provider", "lease-drift"] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let source = fs::read_to_string(root().join("examples/http-client-loopback.panel"))
+            .unwrap()
+            .replace(
+                "127.0.0.1:38153",
+                &listener.local_addr().unwrap().to_string(),
+            );
+        let mut registry = conduit_runtime::Registry::hosted_primitives();
+        conduit_http::register_hosted_http_client_provider(&mut registry).unwrap();
+        let mut installed =
+            conduit_compile::InstalledProfile::observe_registry(&source, &registry).unwrap();
+        let document = conduit_compile::compile_source(&source, &installed.input).unwrap();
+        if case != "stale-provider" {
+            let authority = installed
+                .input
+                .candidates
+                .iter_mut()
+                .flat_map(|candidate| &mut candidate.authorities)
+                .find(|authority| authority.grant.id == conduit_http::HTTP_CLIENT_LOOPBACK_GRANT)
+                .unwrap();
+            if case == "revoked" {
+                authority.status = "revoked".to_owned();
+            } else {
+                authority.resource_lease.resource_binding = "forged/http-binding".to_owned();
+            }
+        }
+        let arena = bumpalo::Bump::new();
+        let plan = document.as_plan(&arena).unwrap();
+        let panel = conduit_panel::parse(&source).unwrap();
+        let resolved = registry.resolve(&panel).unwrap();
+        let bindings = installed.bindings(&plan).unwrap();
+        let observations = installed.grant_observations(&plan).unwrap();
+        let mut input = &b""[..];
+        let mut output = Vec::new();
+        let mut error_output = Vec::new();
+        let mut display = Vec::new();
+        let now = if case == "stale-provider" {
+            AuthorityTime {
+                basis: plan.created_at.basis,
+                tick: 20,
+            }
+        } else {
+            plan.created_at
+        };
+        let error = resolved
+            .run_exact_report(
+                &plan,
+                &bindings,
+                ExactRunContext {
+                    semantic_source_hash: plan.source_semantic_hash,
+                    plan_epoch: 1,
+                    run_id: Id("fixture/http-authority-denied"),
+                    validation: PlanValidationContext {
+                        supported_schema_version: plan.schema_version,
+                        now,
+                    },
+                    scheduler_policy: SchedulerPolicy {
+                        schema_version: SCHEDULER_CONTRACT_VERSION,
+                        ready_queue: ReadyQueueDiscipline::RoundRobin,
+                        max_decisions: 256,
+                        max_tick: 512,
+                        max_consecutive_yields: 8,
+                        max_events: 128,
+                    },
+                    reservation: SchedulerReservation {
+                        available_runtime_memory_bytes: plan.budget.memory_bytes,
+                        executor_overhead_limit_bytes: plan.budget.memory_bytes,
+                    },
+                    grant_observations: &observations,
+                },
+                &mut RunIo {
+                    input: &mut input,
+                    output: &mut output,
+                    error: &mut error_output,
+                    display: &mut display,
+                },
+            )
+            .unwrap_err();
+        if case == "stale-provider" {
+            assert_eq!(error.code, "CND-HST-002");
+        } else {
+            assert_eq!(error.code, "CND-RUN-010");
+        }
+        assert!(matches!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        ));
+    }
 }
 
 #[test]

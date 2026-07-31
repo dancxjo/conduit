@@ -1450,17 +1450,9 @@ const UDP_UNCONNECTED: ConfigContract<'static> = ConfigContract {
 };
 const HTTP_FETCH: ConfigContract<'static> = ConfigContract {
     fields: &[
-        protected_field("network_resource", REFERENCE),
-        protected_field("outbound_grant", REFERENCE),
         field("address", SOCKET_ADDRESS),
         field("authority", TEXT),
-        protected_field("dns_observation", REFERENCE),
-        protected_field("provider_observation", REFERENCE),
-        protected_field("tls_policy", REFERENCE),
-        optional_protected_field("trust_handle", REFERENCE),
-        optional_protected_field("client_certificate_handle", REFERENCE),
-        optional_protected_field("client_private_key_handle", REFERENCE),
-        optional_protected_field("proxy_resource", REFERENCE),
+        field("transport", TEXT),
         field("redirect_policy", TEXT),
         field("maximum_connections", U64),
         field("maximum_pending", U64),
@@ -1523,20 +1515,6 @@ const fn protected_field(
         key: Id(key),
         value_type,
         requirement: ConfigRequirement::Required,
-        sensitivity: Sensitivity::Restricted,
-        mutability: ConfigMutability::PreStart,
-        identity: ConfigIdentity::Plan,
-    }
-}
-
-const fn optional_protected_field(
-    key: &'static str,
-    value_type: TypeContractRef<'static>,
-) -> ConfigFieldContract<'static> {
-    ConfigFieldContract {
-        key: Id(key),
-        value_type,
-        requirement: ConfigRequirement::Optional,
         sensitivity: Sensitivity::Restricted,
         mutability: ConfigMutability::PreStart,
         identity: ConfigIdentity::Plan,

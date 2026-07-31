@@ -1220,10 +1220,11 @@ fn bounded_http_client_lesson_exposes_authority_limits_and_terminal_evidence() {
         .collect::<BTreeSet<_>>();
     for required in [
         "numeric_address",
-        "dns_observation",
-        "network_resource",
-        "grant",
-        "tls_policy",
+        "host_observation",
+        "resource_binding",
+        "grant_status",
+        "effect_constraints",
+        "transport",
         "redirect",
         "request_commit",
         "body_chunk",

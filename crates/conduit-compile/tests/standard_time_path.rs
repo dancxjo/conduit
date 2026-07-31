@@ -30,6 +30,7 @@ fn exact_run(source: &str, run_id: &'static str) -> (Vec<u8>, ExactExecutionRepo
     let registry = Registry::hosted_primitives();
     let resolved = registry.resolve(&panel).unwrap();
     let bindings = installed.bindings(&plan).unwrap();
+    let grant_observations = installed.grant_observations(&plan).unwrap();
     let mut input = &b""[..];
     let mut output = Vec::new();
     let mut error = Vec::new();
@@ -42,7 +43,7 @@ fn exact_run(source: &str, run_id: &'static str) -> (Vec<u8>, ExactExecutionRepo
                 semantic_source_hash: plan.source_semantic_hash,
                 plan_epoch: 127,
                 run_id: Id(run_id),
-                grant_observations: &[],
+                grant_observations: &grant_observations,
                 validation: PlanValidationContext {
                     supported_schema_version: plan.schema_version,
                     now: plan.created_at,

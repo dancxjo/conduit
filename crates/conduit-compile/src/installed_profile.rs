@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ArtifactDocument, ArtifactReferenceDocument, AuthorityDecisionDocument, AuthorityGrantDocument,
-    BudgetDocument, COMPILE_INPUT_SCHEMA, COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument,
-    CompileInput, CompileModuleDocument, CompileSourceLimits, EffectCommitProfileDocument,
-    EffectRequirementDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
-    ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
-    ImplementationDocument, MemoryClaimDocument, PinDocument, ResourceLeaseDocument,
-    builtin_catalog_document,
+    ArtifactDocument, ArtifactReferenceDocument, AuthorityConstraintDocument,
+    AuthorityDecisionDocument, AuthorityGrantDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
+    COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
+    CompileSourceLimits, EffectCommitProfileDocument, EffectRequirementDocument,
+    ExecutionLimitsDocument, ExecutionProfileDocument, ExternalLeafContractDocument,
+    HostCapabilityDocument, HostReportDocument, ImplementationDocument, MemoryClaimDocument,
+    PinDocument, ResourceLeaseDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -15,8 +15,9 @@ use conduit_core::{
 };
 use conduit_panel::parse;
 use conduit_runtime::{
-    ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation,
+    ExactGrantObservation, ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation,
     InstalledHostedProvider, OwnedNodeSchema, Registry, RuntimeError, SourceContractCatalog,
+    hosted_effect_constraint_hash,
 };
 
 pub struct InstalledProfile {
@@ -112,14 +113,29 @@ impl InstalledProfile {
             let stdout_instance = (contract_id == "io/stdout")
                 .then(|| instances.first().cloned())
                 .flatten();
-            let host_service_instance = (installed.implementation
-                == HostedPrimitiveImplementation::HostedService)
-                .then(|| instances.first().cloned())
-                .flatten();
+            let host_service_instances = if installed.implementation
+                == HostedPrimitiveImplementation::HostedService
+            {
+                instances
+                    .iter()
+                    .map(|instance| {
+                        let constraints = panel
+                            .nodes
+                            .iter()
+                            .find(|node| {
+                                node.id == *instance || instance.ends_with(&format!("/{}", node.id))
+                            })
+                            .map_or_else(Vec::new, hosted_service_authority_constraints);
+                        (instance.clone(), constraints)
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
             candidates.push(candidate(
                 installed,
                 stdout_instance.as_deref(),
-                host_service_instance.as_deref(),
+                &host_service_instances,
                 stdout_granted,
             ));
         }
@@ -324,12 +340,86 @@ impl InstalledProfile {
         }
         ExactHostedBindings::new(bindings)
     }
+
+    /// Projects fresh grant status from this host observation snapshot. The
+    /// exact plan supplies immutable grant identity and scope, never status.
+    pub fn grant_observations<'a>(
+        &'a self,
+        plan: &'a ExecutionPlan<'a>,
+    ) -> Result<Vec<ExactGrantObservation<'a>>, RuntimeError> {
+        plan.authorities
+            .iter()
+            .map(|authority| {
+                let planned = plan
+                    .nodes
+                    .iter()
+                    .find(|node| node.instance == authority.node)
+                    .ok_or_else(|| {
+                        RuntimeError::new(
+                            "CND-RUN-010",
+                            "authority refers to an absent exact-plan node",
+                        )
+                    })?;
+                let observed = self
+                    .input
+                    .candidates
+                    .iter()
+                    .find(|candidate| {
+                        candidate.implementation.id == planned.implementation.id.as_str()
+                            && candidate.host_report.id == planned.host_observation.as_str()
+                    })
+                    .and_then(|candidate| {
+                        candidate.authorities.iter().find(|observed| {
+                            observed.grant.id == authority.grant.id.as_str()
+                                && observed.effect_hash == authority.effect_hash.to_string()
+                        })
+                    })
+                    .ok_or_else(|| {
+                        RuntimeError::new("CND-RUN-010", "fresh host grant observation is absent")
+                    })?;
+                let status = match observed.status.as_str() {
+                    "active" => conduit_core::GrantStatus::Active,
+                    "revoked" => conduit_core::GrantStatus::Revoked {
+                        at_tick: plan.created_at.tick,
+                        reason: conduit_core::Id("host/revoked-at-use"),
+                    },
+                    _ => {
+                        return Err(RuntimeError::new(
+                            "CND-RUN-010",
+                            "fresh host grant observation has an unknown status",
+                        ));
+                    }
+                };
+                let resource = plan
+                    .resources
+                    .iter()
+                    .find(|resource| {
+                        resource.node == authority.node
+                            && resource.resource == authority.binding.resource
+                    })
+                    .ok_or_else(|| {
+                        RuntimeError::new(
+                            "CND-RUN-010",
+                            "fresh host resource observation is absent",
+                        )
+                    })?;
+                Ok(ExactGrantObservation {
+                    grant: authority.grant.id,
+                    status,
+                    resource_binding: conduit_core::Id(&observed.resource_lease.resource_binding),
+                    resource_lease: conduit_core::Id(&observed.resource_lease.id),
+                    lease_valid_until_tick: observed.resource_lease.expires_at_tick,
+                    lease_available: resource.lease.is_some(),
+                })
+            })
+            .collect()
+    }
 }
 
 fn candidate(
     installed: &conduit_runtime::InstalledHostedProvider,
     stdout_instance: Option<&str>,
-    host_service_instance: Option<&str>,
+    host_service_instances: &[(String, Vec<AuthorityConstraintDocument>)],
     stdout_granted: bool,
 ) -> CandidateDocument {
     let manifest = installed.manifest;
@@ -337,12 +427,14 @@ fn candidate(
     let mut authorities = stdout_instance
         .map(|instance| vec![stdout_authority(instance, stdout_granted)])
         .unwrap_or_default();
-    if let Some(instance) = host_service_instance {
+    for (instance, constraints) in host_service_instances {
         authorities.extend(host_service_authority(
             installed.contract.id.as_str(),
             instance,
+            constraints,
         ));
     }
+    let has_host_service = !host_service_instances.is_empty();
     let format_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::Format | HostedPrimitiveImplementation::FormatValuesLiteral
@@ -434,7 +526,7 @@ fn candidate(
             process_execution_profile()
         } else if socket_profile {
             socket_execution_profile()
-        } else if host_service_instance.is_some() {
+        } else if has_host_service {
             host_service_execution_profile()
         } else if format_profile {
             format_execution_profile()
@@ -509,7 +601,7 @@ fn candidate(
                 448 * 1024
             } else if socket_profile {
                 256 * 1024
-            } else if host_service_instance.is_some() {
+            } else if has_host_service {
                 192 * 1024
             } else if structural_validation_profile {
                 576 * 1024
@@ -538,13 +630,12 @@ fn candidate(
             } else {
                 256
             },
-            transports: u16::from(
-                host_service_instance.is_some() && !process_profile && !socket_profile,
-            ) + u16::from(socket_profile),
+            transports: u16::from(has_host_service && !process_profile && !socket_profile)
+                + u16::from(socket_profile),
             timers: if process_profile || socket_profile || supervision_profile {
                 2
             } else {
-                u16::from(host_service_instance.is_some() || time_profile)
+                u16::from(has_host_service || time_profile)
             },
             ..BudgetDocument::default()
         },
@@ -555,6 +646,37 @@ fn candidate(
         granted_authorities: Vec::new(),
         authorities,
     }
+}
+
+fn hosted_service_authority_constraints(
+    node: &conduit_panel::Node,
+) -> Vec<AuthorityConstraintDocument> {
+    if node.config("address").is_none()
+        || node.config("authority").is_none()
+        || node.config("transport").is_none()
+    {
+        return Vec::new();
+    }
+    [
+        (
+            "conduit.constraint/http-authority",
+            node.config("authority").unwrap_or_default(),
+        ),
+        (
+            "conduit.constraint/http-endpoint",
+            node.config("address").unwrap_or_default(),
+        ),
+        (
+            "conduit.constraint/http-transport",
+            node.config("transport").unwrap_or("http"),
+        ),
+    ]
+    .into_iter()
+    .map(|(id, value)| AuthorityConstraintDocument {
+        id: id.to_owned(),
+        semantic_hash: hosted_effect_constraint_hash(id, value.as_bytes()).to_string(),
+    })
+    .collect()
 }
 
 fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument {
@@ -618,7 +740,11 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
     }
 }
 
-fn host_service_authority(contract_id: &str, instance: &str) -> Option<AuthorityDecisionDocument> {
+fn host_service_authority(
+    contract_id: &str,
+    instance: &str,
+    constraints: &[AuthorityConstraintDocument],
+) -> Option<AuthorityDecisionDocument> {
     let host = "conduit/conduct-host";
     let (name, requirement, action, resource_kind, resource_id) = match contract_id {
         "fs/read" => (
@@ -728,7 +854,7 @@ fn host_service_authority(contract_id: &str, instance: &str) -> Option<Authority
             resource_id: Some(resource_id.to_owned()),
             requester: instance.to_owned(),
             audience: "conduit/conduct-run".to_owned(),
-            constraints: Vec::new(),
+            constraints: constraints.to_vec(),
             check_at_use: true,
         },
         capability: HostCapabilityDocument {
@@ -749,7 +875,7 @@ fn host_service_authority(contract_id: &str, instance: &str) -> Option<Authority
             scope_root: instance.to_owned(),
             scope_descendants: false,
             audience: "conduit/conduct-run".to_owned(),
-            constraints: Vec::new(),
+            constraints: constraints.to_vec(),
             time_basis: "clock/conduct-host".to_owned(),
             not_before_tick: 10,
             expires_at_tick: 20,

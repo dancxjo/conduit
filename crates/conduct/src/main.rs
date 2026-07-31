@@ -732,17 +732,10 @@ fn execute_run(
     let plan = document
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-    let bindings = installed_profile
-        .ok_or_else(|| RuntimeError::new("CND-RUN-007", "installed provider profile is absent"))?
-        .bindings(&plan)?;
-    let grant_observations = plan
-        .authorities
-        .iter()
-        .map(|authority| conduit_runtime::ExactGrantObservation {
-            grant: authority.grant.id,
-            status: conduit_core::GrantStatus::Active,
-        })
-        .collect::<Vec<_>>();
+    let installed_profile = installed_profile
+        .ok_or_else(|| RuntimeError::new("CND-RUN-007", "installed provider profile is absent"))?;
+    let bindings = installed_profile.bindings(&plan)?;
+    let grant_observations = installed_profile.grant_observations(&plan)?;
     resolved
         .run_exact_report(
             &plan,

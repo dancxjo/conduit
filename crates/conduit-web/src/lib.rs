@@ -2508,6 +2508,7 @@ fn run_panel_exact_inner(
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let bindings = installed.bindings(&plan)?;
+    let grant_observations = installed.grant_observations(&plan)?;
     let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
     let workspace = conduit_patchbay::Workspace::new("conduit/browser-source", source)
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?;
@@ -2529,7 +2530,7 @@ fn run_panel_exact_inner(
             semantic_source_hash: plan.source_semantic_hash,
             plan_epoch: 1,
             run_id: conduit_core::Id("conduit/browser-run"),
-            grant_observations: &[],
+            grant_observations: &grant_observations,
             validation: conduit_core::PlanValidationContext {
                 supported_schema_version: plan.schema_version,
                 now: plan.created_at,

@@ -1,7 +1,7 @@
 {
   "schema": "conduit.http-client-conformance",
   "schema_version": 0,
-  "contract": "conduit.host/net/http/fetch",
+  "contract": "net/http/fetch",
   "providers": ["deterministic", "linux-loopback"],
   "cases": [
     {"id": "http-request-response", "class": "success", "expected": "completed"},
@@ -10,6 +10,10 @@
     {"id": "bounded-request-body-stream", "class": "request", "expected": "ordered"},
     {"id": "bounded-response-body-stream", "class": "response", "expected": "ordered"},
     {"id": "denied-destination", "class": "authority", "expected": "pre-effect-rejection"},
+    {"id": "forged-source-authority", "class": "authority", "expected": "source-rejected"},
+    {"id": "revoked-at-use", "class": "authority", "expected": "pre-effect-rejection"},
+    {"id": "address-authority-mismatch", "class": "authority", "expected": "exact-binding-rejected"},
+    {"id": "direct-handler-bypass", "class": "authority", "expected": "exact-binding-required"},
     {"id": "stale-dns-observation", "class": "resolution", "expected": "pre-effect-rejection"},
     {"id": "stale-provider-observation", "class": "resolution", "expected": "pre-effect-rejection"},
     {"id": "certificate-failure", "class": "tls", "expected": "certificate-failed"},
@@ -37,7 +41,7 @@
     {"id": "unsupported-host", "class": "availability", "expected": "unsupported"}
   ],
   "secret_policy": {
-    "source": "opaque-handles-only",
+    "source": "no-authority-observation-or-trust-handles",
     "plan": "opaque-handles-only",
     "evidence": "no-secret-material",
     "patchbay": "redacted"

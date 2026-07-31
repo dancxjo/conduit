@@ -12,13 +12,9 @@ node request : net/http/request/literal {
 }
 
 node client : net/http/fetch {
-    network_resource = secret("conduit.resource/http-loopback")
-    outbound_grant = secret("conduit.grant/http-loopback-request")
     address = "127.0.0.1:38153"
     authority = "loopback.test"
-    dns_observation = secret("conduit.observation/http-loopback-address")
-    provider_observation = secret("conduit.observation/http-client-linked")
-    tls_policy = secret("conduit.http/plaintext-explicit")
+    transport = "http"
     redirect_policy = "return"
     maximum_connections = 1
     maximum_pending = 1

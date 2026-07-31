@@ -23,9 +23,10 @@ use conduit_core::{
     Id, PinnedDescriptor, PlanArtifact, ReplacementSupport, SemanticHash, TransitionStateContract,
 };
 use conduit_runtime::{
-    CompiledInHostService, HTTP_SERVE_ONCE_CONTRACT, Handler, HostedDrainObservation,
-    HostedGenerationBinding, HostedTransitionGeneration, Registry, RegistryError, ResolutionError,
-    ResolvedPlacementBinding, RunIo, RuntimeError, Value,
+    CompiledInHostService, ExactHostedServiceBinding, HTTP_SERVE_ONCE_CONTRACT, Handler,
+    HostedDrainObservation, HostedGenerationBinding, HostedTransitionGeneration, Registry,
+    RegistryError, ResolutionError, ResolvedPlacementBinding, RunIo, RuntimeError, Value,
+    hosted_effect_constraint_hash,
 };
 use rustls::pki_types::CertificateDer;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -2200,7 +2201,7 @@ pub fn register_hosted_http_client_provider(registry: &mut Registry) -> Result<(
         entrypoint: "http-linux-client",
         source_bytes: include_bytes!("client.rs"),
         required_authorities: &REQUIRED_AUTHORITIES,
-        factory: || Box::new(HttpFetchHandler),
+        factory: || Box::new(HttpFetchHandler { exact: None }),
         validate_config: validate_http_fetch_config,
     })
 }
@@ -2255,9 +2256,84 @@ impl Handler for HttpRequestLiteralHandler {
     }
 }
 
-struct HttpFetchHandler;
+struct HttpFetchHandler {
+    exact: Option<ExactHostedServiceBinding>,
+}
+
+#[derive(Debug)]
+struct ExactHttpClientBinding {
+    endpoint: client::NumericEndpoint,
+    authority: String,
+    network_resource: String,
+    outbound_grant: String,
+    tls_policy: &'static str,
+}
+
+fn bind_exact_http_client(
+    exact: &ExactHostedServiceBinding,
+    node: &conduit_panel::Node,
+) -> Result<ExactHttpClientBinding, RuntimeError> {
+    let [authority] = exact.authorities.as_slice() else {
+        return Err(RuntimeError::new(
+            "CND-HTTP-CL-020",
+            "HTTP effect lacks one exact use-time authority binding",
+        ));
+    };
+    let expected = [
+        (
+            "conduit.constraint/http-authority",
+            required_config(node, "authority")?,
+        ),
+        (
+            "conduit.constraint/http-endpoint",
+            required_config(node, "address")?,
+        ),
+        (
+            "conduit.constraint/http-transport",
+            required_config(node, "transport")?,
+        ),
+    ];
+    let constraints_match = authority.constraints.len() == expected.len()
+        && expected.iter().all(|(id, value)| {
+            authority.constraints.iter().any(|(actual_id, hash)| {
+                actual_id == id && *hash == hosted_effect_constraint_hash(id, value.as_bytes())
+            })
+        });
+    if authority.action != "conduit.action/request"
+        || authority.resource_kind != "conduit.resource/http-loopback"
+        || authority.resource_id != HTTP_CLIENT_LOOPBACK_RESOURCE
+        || authority.grant_id != HTTP_CLIENT_LOOPBACK_GRANT
+        || authority.resource_binding_id.is_empty()
+        || !constraints_match
+    {
+        return Err(RuntimeError::new(
+            "CND-HTTP-CL-020",
+            "HTTP source destination does not match the exact runtime authority binding",
+        ));
+    }
+    let address = required_config(node, "address")?
+        .parse::<SocketAddr>()
+        .map_err(|_| RuntimeError::new("CND-HTTP-CL-004", "numeric address is invalid"))?;
+    let tls_policy = match required_config(node, "transport")? {
+        "http" => "conduit.http/plaintext-explicit",
+        "https" => "conduit.http/direct-tls",
+        _ => unreachable!("validated transport"),
+    };
+    Ok(ExactHttpClientBinding {
+        endpoint: client_endpoint(address),
+        authority: required_config(node, "authority")?.to_owned(),
+        network_resource: authority.resource_id.clone(),
+        outbound_grant: authority.grant_id.clone(),
+        tls_policy,
+    })
+}
 
 impl Handler for HttpFetchHandler {
+    fn bind_exact(&mut self, binding: ExactHostedServiceBinding) -> Result<(), RuntimeError> {
+        self.exact = Some(binding);
+        Ok(())
+    }
+
     fn run(
         &mut self,
         node: &conduit_panel::Node,
@@ -2275,10 +2351,13 @@ impl Handler for HttpFetchHandler {
         let request = client::decode_request_literal(&input.bytes).map_err(|terminal| {
             http_client_runtime_error(terminal, "request representation is malformed")
         })?;
-        let address = required_config(node, "address")?
-            .parse::<SocketAddr>()
-            .map_err(|_| RuntimeError::new("CND-HTTP-CL-004", "numeric address is invalid"))?;
-        let endpoint = client_endpoint(address);
+        let exact = self.exact.as_ref().ok_or_else(|| {
+            RuntimeError::new(
+                "CND-HTTP-CL-020",
+                "HTTP effects require an executor-supplied exact runtime binding",
+            )
+        })?;
+        let authorized = bind_exact_http_client(exact, node)?;
         let limits = http_client_limits(node)?;
         let redirects = parse_redirect_policy(required_config(node, "redirect_policy")?)
             .map_err(|error| RuntimeError::new(error.code, error.message))?;
@@ -2289,18 +2368,15 @@ impl Handler for HttpFetchHandler {
             ));
         }
         let binding = client::ClientBinding {
-            endpoint,
-            authority: required_config(node, "authority")?,
-            network_resource: required_secret_runtime(node, "network_resource")?,
-            outbound_grant: required_secret_runtime(node, "outbound_grant")?,
-            tls_policy: required_secret_runtime(node, "tls_policy")?,
-            trust_handle: optional_secret_config(node, "trust_handle"),
-            client_certificate_handle: optional_secret_config(node, "client_certificate_handle"),
-            client_private_key_handle: optional_secret_config(node, "client_private_key_handle"),
-            proxy_resource: optional_secret_config(node, "proxy_resource"),
-            dns_observation_fresh: true,
-            provider_observation_fresh: true,
-            destination_allowed: true,
+            endpoint: authorized.endpoint,
+            authority: &authorized.authority,
+            network_resource: &authorized.network_resource,
+            outbound_grant: &authorized.outbound_grant,
+            tls_policy: authorized.tls_policy,
+            trust_handle: None,
+            client_certificate_handle: None,
+            client_private_key_handle: None,
+            proxy_resource: None,
             limits,
         };
         let mut body = vec![0_u8; limits.maximum_response_body_bytes];
@@ -2421,17 +2497,9 @@ fn validate_http_request_literal_config(node: &conduit_panel::Node) -> Result<()
 }
 
 const HTTP_FETCH_KEYS: &[&str] = &[
-    "network_resource",
-    "outbound_grant",
     "address",
     "authority",
-    "dns_observation",
-    "provider_observation",
-    "tls_policy",
-    "trust_handle",
-    "client_certificate_handle",
-    "client_private_key_handle",
-    "proxy_resource",
+    "transport",
     "redirect_policy",
     "maximum_connections",
     "maximum_pending",
@@ -2466,59 +2534,19 @@ fn validate_http_fetch_config(node: &conduit_panel::Node) -> Result<(), Resoluti
             message: "checked HTTP client provider admits exact loopback endpoints only".to_owned(),
         });
     }
-    for (key, expected) in [
-        ("network_resource", HTTP_CLIENT_LOOPBACK_RESOURCE),
-        ("outbound_grant", HTTP_CLIENT_LOOPBACK_GRANT),
-        (
-            "dns_observation",
-            "conduit.observation/http-loopback-address",
-        ),
-        (
-            "provider_observation",
-            "conduit.observation/http-client-linked",
-        ),
-    ] {
-        if required_secret_resolution(node, key)? != expected {
-            return Err(ResolutionError {
-                code: "CND-HTTP-CL-010",
-                message: format!("HTTP client `{key}` is outside the checked profile"),
-            });
-        }
-    }
-    if required_resolution_config(node, "authority")?.is_empty() {
+    if required_resolution_config(node, "authority")? != "loopback.test" {
         return Err(ResolutionError {
             code: "CND-HTTP-CL-008",
-            message: "HTTP authority is required".to_owned(),
+            message: "checked HTTP client authority must be loopback.test".to_owned(),
         });
     }
     if !matches!(
-        required_secret_resolution(node, "tls_policy")?,
-        "conduit.http/plaintext-explicit" | "conduit.http/direct-tls"
+        required_resolution_config(node, "transport")?,
+        "http" | "https"
     ) {
         return Err(ResolutionError {
             code: "CND-HTTP-CL-011",
             message: "HTTP client TLS policy is invalid".to_owned(),
-        });
-    }
-    for key in [
-        "trust_handle",
-        "client_certificate_handle",
-        "client_private_key_handle",
-        "proxy_resource",
-    ] {
-        if node.config_value(key).is_some() && optional_secret_config(node, key).is_none() {
-            return Err(ResolutionError {
-                code: "CND-SRC-002",
-                message: format!("HTTP client `{key}` must be a protected reference"),
-            });
-        }
-    }
-    if optional_secret_config(node, "client_certificate_handle").is_some()
-        != optional_secret_config(node, "client_private_key_handle").is_some()
-    {
-        return Err(ResolutionError {
-            code: "CND-HTTP-CL-016",
-            message: "HTTP client certificate and private-key handles must be paired".to_owned(),
         });
     }
     if required_resolution_config(node, "cancellation")? != "abort-and-cleanup" {
@@ -2656,9 +2684,6 @@ fn http_client_limits_resolution(
             client_certificate_handle: None,
             client_private_key_handle: None,
             proxy_resource: None,
-            dns_observation_fresh: true,
-            provider_observation_fresh: true,
-            destination_allowed: true,
             limits,
         },
         client::ClientRequest {
@@ -2709,34 +2734,6 @@ fn required_bytes_config<'a>(
             "CND-SRC-002",
             format!("HTTP client `{}` requires bytes `{key}`", node.id),
         )),
-    }
-}
-
-fn required_secret_resolution<'a>(
-    node: &'a conduit_panel::Node,
-    key: &str,
-) -> Result<&'a str, ResolutionError> {
-    match node.config_value(key) {
-        Some(conduit_panel::SourceValue::SecretReference(value)) => Ok(value),
-        _ => Err(ResolutionError {
-            code: "CND-SRC-002",
-            message: format!("HTTP client requires protected `{key}`"),
-        }),
-    }
-}
-
-fn required_secret_runtime<'a>(
-    node: &'a conduit_panel::Node,
-    key: &str,
-) -> Result<&'a str, RuntimeError> {
-    required_secret_resolution(node, key)
-        .map_err(|error| RuntimeError::new(error.code, error.message))
-}
-
-fn optional_secret_config<'a>(node: &'a conduit_panel::Node, key: &str) -> Option<&'a str> {
-    match node.config_value(key) {
-        Some(conduit_panel::SourceValue::SecretReference(value)) => Some(value),
-        _ => None,
     }
 }
 
@@ -3091,7 +3088,12 @@ pub fn validate_http_transition(
 
 #[cfg(test)]
 mod tests {
-    use super::{HttpMethod, HttpRoute, Id, match_route};
+    use conduit_runtime::{ExactHostedServiceAuthority, ExactHostedServiceBinding};
+
+    use super::{
+        HttpMethod, HttpRoute, Id, bind_exact_http_client, hosted_effect_constraint_hash,
+        match_route,
+    };
 
     #[test]
     fn route_order_is_explicit_and_parameterized() {
@@ -3114,5 +3116,70 @@ mod tests {
             .unwrap();
         assert_eq!(matched.route, "route/first");
         assert_eq!(matched.parameters["id"], "42");
+    }
+
+    #[test]
+    fn exact_http_binding_rejects_destination_resource_and_binding_mismatch() {
+        let panel =
+            conduit_panel::parse(include_str!("../../../examples/http-client-loopback.panel"))
+                .unwrap();
+        let node = panel
+            .nodes
+            .iter()
+            .find(|node| node.kind == "net/http/fetch")
+            .unwrap();
+        let mut exact = ExactHostedServiceBinding {
+            instance: "client".to_owned(),
+            implementation_id: "conduit/http-linux-client".to_owned(),
+            artifact_id: "conduit/http-linux-client-artifact".to_owned(),
+            host_id: "conduit/conduct-host".to_owned(),
+            host_observation_id: "conduit.observation/conduct-host".to_owned(),
+            use_time_tick: 12,
+            authorities: vec![ExactHostedServiceAuthority {
+                effect_hash: conduit_core::SemanticHash::from_bytes([0; 32]),
+                action: "conduit.action/request".to_owned(),
+                resource_kind: "conduit.resource/http-loopback".to_owned(),
+                resource_id: super::HTTP_CLIENT_LOOPBACK_RESOURCE.to_owned(),
+                resource_binding_id: "binding/http-loopback".to_owned(),
+                grant_id: super::HTTP_CLIENT_LOOPBACK_GRANT.to_owned(),
+                constraints: vec![
+                    (
+                        "conduit.constraint/http-authority".to_owned(),
+                        hosted_effect_constraint_hash(
+                            "conduit.constraint/http-authority",
+                            b"loopback.test",
+                        ),
+                    ),
+                    (
+                        "conduit.constraint/http-endpoint".to_owned(),
+                        hosted_effect_constraint_hash(
+                            "conduit.constraint/http-endpoint",
+                            b"127.0.0.1:9",
+                        ),
+                    ),
+                    (
+                        "conduit.constraint/http-transport".to_owned(),
+                        hosted_effect_constraint_hash("conduit.constraint/http-transport", b"http"),
+                    ),
+                ],
+            }],
+        };
+        let error = bind_exact_http_client(&exact, node).unwrap_err();
+        assert_eq!(error.code, "CND-HTTP-CL-020");
+
+        exact.authorities[0].constraints[1].1 =
+            hosted_effect_constraint_hash("conduit.constraint/http-endpoint", b"127.0.0.1:38153");
+        exact.authorities[0].resource_id = "forged/http-resource".to_owned();
+        assert_eq!(
+            bind_exact_http_client(&exact, node).unwrap_err().code,
+            "CND-HTTP-CL-020"
+        );
+
+        exact.authorities[0].resource_id = super::HTTP_CLIENT_LOOPBACK_RESOURCE.to_owned();
+        exact.authorities[0].resource_binding_id.clear();
+        assert_eq!(
+            bind_exact_http_client(&exact, node).unwrap_err().code,
+            "CND-HTTP-CL-020"
+        );
     }
 }
