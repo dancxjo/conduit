@@ -15,6 +15,29 @@
   `conduit-core` check.
 - Keep commits coherent and exclude unrelated concurrent work.
 
+## Concurrent development
+
+- Start by inspecting `git status --short` and the relevant diff. Treat every
+  unrelated change as another worker's work; do not reset, reformat, stage, or
+  regenerate it.
+- Claim files or hunks before editing them. If another worker is changing the
+  same hunk, coordinate the handoff or wait; do not race to overwrite their
+  change.
+- Stage explicit paths only. Before publishing, fetch `origin`, rebase onto
+  the current `origin/main`, and rerun the focused checks for the resulting
+  tip. Never force-push or rewrite another worker's branch.
+- A commit is the cross-system handoff. Keep it small, name the behavior it
+  changes, and include only the files needed for that behavior so independent
+  workers can rebase and integrate it safely.
+- Diagnose CI at the failed commit's exact tip. Do not update a fixture, a
+  generated artifact, or a snapshot solely to silence an assertion; regenerate
+  one only when its producer's intended current semantics changed and its
+  authoritative verification requires it.
+- Tour browser tests assert selectable behavior, run results, and visible
+  failures. They do not mirror plan hashes, artifact digests, scenario or
+  documentation inventory counts, source spelling, or timeline indices. Keep
+  exact semantic identity checks in their owning Rust/conformance boundary.
+
 ## Pre-release compatibility rule
 
 Conduit has not made its first public release. Do not preserve backwards

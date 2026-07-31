@@ -14,6 +14,25 @@ would fail without it.
 - Give rejectable behavior a stable diagnostic.
 - Add both a positive and negative fixture when possible.
 
+## Concurrent changes and checks
+
+Several contributors and systems may land work at once. Inspect the working
+tree before editing, leave unrelated changes untouched, and stage only the
+paths that belong to your change. Keep commits narrow enough to rebase without
+pulling in another change's cleanup. Fetch and rebase onto current `main`
+immediately before publishing; resolve an overlapping hunk with its owner
+instead of racing or rewriting their branch.
+
+Use the narrowest test that proves the behavior being changed. In particular,
+Tour browser tests cover scenario selection, admitted/rejected outcomes, and
+observable execution. They must not duplicate plan hashes, artifact digests,
+generated inventory counts, static source spellings, or timeline positions.
+Those facts belong to their exact compiler, artifact, or conformance checks.
+
+Do not refresh a fixture, generated artifact, or snapshot merely to restore a
+failing assertion. Refresh it only when the intended current producer changed
+and the owning verification demonstrates that the new artifact is required.
+
 ## Pre-release versions and compatibility
 
 Conduit has not made its first public release. Repository drafts do not create

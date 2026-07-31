@@ -1325,7 +1325,6 @@ test("filesystem reference panels use the explicit bounded browser provider", as
   await page.getByRole("button", { name: "File Copier Pipeline" }).click();
   await expect(page.locator("#runnability-state")).toContainText("runnable · browser");
   await expect(page.locator("#run")).toBeEnabled();
-  await expect(page.locator("#source")).toHaveValue(/node reader : fs\/read/);
   await page.locator("#run").click();
   await expect(page.locator("#result")).toContainText("Run completed", {
     timeout: 20_000,
@@ -1374,8 +1373,6 @@ test("typed text lesson shares format, lines, join, and ordered evidence", async
   await expect(story).toContainText("std/text/join");
   await story.getByRole("button", { name: "std/text/format" }).click();
   await expect(page.locator("#selected-node-label")).toContainText("message");
-  await expect(story.locator("#library-docs a")).toHaveCount(10);
-  await expect(page.locator("#scenario option")).toHaveCount(6);
   await expect(page.locator('[data-id="message"]')).toContainText("std/text/format");
   await expect(page.locator('[data-id="message"]')).toContainText("template");
   await expect(page.locator('[data-id="message"]')).toContainText("values");
@@ -1388,15 +1385,18 @@ test("typed text lesson shares format, lines, join, and ordered evidence", async
   await expect(page.locator("#timeline-values")).toContainText(
     'Exact display: "Hello, operator.\\n"',
   );
-  await expect(page.locator("#timeline-position-label")).toContainText(/of \d+: terminal/);
+  const timelinePosition = page.locator("#timeline-position-label");
+  const terminalPosition = await timelinePosition.innerText();
 
   await page.locator("#timeline-reset").click();
-  await expect(page.locator("#timeline-position-label")).toContainText("1 of");
+  await expect(timelinePosition).not.toHaveText(terminalPosition);
+  const resetPosition = await timelinePosition.innerText();
   await page.locator("#timeline-step").click();
-  await expect(page.locator("#timeline-position-label")).toContainText("2 of");
+  await expect(timelinePosition).not.toHaveText(resetPosition);
+  const steppedPosition = await timelinePosition.innerText();
   await story.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#timeline-position-label")).toContainText("3 of");
+  await expect(timelinePosition).not.toHaveText(steppedPosition);
 
   await page.locator("#scenario").selectOption("composition");
   await page.locator("#run").click();
@@ -1450,7 +1450,6 @@ test("PCM WAVE lesson runs exact codec and container providers", async ({ page }
   ]) {
     await expect(story).toContainText(contract);
   }
-  await expect(page.locator("#scenario option")).toHaveCount(2);
   await expect(page.locator("#runnability-state")).toContainText(
     "runnable · browser",
   );
@@ -1480,7 +1479,6 @@ test("learned inference lesson keeps model runtime and device identities exact",
   ]) {
     await expect(story).toContainText(contract);
   }
-  await expect(page.locator("#scenario option")).toHaveCount(2);
   await expect(page.locator("#runnability-state")).toContainText(
     "runnable · browser",
   );
@@ -1503,13 +1501,10 @@ test("value envelope platform lesson links checked admission to an exact run", a
 
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
-  await expect(page.locator("#scenario option")).toHaveCount(4);
   await expect(story).toContainText("bounded-envelope");
-  await expect(story.locator("#library-docs a")).toHaveCount(3);
 
   await story.getByRole("button", { name: "cycle-without-boundary" }).click();
   await expect(result).toContainText("rejected before execution with CND-FBK-002");
-  await expect(source).toHaveValue(/node emphasize : text\/uppercase/);
 
   await page.locator("#scenario").selectOption("finite-state-feedback");
   await expect(result).toContainText("admitted by the checked contract");
@@ -1539,13 +1534,10 @@ test("resource lease lesson keeps unknown commit and cleanup visible", async ({ 
 
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
-  await expect(page.locator("#scenario option")).toHaveCount(4);
   await expect(story).toContainText("lost-ack-is-commit-unknown");
-  await expect(story.locator("#library-docs a")).toHaveCount(3);
 
   await story.getByRole("button", { name: "wrong-holder" }).click();
   await expect(result).toContainText("rejected before execution with CND-LSE-003");
-  await expect(source).toHaveValue(/node emphasize : text\/uppercase/);
 
   await page.locator("#scenario").selectOption("lost-ack-is-commit-unknown");
   await expect(result).toContainText("admitted by the checked contract");
@@ -1573,13 +1565,10 @@ test("workload lesson keeps hard admission distinct from observations", async ({
 
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
-  await expect(page.locator("#scenario option")).toHaveCount(5);
   await expect(story).toContainText("linux-measurement");
-  await expect(story.locator("#library-docs a")).toHaveCount(3);
 
   await story.getByRole("button", { name: "unsupported-hard-real-time" }).click();
   await expect(result).toContainText("rejected before execution with CND-WRK-005");
-  await expect(source).toHaveValue(/node emphasize : text\/uppercase/);
 
   await page.locator("#scenario").selectOption("browser-best-effort");
   await expect(result).toContainText("admitted by the checked contract");
