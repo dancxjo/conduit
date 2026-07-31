@@ -52,7 +52,7 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 143);
+    assert_eq!(projection.entries.len(), 144);
     let media = projection
         .entries
         .iter()
