@@ -3,7 +3,6 @@ panel 0
 
 node request : std/literal { value = "start-isolated" }
 node wifi_ap : net/wifi/access-point {
-    resource = secret("conduit.resource/network-fixture") grant = secret("conduit.grant/network-fixture") interface = "fixture/ap0"
     maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
     ssid_prefix = "pete-" address = "192.168.4.1" maximum_clients = 8 routing = "forbidden" bridging = "forbidden" nat = "forbidden"
 }

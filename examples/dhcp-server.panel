@@ -1,7 +1,6 @@
 panel 0
 node request : std/literal { value = "discover:client-fixture" }
 node dhcp : net/dhcp/server {
-    resource = secret("conduit.resource/network-fixture") grant = secret("conduit.grant/network-fixture") interface = "fixture/ap0"
     maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
     server_address = "192.168.4.1" pool_first = "192.168.4.2" pool_last = "192.168.4.9" maximum_leases = 8 lease_ticks = 3600000
 }

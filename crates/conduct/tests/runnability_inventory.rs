@@ -519,6 +519,78 @@ fn filesystem_exact_plan_pins_provider_authority_resource_and_bounds() {
 }
 
 #[test]
+fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_binding() {
+    let root = root();
+    let base = fs::read_to_string(root.join("examples/wifi-ap-isolated.panel"))
+        .expect("network fixture example");
+    let mut registry = conduit_runtime::Registry::hosted_primitives();
+    conduit_net::register_deterministic_network_fixture_providers(&mut registry)
+        .expect("no-radio fixtures install");
+
+    for key in ["resource", "grant", "interface"] {
+        let source = base.replace(
+            "    maximum_request_bytes =",
+            &format!(
+                "    {key} = secret(\"forged/network-authority\")\n    maximum_request_bytes ="
+            ),
+        );
+        let error = match conduit_compile::InstalledProfile::observe_registry(&source, &registry) {
+            Ok(_) => panic!("network authority belongs to the selected host binding, never source"),
+            Err(error) => error,
+        };
+        assert_eq!(error.code, "CND-SRC-002", "{key}");
+    }
+
+    let installed = conduit_compile::InstalledProfile::observe_registry(&base, &registry)
+        .expect("no-radio fixture resolves without an authority");
+    for candidate in installed.input.candidates.iter().filter(|candidate| {
+        candidate
+            .implementation
+            .semantic_contract
+            .id
+            .starts_with("net/")
+    }) {
+        assert!(candidate.authorities.is_empty());
+    }
+    let document = conduit_compile::compile_source(&base, &installed.input)
+        .expect("fixture exact plan compiles");
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).expect("fixture exact plan loads");
+    assert!(
+        plan.authorities
+            .iter()
+            .all(|authority| !authority.node.as_str().starts_with("wifi_ap"))
+    );
+    assert!(
+        plan.resources
+            .iter()
+            .all(|resource| !resource.node.as_str().starts_with("wifi_ap"))
+    );
+
+    // The compatibility path can invoke this handler without an exact binding
+    // only because this fixture is deterministic and has no radio/socket/effect
+    // backend. A physical provider must reject this path before opening I/O.
+    let panel = conduit_panel::parse(&base).expect("fixture panel parses");
+    let resolved = registry.resolve(&panel).expect("fixture resolves");
+    let mut input = &b""[..];
+    let mut output = Vec::new();
+    let mut error = Vec::new();
+    let mut display = Vec::new();
+    resolved
+        .run_batch(&mut conduit_runtime::RunIo {
+            input: &mut input,
+            output: &mut output,
+            error: &mut error,
+            display: &mut display,
+        })
+        .expect("pure no-radio fixture may not require a physical effect binding");
+    assert_eq!(
+        display,
+        b"wifi-ap:pete-fixture:192.168.4.1:clients=8:no-route:no-bridge:no-nat"
+    );
+}
+
+#[test]
 fn storage_cache_exact_plan_pins_distinct_provider_resource_grant_and_bounds() {
     let root = root();
     let source =

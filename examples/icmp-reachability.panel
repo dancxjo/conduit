@@ -1,7 +1,6 @@
 panel 0
 node request : std/literal { value = "192.168.4.1" }
 node icmp : net/reachability {
-    resource = secret("conduit.resource/network-fixture") grant = secret("conduit.grant/network-fixture") interface = "fixture/ap0"
     maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
     address = "192.168.4.1" maximum_packet_bytes = 1500 maximum_packets_per_window = 4 window_ticks = 1000
 }

@@ -923,6 +923,11 @@ mod tests {
             "provider-loss",
             "no-route-no-bridge-no-nat",
             "describe-only-no-effects",
+            "forged-source-authority",
+            "no-radio-fixture-no-authority",
+            "physical-provider-missing-binding",
+            "physical-provider-revoked-at-use",
+            "physical-provider-direct-handler-bypass",
             "network-never-grants-robot-authority",
         ] {
             assert!(

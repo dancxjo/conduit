@@ -43,6 +43,14 @@ recheck the exact binding, live provider observation, resource, grant/lease,
 and cancellation state at use. A handler may not manufacture initialization,
 freshness, permission, possession, service, safety, or motor facts.
 
+Panel source may request only the contract's bounded behavior and semantic
+limits. It must not name a resource, grant, concrete interface, provider
+observation, device, boot, lease, or authority. The deterministic no-radio
+fixture therefore has no network authority at all. A physical adapter remains
+unavailable until the exact executor supplies and validates its resource,
+interface, grant, lease, and fresh CYW43 binding; missing or revoked bindings
+fail before I/O, including when a handler is invoked directly.
+
 ## Evidence
 
 `conformance/c4/netherwick-network.json` freezes the ownership map, limits,

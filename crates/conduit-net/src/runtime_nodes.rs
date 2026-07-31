@@ -35,16 +35,6 @@ const U64: TypeContractRef<'static> = TypeContractRef {
         0xf0, 0xec,
     ]),
 };
-const REFERENCE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("std/reference/any"),
-    schema_version: 0,
-    semantic_hash: SemanticHash::from_bytes([
-        0x73, 0x02, 0x02, 0xbc, 0x0e, 0x9f, 0x52, 0x0c, 0x30, 0x74, 0x26, 0x51, 0x50, 0x3d, 0x16,
-        0x68, 0x72, 0xbf, 0x79, 0xdf, 0x7d, 0xd5, 0x25, 0x22, 0x0f, 0xa8, 0xc8, 0x31, 0x76, 0xfc,
-        0x7b, 0xfb,
-    ]),
-};
-
 const fn field(
     key: &'static str,
     value_type: TypeContractRef<'static>,
@@ -60,10 +50,7 @@ const fn field(
     }
 }
 
-const COMMON_FIELDS: [ConfigFieldContract<'static>; 9] = [
-    field("resource", REFERENCE, Sensitivity::Restricted),
-    field("grant", REFERENCE, Sensitivity::Restricted),
-    field("interface", TEXT, Sensitivity::Public),
+const COMMON_FIELDS: [ConfigFieldContract<'static>; 6] = [
     field("maximum_request_bytes", U64, Sensitivity::Public),
     field("maximum_response_bytes", U64, Sensitivity::Public),
     field("maximum_pending", U64, Sensitivity::Public),
@@ -71,16 +58,13 @@ const COMMON_FIELDS: [ConfigFieldContract<'static>; 9] = [
     field("deadline_ticks", U64, Sensitivity::Public),
     field("cancellation", TEXT, Sensitivity::Public),
 ];
-const AP_FIELDS: [ConfigFieldContract<'static>; 15] = [
+const AP_FIELDS: [ConfigFieldContract<'static>; 12] = [
     COMMON_FIELDS[0],
     COMMON_FIELDS[1],
     COMMON_FIELDS[2],
     COMMON_FIELDS[3],
     COMMON_FIELDS[4],
     COMMON_FIELDS[5],
-    COMMON_FIELDS[6],
-    COMMON_FIELDS[7],
-    COMMON_FIELDS[8],
     field("ssid_prefix", TEXT, Sensitivity::Public),
     field("address", TEXT, Sensitivity::Public),
     field("maximum_clients", U64, Sensitivity::Public),
@@ -88,47 +72,38 @@ const AP_FIELDS: [ConfigFieldContract<'static>; 15] = [
     field("bridging", TEXT, Sensitivity::Public),
     field("nat", TEXT, Sensitivity::Public),
 ];
-const DHCP_FIELDS: [ConfigFieldContract<'static>; 14] = [
+const DHCP_FIELDS: [ConfigFieldContract<'static>; 11] = [
     COMMON_FIELDS[0],
     COMMON_FIELDS[1],
     COMMON_FIELDS[2],
     COMMON_FIELDS[3],
     COMMON_FIELDS[4],
     COMMON_FIELDS[5],
-    COMMON_FIELDS[6],
-    COMMON_FIELDS[7],
-    COMMON_FIELDS[8],
     field("server_address", TEXT, Sensitivity::Public),
     field("pool_first", TEXT, Sensitivity::Public),
     field("pool_last", TEXT, Sensitivity::Public),
     field("maximum_leases", U64, Sensitivity::Public),
     field("lease_ticks", U64, Sensitivity::Public),
 ];
-const REACHABILITY_FIELDS: [ConfigFieldContract<'static>; 13] = [
+const REACHABILITY_FIELDS: [ConfigFieldContract<'static>; 10] = [
     COMMON_FIELDS[0],
     COMMON_FIELDS[1],
     COMMON_FIELDS[2],
     COMMON_FIELDS[3],
     COMMON_FIELDS[4],
     COMMON_FIELDS[5],
-    COMMON_FIELDS[6],
-    COMMON_FIELDS[7],
-    COMMON_FIELDS[8],
     field("address", TEXT, Sensitivity::Public),
     field("maximum_packet_bytes", U64, Sensitivity::Public),
     field("maximum_packets_per_window", U64, Sensitivity::Public),
     field("window_ticks", U64, Sensitivity::Public),
 ];
-const DNS_SD_FIELDS: [ConfigFieldContract<'static>; 14] = [
+const DNS_SD_FIELDS: [ConfigFieldContract<'static>; 11] = [
     COMMON_FIELDS[0],
     COMMON_FIELDS[1],
     COMMON_FIELDS[2],
     COMMON_FIELDS[3],
     COMMON_FIELDS[4],
     COMMON_FIELDS[5],
-    COMMON_FIELDS[6],
-    COMMON_FIELDS[7],
-    COMMON_FIELDS[8],
     field("name", TEXT, Sensitivity::Public),
     field("address", TEXT, Sensitivity::Public),
     field("ttl_ticks", U64, Sensitivity::Public),
@@ -216,9 +191,6 @@ pub const NETWORK_CONTRACTS: [&NodeContract<'static>; 4] = [
     &DNS_SD_CONTRACT,
 ];
 
-const RESOURCE: &str = "conduit.resource/network-fixture";
-const GRANT: &str = "conduit.grant/network-fixture";
-
 fn error(reason: NetworkReason, detail: &'static str) -> RuntimeError {
     RuntimeError::new(reason.code(), detail)
 }
@@ -234,18 +206,16 @@ fn integer(node: &Node, key: &str) -> Option<u64> {
     }
 }
 
-fn reference(node: &Node, key: &str, expected: &str) -> bool {
-    matches!(
-        node.config_value(key),
-        Some(SourceValue::Reference(value) | SourceValue::SecretReference(value)) if value == expected
-    )
-}
-
 fn validate_common(node: &Node, expected_fields: usize) -> Result<(), ResolutionError> {
+    for forbidden in ["resource", "grant", "interface"] {
+        if node.config_value(forbidden).is_some() {
+            return Err(ResolutionError::new(
+                "CND-SRC-002",
+                "network resource, grant, and interface bindings are host facts, not authored configuration",
+            ));
+        }
+    }
     if node.config.len() != expected_fields
-        || !reference(node, "resource", RESOURCE)
-        || !reference(node, "grant", GRANT)
-        || node.config("interface") != Some("fixture/ap0")
         || integer(node, "maximum_request_bytes") != Some(MAXIMUM_PACKET_BYTES as u64)
         || integer(node, "maximum_response_bytes") != Some(256)
         || integer(node, "maximum_pending") != Some(1)
@@ -255,7 +225,7 @@ fn validate_common(node: &Node, expected_fields: usize) -> Result<(), Resolution
     {
         return Err(resolution(
             NetworkReason::MalformedPacket,
-            "network node does not match the exact bounded fixture profile",
+            "network node does not match the bounded no-radio fixture profile",
         ));
     }
     Ok(())
@@ -601,6 +571,9 @@ mod tests {
                 .map(|field| field.key.as_str())
                 .collect::<Vec<_>>();
             for forbidden in [
+                "resource",
+                "grant",
+                "interface",
                 "initialized",
                 "fresh",
                 "observation",
