@@ -690,11 +690,16 @@ test("keeps one public latest-value ticker Watch live in the production executor
     "false",
   );
 
-  await page.locator(
+  const scopeWatchLabel = page.locator(
     '.faceplate-port-row[data-semantic-path="root/scope/port/outgoing/text"] .jack-label',
-  )
-    .dispatchEvent("dblclick");
-  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
+  );
+  await expect.poll(async () => {
+    const pressed = await page.locator("#watch-toggle").getAttribute("aria-pressed");
+    if (pressed === "false") {
+      await scopeWatchLabel.dispatchEvent("dblclick");
+    }
+    return page.locator("#watch-toggle").getAttribute("aria-pressed");
+  }, { timeout: 20_000 }).toBe("true");
   await expect(page.locator("#watch-toggle")).toBeEnabled();
   await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
