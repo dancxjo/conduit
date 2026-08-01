@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.learned-lifecycle-conformance",
+  "schema_version": 0,
+  "identities": {
+    "dataset_snapshot": "sha256:71d58097138d514f3220280698874fecce2486878fc5a2f7a9bc50a8e1341186",
+    "dataset_revision": "sha256:5c434f11669a98b9587880d824f8fda7c19d26dc862696b2602066c79e794972",
+    "training_job": "sha256:6483c5ec0278e838e741c47a00326843811240e68779861691eaefdf63acfb01",
+    "checkpoint": "sha256:802134cf032dec3fc656c072748510009bf3f47192e91a42cd6d7d370fd9ce31",
+    "evaluation_report": "sha256:72a56cd84cb7f8580976b99177996998e1434bbffcd2e85f1f5dca0d6b607d7b",
+    "promotion_approval": "sha256:06428af77f473f5ea139b26e61c334096282034068249444382bcc27926d7df8",
+    "promotion_receipt": "sha256:37fa44058daed10ea46d9543393df9577fb4fe447a6a33a160aff9bdb864a002"
+  },
+  "bounds": {
+    "maximum_records": 4,
+    "maximum_dataset_bytes": 128,
+    "maximum_steps": 4,
+    "maximum_work": 64,
+    "maximum_checkpoints": 1,
+    "maximum_checkpoint_bytes": 128,
+    "maximum_storage_bytes": 256,
+    "maximum_evidence_events": 16,
+    "deadline_tick": 20
+  },
+  "positive": [
+    "identity-layers-remain-distinct",
+    "deterministic-training-checkpoint",
+    "evaluation-is-not-approval",
+    "training-without-promotion-provider",
+    "promotion-requires-exact-authority",
+    "acknowledged-promotion-commit",
+    "production-executor",
+    "standalone-dataset-inspection",
+    "composed-training-evaluation-promotion"
+  ],
+  "negative": [
+    "dataset-revision-mismatch",
+    "feature-label-schema-mismatch",
+    "sensitivity-denial",
+    "resource-exhaustion",
+    "stale-provider",
+    "cancellation",
+    "provider-loss",
+    "incompatible-checkpoint",
+    "metric-version-mismatch",
+    "evaluation-leakage",
+    "promotion-without-grant",
+    "rejected-promotion",
+    "unknown-commit",
+    "duplicate-commit"
+  ]
+}

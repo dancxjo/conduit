@@ -862,9 +862,23 @@ fn host_service_authority(
             "conduit.resource/http-loopback",
             "conduit.resource/http-loopback",
         ),
+        "learned/promote" => (
+            "learned-promotion",
+            "sha256:5454545454545454545454545454545454545454545454545454545454545454",
+            "conduit.action/promote",
+            "conduit.resource/learned-model-slot",
+            "conduit.resource/learned-reference-slot",
+        ),
         _ => return None,
     };
-    let (resource_lease, commit_profile) = effect_contracts(name, instance, action, resource_id);
+    let (mut resource_lease, commit_profile) =
+        effect_contracts(name, instance, action, resource_id);
+    let valid_until_tick = if contract_id == "learned/promote" {
+        200
+    } else {
+        20
+    };
+    resource_lease.expires_at_tick = valid_until_tick;
     Some(AuthorityDecisionDocument {
         requirement: requirement.to_owned(),
         effect_hash: String::new(),
@@ -889,7 +903,7 @@ fn host_service_authority(
             host: host.to_owned(),
             time_basis: "clock/conduct-host".to_owned(),
             observed_at_tick: 10,
-            valid_until_tick: 20,
+            valid_until_tick,
         },
         grant: AuthorityGrantDocument {
             id: format!("conduit.grant/{name}"),
@@ -902,7 +916,7 @@ fn host_service_authority(
             constraints: constraints.to_vec(),
             time_basis: "clock/conduct-host".to_owned(),
             not_before_tick: 10,
-            expires_at_tick: 20,
+            expires_at_tick: valid_until_tick,
             issued_for_host: host.to_owned(),
             delegation: "none".to_owned(),
             audit_id: format!("conduit.audit/{name}"),
