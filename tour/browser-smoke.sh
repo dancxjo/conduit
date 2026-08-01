@@ -3,10 +3,9 @@ set -euo pipefail
 
 root_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 server_log=$(mktemp)
-browser_log=$(mktemp)
 cleanup() {
   kill "${server_pid}" 2>/dev/null || true
-  rm -f "${server_log}" "${browser_log}"
+  rm -f "${server_log}"
 }
 trap cleanup EXIT
 
@@ -35,26 +34,10 @@ for attempt in $(seq 1 20); do
   sleep 0.1
 done
 curl --fail --silent "http://127.0.0.1:${port}/tour/public/index.html" >/dev/null
-for attempt in $(seq 1 10); do
-  google-chrome --headless --no-sandbox --disable-gpu --virtual-time-budget=25000 --dump-dom \
-    "http://127.0.0.1:${port}/tour/public/index.html?lesson=welcome.hello-panel&autorun" >"${browser_log}"
-  if grep --quiet --fixed-strings 'data-tour-ready="true"' "${browser_log}" &&
-      grep --quiet --fixed-strings "exact dedicated-worker placement" "${browser_log}" &&
-      grep --quiet --fixed-strings 'class="react-flow__edge-path"' "${browser_log}"; then
-    break
-  fi
-  sleep 0.25
-done
-grep --fixed-strings 'data-tour-ready="true"' "${browser_log}"
-grep --fixed-strings "Drag nodes to adjust presentation layout" "${browser_log}"
-grep --fixed-strings "exact dedicated-worker placement" "${browser_log}"
-grep --fixed-strings 'data-projection="rust-authoritative"' "${browser_log}"
-grep --fixed-strings 'data-layout-algorithm="layered"' "${browser_log}"
-grep --fixed-strings 'data-testid="rf__node-greeting"' "${browser_log}"
-grep --fixed-strings 'visibility: visible' "${browser_log}"
-grep --fixed-strings 'class="react-flow__edge-path"' "${browser_log}"
-grep --fixed-strings 'aria-label="value, outgoing port; type std/text"' "${browser_log}"
-grep --fixed-strings 'aria-label="text, receiving port; type std/text"' "${browser_log}"
-grep --fixed-strings 'data-semantic-metadata="available"' "${browser_log}"
-grep --fixed-strings 'class="panel-token-keyword">panel</span>' "${browser_log}"
-grep --fixed-strings 'class="panel-token-type">std/literal</span>' "${browser_log}"
+
+chrome_bin="${CHROME_BIN:-}"
+if [[ -z "${chrome_bin}" ]]; then
+  chrome_bin=$(command -v google-chrome)
+fi
+CHROME_BIN="${chrome_bin}" node "${root_dir}/tour/browser-smoke.mjs" \
+  "http://127.0.0.1:${port}/tour/public/index.html?lesson=welcome.hello-panel&autorun"

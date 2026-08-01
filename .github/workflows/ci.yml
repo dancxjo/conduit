@@ -45,6 +45,7 @@ jobs:
       # WASM binary layout is toolchain-dependent, so CI verifies that the
       # checked-in static Tour can be rebuilt instead of byte-comparing it.
       - run: bash tour/build-wasm.sh
+      - run: npm ci --ignore-scripts
       - run: bash tour/browser-smoke.sh
       - run: bash browser/run-chromium-vectors.sh
       - run: cargo run -p conduct --bin generate-conduct-assets -- --check

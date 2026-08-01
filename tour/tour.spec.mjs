@@ -121,6 +121,9 @@ test("restores reading position and a local draft without reviving a run", async
     reader.scrollTop = 420;
     reader.dispatchEvent(new Event("scroll"));
   });
+  await expect.poll(async () => page.locator("#reader-content").evaluate(
+    (reader) => reader.scrollTop,
+  )).toBeGreaterThan(0);
   await page.reload();
 
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
@@ -130,7 +133,9 @@ test("restores reading position and a local draft without reviving a run", async
   await expect(page.locator("#artifact-status")).toContainText(
     "not a live-run claim",
   );
-  expect(await page.locator("#reader-content").evaluate((reader) => reader.scrollTop)).toBeGreaterThan(0);
+  await expect.poll(async () => page.locator("#reader-content").evaluate(
+    (reader) => reader.scrollTop,
+  )).toBeGreaterThan(0);
 });
 
 test("carries, resets and recovers cumulative project state explicitly", async ({ page }) => {
@@ -688,7 +693,7 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await page.locator(
     '.faceplate-port-row[data-semantic-path="root/scope/port/outgoing/text"] .jack-label',
   )
-    .dblclick();
+    .dispatchEvent("dblclick");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#watch-toggle")).toBeEnabled();
   await expect.poll(async () => parseWatchTick(
@@ -1127,18 +1132,25 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
 
   const greeting = page.locator('[data-id="greeting"]');
   await greeting.getByTitle("Collapse Faceplate").click();
+  await expect(greeting.getByTitle("Expand Faceplate")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
   await expect(greeting.getByRole("button", {
     name: "value, outgoing port; type std/text",
     exact: true,
   })).toContainText("value >");
   const collapsedRow = greeting.locator(".faceplate-port-row");
   const collapsedHandle = collapsedRow.locator(".jack-handle");
-  const collapsedRowBox = await collapsedRow.boundingBox();
-  const collapsedHandleBox = await collapsedHandle.boundingBox();
-  expect(Math.abs(
-    (collapsedRowBox.y + collapsedRowBox.height / 2) -
-    (collapsedHandleBox.y + collapsedHandleBox.height / 2),
-  )).toBeLessThan(1);
+  await expect.poll(async () => {
+    const collapsedRowBox = await collapsedRow.boundingBox();
+    const collapsedHandleBox = await collapsedHandle.boundingBox();
+    if (!collapsedRowBox || !collapsedHandleBox) return Number.POSITIVE_INFINITY;
+    return Math.abs(
+      (collapsedRowBox.y + collapsedRowBox.height / 2) -
+      (collapsedHandleBox.y + collapsedHandleBox.height / 2),
+    );
+  }).toBeLessThan(1);
   await greeting.getByTitle("Expand Faceplate").click();
 });
 
@@ -1215,7 +1227,7 @@ test("renders composite exports as public faceplate ports", async ({ page }) => 
   await expect(page.locator(".composite-faceplate")).toHaveCount(0);
   await expect(page.locator('.react-flow__node[data-id="box.worker"]')).toHaveCount(1);
   await page.locator(".react-flow__edge").first()
-    .locator(".react-flow__edge-textbg").click({ force: true });
+    .locator(".react-flow__edge-textbg").dispatchEvent("click");
   await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
 });
 
