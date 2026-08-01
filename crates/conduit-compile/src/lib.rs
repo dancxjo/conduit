@@ -41,12 +41,13 @@ use conduit_core::{
     ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode, RollingLimit,
     SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
     SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
-    ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement, TraitRequirement,
-    TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy, ValueRepresentation, WatchAdmission,
-    WatchRetention, WatchSubject, WorkloadBudget, WorkloadCapability, WorkloadContract,
-    WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit, analyze_effect_closure,
-    assess_provider_requirement, resolve_authority, validate_administrative_proof,
-    validate_effect_commit_profile, validate_reference_distribution, validate_resource_lease,
+    TemporalContract, ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement,
+    TraitRequirement, TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy,
+    ValueRepresentation, WatchAdmission, WatchRetention, WatchSubject, WorkloadBudget,
+    WorkloadCapability, WorkloadContract, WorkloadEvidenceKind, WorkloadGuarantee, WorkloadLimit,
+    analyze_effect_closure, assess_provider_requirement, resolve_authority,
+    validate_administrative_proof, validate_effect_commit_profile, validate_reference_distribution,
+    validate_resource_lease,
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
@@ -1163,6 +1164,7 @@ impl ExternalPortContractDocument {
             temporal: match self.temporal.as_str() {
                 "progressive" => conduit_core::TemporalContract::Progressive,
                 "committed" => conduit_core::TemporalContract::Committed,
+                "retained-state" => conduit_core::TemporalContract::RetainedState,
                 "atemporal" => conduit_core::TemporalContract::Atemporal,
                 _ => return None,
             },
@@ -3728,6 +3730,37 @@ fn compile_topology(
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
+    let cancellation_hash = SemanticHash::from_bytes(
+        Sha256::digest(b"conduit.feedback/cancel-drop-retained|0|abort-drop|terminal-drop").into(),
+    );
+    let feedback_boundaries = topology
+        .cords
+        .iter()
+        .filter(|cord| cord.from_port.temporal == TemporalContract::RetainedState)
+        .map(|cord| {
+            let boundary_id = arena.alloc_str(&format!("feedback/{}", cord.id));
+            Ok(PlanFeedbackBoundary {
+                id: id(boundary_id)?,
+                node: instance(&cord.from_node)?,
+                cord: id(&cord.id)?,
+                kind: FeedbackBoundaryKind::State,
+                initialization: FeedbackInitialization::Empty,
+                initial_items: 0,
+                initial_bytes: 0,
+                maximum_retained_items: 1,
+                maximum_retained_bytes: u64::from(cord.max_value_bytes),
+                delay_ticks: 0,
+                clock: None,
+                replay_gap: FeedbackReplayGapPolicy::Fail,
+                cancellation: PinnedDescriptor {
+                    id: Id("conduit.feedback/cancel-drop-retained"),
+                    schema_version: 0,
+                    semantic_hash: cancellation_hash,
+                },
+                terminal: FeedbackTerminalPolicy::DropRetained,
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
     let composites = topology
         .composites
         .iter()
@@ -4067,7 +4100,7 @@ fn compile_topology(
         cords: &cords,
         value_envelopes: &[],
         clock_conversions: &[],
-        feedback_boundaries: &[],
+        feedback_boundaries: &feedback_boundaries,
         distributed_cords: &[],
         fanouts: &[],
         merges: &[],

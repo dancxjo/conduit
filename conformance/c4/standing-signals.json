@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.standing-signal-conformance",
+  "schema_version": 0,
+  "types": [
+    "conduit.media/event",
+    "conduit.media/gate",
+    "conduit.media/control",
+    "conduit.media/audio-frame",
+    "conduit.media/retained-state"
+  ],
+  "proofs": [
+    {"id":"clocked-sequence","runner":"production-executor","expected":{"path":["pulse","divider","sequencer","control"],"standing":true}},
+    {"id":"modulated-audio","runner":"production-executor","expected":{"path":["lfo","control-tee","audio-source","controlled-gain","meter"],"standing":true}},
+    {"id":"sample-and-hold","runner":"signal-reference","expected":{"before_first":64,"after_trigger":768,"retained_items":1}},
+    {"id":"feedback","runner":"hosted-scheduler","expected":{"boundary":"state-or-delay","finite":true}},
+    {"id":"continuous-io","runner":"conduit-web::standing_signal::virtual_capture_processing_playback_waits_and_stops_explicitly","expected":{"path":["capture","bounded-gain","playback"],"states":["active","waiting","active","waiting","cancelled"]}},
+    {"id":"observation","runner":"browser-exact-session","expected":{"watch_plan_identity_changed":false,"watch_deadline_changed":false}},
+    {"id":"invalid-recurrence","runner":"patchbay-and-plan-admission","expected":{"source_code":"CND-CMP-001","plan_code":"CND-FBK-002"}},
+    {"id":"provider-plurality","runner":"conduct::media_inventory::standing_signal_catalog_examples_and_provider_plurality_are_exact","expected":{"contract":"conduit.media/control/lfo","implementations":2,"semantic_contract_equal":true,"implementation_identity_distinct":true}}
+  ],
+  "fixtures": [
+    {"id":"startup-phase","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"reset-while-running","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"enable-disable","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"rate-change","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"missed-pulse","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"slow-consumer","runner":"conduit-runtime::scheduler::full_queue_wakes_blocked_producer_after_consume_and_drains"},
+    {"id":"clock-drift","runner":"conduit-media::audio::resample_flush_drift_and_discontinuity_are_explicit"},
+    {"id":"discontinuity","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"counter-wrap","runner":"conduit-media::signal::clock_start_reset_enable_rate_missed_and_discontinuity_cases_are_exact"},
+    {"id":"finite-versus-repeating-sequence","runner":"conduit-media::signal::deterministic_signal_handlers_preserve_ticks_and_bounds"},
+    {"id":"envelope-retrigger","runner":"conduit-media::signal::gate_envelope_and_sample_hold_publish_exact_retained_state"},
+    {"id":"sample-and-hold-before-first-trigger","runner":"conduit-media::signal::gate_envelope_and_sample_hold_publish_exact_retained_state"},
+    {"id":"delay-flush","runner":"conduit-media::audio::resample_flush_drift_and_discontinuity_are_explicit"},
+    {"id":"bounded-feedback-saturation","runner":"conduit-core::value_envelope_vectors::feedback_runtime_orders_initialization_replay_cancellation_and_terminal_state"},
+    {"id":"zero-delay-cycle","runner":"conduct::media_inventory::standing_signal_catalog_examples_and_provider_plurality_are_exact"},
+    {"id":"cancellation-during-retained-state","runner":"conduit-runtime::scheduler::feedback_cycle_requires_a_finite_boundary_and_reserves_retained_state"},
+    {"id":"source-loss","runner":"conduit-runtime::host_conformance_runtime::provider_loss_is_terminal_without_changing_contract_identity"},
+    {"id":"waiting-versus-deadlock","runner":"conduit-web::standing_signal::standing_modulated_audio_waits_resumes_observes_and_stops_explicitly"},
+    {"id":"watch-attached-detached","runner":"conduit-web::standing_signal::standing_modulated_audio_waits_resumes_observes_and_stops_explicitly"},
+    {"id":"provider-unsupported","runner":"conduct::media_inventory::audio_contract_only_unsupported_and_pressure_states_fail_closed"}
+  ],
+  "presentation": {
+    "port_families": ["event", "gate", "control", "audio", "retained-state"],
+    "non_color_distinctions": ["label", "shape", "rhythm"],
+    "keyboard": true,
+    "reduced_motion": true,
+    "ordered_text_equivalent": true,
+    "imperative_loop_contrast": true
+  }
+}

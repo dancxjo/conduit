@@ -1,0 +1,9 @@
+panel 0
+
+# This authored cycle stays visible to Patchbay, but no scheduler may admit it:
+# neither panel is an explicit state or delay boundary.
+node left : conduit.media/control/slew { initial = 0 maximum_delta = 64 }
+node right : conduit.media/control/slew { initial = 0 maximum_delta = 64 }
+
+cord left.control -> right.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right.control -> left.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }

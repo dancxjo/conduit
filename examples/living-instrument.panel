@@ -19,11 +19,13 @@ node fast_sequence : conduit.media/control/sequencer {
     pattern = "1024,256,768,128"
     maximum_steps = 4
     lane = 0
+    repeat = "repeat"
 }
 node slow_sequence : conduit.media/control/sequencer {
     pattern = "512,0,256,0"
     maximum_steps = 4
     lane = 1
+    repeat = "repeat"
 }
 node fast_shape : conduit.media/control/slew {
     initial = 0

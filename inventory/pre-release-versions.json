@@ -176,6 +176,7 @@
       "markers": [
         "conduit.application-socket-conformance",
         "conduit.audio-processing-conformance",
+        "conduit.standing-signal-conformance",
         "conduit.conformance/distributed-cord",
         "conduit.conformance.plan-transitions",
         "conduit.conformance.replicated-pools",

@@ -1754,6 +1754,67 @@ path.patchbay-cord {
   transition: filter 160ms ease, opacity 160ms ease, stroke-width 160ms ease;
 }
 
+/* Signal taxonomy is visible without relying on hue alone. Pressure animation
+   remains a separate cord rhythm, while these families keep distinct static
+   dash/line-cap signatures when motion is reduced. */
+.patchbay-cord.type-family-event .react-flow__edge-path {
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+}
+
+.patchbay-cord.type-family-gate .react-flow__edge-path {
+  stroke-dasharray: 3 2;
+  stroke-linecap: square;
+}
+
+.patchbay-cord.type-family-control .react-flow__edge-path {
+  stroke-dasharray: 8 3;
+}
+
+.patchbay-cord.type-family-audio .react-flow__edge-path {
+  stroke-dasharray: none;
+  stroke-linecap: round;
+}
+
+.patchbay-cord.type-family-state .react-flow__edge-path {
+  stroke-dasharray: 12 3 2 3;
+  stroke-linecap: square;
+}
+
+.faceplate-port-row.signal-family-event .jack-handle {
+  background: #fb923c !important;
+  border-radius: 0 !important;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.faceplate-port-row.signal-family-clock .jack-handle {
+  background: #60a5fa !important;
+  border-radius: 0 !important;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+}
+
+.faceplate-port-row.signal-family-gate .jack-handle {
+  background: #fb7185 !important;
+  border-radius: 1px !important;
+}
+
+.faceplate-port-row.signal-family-control .jack-handle {
+  background: #facc15 !important;
+  border-radius: 50% !important;
+}
+
+.faceplate-port-row.signal-family-audio .jack-handle {
+  background: #22d3ee !important;
+  border-radius: 999px !important;
+  width: 17px !important;
+}
+
+.faceplate-port-row.signal-family-state .jack-handle {
+  background: #e879f9 !important;
+  border-radius: 0 !important;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
 .patchbay-flow-container .react-flow__edge-textbg {
   fill: #111827;
   stroke: color-mix(in srgb, var(--cord-color) 70%, #0f172a);

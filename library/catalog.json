@@ -1076,6 +1076,119 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "conduit.media/audio/capture",
+      "public_source_spelling": "conduit.media/audio/capture",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/capture",
+      "schema_version": 0,
+      "semantic_hash": "sha256:873e197936b2b682922076d169af9fc7bad678d19b8510ee725392cda61662bf",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "device",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "sample_clock",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "sample_rate_hz",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "layout",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "frames_per_period",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "drift",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "source_loss",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "conduit.media/audio/channel-map",
       "public_source_spelling": "conduit.media/audio/channel-map",
       "classification": "reusable-domain-package",
@@ -1980,6 +2093,107 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/playback",
+      "public_source_spelling": "conduit.media/audio/playback",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/playback",
+      "schema_version": 0,
+      "semantic_hash": "sha256:c6b51b6fa2b1abf10df2ccd03f6568dd16ba11192fa7d000f49d2e2b77b86bc8",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "device",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "sample_clock",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "buffer_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "underrun",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "source_loss",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "drain",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-media-values",
         "status": "published"
       },
       "successor": null,
@@ -3036,7 +3250,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3125,7 +3339,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3235,7 +3449,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3324,7 +3538,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3428,7 +3642,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3786,7 +4000,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4345,7 +4559,7 @@
         {
           "implementation": "conduit/hosted-discard",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4427,7 +4641,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4931,7 +5145,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5548,7 +5762,7 @@
         {
           "implementation": "conduit/hosted-file-chunk-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5951,7 +6165,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6003,7 +6217,7 @@
         {
           "implementation": "conduit/hosted-stderr-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6055,7 +6269,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6107,7 +6321,7 @@
         {
           "implementation": "conduit/hosted-stdin-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6159,7 +6373,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6211,7 +6425,7 @@
         {
           "implementation": "conduit/hosted-stdout-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10019,7 +10233,7 @@
         {
           "implementation": "conduit/hosted-state-cache",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10168,7 +10382,7 @@
         {
           "implementation": "conduit/hosted-state-cell",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10458,7 +10672,7 @@
         {
           "implementation": "conduit/hosted-state-deduplicate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10746,7 +10960,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10850,7 +11064,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10948,7 +11162,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11052,7 +11266,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11177,7 +11391,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11341,7 +11555,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11400,7 +11614,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11529,7 +11743,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11588,7 +11802,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11670,7 +11884,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11768,7 +11982,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11848,7 +12062,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12446,7 +12660,7 @@
         {
           "implementation": "conduit/hosted-supervision-circuit-breaker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12817,7 +13031,7 @@
         {
           "implementation": "conduit/hosted-supervision-retry",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13389,7 +13603,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13677,7 +13891,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13793,7 +14007,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14081,7 +14295,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14152,7 +14366,7 @@
         {
           "implementation": "conduit/hosted-time-ticker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14274,7 +14488,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:78b16507002b4fa0c1a2e1fccbe3c07575ad917dce92166d74a4cff42f3ed79f"
+          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

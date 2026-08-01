@@ -5165,6 +5165,7 @@ pub struct ExactTopologyPort {
     pub direction: Direction,
     pub contract_hash: SemanticHash,
     pub value_type: TypeContractRef<'static>,
+    pub temporal: TemporalContract,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10481,6 +10482,7 @@ fn exact_topology_port(port: &PortContract<'static>) -> Result<ExactTopologyPort
             .semantic_hash()
             .map_err(|_| ResolutionError::new("CND-CMP-002", "port contract is malformed"))?,
         value_type: port.value_type,
+        temporal: port.temporal,
     })
 }
 
@@ -10678,7 +10680,11 @@ fn reject_cycles(
             if cords
                 .iter()
                 .filter(|cord| cord.to_node == node)
-                .all(|cord| completed[cord.from_node])
+                .all(|cord| {
+                    nodes[cord.from_node].definition.contract.outputs[cord.from_port].temporal
+                        == TemporalContract::RetainedState
+                        || completed[cord.from_node]
+                })
             {
                 completed[node] = true;
                 remaining -= 1;

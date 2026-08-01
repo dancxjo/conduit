@@ -56,6 +56,7 @@ fn parse_temporal(value: &str) -> TemporalContract {
         "atemporal" => TemporalContract::Atemporal,
         "progressive" => TemporalContract::Progressive,
         "committed" => TemporalContract::Committed,
+        "retained-state" => TemporalContract::RetainedState,
         value => panic!("unknown temporal contract: {value}"),
     }
 }

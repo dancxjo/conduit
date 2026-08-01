@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: "..",
   testMatch: [
     "browser/conduit-browser-host.spec.mjs",
+    "tour/standing-signals.spec.mjs",
     "tour/tour.spec.mjs",
   ],
   fullyParallel: false,

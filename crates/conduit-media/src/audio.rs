@@ -11,8 +11,9 @@ use conduit_core::{
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, Handler, HostedServiceStep, HostedServiceStepContext, Registry,
-    RegistryError, ResolutionError, RunIo, RuntimeError, Value,
+    CompiledInHostService, ExactHostedServiceBinding, Handler, HostedServiceInterest,
+    HostedServiceStep, HostedServiceStepContext, Registry, RegistryError, ResolutionError, RunIo,
+    RuntimeError, Value,
 };
 
 use crate::{AUDIO_FRAME_TYPE, CONTROL_TYPE};
@@ -749,6 +750,30 @@ const FROM_CONTROL_FIELDS: [ConfigFieldContract<'static>; 6] = [
     field("frames_per_control", U64_TYPE),
     field("maximum_work", U64_TYPE),
 ];
+const CAPTURE_FIELDS: [ConfigFieldContract<'static>; 11] = [
+    field("device", TEXT_TYPE),
+    field("sample_clock", TEXT_TYPE),
+    field("period_ticks", U64_TYPE),
+    field("sample_rate_hz", U64_TYPE),
+    field("layout", TEXT_TYPE),
+    field("frames_per_period", U64_TYPE),
+    field("lifecycle", TEXT_TYPE),
+    field("drift", TEXT_TYPE),
+    field("discontinuity", TEXT_TYPE),
+    field("source_loss", TEXT_TYPE),
+    field("maximum_work", U64_TYPE),
+];
+const PLAYBACK_FIELDS: [ConfigFieldContract<'static>; 9] = [
+    field("device", TEXT_TYPE),
+    field("sample_clock", TEXT_TYPE),
+    field("buffer_frames", U64_TYPE),
+    field("lifecycle", TEXT_TYPE),
+    field("underrun", TEXT_TYPE),
+    field("discontinuity", TEXT_TYPE),
+    field("source_loss", TEXT_TYPE),
+    field("drain", TEXT_TYPE),
+    field("maximum_work", U64_TYPE),
+];
 
 pub const AUDIO_MIX_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.media/audio/mix"),
@@ -814,8 +839,24 @@ pub const AUDIO_FROM_CONTROL_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &CONTROL_INPUT,
     outputs: &AUDIO_OUTPUT,
 };
+pub const AUDIO_CAPTURE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.media/audio/capture"),
+    config: ConfigContract {
+        fields: &CAPTURE_FIELDS,
+    },
+    inputs: &[],
+    outputs: &AUDIO_OUTPUT,
+};
+pub const AUDIO_PLAYBACK_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("conduit.media/audio/playback"),
+    config: ConfigContract {
+        fields: &PLAYBACK_FIELDS,
+    },
+    inputs: &AUDIO_INPUT,
+    outputs: &[],
+};
 
-pub const AUDIO_PROCESSING_CONTRACTS: [&NodeContract<'static>; 8] = [
+pub const AUDIO_PROCESSING_CONTRACTS: [&NodeContract<'static>; 10] = [
     &AUDIO_TEE_CONTRACT,
     &AUDIO_MIX_CONTRACT,
     &AUDIO_GAIN_CONTRACT,
@@ -824,6 +865,8 @@ pub const AUDIO_PROCESSING_CONTRACTS: [&NodeContract<'static>; 8] = [
     &AUDIO_TRIM_CONTRACT,
     &AUDIO_METER_CONTRACT,
     &AUDIO_FROM_CONTROL_CONTRACT,
+    &AUDIO_CAPTURE_CONTRACT,
+    &AUDIO_PLAYBACK_CONTRACT,
 ];
 
 fn integer(node: &Node, key: &str) -> Result<u64, ResolutionError> {
@@ -1057,6 +1100,53 @@ fn validate_from_control(node: &Node) -> Result<(), ResolutionError> {
         ));
     }
     bound(node, "frames_per_control", MAXIMUM_PCM_FRAMES as u64)?;
+    bound(node, "maximum_work", MAXIMUM_AUDIO_WORK as u64)?;
+    Ok(())
+}
+
+fn validate_capture(node: &Node) -> Result<(), ResolutionError> {
+    for (key, expected) in [
+        ("device", "virtual-loopback/capture-0"),
+        ("sample_clock", "conduit.clock/virtual-audio-48000"),
+        ("layout", "stereo-lr"),
+        ("lifecycle", "standing"),
+        ("drift", "exact"),
+        ("discontinuity", "fail-terminal"),
+        ("source_loss", "fail-terminal"),
+    ] {
+        require_text(node, key, expected)?;
+    }
+    if node.config.len() != CAPTURE_FIELDS.len() || integer(node, "sample_rate_hz")? != 48_000 {
+        return Err(ResolutionError::new(
+            "CND-AUDIO-005",
+            "the deterministic virtual capture profile is exact stereo 48 kHz",
+        ));
+    }
+    bound(node, "period_ticks", u64::MAX)?;
+    bound(node, "frames_per_period", MAXIMUM_PCM_FRAMES as u64)?;
+    bound(node, "maximum_work", MAXIMUM_AUDIO_WORK as u64)?;
+    Ok(())
+}
+
+fn validate_playback(node: &Node) -> Result<(), ResolutionError> {
+    for (key, expected) in [
+        ("device", "virtual-loopback/playback-0"),
+        ("sample_clock", "conduit.clock/virtual-audio-48000"),
+        ("lifecycle", "standing"),
+        ("underrun", "wait"),
+        ("discontinuity", "fail-terminal"),
+        ("source_loss", "fail-terminal"),
+        ("drain", "flush-bounded"),
+    ] {
+        require_text(node, key, expected)?;
+    }
+    if node.config.len() != PLAYBACK_FIELDS.len() {
+        return Err(ResolutionError::new(
+            "CND-AUDIO-002",
+            "the deterministic virtual playback profile requires one exact bounded buffer",
+        ));
+    }
+    bound(node, "buffer_frames", MAXIMUM_PCM_FRAMES as u64)?;
     bound(node, "maximum_work", MAXIMUM_AUDIO_WORK as u64)?;
     Ok(())
 }
@@ -1354,6 +1444,110 @@ impl Handler for FromControl {
     }
 }
 
+#[derive(Default)]
+struct VirtualCapture {
+    period_ticks: u64,
+    frames: usize,
+    next_frame: u64,
+    deadline_tick: Option<u64>,
+}
+
+impl Handler for VirtualCapture {
+    fn prepare(
+        &mut self,
+        node: &Node,
+        binding: ExactHostedServiceBinding,
+    ) -> Result<(), RuntimeError> {
+        self.bind_exact(binding)?;
+        self.period_ticks = runtime_integer(node, "period_ticks")?;
+        self.frames = usize::try_from(runtime_integer(node, "frames_per_period")?)
+            .map_err(|_| runtime_reason(AudioProcessingReason::Bounds))?;
+        Ok(())
+    }
+
+    fn step(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        if !inputs.is_empty() {
+            return Err(runtime_reason(AudioProcessingReason::Representation));
+        }
+        if let Some(deadline_tick) = self.deadline_tick {
+            if context.tick < deadline_tick {
+                return Ok(HostedServiceStep::waiting(HostedServiceInterest::Timer {
+                    subject: Id("conduit/media-virtual-capture"),
+                    deadline_tick,
+                }));
+            }
+            self.deadline_tick = None;
+        }
+        require_work_bound(node, self.frames.saturating_mul(2))?;
+        let mut samples = Vec::with_capacity(self.frames * 2);
+        for frame in 0..self.frames {
+            let sample = if (self.next_frame + frame as u64) % 2 == 0 {
+                8_000
+            } else {
+                -8_000
+            };
+            samples.extend_from_slice(&[sample, sample]);
+        }
+        let chunk = PcmChunk::new(
+            self.next_frame,
+            48_000,
+            ChannelLayout::StereoLr,
+            false,
+            samples,
+        )
+        .map_err(runtime_reason)?;
+        self.next_frame = self
+            .next_frame
+            .checked_add(self.frames as u64)
+            .ok_or_else(|| runtime_reason(AudioProcessingReason::Timestamp))?;
+        self.deadline_tick = Some(
+            context
+                .tick
+                .checked_add(self.period_ticks)
+                .ok_or_else(|| runtime_reason(AudioProcessingReason::Timestamp))?,
+        );
+        Ok(HostedServiceStep::produced(vec![pcm_value(&chunk)?]))
+    }
+}
+
+#[derive(Default)]
+struct VirtualPlayback {
+    next_frame: u64,
+}
+
+impl Handler for VirtualPlayback {
+    fn step(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        let [input] = inputs else {
+            return Err(runtime_reason(AudioProcessingReason::MissingOrLateInput));
+        };
+        let chunk = decode_pcm_chunk(input).map_err(runtime_reason)?;
+        if chunk.discontinuity || chunk.start_frame != self.next_frame {
+            return Err(runtime_reason(AudioProcessingReason::Discontinuity));
+        }
+        if chunk.frames() as u64 > runtime_integer(node, "buffer_frames")? {
+            return Err(runtime_reason(AudioProcessingReason::Bounds));
+        }
+        require_work_bound(node, chunk.samples.len())?;
+        self.next_frame = self
+            .next_frame
+            .checked_add(chunk.frames() as u64)
+            .ok_or_else(|| runtime_reason(AudioProcessingReason::Timestamp))?;
+        Ok(HostedServiceStep::produced(Vec::new()))
+    }
+}
+
 fn mix() -> Box<dyn Handler> {
     Box::new(Mix)
 }
@@ -1377,6 +1571,12 @@ fn meter() -> Box<dyn Handler> {
 }
 fn from_control() -> Box<dyn Handler> {
     Box::new(FromControl)
+}
+fn virtual_capture() -> Box<dyn Handler> {
+    Box::new(VirtualCapture::default())
+}
+fn virtual_playback() -> Box<dyn Handler> {
+    Box::new(VirtualPlayback::default())
 }
 
 pub fn register_audio_processing_contracts(registry: &mut Registry) {
@@ -1454,6 +1654,22 @@ pub fn register_deterministic_audio_processing_providers(
             "media-audio-from-control-reference",
             from_control as conduit_runtime::HandlerFactory,
             validate_from_control as conduit_runtime::ConfigValidator,
+        ),
+        (
+            &AUDIO_CAPTURE_CONTRACT,
+            "conduit.media/audio-capture-virtual-loopback",
+            "conduit.media/audio-capture-virtual-loopback-artifact",
+            "media-audio-capture-virtual-loopback",
+            virtual_capture as conduit_runtime::HandlerFactory,
+            validate_capture as conduit_runtime::ConfigValidator,
+        ),
+        (
+            &AUDIO_PLAYBACK_CONTRACT,
+            "conduit.media/audio-playback-virtual-loopback",
+            "conduit.media/audio-playback-virtual-loopback-artifact",
+            "media-audio-playback-virtual-loopback",
+            virtual_playback as conduit_runtime::HandlerFactory,
+            validate_playback as conduit_runtime::ConfigValidator,
         ),
     ] {
         registry.register_compiled_in_host_service(CompiledInHostService {

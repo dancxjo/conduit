@@ -102,11 +102,25 @@ function typePresentation(valueType) {
     return { color: "#94a3b8", family: "unknown" };
   }
   const normalized = valueType.toLowerCase();
+  if (normalized.includes("retained-state") || normalized.includes("retained_state")) {
+    return { color: "#e879f9", family: "state" };
+  }
+  if (normalized.includes("/event") || normalized.endsWith("event")) {
+    return { color: "#fb923c", family: "event" };
+  }
+  if (normalized.includes("/gate") || normalized.endsWith("gate")) {
+    return { color: "#fb7185", family: "gate" };
+  }
+  if (normalized.includes("/control") || normalized.endsWith("control")) {
+    return { color: "#facc15", family: "control" };
+  }
+  if (normalized.includes("audio")) {
+    return { color: "#22d3ee", family: "audio" };
+  }
   if (normalized.includes("text") || normalized.includes("utf")) {
     return { color: "#34d399", family: "text" };
   }
-  if (normalized.includes("bytes") || normalized.includes("binary") ||
-      normalized.includes("audio")) {
+  if (normalized.includes("bytes") || normalized.includes("binary")) {
     return { color: "#22d3ee", family: "bytes" };
   }
   if (normalized.includes("json") || normalized.includes("record") ||

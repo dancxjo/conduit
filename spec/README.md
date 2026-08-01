@@ -280,6 +280,10 @@ containment program is tracked by
 - [`075-bounded-audio-processing.md`](075-bounded-audio-processing.md) defines
   exact bounded PCM mix, gain/ramp, named channel matrices, resample,
   trim/fade, meter side output, and their standing clock/control composition.
+- [`076-standing-clocked-signals.md`](076-standing-clocked-signals.md) defines
+  distinct event, gate, control, audio, and retained-state ports; clocked
+  modulation, sequencing, mixing, feedback, Waiting, observation, and exact
+  lifecycle semantics for standing patches.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.
