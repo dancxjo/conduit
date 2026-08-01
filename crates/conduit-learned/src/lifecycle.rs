@@ -536,25 +536,42 @@ fn invalid(code: &'static str, message: &'static str) -> ResolutionError {
 }
 
 fn validate_dataset(node: &Node) -> Result<(), ResolutionError> {
-    (node.config.len() == DATASET_FIELDS.len()
-        && node.config("fixture") == Some("tiny-supervised-v1")
-        && node.config("snapshot_identity") == Some(DATASET_SNAPSHOT_IDENTITY)
-        && node.config("revision_identity") == Some(DATASET_REVISION_IDENTITY)
-        && node.config("feature_schema_identity") == Some(FEATURE_SCHEMA_IDENTITY)
-        && node.config("label_schema_identity") == Some(LABEL_SCHEMA_IDENTITY)
-        && node.config("provenance_identity") == Some(DATASET_PROVENANCE_IDENTITY)
-        && node.config("sensitivity") == Some("public")
-        && node.config("access_scope") == Some("conduit.scope/learned-fixture")
-        && node.config("split") == Some("train")
-        && exact_u64(node, "maximum_records") == Some(4)
-        && exact_u64(node, "maximum_bytes") == Some(128))
-    .then_some(())
-    .ok_or_else(|| {
-        invalid(
-            "CND-LEARN-010",
-            "dataset literal requires the exact bounded snapshot",
-        )
-    })
+    if node.config.len() != DATASET_FIELDS.len()
+        || node.config("fixture") != Some("tiny-supervised-v1")
+        || node.config("snapshot_identity") != Some(DATASET_SNAPSHOT_IDENTITY)
+        || node.config("revision_identity") != Some(DATASET_REVISION_IDENTITY)
+        || node.config("provenance_identity") != Some(DATASET_PROVENANCE_IDENTITY)
+        || node.config("access_scope") != Some("conduit.scope/learned-fixture")
+        || node.config("split") != Some("train")
+    {
+        return Err(invalid(
+            LifecycleReason::DatasetRevisionMismatch.code(),
+            "dataset literal requires the exact snapshot and revision",
+        ));
+    }
+    if node.config("feature_schema_identity") != Some(FEATURE_SCHEMA_IDENTITY)
+        || node.config("label_schema_identity") != Some(LABEL_SCHEMA_IDENTITY)
+    {
+        return Err(invalid(
+            LifecycleReason::SchemaMismatch.code(),
+            "dataset feature and label schemas must match exactly",
+        ));
+    }
+    if node.config("sensitivity") != Some("public") {
+        return Err(invalid(
+            LifecycleReason::SensitivityDenied.code(),
+            "dataset sensitivity is not admitted by this provider",
+        ));
+    }
+    if exact_u64(node, "maximum_records") != Some(4)
+        || exact_u64(node, "maximum_bytes") != Some(128)
+    {
+        return Err(invalid(
+            LifecycleReason::ResourceExhaustion.code(),
+            "dataset bounds must match the finite provider profile",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_train(node: &Node) -> Result<(), ResolutionError> {
