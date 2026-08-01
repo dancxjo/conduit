@@ -300,6 +300,12 @@ test("keeps one public latest-value ticker Watch live in the production executor
     const accounting = await page.locator("#watch-accounting").evaluate((element) =>
       JSON.parse(element.textContent)
     );
+    return accounting.attached ?? null;
+  }, { timeout: 20_000 }).toBe(false);
+  await expect.poll(async () => {
+    const accounting = await page.locator("#watch-accounting").evaluate((element) =>
+      JSON.parse(element.textContent)
+    );
     return accounting.evidence_store.next_cursor;
   }, { timeout: 20_000 }).toBeGreaterThan(later.evidence_store.next_cursor);
   const detached = await page.locator("#watch-accounting").evaluate((element) =>

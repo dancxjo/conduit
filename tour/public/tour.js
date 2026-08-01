@@ -201,6 +201,7 @@ const layoutKey = (id) => `conduit-tour-layout/${id}`;
 const MIN_I32 = -2_147_483_648;
 const MAX_I32 = 2_147_483_647;
 const MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION = 32;
+const LIVE_WATCH_PRESENTATION_INTERVAL_MS = 750;
 
 function clearLiveWakeTimer() {
   if (liveWakeTimer !== null) {
@@ -941,6 +942,20 @@ function renderRustProjection(projection) {
   document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
 }
 
+function renderLiveRunProjection(projection) {
+  if (!projection?.source || !projection.run || !Array.isArray(projection.evidence) ||
+      !patchbayView || projection.source.semantic_hash !== patchbayView.source.semantic_hash) {
+    throw new Error("CND-PBY-009: live run projection does not match the editor source");
+  }
+  patchbayView = {
+    ...patchbayView,
+    run: projection.run,
+    evidence: projection.evidence,
+  };
+  evidence.splice(0, evidence.length, ...projection.evidence);
+  document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
+}
+
 async function stopExactSession(cause, message) {
   runEpoch += 1;
   clearLiveWakeTimer();
@@ -1297,7 +1312,10 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
         throw new Error(pumped.value?.diagnostic || pumped.code || "ticker pump failed");
       }
       if (epoch !== runEpoch || activeAdapter !== adapter) return;
-      renderRustProjection(pumped.value.view);
+      // The exact topology is immutable for this epoch. Rebuilding React Flow
+      // for every value would spend the observation budget on static work and
+      // can starve Stop/Watch input on slower browser hosts.
+      renderLiveRunProjection(pumped.value.view);
       renderExactResultTimeline(pumped.value);
       const control = activeWatchControl?.watchId === watchId
         ? activeWatchControl
@@ -1350,7 +1368,7 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
         consoleBadge.className = "badge status-badge failed";
       }
     }
-  }, 350);
+  }, LIVE_WATCH_PRESENTATION_INTERVAL_MS);
 }
 
 async function run() {
