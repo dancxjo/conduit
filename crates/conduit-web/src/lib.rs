@@ -38,7 +38,6 @@ const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
 const MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES: u32 = 256;
 const MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS: u32 = 128;
 const MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS: usize = 256;
-const MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES: u64 = 1024 * 1024;
 const MAXIMUM_PATCHBAY_PROJECTED_EVIDENCE_EVENTS: usize = 32;
 const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
@@ -90,11 +89,18 @@ struct BrowserEvidenceStore {
     high_water_events: usize,
     high_water_bytes: u64,
     dropped_events: u64,
+    maximum_bytes: u64,
 }
 
 impl BrowserEvidenceStore {
-    const fn new() -> Self {
-        Self {
+    fn new(maximum_bytes: u64) -> Result<Self, RuntimeError> {
+        if maximum_bytes == 0 {
+            return Err(RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence provider requires a positive plan evidence-byte budget",
+            ));
+        }
+        Ok(Self {
             records: VecDeque::new(),
             earliest_cursor: 0,
             next_cursor: 0,
@@ -102,7 +108,8 @@ impl BrowserEvidenceStore {
             high_water_events: 0,
             high_water_bytes: 0,
             dropped_events: 0,
-        }
+            maximum_bytes,
+        })
     }
 
     fn commit_through(&mut self, cursor: u64) -> Result<(), RuntimeError> {
@@ -167,7 +174,7 @@ impl BrowserEvidenceStore {
             "high_water_bytes": self.high_water_bytes,
             "dropped_events": self.dropped_events,
             "maximum_events": MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS,
-            "maximum_bytes": MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES,
+            "maximum_bytes": self.maximum_bytes,
         })
     }
 }
@@ -197,7 +204,7 @@ impl ExactEvidenceSink for BrowserEvidenceStore {
                     .len(),
             )
             .expect("usize fits u64");
-            if bytes > MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES {
+            if bytes > self.maximum_bytes {
                 return Err(RuntimeError::new(
                     "CND-PBY-009",
                     "one exact evidence record exceeds the browser provider byte bound",
@@ -209,7 +216,7 @@ impl ExactEvidenceSink for BrowserEvidenceStore {
                 .checked_add(bytes)
                 .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence byte overflow"))?;
             while self.records.len() > MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS
-                || self.retained_bytes > MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES
+                || self.retained_bytes > self.maximum_bytes
             {
                 let (evicted, evicted_bytes) = self
                     .records
@@ -1109,6 +1116,7 @@ fn start_browser_exact_run(
     let grant_observations = installed.grant_observations(&plan)?;
     let use_observations = hosted_service_use_observations(&grant_observations);
     let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    let evidence_bytes = plan.budget.evidence_bytes;
     let node_count = plan.nodes.len();
     let cord_count = plan.cords.len();
     let run_id = format!("conduit/browser-run/{session_id}/{source_revision}");
@@ -1152,7 +1160,7 @@ fn start_browser_exact_run(
         session: Some(session),
         use_observations,
         watch_admissions,
-        evidence: BrowserEvidenceStore::new(),
+        evidence: BrowserEvidenceStore::new(evidence_bytes)?,
         terminal: None,
     };
     drain_browser_exact_evidence(&mut run)?;
@@ -4569,7 +4577,7 @@ cord clock.tick -> drain.item {
         assert_eq!(cancelled["state"], "cancelled");
         assert_eq!(cancelled["run_id"], run_id);
         assert_eq!(cancelled["evidence_store"]["maximum_events"], 256);
-        assert_eq!(cancelled["evidence_store"]["maximum_bytes"], 1024 * 1024);
+        assert_eq!(cancelled["evidence_store"]["maximum_bytes"], 262_144);
         assert!(
             cancelled["evidence_store"]["retained_events"]
                 .as_u64()
@@ -4579,7 +4587,7 @@ cord clock.tick -> drain.item {
         assert!(
             cancelled["evidence_store"]["retained_bytes"]
                 .as_u64()
-                .is_some_and(|bytes| bytes <= 1024 * 1024),
+                .is_some_and(|bytes| bytes <= 262_144),
             "{cancelled}"
         );
         assert!(

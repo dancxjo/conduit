@@ -189,10 +189,11 @@ the already started session and returns its own terminal cleanup evidence.
 The browser host drains scheduler observations synchronously into its own
 bounded committed evidence provider before returning each Start, pump, wake,
 or Stop result. Only that provider can release scheduler slots. Its rolling
-window retains at most 256 exact records and 1 MiB; eviction advances the
-earliest available cursor without changing later sequence identities. The
-terminal record is committed before the exact session is finalized and stays
-queryable from that retained window.
+window retains at most 256 exact records and never exceeds the exact plan's
+`budget.evidence_bytes` claim; eviction advances the earliest available cursor
+without changing later sequence identities. The terminal record is committed
+before the exact session is finalized and stays queryable from that retained
+window.
 
 `patchbay-read-exact-evidence` reads one caller-selected bounded delta from
 that worker-owned provider. Its result names `available`, `gap`, or `future`
