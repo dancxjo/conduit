@@ -2477,7 +2477,7 @@ fn every_persistent_exact_run_fixture_is_owned_by_the_session_boundary() {
         .iter()
         .map(|case| case["id"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(ids.len(), 16);
+    assert_eq!(ids.len(), 18);
     for id in [
         "live-waiting-repeated-pump",
         "timer-wake-resumes-session",
@@ -2485,6 +2485,8 @@ fn every_persistent_exact_run_fixture_is_owned_by_the_session_boundary() {
         "wrong-wake-does-not-resume",
         "drain-cancels-active-session",
         "abort-cancels-active-session",
+        "abort-waits-for-exact-provider-cleanup",
+        "provider-cleanup-deadline-fails-same-epoch",
         "finalize-before-terminal-rejected",
         "source-edit-cannot-mutate-active-epoch",
     ] {

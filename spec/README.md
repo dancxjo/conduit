@@ -98,8 +98,8 @@ containment program is tracked by
   bounded scheduler evidence, and pool-population reconciliation.
 - [`072-persistent-exact-run-session.md`](072-persistent-exact-run-session.md)
   freezes explicit Start, owned exact runtime snapshots, bounded cooperative
-  pumping, Waiting/Quiescing/Terminal distinction, exact wakes/cancellation,
-  and terminal-only release.
+  pumping, Waiting/Quiescing/Aborting/Terminal distinction, exact wakes,
+  bounded provider cleanup, and terminal-only release.
 - [`024-structural-flow.md`](024-structural-flow.md) freezes explicit
   coupled/isolated fan-out, deterministic merge policies, bounded structural
   nodes and adapters, current plan identity, and the in-plan fallback boundary.

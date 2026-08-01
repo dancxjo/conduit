@@ -1476,6 +1476,8 @@ pub enum RunState {
     Waiting,
     /// The session is draining work admitted before its stop boundary.
     Quiescing,
+    /// The session is aborting and bounded provider cleanup is still pending.
+    Aborting,
     Terminal,
 }
 

@@ -13,7 +13,7 @@ use std::time::UNIX_EPOCH;
 use conduit_core::{Id, SemanticHash, StopPolicy};
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, Handler, HostedServiceInterest, HostedServiceStep,
+    CompiledInHostService, Handler, HostedServiceCleanup, HostedServiceInterest, HostedServiceStep,
     HostedServiceStepContext, Registry, RegistryError, ResolutionError, RunIo, RuntimeError, Value,
     file_read_contract, file_watch_contract, file_write_contract,
 };
@@ -946,10 +946,14 @@ impl Handler for WatchHandler {
         Ok(())
     }
 
-    fn cleanup(&mut self, _node: &Node) -> Result<(), RuntimeError> {
+    fn cleanup(
+        &mut self,
+        _node: &Node,
+        _context: HostedServiceStepContext,
+    ) -> Result<HostedServiceCleanup, RuntimeError> {
         self.state = None;
         self.filesystem = None;
-        Ok(())
+        Ok(HostedServiceCleanup::Complete)
     }
 }
 
@@ -1315,7 +1319,12 @@ mod tests {
             handler.step(watcher, &[], HostedServiceStepContext { tick: 12 }, &mut io),
             Err(error) if error.code == LinuxFilesystemError::Cancelled.code()
         ));
-        handler.cleanup(watcher).unwrap();
+        assert_eq!(
+            handler
+                .cleanup(watcher, HostedServiceStepContext { tick: 12 })
+                .unwrap(),
+            HostedServiceCleanup::Complete
+        );
     }
 
     struct WatchSink;

@@ -9,6 +9,8 @@
     {"id":"wrong-wake-does-not-resume","runner":"deterministic-session","expected":{"before":"waiting","after":"waiting"}},
     {"id":"drain-cancels-active-session","runner":"deterministic-session","expected":{"state":"quiescing","terminal":"cancelled"}},
     {"id":"abort-cancels-active-session","runner":"deterministic-session","expected":{"terminal":"cancelled","discarded":"evidenced"}},
+    {"id":"abort-waits-for-exact-provider-cleanup","runner":"hosted-session","expected":{"state":"aborting","wake":"host-operation","terminal":"cancelled","identity":"pinned"}},
+    {"id":"provider-cleanup-deadline-fails-same-epoch","runner":"hosted-session","expected":{"state":"aborting","error":"CND-RUN-013","terminal":"failed","identity":"pinned"}},
     {"id":"cancellation-deadline-fails-closed","runner":"deterministic-session","expected":{"error":"CND-SCH-012"}},
     {"id":"session-capacity-exhaustion","runner":"deterministic-session","expected":{"error":"CND-SCH-005"}},
     {"id":"plan-source-identity-mismatch","runner":"hosted-session","expected":{"error":"CND-RUN-009"}},

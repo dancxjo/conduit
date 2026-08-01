@@ -32,6 +32,9 @@ pub enum ExactRunState {
     Waiting,
     /// Drain cancellation was requested and retained work is being settled.
     Quiescing,
+    /// Abort cancellation was requested and bounded provider cleanup is still
+    /// settling. This is not terminal until the cleanup disposition is known.
+    Aborting,
     /// The exact run reached one terminal class.
     Terminal(TerminalClass),
 }
@@ -512,12 +515,12 @@ fn state_for(status: SchedulerStatus, stop: Option<StopPolicy>) -> ExactRunState
     match status {
         SchedulerStatus::Running => match stop {
             Some(StopPolicy::Drain) => ExactRunState::Quiescing,
-            Some(StopPolicy::Abort) => ExactRunState::Terminal(TerminalClass::Cancelled),
+            Some(StopPolicy::Abort) => ExactRunState::Aborting,
             None => ExactRunState::Active,
         },
         SchedulerStatus::Stalled => match stop {
             Some(StopPolicy::Drain) => ExactRunState::Quiescing,
-            Some(StopPolicy::Abort) => ExactRunState::Terminal(TerminalClass::Cancelled),
+            Some(StopPolicy::Abort) => ExactRunState::Aborting,
             None => ExactRunState::Waiting,
         },
         SchedulerStatus::Succeeded => ExactRunState::Terminal(TerminalClass::Succeeded),

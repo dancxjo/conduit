@@ -169,7 +169,8 @@ State: **runnable** on the hosted exact-plan executor. `time/ticker`,
 resolution. Durations are finite, clock discontinuities fail closed, and each
 node owns at most one timer and one retained value.
 
-- ticker is an open-ended `u64` source: it emits the next count, then waits
+- ticker is an open-ended public `std/text` source: it emits the next decimal
+  count with a newline, then waits
   for its one exact timer before the same run may emit again;
 - delay chooses terminal `drain` or `drop`;
 - timeout is an inactivity boundary reset by each value;

@@ -1560,6 +1560,39 @@ pub enum HostedServiceStep {
     },
 }
 
+/// Outcome of one bounded hosted-provider cleanup step.
+///
+/// Cleanup uses the same exact timer and named host-operation interests as
+/// ordinary provider work. `Waiting` therefore yields control to the host and
+/// remains subject to the plan-pinned cancellation deadline; it never blocks
+/// the scheduler thread or hides a cleanup task.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum HostedServiceCleanup {
+    Complete,
+    Waiting {
+        interests: Vec<HostedServiceInterest>,
+    },
+}
+
+impl HostedServiceCleanup {
+    #[must_use]
+    pub const fn complete() -> Self {
+        Self::Complete
+    }
+
+    #[must_use]
+    pub fn waiting(interest: HostedServiceInterest) -> Self {
+        Self::Waiting {
+            interests: vec![interest],
+        }
+    }
+
+    #[must_use]
+    pub fn waiting_for(interests: Vec<HostedServiceInterest>) -> Self {
+        Self::Waiting { interests }
+    }
+}
+
 impl HostedServiceStep {
     #[must_use]
     pub fn completed(outputs: Vec<Value>) -> Self {
@@ -2080,8 +2113,12 @@ pub trait Handler {
 
     /// Releases provider-owned finite resources after cancellation or natural
     /// completion.
-    fn cleanup(&mut self, _node: &Node) -> Result<(), RuntimeError> {
-        Ok(())
+    fn cleanup(
+        &mut self,
+        _node: &Node,
+        _context: HostedServiceStepContext,
+    ) -> Result<HostedServiceCleanup, RuntimeError> {
+        Ok(HostedServiceCleanup::Complete)
     }
 
     /// Finite convenience implementation used by the default `step` adapter.
@@ -6206,6 +6243,7 @@ impl ResolvedPanel<'_> {
                         output_routes,
                         pending_outputs: Vec::new(),
                         completion_pending: false,
+                        cleanup: None,
                         completed: false,
                     }
                 }
@@ -6275,6 +6313,7 @@ impl ResolvedPanel<'_> {
                     in_cords,
                     out_cords,
                     maximum_input_bytes,
+                    cancellation_ticks: profile.limits.cancellation_ticks,
                     host_failure: Rc::clone(&host_failure),
                 },
                 machine,
@@ -6809,6 +6848,14 @@ enum StateCacheRequest<'a> {
     Reset,
 }
 
+struct HostedServiceCleanupState {
+    deadline_tick: u64,
+    /// Cleanup may be polled once by the synchronous Abort request before a
+    /// `StepIo` exists. Any returned interests are installed by the next
+    /// bounded scheduler step and then cleared.
+    initial_interests: Option<Vec<HostedServiceInterest>>,
+}
+
 fn parse_state_cache_request(bytes: &[u8]) -> Result<StateCacheRequest<'_>, RuntimeError> {
     if bytes == b"reset" {
         return Ok(StateCacheRequest::Reset);
@@ -7034,6 +7081,7 @@ enum HostedNodeKind {
         output_routes: Vec<(TypeContractRef<'static>, Vec<usize>)>,
         pending_outputs: Vec<HostedServiceOutput>,
         completion_pending: bool,
+        cleanup: Option<HostedServiceCleanupState>,
         completed: bool,
     },
 }
@@ -7200,7 +7248,130 @@ struct HostedSchedulerDriver<'r, 'i> {
     in_cords: Vec<usize>,
     out_cords: Vec<usize>,
     maximum_input_bytes: u32,
+    cancellation_ticks: u64,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
+}
+
+fn begin_hosted_service_cleanup(
+    cleanup: &mut Option<HostedServiceCleanupState>,
+    tick: u64,
+    cancellation_ticks: u64,
+    initial_interests: Option<Vec<HostedServiceInterest>>,
+) -> Result<(), RuntimeError> {
+    if cleanup.is_some() {
+        return Ok(());
+    }
+    let deadline_tick = tick.checked_add(cancellation_ticks).ok_or_else(|| {
+        RuntimeError::new("CND-RUN-013", "hosted provider cleanup deadline overflowed")
+    })?;
+    *cleanup = Some(HostedServiceCleanupState {
+        deadline_tick,
+        initial_interests,
+    });
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn drive_hosted_service_cleanup(
+    handler: &mut dyn Handler,
+    node: &Node,
+    cleanup: &mut Option<HostedServiceCleanupState>,
+    completed: &mut bool,
+    cancellation_ticks: u64,
+    io: &mut StepIo<'_>,
+    host_failure: &Rc<RefCell<Option<RuntimeError>>>,
+) -> SchedulerStep {
+    if let Err(error) = begin_hosted_service_cleanup(cleanup, io.tick(), cancellation_ticks, None) {
+        *host_failure.borrow_mut() = Some(error);
+        return SchedulerStep::Failed {
+            code: Id("conduit/host-service-cleanup-timeout"),
+        };
+    }
+    let state = cleanup
+        .as_mut()
+        .expect("hosted cleanup state was initialized");
+    if io.tick() > state.deadline_tick {
+        *host_failure.borrow_mut() = Some(RuntimeError::new(
+            "CND-RUN-013",
+            format!(
+                "hosted provider `{}` exceeded its exact cleanup deadline",
+                node.id
+            ),
+        ));
+        return SchedulerStep::Failed {
+            code: Id("conduit/host-service-cleanup-timeout"),
+        };
+    }
+    let outcome = if let Some(interests) = state.initial_interests.take() {
+        Ok(HostedServiceCleanup::Waiting { interests })
+    } else {
+        handler.cleanup(node, HostedServiceStepContext { tick: io.tick() })
+    };
+    match outcome {
+        Ok(HostedServiceCleanup::Complete) => {
+            *completed = true;
+            *cleanup = None;
+            SchedulerStep::Completed
+        }
+        Ok(HostedServiceCleanup::Waiting { interests }) => {
+            if interests.is_empty() {
+                *host_failure.borrow_mut() = Some(RuntimeError::new(
+                    "CND-RUN-013",
+                    format!(
+                        "hosted provider `{}` returned cleanup Waiting without an exact interest",
+                        node.id
+                    ),
+                ));
+                return SchedulerStep::Failed {
+                    code: Id("conduit/host-service-cleanup-invalid"),
+                };
+            }
+            for interest in interests {
+                let wait = match interest {
+                    HostedServiceInterest::Timer {
+                        subject,
+                        deadline_tick,
+                    } if deadline_tick <= state.deadline_tick => {
+                        io.wait_for_timer(subject, deadline_tick)
+                    }
+                    HostedServiceInterest::Timer { .. } => {
+                        *host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "CND-RUN-013",
+                            format!(
+                                "hosted provider `{}` requested cleanup after its exact deadline",
+                                node.id
+                            ),
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/host-service-cleanup-timeout"),
+                        };
+                    }
+                    HostedServiceInterest::HostOperation { subject } => {
+                        io.wait_for_host_operation(subject)
+                    }
+                };
+                if let Err(error) = wait {
+                    *host_failure.borrow_mut() = Some(RuntimeError::new(
+                        "CND-RUN-013",
+                        format!(
+                            "hosted provider `{}` registered an invalid cleanup wake: {error}",
+                            node.id
+                        ),
+                    ));
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/host-service-cleanup-invalid"),
+                    };
+                }
+            }
+            SchedulerStep::Pending
+        }
+        Err(error) => {
+            *host_failure.borrow_mut() = Some(error);
+            SchedulerStep::Failed {
+                code: Id("conduit/host-service-cleanup-failed"),
+            }
+        }
+    }
 }
 
 impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
@@ -7229,18 +7400,81 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
         Ok(conduit_core::LifecycleUsage::default())
     }
 
-    fn cancel(&mut self, stop: conduit_core::StopPolicy) {
-        if let HostedNodeKind::HostedService { handler, node, .. } = &mut self.kind {
+    fn cancel(&mut self, stop: conduit_core::StopPolicy, tick: u64) {
+        if let HostedNodeKind::HostedService {
+            handler,
+            node,
+            inputs,
+            pending_outputs,
+            completion_pending,
+            cleanup,
+            completed,
+            ..
+        } = &mut self.kind
+        {
             if let Err(error) = handler.cancel(node, stop) {
                 *self.host_failure.borrow_mut() = Some(error);
                 return;
             }
-            if stop == conduit_core::StopPolicy::Abort
-                && let Err(error) = handler.cleanup(node)
-            {
-                *self.host_failure.borrow_mut() = Some(error);
+            if stop == conduit_core::StopPolicy::Abort {
+                inputs.clear();
+                pending_outputs.clear();
+                *completion_pending = false;
+                match handler.cleanup(node, HostedServiceStepContext { tick }) {
+                    Ok(HostedServiceCleanup::Complete) => {
+                        *completed = true;
+                        *cleanup = None;
+                    }
+                    Ok(HostedServiceCleanup::Waiting { interests }) => {
+                        if let Err(error) = begin_hosted_service_cleanup(
+                            cleanup,
+                            tick,
+                            self.cancellation_ticks,
+                            Some(interests),
+                        ) {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            *completed = true;
+                        }
+                    }
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(error);
+                        *completed = true;
+                    }
+                }
             }
         }
+    }
+
+    fn cancellation_pending(&self) -> bool {
+        matches!(
+            self.kind,
+            HostedNodeKind::HostedService {
+                cleanup: Some(_),
+                completed: false,
+                ..
+            }
+        )
+    }
+
+    fn validate_deadlines(&mut self, tick: u64) -> Result<(), Id<'static>> {
+        if let HostedNodeKind::HostedService {
+            node,
+            cleanup: Some(cleanup),
+            completed: false,
+            ..
+        } = &self.kind
+            && tick > cleanup.deadline_tick
+        {
+            *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                "CND-RUN-013",
+                format!(
+                    "hosted provider `{}` exceeded its exact cleanup deadline",
+                    node.id
+                ),
+            ));
+            return Err(Id("conduit/host-service-cleanup-timeout"));
+        }
+        Ok(())
     }
 
     fn validate_wake(
@@ -7890,11 +8124,23 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 output_routes,
                 pending_outputs,
                 completion_pending,
+                cleanup,
                 completed,
                 ..
             } => {
                 if *completed {
                     return SchedulerStep::Completed;
+                }
+                if cleanup.is_some() {
+                    return drive_hosted_service_cleanup(
+                        handler.as_mut(),
+                        node,
+                        cleanup,
+                        completed,
+                        self.cancellation_ticks,
+                        io,
+                        &self.host_failure,
+                    );
                 }
                 if !pending_outputs.is_empty() {
                     let mut progressed = false;
@@ -7927,14 +8173,15 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     {
                         pending_outputs.clear();
                         if *completion_pending {
-                            if let Err(error) = handler.cleanup(node) {
-                                *self.host_failure.borrow_mut() = Some(error);
-                                return SchedulerStep::Failed {
-                                    code: Id("conduit/host-service-cleanup-failed"),
-                                };
-                            }
-                            *completed = true;
-                            return SchedulerStep::Completed;
+                            return drive_hosted_service_cleanup(
+                                handler.as_mut(),
+                                node,
+                                cleanup,
+                                completed,
+                                self.cancellation_ticks,
+                                io,
+                                &self.host_failure,
+                            );
                         }
                         return SchedulerStep::Progress;
                     }
@@ -8104,14 +8351,15 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 *completion_pending = terminal;
                 if pending_outputs.is_empty() {
                     if terminal {
-                        if let Err(error) = handler.cleanup(node) {
-                            *self.host_failure.borrow_mut() = Some(error);
-                            return SchedulerStep::Failed {
-                                code: Id("conduit/host-service-cleanup-failed"),
-                            };
-                        }
-                        *completed = true;
-                        SchedulerStep::Completed
+                        drive_hosted_service_cleanup(
+                            handler.as_mut(),
+                            node,
+                            cleanup,
+                            completed,
+                            self.cancellation_ticks,
+                            io,
+                            &self.host_failure,
+                        )
                     } else {
                         SchedulerStep::Progress
                     }
@@ -8138,14 +8386,15 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                             {
                                 pending_outputs.clear();
                                 if *completion_pending {
-                                    if let Err(error) = handler.cleanup(node) {
-                                        *self.host_failure.borrow_mut() = Some(error);
-                                        return SchedulerStep::Failed {
-                                            code: Id("conduit/host-service-cleanup-failed"),
-                                        };
-                                    }
-                                    *completed = true;
-                                    SchedulerStep::Completed
+                                    drive_hosted_service_cleanup(
+                                        handler.as_mut(),
+                                        node,
+                                        cleanup,
+                                        completed,
+                                        self.cancellation_ticks,
+                                        io,
+                                        &self.host_failure,
+                                    )
                                 } else {
                                     SchedulerStep::Progress
                                 }

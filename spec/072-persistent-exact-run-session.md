@@ -46,6 +46,8 @@ The externally visible states are:
 - **Waiting**: the run is alive with no ready work. It awaits an exact input,
   output, timer, host operation, or cancellation wake; it is not a failure.
 - **Quiescing**: Drain was requested and admitted work is settling.
+- **Aborting**: Abort was requested and bounded provider cleanup is waiting on
+  an exact timer or host-operation disposition.
 - **Terminal**: succeeded, cancelled, failed, or disconnected.
 
 `advance_to` advances only the active session's exact clock. A host operation
@@ -53,6 +55,14 @@ wake names the exact previously retained interest. Wrong or unretained wake
 subjects make no work ready. `cancel(Drain)` and `cancel(Abort)` use the same
 session's scheduler cancellation state machine; process or worker death is
 not a cancellation request.
+
+Provider cleanup is a bounded nonblocking scheduler step. It may complete
+immediately or retain exact timer/host-operation interests, but it cannot
+spawn an unowned task or block the scheduler thread. A pending Abort remains
+Aborting until cleanup completes. Advancing beyond the implementation
+profile's `cancellation_ticks` fails the same epoch with `CND-RUN-013`; it must
+not manufacture terminal cancellation for cleanup whose disposition is still
+unknown.
 
 `finalize` is allowed only after Terminal and releases all session-owned
 runtime storage and its registry reservation. A failed Start releases its
@@ -88,7 +98,8 @@ after the caller's planning allocation has been released.
 ## Headless conformance
 
 The scheduler fixture suite proves finite completion, waiting across 100 pump
-calls, one-decision quantum yield, named host wake, timer wake, Drain, Abort,
+calls, one-decision quantum yield, named host wake, timer wake, Drain,
+immediate Abort, Abort waiting on exact provider cleanup, cleanup timeout,
 terminal-only finalization, capacity failure, and exact identity retention.
 The existing finite `run_exact_report` helper is convenience only: it starts a
 session, cooperatively pumps it to terminal, and projects its bounded evidence.
@@ -104,9 +115,10 @@ second executor or a compatibility path.
 |---|---|
 | SES-001 | Start only through an explicit authorized exact-plan admission. |
 | SES-002 | Retain an owned bounded runtime snapshot, never a leaked plan arena. |
-| SES-003 | Keep Waiting, Active, Quiescing, and Terminal distinct. |
+| SES-003 | Keep Waiting, Active, Quiescing, Aborting, and Terminal distinct. |
 | SES-004 | Bound every pump while keeping its quantum distinct from lifetime policy. |
 | SES-005 | Pin run, source, plan, and epoch identities until terminal finalization. |
 | SES-006 | Wake and cancel only the active session through exact retained interests. |
 | SES-007 | Admit finite session count and aggregate reservation before Start; release the reservation at terminal finalization or failed Start, and fail a registry closed after nonterminal abandonment. |
 | SES-008 | Project exact evidence from the owned runtime identity snapshot. |
+| SES-009 | Keep provider cleanup bounded and scheduler-owned; retain Aborting while exact cleanup is pending and fail the same epoch at its plan-pinned deadline. |

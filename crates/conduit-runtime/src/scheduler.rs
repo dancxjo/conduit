@@ -538,7 +538,20 @@ pub trait SchedulerNode {
     fn start(&mut self) -> Result<LifecycleUsage, Id<'static>>;
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep;
 
-    fn cancel(&mut self, _stop: StopPolicy) {}
+    fn cancel(&mut self, _stop: StopPolicy, _tick: u64) {}
+
+    /// Whether Abort must keep this implementation in its bounded Cancelling
+    /// phase until a later cleanup step reaches an exact disposition.
+    fn cancellation_pending(&self) -> bool {
+        false
+    }
+
+    /// Checks implementation-owned lifecycle deadlines whenever the exact
+    /// scheduler clock advances. This keeps cleanup timeout enforcement in the
+    /// executor even when the provider is waiting on a host operation.
+    fn validate_deadlines(&mut self, _tick: u64) -> Result<(), Id<'static>> {
+        Ok(())
+    }
 
     /// Revalidates live host authority immediately before a retained timer or
     /// named host wake resumes this node. Portable nodes have no live host
@@ -2411,6 +2424,13 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             return Err(SchedulerError::ClockLimitExceeded);
         }
         self.tick = tick;
+        for driver in &mut self.drivers {
+            if driver.validate_deadlines(tick).is_err() {
+                return self
+                    .fail(SchedulerError::CancellationDeadlineExceeded)
+                    .map(|_| ());
+            }
+        }
         self.wake_due_timers(grant_observations)?;
         self.check_cancellation_deadline()
     }
@@ -2478,7 +2498,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         )?;
         self.cancellation_started = Some((self.tick, stop));
         for index in 0..self.drivers.len() {
-            self.drivers[index].cancel(stop);
+            self.drivers[index].cancel(stop, self.tick);
             if !matches!(self.machines[index].phase(), InstancePhase::Terminal(_)) {
                 self.machines[index]
                     .cancel()
@@ -2491,20 +2511,28 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             self.record_cord_events(cord, events)?;
         }
         if stop == StopPolicy::Abort {
-            for machine in &mut self.machines {
-                if !matches!(machine.phase(), InstancePhase::Terminal(_)) {
-                    machine
+            for index in 0..self.machines.len() {
+                if !matches!(self.machines[index].phase(), InstancePhase::Terminal(_))
+                    && !self.drivers[index].cancellation_pending()
+                {
+                    self.machines[index]
                         .abort()
                         .map_err(|_| SchedulerError::StepContractViolation)?;
                 }
             }
-            self.status = SchedulerStatus::Cancelled;
-            self.record(
-                SchedulerSubject::Run,
-                SchedulerEventKind::Terminal(TerminalClass::Cancelled),
-                0,
-                0,
-            )?;
+            if self
+                .machines
+                .iter()
+                .all(|machine| matches!(machine.phase(), InstancePhase::Terminal(_)))
+            {
+                self.status = SchedulerStatus::Cancelled;
+                self.record(
+                    SchedulerSubject::Run,
+                    SchedulerEventKind::Terminal(TerminalClass::Cancelled),
+                    0,
+                    0,
+                )?;
+            }
         }
         self.reconcile_host_values();
         Ok(())

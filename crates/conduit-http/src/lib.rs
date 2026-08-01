@@ -3078,7 +3078,11 @@ impl Handler for HttpListenerHandler {
         Ok(())
     }
 
-    fn cleanup(&mut self, _node: &conduit_panel::Node) -> Result<(), RuntimeError> {
+    fn cleanup(
+        &mut self,
+        _node: &conduit_panel::Node,
+        _context: HostedServiceStepContext,
+    ) -> Result<conduit_runtime::HostedServiceCleanup, RuntimeError> {
         if let Some(backend) = &mut self.backend {
             backend.finish_shutdown();
         }
@@ -3088,7 +3092,7 @@ impl Handler for HttpListenerHandler {
         self.route_path.clear();
         self.deadline_ticks = 0;
         self.quiescing = false;
-        Ok(())
+        Ok(conduit_runtime::HostedServiceCleanup::Complete)
     }
 }
 

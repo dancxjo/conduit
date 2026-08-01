@@ -2642,7 +2642,7 @@
         {
           "id": "persistent-exact-run",
           "path": "../c4/persistent-exact-run.json",
-          "sha256": "sha256:c9f12cf131eb5695adf1ccba10ac38ceb30fa62926cf95bae672dab68784a5b8",
+          "sha256": "sha256:c684f0e05a1651547b2ac04b5ef848a8f6cc2dc4ce5c7e34d9bb7e0396f7d029",
           "operation": "persistent-exact-run",
           "requirement_ids": [
             "SCH-002",
@@ -2663,6 +2663,8 @@
             "wrong-wake-does-not-resume": "SCH-006",
             "drain-cancels-active-session": "SCH-010",
             "abort-cancels-active-session": "SCH-010",
+            "abort-waits-for-exact-provider-cleanup": "SCH-010",
+            "provider-cleanup-deadline-fails-same-epoch": "SCH-010",
             "cancellation-deadline-fails-closed": "SCH-010",
             "session-capacity-exhaustion": "SCH-003",
             "plan-source-identity-mismatch": "SCH-002",

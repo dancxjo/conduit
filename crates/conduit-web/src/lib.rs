@@ -571,6 +571,7 @@ fn patchbay_run_snapshot(run: &BrowserExactRun) -> conduit_patchbay::RunSnapshot
         ExactRunState::Active => conduit_patchbay::RunState::Active,
         ExactRunState::Waiting => conduit_patchbay::RunState::Waiting,
         ExactRunState::Quiescing => conduit_patchbay::RunState::Quiescing,
+        ExactRunState::Aborting => conduit_patchbay::RunState::Aborting,
     };
     conduit_patchbay::RunSnapshot {
         run_id: run.run_id.clone(),
@@ -1111,6 +1112,7 @@ fn browser_run_state_name(state: ExactRunState) -> &'static str {
         ExactRunState::Active => "active",
         ExactRunState::Waiting => "waiting",
         ExactRunState::Quiescing => "quiescing",
+        ExactRunState::Aborting => "aborting",
         ExactRunState::Terminal(TerminalClass::Succeeded) => "succeeded",
         ExactRunState::Terminal(TerminalClass::Cancelled) => "cancelled",
         ExactRunState::Terminal(TerminalClass::Disconnected) => "disconnected",
@@ -1142,7 +1144,10 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
     };
     let terminal = match state {
         ExactRunState::Terminal(class) => Some(terminal_name(class)),
-        ExactRunState::Active | ExactRunState::Waiting | ExactRunState::Quiescing => None,
+        ExactRunState::Active
+        | ExactRunState::Waiting
+        | ExactRunState::Quiescing
+        | ExactRunState::Aborting => None,
     };
     let completed_nodes = usize::from(matches!(
         state,

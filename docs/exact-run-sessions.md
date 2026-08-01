@@ -66,7 +66,7 @@ register one or more plan-bounded timer and host-operation interests and
 become Waiting.
 
 `time/ticker` is the reference timer source: its current contract is an
-open-ended `u64` stream, not a one-shot result. It reserves the first output
+open-ended public-text stream, not a one-shot result. It reserves the first output
 in the producing step, then waits for its one admitted timer. Advancing that
 timer resumes the same plan, epoch, provider binding, and retained state; it
 does not synthesize a new run or bypass the output transaction.
@@ -105,8 +105,14 @@ turns a host readiness callback into semantic authority.
 
 Cancellation invokes the provider's bounded stop disposition and cleanup on
 the same scheduler path. Natural completion also runs cleanup before the node
-is terminal. Provider-owned callbacks, queues, timers, tasks, and buffers must
-be declared in the selected execution profile and admitted by the exact plan.
+is terminal. Cleanup is itself one bounded nonblocking provider step: it may
+complete immediately or wait on a named timer/host operation. During Abort the
+session reports `Aborting`, not terminal cancellation, until that disposition
+is known. A cleanup wake resumes the same epoch; advancing past the selected
+execution profile's `cancellation_ticks` fails that epoch with `CND-RUN-013`
+instead of hiding a stuck task or claiming graceful cancellation.
+Provider-owned callbacks, queues, timers, tasks, and buffers must be declared
+in the selected execution profile and admitted by the exact plan.
 
 ## Bounds
 
