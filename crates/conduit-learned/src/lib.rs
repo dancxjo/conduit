@@ -5,6 +5,8 @@
 //! install a provider, download a model, or expose a universal tensor type to
 //! product domains.
 
+pub mod lifecycle;
+
 use conduit_core::{
     ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,

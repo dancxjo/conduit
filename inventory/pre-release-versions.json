@@ -189,6 +189,7 @@
         "conduit.knowledge-graph-conformance",
         "conduit.knowledge-retrieval-conformance",
         "conduit.learned-inference-conformance",
+        "conduit.learned-lifecycle-conformance",
         "conduit.media-codec-conformance",
         "conduit.media-value-conformance",
         "conduit.netherwick-network",

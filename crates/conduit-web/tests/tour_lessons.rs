@@ -552,6 +552,86 @@ fn bounded_learned_inference_lesson_exposes_exact_model_and_runtime_facts() {
 }
 
 #[test]
+fn bounded_learned_lifecycle_separates_evaluation_from_promotion_authority() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-learned-lifecycle")
+        .expect("bounded learned lifecycle lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    for field in [
+        "dataset_snapshot",
+        "dataset_revision",
+        "training_job",
+        "checkpoint",
+        "evaluation_report",
+        "promotion_approval",
+        "promotion_grant",
+        "resource_lease",
+        "commit_policy",
+        "promotion_receipt",
+        "deadline",
+        "work",
+        "storage_bytes",
+        "cancellation",
+        "provider_loss",
+        "unknown_commit",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "learned/dataset/inspect",
+            "learned/dataset/literal",
+            "learned/evaluate",
+            "learned/evaluation/inspect",
+            "learned/promote",
+            "learned/promotion/inspect",
+            "learned/train",
+        ]
+        .into_iter()
+        .collect()
+    );
+
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 3);
+    assert_eq!(lesson["source"], scenarios[0]["source"]);
+    for scenario in scenarios {
+        let id = scenario["id"].as_str().unwrap();
+        let source = scenario["source"].as_str().unwrap();
+        assert_current_panel_source(id, source);
+        let result: Value = serde_json::from_str(&run_panel(source.to_owned())).unwrap();
+        assert_eq!(result["ok"], true, "{id}: {result}");
+        assert_eq!(result["display"], scenario["validation"]["value"], "{id}");
+        assert_eq!(result["terminal"], "succeeded", "{id}: {result}");
+        assert_eq!(result["stdout"], "", "{id}: {result}");
+        assert_eq!(result["stderr"], "", "{id}: {result}");
+    }
+}
+
+#[test]
 fn bounded_knowledge_lesson_keeps_source_citation_and_run_evidence_distinct() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");

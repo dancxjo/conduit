@@ -1,0 +1,20 @@
+panel 0
+
+node dataset : learned/dataset/literal {
+  fixture = "tiny-supervised-v1"
+  snapshot_identity = "sha256:71d58097138d514f3220280698874fecce2486878fc5a2f7a9bc50a8e1341186"
+  revision_identity = "sha256:5c434f11669a98b9587880d824f8fda7c19d26dc862696b2602066c79e794972"
+  feature_schema_identity = "sha256:d5ac227d73ef18638d38b51c67b816148cd18c837680cc2fb827e4ef773c5145"
+  label_schema_identity = "sha256:ad38d644903656f90d1ffb3f2f465f82c7c1debd01f607648da8808f91891f73"
+  provenance_identity = "sha256:e010280c5999c5f7b0dfbe947783c8bef2dac142103d9f5ed28e72db89765a20"
+  sensitivity = "public"
+  access_scope = "conduit.scope/learned-fixture"
+  split = "train"
+  maximum_records = 4
+  maximum_bytes = 128
+}
+node inspect : learned/dataset/inspect
+node output : display/text
+
+cord dataset.dataset -> inspect.dataset { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

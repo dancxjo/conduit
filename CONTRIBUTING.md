@@ -46,6 +46,11 @@ outputs, not browser-test expectations. Keep presentation tests focused on
 selection, visible state, and admitted outcomes; diagnose an identity drift at
 the owning contract, compiler, or artifact boundary first.
 
+Concurrent browser runs must use distinct ports, for example
+`CONDUIT_PLAYWRIGHT_PORT=4194 npx playwright test ...`. The default local
+Playwright server is reusable for one checkout; sharing that port across
+worktrees can silently serve another checkout's Tour resources.
+
 ## Pre-release versions and compatibility
 
 Conduit has not made its first public release. Repository drafts do not create
