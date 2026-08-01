@@ -936,8 +936,9 @@ fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
     assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
     assert_eq!(lesson["accessibility"]["reduced_motion"], true);
     assert!(
-        lesson["prose"].as_str().is_some_and(|prose|
-            prose.contains("monotonic cursors")
+        lesson["prose"]
+            .as_str()
+            .is_some_and(|prose| prose.contains("monotonic cursors")
                 && prose.contains("explicit gap")
                 && prose.contains("Strict audit")
                 && prose.contains("does not execute the graph or own the evidence store"))

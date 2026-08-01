@@ -50,6 +50,17 @@ pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error:
         "implementation_id": "conduit/tour-production-wasm-worker",
         "semantic_contract": "conduit/tour-panel-run",
         "placement": "dedicated-worker",
+        "evidence_provider": {
+            "implementation_id": "conduit/browser-worker-exact-evidence",
+            "retention": "rolling",
+            "maximum_events": 256,
+            "maximum_bytes": 262144,
+            "maximum_projection_events": 32,
+            "gap_policy": "explicit-earliest-cursor",
+            "terminal_required": true,
+            "storage_claim": "execution-plan-budget.evidence_bytes",
+            "provider_resource": null
+        },
         "artifacts": artifacts
     });
 

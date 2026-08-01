@@ -193,7 +193,10 @@ window retains at most 256 exact records and never exceeds the exact plan's
 `budget.evidence_bytes` claim; eviction advances the earliest available cursor
 without changing later sequence identities. The terminal record is committed
 before the exact session is finalized and stays queryable from that retained
-window.
+window. The Tour browser host plan identity includes this rolling policy, its
+worker-provider implementation, event/byte/projection bounds, gap policy,
+terminal requirement, evidence-budget storage claim, and the explicit absence
+of an external provider resource.
 
 `patchbay-read-exact-evidence` reads one caller-selected bounded delta from
 that worker-owned provider. Its result names `available`, `gap`, or `future`

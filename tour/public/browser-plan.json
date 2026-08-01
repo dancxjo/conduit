@@ -33,10 +33,21 @@
     "maximum_scheduler_events": 256,
     "response_timeout_ms": 20000
   },
+  "evidence_provider": {
+    "gap_policy": "explicit-earliest-cursor",
+    "implementation_id": "conduit/browser-worker-exact-evidence",
+    "maximum_bytes": 262144,
+    "maximum_events": 256,
+    "maximum_projection_events": 32,
+    "provider_resource": null,
+    "retention": "rolling",
+    "storage_claim": "execution-plan-budget.evidence_bytes",
+    "terminal_required": true
+  },
   "implementation_id": "conduit/tour-production-wasm-worker",
   "observation_id": "conduit/tour-static-browser-observation",
   "placement": "dedicated-worker",
-  "plan_identity": "09888445859eabcd56ec03bd31324adcec8f6641ac2aa7d2d56bcc5fd1948e04",
+  "plan_identity": "973d7c9250792b5c44d23ca53621386d9f99aa10f50424619482de2be21a4688",
   "schema": "conduit.tour-browser-plan",
   "semantic_contract": "conduit/tour-panel-run"
 }

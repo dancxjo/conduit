@@ -233,6 +233,10 @@ test("keeps one public latest-value ticker Watch live in the production executor
   const first = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
   );
+  const browserPlan = await page.evaluate(() =>
+    fetch("/tour/public/browser-plan.json", { cache: "no-store" })
+      .then((response) => response.json())
+  );
   expect(first).toMatchObject({
     state: "waiting",
     retention: "latest",
@@ -280,6 +284,17 @@ test("keeps one public latest-value ticker Watch live in the production executor
   expect(later.evidence_store.retained_bytes).toBeLessThanOrEqual(
     later.evidence_store.maximum_bytes,
   );
+  expect(browserPlan.evidence_provider).toMatchObject({
+    implementation_id: "conduit/browser-worker-exact-evidence",
+    retention: "rolling",
+    maximum_events: later.evidence_store.maximum_events,
+    maximum_bytes: later.evidence_store.maximum_bytes,
+    maximum_projection_events: 32,
+    gap_policy: "explicit-earliest-cursor",
+    terminal_required: true,
+    storage_claim: "execution-plan-budget.evidence_bytes",
+    provider_resource: null,
+  });
 
   await page.locator("#stop").click();
   await expect(page.locator("#console-status-badge")).toHaveText("Ready");
