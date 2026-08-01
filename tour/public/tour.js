@@ -1556,7 +1556,14 @@ async function run() {
 }
 
 runButton.onclick = run;
-watchToggle.onclick = () => void toggleWatch();
+watchToggle.onpointerdown = (event) => {
+  if (event.isPrimary && event.button === 0) void toggleWatch();
+};
+watchToggle.onclick = (event) => {
+  // Pointer activation starts above. A zero-detail click is keyboard
+  // activation and must retain the native button path.
+  if (event.detail === 0) void toggleWatch();
+};
 stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
