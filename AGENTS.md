@@ -37,6 +37,9 @@
   failures. They do not mirror plan hashes, artifact digests, scenario or
   documentation inventory counts, source spelling, or timeline indices. Keep
   exact semantic identity checks in their owning Rust/conformance boundary.
+- Give each concurrent Playwright run its own `CONDUIT_PLAYWRIGHT_PORT`.
+  Reusing the default local server can otherwise test a different worktree's
+  files while appearing green or reporting stale Tour resources.
 
 ## Pre-release compatibility rule
 

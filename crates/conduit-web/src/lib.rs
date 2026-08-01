@@ -597,6 +597,8 @@ fn browser_registry() -> Registry {
         .expect("deterministic codec providers have distinct identities");
     conduit_learned::register_deterministic_inference_provider(&mut registry)
         .expect("deterministic inference providers have distinct identities");
+    conduit_learned::lifecycle::register_deterministic_lifecycle_provider(&mut registry)
+        .expect("deterministic learned lifecycle providers have distinct identities");
     conduit_knowledge::register_deterministic_retrieval_provider(&mut registry)
         .expect("deterministic retrieval providers have distinct identities");
     conduit_knowledge::register_deterministic_graph_provider(&mut registry)

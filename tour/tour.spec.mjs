@@ -2446,6 +2446,55 @@ test("learned inference lesson keeps model runtime and device identities exact",
   );
 });
 
+test("learned lifecycle keeps evaluation separate from promotion authority", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=library.bounded-learned-lifecycle",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+
+  await expect(story).toBeVisible();
+  for (const contract of [
+    "learned/dataset/literal",
+    "learned/train",
+    "learned/evaluate",
+    "learned/promote",
+    "learned/promotion/inspect",
+  ]) {
+    await expect(story).toContainText(contract);
+  }
+  await expect(page.locator("#runnability-state")).toContainText(
+    "runnable · browser",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "learned:dataset:tiny:train:4:public",
+    { timeout: 20_000 },
+  );
+
+  await page.locator("#scenario").selectOption(
+    "training-evaluation-without-promotion",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "learned:evaluation:accuracy@1:4/4:not-approval",
+    { timeout: 20_000 },
+  );
+
+  await page.locator("#scenario").selectOption(
+    "authorized-promotion-composition",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "learned:promotion:learned/reference:acknowledged",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#evidence")).toContainText(
+    '"event_kind": "terminal"',
+  );
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+});
+
 test("cited claim graph keeps source support on each traversed edge", async ({ page }) => {
   await page.goto(
     "/tour/public/index.html?lesson=library.bounded-knowledge-graph",

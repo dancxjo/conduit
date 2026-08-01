@@ -3,7 +3,12 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use conduit_compile::{InstalledProfile, compile_source};
-use conduit_learned::{register_deterministic_inference_provider, register_learned_contracts};
+use conduit_learned::{
+    lifecycle::{
+        register_deterministic_lifecycle_provider, register_deterministic_training_provider,
+    },
+    register_deterministic_inference_provider, register_learned_contracts,
+};
 use conduit_runtime::{AvailabilityState, Registry};
 
 fn workspace_file(path: &str) -> PathBuf {
@@ -166,4 +171,114 @@ fn learned_values_remain_domain_specific_and_training_free() {
         !ids.iter()
             .any(|id| id.starts_with("speech/") || id.starts_with("robotics/"))
     );
+}
+
+#[test]
+fn exact_lifecycle_plan_pins_training_evaluation_and_promotion_authority() {
+    let source = include_str!("../../../examples/learned-lifecycle.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_inference_provider(&mut registry).unwrap();
+    register_deterministic_lifecycle_provider(&mut registry).unwrap();
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    let promotion = document
+        .nodes
+        .iter()
+        .find(|node| node.contract.id == "learned/promote")
+        .unwrap();
+    assert_eq!(
+        promotion.implementation.id,
+        "conduit.learned/promote-deterministic"
+    );
+    assert_eq!(document.authorities.len(), 1);
+    assert_eq!(
+        document.authorities[0].effect.action,
+        "conduit.action/promote"
+    );
+
+    for (path, expected) in [
+        (
+            "examples/learned-lifecycle-standalone.panel",
+            "learned:dataset:tiny:train:4:public",
+        ),
+        (
+            "examples/learned-evaluation.panel",
+            "learned:evaluation:accuracy@1:4/4:not-approval",
+        ),
+        (
+            "examples/learned-lifecycle.panel",
+            "learned:promotion:learned/reference:acknowledged",
+        ),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+            .arg(workspace_file(path))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+    }
+}
+
+#[test]
+fn training_and_evaluation_are_runnable_without_a_promotion_provider_or_grant() {
+    let source = include_str!("../../../examples/learned-evaluation.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_inference_provider(&mut registry).unwrap();
+    register_deterministic_training_provider(&mut registry).unwrap();
+    assert_eq!(
+        registry.node_availability("learned/promote").state,
+        AvailabilityState::ContractOnly
+    );
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    assert!(document.authorities.is_empty());
+}
+
+#[test]
+fn learned_lifecycle_schema_resources_metrics_and_promotion_fail_closed() {
+    for (from, to, code) in [
+        (
+            "sensitivity = \"public\"",
+            "sensitivity = \"secret\"",
+            "CND-LEARN-012",
+        ),
+        (
+            "sha256:d5ac227d73ef18638d38b51c67b816148cd18c837680cc2fb827e4ef773c5145",
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "CND-LEARN-011",
+        ),
+        ("maximum_work = 64", "maximum_work = 65", "CND-LEARN-013"),
+        ("metric_version = 1", "metric_version = 2", "CND-LEARN-018"),
+        (
+            "target_slot = \"learned/reference\"",
+            "target_slot = \"learned/unapproved\"",
+            "CND-LEARN-019",
+        ),
+    ] {
+        let source =
+            include_str!("../../../examples/learned-lifecycle.panel").replacen(from, to, 1);
+        let mut child = Command::new(env!("CARGO_BIN_EXE_conduct"))
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(source.as_bytes())
+            .unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(!output.status.success(), "mutation {from} unexpectedly ran");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(code),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }

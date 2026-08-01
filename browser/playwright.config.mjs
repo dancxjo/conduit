@@ -1,5 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
+const port = process.env.CONDUIT_PLAYWRIGHT_PORT ?? "4173";
+const baseURL = `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: "..",
   testMatch: [
@@ -14,13 +17,13 @@ export default defineConfig({
   timeout: 30_000,
   reporter: "line",
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL,
     serviceWorkers: "allow",
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "cd .. && node browser/static-server.mjs",
-    url: "http://127.0.0.1:4173/browser/conduit-browser-host.test.html",
+    command: `cd .. && node browser/static-server.mjs ${port}`,
+    url: `${baseURL}/browser/conduit-browser-host.test.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,
   },
