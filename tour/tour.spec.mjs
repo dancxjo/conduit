@@ -2468,7 +2468,7 @@ test("learned lifecycle keeps evaluation separate from promotion authority", asy
   );
   await page.locator("#run").click();
   await expect(result).toContainText(
-    "learned:dataset:tiny-v1:train:4:public",
+    "learned:dataset:tiny:train:4:public",
     { timeout: 20_000 },
   );
 
