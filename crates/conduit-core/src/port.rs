@@ -145,11 +145,21 @@ pub enum TemporalContract {
     Progressive,
     /// Every delivered value is committed and will not be revised.
     Committed,
+    /// Every delivered value is committed but comes from an explicit finite
+    /// retained-state boundary. This gives a recurrence edge temporal meaning.
+    RetainedState,
 }
 
 impl TemporalContract {
     fn accepts(self, producer: Self) -> bool {
-        self == producer || (self == Self::Progressive && producer == Self::Committed)
+        self == producer
+            || matches!(
+                (self, producer),
+                (
+                    Self::Committed | Self::Progressive,
+                    Self::Committed | Self::RetainedState
+                )
+            )
     }
 
     /// Stable descriptor spelling.
@@ -159,6 +169,7 @@ impl TemporalContract {
             Self::Atemporal => "atemporal",
             Self::Progressive => "progressive",
             Self::Committed => "committed",
+            Self::RetainedState => "retained-state",
         }
     }
 }

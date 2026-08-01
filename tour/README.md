@@ -33,6 +33,11 @@ instrument's beat/light figure is driven only by the production executor's
 exact public Watch value, has an adjacent ordered-text equivalent, and does not
 run a decorative timer or activate audio.
 
+The project explicitly contrasts a standing patch with an imperative loop:
+the graph remains present and live, pulses advance state, cords carry typed
+values and events, explicit delay or memory gives feedback temporal meaning,
+and lifecycle control starts and stops one immutable plan epoch.
+
 Lesson source is real `.panel` input. This directory deliberately contains no
 tutorial-only parser, graph, port model, or runtime. A browser delivery layer
 must invoke the production parser/lowering/resolver/runtime artifacts and may

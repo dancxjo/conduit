@@ -61,7 +61,7 @@
       "id": "living-instrument",
       "kind": "project",
       "title": "Project one: A living instrument",
-      "description": "Build a browser-local rhythm and light composition that remains alive, gains a second rhythm, shape, memory, bounded feedback and honest observation, then stops explicitly.",
+      "description": "Build a browser-local rhythm and light composition that remains alive, gains a second rhythm, shape, memory, bounded feedback and honest observation, then stops explicitly. Unlike an imperative loop, the graph remains present and live: pulses advance state, cords carry typed values and events, explicit delay or memory gives feedback meaning, and lifecycle control starts and stops one immutable plan epoch.",
       "artifact": {
         "id": "living-instrument.panel",
         "initial_revision": "instrument-ready",

@@ -9,7 +9,7 @@ use conduit_media::{
     register_audio_processing_contracts, register_deterministic_audio_processing_providers,
     register_deterministic_codec_providers, register_deterministic_media_providers,
     register_deterministic_signal_providers, register_media_codec_contracts,
-    register_media_contracts,
+    register_media_contracts, register_portable_lfo_provider,
 };
 use conduit_runtime::{
     AvailabilityState, CompiledInHostService, Handler, Registry, RegistryError, RunIo,
@@ -246,6 +246,134 @@ fn living_instrument_signal_graph_is_sealed_and_cli_checkable() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(String::from_utf8_lossy(&output.stdout).contains("14 root nodes; 14 root cords"));
+}
+
+#[test]
+fn standing_signal_catalog_examples_and_provider_plurality_are_exact() {
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_signal_providers(&mut registry).unwrap();
+    register_deterministic_media_providers(&mut registry).unwrap();
+    register_deterministic_audio_processing_providers(&mut registry).unwrap();
+    register_portable_lfo_provider(&mut registry).unwrap();
+
+    let providers = registry
+        .installed_providers()
+        .into_iter()
+        .filter(|provider| provider.contract.id.as_str() == "conduit.media/control/lfo")
+        .collect::<Vec<_>>();
+    assert_eq!(providers.len(), 2);
+    assert_ne!(providers[0].manifest.id, providers[1].manifest.id);
+    assert_ne!(providers[0].artifact.id, providers[1].artifact.id);
+    assert_eq!(
+        providers[0].manifest.semantic_contract,
+        providers[1].manifest.semantic_contract
+    );
+
+    for path in [
+        "examples/standing-signal-lab.panel",
+        "examples/clocked-sample-hold.panel",
+        "examples/bounded-control-feedback.panel",
+        "examples/virtual-audio-loopback.panel",
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+            .arg("--check")
+            .arg(workspace_file(path))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{path}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    let invalid = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .arg("--check")
+        .arg(workspace_file("examples/invalid-zero-delay-feedback.panel"))
+        .output()
+        .unwrap();
+    assert!(!invalid.status.success());
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("CND-CMP-001"));
+
+    let feedback_source = include_str!("../../../examples/bounded-control-feedback.panel");
+    let installed = InstalledProfile::observe_registry(feedback_source, &registry).unwrap();
+    let feedback_plan = compile_source(feedback_source, &installed.input).unwrap();
+    assert_eq!(feedback_plan.feedback_boundaries.len(), 1);
+    let boundary = &feedback_plan.feedback_boundaries[0];
+    assert_eq!(boundary.kind, "state");
+    assert_eq!(boundary.cord, "cord-0");
+    assert_eq!(boundary.maximum_retained_items, 1);
+    assert_eq!(boundary.maximum_retained_bytes, 16);
+    assert_eq!(
+        boundary.cancellation.id,
+        "conduit.feedback/cancel-drop-retained"
+    );
+    assert_eq!(boundary.terminal, "drop-retained");
+}
+
+#[test]
+fn standing_signal_conformance_names_every_required_fixture_and_proof() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/c4/standing-signals.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 0);
+    assert_eq!(fixture["types"].as_array().unwrap().len(), 5);
+
+    let proofs = fixture["proofs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|proof| proof["id"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "clocked-sequence",
+        "modulated-audio",
+        "sample-and-hold",
+        "feedback",
+        "continuous-io",
+        "observation",
+        "invalid-recurrence",
+        "provider-plurality",
+    ] {
+        assert!(proofs.contains(required), "conformance includes {required}");
+    }
+
+    let cases = fixture["fixtures"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|case| case["id"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "startup-phase",
+        "reset-while-running",
+        "enable-disable",
+        "rate-change",
+        "missed-pulse",
+        "slow-consumer",
+        "clock-drift",
+        "discontinuity",
+        "counter-wrap",
+        "finite-versus-repeating-sequence",
+        "envelope-retrigger",
+        "sample-and-hold-before-first-trigger",
+        "delay-flush",
+        "bounded-feedback-saturation",
+        "zero-delay-cycle",
+        "cancellation-during-retained-state",
+        "source-loss",
+        "waiting-versus-deadlock",
+        "watch-attached-detached",
+        "provider-unsupported",
+    ] {
+        assert!(cases.contains(required), "conformance includes {required}");
+    }
+    assert!(fixture["fixtures"].as_array().unwrap().iter().all(|case| {
+        case["runner"]
+            .as_str()
+            .is_some_and(|runner| runner.contains("::"))
+    }));
 }
 
 #[test]

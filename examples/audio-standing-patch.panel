@@ -2,7 +2,7 @@ panel 0
 
 node clock : time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
 node pulse : conduit.media/event/from-ticker
-node sequence : conduit.media/control/sequencer { pattern = "1024,512,256,768" maximum_steps = 4 lane = 0 }
+node sequence : conduit.media/control/sequencer { pattern = "1024,512,256,768" maximum_steps = 4 lane = 0 repeat = "repeat" }
 node modulation : conduit.media/control/slew { initial = 0 maximum_delta = 256 }
 node state : conduit.media/control/register { initial = 0 maximum_value = 1024 }
 node audio : conduit.media/audio/from-control { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" sample_rate_hz = 48000 layout = "stereo-lr" frames_per_control = 8 maximum_work = 16 }

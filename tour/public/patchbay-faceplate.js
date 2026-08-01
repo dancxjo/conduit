@@ -8,8 +8,26 @@
 
 const e = window.React.createElement;
 
+function signalFamily(typeId, nodeKind, portId) {
+  const normalized = typeof typeId === "string" ? typeId.toLowerCase() : "";
+  const normalizedKind = typeof nodeKind === "string" ? nodeKind.toLowerCase() : "";
+  if ((normalizedKind.includes("/time/") || normalizedKind.startsWith("time/")) &&
+      ["tick", "pulse", "phase", "rate", "reset"].includes(portId)) {
+    return "clock";
+  }
+  if (normalized.includes("retained-state") || normalized.includes("retained_state")) {
+    return "state";
+  }
+  if (normalized.includes("/event") || normalized.endsWith("event")) return "event";
+  if (normalized.includes("/gate") || normalized.endsWith("gate")) return "gate";
+  if (normalized.includes("/control") || normalized.endsWith("control")) return "control";
+  if (normalized.includes("audio")) return "audio";
+  return "other";
+}
+
 function PortRow({
   nodeId,
+  nodeKind,
   port,
   direction,
   isPublic,
@@ -19,24 +37,31 @@ function PortRow({
 }) {
   const receiving = direction === "input";
   const presentationDirection = receiving ? "receiving" : "outgoing";
+  const family = signalFamily(port.type_id, nodeKind, port.id);
   const handle = e(window.ReactFlow.Handle, {
     id: port.id,
     type: receiving ? "target" : "source",
     position: receiving
       ? window.ReactFlow.Position.Left
       : window.ReactFlow.Position.Right,
-    className: `jack-handle ${isPublic ? "public-jack-handle" : ""}`,
+    className: [
+      "jack-handle",
+      `signal-family-${family}`,
+      isPublic ? "public-jack-handle" : "",
+    ].filter(Boolean).join(" "),
     isConnectable,
     "aria-label": port.accessible_label,
     "data-semantic-path": port.semantic_path,
+    "data-signal-family": family,
   });
 
   return e("div", {
-    className: `faceplate-member-row faceplate-port-row ${presentationDirection}-jack`,
+    className: `faceplate-member-row faceplate-port-row ${presentationDirection}-jack signal-family-${family}`,
     role: "group",
     "aria-label": port.accessible_label,
     "data-semantic-path": port.semantic_path,
     "data-port-direction": presentationDirection,
+    "data-signal-family": family,
   },
     receiving && e("span", {
       className: "faceplate-jack-cell receiving-jack-cell",
@@ -44,7 +69,7 @@ function PortRow({
     e("button", {
       type: "button",
       className: `jack-label ${presentationDirection}-port-label nodrag`,
-      title: `${port.accessible_label}; type ${port.type_id}`,
+      title: `${port.accessible_label}; ${family} signal; type ${port.type_id}`,
       "aria-label": `${port.accessible_label}; type ${port.type_id}`,
       onClick: (event) => {
         event.stopPropagation();
@@ -144,6 +169,7 @@ export function FaceplateNodeComponent({ data, id }) {
     ...inputs.map((port) => e(PortRow, {
       key: port.semantic_path,
       nodeId: id,
+      nodeKind: kind,
       port,
       direction: "input",
       isPublic: isComposite,
@@ -154,6 +180,7 @@ export function FaceplateNodeComponent({ data, id }) {
     ...outputs.map((port) => e(PortRow, {
       key: port.semantic_path,
       nodeId: id,
+      nodeKind: kind,
       port,
       direction: "output",
       isPublic: isComposite,
