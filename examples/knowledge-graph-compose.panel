@@ -1,0 +1,104 @@
+panel 0
+
+node document : knowledge/document/literal {
+  fixture = "conduit-origin"
+  source_identity = "sha256:6161616161616161616161616161616161616161616161616161616161616161"
+  revision_identity = "sha256:6262626262626262626262626262626262626262626262626262626262626262"
+  maximum_document_bytes = 256
+  access_scope = "public"
+}
+node index : knowledge/index/fixture {
+  index_identity = "sha256:6363636363636363636363636363636363636363636363636363636363636363"
+  embedding_identity = "sha256:6464646464646464646464646464646464646464646464646464646464646464"
+  embedding_dimensions = 4
+  coverage = "complete"
+  maximum_retained_bytes = 1024
+  maximum_work = 4096
+}
+node search : knowledge/query/literal {
+  fixture = "exact plans"
+  maximum_query_bytes = 64
+}
+node retrieve : knowledge/retrieve {
+  index_identity = "sha256:6363636363636363636363636363636363636363636363636363636363636363"
+  embedding_identity = "sha256:6464646464646464646464646464646464646464646464646464646464646464"
+  embedding_dimensions = 4
+  maximum_results = 1
+  maximum_context_bytes = 256
+  maximum_work = 4096
+}
+node cite : knowledge/citation/assemble
+node claim : knowledge/claim/from-citation {
+  graph_schema_identity = "sha256:8383838383838383838383838383838383838383838383838383838383838383"
+  entity_schema_identity = "sha256:8181818181818181818181818181818181818181818181818181818181818181"
+  entity_schema_version = 0
+  relation_schema_identity = "sha256:8282828282828282828282828282828282828282828282828282828282828282"
+  relation_schema_version = 0
+  claim_schema_version = 0
+  claim_identity = "sha256:8989898989898989898989898989898989898989898989898989898989898989"
+  subject_identity = "sha256:8686868686868686868686868686868686868686868686868686868686868686"
+  relation_identity = "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+  object_identity = "sha256:8787878787878787878787878787878787878787878787878787878787878787"
+  source_identity = "sha256:6161616161616161616161616161616161616161616161616161616161616161"
+  source_revision_identity = "sha256:6262626262626262626262626262626262626262626262626262626262626262"
+  confidence_descriptor_identity = "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+  disposition = "supported"
+  valid_from_tick = 10
+  valid_until_tick = 20
+  sensitivity = "public"
+}
+node graph : knowledge/graph/fixture {
+  graph_schema_identity = "sha256:8383838383838383838383838383838383838383838383838383838383838383"
+  snapshot_identity = "sha256:8484848484848484848484848484848484848484848484848484848484848484"
+  provider_identity = "sha256:8585858585858585858585858585858585858585858585858585858585858585"
+  coverage = "complete"
+  observed_at_tick = 10
+  valid_until_tick = 20
+  maximum_claims = 8
+  maximum_retained_bytes = 4096
+  maximum_work = 128
+}
+node graph_query : knowledge/graph/query/literal {
+  entity_schema_identity = "sha256:8181818181818181818181818181818181818181818181818181818181818181"
+  entity_schema_version = 0
+  relation_schema_identity = "sha256:8282828282828282828282828282828282828282828282828282828282828282"
+  relation_schema_version = 0
+  start_entity_identity = "sha256:8686868686868686868686868686868686868686868686868686868686868686"
+  relation_identity = "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+  maximum_depth = 1
+  maximum_breadth = 1
+  maximum_paths = 1
+  maximum_results = 1
+  maximum_retained_bytes = 4096
+  maximum_work = 128
+  maximum_evidence_events = 64
+  now_tick = 12
+  access_scope = "public"
+}
+node traverse : knowledge/graph/traverse {
+  graph_schema_identity = "sha256:8383838383838383838383838383838383838383838383838383838383838383"
+  snapshot_identity = "sha256:8484848484848484848484848484848484848484848484848484848484848484"
+  provider_identity = "sha256:8585858585858585858585858585858585858585858585858585858585858585"
+  maximum_depth = 1
+  maximum_breadth = 1
+  maximum_paths = 1
+  maximum_results = 1
+  maximum_retained_bytes = 4096
+  maximum_work = 128
+  maximum_evidence_events = 64
+}
+node inspect : knowledge/graph/results/inspect
+node uppercase : text/uppercase
+node output : display/text
+
+cord document.document -> index.document { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+cord index.index -> retrieve.index { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord search.query -> retrieve.query { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord retrieve.results -> cite.results { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+cord cite.citation -> claim.citation { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+cord claim.claim -> graph.claim { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+cord graph.snapshot -> traverse.snapshot { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord graph_query.query -> traverse.query { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord traverse.results -> inspect.results { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect.summary -> uppercase.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord uppercase.text -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -526,6 +526,114 @@ fn bounded_knowledge_lesson_keeps_source_citation_and_run_evidence_distinct() {
 }
 
 #[test]
+fn bounded_knowledge_graph_lesson_keeps_claim_support_edge_local() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-knowledge-graph")
+        .expect("bounded knowledge graph lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "entity_schema_identity",
+        "entity_schema_version",
+        "relation_schema_identity",
+        "relation_schema_version",
+        "claim_identity",
+        "claim_disposition",
+        "confidence_descriptor_identity",
+        "validity",
+        "sensitivity",
+        "source_identity",
+        "revision_identity",
+        "span",
+        "graph_schema_identity",
+        "snapshot_identity",
+        "coverage",
+        "provider_identity",
+        "depth",
+        "breadth",
+        "paths",
+        "results",
+        "retained_bytes",
+        "work",
+        "evidence_events",
+        "pressure",
+        "cancellation",
+        "provider_loss",
+        "error",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "knowledge/claim/from-citation",
+            "knowledge/graph/fixture",
+            "knowledge/graph/query/literal",
+            "knowledge/graph/results/inspect",
+            "knowledge/graph/traverse",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(lesson["library"]["scenarios"].as_array().unwrap().len(), 2);
+    for scenario in lesson["library"]["scenarios"].as_array().unwrap() {
+        assert_eq!(scenario["execution"], "run");
+        assert!(
+            scenario["source"]
+                .as_str()
+                .is_some_and(|source| !source.is_empty())
+        );
+    }
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(
+        result["display"],
+        "knowledge:graph:Conduit--keeps-distinct-->exact-plans[source:31..42]"
+    );
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+
+    let composition = &lesson["library"]["scenarios"][1];
+    let composed: Value = serde_json::from_str(&run_panel(
+        composition["source"].as_str().unwrap().to_owned(),
+    ))
+    .unwrap();
+    assert_eq!(composed["ok"], true, "{composed}");
+    assert_eq!(
+        composed["display"],
+        "KNOWLEDGE:GRAPH:CONDUIT--KEEPS-DISTINCT-->EXACT-PLANS[SOURCE:31..42]"
+    );
+
+    let cancelled: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(cancelled["ok"], true, "{cancelled}");
+    assert_eq!(cancelled["terminal"], "cancelled");
+}
+
+#[test]
 fn bounded_spatial_lesson_exposes_frames_calibration_and_finite_history() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");

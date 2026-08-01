@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.knowledge-graph-conformance",
+  "schema_version": 0,
+  "profile": "deterministic-bounded-cited-claim-traversal",
+  "positive": [
+    "cited-claim-one-hop",
+    "exact-entity-and-relation-schema",
+    "exact-snapshot-and-provider",
+    "path-retains-source-support",
+    "retrieval-without-graph-provider",
+    "deterministic-repeat"
+  ],
+  "negative": [
+    "entity-collision",
+    "schema-mismatch",
+    "citation-to-wrong-revision",
+    "unsupported-claim",
+    "contradicted-claim",
+    "superseded-claim",
+    "missing-fact",
+    "traversal-bound",
+    "cycle",
+    "stale-snapshot",
+    "partial-snapshot",
+    "sensitivity-leak",
+    "unauthorized-query",
+    "provider-loss",
+    "cancellation"
+  ]
+}

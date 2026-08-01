@@ -4,6 +4,17 @@
 //! deliberately separate. The first provider owns a tiny checked corpus; it
 //! performs no fetch, model download, generated-text call, or ambient lookup.
 
+mod graph;
+
+pub use graph::{
+    CLAIM_FROM_CITATION_CONTRACT, CLAIM_TYPE, Claim, ClaimDisposition, ClaimSensitivity,
+    ENTITY_TYPE, EntityIdentity, GRAPH_CONTRACTS, GRAPH_FIXTURE_CONTRACT,
+    GRAPH_QUERY_LITERAL_CONTRACT, GRAPH_QUERY_TYPE, GRAPH_RESULTS_INSPECT_CONTRACT,
+    GRAPH_RESULTS_TYPE, GRAPH_SNAPSHOT_TYPE, GRAPH_TRAVERSE_CONTRACT, GraphPath, GraphQuery,
+    GraphReason, GraphResults, GraphSnapshot, RELATION_TYPE, RelationIdentity,
+    register_deterministic_graph_provider, register_graph_contracts, traverse,
+};
+
 use conduit_core::{
     ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
     ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,
@@ -46,7 +57,7 @@ pub const INDEX_TYPE: TypeContractRef<'static> = type_ref("knowledge/index-snaps
 pub const QUERY_TYPE: TypeContractRef<'static> = type_ref("knowledge/query", 0x73);
 pub const RESULTS_TYPE: TypeContractRef<'static> = type_ref("knowledge/retrieval-results", 0x74);
 pub const CITATION_TYPE: TypeContractRef<'static> = type_ref("knowledge/citation", 0x75);
-const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
+pub(crate) const TEXT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/text"),
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
@@ -65,7 +76,7 @@ const U64_TYPE: TypeContractRef<'static> = TypeContractRef {
     ]),
 };
 
-const fn type_ref(id: &'static str, byte: u8) -> TypeContractRef<'static> {
+pub(crate) const fn type_ref(id: &'static str, byte: u8) -> TypeContractRef<'static> {
     TypeContractRef {
         contract_id: Id(id),
         schema_version: 0,
@@ -73,7 +84,7 @@ const fn type_ref(id: &'static str, byte: u8) -> TypeContractRef<'static> {
     }
 }
 
-const fn field(
+pub(crate) const fn field(
     key: &'static str,
     value_type: TypeContractRef<'static>,
 ) -> ConfigFieldContract<'static> {
@@ -87,7 +98,7 @@ const fn field(
     }
 }
 
-const fn port(
+pub(crate) const fn port(
     id: &'static str,
     direction: Direction,
     value_type: TypeContractRef<'static>,
@@ -233,7 +244,7 @@ pub const CITATION_INSPECT_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &TEXT_OUTPUTS,
 };
 
-pub const KNOWLEDGE_CONTRACTS: [&NodeContract<'static>; 7] = [
+pub const RETRIEVAL_CONTRACTS: [&NodeContract<'static>; 7] = [
     &DOCUMENT_LITERAL_CONTRACT,
     &INDEX_FIXTURE_CONTRACT,
     &QUERY_LITERAL_CONTRACT,
@@ -241,6 +252,21 @@ pub const KNOWLEDGE_CONTRACTS: [&NodeContract<'static>; 7] = [
     &RERANK_CONTRACT,
     &CITE_CONTRACT,
     &CITATION_INSPECT_CONTRACT,
+];
+
+pub const KNOWLEDGE_CONTRACTS: [&NodeContract<'static>; 12] = [
+    &DOCUMENT_LITERAL_CONTRACT,
+    &INDEX_FIXTURE_CONTRACT,
+    &QUERY_LITERAL_CONTRACT,
+    &RETRIEVE_CONTRACT,
+    &RERANK_CONTRACT,
+    &CITE_CONTRACT,
+    &CITATION_INSPECT_CONTRACT,
+    &CLAIM_FROM_CITATION_CONTRACT,
+    &GRAPH_FIXTURE_CONTRACT,
+    &GRAPH_QUERY_LITERAL_CONTRACT,
+    &GRAPH_TRAVERSE_CONTRACT,
+    &GRAPH_RESULTS_INSPECT_CONTRACT,
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -480,7 +506,7 @@ fn decode_index(bytes: &[u8]) -> Result<DecodedIndex, KnowledgeReason> {
     })
 }
 
-fn encode_result(prefix: &[u8; 4], result: &RetrievalResult) -> Vec<u8> {
+pub(crate) fn encode_result(prefix: &[u8; 4], result: &RetrievalResult) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(74 + result.excerpt.len());
     bytes.extend_from_slice(prefix);
     bytes.extend_from_slice(&result.source);
@@ -492,7 +518,10 @@ fn encode_result(prefix: &[u8; 4], result: &RetrievalResult) -> Vec<u8> {
     bytes
 }
 
-fn decode_result(bytes: &[u8], prefix: &[u8; 4]) -> Result<RetrievalResult, KnowledgeReason> {
+pub(crate) fn decode_result(
+    bytes: &[u8],
+    prefix: &[u8; 4],
+) -> Result<RetrievalResult, KnowledgeReason> {
     if bytes.len() < 74 || bytes.get(..4) != Some(prefix) {
         return Err(KnowledgeReason::WrongType);
     }
@@ -510,13 +539,13 @@ fn decode_result(bytes: &[u8], prefix: &[u8; 4]) -> Result<RetrievalResult, Know
     })
 }
 
-fn exact_u64(node: &Node, key: &str) -> Option<u64> {
+pub(crate) fn exact_u64(node: &Node, key: &str) -> Option<u64> {
     match node.config_value(key) {
         Some(SourceValue::Integer(value)) => u64::try_from(*value).ok(),
         _ => None,
     }
 }
-fn no_config(node: &Node) -> Result<(), ResolutionError> {
+pub(crate) fn no_config(node: &Node) -> Result<(), ResolutionError> {
     node.config
         .is_empty()
         .then_some(())
@@ -775,10 +804,16 @@ pub fn register_knowledge_contracts(registry: &mut Registry) {
     }
 }
 
-pub fn register_deterministic_knowledge_provider(
+pub fn register_retrieval_contracts(registry: &mut Registry) {
+    for contract in RETRIEVAL_CONTRACTS {
+        registry.register_contract_only(contract);
+    }
+}
+
+pub fn register_deterministic_retrieval_provider(
     registry: &mut Registry,
 ) -> Result<(), RegistryError> {
-    register_knowledge_contracts(registry);
+    register_retrieval_contracts(registry);
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
     for (contract, implementation_id, artifact_id, entrypoint, factory, validator) in [
         (

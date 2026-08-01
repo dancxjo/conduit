@@ -2134,6 +2134,47 @@ test("learned inference lesson keeps model runtime and device identities exact",
   );
 });
 
+test("cited claim graph keeps source support on each traversed edge", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=library.bounded-knowledge-graph",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+
+  await expect(story).toBeVisible();
+  for (const contract of [
+    "knowledge/claim/from-citation",
+    "knowledge/graph/fixture",
+    "knowledge/graph/query/literal",
+    "knowledge/graph/traverse",
+    "knowledge/graph/results/inspect",
+  ]) {
+    await expect(story).toContainText(contract);
+  }
+  await expect(page.locator("#runnability-state")).toContainText(
+    "runnable · browser",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "knowledge:graph:Conduit--keeps-distinct-->exact-plans[source:31..42]",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#evidence")).toContainText(
+    '"event_kind": "terminal"',
+  );
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+
+  await page.locator("#scenario").selectOption("graph-text-composition");
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "KNOWLEDGE:GRAPH:CONDUIT--KEEPS-DISTINCT-->EXACT-PLANS[SOURCE:31..42]",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator('[data-id="uppercase"]')).toContainText(
+    "text/uppercase",
+  );
+});
+
 test("value envelope platform lesson links checked admission to an exact run", async ({ page }) => {
   await page.goto(
     "/tour/public/index.html?lesson=platform.value-envelope-clock-feedback",
