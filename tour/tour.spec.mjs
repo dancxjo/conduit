@@ -299,11 +299,14 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         sourceRevision: started.value?.source_revision,
         planIdentity: started.value?.plan_identity,
       };
-      const watchId = started.value?.view?.plan?.watch_admissions?.[0]?.id;
+      const watchAdmission = started.value?.view?.plan?.watch_admissions?.[0];
+      const watchId = watchAdmission?.id;
+      const operatorId = watchAdmission?.operator;
       const attachedWatch = await request("patchbay-attach-exact-watch", {
         sessionId,
         ...runIdentity,
         watchId,
+        operatorId,
       });
       const pumped = await request("patchbay-pump-exact-run", {
         sessionId,
@@ -314,6 +317,7 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         sessionId,
         ...runIdentity,
         watchId,
+        operatorId,
         cursor: 0,
         maximumRecords: 1,
       });
@@ -321,6 +325,7 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         sessionId,
         ...runIdentity,
         watchId,
+        operatorId,
       });
       const evidence = await request("patchbay-read-exact-evidence", {
         sessionId,
