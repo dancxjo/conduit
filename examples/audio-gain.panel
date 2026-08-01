@@ -1,0 +1,22 @@
+panel 0
+
+node source : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+node gain : conduit.media/audio/gain {
+    lifecycle = "finite"
+    numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact"
+    curve = "linear-q15-absolute-frame"
+    start_gain_q15 = 0
+    end_gain_q15 = 32768
+    ramp_start_frame = 0
+    ramp_end_frame = 15
+    discontinuity = "absolute-timeline"
+    maximum_automation_points = 2
+    maximum_retained_samples = 0
+    maximum_frames = 16
+}
+node inspect : conduit.media/audio-frame/inspect
+node output : display/text
+
+cord source.frame -> gain.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord gain.frame -> inspect.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -299,6 +299,7 @@
       {"id":"panel-reuse","title":"Reuse a panel without copying","lesson_id":"panels.reuse-without-copying","tags":["panel","reuse"]},
       {"id":"typed-text","title":"Format typed text","lesson_id":"library.typed-text-format","tags":["text","format"]},
       {"id":"media-codecs","title":"Use exact PCM and WAVE operations","lesson_id":"library.bounded-media-codecs","tags":["media","codec"]},
+      {"id":"audio-processing","title":"Build a bounded standing audio patch","lesson_id":"library.bounded-audio-processing","tags":["media","audio","mix","meter","standing"]},
       {"id":"spatial-data","title":"Turn bounded scans into exact maps","lesson_id":"library.bounded-spatial-data","tags":["spatial","scan","trajectory","map"]},
       {"id":"inference","title":"Run bounded learned inference","lesson_id":"library.bounded-learned-inference","tags":["model","inference"]},
       {"id":"retrieval","title":"Retrieve knowledge with source revisions","lesson_id":"library.bounded-knowledge-retrieval","tags":["knowledge","citation"]},

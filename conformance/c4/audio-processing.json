@@ -1,0 +1,59 @@
+{
+  "schema": "conduit.audio-processing-conformance",
+  "schema_version": 0,
+  "numeric_profile": "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact",
+  "limits": {
+    "maximum_inputs": 2,
+    "maximum_channels": 2,
+    "maximum_frames_per_value": 32,
+    "maximum_samples_per_value": 64,
+    "maximum_automation_points": 2,
+    "maximum_gain_retained_samples": 0,
+    "maximum_meter_side_outputs": 1,
+    "maximum_work_per_step": 256,
+    "maximum_resampler_history_frames": 0,
+    "resampler_group_delay_frames": 0
+  },
+  "contracts": [
+    "conduit.media/audio/tee",
+    "conduit.media/audio/mix",
+    "conduit.media/audio/gain",
+    "conduit.media/audio/channel-map",
+    "conduit.media/audio/resample",
+    "conduit.media/audio/trim",
+    "conduit.media/audio/meter",
+    "conduit.media/audio/from-control"
+  ],
+  "positive_cases": [
+    "silence",
+    "one-signal-plus-explicit-silence",
+    "two-input-exact-alignment",
+    "many-values-standing-stream",
+    "clipping-and-headroom",
+    "gain-ramp-across-chunk-boundary",
+    "named-downmix-upmix-and-order-swap",
+    "equivalent-chunk-normalization",
+    "resampler-zero-history-flush",
+    "trim-half-open-rounding",
+    "trim-open-ended",
+    "meter-window-cadence",
+    "standing-clock-control-mix-gain-resample-meter",
+    "explicit-cancellation",
+    "reference-optimized-zero-tolerance"
+  ],
+  "negative_cases": [
+    {"id":"late-or-missing-mix-input","reason":"CND-AUDIO-004"},
+    {"id":"sample-rate-mismatch","reason":"CND-AUDIO-005"},
+    {"id":"channel-order-mismatch","reason":"CND-AUDIO-006"},
+    {"id":"implicit-channel-count-conversion","reason":"CND-AUDIO-006"},
+    {"id":"unsupported-f32-or-nan-denormal-profile","reason":"CND-AUDIO-005"},
+    {"id":"unsupported-rate-or-quality-profile","reason":"CND-AUDIO-005"},
+    {"id":"drift-or-discontinuity","reason":"CND-AUDIO-008"},
+    {"id":"sample-frame-work-or-output-overflow","reason":"CND-AUDIO-002"},
+    {"id":"cord-pressure","reason":"CND-AUDIO-009","runtime_reason":"CND-RUN-004"},
+    {"id":"cancelled-retained-state","reason":"CND-AUDIO-010"},
+    {"id":"terminal-with-undeclared-retained-sample","reason":"CND-AUDIO-011"},
+    {"id":"unavailable-provider","reason":"CND-IMP-001"},
+    {"id":"real-time-claim-without-admission-evidence","reason":"unsupported"}
+  ]
+}

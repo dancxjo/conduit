@@ -277,6 +277,9 @@ containment program is tracked by
   defines explicit bounded frames, transforms, stamped values, clock
   conversion, uncertainty, calibration, lookup, interpolation, and projection
   without an ambient world or framework identity.
+- [`075-bounded-audio-processing.md`](075-bounded-audio-processing.md) defines
+  exact bounded PCM mix, gain/ramp, named channel matrices, resample,
+  trim/fade, meter side output, and their standing clock/control composition.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.
