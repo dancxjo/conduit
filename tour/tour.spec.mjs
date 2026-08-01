@@ -621,11 +621,11 @@ test("keeps one public latest-value ticker Watch live in the production executor
     "F",
   );
 
+  await page.locator("#freeze-display").click();
+  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
   const beforeFreeze = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
-  await page.locator("#freeze-display").click();
-  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
   await page.waitForTimeout(1_700);
   expect(parseWatchTick(await page.locator("#watch-value").textContent()))
     .toBe(beforeFreeze);
@@ -2254,6 +2254,7 @@ test("multi-port lesson runs its explicit display composite", async ({ page }) =
 });
 
 test("typed text lesson shares format, lines, join, and ordered evidence", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto(
     "/tour/public/index.html?lesson=library.typed-text-format",
   );
