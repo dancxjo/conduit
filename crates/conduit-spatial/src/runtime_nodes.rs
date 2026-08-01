@@ -658,7 +658,7 @@ fn read_frame(cursor: &mut Cursor<'_>) -> Result<FrameIdentity, SpatialReason> {
     Ok(frame)
 }
 
-fn encode_transform(value: &Transform3) -> Result<Vec<u8>, SpatialReason> {
+pub(crate) fn encode_transform(value: &Transform3) -> Result<Vec<u8>, SpatialReason> {
     let mut bytes = b"CST0".to_vec();
     push_frame(&mut bytes, &value.source)?;
     push_frame(&mut bytes, &value.target)?;
@@ -683,7 +683,7 @@ fn encode_transform(value: &Transform3) -> Result<Vec<u8>, SpatialReason> {
     Ok(bytes)
 }
 
-fn decode_transform(bytes: &[u8]) -> Result<Transform3, SpatialReason> {
+pub(crate) fn decode_transform(bytes: &[u8]) -> Result<Transform3, SpatialReason> {
     let mut cursor = Cursor::new(bytes, b"CST0")?;
     let source = read_frame(&mut cursor)?;
     let target = read_frame(&mut cursor)?;

@@ -4,7 +4,10 @@ use std::process::{Command, Stdio};
 
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_runtime::{AvailabilityState, Registry};
-use conduit_spatial::{register_deterministic_spatial_provider, register_spatial_contracts};
+use conduit_spatial::{
+    register_deterministic_spatial_data_provider, register_deterministic_spatial_provider,
+    register_spatial_contracts, register_spatial_data_contracts,
+};
 
 fn workspace_file(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -179,5 +182,72 @@ fn spatial_contracts_remain_domain_specific() {
     assert!(
         !ids.iter()
             .any(|id| id.starts_with("robot/") || id.starts_with("speech/"))
+    );
+}
+
+#[test]
+fn exact_bounded_scan_transform_and_grid_run_through_the_production_executor() {
+    let source = include_str!("../../../examples/spatial-scan-grid.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_spatial_provider(&mut registry).unwrap();
+    register_deterministic_spatial_data_provider(&mut registry).unwrap();
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    for (contract, implementation, artifact) in [
+        (
+            "spatial/scan/fixture",
+            "conduit.spatial/scan-fixture",
+            "conduit.spatial/scan-fixture-artifact",
+        ),
+        (
+            "spatial/scan/transform",
+            "conduit.spatial/scan-transform-reference",
+            "conduit.spatial/scan-transform-reference-artifact",
+        ),
+        (
+            "spatial/grid/from-scan",
+            "conduit.spatial/grid-from-scan-reference",
+            "conduit.spatial/grid-from-scan-reference-artifact",
+        ),
+    ] {
+        let node = document
+            .nodes
+            .iter()
+            .find(|node| node.contract.id == contract)
+            .unwrap();
+        assert_eq!(node.implementation.id, implementation);
+        assert_eq!(node.artifact, artifact);
+    }
+    let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .arg(workspace_file("examples/spatial-scan-grid.panel"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        "spatial:grid:map:2x2:occupied=2:coverage=complete"
+    );
+}
+
+#[test]
+fn transform_only_host_remains_conforming_without_scan_or_map_provider() {
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_spatial_provider(&mut registry).unwrap();
+    register_spatial_data_contracts(&mut registry);
+    assert_eq!(
+        registry.node_availability("spatial/transform/apply").state,
+        AvailabilityState::ProviderAvailable
+    );
+    assert_eq!(
+        registry.node_availability("spatial/scan/fixture").state,
+        AvailabilityState::ContractOnly
+    );
+    assert_eq!(
+        registry.node_availability("spatial/grid/from-scan").state,
+        AvailabilityState::ContractOnly
     );
 }

@@ -2359,6 +2359,60 @@ test("PCM WAVE lesson runs exact codec and container providers", async ({ page }
   );
 });
 
+test("bounded spatial data runs standalone and composed exact plans", async ({ page }) => {
+  await page.goto(
+    "/tour/public/index.html?lesson=library.bounded-spatial-data",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+
+  await expect(story).toBeVisible();
+  for (const contract of [
+    "spatial/scan/fixture",
+    "spatial/scan/transform",
+    "spatial/grid/from-scan",
+    "spatial/grid/inspect",
+    "spatial/trajectory/fixture",
+    "spatial/trajectory/inspect",
+  ]) {
+    await expect(story).toContainText(contract);
+  }
+  await expect(page.locator("#runnability-state")).toContainText(
+    "runnable · browser",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "spatial:grid:map:2x2:occupied=2:coverage=complete",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#evidence")).toContainText(
+    '"event_kind": "terminal"',
+  );
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+
+  await page.locator("#scenario").selectOption("spatial-grid-standalone");
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "spatial:grid:sensor:2x2:occupied=2:coverage=complete",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator('[data-id="grid"]')).toContainText(
+    "spatial/grid/from-scan",
+  );
+
+  await page.locator("#scenario").selectOption(
+    "spatial-trajectory-text-composition",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "SPATIAL:TRAJECTORY:MAP:2:CLOCK/FIXTURE:LINEAR-Q30-SHORTEST",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator('[data-id="trajectory"]')).toContainText(
+    "spatial/trajectory/fixture",
+  );
+});
+
 test("learned inference lesson keeps model runtime and device identities exact", async ({ page }) => {
   await page.goto(
     "/tour/public/index.html?lesson=library.bounded-learned-inference",

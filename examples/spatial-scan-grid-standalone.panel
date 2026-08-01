@@ -1,0 +1,26 @@
+panel 0
+
+node scan : spatial/scan/fixture {
+  scan_schema_identity = "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+  scan_schema_version = 0
+  snapshot_identity = "sha256:a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
+  representation_identity = "sha256:a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4"
+  provider_identity = "sha256:a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6"
+  provenance_identity = "sha256:a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"
+  frame = "sensor" unit = "um" clock = "clock/fixture" tick = 10 valid_until_tick = 20
+  calibration_identity = "sha256:5151515151515151515151515151515151515151515151515151515151515151"
+  maximum_points = 8 maximum_chunks = 2 maximum_bytes = 4096 maximum_work = 128
+}
+node grid : spatial/grid/from-scan {
+  grid_schema_identity = "sha256:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2"
+  snapshot_identity = "sha256:a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
+  representation_identity = "sha256:a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4"
+  width = 2 height = 2 resolution_um = 1000 maximum_grid_cells = 16
+  maximum_points = 8 maximum_bytes = 4096 maximum_work = 128
+}
+node inspect : spatial/grid/inspect
+node output : display/text
+
+cord scan.scan -> grid.scan { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord grid.grid -> inspect.grid { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
