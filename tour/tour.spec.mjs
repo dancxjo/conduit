@@ -61,29 +61,43 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
       });
       const sessionId = opened.value?.session_id;
       const started = await request("patchbay-start-exact-run", { sessionId });
+      const runIdentity = {
+        runId: started.value?.run_id,
+        sourceRevision: started.value?.source_revision,
+        planIdentity: started.value?.plan_identity,
+      };
       const watchId = started.value?.view?.plan?.watch_admissions?.[0]?.id;
       const attachedWatch = await request("patchbay-attach-exact-watch", {
         sessionId,
+        ...runIdentity,
         watchId,
       });
-      const pumped = await request("patchbay-pump-exact-run", { sessionId, quantum: 1 });
+      const pumped = await request("patchbay-pump-exact-run", {
+        sessionId,
+        ...runIdentity,
+        quantum: 1,
+      });
       const watch = await request("patchbay-read-exact-watch", {
         sessionId,
+        ...runIdentity,
         watchId,
         cursor: 0,
         maximumRecords: 1,
       });
       const detachedWatch = await request("patchbay-detach-exact-watch", {
         sessionId,
+        ...runIdentity,
         watchId,
       });
       const evidence = await request("patchbay-read-exact-evidence", {
         sessionId,
+        ...runIdentity,
         cursor: 0,
         maximumEvents: 1,
       });
       const repeatedEvidence = await request("patchbay-read-exact-evidence", {
         sessionId,
+        ...runIdentity,
         cursor: 0,
         maximumEvents: 1,
       });
@@ -100,18 +114,32 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
       const activeAfterCandidate = await request("patchbay-session-view", { sessionId });
       const malformed = await request("patchbay-notify-host-operation", {
         sessionId,
+        ...runIdentity,
         subject: "not an exact host operation",
       });
       const unrelated = await request("patchbay-notify-host-operation", {
         sessionId,
+        ...runIdentity,
         subject: "conduit/unrelated-host-operation",
+      });
+      const stale = await request("patchbay-pump-exact-run", {
+        sessionId,
+        ...runIdentity,
+        sourceRevision: runIdentity.sourceRevision + 1,
+        quantum: 1,
+      });
+      const snapshot = await request("patchbay-snapshot-exact-run", {
+        sessionId,
+        ...runIdentity,
       });
       const cancelled = await request("patchbay-cancel-exact-run", {
         sessionId,
+        ...runIdentity,
         disposition: "abort",
       });
       const terminalEvidence = await request("patchbay-read-exact-evidence", {
         sessionId,
+        ...runIdentity,
         cursor: 0,
         maximumEvents: 256,
       });
@@ -120,6 +148,10 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         { sessionId, cursor: terminalEvidence.value?.next_cursor ?? 0 },
       );
       const viewed = await request("patchbay-session-view", { sessionId });
+      const disposed = await request("patchbay-dispose-exact-run", {
+        sessionId,
+        ...runIdentity,
+      });
       return {
         configured,
         opened,
@@ -134,10 +166,13 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         activeAfterCandidate,
         malformed,
         unrelated,
+        stale,
+        snapshot,
         cancelled,
         terminalEvidence,
         presentationAcknowledge,
         viewed,
+        disposed,
       };
     } finally {
       worker.terminate();
@@ -190,6 +225,13 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   });
   expect(result.malformed.value).toMatchObject({ ok: false, code: "CND-PBY-012" });
   expect(result.unrelated.value).toMatchObject({ ok: true, state: "active" });
+  expect(result.stale.value).toMatchObject({ ok: false, code: "CND-PBY-016" });
+  expect(result.snapshot.value).toMatchObject({
+    ok: true,
+    run_id: result.started.value.run_id,
+    source_revision: result.started.value.source_revision,
+    plan_identity: result.started.value.plan_identity,
+  });
   expect(result.cancelled.value).toMatchObject({ ok: true, state: "cancelled" });
   expect(result.terminalEvidence.value).toMatchObject({
     ok: true,
@@ -204,6 +246,11 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
     code: "unsupported-operation",
   });
   expect(result.viewed.value.view.run.state).toBe("Terminal");
+  expect(result.disposed.value).toMatchObject({
+    ok: true,
+    disposed_run_id: result.started.value.run_id,
+  });
+  expect(result.disposed.value.view.run).toBeUndefined();
 });
 
 test("keeps one public latest-value ticker Watch live in the production executor", async ({

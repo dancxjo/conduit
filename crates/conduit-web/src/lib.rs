@@ -69,6 +69,7 @@ struct ExactBrowserResult {
 struct BrowserExactRun {
     plan: conduit_patchbay::PlanSnapshot,
     run_id: String,
+    source_revision: u64,
     node_count: usize,
     cord_count: usize,
     session: Option<ExactHostedRunSession>,
@@ -1265,6 +1266,7 @@ fn start_browser_exact_run(
     let mut run = BrowserExactRun {
         plan: plan_snapshot,
         run_id,
+        source_revision,
         node_count,
         cord_count,
         session: Some(session),
@@ -1364,6 +1366,38 @@ pub fn patchbay_session_view(session_id: String) -> String {
     })
 }
 
+/// Returns one bounded authoritative recovery snapshot for an exact run.
+/// Callers use this after an evidence or Watch cursor gap; the snapshot names
+/// the retained cursor windows but does not replay unbounded history.
+#[wasm_bindgen]
+pub fn patchbay_snapshot_exact_run(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let sessions = sessions.borrow();
+        let Some(session) = sessions.get(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_ref() else {
+            return browser_run_result(session);
+        };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
+        browser_run_result(session)
+    })
+}
+
 fn browser_run_state_name(state: ExactRunState) -> &'static str {
     match state {
         ExactRunState::Active => "active",
@@ -1374,6 +1408,32 @@ fn browser_run_state_name(state: ExactRunState) -> &'static str {
         ExactRunState::Terminal(TerminalClass::Cancelled) => "cancelled",
         ExactRunState::Terminal(TerminalClass::Disconnected) => "disconnected",
         ExactRunState::Terminal(TerminalClass::Failed) => "failed",
+    }
+}
+
+fn validate_browser_run_identity(
+    run: &BrowserExactRun,
+    run_id: &str,
+    source_revision: u64,
+    plan_identity: &str,
+) -> Result<(), String> {
+    if run.run_id == run_id
+        && run.source_revision == source_revision
+        && run.plan.identity == plan_identity
+    {
+        Ok(())
+    } else {
+        Err(serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-016",
+            "diagnostic": "stale exact-run identity",
+            "expected": {
+                "run_id": run.run_id,
+                "source_revision": run.source_revision,
+                "plan_identity": run.plan.identity,
+            },
+        })
+        .to_string())
     }
 }
 
@@ -1437,6 +1497,7 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
         Ok(view) => serde_json::json!({
             "ok": true,
             "run_id": run.run_id,
+            "source_revision": run.source_revision,
             "plan_identity": run.plan.identity,
             "source_semantic_hash": run.plan.source_semantic_hash,
             "state": browser_run_state_name(state),
@@ -1505,7 +1566,13 @@ pub fn patchbay_start_exact_run(session_id: String) -> String {
 
 /// Runs one bounded cooperative turn of the active browser-worker exact run.
 #[wasm_bindgen]
-pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
+pub fn patchbay_pump_exact_run(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    quantum: u64,
+) -> String {
     if quantum == 0 || quantum > MAXIMUM_BROWSER_RUN_PUMP_DECISIONS {
         return serde_json::json!({
             "ok": false,
@@ -1527,6 +1594,11 @@ pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
         let Some(run) = session.run.as_mut() else {
             return browser_run_result(session);
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         let Some(exact_session) = run.session.as_mut() else {
             return browser_run_result(session);
         };
@@ -1565,6 +1637,9 @@ pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
 #[wasm_bindgen]
 pub fn patchbay_read_exact_evidence(
     session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
     cursor: u64,
     maximum_events: u32,
 ) -> String {
@@ -1589,6 +1664,11 @@ pub fn patchbay_read_exact_evidence(
         let Some(run) = session.run.as_ref() else {
             return browser_run_result(session);
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         match browser_exact_evidence_delta(run, cursor, maximum_events) {
             Ok(batch) => serde_json::json!({
                 "ok": true,
@@ -1612,7 +1692,13 @@ pub fn patchbay_read_exact_evidence(
 /// Attaches one slot already admitted by the active exact plan. This changes
 /// observation control only; source and plan identities remain pinned.
 #[wasm_bindgen]
-pub fn patchbay_attach_exact_watch(session_id: String, watch_id: String) -> String {
+pub fn patchbay_attach_exact_watch(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    watch_id: String,
+) -> String {
     if watch_id.is_empty() || watch_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
         return serde_json::json!({
             "ok": false,
@@ -1639,6 +1725,11 @@ pub fn patchbay_attach_exact_watch(session_id: String, watch_id: String) -> Stri
             })
             .to_string();
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         let Some(exact_session) = run.session.as_mut() else {
             return serde_json::json!({
                 "ok": false,
@@ -1670,7 +1761,13 @@ pub fn patchbay_attach_exact_watch(session_id: String, watch_id: String) -> Stri
 
 /// Detaches one active Watch while preserving its bounded retained window.
 #[wasm_bindgen]
-pub fn patchbay_detach_exact_watch(session_id: String, watch_id: String) -> String {
+pub fn patchbay_detach_exact_watch(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    watch_id: String,
+) -> String {
     PATCHBAY_SESSIONS.with(|sessions| {
         let mut sessions = sessions.borrow_mut();
         let Some(session) = sessions.get_mut(&session_id) else {
@@ -1689,6 +1786,11 @@ pub fn patchbay_detach_exact_watch(session_id: String, watch_id: String) -> Stri
             })
             .to_string();
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         let Some(exact_session) = run.session.as_mut() else {
             return serde_json::json!({
                 "ok": false,
@@ -1724,6 +1826,9 @@ pub fn patchbay_detach_exact_watch(session_id: String, watch_id: String) -> Stri
 #[wasm_bindgen]
 pub fn patchbay_read_exact_watch(
     session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
     watch_id: String,
     cursor: u64,
     maximum_records: u32,
@@ -1754,6 +1859,11 @@ pub fn patchbay_read_exact_watch(
             })
             .to_string();
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         match browser_watch_delta(run, &watch_id, cursor, maximum_records) {
             Ok(batch) => serde_json::json!({
                 "ok": true,
@@ -1784,7 +1894,13 @@ pub fn patchbay_read_exact_watch(
 /// Advances deterministic browser-host time to an exact pending deadline.
 /// It is an explicit host wake, not a JavaScript executor or clock jump.
 #[wasm_bindgen]
-pub fn patchbay_advance_exact_run(session_id: String, tick: u64) -> String {
+pub fn patchbay_advance_exact_run(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    tick: u64,
+) -> String {
     PATCHBAY_SESSIONS.with(|sessions| {
         let mut sessions = sessions.borrow_mut();
         let Some(session) = sessions.get_mut(&session_id) else {
@@ -1798,6 +1914,11 @@ pub fn patchbay_advance_exact_run(session_id: String, tick: u64) -> String {
         let Some(run) = session.run.as_mut() else {
             return browser_run_result(session);
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         let Some(exact_session) = run.session.as_mut() else {
             return browser_run_result(session);
         };
@@ -1834,7 +1955,13 @@ pub fn patchbay_advance_exact_run(session_id: String, tick: u64) -> String {
 /// The supplied subject is validated but never retained by the bridge; only an
 /// already registered exact wait can become runnable.
 #[wasm_bindgen]
-pub fn patchbay_notify_host_operation(session_id: String, subject: String) -> String {
+pub fn patchbay_notify_host_operation(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    subject: String,
+) -> String {
     if subject.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
         return serde_json::json!({
             "ok": false,
@@ -1867,6 +1994,11 @@ pub fn patchbay_notify_host_operation(session_id: String, subject: String) -> St
         let Some(run) = session.run.as_mut() else {
             return browser_run_result(session);
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         let Some(exact_session) = run.session.as_mut() else {
             return browser_run_result(session);
         };
@@ -1901,7 +2033,13 @@ pub fn patchbay_notify_host_operation(session_id: String, subject: String) -> St
 /// Requests the exact plan-visible stop disposition for the active browser
 /// run. `drain` and `abort` stay distinct through the shared runtime session.
 #[wasm_bindgen]
-pub fn patchbay_cancel_exact_run(session_id: String, disposition: String) -> String {
+pub fn patchbay_cancel_exact_run(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    disposition: String,
+) -> String {
     let stop = match disposition.as_str() {
         "drain" => conduit_core::StopPolicy::Drain,
         "abort" => conduit_core::StopPolicy::Abort,
@@ -1927,6 +2065,11 @@ pub fn patchbay_cancel_exact_run(session_id: String, disposition: String) -> Str
         let Some(run) = session.run.as_mut() else {
             return browser_run_result(session);
         };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
         let Some(exact_session) = run.session.as_mut() else {
             return browser_run_result(session);
         };
@@ -1955,6 +2098,55 @@ pub fn patchbay_cancel_exact_run(session_id: String, disposition: String) -> Str
             .to_string();
         }
         browser_run_result(session)
+    })
+}
+
+/// Releases one terminal exact run while retaining its authoring workspace.
+/// Live, waiting, quiescing, and aborting runs must first reach a terminal
+/// state through the production executor.
+#[wasm_bindgen]
+pub fn patchbay_dispose_exact_run(
+    session_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_ref() else {
+            return browser_run_result(session);
+        };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
+        if !matches!(browser_run_state(run), ExactRunState::Terminal(_)) {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "cannot dispose a nonterminal exact run",
+            })
+            .to_string();
+        }
+        session.run = None;
+        match browser_session_view(session) {
+            Ok(view) => serde_json::json!({
+                "ok": true,
+                "disposed_run_id": run_id,
+                "view": view,
+            })
+            .to_string(),
+            Err(error) => patchbay_rejection(error, &session.workspace),
+        }
     })
 }
 
@@ -4057,13 +4249,46 @@ mod tests {
     use super::{
         browser_watch_observation, explain_panel, panel_language_metadata, panel_source_metadata,
         patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
-        patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_move_node,
-        patchbay_notify_host_operation, patchbay_open_session, patchbay_pump_exact_run,
-        patchbay_read_exact_evidence, patchbay_read_exact_watch, patchbay_replace_source,
-        patchbay_session_view, patchbay_start_exact_run,
+        patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_dispose_exact_run,
+        patchbay_move_node, patchbay_notify_host_operation, patchbay_open_session,
+        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
+        patchbay_replace_source, patchbay_session_view, patchbay_snapshot_exact_run,
+        patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
+
+    #[derive(Clone)]
+    struct TestRunBinding {
+        run_id: String,
+        source_revision: u64,
+        plan_identity: String,
+    }
+
+    fn test_run_binding(started: &Value) -> TestRunBinding {
+        TestRunBinding {
+            run_id: started["run_id"].as_str().expect("run identity").to_owned(),
+            source_revision: started["source_revision"]
+                .as_u64()
+                .expect("source revision"),
+            plan_identity: started["plan_identity"]
+                .as_str()
+                .expect("plan identity")
+                .to_owned(),
+        }
+    }
+
+    macro_rules! bound_run {
+        ($function:ident, $session:expr, $binding:expr $(, $argument:expr)* $(,)?) => {
+            $function(
+                $session.to_owned(),
+                $binding.run_id.clone(),
+                $binding.source_revision,
+                $binding.plan_identity.clone()
+                $(, $argument)*
+            )
+        };
+    }
 
     fn watch_observation(
         representation_id: &str,
@@ -4536,11 +4761,17 @@ cord output.value -> sink.result\n\
         assert_eq!(started["ok"], true, "{started}");
         assert_eq!(started["state"], "active");
         assert_eq!(started["view"]["run"]["state"], "Active");
+        let binding = test_run_binding(&started);
         let active_plan_source = started["source_semantic_hash"].clone();
 
-        let evidence: Value =
-            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 1))
-                .expect("evidence JSON");
+        let evidence: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_evidence,
+            session_id,
+            binding,
+            0,
+            1
+        ))
+        .expect("evidence JSON");
         assert_eq!(evidence["ok"], true, "{evidence}");
         assert_eq!(evidence["status"]["kind"], "available");
         assert!(
@@ -4548,21 +4779,30 @@ cord output.value -> sink.result\n\
                 .as_array()
                 .is_some_and(|records| records.len() <= 1)
         );
-        let repeated: Value =
-            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 1))
-                .expect("repeated evidence JSON");
+        let repeated: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_evidence,
+            session_id,
+            binding,
+            0,
+            1
+        ))
+        .expect("repeated evidence JSON");
         assert_eq!(repeated, evidence);
 
-        let malformed_wake: Value = serde_json::from_str(&patchbay_notify_host_operation(
-            session_id.to_owned(),
+        let malformed_wake: Value = serde_json::from_str(&bound_run!(
+            patchbay_notify_host_operation,
+            session_id,
+            binding,
             "Not an exact host operation".to_owned(),
         ))
         .expect("malformed wake JSON");
         assert_eq!(malformed_wake["ok"], false);
         assert_eq!(malformed_wake["code"], "CND-PBY-012");
 
-        let unrelated_wake: Value = serde_json::from_str(&patchbay_notify_host_operation(
-            session_id.to_owned(),
+        let unrelated_wake: Value = serde_json::from_str(&bound_run!(
+            patchbay_notify_host_operation,
+            session_id,
+            binding,
             "conduit/unrelated-host-operation".to_owned(),
         ))
         .expect("unrelated wake JSON");
@@ -4600,8 +4840,31 @@ cord output.value -> sink.result\n\
         assert!(view["view"]["source"].get("semantic_hash").is_none());
         assert_eq!(view["view"]["run"]["state"], "Active");
 
-        let cancelled: Value = serde_json::from_str(&patchbay_cancel_exact_run(
+        let stale: Value = serde_json::from_str(&patchbay_pump_exact_run(
             session_id.to_owned(),
+            binding.run_id.clone(),
+            binding.source_revision + 1,
+            binding.plan_identity.clone(),
+            1,
+        ))
+        .expect("stale control JSON");
+        assert_eq!(stale["ok"], false, "{stale}");
+        assert_eq!(stale["code"], "CND-PBY-016");
+
+        let snapshot: Value = serde_json::from_str(&bound_run!(
+            patchbay_snapshot_exact_run,
+            session_id,
+            binding
+        ))
+        .expect("recovery snapshot JSON");
+        assert_eq!(snapshot["ok"], true, "{snapshot}");
+        assert_eq!(snapshot["state"], "active");
+        assert_eq!(snapshot["run_id"], binding.run_id);
+
+        let cancelled: Value = serde_json::from_str(&bound_run!(
+            patchbay_cancel_exact_run,
+            session_id,
+            binding,
             "abort".to_owned(),
         ))
         .expect("cancel JSON");
@@ -4609,15 +4872,45 @@ cord output.value -> sink.result\n\
         assert_eq!(cancelled["state"], "cancelled");
         assert_eq!(cancelled["view"]["run"]["state"], "Terminal");
 
-        let terminal_evidence: Value =
-            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 1))
-                .expect("terminal evidence JSON");
+        let terminal_evidence: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_evidence,
+            session_id,
+            binding,
+            0,
+            1
+        ))
+        .expect("terminal evidence JSON");
         assert_eq!(terminal_evidence["ok"], true, "{terminal_evidence}");
         assert_eq!(terminal_evidence["status"]["kind"], "available");
         assert_eq!(
             terminal_evidence["records"].as_array().map(Vec::len),
             Some(1)
         );
+
+        let disposed: Value =
+            serde_json::from_str(&bound_run!(patchbay_dispose_exact_run, session_id, binding))
+                .expect("dispose JSON");
+        assert_eq!(disposed["ok"], true, "{disposed}");
+        assert!(disposed["view"]["run"].is_null(), "{disposed}");
+    }
+
+    #[test]
+    fn browser_patchbay_session_capacity_is_finite() {
+        for index in 0..super::MAXIMUM_PATCHBAY_SESSIONS {
+            let opened: Value = serde_json::from_str(&patchbay_open_session(
+                format!("test/browser-session-capacity/{index}"),
+                SOURCE.to_owned(),
+            ))
+            .expect("session capacity JSON");
+            assert_eq!(opened["ok"], true, "{opened}");
+        }
+        let rejected: Value = serde_json::from_str(&patchbay_open_session(
+            "test/browser-session-capacity/overflow".to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("session overflow JSON");
+        assert_eq!(rejected["ok"], false, "{rejected}");
+        assert_eq!(rejected["code"], "CND-PBY-006");
     }
 
     #[test]
@@ -4633,6 +4926,7 @@ cord output.value -> sink.result\n\
         let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
             .expect("start JSON");
         assert_eq!(started["ok"], true, "{started}");
+        let binding = test_run_binding(&started);
         let plan_identity = started["plan_identity"].clone();
         let source_identity = started["source_semantic_hash"].clone();
         let admission = &started["view"]["plan"]["watch_admissions"][0];
@@ -4641,16 +4935,20 @@ cord output.value -> sink.result\n\
         assert_eq!(admission["sensitivity_ceiling"], "public");
         let watch_id = admission["id"].as_str().expect("Watch identity");
 
-        let capacity_rejected: Value = serde_json::from_str(&patchbay_attach_exact_watch(
-            session_id.to_owned(),
+        let capacity_rejected: Value = serde_json::from_str(&bound_run!(
+            patchbay_attach_exact_watch,
+            session_id,
+            binding,
             "watch/not-admitted".to_owned(),
         ))
         .expect("capacity rejection JSON");
         assert_eq!(capacity_rejected["ok"], false, "{capacity_rejected}");
         assert_eq!(capacity_rejected["code"], "CND-WAT-002");
 
-        let attached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
-            session_id.to_owned(),
+        let attached: Value = serde_json::from_str(&bound_run!(
+            patchbay_attach_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
         ))
         .expect("attach JSON");
@@ -4659,16 +4957,20 @@ cord output.value -> sink.result\n\
         assert_eq!(attached["source_semantic_hash"], source_identity);
         assert_eq!(attached["usage"]["attached_slots"], 1);
 
-        let detached: Value = serde_json::from_str(&patchbay_detach_exact_watch(
-            session_id.to_owned(),
+        let detached: Value = serde_json::from_str(&bound_run!(
+            patchbay_detach_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
         ))
         .expect("detach JSON");
         assert_eq!(detached["ok"], true, "{detached}");
         assert_eq!(detached["plan_identity"], plan_identity);
         assert_eq!(detached["usage"]["attached_slots"], 0);
-        let reattached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
-            session_id.to_owned(),
+        let reattached: Value = serde_json::from_str(&bound_run!(
+            patchbay_attach_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
         ))
         .expect("reattach JSON");
@@ -4676,8 +4978,13 @@ cord output.value -> sink.result\n\
 
         let mut pumped: Value = serde_json::json!({"state": "active"});
         for _ in 0..8 {
-            pumped = serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 64))
-                .expect("pump JSON");
+            pumped = serde_json::from_str(&bound_run!(
+                patchbay_pump_exact_run,
+                session_id,
+                binding,
+                64
+            ))
+            .expect("pump JSON");
             assert_eq!(pumped["ok"], true, "{pumped}");
             if pumped["state"] != "active" {
                 break;
@@ -4685,8 +4992,10 @@ cord output.value -> sink.result\n\
         }
         assert_eq!(pumped["state"], "succeeded", "{pumped}");
 
-        let watched: Value = serde_json::from_str(&patchbay_read_exact_watch(
-            session_id.to_owned(),
+        let watched: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
             0,
             1,
@@ -4749,6 +5058,7 @@ cord clock.tick -> drain.item {
         let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
             .expect("start JSON");
         assert_eq!(started["ok"], true, "{started}");
+        let binding = test_run_binding(&started);
         let run_id = started["run_id"].clone();
         let plan_identity = started["plan_identity"].clone();
         let source_identity = started["source_semantic_hash"].clone();
@@ -4758,8 +5068,10 @@ cord clock.tick -> drain.item {
         assert_eq!(admission["sensitivity_ceiling"], "public");
         let watch_id = admission["id"].as_str().expect("Watch identity");
 
-        let attached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
-            session_id.to_owned(),
+        let attached: Value = serde_json::from_str(&bound_run!(
+            patchbay_attach_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
         ))
         .expect("attach JSON");
@@ -4769,9 +5081,13 @@ cord clock.tick -> drain.item {
         // Latest-only retention replaces isolated preview storage and reports
         // one deterministic cursor gap when the reader catches up.
         for expected_tick in 0..8_u64 {
-            let pumped: Value =
-                serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 256))
-                    .expect("pump JSON");
+            let pumped: Value = serde_json::from_str(&bound_run!(
+                patchbay_pump_exact_run,
+                session_id,
+                binding,
+                256
+            ))
+            .expect("pump JSON");
             assert_eq!(pumped["ok"], true, "{pumped}");
             assert_eq!(pumped["state"], "waiting", "{pumped}");
             assert!(pumped["terminal"].is_null(), "{pumped}");
@@ -4797,15 +5113,21 @@ cord clock.tick -> drain.item {
                 .as_u64()
                 .expect("pending exact timer deadline");
             assert_eq!(deadline, (expected_tick + 1) * 11);
-            let advanced: Value =
-                serde_json::from_str(&patchbay_advance_exact_run(session_id.to_owned(), deadline))
-                    .expect("advance JSON");
+            let advanced: Value = serde_json::from_str(&bound_run!(
+                patchbay_advance_exact_run,
+                session_id,
+                binding,
+                deadline
+            ))
+            .expect("advance JSON");
             assert_eq!(advanced["ok"], true, "{advanced}");
             assert_eq!(advanced["run_id"], run_id);
         }
 
-        let caught_up: Value = serde_json::from_str(&patchbay_read_exact_watch(
-            session_id.to_owned(),
+        let caught_up: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
             0,
             1,
@@ -4820,29 +5142,39 @@ cord clock.tick -> drain.item {
 
         // The executor is Waiting here. Instrument control remains legal and
         // detaching preserves the already copied latest preview.
-        let detached: Value = serde_json::from_str(&patchbay_detach_exact_watch(
-            session_id.to_owned(),
+        let detached: Value = serde_json::from_str(&bound_run!(
+            patchbay_detach_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
         ))
         .expect("waiting detach JSON");
         assert_eq!(detached["ok"], true, "{detached}");
         assert_eq!(detached["usage"]["retained_observations"], 1);
-        let reattached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
-            session_id.to_owned(),
+        let reattached: Value = serde_json::from_str(&bound_run!(
+            patchbay_attach_exact_watch,
+            session_id,
+            binding,
             watch_id.to_owned(),
         ))
         .expect("waiting reattach JSON");
         assert_eq!(reattached["ok"], true, "{reattached}");
 
         for expected_tick in 8..80_u64 {
-            let pumped: Value =
-                serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 256))
-                    .expect("pump JSON");
+            let pumped: Value = serde_json::from_str(&bound_run!(
+                patchbay_pump_exact_run,
+                session_id,
+                binding,
+                256
+            ))
+            .expect("pump JSON");
             assert_eq!(pumped["ok"], true, "{pumped}");
             assert_eq!(pumped["state"], "waiting", "{pumped}");
 
-            let watched: Value = serde_json::from_str(&patchbay_read_exact_watch(
-                session_id.to_owned(),
+            let watched: Value = serde_json::from_str(&bound_run!(
+                patchbay_read_exact_watch,
+                session_id,
+                binding,
                 watch_id.to_owned(),
                 cursor,
                 1,
@@ -4860,14 +5192,20 @@ cord clock.tick -> drain.item {
                 .as_u64()
                 .expect("pending exact timer deadline");
             assert_eq!(deadline, (expected_tick + 1) * 11);
-            let advanced: Value =
-                serde_json::from_str(&patchbay_advance_exact_run(session_id.to_owned(), deadline))
-                    .expect("advance JSON");
+            let advanced: Value = serde_json::from_str(&bound_run!(
+                patchbay_advance_exact_run,
+                session_id,
+                binding,
+                deadline
+            ))
+            .expect("advance JSON");
             assert_eq!(advanced["ok"], true, "{advanced}");
         }
 
-        let cancelled: Value = serde_json::from_str(&patchbay_cancel_exact_run(
-            session_id.to_owned(),
+        let cancelled: Value = serde_json::from_str(&bound_run!(
+            patchbay_cancel_exact_run,
+            session_id,
+            binding,
             "abort".to_owned(),
         ))
         .expect("cancel JSON");
@@ -4901,9 +5239,14 @@ cord clock.tick -> drain.item {
             "Patchbay projection exceeded its separate presentation bound: {cancelled}"
         );
 
-        let gap: Value =
-            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 32))
-                .expect("evidence gap JSON");
+        let gap: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_evidence,
+            session_id,
+            binding,
+            0,
+            32
+        ))
+        .expect("evidence gap JSON");
         assert_eq!(gap["ok"], true, "{gap}");
         assert_eq!(gap["status"]["kind"], "gap", "{gap}");
         let resume_at = gap["status"]["resume_at"]
@@ -4911,8 +5254,10 @@ cord clock.tick -> drain.item {
             .expect("rolling evidence gap resume cursor");
         assert!(resume_at > 0, "{gap}");
 
-        let resumed: Value = serde_json::from_str(&patchbay_read_exact_evidence(
-            session_id.to_owned(),
+        let resumed: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_evidence,
+            session_id,
+            binding,
             resume_at,
             256,
         ))

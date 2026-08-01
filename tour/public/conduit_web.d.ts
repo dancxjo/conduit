@@ -34,7 +34,7 @@ export function parse_panel(source: string): string;
  * Advances deterministic browser-host time to an exact pending deadline.
  * It is an explicit host wake, not a JavaScript executor or clock jump.
  */
-export function patchbay_advance_exact_run(session_id: string, tick: bigint): string;
+export function patchbay_advance_exact_run(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, tick: bigint): string;
 
 /**
  * Applies one typed candidate transaction against persistent session
@@ -46,18 +46,25 @@ export function patchbay_apply_transaction(session_id: string, request_json: str
  * Attaches one slot already admitted by the active exact plan. This changes
  * observation control only; source and plan identities remain pinned.
  */
-export function patchbay_attach_exact_watch(session_id: string, watch_id: string): string;
+export function patchbay_attach_exact_watch(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, watch_id: string): string;
 
 /**
  * Requests the exact plan-visible stop disposition for the active browser
  * run. `drain` and `abort` stay distinct through the shared runtime session.
  */
-export function patchbay_cancel_exact_run(session_id: string, disposition: string): string;
+export function patchbay_cancel_exact_run(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, disposition: string): string;
 
 /**
  * Detaches one active Watch while preserving its bounded retained window.
  */
-export function patchbay_detach_exact_watch(session_id: string, watch_id: string): string;
+export function patchbay_detach_exact_watch(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, watch_id: string): string;
+
+/**
+ * Releases one terminal exact run while retaining its authoring workspace.
+ * Live, waiting, quiescing, and aborting runs must first reach a terminal
+ * state through the production executor.
+ */
+export function patchbay_dispose_exact_run(session_id: string, run_id: string, source_revision: bigint, plan_identity: string): string;
 
 /**
  * Applies a presentation-only visual move through the same Patchbay protocol.
@@ -69,7 +76,7 @@ export function patchbay_move_node(source: string, node_id: string, x: number, y
  * The supplied subject is validated but never retained by the bridge; only an
  * already registered exact wait can become runnable.
  */
-export function patchbay_notify_host_operation(session_id: string, subject: string): string;
+export function patchbay_notify_host_operation(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, subject: string): string;
 
 /**
  * Opens one finite, revisioned Patchbay authoring session.
@@ -79,21 +86,21 @@ export function patchbay_open_session(document_id: string, source: string): stri
 /**
  * Runs one bounded cooperative turn of the active browser-worker exact run.
  */
-export function patchbay_pump_exact_run(session_id: string, quantum: bigint): string;
+export function patchbay_pump_exact_run(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, quantum: bigint): string;
 
 /**
  * Returns one bounded, read-only delta from the worker-owned committed
  * evidence provider. Patchbay never acknowledges or releases scheduler
  * storage and therefore cannot become the authoritative evidence store.
  */
-export function patchbay_read_exact_evidence(session_id: string, cursor: bigint, maximum_events: number): string;
+export function patchbay_read_exact_evidence(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, cursor: bigint, maximum_events: number): string;
 
 /**
  * Reads one bounded Watch delta from a live session or its final retained
  * window. Binary bytes remain bytes; only the exact `std/text`
  * representation receives a UTF-8 text projection.
  */
-export function patchbay_read_exact_watch(session_id: string, watch_id: string, cursor: bigint, maximum_records: number): string;
+export function patchbay_read_exact_watch(session_id: string, run_id: string, source_revision: bigint, plan_identity: string, watch_id: string, cursor: bigint, maximum_records: number): string;
 
 /**
  * Applies a source transaction through the production Patchbay protocol.
@@ -105,6 +112,13 @@ export function patchbay_replace_source(source: string, replacement: string): st
  * Returns the current authoritative Rust projection for a Patchbay session.
  */
 export function patchbay_session_view(session_id: string): string;
+
+/**
+ * Returns one bounded authoritative recovery snapshot for an exact run.
+ * Callers use this after an evidence or Watch cursor gap; the snapshot names
+ * the retained cursor windows but does not replay unbounded history.
+ */
+export function patchbay_snapshot_exact_run(session_id: string, run_id: string, source_revision: bigint, plan_identity: string): string;
 
 /**
  * Explicitly starts one browser-worker exact run from the current source
@@ -138,19 +152,21 @@ export interface InitOutput {
     readonly panel_language_metadata: () => [number, number];
     readonly panel_source_metadata: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
-    readonly patchbay_advance_exact_run: (a: number, b: number, c: bigint) => [number, number];
+    readonly patchbay_advance_exact_run: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: bigint) => [number, number];
     readonly patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly patchbay_attach_exact_watch: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly patchbay_cancel_exact_run: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly patchbay_detach_exact_watch: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly patchbay_attach_exact_watch: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number, i: number) => [number, number];
+    readonly patchbay_cancel_exact_run: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number, i: number) => [number, number];
+    readonly patchbay_detach_exact_watch: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number, i: number) => [number, number];
+    readonly patchbay_dispose_exact_run: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number) => [number, number];
     readonly patchbay_move_node: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
-    readonly patchbay_notify_host_operation: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly patchbay_notify_host_operation: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number, i: number) => [number, number];
     readonly patchbay_open_session: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly patchbay_pump_exact_run: (a: number, b: number, c: bigint) => [number, number];
-    readonly patchbay_read_exact_evidence: (a: number, b: number, c: bigint, d: number) => [number, number];
-    readonly patchbay_read_exact_watch: (a: number, b: number, c: number, d: number, e: bigint, f: number) => [number, number];
+    readonly patchbay_pump_exact_run: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: bigint) => [number, number];
+    readonly patchbay_read_exact_evidence: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: bigint, i: number) => [number, number];
+    readonly patchbay_read_exact_watch: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number, i: number, j: bigint, k: number) => [number, number];
     readonly patchbay_replace_source: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_session_view: (a: number, b: number) => [number, number];
+    readonly patchbay_snapshot_exact_run: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number) => [number, number];
     readonly patchbay_start_exact_run: (a: number, b: number) => [number, number];
     readonly run_panel: (a: number, b: number) => [number, number];
     readonly run_panel_compatibility_demo: (a: number, b: number) => [number, number];

@@ -212,6 +212,74 @@ assert(
   "unsupported feature is explicit",
 );
 
+class SilentWorker {
+  addEventListener() {}
+  postMessage() {}
+  terminate() { this.terminated = true; }
+}
+const timedOutWorker = new DedicatedWorkerExecutionAdapter(
+  {
+    ...messageBinding(
+      "fixture/plan-worker-timeout",
+      Placement.DedicatedWorker,
+      workerUrl,
+    ),
+    responseTimeoutMs: 10,
+  },
+  emitEvidence,
+  SilentWorker,
+);
+assert(timedOutWorker.start().ok, "silent worker starts");
+assert(
+  (await timedOutWorker.request("never-responds", null)).detail === "response-timeout" &&
+    timedOutWorker.state === "terminal",
+  "worker response timeout is abrupt terminal loss",
+);
+
+class OversizedResponseWorker {
+  addEventListener() {}
+  postMessage(message) {
+    queueMicrotask(() => this.onmessage?.({
+      data: { id: message.id, ok: true, value: "x".repeat(256) },
+    }));
+  }
+  terminate() { this.terminated = true; }
+}
+const oversizedWorker = new DedicatedWorkerExecutionAdapter(
+  {
+    ...messageBinding(
+      "fixture/plan-worker-response-overflow",
+      Placement.DedicatedWorker,
+      workerUrl,
+    ),
+    maximumMessageBytes: 64,
+  },
+  emitEvidence,
+  OversizedResponseWorker,
+);
+assert(oversizedWorker.start().ok, "oversized-response worker starts");
+assert(
+  (await oversizedWorker.request("overflow", null)).detail === "response-message-bytes" &&
+    oversizedWorker.state === "terminal",
+  "worker response overflow is bounded terminal loss",
+);
+
+class DyingWorker {
+  addEventListener(type, listener) {
+    if (type === "error") queueMicrotask(listener);
+  }
+  postMessage() {}
+  terminate() { this.terminated = true; }
+}
+const diedWorker = new DedicatedWorkerExecutionAdapter(
+  messageBinding("fixture/plan-worker-death", Placement.DedicatedWorker, workerUrl),
+  emitEvidence,
+  DyingWorker,
+);
+assert(diedWorker.start().ok, "doomed worker starts");
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(diedWorker.state === "terminal", "worker death is abrupt terminal loss");
+
 const shared = new SharedWorkerExecutionAdapter(
   messageBinding("fixture/plan-shared", Placement.SharedWorker, workerUrl),
   emitEvidence,
@@ -346,6 +414,16 @@ assert(
   evidence.some((event) => event.kind === "terminal" && event.cause === "page-frozen"),
   "freeze terminal evidence",
 );
+for (const abruptCause of [
+  "response-timeout",
+  "response-message-bytes",
+  "dedicated-worker-died",
+]) {
+  assert(
+    evidence.some((event) => event.kind === "terminal" && event.cause === abruptCause),
+    `${abruptCause} stays distinct from graceful cancellation`,
+  );
+}
 assert(
   evidence.some((event) => event.kind === "terminal" &&
     event.cause.startsWith("webgpu-device-lost")),

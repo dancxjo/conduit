@@ -105,21 +105,28 @@ export function parse_panel(source) {
  * Advances deterministic browser-host time to an exact pending deadline.
  * It is an explicit host wake, not a JavaScript executor or clock jump.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {bigint} tick
  * @returns {string}
  */
-export function patchbay_advance_exact_run(session_id, tick) {
-    let deferred2_0;
-    let deferred2_1;
+export function patchbay_advance_exact_run(session_id, run_id, source_revision, plan_identity, tick) {
+    let deferred4_0;
+    let deferred4_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_advance_exact_run(ptr0, len0, tick);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_advance_exact_run(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, tick);
+        deferred4_0 = ret[0];
+        deferred4_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 }
 
@@ -151,23 +158,30 @@ export function patchbay_apply_transaction(session_id, request_json) {
  * Attaches one slot already admitted by the active exact plan. This changes
  * observation control only; source and plan identities remain pinned.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {string} watch_id
  * @returns {string}
  */
-export function patchbay_attach_exact_watch(session_id, watch_id) {
-    let deferred3_0;
-    let deferred3_1;
+export function patchbay_attach_exact_watch(session_id, run_id, source_revision, plan_identity, watch_id) {
+    let deferred5_0;
+    let deferred5_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_attach_exact_watch(ptr0, len0, ptr1, len1);
-        deferred3_0 = ret[0];
-        deferred3_1 = ret[1];
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_attach_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3);
+        deferred5_0 = ret[0];
+        deferred5_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
     }
 }
 
@@ -175,46 +189,89 @@ export function patchbay_attach_exact_watch(session_id, watch_id) {
  * Requests the exact plan-visible stop disposition for the active browser
  * run. `drain` and `abort` stay distinct through the shared runtime session.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {string} disposition
  * @returns {string}
  */
-export function patchbay_cancel_exact_run(session_id, disposition) {
-    let deferred3_0;
-    let deferred3_1;
+export function patchbay_cancel_exact_run(session_id, run_id, source_revision, plan_identity, disposition) {
+    let deferred5_0;
+    let deferred5_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(disposition, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_cancel_exact_run(ptr0, len0, ptr1, len1);
-        deferred3_0 = ret[0];
-        deferred3_1 = ret[1];
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(disposition, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_cancel_exact_run(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3);
+        deferred5_0 = ret[0];
+        deferred5_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
     }
 }
 
 /**
  * Detaches one active Watch while preserving its bounded retained window.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {string} watch_id
  * @returns {string}
  */
-export function patchbay_detach_exact_watch(session_id, watch_id) {
-    let deferred3_0;
-    let deferred3_1;
+export function patchbay_detach_exact_watch(session_id, run_id, source_revision, plan_identity, watch_id) {
+    let deferred5_0;
+    let deferred5_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_detach_exact_watch(ptr0, len0, ptr1, len1);
-        deferred3_0 = ret[0];
-        deferred3_1 = ret[1];
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_detach_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3);
+        deferred5_0 = ret[0];
+        deferred5_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+}
+
+/**
+ * Releases one terminal exact run while retaining its authoring workspace.
+ * Live, waiting, quiescing, and aborting runs must first reach a terminal
+ * state through the production executor.
+ * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
+ * @returns {string}
+ */
+export function patchbay_dispose_exact_run(session_id, run_id, source_revision, plan_identity) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_dispose_exact_run(ptr0, len0, ptr1, len1, source_revision, ptr2, len2);
+        deferred4_0 = ret[0];
+        deferred4_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 }
 
@@ -248,23 +305,30 @@ export function patchbay_move_node(source, node_id, x, y) {
  * The supplied subject is validated but never retained by the bridge; only an
  * already registered exact wait can become runnable.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {string} subject
  * @returns {string}
  */
-export function patchbay_notify_host_operation(session_id, subject) {
-    let deferred3_0;
-    let deferred3_1;
+export function patchbay_notify_host_operation(session_id, run_id, source_revision, plan_identity, subject) {
+    let deferred5_0;
+    let deferred5_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(subject, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_notify_host_operation(ptr0, len0, ptr1, len1);
-        deferred3_0 = ret[0];
-        deferred3_1 = ret[1];
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(subject, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_notify_host_operation(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3);
+        deferred5_0 = ret[0];
+        deferred5_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
     }
 }
 
@@ -294,21 +358,28 @@ export function patchbay_open_session(document_id, source) {
 /**
  * Runs one bounded cooperative turn of the active browser-worker exact run.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {bigint} quantum
  * @returns {string}
  */
-export function patchbay_pump_exact_run(session_id, quantum) {
-    let deferred2_0;
-    let deferred2_1;
+export function patchbay_pump_exact_run(session_id, run_id, source_revision, plan_identity, quantum) {
+    let deferred4_0;
+    let deferred4_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_pump_exact_run(ptr0, len0, quantum);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_pump_exact_run(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, quantum);
+        deferred4_0 = ret[0];
+        deferred4_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 }
 
@@ -317,22 +388,29 @@ export function patchbay_pump_exact_run(session_id, quantum) {
  * evidence provider. Patchbay never acknowledges or releases scheduler
  * storage and therefore cannot become the authoritative evidence store.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {bigint} cursor
  * @param {number} maximum_events
  * @returns {string}
  */
-export function patchbay_read_exact_evidence(session_id, cursor, maximum_events) {
-    let deferred2_0;
-    let deferred2_1;
+export function patchbay_read_exact_evidence(session_id, run_id, source_revision, plan_identity, cursor, maximum_events) {
+    let deferred4_0;
+    let deferred4_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_read_exact_evidence(ptr0, len0, cursor, maximum_events);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_read_exact_evidence(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, cursor, maximum_events);
+        deferred4_0 = ret[0];
+        deferred4_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 }
 
@@ -341,25 +419,32 @@ export function patchbay_read_exact_evidence(session_id, cursor, maximum_events)
  * window. Binary bytes remain bytes; only the exact `std/text`
  * representation receives a UTF-8 text projection.
  * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
  * @param {string} watch_id
  * @param {bigint} cursor
  * @param {number} maximum_records
  * @returns {string}
  */
-export function patchbay_read_exact_watch(session_id, watch_id, cursor, maximum_records) {
-    let deferred3_0;
-    let deferred3_1;
+export function patchbay_read_exact_watch(session_id, run_id, source_revision, plan_identity, watch_id, cursor, maximum_records) {
+    let deferred5_0;
+    let deferred5_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_read_exact_watch(ptr0, len0, ptr1, len1, cursor, maximum_records);
-        deferred3_0 = ret[0];
-        deferred3_1 = ret[1];
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_read_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3, cursor, maximum_records);
+        deferred5_0 = ret[0];
+        deferred5_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
     }
 }
 
@@ -404,6 +489,35 @@ export function patchbay_session_view(session_id) {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Returns one bounded authoritative recovery snapshot for an exact run.
+ * Callers use this after an evidence or Watch cursor gap; the snapshot names
+ * the retained cursor windows but does not replay unbounded history.
+ * @param {string} session_id
+ * @param {string} run_id
+ * @param {bigint} source_revision
+ * @param {string} plan_identity
+ * @returns {string}
+ */
+export function patchbay_snapshot_exact_run(session_id, run_id, source_revision, plan_identity) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(run_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_snapshot_exact_run(ptr0, len0, ptr1, len1, source_revision, ptr2, len2);
+        deferred4_0 = ret[0];
+        deferred4_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 }
 

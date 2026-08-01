@@ -66,9 +66,14 @@ fn checked_wasm_bridge_exports_revisioned_session_operations() {
         "patchbay_start_exact_run",
         "patchbay_pump_exact_run",
         "patchbay_read_exact_evidence",
+        "patchbay_attach_exact_watch",
+        "patchbay_detach_exact_watch",
+        "patchbay_read_exact_watch",
         "patchbay_advance_exact_run",
         "patchbay_notify_host_operation",
         "patchbay_cancel_exact_run",
+        "patchbay_snapshot_exact_run",
+        "patchbay_dispose_exact_run",
     ] {
         assert!(
             declarations.contains(operation),

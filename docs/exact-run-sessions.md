@@ -240,8 +240,20 @@ has no Patchbay or renderer acknowledgement operation. The ordinary Patchbay
 view projects at most the newest 32 retained records; a reconnecting client
 uses the cursor API instead of treating that presentation subset as the
 evidence store. After a gap it resumes at the advertised earliest cursor or
-requests a fresh authoritative projection; it never recreates omitted
-evidence or resends complete history as a substitute for cursor progress.
+requests `patchbay-snapshot-exact-run` for a fresh bounded authoritative
+projection; it never recreates omitted evidence or resends complete history as
+a substitute for cursor progress. Every pump, wake, Watch, delta, Stop,
+snapshot, and disposal request carries the exact run ID, source revision, and
+plan identity returned by Start. A stale caller cannot address a replacement
+run through the same authoring-session name. Only a terminal run may be
+explicitly disposed; disposal retains the revisioned authoring workspace and
+releases the final run snapshot.
+
+The message adapter bounds pending requests and both request and response
+bytes, and turns a response timeout, worker death, structured-clone failure,
+or response overflow into an abrupt placement-loss cause. Page close and
+worker termination outside the exact Stop path remain abrupt losses; they are
+never reported as graceful Drain or Abort completion.
 
 An invalid candidate remains visible in its next source revision without
 removing the prior active plan epoch from the worker's authoritative

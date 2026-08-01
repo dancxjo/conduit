@@ -306,6 +306,11 @@ class BoundedMessageAdapter extends BrowserExecutionAdapter {
       if (!pending) return;
       this.#pending.delete(event.data.id);
       clearTimeout(pending.timeout);
+      if (cloneByteLength(event.data) > this.binding.maximumMessageBytes) {
+        pending.resolve(fail(BrowserHostReason.QueueCapacity, "response-message-bytes"));
+        this.terminate("response-message-bytes");
+        return;
+      }
       pending.resolve({
         ok: event.data.ok === true,
         value: event.data.value,

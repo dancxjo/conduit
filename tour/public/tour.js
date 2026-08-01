@@ -187,6 +187,7 @@ let patchbayPresentationRevision = 0;
 let patchbayView = null;
 let activeAdapter = null;
 let activeWorkerSessionId = null;
+let activeWorkerRunIdentity = null;
 let runEpoch = 0;
 let liveWakeTimer = null;
 let activeWatchControl = null;
@@ -246,6 +247,7 @@ async function toggleWatch() {
     : "patchbay-attach-exact-watch";
   const response = await control.adapter.request(operation, {
     sessionId: control.sessionId,
+    ...control.runIdentity,
     watchId: control.watchId,
   });
   if (activeWatchControl !== control) return;
@@ -962,19 +964,26 @@ async function stopExactSession(cause, message) {
   stopTimelinePlayback();
   const adapter = activeAdapter;
   const sessionId = activeWorkerSessionId;
+  const runIdentity = activeWorkerRunIdentity;
   activeAdapter = null;
   activeWorkerSessionId = null;
+  activeWorkerRunIdentity = null;
   disableWatchControl();
   if (adapter && sessionId) {
     try {
       const cancelled = await adapter.request("patchbay-cancel-exact-run", {
         sessionId,
+        ...runIdentity,
         disposition: "abort",
       });
       if (cancelled.ok && cancelled.value?.ok) {
         renderRustProjection(cancelled.value.view);
         renderExactResultTimeline(cancelled.value);
         recordEvidence({ kind: "run-cancelled", state: cancelled.value.state });
+        await adapter.request("patchbay-dispose-exact-run", {
+          sessionId,
+          ...runIdentity,
+        });
       }
     } finally {
       adapter.terminate(cause);
@@ -1290,7 +1299,9 @@ function moveSelected(delta) {
 moveLeftBtn.onclick = () => moveSelected(-20);
 moveRightBtn.onclick = () => moveSelected(20);
 
-function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, deadline }) {
+function scheduleContinuousWatch({
+  adapter, sessionId, runIdentity, watchId, epoch, cursor, deadline,
+}) {
   if (epoch !== runEpoch || activeAdapter !== adapter || !Number.isSafeInteger(deadline)) return;
   clearLiveWakeTimer();
   liveWakeTimer = setTimeout(async () => {
@@ -1299,6 +1310,7 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
     try {
       const advanced = await adapter.request("patchbay-advance-exact-run", {
         sessionId,
+        ...runIdentity,
         tick: deadline,
       });
       if (!advanced.ok || !advanced.value?.ok) {
@@ -1306,6 +1318,7 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
       }
       const pumped = await adapter.request("patchbay-pump-exact-run", {
         sessionId,
+        ...runIdentity,
         quantum: 256,
       });
       if (!pumped.ok || !pumped.value?.ok) {
@@ -1325,6 +1338,7 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
       if (control?.attached && !control.pending) {
         watched = await adapter.request("patchbay-read-exact-watch", {
           sessionId,
+          ...runIdentity,
           watchId,
           cursor,
           maximumRecords: 1,
@@ -1355,6 +1369,7 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
         scheduleContinuousWatch({
           adapter,
           sessionId,
+          runIdentity,
           watchId,
           epoch,
           cursor: nextCursor,
@@ -1423,6 +1438,8 @@ async function run() {
   let terminal = false;
   let watchId = null;
   let watchCursor = 0;
+  let sessionId = null;
+  let runIdentity = null;
   try {
     const configured = await adapter.request("configure", {
       wasmUrl: wasmArtifact.url.href,
@@ -1436,7 +1453,7 @@ async function run() {
     if (!opened.ok || !opened.value?.ok) {
       throw new Error(`${opened.code || opened.value?.code || "open-failed"}: ${opened.value?.diagnostic || ""}`);
     }
-    const sessionId = opened.value.session_id;
+    sessionId = opened.value.session_id;
     activeWorkerSessionId = sessionId;
     const started = await adapter.request("patchbay-start-exact-run", { sessionId });
     if (!started.ok || !started.value?.ok) {
@@ -1451,6 +1468,12 @@ async function run() {
       recordEvidence({ kind: "run-rejected", lesson: current.id, code: rejection.code });
       return;
     }
+    runIdentity = {
+      runId: started.value.run_id,
+      sourceRevision: started.value.source_revision,
+      planIdentity: started.value.plan_identity,
+    };
+    activeWorkerRunIdentity = runIdentity;
     if (current.execution === "continuous-watch") {
       const admission = started.value.view.plan.watch_admissions.find(
         (watch) => watch.representation_id === "std/text" &&
@@ -1461,6 +1484,7 @@ async function run() {
       watchId = admission.id;
       const attached = await adapter.request("patchbay-attach-exact-watch", {
         sessionId,
+        ...runIdentity,
         watchId,
       });
       if (!attached.ok || !attached.value?.ok) {
@@ -1469,6 +1493,7 @@ async function run() {
       setWatchControl({
         adapter,
         sessionId,
+        runIdentity,
         watchId,
         attached: true,
         cursor: 0,
@@ -1478,8 +1503,8 @@ async function run() {
       ? "patchbay-cancel-exact-run"
       : "patchbay-pump-exact-run";
     const executed = await adapter.request(operation, operation === "patchbay-cancel-exact-run"
-      ? { sessionId, disposition: "abort" }
-      : { sessionId, quantum: 256 });
+      ? { sessionId, ...runIdentity, disposition: "abort" }
+      : { sessionId, ...runIdentity, quantum: 256 });
     if (epoch !== runEpoch) return;
     if (!executed.ok || !executed.value?.ok) {
       const rejection = {
@@ -1501,6 +1526,7 @@ async function run() {
     if (watchId) {
       const read = await adapter.request("patchbay-read-exact-watch", {
         sessionId,
+        ...runIdentity,
         watchId,
         cursor: watchCursor,
         maximumRecords: 1,
@@ -1557,6 +1583,7 @@ async function run() {
       scheduleContinuousWatch({
         adapter,
         sessionId,
+        runIdentity,
         watchId,
         epoch,
         cursor: watchCursor,
@@ -1567,9 +1594,16 @@ async function run() {
     if (epoch === runEpoch) result.textContent = `Run failed: ${error}`;
   } finally {
     if (epoch === runEpoch && terminal) {
+      if (sessionId && runIdentity) {
+        await adapter.request("patchbay-dispose-exact-run", {
+          sessionId,
+          ...runIdentity,
+        });
+      }
       adapter.terminate("completed");
       activeAdapter = null;
       activeWorkerSessionId = null;
+      activeWorkerRunIdentity = null;
       disableWatchControl();
       runButton.disabled = current.runnability?.state !== "runnable";
       stopButton.disabled = true;

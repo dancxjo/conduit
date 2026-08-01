@@ -4,12 +4,14 @@ import init, {
   patchbay_advance_exact_run,
   patchbay_cancel_exact_run,
   patchbay_detach_exact_watch,
+  patchbay_dispose_exact_run,
   patchbay_notify_host_operation,
   patchbay_open_session,
   patchbay_pump_exact_run,
   patchbay_read_exact_evidence,
   patchbay_read_exact_watch,
   patchbay_session_view,
+  patchbay_snapshot_exact_run,
   patchbay_start_exact_run,
 } from "./conduit_web.js";
 import {
@@ -43,30 +45,86 @@ function response(operation, value) {
     case "patchbay-start-exact-run":
       return patchbay_start_exact_run(value.sessionId);
     case "patchbay-pump-exact-run":
-      return patchbay_pump_exact_run(value.sessionId, exactUnsigned(value.quantum, "quantum"));
+      return patchbay_pump_exact_run(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        exactUnsigned(value.quantum, "quantum"),
+      );
     case "patchbay-read-exact-evidence":
       return patchbay_read_exact_evidence(
         value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
         exactUnsigned(value.cursor, "cursor"),
         exactU32(value.maximumEvents, "maximumEvents"),
       );
     case "patchbay-attach-exact-watch":
-      return patchbay_attach_exact_watch(value.sessionId, value.watchId);
+      return patchbay_attach_exact_watch(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        value.watchId,
+      );
     case "patchbay-detach-exact-watch":
-      return patchbay_detach_exact_watch(value.sessionId, value.watchId);
+      return patchbay_detach_exact_watch(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        value.watchId,
+      );
     case "patchbay-read-exact-watch":
       return patchbay_read_exact_watch(
         value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
         value.watchId,
         exactUnsigned(value.cursor, "cursor"),
         exactU32(value.maximumRecords, "maximumRecords"),
       );
     case "patchbay-advance-exact-run":
-      return patchbay_advance_exact_run(value.sessionId, exactUnsigned(value.tick, "tick"));
+      return patchbay_advance_exact_run(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        exactUnsigned(value.tick, "tick"),
+      );
     case "patchbay-notify-host-operation":
-      return patchbay_notify_host_operation(value.sessionId, value.subject);
+      return patchbay_notify_host_operation(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        value.subject,
+      );
     case "patchbay-cancel-exact-run":
-      return patchbay_cancel_exact_run(value.sessionId, value.disposition);
+      return patchbay_cancel_exact_run(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        value.disposition,
+      );
+    case "patchbay-snapshot-exact-run":
+      return patchbay_snapshot_exact_run(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+      );
+    case "patchbay-dispose-exact-run":
+      return patchbay_dispose_exact_run(
+        value.sessionId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+      );
     default:
       return undefined;
   }

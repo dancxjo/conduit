@@ -1,28 +1,28 @@
 {
   "artifacts": [
     {
-      "bytes": 21043,
+      "bytes": 21283,
       "id": "browser-host-adapter",
       "path": "../../browser/conduit-browser-host.mjs",
-      "sha256": "66e4d6eb920c7f4cd3be383aee4d00005d7e8bbec9b6d82eb25c489c3f3dbe11"
+      "sha256": "49f8dbe6b6f441d619ec627517417468f96a7bf903c8fd2eb9ea4c34fce3d183"
     },
     {
-      "bytes": 3924,
+      "bytes": 5485,
       "id": "tour-worker",
       "path": "./tour-worker.mjs",
-      "sha256": "41cd91ea1333778db06eb669a29dbc0d01931c48dce851a589abc441789563ac"
+      "sha256": "e10e9e030248587dbb4a6f86122b3985d359c34734402390706b1563f815ffa6"
     },
     {
-      "bytes": 23087,
+      "bytes": 29157,
       "id": "wasm-bindgen-loader",
       "path": "./conduit_web.js",
-      "sha256": "08af3a1a99559b04062e4df96b86e69d3b43957f8a42f79ca7719db37f37335e"
+      "sha256": "f8f2f2307828d11b33a088c9ee5b3ed3c261170050b91dd77a5202060a7f5d39"
     },
     {
-      "bytes": 5335781,
+      "bytes": 5351250,
       "id": "conduit-web-wasm",
       "path": "./conduit_web_bg.wasm",
-      "sha256": "188412ede710c1ee2e3e8356290dda4b6d54be6d7c143bebb79f8d50bfbbc5db"
+      "sha256": "6bb6dc287e42d32c74ee3b2294740a216aaa179099158f870165920c81946dac"
     }
   ],
   "bounds": {
@@ -47,7 +47,7 @@
   "implementation_id": "conduit/tour-production-wasm-worker",
   "observation_id": "conduit/tour-static-browser-observation",
   "placement": "dedicated-worker",
-  "plan_identity": "a285cb7b35ace49e5d7085d24554a777ec4700f34cdc29198562fce74f4ca378",
+  "plan_identity": "38c0091113bdc1d2c838163d362b04dc3e1d078a49acbed15c9f96d79d39ca44",
   "schema": "conduit.tour-browser-plan",
   "semantic_contract": "conduit/tour-panel-run"
 }
