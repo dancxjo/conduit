@@ -212,7 +212,34 @@ fn every_checked_panel_has_one_verified_runnability_state() {
         inventory.entries.len(),
         "each panel has exactly one runnability declaration"
     );
-    assert_eq!(declared, checked_in, "panel inventory has no gaps or drift");
+    assert!(
+        declared.is_subset(&checked_in),
+        "runnability declarations cannot name deleted panels: {:?}",
+        declared.difference(&checked_in).collect::<Vec<_>>()
+    );
+    // The inventory carries special invocation policy and exact output only
+    // where a panel needs it. Ordinary checked examples are discovered and
+    // checked directly, so adding a focused example does not also require a
+    // duplicate filename snapshot. Invalid/conformance fixtures still require
+    // an explicit declaration because a successful default check is not their
+    // intended proof.
+    for path in checked_in.difference(&declared) {
+        assert!(
+            path.starts_with("examples/"),
+            "non-example panel {path} requires an explicit runnability proof"
+        );
+        let checked = Command::new(env!("CARGO_BIN_EXE_conduct"))
+            .current_dir(&root)
+            .arg("--check")
+            .arg(path)
+            .output()
+            .expect("discovered example check executes");
+        assert!(
+            checked.status.success(),
+            "discovered example {path} checks without ledger bookkeeping: {}",
+            String::from_utf8_lossy(&checked.stderr)
+        );
+    }
 
     let http_source = fs::read_to_string(root.join("examples/http-loopback-listener.panel"))
         .expect("HTTP source");
