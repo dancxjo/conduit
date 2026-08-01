@@ -1287,6 +1287,7 @@ function renderOriginStory(lesson) {
   const origin = lesson.origin;
   const isOrigin = Boolean(origin);
   workspace.classList.toggle("book-origin-active", isOrigin);
+  if (!bookChapter || !workspaceKicker) return;
   bookChapter.hidden = !isOrigin;
   workspaceKicker.textContent = isOrigin ? "Conduit, chapter zero" : "Interactive Workspace";
   if (!isOrigin) return;

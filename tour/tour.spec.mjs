@@ -1764,7 +1764,7 @@ test("standalone Patchbay app exposes the same live fullscreen editor workspace"
     Element.prototype.requestFullscreen = () =>
       Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
-  await page.goto("/tour/public/patchbay-app.html");
+  await page.goto("/tour/public/patchbay-app.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   await source.evaluate((element) => {
