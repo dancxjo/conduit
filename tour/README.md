@@ -2,12 +2,21 @@
 
 Live site: <https://dancxjo.github.io/conduit/>
 
-The default route opens **The program we could no longer see**, a
-source-grounded origin chapter that explains the Tongues and PETE/Netherwick
-pressures that led to Conduit before asking the reader to learn its machinery.
-The chapter uses a current checked ticker panel as a clearly labeled
-representative living system; it does not pretend the historical products
-already ran on Conduit.
+The default route opens a reader-facing book cover and cumulative project table
+of contents. `tour/book/current.json` is the one current pre-release reader
+manifest (`schema_version: 0`): it owns named projects, chapters, sections and
+ordered narrative blocks. Labs reference the separate machine-facing lesson
+manifest by exact lesson id. Reference panels and Cookbook recipes have their
+own searchable directories and do not participate in Previous/Next book
+navigation.
+
+Each book section reads in the order prose, action, compact real lab, result and
+explanation. Expanding a lab reuses the same source, Patchbay session and result
+instead of opening a teaching-only graph. Availability, contracts, exact plan,
+accounting and evidence begin collapsed and retain addressable drawer ids.
+Reading position and project checkpoints use reader-specific local storage;
+learner source drafts keep their existing lesson-specific keys, and neither is
+presented as a surviving live run.
 
 Lesson source is real `.panel` input. This directory deliberately contains no
 tutorial-only parser, graph, port model, or runtime. A browser delivery layer

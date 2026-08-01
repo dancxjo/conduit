@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Conduit Patchbay — Interactive Visual Studio</title>
+  <title>Conduit — Build a living system you can see</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,75 +14,79 @@
   <script src="./react-flow.min.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#workspace">Skip to lesson workspace</a>
+  <a class="skip-link" href="#reader-content">Skip to book content</a>
   <main>
-    <nav aria-label="Lessons and Reference Panels">
+    <nav id="reader-nav" aria-label="Book, Reference and Cookbook">
       <div class="brand-header">
         <div class="brand-badge">CONDUIT</div>
-        <h1>Patchbay Studio</h1>
-        <p class="lede">Author, patch, resolve, and witness executable <code>.panel</code> graphs.</p>
+        <h1>The Conduit book</h1>
+        <p class="lede">Read the idea. Open the real Patchbay when the work calls for it.</p>
       </div>
 
-      <div class="nav-section">
-        <h3 class="nav-heading">Tour Lessons</h3>
-        <ol id="lessons" class="nav-list"></ol>
+      <div class="reader-destinations" role="group" aria-label="Reader destinations">
+        <button id="show-book" class="reader-destination active" type="button" aria-pressed="true">Book</button>
+        <button id="show-reference" class="reader-destination" type="button" aria-pressed="false">Reference</button>
+        <button id="show-cookbook" class="reader-destination" type="button" aria-pressed="false">Cookbook</button>
       </div>
 
-      <div class="nav-section">
-        <h3 class="nav-heading">Reference Panels</h3>
-        <ol id="reference-panels" class="nav-list"></ol>
+      <div id="book-navigation" class="nav-section">
+        <h2 class="nav-heading">Projects and chapters</h2>
+        <div id="project-toc" class="project-toc"></div>
       </div>
     </nav>
 
-    <section id="workspace" aria-labelledby="title">
+    <div id="reader-content" tabindex="-1">
+      <section id="book-cover" class="book-cover" aria-labelledby="cover-title">
+        <p id="cover-kicker" class="book-kicker"></p>
+        <h2 id="cover-title"></h2>
+        <p id="cover-subtitle" class="book-deck"></p>
+        <p id="cover-invitation" class="book-cover-invitation"></p>
+        <button id="begin-book" class="btn primary" type="button">Begin project one</button>
+        <div id="cover-projects" class="cover-projects"></div>
+      </section>
+
+      <section id="directory-view" class="directory-view" aria-labelledby="directory-title" hidden>
+        <p id="directory-kicker" class="book-kicker"></p>
+        <h2 id="directory-title"></h2>
+        <p id="directory-description" class="book-deck"></p>
+        <label class="directory-search" for="directory-query">
+          Search this directory
+          <input id="directory-query" type="search" autocomplete="off">
+        </label>
+        <ol id="directory-results" class="directory-results"></ol>
+      </section>
+
+      <article id="reader-section" class="reader-section" aria-labelledby="reader-section-title" hidden>
+        <header class="reader-section-header">
+          <p id="project-progress" class="book-kicker"></p>
+          <p id="section-progress" class="section-progress"></p>
+          <h2 id="reader-section-title"></h2>
+          <p id="reader-section-summary" class="book-deck"></p>
+        </header>
+        <section id="chapter-opening" class="chapter-opening" aria-labelledby="chapter-opening-title">
+          <p id="chapter-number" class="book-kicker"></p>
+          <h3 id="chapter-opening-title"></h3>
+          <p id="chapter-description"></p>
+          <p id="chapter-opening-copy"></p>
+        </section>
+        <div id="narrative-before-lab" class="narrative-blocks"></div>
+
+    <section id="workspace" class="lab-workspace" aria-labelledby="title" hidden>
       <header class="workspace-header">
         <div class="header-top">
-          <p id="workspace-kicker" class="eyebrow">Interactive Workspace</p>
-          <span id="execution-note" class="host-status">Preparing browser placement…</span>
+          <p id="workspace-kicker" class="eyebrow">Embedded real lab</p>
+          <button id="expand-lab" class="btn secondary" type="button" aria-expanded="false">Expand full workspace</button>
         </div>
         <h2 id="title">Loading Patchbay…</h2>
         <p id="goal" class="goal"></p>
         <p id="prose" class="prose-text"></p>
-        <p class="lesson-machine-summary"><span id="runnability-state" class="badge">Checking runnability…</span></p>
-        <p class="command-box lesson-machine-summary"><code id="command"></code></p>
+        <details id="availability-drawer" class="technical-drawer">
+          <summary>Why is this lab available?</summary>
+          <p><span id="runnability-state" class="badge">Checking runnability…</span></p>
+          <p id="execution-note" class="host-status">Preparing browser placement…</p>
+          <p class="command-box"><code id="command"></code></p>
+        </details>
       </header>
-
-      <section id="book-chapter" class="book-chapter" aria-labelledby="book-chapter-title" hidden>
-        <header class="book-chapter-header">
-          <p id="book-kicker" class="book-kicker"></p>
-          <h3 id="book-chapter-title"></h3>
-          <p id="book-deck" class="book-deck"></p>
-          <p id="book-anchor" class="book-anchor"></p>
-        </header>
-
-        <div id="book-sections" class="book-sections"></div>
-
-        <section class="origin-comparison" aria-labelledby="origin-comparison-heading">
-          <div class="origin-comparison-heading">
-            <p class="book-kicker">See the difference</p>
-            <h3 id="origin-comparison-heading">The same system, two ways of understanding it</h3>
-          </div>
-          <div class="origin-comparison-tabs" role="group" aria-label="Compare program views">
-            <button id="origin-scattered" class="btn secondary" type="button" aria-pressed="true">Scattered realization</button>
-            <button id="origin-conduit" class="btn secondary" type="button" aria-pressed="false">One visible program</button>
-          </div>
-          <div id="origin-comparison" class="origin-comparison-panel" aria-live="polite"></div>
-        </section>
-
-        <aside class="book-lab-note" aria-labelledby="book-lab-heading">
-          <p class="book-kicker">Touch the idea</p>
-          <h3 id="book-lab-heading">A small living system, available now</h3>
-          <p id="book-representative-note"></p>
-        </aside>
-
-        <footer class="book-chapter-footer">
-          <div>
-            <p class="book-kicker">Follow the trail</p>
-            <ul id="book-references" class="book-references"></ul>
-          </div>
-          <button id="origin-continue" class="btn primary" type="button"></button>
-        </footer>
-      </section>
 
       <div class="button-row primary-actions" role="group" aria-label="Lesson controls">
         <button id="run" class="btn primary" aria-keyshortcuts="Shift+Enter" disabled>⚡ Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
@@ -222,20 +226,20 @@
 
       <!-- Detailed Inspectors -->
       <div class="inspectors">
-        <details class="card inspector-card" open>
-          <summary>📜 Exact Plan Identity & Artifacts</summary>
+        <details id="plan-drawer" class="card inspector-card">
+          <summary>Why this exact plan?</summary>
           <pre id="plan"></pre>
         </details>
         <details id="topology-inspector" class="card inspector-card">
-          <summary>🧩 Topology Resolution</summary>
+          <summary>Which contracts and topology resolved?</summary>
           <pre id="topology"></pre>
         </details>
-        <details class="card inspector-card" open>
-          <summary>📡 Bounded Execution Evidence Stream</summary>
+        <details id="evidence-drawer" class="card inspector-card">
+          <summary>How do we know what ran?</summary>
           <pre id="evidence">No run evidence yet.</pre>
         </details>
-        <details class="card inspector-card" open>
-          <summary>⌁ Live latest-value Watch</summary>
+        <details id="accounting-drawer" class="card inspector-card">
+          <summary>What observation and accounting were admitted?</summary>
           <p class="watch-semantics"><strong>Watch</strong> is isolated instrumentation. A semantic <strong>tee</strong> changes this panel and its exact plan; a lossless <strong>recorder</strong> is a plan-visible node or evidence stream that may apply declared pressure.</p>
           <div class="button-row live-presentation-controls" role="group" aria-label="Live observation presentation controls">
             <button id="watch-toggle" type="button" aria-keyshortcuts="W" disabled>Attach Watch (W)</button>
@@ -256,6 +260,14 @@
         </details>
       </div>
     </section>
+        <div id="narrative-after-lab" class="narrative-blocks"></div>
+        <footer class="reader-pager" aria-label="Section navigation">
+          <button id="previous-section" class="btn secondary" type="button"></button>
+          <a id="section-permalink" href="#">Link to this section</a>
+          <button id="next-section" class="btn primary" type="button"></button>
+        </footer>
+      </article>
+    </div>
   </main>
   <script type="module" src="./tour.js"></script>
 </body>

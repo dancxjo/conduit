@@ -2376,6 +2376,179 @@ fn evictable_storage_cache_lesson_runs_exact_browser_provider_and_failure_paths(
 }
 
 #[test]
+fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories() {
+    let lessons: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let book: Value = serde_json::from_str(include_str!("../../../tour/book/current.json"))
+        .expect("Tour book manifest is valid JSON");
+
+    assert_eq!(book["schema"], "conduit.tour-book");
+    assert_eq!(book["schema_version"], 0);
+    assert!(
+        book["cover"]["start_section"]
+            .as_str()
+            .is_some_and(|value| !value.is_empty()),
+        "the reader cover names its first section"
+    );
+
+    let lesson_ids = lessons["lessons"]
+        .as_array()
+        .expect("lessons are listed")
+        .iter()
+        .map(|lesson| {
+            assert!(
+                lesson.get("origin").is_none(),
+                "reader narrative is not stored in machine lesson {}",
+                lesson["id"]
+            );
+            lesson["id"].as_str().expect("lesson id")
+        })
+        .collect::<BTreeSet<_>>();
+    let allowed_kinds = BTreeSet::from([
+        "invitation",
+        "need",
+        "idea",
+        "action",
+        "lab",
+        "witness",
+        "explanation",
+        "reflection",
+        "next-hook",
+    ]);
+    let required_narrative_kinds = BTreeSet::from([
+        "invitation",
+        "need",
+        "idea",
+        "action",
+        "witness",
+        "explanation",
+        "reflection",
+        "next-hook",
+    ]);
+    let mut actual_narrative_kinds = BTreeSet::new();
+    let mut section_ids = BTreeSet::new();
+    let mut book_lesson_ids = BTreeSet::new();
+    let mut first_section = None;
+
+    for project in book["projects"].as_array().expect("projects are listed") {
+        assert!(
+            project["title"]
+                .as_str()
+                .is_some_and(|value| !value.is_empty())
+                && project["description"]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty()),
+            "every cumulative project is named and described"
+        );
+        for chapter in project["chapters"].as_array().expect("chapters are listed") {
+            assert!(chapter["number"].is_u64(), "chapter number is explicit");
+            for field in ["title", "description", "opening"] {
+                assert!(
+                    chapter[field]
+                        .as_str()
+                        .is_some_and(|value| !value.is_empty()),
+                    "chapter {field} is reader-facing prose"
+                );
+            }
+            for section in chapter["sections"].as_array().expect("sections are listed") {
+                let section_id = section["id"].as_str().expect("section id");
+                first_section.get_or_insert(section_id);
+                assert!(section_ids.insert(section_id), "section ids are unique");
+                assert!(
+                    section["title"]
+                        .as_str()
+                        .is_some_and(|value| !value.is_empty())
+                        && section["summary"]
+                            .as_str()
+                            .is_some_and(|value| !value.is_empty()),
+                    "section headings are meaningful without a lab"
+                );
+                let blocks = section["blocks"]
+                    .as_array()
+                    .expect("ordered section blocks");
+                let labs = blocks
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, block)| block["kind"] == "lab")
+                    .collect::<Vec<_>>();
+                assert_eq!(labs.len(), 1, "{section_id} embeds one exact lab");
+                let (lab_index, lab) = labs[0];
+                assert!(
+                    lab_index > 0 && lab_index + 1 < blocks.len(),
+                    "{section_id} has prose before and after its lab"
+                );
+                let lesson_id = lab["lesson_id"].as_str().expect("exact lesson reference");
+                assert!(
+                    lesson_ids.contains(lesson_id),
+                    "{section_id} resolves lesson {lesson_id}"
+                );
+                assert!(
+                    book_lesson_ids.insert(lesson_id),
+                    "book lab references are not duplicated"
+                );
+                for block in blocks {
+                    let kind = block["kind"].as_str().expect("block kind");
+                    assert!(allowed_kinds.contains(kind), "known reader block {kind}");
+                    if kind != "lab" {
+                        actual_narrative_kinds.insert(kind);
+                        assert!(
+                            block["body"]
+                                .as_str()
+                                .is_some_and(|value| !value.is_empty()),
+                            "narrative blocks remain coherent without the lab"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(
+        first_section,
+        book["cover"]["start_section"].as_str(),
+        "the cover begins the sequential path"
+    );
+    assert_eq!(
+        actual_narrative_kinds, required_narrative_kinds,
+        "the reader supports the complete narrative vocabulary"
+    );
+
+    let mut cookbook_lesson_ids = BTreeSet::new();
+    let mut recipe_ids = BTreeSet::new();
+    for recipe in book["cookbook"]["recipes"]
+        .as_array()
+        .expect("Cookbook recipes are listed")
+    {
+        let recipe_id = recipe["id"].as_str().expect("recipe id");
+        let lesson_id = recipe["lesson_id"].as_str().expect("recipe lesson id");
+        assert!(recipe_ids.insert(recipe_id), "recipe ids are unique");
+        assert!(
+            lesson_ids.contains(lesson_id),
+            "recipe resolves {lesson_id}"
+        );
+        assert!(
+            !book_lesson_ids.contains(lesson_id),
+            "Cookbook remains outside sequential navigation"
+        );
+        assert!(
+            cookbook_lesson_ids.insert(lesson_id),
+            "Cookbook lesson references are unique"
+        );
+    }
+    let represented = book_lesson_ids
+        .union(&cookbook_lesson_ids)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        represented, lesson_ids,
+        "every machine lesson is reachable exactly once through the book or Cookbook"
+    );
+    assert_eq!(
+        book["reference"]["panel_manifest"], "../reference-panels/current.json",
+        "Reference navigation owns the canonical panel directory"
+    );
+}
+
+#[test]
 fn tour_reference_panels_are_canonical_runnable_or_fail_closed() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let manifest: Value = serde_json::from_str(

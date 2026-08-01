@@ -46,26 +46,27 @@ const liveFlowStatus = document.querySelector("#live-flow-status");
 const liveFlowTableBody = document.querySelector("#live-flow-table tbody");
 const workspace = document.querySelector("#workspace");
 const workspaceKicker = document.querySelector("#workspace-kicker");
-const bookChapter = document.querySelector("#book-chapter");
-const bookKicker = document.querySelector("#book-kicker");
-const bookChapterTitle = document.querySelector("#book-chapter-title");
-const bookDeck = document.querySelector("#book-deck");
-const bookAnchor = document.querySelector("#book-anchor");
-const bookSections = document.querySelector("#book-sections");
-const originScattered = document.querySelector("#origin-scattered");
-const originConduit = document.querySelector("#origin-conduit");
-const originComparison = document.querySelector("#origin-comparison");
-const bookRepresentativeNote = document.querySelector("#book-representative-note");
-const bookReferences = document.querySelector("#book-references");
-const originContinue = document.querySelector("#origin-continue");
+const readerContent = document.querySelector("#reader-content");
+const bookCover = document.querySelector("#book-cover");
+const readerSection = document.querySelector("#reader-section");
+const directoryView = document.querySelector("#directory-view");
+const narrativeBeforeLab = document.querySelector("#narrative-before-lab");
+const narrativeAfterLab = document.querySelector("#narrative-after-lab");
+const chapterOpening = document.querySelector("#chapter-opening");
+const readerPager = document.querySelector(".reader-pager");
+const expandLabButton = document.querySelector("#expand-lab");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
+const book = await (await fetch("../book/current.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
 const referenceManifest = await (
   await fetch("../reference-panels/current.json", { cache: "no-store" })
 ).json();
 if (referenceManifest.schema !== "conduit.tour-reference-panels") {
   throw new Error("unsupported Tour reference-panel manifest");
+}
+if (book.schema !== "conduit.tour-book" || book.schema_version !== 0) {
+  throw new Error("unsupported Tour book manifest");
 }
 const referencePanels = await Promise.all(referenceManifest.panels.map(async (panel) => {
   const response = await fetch(new URL(panel.source_path, import.meta.url), {
@@ -224,11 +225,386 @@ let timelineTimer = null;
 const draftKey = (id) => `conduit-tour-draft/${id}`;
 const recoveryKey = (id) => `conduit-tour-reset-recovery/${id}`;
 const layoutKey = (id) => `conduit-tour-layout/${id}`;
+const readingPositionKey = "conduit-tour-reader/0/reading-position";
+const checkpointKey = (projectId) =>
+  `conduit-tour-reader/0/project-checkpoint/${projectId}`;
+const bookSections = book.projects.flatMap((project) =>
+  project.chapters.flatMap((chapter) =>
+    chapter.sections.map((section) => ({ project, chapter, section })),
+  ),
+);
+const sectionById = new Map(bookSections.map((entry) => [entry.section.id, entry]));
+const sectionByLessonId = new Map();
+for (const entry of bookSections) {
+  const lab = entry.section.blocks.find((block) => block.kind === "lab");
+  const lesson = lessons.lessons.find((candidate) => candidate.id === lab?.lesson_id);
+  if (!lab || !lesson) {
+    throw new Error(`unresolved reader lab reference in ${entry.section.id}`);
+  }
+  sectionByLessonId.set(lab.lesson_id, entry);
+}
+const recipeByLessonId = new Map(
+  book.cookbook.recipes.map((recipe) => [recipe.lesson_id, recipe]),
+);
+let activeReaderSection = null;
+let activeReaderDestination = "cover";
+let activeDirectoryKind = null;
 const MIN_I32 = -2_147_483_648;
 const MAX_I32 = 2_147_483_647;
 const MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION = 32;
 const LIVE_WATCH_PRESENTATION_INTERVAL_MS = 750;
 const MAXIMUM_LIVE_FLOW_ROWS = 12;
+
+const narrativeLabels = {
+  invitation: "Invitation",
+  need: "The need",
+  idea: "The idea",
+  action: "Try it",
+  witness: "What to witness",
+  explanation: "Why it works",
+  reflection: "Reflect",
+  "next-hook": "What comes next",
+};
+
+function setDestination(destination) {
+  activeReaderDestination = destination;
+  for (const kind of ["book", "reference", "cookbook"]) {
+    const button = document.querySelector(`#show-${kind}`);
+    const active = destination === kind || (destination === "cover" && kind === "book");
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+  document.querySelector("#book-navigation").hidden =
+    !["book", "cover"].includes(destination);
+}
+
+function updateRoute(parameters = {}, { replace = false, hash = "" } = {}) {
+  const url = new URL(location.href);
+  url.search = "";
+  for (const [key, value] of Object.entries(parameters)) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  }
+  url.hash = hash;
+  history[replace ? "replaceState" : "pushState"]({}, "", url);
+}
+
+function storedCheckpoint(projectId) {
+  try {
+    const value = JSON.parse(localStorage.getItem(checkpointKey(projectId)) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    localStorage.removeItem(checkpointKey(projectId));
+    return [];
+  }
+}
+
+function recordCheckpoint(entry) {
+  const visited = new Set(storedCheckpoint(entry.project.id));
+  visited.add(entry.section.id);
+  localStorage.setItem(checkpointKey(entry.project.id), JSON.stringify([...visited]));
+  return visited;
+}
+
+function saveReadingPosition() {
+  if (!activeReaderSection) return;
+  localStorage.setItem(readingPositionKey, JSON.stringify({
+    section_id: activeReaderSection.section.id,
+    scroll_top: readerContent.scrollTop,
+  }));
+}
+
+function storedReadingPosition() {
+  try {
+    const value = JSON.parse(localStorage.getItem(readingPositionKey) || "null");
+    return value && sectionById.has(value.section_id) ? value : null;
+  } catch {
+    localStorage.removeItem(readingPositionKey);
+    return null;
+  }
+}
+
+function renderNarrativeBlock(block) {
+  const element = document.createElement(block.kind === "reflection" ? "aside" : "section");
+  element.id = `narrative-${block.id}`;
+  element.className = `narrative-block narrative-${block.kind}`;
+  const label = document.createElement("p");
+  label.className = "book-kicker";
+  label.textContent = narrativeLabels[block.kind];
+  const heading = document.createElement("h3");
+  heading.textContent = narrativeLabels[block.kind];
+  heading.className = "sr-only";
+  const body = document.createElement("p");
+  body.textContent = block.body;
+  element.append(label, heading, body);
+  return element;
+}
+
+function setLabExpanded(expanded) {
+  workspace.dataset.mode = expanded ? "expanded" : "compact";
+  expandLabButton.setAttribute("aria-expanded", String(expanded));
+  expandLabButton.textContent = expanded ? "Collapse inline lab" : "Expand full workspace";
+  requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+}
+
+function closeTechnicalDrawers() {
+  document.querySelectorAll("#workspace details").forEach((details) => {
+    details.open = false;
+  });
+}
+
+function revealHashTarget() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  const target = document.getElementById(id);
+  if (!target) return;
+  if (target instanceof HTMLDetailsElement) target.open = true;
+  target.scrollIntoView({ block: "start" });
+}
+
+function renderBookToc() {
+  const toc = document.querySelector("#project-toc");
+  toc.replaceChildren();
+  for (const project of book.projects) {
+    const projectGroup = document.createElement("section");
+    projectGroup.className = "toc-project";
+    const heading = document.createElement("h3");
+    heading.textContent = project.title;
+    projectGroup.append(heading);
+    for (const chapter of project.chapters) {
+      const details = document.createElement("details");
+      details.className = "toc-chapter";
+      details.open = true;
+      const summary = document.createElement("summary");
+      summary.textContent = `Chapter ${chapter.number}: ${chapter.title}`;
+      const list = document.createElement("ol");
+      list.className = "nav-list";
+      for (const section of chapter.sections) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = section.title;
+        button.dataset.sectionId = section.id;
+        button.onclick = () => openReaderSection(sectionById.get(section.id));
+        item.append(button);
+        list.append(item);
+      }
+      details.append(summary, list);
+      projectGroup.append(details);
+    }
+    toc.append(projectGroup);
+  }
+}
+
+function renderCover({ updateHistory = true } = {}) {
+  saveReadingPosition();
+  void stopExactSession("reader-cover");
+  activeReaderSection = null;
+  setDestination("cover");
+  bookCover.hidden = false;
+  directoryView.hidden = true;
+  readerSection.hidden = true;
+  workspace.hidden = true;
+  workspace.dataset.mode = "compact";
+  document.querySelector("#cover-kicker").textContent = book.cover.kicker;
+  document.querySelector("#cover-title").textContent = book.title;
+  document.querySelector("#cover-subtitle").textContent = book.subtitle;
+  document.querySelector("#cover-invitation").textContent = book.cover.invitation;
+  const projects = document.querySelector("#cover-projects");
+  projects.replaceChildren();
+  for (const project of book.projects) {
+    const card = document.createElement("article");
+    const title = document.createElement("h3");
+    title.textContent = project.title;
+    const description = document.createElement("p");
+    description.textContent = project.description;
+    const count = document.createElement("p");
+    count.className = "section-progress";
+    const projectSections = project.chapters.flatMap((chapter) => chapter.sections);
+    count.textContent = `${storedCheckpoint(project.id).length} of ${projectSections.length} sections visited`;
+    card.append(title, description, count);
+    projects.append(card);
+  }
+  readerContent.scrollTop = 0;
+  if (updateHistory) updateRoute({});
+}
+
+function openReaderSection(entry, { updateHistory = true, scrollTop = 0 } = {}) {
+  if (!entry) return;
+  const preserveExpandedWorkspace = workspace.dataset.mode === "expanded";
+  saveReadingPosition();
+  activeReaderSection = entry;
+  activeDirectoryKind = null;
+  setDestination("book");
+  bookCover.hidden = true;
+  directoryView.hidden = true;
+  readerSection.hidden = false;
+  workspace.hidden = false;
+  readerPager.hidden = false;
+  chapterOpening.hidden = false;
+
+  const allProjectSections = entry.project.chapters.flatMap((chapter) => chapter.sections);
+  const visited = recordCheckpoint(entry);
+  document.querySelector("#project-progress").textContent = entry.project.title;
+  document.querySelector("#section-progress").textContent =
+    `${visited.size} of ${allProjectSections.length} project sections visited`;
+  document.querySelector("#reader-section-title").textContent = entry.section.title;
+  document.querySelector("#reader-section-summary").textContent = entry.section.summary;
+  document.querySelector("#chapter-number").textContent = `Chapter ${entry.chapter.number}`;
+  document.querySelector("#chapter-opening-title").textContent = entry.chapter.title;
+  document.querySelector("#chapter-description").textContent = entry.chapter.description;
+  document.querySelector("#chapter-opening-copy").textContent = entry.chapter.opening;
+
+  const labIndex = entry.section.blocks.findIndex((block) => block.kind === "lab");
+  narrativeBeforeLab.replaceChildren(
+    ...entry.section.blocks.slice(0, labIndex).map(renderNarrativeBlock),
+  );
+  narrativeAfterLab.replaceChildren(
+    ...entry.section.blocks.slice(labIndex + 1).map(renderNarrativeBlock),
+  );
+  const lab = entry.section.blocks[labIndex];
+  const lesson = lessons.lessons.find((candidate) => candidate.id === lab.lesson_id);
+  show(lesson);
+  setLabExpanded(lab.presentation === "expanded" || preserveExpandedWorkspace);
+  closeTechnicalDrawers();
+
+  const index = bookSections.indexOf(entry);
+  const previous = document.querySelector("#previous-section");
+  const next = document.querySelector("#next-section");
+  previous.hidden = false;
+  next.hidden = false;
+  previous.disabled = index === 0;
+  previous.textContent = index === 0
+    ? "This is the first section"
+    : `Previous: ${bookSections[index - 1].section.title}`;
+  previous.setAttribute("aria-label", "Previous section");
+  previous.onclick = () => openReaderSection(bookSections[index - 1]);
+  next.disabled = index === bookSections.length - 1;
+  next.textContent = index === bookSections.length - 1
+    ? "End of the book path"
+    : `Next: ${bookSections[index + 1].section.title}`;
+  next.setAttribute("aria-label", "Next section");
+  next.onclick = () => openReaderSection(bookSections[index + 1]);
+  const permalink = document.querySelector("#section-permalink");
+  permalink.href = `?section=${encodeURIComponent(entry.section.id)}`;
+
+  document.querySelectorAll("[data-section-id]").forEach((button) => {
+    const active = button.dataset.sectionId === entry.section.id;
+    button.classList.toggle("active", active);
+    if (active) button.closest("details").open = true;
+  });
+  if (updateHistory) updateRoute({ section: entry.section.id });
+  requestAnimationFrame(() => {
+    readerContent.scrollTop = Math.max(0, Number(scrollTop) || 0);
+    revealHashTarget();
+  });
+}
+
+function directoryEntries(kind) {
+  if (kind === "reference") {
+    return referencePanels.map((panel) => ({
+      id: panel.id,
+      title: panel.title,
+      description: panel.objective || panel.prose || "Canonical checked panel",
+      search: [panel.id, panel.title, panel.objective, panel.prose].filter(Boolean).join(" "),
+      target: panel,
+    }));
+  }
+  return book.cookbook.recipes.map((recipe) => {
+    const lesson = lessons.lessons.find((candidate) => candidate.id === recipe.lesson_id);
+    return {
+      id: recipe.id,
+      title: recipe.title,
+      description: lesson.objective,
+      search: [recipe.id, recipe.title, ...recipe.tags, lesson.title, lesson.objective].join(" "),
+      target: lesson,
+      recipe,
+    };
+  });
+}
+
+function renderDirectoryResults(kind, query = "") {
+  const normalized = query.trim().toLocaleLowerCase();
+  const results = document.querySelector("#directory-results");
+  results.replaceChildren();
+  for (const entry of directoryEntries(kind).filter((candidate) =>
+    candidate.search.toLocaleLowerCase().includes(normalized))) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    const title = document.createElement("strong");
+    title.textContent = entry.title;
+    const description = document.createElement("span");
+    description.textContent = entry.description;
+    button.append(title, description);
+    button.onclick = () => openDirectoryLab(kind, entry);
+    item.append(button);
+    results.append(item);
+  }
+}
+
+function openDirectory(kind, { updateHistory = true, query = "" } = {}) {
+  saveReadingPosition();
+  void stopExactSession(`${kind}-directory`);
+  activeReaderSection = null;
+  activeDirectoryKind = kind;
+  setDestination(kind);
+  bookCover.hidden = true;
+  readerSection.hidden = true;
+  workspace.hidden = true;
+  workspace.dataset.mode = "compact";
+  directoryView.hidden = false;
+  const descriptor = book[kind];
+  document.querySelector("#directory-kicker").textContent = "Independent directory";
+  document.querySelector("#directory-title").textContent = descriptor.title;
+  document.querySelector("#directory-description").textContent = descriptor.description;
+  const input = document.querySelector("#directory-query");
+  input.value = query;
+  input.oninput = () => renderDirectoryResults(kind, input.value);
+  renderDirectoryResults(kind, query);
+  readerContent.scrollTop = 0;
+  if (updateHistory) updateRoute({ view: kind, q: query });
+}
+
+function openDirectoryLab(kind, entry, { updateHistory = true } = {}) {
+  const preserveExpandedWorkspace = workspace.dataset.mode === "expanded";
+  activeReaderSection = null;
+  activeDirectoryKind = kind;
+  setDestination(kind);
+  bookCover.hidden = true;
+  directoryView.hidden = true;
+  readerSection.hidden = false;
+  workspace.hidden = false;
+  chapterOpening.hidden = true;
+  readerPager.hidden = false;
+  document.querySelector("#project-progress").textContent =
+    kind === "reference" ? "Reference panel" : "Cookbook recipe";
+  document.querySelector("#section-progress").textContent = "Outside sequential book progress";
+  document.querySelector("#reader-section-title").textContent = entry.title;
+  document.querySelector("#reader-section-summary").textContent = entry.description;
+  narrativeBeforeLab.replaceChildren(renderNarrativeBlock({
+    id: "directory-action",
+    kind: "action",
+    body: kind === "reference"
+      ? "Inspect this canonical checked panel without changing your place in the book."
+      : "Run or inspect this exact recipe without adding it to Previous/Next navigation.",
+  }));
+  narrativeAfterLab.replaceChildren();
+  show(entry.target);
+  setLabExpanded(preserveExpandedWorkspace);
+  closeTechnicalDrawers();
+  const previous = document.querySelector("#previous-section");
+  const next = document.querySelector("#next-section");
+  previous.disabled = false;
+  previous.textContent = `Back to ${book[kind].title}`;
+  previous.onclick = () => openDirectory(kind);
+  next.hidden = true;
+  const permalink = document.querySelector("#section-permalink");
+  permalink.href = `?view=${kind}&item=${encodeURIComponent(entry.id)}`;
+  if (updateHistory) updateRoute({ view: kind, item: entry.id });
+  readerContent.scrollTop = 0;
+}
 
 function clearLiveWakeTimer() {
   if (liveWakeTimer !== null) {
@@ -1262,85 +1638,6 @@ async function stopExactSession(cause, message) {
   if (message) result.textContent = message;
 }
 
-function renderOriginComparison(origin, mode) {
-  const view = origin.comparison?.[mode];
-  if (!view) return;
-
-  originScattered.setAttribute("aria-pressed", String(mode === "scattered"));
-  originConduit.setAttribute("aria-pressed", String(mode === "conduit"));
-  originComparison.replaceChildren();
-
-  const title = document.createElement("h4");
-  title.textContent = view.title;
-  const summary = document.createElement("p");
-  summary.textContent = view.summary;
-  const list = document.createElement("ul");
-  for (const item of view.items || []) {
-    const entry = document.createElement("li");
-    entry.textContent = item;
-    list.append(entry);
-  }
-  originComparison.append(title, summary, list);
-}
-
-function renderOriginStory(lesson) {
-  const origin = lesson.origin;
-  const isOrigin = Boolean(origin);
-  workspace.classList.toggle("book-origin-active", isOrigin);
-  if (!bookChapter || !workspaceKicker) return;
-  bookChapter.hidden = !isOrigin;
-  workspaceKicker.textContent = isOrigin ? "Conduit, chapter zero" : "Interactive Workspace";
-  if (!isOrigin) return;
-
-  bookKicker.textContent = origin.kicker;
-  bookChapterTitle.textContent = origin.title;
-  bookDeck.textContent = origin.deck;
-  bookAnchor.textContent = origin.anchor;
-  bookSections.replaceChildren();
-
-  for (const [index, section] of (origin.sections || []).entries()) {
-    const article = document.createElement("article");
-    article.className = "book-section";
-    const marker = document.createElement("p");
-    marker.className = "book-section-number";
-    marker.textContent = String(index + 1).padStart(2, "0");
-    const title = document.createElement("h3");
-    title.textContent = section.title;
-    const body = document.createElement("p");
-    body.textContent = section.body;
-    article.append(marker, title, body);
-    bookSections.append(article);
-  }
-
-  originScattered.textContent = origin.comparison.scattered.label;
-  originConduit.textContent = origin.comparison.conduit.label;
-  originScattered.onclick = () => renderOriginComparison(origin, "scattered");
-  originConduit.onclick = () => renderOriginComparison(origin, "conduit");
-  renderOriginComparison(origin, "scattered");
-
-  bookRepresentativeNote.textContent = origin.representative_note;
-  bookReferences.replaceChildren();
-  for (const reference of origin.references || []) {
-    const item = document.createElement("li");
-    const link = document.createElement("a");
-    link.href = reference.href;
-    link.textContent = reference.label;
-    item.append(link);
-    bookReferences.append(item);
-  }
-
-  originContinue.textContent = origin.next_label;
-  originContinue.onclick = () => {
-    const next = lessons.lessons.find((candidate) => candidate.id === origin.next_lesson);
-    if (!next) throw new Error(`missing origin continuation ${origin.next_lesson}`);
-    show(next);
-  };
-
-  document.querySelectorAll("#workspace details").forEach((details) => {
-    details.open = false;
-  });
-}
-
 function show(lesson) {
   void stopExactSession("lesson-changed");
   resetWatchPresentation();
@@ -1354,7 +1651,7 @@ function show(lesson) {
   document.querySelector("#title").textContent = lesson.title;
   document.querySelector("#goal").textContent = lesson.objective || lesson.title;
   document.querySelector("#prose").textContent = lesson.prose || "";
-  renderOriginStory(lesson);
+  if (workspaceKicker) workspaceKicker.textContent = "Embedded real lab";
   const availability = lesson.runnability;
   if (!availability) {
     throw new Error(`missing runnability declaration for ${lesson.id}`);
@@ -1369,8 +1666,8 @@ function show(lesson) {
     (lesson.commands ?? [lesson.command || "conduct inspect"]).join("  ·  ");
 
   // Active state highlighting in nav
-  document.querySelectorAll(".nav-list button").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.id === lesson.id);
+  document.querySelectorAll("[data-lesson-id]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.lessonId === lesson.id);
   });
 
   const draft = localStorage.getItem(draftKey(lesson.id));
@@ -1383,8 +1680,7 @@ function show(lesson) {
   selectedCord = null;
   topologyView = "logical";
   undoResetButton.disabled = localStorage.getItem(recoveryKey(lesson.id)) === null;
-  document.querySelector("#topology-inspector").open =
-    lesson.presentation?.layout === "logical-expanded";
+  closeTechnicalDrawers();
   evidence.length = 0;
   recordEvidence({ kind: "lesson-selected", lesson: lesson.id });
   configureExecutionStory();
@@ -1548,28 +1844,6 @@ function renderTopology() {
     ? explanation[topologyView]
     : explanation.diagnostic;
   renderStructuredTopology();
-}
-
-// Populate Lessons Nav
-for (const lesson of lessons.lessons) {
-  const button = document.createElement("button");
-  button.textContent = lesson.title;
-  button.dataset.id = lesson.id;
-  button.onclick = () => show(lesson);
-  const item = document.createElement("li");
-  item.append(button);
-  document.querySelector("#lessons").append(item);
-}
-
-// Populate Reference Panels Nav
-for (const refPanel of referencePanels) {
-  const button = document.createElement("button");
-  button.textContent = refPanel.title;
-  button.dataset.id = refPanel.id;
-  button.onclick = () => show(refPanel);
-  const item = document.createElement("li");
-  item.append(button);
-  document.querySelector("#reference-panels").append(item);
 }
 
 source.addEventListener("input", () => {
@@ -2110,14 +2384,120 @@ document.querySelector("#download").onclick = () => {
   URL.revokeObjectURL(link.href);
 };
 
+function applyReaderRoute({ restoreReading = false } = {}) {
+  const parameters = new URLSearchParams(location.search);
+  const requestedSection = parameters.get("section");
+  if (requestedSection && sectionById.has(requestedSection)) {
+    const position = storedReadingPosition();
+    openReaderSection(sectionById.get(requestedSection), {
+      updateHistory: false,
+      scrollTop: position?.section_id === requestedSection ? position.scroll_top : 0,
+    });
+    return;
+  }
+
+  const requestedLesson = parameters.get("lesson");
+  if (requestedLesson) {
+    const section = sectionByLessonId.get(requestedLesson);
+    if (section) {
+      workspace.dataset.mode = "expanded";
+      openReaderSection(section, { updateHistory: false });
+      return;
+    }
+    const recipe = recipeByLessonId.get(requestedLesson);
+    if (recipe) {
+      const entry = directoryEntries("cookbook").find((candidate) => candidate.id === recipe.id);
+      workspace.dataset.mode = "expanded";
+      openDirectoryLab("cookbook", entry, { updateHistory: false });
+      return;
+    }
+    const reference = directoryEntries("reference")
+      .find((candidate) => candidate.target.id === requestedLesson);
+    if (reference) {
+      workspace.dataset.mode = "expanded";
+      openDirectoryLab("reference", reference, { updateHistory: false });
+      return;
+    }
+  }
+
+  const view = parameters.get("view");
+  if (["reference", "cookbook"].includes(view)) {
+    const item = parameters.get("item");
+    const entry = item && directoryEntries(view).find((candidate) => candidate.id === item);
+    if (entry) {
+      openDirectoryLab(view, entry, { updateHistory: false });
+    } else {
+      openDirectory(view, {
+        updateHistory: false,
+        query: parameters.get("q") || "",
+      });
+    }
+    return;
+  }
+
+  const position = restoreReading ? storedReadingPosition() : null;
+  if (position) {
+    openReaderSection(sectionById.get(position.section_id), {
+      updateHistory: false,
+      scrollTop: position.scroll_top,
+    });
+  } else {
+    renderCover({ updateHistory: false });
+  }
+}
+
 const pageParameters = new URLSearchParams(location.search);
-const requestedLesson = pageParameters.get("lesson");
-if (requestedLesson) {
+if (readerContent) {
+  expandLabButton.onclick = () => {
+    setLabExpanded(expandLabButton.getAttribute("aria-expanded") !== "true");
+  };
+  document.querySelector("#show-book").onclick = () => renderCover();
+  document.querySelector("#show-reference").onclick = () => openDirectory("reference");
+  document.querySelector("#show-cookbook").onclick = () => openDirectory("cookbook");
+  document.querySelector("#begin-book").onclick = () =>
+    openReaderSection(sectionById.get(book.cover.start_section));
+  readerContent.addEventListener("scroll", saveReadingPosition, { passive: true });
+  window.addEventListener("beforeunload", saveReadingPosition);
+  window.addEventListener("hashchange", revealHashTarget);
+  for (const details of document.querySelectorAll("#workspace details[id]")) {
+    details.addEventListener("toggle", () => {
+      if (!details.open || readerSection.hidden) return;
+      const url = new URL(location.href);
+      url.hash = details.id;
+      history.replaceState({}, "", url);
+    });
+  }
+  renderBookToc();
+  applyReaderRoute({ restoreReading: location.search === "" });
+  window.addEventListener("popstate", () => applyReaderRoute());
+} else {
+  for (const lesson of lessons.lessons) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = lesson.title;
+    button.dataset.lessonId = lesson.id;
+    button.onclick = () => show(lesson);
+    const item = document.createElement("li");
+    item.append(button);
+    document.querySelector("#lessons").append(item);
+  }
+  for (const panel of referencePanels) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = panel.title;
+    button.dataset.lessonId = panel.id;
+    button.onclick = () => show(panel);
+    const item = document.createElement("li");
+    item.append(button);
+    document.querySelector("#reference-panels").append(item);
+  }
+  const requestedLesson = pageParameters.get("lesson");
   current = lessons.lessons.find((lesson) => lesson.id === requestedLesson)
     || referencePanels.find((panel) => panel.id === requestedLesson)
     || current;
+  show(current);
 }
-show(current);
+
 const requestedScenario = pageParameters.get("scenario");
 if (requestedScenario && scenarioSelect &&
     [...(current.library?.scenarios || []), ...(current.platform?.profiles || [])]
@@ -2125,4 +2505,4 @@ if (requestedScenario && scenarioSelect &&
   scenarioSelect.value = requestedScenario;
   scenarioSelect.dispatchEvent(new Event("change"));
 }
-if (pageParameters.has("autorun")) await run();
+if (pageParameters.has("autorun") && !workspace.hidden) await run();
