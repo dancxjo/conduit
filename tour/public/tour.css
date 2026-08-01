@@ -2028,8 +2028,7 @@ path.patchbay-cord.compatibility-incompatible {
 }
 
 .book-origin-active .workspace-header {
-  max-width: 78rem;
-  margin-inline: auto;
+  display: none;
 }
 
 .book-chapter-header {
