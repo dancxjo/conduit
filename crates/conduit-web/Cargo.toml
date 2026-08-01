@@ -25,10 +25,8 @@ conduit-runtime = { path = "../conduit-runtime" }
 conduit-spatial = { path = "../conduit-spatial" }
 conduit-std = { path = "../conduit-std" }
 serde_json = "1"
-wasm-bindgen = "0.2.126"
-
-[dev-dependencies]
 sha2 = "0.10.9"
+wasm-bindgen = "0.2.126"
 
 [lints]
 workspace = true

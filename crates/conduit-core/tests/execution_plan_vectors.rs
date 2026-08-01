@@ -11,11 +11,12 @@ use conduit_core::{
     FlowPolicy, FlowWatermarks, ForeignRetention, GrantStatus, HostCapability, Id, InstancePath,
     JobContract, MergeOrdering, MergeTerminalPolicy, ObservedGrant, PinnedDescriptor, PlanArtifact,
     PlanAuthority, PlanClockConversion, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode,
-    PlanEventStream, PlanExportBinding, PlanFanOut, PlanFeedbackBoundary, PlanHostObservation,
-    PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
-    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanValidationContext,
-    PlanWorkload, Pressure, RESOURCE_LEASE_SCHEMA_VERSION, RUNTIME_EVIDENCE_POLICY_VERSION,
-    ReplayDelivery, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract,
+    PlanEventStream, PlanEvidenceProviderBinding, PlanExportBinding, PlanFanOut,
+    PlanFeedbackBoundary, PlanHostObservation, PlanJob, PlanMerge, PlanMergeInput, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSatisfactionProof,
+    PlanSatisfactionSubject, PlanValidationContext, PlanWorkload, Pressure,
+    RESOURCE_LEASE_SCHEMA_VERSION, RUNTIME_EVIDENCE_POLICY_VERSION, ReplayDelivery,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract,
     ResourceLeaseReason, ResourceRef, ResourceSelector, ResourceSharingMode, RestartPolicy,
     RetentionPolicy, RuntimeEvidenceMode, RuntimeEvidencePolicy, SatisfactionFacet,
     SatisfactionMethod, SatisfactionObligation, SatisfactionPin, SatisfactionProof,
@@ -352,6 +353,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        evidence_provider: None,
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],
@@ -1175,6 +1177,7 @@ fn current_plan_pins_coupled_fanout_and_deterministic_merge() {
             identity: ZERO_HASH,
             event_streams: &[stream],
             runtime_evidence: None,
+            evidence_provider: None,
             ..v4
         };
         v5.identity = v5.semantic_hash(scratch).unwrap();
@@ -1197,6 +1200,7 @@ fn current_plan_pins_coupled_fanout_and_deterministic_merge() {
                 ..stream
             }],
             runtime_evidence: None,
+            evidence_provider: None,
             ..v5
         };
         incapable.identity = incapable.semantic_hash(scratch).unwrap();
@@ -1305,6 +1309,7 @@ fn current_plan_pins_coupled_fanout_and_deterministic_merge() {
             },
             event_streams: &job_streams,
             runtime_evidence: None,
+            evidence_provider: None,
             jobs: &jobs,
             ..v5
         };
@@ -1594,6 +1599,7 @@ fn current_plan_pins_coupled_fanout_and_deterministic_merge() {
             schema_version: 0,
             identity: ZERO_HASH,
             runtime_evidence: Some(runtime_policy),
+            evidence_provider: None,
             ..v7
         };
         v8.identity = v8.semantic_hash(scratch).unwrap();
@@ -1833,6 +1839,71 @@ fn portable_validator_rejects_every_required_malformed_class() {
 }
 
 #[test]
+fn exact_evidence_provider_is_identity_bound_and_must_reference_exact_plan_facts() {
+    with_plan(|plan, scratch| {
+        let provider = PlanEvidenceProviderBinding {
+            implementation: pin("fixture/evidence-provider", 91),
+            artifact: plan.artifacts[0].id,
+            host_observation: plan.host_observations[0].id,
+            store: ResourceRef {
+                kind: Id("fixture/evidence-store"),
+                id: Id("fixture/evidence-store-a"),
+            },
+            store_generation: 7,
+            grant_hash: hash(92),
+            time_basis: plan.created_at.basis,
+        };
+        let mut bound = ExecutionPlan {
+            identity: ZERO_HASH,
+            evidence_provider: Some(provider),
+            ..plan
+        };
+        bound.identity = bound.semantic_hash(scratch).unwrap();
+        validate_execution_plan(&bound, context(20), scratch).unwrap();
+
+        let mut changed = ExecutionPlan {
+            identity: ZERO_HASH,
+            evidence_provider: Some(PlanEvidenceProviderBinding {
+                store_generation: 8,
+                ..provider
+            }),
+            ..bound
+        };
+        changed.identity = changed.semantic_hash(scratch).unwrap();
+        assert_ne!(changed.identity, bound.identity);
+
+        let mut dangling = ExecutionPlan {
+            identity: ZERO_HASH,
+            evidence_provider: Some(PlanEvidenceProviderBinding {
+                artifact: Id("fixture/missing-evidence-artifact"),
+                ..provider
+            }),
+            ..bound
+        };
+        dangling.identity = dangling.semantic_hash(scratch).unwrap();
+        let denial = validate_execution_plan(&dangling, context(20), scratch).unwrap_err();
+        assert_eq!(denial.code, PlanDiagnosticCode::RuntimeEvidenceInvalid);
+        assert_eq!(denial.collection, PlanCollection::EvidenceProvider);
+
+        let mut invalid_generation = ExecutionPlan {
+            identity: ZERO_HASH,
+            evidence_provider: Some(PlanEvidenceProviderBinding {
+                store_generation: 0,
+                ..provider
+            }),
+            ..bound
+        };
+        invalid_generation.identity = invalid_generation.semantic_hash(scratch).unwrap();
+        assert_eq!(
+            validate_execution_plan(&invalid_generation, context(20), scratch)
+                .unwrap_err()
+                .code,
+            PlanDiagnosticCode::RuntimeEvidenceInvalid
+        );
+    });
+}
+
+#[test]
 fn current_plan_pins_value_clock_and_feedback_facts() {
     with_plan(|base, scratch| {
         let mut profile = ExecutionProfile {
@@ -1953,6 +2024,9 @@ fn current_plan_pins_value_clock_and_feedback_facts() {
         let watches = [WatchAdmission {
             id: Id("watch/cord-0"),
             subject: WatchSubject::Cord(cords[0].id),
+            operator: Id("operator/fixture"),
+            control_grant_hash: hash(90),
+            lease: Id("lease/watch-cord-0"),
             representation: envelopes[0].representation,
             maximum_preview_bytes: 16,
             maximum_history: 1,
@@ -1960,6 +2034,7 @@ fn current_plan_pins_value_clock_and_feedback_facts() {
             retention: WatchRetention::Latest,
             sensitivity_ceiling: Sensitivity::Public,
             reveal_action: None,
+            reveal_grant_hash: None,
         }];
         let mut watched = ExecutionPlan {
             identity: ZERO_HASH,
@@ -2019,6 +2094,9 @@ fn current_plan_admits_a_watch_for_the_exact_cord_type_without_an_envelope() {
         let watches = [WatchAdmission {
             id: Id("watch/plain-cord"),
             subject: WatchSubject::Cord(base.cords[0].id),
+            operator: Id("operator/fixture"),
+            control_grant_hash: hash(90),
+            lease: Id("lease/watch-plain-cord"),
             representation: PinnedDescriptor {
                 id: value_type.contract_id,
                 schema_version: value_type.schema_version,
@@ -2030,6 +2108,7 @@ fn current_plan_admits_a_watch_for_the_exact_cord_type_without_an_envelope() {
             retention: WatchRetention::Latest,
             sensitivity_ceiling: Sensitivity::Public,
             reveal_action: None,
+            reveal_grant_hash: None,
         }];
         let mut watched = ExecutionPlan {
             identity: ZERO_HASH,

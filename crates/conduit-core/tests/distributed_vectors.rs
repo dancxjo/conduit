@@ -861,6 +861,7 @@ fn current_plan_requires_one_exact_binding_for_each_cross_host_cord() {
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        evidence_provider: None,
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],

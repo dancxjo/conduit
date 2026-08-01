@@ -40,6 +40,7 @@ fn standing_modulated_audio_waits_resumes_observes_and_stops_explicitly() {
         run_id.clone(),
         revision,
         plan_identity.clone(),
+        "operator/browser-patchbay".to_owned(),
         "watch/cord-6".to_owned(),
     ));
     assert_eq!(attached["ok"], true, "{attached}");
@@ -74,6 +75,7 @@ fn standing_modulated_audio_waits_resumes_observes_and_stops_explicitly() {
         run_id.clone(),
         revision,
         plan_identity.clone(),
+        "operator/browser-patchbay".to_owned(),
         "watch/cord-6".to_owned(),
     ));
     assert_eq!(detached["ok"], true, "{detached}");

@@ -16,8 +16,8 @@ use conduit_core::{
 use conduit_panel::parse;
 use conduit_runtime::{
     AvailabilityState, ExactHostedBinding, ExactHostedBindings, ExactRunContext, ExactRunIo,
-    ExactRunSessionRegistry, ExactWatchMaterial, HostedPrimitiveImplementation, Registry, RunIo,
-    SchedulerReservation,
+    ExactRunSessionRegistry, ExactWatchMaterial, ExactWatchOperation, ExactWatchUseAuthority,
+    HostedPrimitiveImplementation, Registry, RunIo, SchedulerReservation,
 };
 
 const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json");
@@ -216,6 +216,8 @@ fn input(source: &str) -> CompileInput {
         supervision_bindings: Vec::new(),
         hazard_closure: None,
         distribution: None,
+        evidence_provider: None,
+        watch_admissions: Vec::new(),
         source_semantic_hash: topology.source_semantic_hash.to_string(),
         resolver: pin("conduit/exact-compiler-resolver", 70),
         resolver_policy_hash: String::new(),
@@ -821,17 +823,33 @@ node source : std/literal { value = \"owned session\" }\n\
 node sink : display/text\n\
 cord source.value -> sink.text\n";
 
-    let installed = InstalledProfile::observe(SOURCE).unwrap();
-    let mut document = compile_source(SOURCE, &installed.input).unwrap();
-    let watched_cord = document.cords[0].id.clone();
+    let mut installed = InstalledProfile::observe(SOURCE).unwrap();
+    let panel = parse(SOURCE).unwrap();
+    let topology = Registry::hosted_primitives()
+        .resolve(&panel)
+        .unwrap()
+        .exact_topology()
+        .unwrap();
+    let watched_cord = topology.cords[0].id.clone();
     let representation = PinDocument {
-        id: document.cords[0].from.value_type_id.clone(),
-        schema_version: document.cords[0].from.value_type_schema_version,
-        semantic_hash: document.cords[0].from.value_type_semantic_hash.clone(),
+        id: topology.cords[0]
+            .from_port
+            .value_type
+            .contract_id
+            .to_string(),
+        schema_version: topology.cords[0].from_port.value_type.schema_version,
+        semantic_hash: topology.cords[0]
+            .from_port
+            .value_type
+            .semantic_hash
+            .to_string(),
     };
-    document.watch_admissions = vec![WatchAdmissionDocument {
+    installed.input.watch_admissions = vec![WatchAdmissionDocument {
         id: "watch/owned-source".to_owned(),
         subject_kind: "cord".to_owned(),
+        operator: "operator/fixture".to_owned(),
+        control_grant_hash: SemanticHash::from_bytes([91; 32]).to_string(),
+        lease: "lease/watch-owned-source".to_owned(),
         cord: Some(watched_cord),
         node: None,
         port: None,
@@ -843,14 +861,10 @@ cord source.value -> sink.text\n";
         retention: "latest".to_owned(),
         sensitivity_ceiling: "public".to_owned(),
         reveal_action: None,
+        reveal_grant_hash: None,
     }];
-    document.identity = {
-        let arena = Bump::new();
-        let plan = document.as_plan(&arena).unwrap();
-        let mut scratch =
-            vec![SemanticHash::from_bytes([0; 32]); plan.validation_scratch_count().unwrap()];
-        plan.semantic_hash(&mut scratch).unwrap().to_string()
-    };
+    installed.input.seal().unwrap();
+    let document = compile_source(SOURCE, &installed.input).unwrap();
     document.validate().unwrap();
     let sessions = ExactRunSessionRegistry::new(1, document.budget.memory_bytes).unwrap();
     let mut session = {
@@ -893,7 +907,29 @@ cord source.value -> sink.text\n";
     };
     assert_eq!(session.high_water().decisions, 0);
     let exact_identity = session.identity().clone();
-    session.attach_watch("watch/owned-source").unwrap();
+    let authority = |operation| ExactWatchUseAuthority {
+        operation,
+        operator_id: "operator/fixture".to_owned(),
+        control_grant_hash: SemanticHash::from_bytes([91; 32]),
+        control_grant_active: true,
+        run_id: exact_identity.run_id.clone(),
+        plan_epoch: exact_identity.plan_epoch,
+        watch_id: "watch/owned-source".to_owned(),
+        lease_id: "lease/watch-owned-source".to_owned(),
+        lease_epoch: exact_identity.plan_epoch,
+        lease_available: true,
+        reveal_grant_hash: None,
+        reveal_grant_active: false,
+        time_basis: "clock/conduct-host".to_owned(),
+        validated_at_tick: 12,
+        valid_until_tick: u64::MAX,
+    };
+    session
+        .attach_watch(
+            "watch/owned-source",
+            &authority(ExactWatchOperation::Attach),
+        )
+        .unwrap();
     let mut last_pump = None;
     while matches!(session.state(), conduit_runtime::ExactRunState::Active) {
         last_pump = Some(session.pump(1, &[]).unwrap());
@@ -907,7 +943,14 @@ cord source.value -> sink.text\n";
         b"owned session"
     );
     assert_eq!(session.identity(), &exact_identity);
-    let watched = session.read_watch("watch/owned-source", 0, 1).unwrap();
+    let watched = session
+        .read_watch(
+            "watch/owned-source",
+            0,
+            1,
+            &authority(ExactWatchOperation::Read),
+        )
+        .unwrap();
     assert_eq!(watched.status, EvidenceCursorStatus::Available);
     assert_eq!(watched.records.len(), 1);
     assert_eq!(watched.records[0].watch_id, "watch/owned-source");
@@ -920,7 +963,12 @@ cord source.value -> sink.text\n";
     assert!(watched.records[0].content_hash.is_some());
     assert_eq!(session.watch_usage().attached_slots, 1);
     assert_eq!(session.watch_usage().retained_observations, 1);
-    session.detach_watch("watch/owned-source").unwrap();
+    session
+        .detach_watch(
+            "watch/owned-source",
+            &authority(ExactWatchOperation::Detach),
+        )
+        .unwrap();
     assert_eq!(session.watch_usage().attached_slots, 0);
     assert_eq!(session.watch_usage().retained_observations, 1);
     let values = last_pump

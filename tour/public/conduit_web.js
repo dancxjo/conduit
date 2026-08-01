@@ -161,12 +161,13 @@ export function patchbay_apply_transaction(session_id, request_json) {
  * @param {string} run_id
  * @param {bigint} source_revision
  * @param {string} plan_identity
+ * @param {string} operator_id
  * @param {string} watch_id
  * @returns {string}
  */
-export function patchbay_attach_exact_watch(session_id, run_id, source_revision, plan_identity, watch_id) {
-    let deferred5_0;
-    let deferred5_1;
+export function patchbay_attach_exact_watch(session_id, run_id, source_revision, plan_identity, operator_id, watch_id) {
+    let deferred6_0;
+    let deferred6_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
@@ -174,14 +175,16 @@ export function patchbay_attach_exact_watch(session_id, run_id, source_revision,
         const len1 = WASM_VECTOR_LEN;
         const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passStringToWasm0(operator_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_attach_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3);
-        deferred5_0 = ret[0];
-        deferred5_1 = ret[1];
+        const ptr4 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_attach_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3, ptr4, len4);
+        deferred6_0 = ret[0];
+        deferred6_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
     }
 }
 
@@ -222,12 +225,13 @@ export function patchbay_cancel_exact_run(session_id, run_id, source_revision, p
  * @param {string} run_id
  * @param {bigint} source_revision
  * @param {string} plan_identity
+ * @param {string} operator_id
  * @param {string} watch_id
  * @returns {string}
  */
-export function patchbay_detach_exact_watch(session_id, run_id, source_revision, plan_identity, watch_id) {
-    let deferred5_0;
-    let deferred5_1;
+export function patchbay_detach_exact_watch(session_id, run_id, source_revision, plan_identity, operator_id, watch_id) {
+    let deferred6_0;
+    let deferred6_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
@@ -235,14 +239,16 @@ export function patchbay_detach_exact_watch(session_id, run_id, source_revision,
         const len1 = WASM_VECTOR_LEN;
         const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passStringToWasm0(operator_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_detach_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3);
-        deferred5_0 = ret[0];
-        deferred5_1 = ret[1];
+        const ptr4 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_detach_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3, ptr4, len4);
+        deferred6_0 = ret[0];
+        deferred6_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
     }
 }
 
@@ -422,14 +428,15 @@ export function patchbay_read_exact_evidence(session_id, run_id, source_revision
  * @param {string} run_id
  * @param {bigint} source_revision
  * @param {string} plan_identity
+ * @param {string} operator_id
  * @param {string} watch_id
  * @param {bigint} cursor
  * @param {number} maximum_records
  * @returns {string}
  */
-export function patchbay_read_exact_watch(session_id, run_id, source_revision, plan_identity, watch_id, cursor, maximum_records) {
-    let deferred5_0;
-    let deferred5_1;
+export function patchbay_read_exact_watch(session_id, run_id, source_revision, plan_identity, operator_id, watch_id, cursor, maximum_records) {
+    let deferred6_0;
+    let deferred6_1;
     try {
         const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
@@ -437,14 +444,16 @@ export function patchbay_read_exact_watch(session_id, run_id, source_revision, p
         const len1 = WASM_VECTOR_LEN;
         const ptr2 = passStringToWasm0(plan_identity, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passStringToWasm0(operator_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.patchbay_read_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3, cursor, maximum_records);
-        deferred5_0 = ret[0];
-        deferred5_1 = ret[1];
+        const ptr4 = passStringToWasm0(watch_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_read_exact_watch(ptr0, len0, ptr1, len1, source_revision, ptr2, len2, ptr3, len3, ptr4, len4, cursor, maximum_records);
+        deferred6_0 = ret[0];
+        deferred6_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
     }
 }
 

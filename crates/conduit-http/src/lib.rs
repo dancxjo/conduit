@@ -3286,10 +3286,9 @@ mod tests {
         SchedulerPolicy, StopPolicy,
     };
     use conduit_runtime::{
-        ExactEvidenceSink, ExactHostedServiceAuthority, ExactHostedServiceBinding,
-        ExactHostedServiceUseObservation, ExactRunContext, ExactRunIdentity, ExactRunIo,
-        ExactRunSessionRegistry, ExactRunState, Registry, SchedulerReservation,
-        hosted_service_use_observations,
+        ExactHostedServiceAuthority, ExactHostedServiceBinding, ExactHostedServiceUseObservation,
+        ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState, Registry,
+        SchedulerReservation, hosted_service_use_observations,
     };
 
     use super::{
@@ -3481,39 +3480,6 @@ mod tests {
         start_listener_for_source(source, run_id)
     }
 
-    #[derive(Default)]
-    struct CountingEvidenceSink {
-        records: usize,
-    }
-
-    impl ExactEvidenceSink for CountingEvidenceSink {
-        type Error = std::convert::Infallible;
-
-        fn commit_exact_evidence(
-            &mut self,
-            _run: &ExactRunIdentity,
-            records: &[conduit_runtime::ExactEvidenceRecord],
-        ) -> Result<(), Self::Error> {
-            self.records += records.len();
-            Ok(())
-        }
-    }
-
-    fn drain_listener_evidence(
-        session: &mut conduit_runtime::ExactHostedRunSession,
-        cursor: &mut u64,
-        sink: &mut CountingEvidenceSink,
-    ) {
-        while session.scheduler_events().next().is_some() {
-            let batch = session
-                .drain_exact_evidence(*cursor, 64, sink)
-                .expect("listener evidence commits before resident slots are released");
-            assert!(batch.next_cursor > *cursor);
-            *cursor = batch.next_cursor;
-        }
-        assert_eq!(session.retained_event_cursor(), *cursor);
-    }
-
     fn serve_request(
         session: &mut conduit_runtime::ExactHostedRunSession,
         address: std::net::SocketAddr,
@@ -3552,9 +3518,6 @@ mod tests {
         let value_capacity = session
             .value_storage_usage()
             .expect("hosted listener owns fixed value storage");
-        let mut evidence_cursor = session.retained_event_cursor();
-        let mut evidence_sink = CountingEvidenceSink::default();
-        drain_listener_evidence(&mut session, &mut evidence_cursor, &mut evidence_sink);
         assert_eq!(
             session
                 .notify_host_operation(Id("conduit/http-other-event"), &observations)
@@ -3578,7 +3541,6 @@ mod tests {
                 }),
                 "{path} has its exact route result"
             );
-            drain_listener_evidence(&mut session, &mut evidence_cursor, &mut evidence_sink);
             assert_eq!(session.identity(), &identity);
             assert_eq!(session.reserved_session_bytes(), reservation);
             assert_eq!(session.allocation(), allocation);
@@ -3597,8 +3559,7 @@ mod tests {
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
         );
-        drain_listener_evidence(&mut session, &mut evidence_cursor, &mut evidence_sink);
-        assert!(evidence_sink.records > 2);
+        assert!(session.exact_evidence().len() > 2);
         session.finalize().unwrap();
         assert_eq!(sessions.active_sessions(), 0);
     }

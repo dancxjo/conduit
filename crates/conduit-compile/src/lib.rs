@@ -28,18 +28,18 @@ use conduit_core::{
     MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit,
     OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
     PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion, PlanCompositeMapping,
-    PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure, PlanHostObservation,
-    PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember,
-    PlanResourceBinding, PlanResourceBudget, PlanSupervision, PlanSupervisionTarget,
-    PlanValidationContext, PlanWorkload, PolicyBudgetAnchor, PolicyBudgetAvailability,
-    PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason, PolicyBudgetStatus, PolicyLeaseRule,
-    PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract, PoolGenerationReservation,
-    PoolReservationProfile, PoolSupervisionPolicy, Pressure, ProviderAvailability,
-    ProviderRequirement, ProviderRiskTraits, ProviderSelection, ReferenceDistributionProfile,
-    ReplacementSupport, ReportCapability, ReportMembership, ReportResource, ReportTopology,
-    ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode, RollingLimit,
-    SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
+    PlanEvidenceProviderBinding, PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure,
+    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
+    PlanSupervisionTarget, PlanValidationContext, PlanWorkload, PolicyBudgetAnchor,
+    PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason,
+    PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract,
+    PoolGenerationReservation, PoolReservationProfile, PoolSupervisionPolicy, Pressure,
+    ProviderAvailability, ProviderRequirement, ProviderRiskTraits, ProviderSelection,
+    ReferenceDistributionProfile, ReplacementSupport, ReportCapability, ReportMembership,
+    ReportResource, ReportTopology, ResolvedAuthorityBinding, ResolvedPlanCord, ResolvedPlanNode,
+    ResolvedPlanPort, ResourceLeaseContract, ResourceRef, ResourceSelector, ResourceSharingMode,
+    RollingLimit, SampleSchedule, SemanticHash, Sensitivity, StopPolicy, SupervisionActionKind,
     SupervisionContract, SupervisionFailureMode, SupervisionLimits, SupervisionScope,
     TemporalContract, ToxicCombinationRule, ToxicEffectPattern, ToxicFlowRequirement,
     TraitRequirement, TypeContractRef, UnknownCommitPolicy, ValueEnvelopePolicy,
@@ -1527,6 +1527,10 @@ pub struct CompileInput {
     pub hazard_closure: Option<HazardClosureDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub distribution: Option<ReferenceDistributionDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_provider: Option<EvidenceProviderBindingDocument>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub watch_admissions: Vec<WatchAdmissionDocument>,
     pub source_semantic_hash: String,
     pub resolver: PinDocument,
     pub resolver_policy_hash: String,
@@ -1561,6 +1565,8 @@ struct CompileIdentityProjection<'a> {
     supervision_bindings: &'a [SupervisionBindingDocument],
     hazard_closure: &'a Option<HazardClosureDocument>,
     distribution: &'a Option<ReferenceDistributionDocument>,
+    evidence_provider: &'a Option<EvidenceProviderBindingDocument>,
+    watch_admissions: &'a [WatchAdmissionDocument],
     source_semantic_hash: &'a str,
     resolver: &'a PinDocument,
     resolver_policy_hash: &'a str,
@@ -1650,6 +1656,8 @@ impl CompileInput {
             supervision_bindings: &canonical.supervision_bindings,
             hazard_closure: &canonical.hazard_closure,
             distribution: &canonical.distribution,
+            evidence_provider: &canonical.evidence_provider,
+            watch_admissions: &canonical.watch_admissions,
             source_semantic_hash: &canonical.source_semantic_hash,
             resolver: &canonical.resolver,
             resolver_policy_hash: &canonical.resolver_policy_hash,
@@ -2343,6 +2351,19 @@ pub struct PlanResourceDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct EvidenceProviderBindingDocument {
+    pub implementation: PinDocument,
+    pub artifact: PlanArtifactDocument,
+    pub host_observation: PlanHostDocument,
+    pub store_kind: String,
+    pub store_id: String,
+    pub store_generation: u64,
+    pub grant_hash: String,
+    pub time_basis: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourceLeaseDocument {
     pub schema_version: u32,
     pub id: String,
@@ -2505,6 +2526,9 @@ pub struct ValueEnvelopePolicyDocument {
 pub struct WatchAdmissionDocument {
     pub id: String,
     pub subject_kind: String,
+    pub operator: String,
+    pub control_grant_hash: String,
+    pub lease: String,
     pub cord: Option<String>,
     pub node: Option<String>,
     pub port: Option<String>,
@@ -2516,6 +2540,7 @@ pub struct WatchAdmissionDocument {
     pub retention: String,
     pub sensitivity_ceiling: String,
     pub reveal_action: Option<String>,
+    pub reveal_grant_hash: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -2691,6 +2716,8 @@ pub struct ExactPlanDocument {
     pub clock_conversions: Vec<ClockConversionDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub feedback_boundaries: Vec<FeedbackBoundaryDocument>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_provider: Option<EvidenceProviderBindingDocument>,
     pub authorities: Vec<PlanAuthorityDocument>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hazard_closure: Option<HazardClosureDocument>,
@@ -2776,6 +2803,29 @@ impl ExactPlanDocument {
                 })
             })
             .collect::<Result<Vec<_>, CompileError>>()?;
+        let evidence_provider = self
+            .evidence_provider
+            .as_ref()
+            .map(|provider| {
+                if !self.artifacts.contains(&provider.artifact)
+                    || !self.host_observations.contains(&provider.host_observation)
+                {
+                    return Err(CompileError::new(CompileReason::PlanInvalid));
+                }
+                Ok(PlanEvidenceProviderBinding {
+                    implementation: pin(&provider.implementation)?,
+                    artifact: id(&provider.artifact.id)?,
+                    host_observation: id(&provider.host_observation.id)?,
+                    store: ResourceRef {
+                        kind: id(&provider.store_kind)?,
+                        id: id(&provider.store_id)?,
+                    },
+                    store_generation: provider.store_generation,
+                    grant_hash: parse_hash(&provider.grant_hash)?,
+                    time_basis: id(&provider.time_basis)?,
+                })
+            })
+            .transpose()?;
         let resources = self
             .resources
             .iter()
@@ -2898,6 +2948,9 @@ impl ExactPlanDocument {
                     Ok(WatchAdmission {
                         id: id(&watch.id)?,
                         subject,
+                        operator: id(&watch.operator)?,
+                        control_grant_hash: parse_hash(&watch.control_grant_hash)?,
+                        lease: id(&watch.lease)?,
                         representation: pin(&watch.representation)?,
                         maximum_preview_bytes: watch.maximum_preview_bytes,
                         maximum_history: watch.maximum_history,
@@ -2905,6 +2958,11 @@ impl ExactPlanDocument {
                         retention,
                         sensitivity_ceiling: sensitivity(&watch.sensitivity_ceiling)?,
                         reveal_action: watch.reveal_action.as_deref().map(id).transpose()?,
+                        reveal_grant_hash: watch
+                            .reveal_grant_hash
+                            .as_deref()
+                            .map(parse_hash)
+                            .transpose()?,
                     })
                 })
                 .collect::<Result<Vec<_>, CompileError>>()?;
@@ -3206,6 +3264,7 @@ impl ExactPlanDocument {
             merges: &[],
             event_streams: &[],
             runtime_evidence: None,
+            evidence_provider,
             watch_admissions: arena.alloc_slice_copy(&watch_admissions),
             jobs: &[],
             satisfaction_proofs: &[],
@@ -3712,6 +3771,58 @@ fn compile_topology(
             required_effects: arena.alloc_slice_copy(&required_effects),
         });
     }
+    let evidence_provider = input
+        .evidence_provider
+        .as_ref()
+        .map(|provider| {
+            let provider_host = PlanHostObservation {
+                id: id(&provider.host_observation.id)?,
+                host: id(&provider.host_observation.host)?,
+                semantic_hash: parse_hash(&provider.host_observation.semantic_hash)?,
+                time_basis: id(&provider.host_observation.time_basis)?,
+                observed_at_tick: provider.host_observation.observed_at_tick,
+                valid_until_tick: provider.host_observation.valid_until_tick,
+            };
+            if let Some(existing) = host_observations
+                .iter()
+                .find(|host| host.id == provider_host.id)
+            {
+                if existing != &provider_host {
+                    return Err(CompileError::new(CompileReason::PlanInvalid));
+                }
+            } else {
+                host_observations.push(provider_host);
+            }
+
+            let provider_artifact = PlanArtifact {
+                id: id(&provider.artifact.id)?,
+                digest: parse_digest(&provider.artifact.digest)?,
+            };
+            if let Some(existing) = artifacts
+                .iter()
+                .find(|artifact| artifact.id == provider_artifact.id)
+            {
+                if existing != &provider_artifact {
+                    return Err(CompileError::new(CompileReason::PlanInvalid));
+                }
+            } else {
+                artifacts.push(provider_artifact);
+            }
+
+            Ok(PlanEvidenceProviderBinding {
+                implementation: pin(&provider.implementation)?,
+                artifact: provider_artifact.id,
+                host_observation: provider_host.id,
+                store: ResourceRef {
+                    kind: id(&provider.store_kind)?,
+                    id: id(&provider.store_id)?,
+                },
+                store_generation: provider.store_generation,
+                grant_hash: parse_hash(&provider.grant_hash)?,
+                time_basis: id(&provider.time_basis)?,
+            })
+        })
+        .transpose()?;
     if plan_authorities.len() > input.maximum_authority_bindings as usize
         || transition_memory_bytes > input.maximum_transition_memory_bytes
     {
@@ -4080,6 +4191,59 @@ fn compile_topology(
             )
         })
         .transpose()?;
+    let watch_admissions =
+        input
+            .watch_admissions
+            .iter()
+            .map(|watch| {
+                let subject =
+                    match watch.subject_kind.as_str() {
+                        "cord" => WatchSubject::Cord(id(watch
+                            .cord
+                            .as_deref()
+                            .ok_or_else(|| CompileError::new(CompileReason::PlanInvalid))?)?),
+                        "node-port" => {
+                            WatchSubject::NodePort {
+                                node: instance(watch.node.as_deref().ok_or_else(|| {
+                                    CompileError::new(CompileReason::PlanInvalid)
+                                })?)?,
+                                port: id(watch.port.as_deref().ok_or_else(|| {
+                                    CompileError::new(CompileReason::PlanInvalid)
+                                })?)?,
+                                direction: direction(watch.direction.as_deref().ok_or_else(
+                                    || CompileError::new(CompileReason::PlanInvalid),
+                                )?)?,
+                            }
+                        }
+                        _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+                    };
+                let retention = match watch.retention.as_str() {
+                    "latest" => WatchRetention::Latest,
+                    "ring" => WatchRetention::Ring,
+                    "sample" => WatchRetention::Sample,
+                    _ => return Err(CompileError::new(CompileReason::PlanInvalid)),
+                };
+                Ok(WatchAdmission {
+                    id: id(&watch.id)?,
+                    subject,
+                    operator: id(&watch.operator)?,
+                    control_grant_hash: parse_hash(&watch.control_grant_hash)?,
+                    lease: id(&watch.lease)?,
+                    representation: pin(&watch.representation)?,
+                    maximum_preview_bytes: watch.maximum_preview_bytes,
+                    maximum_history: watch.maximum_history,
+                    minimum_tick_interval: watch.minimum_tick_interval,
+                    retention,
+                    sensitivity_ceiling: sensitivity(&watch.sensitivity_ceiling)?,
+                    reveal_action: watch.reveal_action.as_deref().map(id).transpose()?,
+                    reveal_grant_hash: watch
+                        .reveal_grant_hash
+                        .as_deref()
+                        .map(parse_hash)
+                        .transpose()?,
+                })
+            })
+            .collect::<Result<Vec<_>, CompileError>>()?;
     let plan_schema_version = EXECUTION_PLAN_SCHEMA_VERSION;
     let mut plan = ExecutionPlan {
         schema_version: plan_schema_version,
@@ -4106,7 +4270,8 @@ fn compile_topology(
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
-        watch_admissions: &[],
+        evidence_provider,
+        watch_admissions: &watch_admissions,
         jobs: &[],
         satisfaction_proofs: &[],
         authorities: &plan_authorities,
@@ -6286,6 +6451,9 @@ fn plan_document(
             WatchAdmissionDocument {
                 id: watch.id.to_string(),
                 subject_kind,
+                operator: watch.operator.to_string(),
+                control_grant_hash: watch.control_grant_hash.to_string(),
+                lease: watch.lease.to_string(),
                 cord,
                 node,
                 port,
@@ -6297,6 +6465,7 @@ fn plan_document(
                 retention: watch.retention.as_str().to_owned(),
                 sensitivity_ceiling: watch.sensitivity_ceiling.as_str().to_owned(),
                 reveal_action: watch.reveal_action.map(|action| action.to_string()),
+                reveal_grant_hash: watch.reveal_grant_hash.map(|hash| hash.to_string()),
             }
         })
         .collect();
@@ -6360,6 +6529,41 @@ fn plan_document(
             .to_owned(),
         })
         .collect();
+    let evidence_provider = plan
+        .evidence_provider
+        .map(|provider| {
+            let artifact = plan
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.id == provider.artifact)
+                .ok_or_else(|| CompileError::new(CompileReason::PlanInvalid))?;
+            let host = plan
+                .host_observations
+                .iter()
+                .find(|host| host.id == provider.host_observation)
+                .ok_or_else(|| CompileError::new(CompileReason::PlanInvalid))?;
+            Ok(EvidenceProviderBindingDocument {
+                implementation: pin_document(provider.implementation),
+                artifact: PlanArtifactDocument {
+                    id: artifact.id.to_string(),
+                    digest: artifact.digest.to_string(),
+                },
+                host_observation: PlanHostDocument {
+                    id: host.id.to_string(),
+                    host: host.host.to_string(),
+                    semantic_hash: host.semantic_hash.to_string(),
+                    time_basis: host.time_basis.to_string(),
+                    observed_at_tick: host.observed_at_tick,
+                    valid_until_tick: host.valid_until_tick,
+                },
+                store_kind: provider.store.kind.to_string(),
+                store_id: provider.store.id.to_string(),
+                store_generation: provider.store_generation,
+                grant_hash: provider.grant_hash.to_string(),
+                time_basis: provider.time_basis.to_string(),
+            })
+        })
+        .transpose()?;
     Ok(ExactPlanDocument {
         schema: PLAN_DOCUMENT_SCHEMA.to_owned(),
         schema_version: plan.schema_version,
@@ -6380,6 +6584,7 @@ fn plan_document(
         watch_admissions,
         clock_conversions,
         feedback_boundaries,
+        evidence_provider,
         authorities,
         hazard_closure,
         composites,
@@ -8694,6 +8899,8 @@ mod tests {
             supervision_bindings: Vec::new(),
             hazard_closure: None,
             distribution: None,
+            evidence_provider: None,
+            watch_admissions: Vec::new(),
             source_semantic_hash: topology.source_semantic_hash.to_string(),
             resolver: pin_doc("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),
@@ -8721,6 +8928,29 @@ mod tests {
         };
         input.seal().unwrap();
         input
+    }
+
+    fn evidence_provider_document() -> EvidenceProviderBindingDocument {
+        EvidenceProviderBindingDocument {
+            implementation: pin_doc("fixture/exact-evidence-provider", 211),
+            artifact: PlanArtifactDocument {
+                id: "fixture/exact-evidence-artifact".to_owned(),
+                digest: ArtifactDigest::from_bytes([212; 32]).to_string(),
+            },
+            host_observation: PlanHostDocument {
+                id: "fixture/exact-evidence-host-observation".to_owned(),
+                host: "fixture/host-local".to_owned(),
+                semantic_hash: hash(213),
+                time_basis: "clock/compile".to_owned(),
+                observed_at_tick: 10,
+                valid_until_tick: 20,
+            },
+            store_kind: "fixture/evidence-store".to_owned(),
+            store_id: "fixture/evidence-store-a".to_owned(),
+            store_generation: 4,
+            grant_hash: hash(214),
+            time_basis: "clock/compile".to_owned(),
+        }
     }
 
     fn supervision_binding(
@@ -8860,6 +9090,97 @@ mod tests {
     }
 
     #[test]
+    fn exact_evidence_provider_round_trips_and_changes_plan_identity() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let baseline_input = compile_input(source, &panel);
+        let baseline = compile_panel(&panel, &baseline_input).unwrap();
+
+        let mut input = baseline_input;
+        input.evidence_provider = Some(evidence_provider_document());
+        input.seal().unwrap();
+        let document = compile_panel(&panel, &input).unwrap();
+        assert_ne!(document.identity, baseline.identity);
+        assert_eq!(document.evidence_provider, input.evidence_provider);
+        assert!(
+            document
+                .artifacts
+                .contains(&document.evidence_provider.as_ref().unwrap().artifact)
+        );
+        assert!(
+            document.host_observations.contains(
+                &document
+                    .evidence_provider
+                    .as_ref()
+                    .unwrap()
+                    .host_observation
+            )
+        );
+
+        let encoded = serde_json::to_vec(&document).unwrap();
+        let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, document);
+        decoded.validate().unwrap();
+
+        let mut changed_input = input;
+        changed_input
+            .evidence_provider
+            .as_mut()
+            .unwrap()
+            .store_generation += 1;
+        changed_input.seal().unwrap();
+        let changed = compile_panel(&panel, &changed_input).unwrap();
+        assert_ne!(changed.identity, document.identity);
+    }
+
+    #[test]
+    fn watch_admission_is_compiler_input_before_plan_identity_is_sealed() {
+        let source = include_str!("../../../examples/hello.panel");
+        let panel = parse(source).unwrap();
+        let topology = Registry::compatibility_demo()
+            .resolve(&panel)
+            .unwrap()
+            .exact_topology()
+            .unwrap();
+        let cord = &topology.cords[0];
+        let baseline_input = compile_input(source, &panel);
+        let baseline_input_identity = baseline_input.identity.clone();
+        let baseline = compile_panel(&panel, &baseline_input).unwrap();
+
+        let mut input = baseline_input;
+        input.watch_admissions = vec![WatchAdmissionDocument {
+            id: format!("watch/{}", cord.id),
+            subject_kind: "cord".to_owned(),
+            operator: "operator/fixture".to_owned(),
+            control_grant_hash: hash(216),
+            lease: format!("lease/watch/{}", cord.id),
+            cord: Some(cord.id.clone()),
+            node: None,
+            port: None,
+            direction: None,
+            representation: PinDocument {
+                id: cord.from_port.value_type.contract_id.to_string(),
+                schema_version: cord.from_port.value_type.schema_version,
+                semantic_hash: cord.from_port.value_type.semantic_hash.to_string(),
+            },
+            maximum_preview_bytes: cord.max_value_bytes.min(32),
+            maximum_history: 1,
+            minimum_tick_interval: 1,
+            retention: "latest".to_owned(),
+            sensitivity_ceiling: "public".to_owned(),
+            reveal_action: None,
+            reveal_grant_hash: None,
+        }];
+        input.seal().unwrap();
+        assert_ne!(input.identity, baseline_input_identity);
+
+        let watched = compile_panel(&panel, &input).unwrap();
+        assert_eq!(watched.watch_admissions, input.watch_admissions);
+        assert_ne!(watched.identity, baseline.identity);
+        watched.validate().unwrap();
+    }
+
+    #[test]
     fn value_clock_and_feedback_plan_round_trips_exactly() {
         let source = include_str!("../../../examples/hello.panel");
         let panel = parse(source).unwrap();
@@ -8887,6 +9208,9 @@ mod tests {
         document.watch_admissions = vec![WatchAdmissionDocument {
             id: "watch/compile-output".to_owned(),
             subject_kind: "cord".to_owned(),
+            operator: "operator/fixture".to_owned(),
+            control_grant_hash: hash(215),
+            lease: "lease/watch-compile-output".to_owned(),
             cord: Some(cord.id.clone()),
             node: None,
             port: None,
@@ -8898,6 +9222,7 @@ mod tests {
             retention: "latest".to_owned(),
             sensitivity_ceiling: "public".to_owned(),
             reveal_action: None,
+            reveal_grant_hash: None,
         }];
         document.clock_conversions = vec![ClockConversionDocument {
             id: "fixture/device-to-compile-clock".to_owned(),
@@ -8941,6 +9266,7 @@ mod tests {
         let mut denied_reveal = document.clone();
         denied_reveal.watch_admissions[0].sensitivity_ceiling = "restricted".to_owned();
         denied_reveal.watch_admissions[0].reveal_action = Some("conduit/data.present".to_owned());
+        denied_reveal.watch_admissions[0].reveal_grant_hash = Some(hash(217));
         denied_reveal.identity = {
             let arena = Bump::new();
             let plan = denied_reveal.as_plan(&arena).unwrap();
@@ -9164,6 +9490,8 @@ mod tests {
             supervision_bindings: Vec::new(),
             hazard_closure: None,
             distribution: None,
+            evidence_provider: None,
+            watch_admissions: Vec::new(),
             source_semantic_hash: hash(1),
             resolver: pin_doc("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),
