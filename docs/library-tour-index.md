@@ -71,7 +71,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `net/dns-sd` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-brainstem-network (published) | tour/lessons/current.json#library.bounded-brainstem-network (published) |
 | `net/dns/resolve` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.dns.resolve.standalone (required) | tour/lessons/current.json#library.net.dns.resolve.composition (required) |
 | `net/http/fetch` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-http-client (published) | tour/lessons/current.json#library.bounded-http-client (published) |
-| `net/http/listen` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.http.listen.standalone (required) | tour/lessons/current.json#library.net.http.listen.composition (required) |
+| `net/http/listen` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-http-client (published) | tour/lessons/current.json#library.bounded-http-client (published) |
 | `net/http/request/literal` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-http-client (published) | tour/lessons/current.json#library.bounded-http-client (published) |
 | `net/http/serve` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.http.serve.standalone (required) | tour/lessons/current.json#library.net.http.serve.composition (required) |
 | `net/interface` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.net.interface.standalone (required) | tour/lessons/current.json#library.net.interface.composition (required) |
@@ -143,7 +143,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `time/rate-limit` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.rate-limit.standalone (required) | tour/lessons/current.json#library.time.rate-limit.composition (required) |
 | `time/sample` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.sample.standalone (required) | tour/lessons/current.json#library.time.sample.composition (required) |
 | `time/throttle` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
-| `time/ticker` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.time.ticker.standalone (required) | tour/lessons/current.json#library.time.ticker.composition (required) |
+| `time/ticker` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#panels.tiny-instrument (published) | tour/lessons/current.json#panels.tiny-instrument (published) |
 | `time/timeout` | portable-standard | `conduit.std.time` | 1 | tour/lessons/current.json#library.explicit-time (published) | tour/lessons/current.json#library.explicit-time (published) |
 | `time/timer` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.timer.standalone (required) | tour/lessons/current.json#library.time.timer.composition (required) |
 | `time/window` | portable-standard | `conduit.std.time` | 0 | tour/lessons/current.json#library.time.window.standalone (required) | tour/lessons/current.json#library.time.window.composition (required) |

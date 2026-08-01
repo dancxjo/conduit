@@ -326,6 +326,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             _,
         ) => Some("library.bounded-sockets"),
         ("net/http/request/literal" | "net/http/fetch", _) => Some("library.bounded-http-client"),
+        ("net/http/listen", _) => Some("library.bounded-http-client"),
         ("net/wifi/access-point" | "net/dhcp/server" | "net/reachability" | "net/dns-sd", _) => {
             Some("library.bounded-brainstem-network")
         }
@@ -349,6 +350,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
         (id, _) if id.starts_with("spatial/") => Some("library.bounded-spatial-foundation"),
         (id, _) if id.starts_with("conduit.media/") => Some("library.bounded-media-values"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
+        ("time/ticker", _) => Some("panels.tiny-instrument"),
         _ => None,
     };
     if let Some(artifact) = published {

@@ -922,6 +922,52 @@ fn explicit_time_lesson_exposes_clock_timer_loss_and_terminal_facts() {
 }
 
 #[test]
+fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "panels.tiny-instrument")
+        .expect("live ticker lesson is selectable");
+
+    assert_eq!(lesson["execution"], "continuous-watch");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(
+        lesson["accessibility"]["keyboard"]
+            .as_str()
+            .is_some_and(|text| text.contains("Shift+Enter") && text.contains("ArrowRight"))
+    );
+    assert_eq!(lesson["library"]["contracts"][0]["id"], "time/ticker");
+
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    for required in ["ticker-standalone", "ticker-watch-composition"] {
+        assert!(
+            scenarios.iter().any(|scenario| scenario["id"] == required),
+            "lesson includes {required}"
+        );
+    }
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "run_state",
+        "timer_deadline",
+        "host_wake",
+        "latest_public_text",
+        "cleanup",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "ticker table exposes {required}");
+    }
+}
+
+#[test]
 fn contract_package_import_lesson_separates_names_meaning_and_availability() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
@@ -1907,9 +1953,13 @@ fn bounded_http_client_lesson_exposes_authority_limits_and_terminal_evidence() {
         .collect::<BTreeSet<_>>();
     assert_eq!(
         contracts,
-        ["net/http/fetch", "net/http/request/literal"]
-            .into_iter()
-            .collect()
+        [
+            "net/http/fetch",
+            "net/http/listen",
+            "net/http/request/literal"
+        ]
+        .into_iter()
+        .collect()
     );
     let fields = lesson["presentation"]["patchbay_fields"]
         .as_array()
@@ -1927,6 +1977,10 @@ fn bounded_http_client_lesson_exposes_authority_limits_and_terminal_evidence() {
         "redirect",
         "request_commit",
         "body_chunk",
+        "run_state",
+        "host_wake",
+        "admitted_requests",
+        "quiescence",
         "cancellation",
         "cleanup",
         "terminal",
@@ -1940,6 +1994,8 @@ fn bounded_http_client_lesson_exposes_authority_limits_and_terminal_evidence() {
         "redirect-and-downgrade",
         "cancel-partial-provider-loss",
         "browser-unsupported",
+        "listener-standalone",
+        "listener-session-composition",
     ] {
         assert!(
             scenarios.iter().any(|scenario| scenario["id"] == required),

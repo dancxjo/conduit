@@ -815,7 +815,17 @@
       "presentation": {
         "layout": "instrument",
         "show_plan": true,
-        "watch": "latest-public-text"
+        "watch": "latest-public-text",
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "run_state",
+          "timer_deadline",
+          "host_wake",
+          "latest_public_text",
+          "resident_values",
+          "cleanup",
+          "terminal"
+        ]
       },
       "validation": {
         "kind": "watch",
@@ -829,12 +839,57 @@
       "solution": "Connect time/ticker to the bounded discard sink, Start once, attach the plan-admitted text Watch, and keep advancing only the exact pending deadline until Stop.",
       "accessibility": {
         "non_audio": "The latest tick, run state, exact timer deadline, plan identity, and resident value accounting remain visible as live text; no sound or motion is required.",
-        "reduced_motion": true
+        "reduced_motion": true,
+        "keyboard": "Native controls plus Shift+Enter to Start or Stop and ArrowRight to inspect the ordered ticker event table while it has focus.",
+        "color_independent": "Active, Waiting, wake, tick, cleanup, and terminal states are written in the ordered table and never depend on color or animation."
       },
       "runnability": {
         "state": "runnable",
         "profile": "browser",
         "proof": "browser-worker-exact-plan"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "One exact ticker session alternates between bounded Active work and Waiting on its admitted timer while Patchbay observes only the latest public text.",
+        "what": "The ticker publishes one public text value, becomes Waiting on one exact timer interest, and resumes the same run and epoch after the host delivers that named wake.",
+        "when": "Use the ticker when a graph needs an open-ended, plan-bounded monotonic tick stream whose host clock behavior remains explicit.",
+        "wrong": "Completing after one tick, starting a new run per tick, immediately jumping real hosted time, retaining Watch history, or treating presentation polling as execution all violate the current contract.",
+        "contracts": [
+          {
+            "id": "time/ticker",
+            "kind": "node",
+            "instance": "clock",
+            "outputs": [
+              "tick:std/text open-ended public stream"
+            ],
+            "descriptor_hash": "sha256:22bc13e33611c31f14e26085f8403b6fb1b9791c5472bdcd4fb4a7a049c1f289"
+          }
+        ],
+        "provider": "the exact hosted provider adapter with deterministic browser timer wakes and a separately mapped real hosted clock",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": [
+          "one Start with one fixed plan, run, epoch, provider, clock, timer, queue, Watch, and evidence admission",
+          "Active publication followed by Waiting on the exact next timer deadline",
+          "a named host wake resuming the same epoch without an immediate real-clock jump",
+          "Abort, bounded cleanup, and one terminal result for the already active session"
+        ],
+        "docs": [
+          "../../docs/exact-run-sessions.md",
+          "../../spec/072-persistent-exact-run-session.md",
+          "../../conformance/c4/persistent-exact-run.json"
+        ],
+        "scenarios": [
+          {
+            "id": "ticker-standalone",
+            "title": "Standalone live ticker",
+            "semantics": "Start once, publish multiple text ticks in the same epoch, and remain Waiting between exact timer wakes until Stop."
+          },
+          {
+            "id": "ticker-watch-composition",
+            "title": "Ticker, discard, and latest-value Watch",
+            "semantics": "A capacity-one blocking cord feeds discard while the separately admitted Patchbay Watch copies only the latest public preview without backpressuring or retaining executor values."
+          }
+        ]
       }
     },
     {
@@ -2931,14 +2986,14 @@
     {
       "id": "library.bounded-http-client",
       "chapter": 4,
-      "title": "Bounded outbound HTTP",
+      "title": "Bounded HTTP clients and listeners",
       "prerequisites": [
         "nodes.types-mean-promises",
         "platform.resource-lease-effect-commit",
         "platform.workload-admission-deadline"
       ],
-      "objective": "Compose one typed HTTP request with an explicitly admitted client while inspecting destination, TLS, redirect, pressure, cancellation, commit, cleanup, and terminal evidence.",
-      "prose": "The request value carries method, scheme, authority, target, finite headers and a finite body stream. The client separately binds a numeric address, fresh DNS and provider observations, an exact network resource and grant, TLS and proxy policy, finite pools and buffers, redirect authority, deadlines, cancellation, and cleanup. TLS never substitutes for Conduit authority, and HTTPS never downgrades to plaintext.",
+      "objective": "Compose one typed HTTP request with an explicitly admitted client, then inspect the persistent listener's repeated admission, Waiting, quiescence, and cleanup lifecycle.",
+      "prose": "The request value carries method, scheme, authority, target, finite headers and a finite body stream. The client separately binds a numeric address, fresh DNS and provider observations, an exact network resource and grant, TLS and proxy policy, finite pools and buffers, redirect authority, deadlines, cancellation, and cleanup. The listener is one long-lived exact session: completing a request returns it to Waiting rather than completing the server. Drain closes admission and finishes admitted work; Abort disposes it under the plan-pinned cleanup bound.",
       "vocabulary": [
         "numeric endpoint",
         "DNS observation",
@@ -2946,14 +3001,17 @@
         "TLS trust handle",
         "redirect authority",
         "commit certainty",
-        "partial response"
+        "partial response",
+        "listener admission",
+        "Active and Waiting"
       ],
       "source": "panel 0\n\nnode request : net/http/request/literal {\n    method = \"GET\"\n    scheme = \"http\"\n    authority = \"loopback.test\"\n    target = \"/health\"\n    body = bytes(\"\")\n    redirect_policy = \"return\"\n}\n\nnode client : net/http/fetch {\n    address = \"127.0.0.1:38153\"\n    authority = \"loopback.test\"\n    transport = \"http\"\n    redirect_policy = \"return\"\n    maximum_connections = 1\n    maximum_pending = 1\n    maximum_request_headers = 16\n    maximum_request_header_bytes = 4096\n    maximum_request_body_bytes = 16384\n    maximum_response_headers = 16\n    maximum_response_header_bytes = 4096\n    maximum_response_body_bytes = 65536\n    maximum_body_chunk_bytes = 4096\n    maximum_redirects = 0\n    maximum_retained_buffer_bytes = 81920\n    maximum_timers = 2\n    maximum_work = 131072\n    maximum_evidence_events = 32\n    deadline_ticks = 5000\n    cleanup_ticks = 1000\n    cancellation = \"abort-and-cleanup\"\n}\n\ncord request.request -> client.request {\n    capacity = 1\n    max_value_bytes = 32768\n    max_queued_bytes = 32768\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --enable-http-client-loopback examples/http-client-loopback.panel",
       "commands": [
         "conduct --check examples/http-client-loopback.panel",
         "conduct --enable-http-client-loopback --explain examples/http-client-loopback.panel",
-        "conduct --enable-http-client-loopback examples/http-client-loopback.panel"
+        "conduct --enable-http-client-loopback examples/http-client-loopback.panel",
+        "conduct --check examples/http-loopback-listener.panel"
       ],
       "expected_diagnostic": "CND-IMP-001",
       "profile": "browser-dedicated-worker",
@@ -2981,6 +3039,10 @@
           "request_commit",
           "response_head",
           "body_chunk",
+          "run_state",
+          "host_wake",
+          "admitted_requests",
+          "quiescence",
           "pressure",
           "cancellation",
           "cleanup",
@@ -2995,11 +3057,12 @@
       "hints": [
         "The typed authority and checked numeric address are separate facts; no ambient resolver is consulted at execution.",
         "Redirects are new destination admissions. A required HTTPS request cannot downgrade to HTTP.",
+        "A listener that finishes one request returns to Waiting in the same epoch; it does not report server completion.",
         "The browser has no outbound HTTP provider. Export the panel to an explicitly enabled hosted Conduct profile."
       ],
       "solution": "Construct one finite typed request, bind it to a fresh exact destination, network resource, outbound grant, TLS and proxy policy, and declare finite request, response, pool, queue, work, evidence, deadline, cancellation, and cleanup bounds.",
       "accessibility": {
-        "non_audio": "An ordered text table names the request, destination observations, provider state, resource, grant, TLS and proxy policy, redirect decision, commit certainty, body chunks, pressure, cancellation, cleanup, error, and terminal cause.",
+        "non_audio": "An ordered text table names the request, destination observations, provider state, Active or Waiting lifecycle, host wake, admitted request count, resource, grant, TLS and proxy policy, redirect decision, commit certainty, quiescence, cleanup, error, and terminal cause.",
         "reduced_motion": true,
         "keyboard": "Native controls plus ArrowRight to inspect the ordered HTTP evidence when the lesson story has focus.",
         "color_independent": "Schemes, authorities, observation freshness, grant state, redirect decisions, commit states, byte counts, errors, and terminal text duplicate every graph color."
@@ -3012,8 +3075,8 @@
       },
       "library": {
         "schema": "conduit.tour-library-lesson",
-        "summary": "A typed request literal and opt-in client keep HTTP semantics separate from exact destination, network, authority, TLS, proxy, and bounded host execution.",
-        "what": "The literal produces one finite request value. The client consumes that value and emits a bounded response stream plus one terminal result with explicit redirect, partiality, commit, cancellation, cleanup, and provider-loss evidence.",
+        "summary": "Typed requests, the opt-in client, and the long-lived listener keep HTTP semantics separate from exact destination, network, authority, admission, and bounded host execution.",
+        "what": "The literal produces one finite request value. The client consumes that value and emits a bounded response stream plus one terminal result. The listener accepts multiple bounded requests in one exact session, returns to Waiting between them, and terminates only through explicit Drain, Abort, failure, or host loss.",
         "when": "Use the literal to author or adapt a request and the client only when the host has supplied an exact numeric destination observation, outbound grant, network resource, provider observation, and TLS policy.",
         "wrong": "Ambient DNS, proxy, cookie, credential, or certificate discovery; unbounded bodies, headers, pools, redirects, work, or evidence; HTTPS downgrade; cross-authority redirect without a new grant; and conflating TLS authentication with Conduit authority all fail closed.",
         "contracts": [
@@ -3038,6 +3101,13 @@
               "result:net/http/client-result terminal"
             ],
             "descriptor_hash": "sha256:95ca24962eea4c18a07cbfd4ffb486faefafd7534cc63429b1c1ff843ecde2fb"
+          },
+          {
+            "id": "net/http/listen",
+            "kind": "node",
+            "instance": "server",
+            "outputs": [],
+            "descriptor_hash": "sha256:0c7a7457e1f1440f93a4ed1a69116b8a40be9be127ad1a09e65a64546791d1e2"
           }
         ],
         "editable": [
@@ -3049,8 +3119,8 @@
           "client.deadline_ticks:1..10000",
           "client.cancellation:abort-and-cleanup"
         ],
-        "provider": "explicit opt-in Linux numeric-loopback provider plus deterministic conformance provider; deliberately unavailable in browsers",
-        "profile": "hosted-exact-http-client",
+        "provider": "explicit opt-in Linux numeric-loopback client and listener providers plus deterministic conformance providers; deliberately unavailable in browsers",
+        "profile": "hosted-exact-http",
         "expected_evidence": [
           "contract known, provider enabled, fresh DNS and provider observations, exact network resource, active outbound grant, and admitted finite pool",
           "typed method, scheme, authority, target, request header and body bounds, TLS and proxy bindings, response bounds, redirect budget, deadline, work, cleanup, and evidence ceilings",
@@ -3059,8 +3129,11 @@
         ],
         "docs": [
           "../../spec/065-bounded-http-client.md",
+          "../../spec/072-persistent-exact-run-session.md",
           "../../conformance/c4/http-client.json",
-          "../../examples/http-client-loopback.panel"
+          "../../conformance/c4/persistent-exact-run.json",
+          "../../examples/http-client-loopback.panel",
+          "../../examples/http-loopback-listener.panel"
         ],
         "scenarios": [
           {
@@ -3083,6 +3156,18 @@
             "id": "cancel-partial-provider-loss",
             "title": "Terminal distinctions",
             "semantics": "Timeout, cancellation before or after commit, partial response, unknown commit, pool exhaustion, and provider loss remain distinct and cleanup is bounded."
+          },
+          {
+            "id": "listener-standalone",
+            "title": "Long-lived listener standalone",
+            "panel": "../../examples/http-loopback-listener.panel",
+            "semantics": "One exact listener accepts multiple bounded requests, becomes Waiting between named readiness wakes, and never completes merely because one response finished."
+          },
+          {
+            "id": "listener-session-composition",
+            "title": "Listener and exact session lifecycle",
+            "panel": "../../examples/http-loopback-listener.panel",
+            "semantics": "The hosted provider adapter, bounded listener, scheduler wakes, use-time authority, Drain quiescence, Abort disposal, and cleanup remain one session-owned composition with an ordered textual event table."
           },
           {
             "id": "browser-unsupported",
