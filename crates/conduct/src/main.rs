@@ -410,7 +410,16 @@ fn run(
                 )
             },
         )?;
-        conduit_knowledge::register_deterministic_knowledge_provider(&mut registry).map_err(
+        conduit_knowledge::register_deterministic_retrieval_provider(&mut registry).map_err(
+            |error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            },
+        )?;
+        conduit_knowledge::register_deterministic_graph_provider(&mut registry).map_err(
             |error| {
                 cli_error(
                     simple_diagnostic(error.code, &error.message),
