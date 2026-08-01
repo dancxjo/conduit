@@ -5,8 +5,10 @@
 //! model.
 
 mod codec;
+mod signal;
 
 pub use codec::*;
+pub use signal::*;
 
 use sha2::{Digest, Sha256};
 

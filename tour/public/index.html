@@ -41,7 +41,7 @@
         <h2 id="cover-title"></h2>
         <p id="cover-subtitle" class="book-deck"></p>
         <p id="cover-invitation" class="book-cover-invitation"></p>
-        <button id="begin-book" class="btn primary" type="button">Begin project one</button>
+        <button id="begin-book" class="btn primary" type="button">Begin the prologue</button>
         <div id="cover-projects" class="cover-projects"></div>
       </section>
 
@@ -63,6 +63,50 @@
           <h2 id="reader-section-title"></h2>
           <p id="reader-section-summary" class="book-deck"></p>
         </header>
+        <section id="project-artifact" class="project-artifact" aria-labelledby="project-artifact-title">
+          <p class="book-kicker">Let’s make this</p>
+          <h3 id="project-artifact-title">Current project result</h3>
+          <p id="opening-result" class="project-opening-result"></p>
+          <figure id="instrument-result" class="instrument-result" aria-labelledby="instrument-result-title" aria-describedby="instrument-result-text" hidden>
+            <figcaption id="instrument-result-title">Exact living-instrument beat</figcaption>
+            <div class="instrument-stage" aria-hidden="true">
+              <div class="instrument-pulse instrument-pulse-primary">
+                <span class="instrument-lamp"></span>
+                <span>Pulse</span>
+              </div>
+              <ol class="instrument-steps">
+                <li></li><li></li><li></li><li></li>
+                <li></li><li></li><li></li><li></li>
+              </ol>
+              <div class="instrument-pulse instrument-pulse-accent">
+                <span class="instrument-lamp"></span>
+                <span>Accent</span>
+              </div>
+              <div class="instrument-level" title="Exact beat-derived intensity">
+                <span></span>
+              </div>
+            </div>
+            <output id="instrument-result-text" aria-live="polite">Ready. Start the exact run to produce the first beat; audio remains off.</output>
+          </figure>
+          <dl class="artifact-state" aria-label="Cumulative project artifact state">
+            <div><dt>Artifact</dt><dd id="artifact-id"></dd></div>
+            <div><dt>This section starts from</dt><dd id="artifact-inherits"></dd></div>
+            <div><dt>This section carries forward</dt><dd id="artifact-produces"></dd></div>
+          </dl>
+          <p id="artifact-status" class="section-progress" aria-live="polite"></p>
+          <details id="accessibility-equivalent" class="accessibility-equivalent" open>
+            <summary>Non-audio, reduced-motion and screen-reader equivalents</summary>
+            <dl>
+              <div><dt>Without audio</dt><dd id="section-non-audio"></dd></div>
+              <div><dt>Reduced motion</dt><dd id="section-reduced-motion"></dd></div>
+              <div><dt>Reading order</dt><dd id="section-screen-reader"></dd></div>
+            </dl>
+          </details>
+          <div class="button-row project-state-actions" role="group" aria-label="Project state controls">
+            <button id="reset-project" class="btn secondary" type="button">Reset project state</button>
+            <button id="recover-project" class="btn secondary" type="button" disabled>Recover project state</button>
+          </div>
+        </section>
         <section id="chapter-opening" class="chapter-opening" aria-labelledby="chapter-opening-title">
           <p id="chapter-number" class="book-kicker"></p>
           <h3 id="chapter-opening-title"></h3>

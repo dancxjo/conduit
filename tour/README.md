@@ -10,6 +10,14 @@ manifest by exact lesson id. Reference panels and Cookbook recipes have their
 own searchable directories and do not participate in Previous/Next book
 navigation.
 
+The prologue leads into three cumulative builds: a browser-local living
+instrument, a bounded service, and a no-actuation robot rehearsal. The checked
+`tour/book/migration.json` ledger gives every machine lesson exactly one Book,
+Interlude, Cookbook, Reference, or Retire/Replace disposition and maps old
+lesson routes to their one current destination. `fresh-reader-study.json`
+defines the independent-reader protocol and stays `protocol-ready` until real
+participant observations exist.
+
 Each book section reads in the order prose, action, compact real lab, result and
 explanation. Expanding a lab reuses the same source, Patchbay session and result
 instead of opening a teaching-only graph. Availability, contracts, exact plan,
@@ -17,6 +25,13 @@ accounting and evidence begin collapsed and retain addressable drawer ids.
 Reading position and project checkpoints use reader-specific local storage;
 learner source drafts keep their existing lesson-specific keys, and neither is
 presented as a surviving live run.
+
+Project revision state is also reader state, not executor evidence. Reset saves
+one explicit recovery snapshot containing the project revision, checkpoints,
+and owned lesson drafts; Recover restores that snapshot. The living
+instrument's beat/light figure is driven only by the production executor's
+exact public Watch value, has an adjacent ordered-text equivalent, and does not
+run a decorative timer or activate audio.
 
 Lesson source is real `.panel` input. This directory deliberately contains no
 tutorial-only parser, graph, port model, or runtime. A browser delivery layer

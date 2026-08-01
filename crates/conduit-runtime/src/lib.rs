@@ -1326,6 +1326,7 @@ pub enum HostedPrimitiveImplementation {
     PassThrough,
     Tee,
     Merge,
+    ControlMerge,
     Zip,
     Gate,
     Select,
@@ -2157,6 +2158,7 @@ pub struct CompiledInHostService {
 pub struct RegisteredExecutable {
     pub manifest: &'static ImplementationManifest<'static>,
     pub artifacts: &'static [&'static ArtifactManifest<'static>],
+    pub implementation: HostedPrimitiveImplementation,
     pub factory: HandlerFactory,
     pub validate_config: ConfigValidator,
 }
@@ -2346,6 +2348,21 @@ impl Registry {
         &mut self,
         service: CompiledInHostService,
     ) -> Result<(), RegistryError> {
+        self.register_compiled_in_host_primitive(
+            service,
+            HostedPrimitiveImplementation::HostedService,
+        )
+    }
+
+    /// Register one linked provider against an explicit hosted primitive.
+    ///
+    /// The association is an installed implementation fact, never inferred
+    /// from the semantic contract identity.
+    pub fn register_compiled_in_host_primitive(
+        &mut self,
+        service: CompiledInHostService,
+        implementation: HostedPrimitiveImplementation,
+    ) -> Result<(), RegistryError> {
         let source_digest = ArtifactDigest::from_bytes(Sha256::digest(service.source_bytes).into());
         let mut artifact = ArtifactManifest {
             schema_version: 0,
@@ -2438,12 +2455,13 @@ impl Registry {
                 message: "linked host-service manifest identity is invalid".to_owned(),
             })?;
         let manifest = &*Box::leak(Box::new(manifest));
-        self.register_executable_provider(
+        self.register_executable_provider_with_implementation(
             service.contract,
             manifest,
             artifacts,
             service.factory,
             service.validate_config,
+            implementation,
         )
     }
 
@@ -2465,17 +2483,11 @@ impl Registry {
                         artifact.id == artifact_ref.id && artifact.digest == artifact_ref.digest
                     })
                     .expect("registered executable references a known artifact");
-                let implementation = Self::installed_hosted_providers()
-                    .iter()
-                    .find(|installed| installed.manifest.id == executable.manifest.id)
-                    .map_or(HostedPrimitiveImplementation::HostedService, |installed| {
-                        installed.implementation
-                    });
                 providers.push(InstalledHostedProvider {
                     contract: node.contract,
                     manifest: executable.manifest,
                     artifact,
-                    implementation,
+                    implementation: executable.implementation,
                 });
             }
         }
@@ -2509,6 +2521,25 @@ impl Registry {
         artifacts: &'static [&'static ArtifactManifest<'static>],
         factory: HandlerFactory,
         validate_config: ConfigValidator,
+    ) -> Result<(), RegistryError> {
+        self.register_executable_provider_with_implementation(
+            contract,
+            manifest,
+            artifacts,
+            factory,
+            validate_config,
+            HostedPrimitiveImplementation::HostedService,
+        )
+    }
+
+    fn register_executable_provider_with_implementation(
+        &mut self,
+        contract: &'static NodeContract<'static>,
+        manifest: &'static ImplementationManifest<'static>,
+        artifacts: &'static [&'static ArtifactManifest<'static>],
+        factory: HandlerFactory,
+        validate_config: ConfigValidator,
+        implementation: HostedPrimitiveImplementation,
     ) -> Result<(), RegistryError> {
         let canonical_target_id = self.resolve_canonical_id(contract.id.as_str())?.to_owned();
         let manifest_target_canonical = self
@@ -2586,6 +2617,7 @@ impl Registry {
         registered.executables.push(RegisteredExecutable {
             manifest,
             artifacts,
+            implementation,
             factory,
             validate_config,
         });
@@ -3087,12 +3119,13 @@ impl Registry {
         };
         for definition in hosted_provider_definitions() {
             registry
-                .register_executable_provider(
+                .register_executable_provider_with_implementation(
                     definition.installed.contract,
                     definition.installed.manifest,
                     definition.artifacts,
                     definition.factory,
                     definition.validate_config,
+                    definition.installed.implementation,
                 )
                 .expect("compiled-in hosted primitive manifest is valid");
         }
@@ -5759,6 +5792,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::PassThrough => "flow/identity",
                 HostedPrimitiveImplementation::Tee => "conduit.std/tee",
                 HostedPrimitiveImplementation::Merge => "conduit.std/merge",
+                HostedPrimitiveImplementation::ControlMerge => "conduit.media/control/merge",
                 HostedPrimitiveImplementation::Zip => "conduit.std/zip",
                 HostedPrimitiveImplementation::Gate => "conduit.std/gate",
                 HostedPrimitiveImplementation::Select => "conduit.std/select",
@@ -6165,7 +6199,8 @@ impl ResolvedPanel<'_> {
                     retained: None,
                     delivered: [false; 2],
                 },
-                HostedPrimitiveImplementation::Merge => HostedNodeKind::Merge {
+                HostedPrimitiveImplementation::Merge
+                | HostedPrimitiveImplementation::ControlMerge => HostedNodeKind::Merge {
                     inputs: [
                         planned_input_cord(plan, planned.instance, "left")?,
                         planned_input_cord(plan, planned.instance, "right")?,

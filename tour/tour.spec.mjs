@@ -1,5 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+function parseWatchTick(text) {
+  const scoped = /tick=(\d+)/.exec(text || "");
+  return scoped ? Number.parseInt(scoped[1], 10) : Number.parseInt(text, 10);
+}
+
+async function replaceSourceText(source, before, after) {
+  await source.evaluate((element, replacement) => {
+    element.value = element.value.replace(replacement.before, replacement.after);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, { before, after });
+}
+
 test("runs a production lesson in the resolved browser worker", async ({ page }) => {
   const failures = [];
   page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));
@@ -33,12 +45,16 @@ test("opens as a book and embeds the same real lab in compact and expanded modes
   await expect(page.locator("#cover-title")).toHaveText(
     "Build a living system you can see",
   );
-  await expect(page.locator("#cover-projects article")).toHaveCount(2);
+  await expect(page.locator("#cover-projects article")).toHaveCount(4);
   await expect(page.locator("#workspace")).toBeHidden();
 
   await page.locator("#begin-book").click();
   await expect(page.locator("#reader-section-title")).toHaveText(
     "Recover the hidden program",
+  );
+  await expect(page.locator("#artifact-id")).toHaveText("origin-map");
+  await expect(page.locator("#opening-result")).toContainText(
+    "Toggle from recognizable products",
   );
   await expect(page.locator("#chapter-opening-title")).toHaveText(
     "The program we could no longer see",
@@ -57,10 +73,11 @@ test("opens as a book and embeds the same real lab in compact and expanded modes
   await expect(page.locator("#expand-lab")).toHaveAttribute("aria-expanded", "true");
 
   await page.locator("#next-section").click();
-  await expect(page.locator("#reader-section-title")).toHaveText("Hello, panel");
+  await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(page.locator("#previous-section")).toContainText(
     "Previous: Recover the hidden program",
   );
+  await expect(page.locator("#artifact-id")).toHaveText("living-instrument.panel");
 });
 
 test("keeps Reference and Cookbook searchable outside sequential navigation", async ({ page }) => {
@@ -86,21 +103,120 @@ test("keeps Reference and Cookbook searchable outside sequential navigation", as
 });
 
 test("restores reading position and a local draft without reviving a run", async ({ page }) => {
-  await page.goto("/tour/public/index.html?section=first-path.hello");
+  await page.goto("/tour/public/index.html?section=instrument.wake");
   await page.locator("#expand-lab").click();
   const source = page.locator("#source");
-  await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Reader draft."));
+  await source.scrollIntoViewIfNeeded();
+  await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1200");
   await page.locator("#reader-content").evaluate((reader) => {
     reader.scrollTop = 420;
     reader.dispatchEvent(new Event("scroll"));
   });
   await page.reload();
 
-  await expect(page.locator("#reader-section-title")).toHaveText("Hello, panel");
-  await expect(source).toHaveValue(/Reader draft\./);
+  await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
+  await expect(source).toHaveValue(/duration_ticks = 1200/);
   await expect(page.locator("#console-status-badge")).toHaveText("Ready");
   await expect(page.locator("#result")).not.toContainText("Live exact run remains");
+  await expect(page.locator("#artifact-status")).toContainText(
+    "not a live-run claim",
+  );
   expect(await page.locator("#reader-content").evaluate((reader) => reader.scrollTop)).toBeGreaterThan(0);
+});
+
+test("carries, resets and recovers cumulative project state explicitly", async ({ page }) => {
+  await page.goto("/tour/public/index.html?section=instrument.wake");
+  await page.locator("#expand-lab").click();
+  const source = page.locator("#source");
+  await source.scrollIntoViewIfNeeded();
+  await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
+  await page.locator("#next-section").click();
+
+  await expect(page.locator("#reader-section-title")).toHaveText("Give it a heartbeat");
+  await expect(page.locator("#artifact-status")).toContainText("instrument-running");
+  await page.locator("#reset-project").click();
+  await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
+  await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
+  await expect(source).toHaveValue(/duration_ticks = 1000/);
+
+  await page.locator("#recover-project").click();
+  await expect(page.locator("#artifact-status")).toContainText("instrument-running");
+  await expect(source).toHaveValue(/duration_ticks = 1400/);
+});
+
+test("keeps one canonical source artifact through every cumulative build", async ({ page }) => {
+  for (const [section, nextTitle, sourcePattern] of [
+    ["instrument.wake", "Give it a heartbeat", /conduit\.media\/control\/sequencer/],
+    ["service.listen", "Waiting is not completion", /node server : net\/http\/listen/],
+    ["robot.rehearse", "Choose hosts without changing meaning", /node wifi_ap : net\/wifi\/access-point/],
+  ]) {
+    await page.goto(`/tour/public/index.html?section=${section}`);
+    const source = page.locator("#source");
+    await expect(source).toHaveValue(sourcePattern);
+    const before = await source.inputValue();
+    await page.locator("#next-section").click();
+    await expect(page.locator("#reader-section-title")).toHaveText(nextTitle);
+    await expect(source).toHaveValue(before);
+    await expect(page.locator("#artifact-status")).toContainText(
+      "This is reader state, not a live-run claim",
+    );
+  }
+});
+
+test("keeps the project path keyboard-operable with adjacent reduced-motion equivalents", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/tour/public/index.html");
+  await page.locator("#begin-book").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#reader-section-title")).toHaveText(
+    "Recover the hidden program",
+  );
+  await expect(page.locator("#accessibility-equivalent")).toHaveAttribute("open", "");
+  await expect(page.locator("#section-non-audio")).not.toHaveText("");
+  await expect(page.locator("#section-reduced-motion")).not.toHaveText("");
+  await expect(page.locator("#section-screen-reader")).not.toHaveText("");
+  await expect(page.locator("#reader-content")).toHaveCSS("scroll-behavior", "auto");
+  await expect(page.locator("#plan-drawer")).not.toHaveAttribute("open", "");
+
+  await page.locator("#next-section").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
+  await expect(page.locator("#artifact-status")).toContainText(
+    "This is reader state, not a live-run claim",
+  );
+  await expect(page.locator("#plan-drawer")).not.toHaveAttribute("open", "");
+});
+
+test("routes Book, Cookbook, Reference and retired lesson links through the migration ledger", async ({
+  page,
+}) => {
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await expect(page.locator("#reader-section-title")).toHaveText("Retired: Hello, panel");
+  await expect(page.locator("#section-progress")).toContainText(
+    "exact fixture retained",
+  );
+  await page.locator("#previous-section").click();
+  await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
+
+  await page.goto("/tour/public/index.html?lesson=library.bounded-http-service");
+  await expect(page.locator("#reader-section-title")).toHaveText(
+    "Open the service boundary",
+  );
+  await expect(page.locator("#artifact-id")).toHaveText("bounded-service.panel");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator("#result")).toContainText("CND-IMP-001");
+
+  await page.goto("/tour/public/index.html?lesson=nodes.more-than-one-port");
+  await expect(page.locator("#project-progress")).toHaveText("Reference lesson");
+  await expect(page.locator("#project-artifact")).toBeHidden();
+
+  await page.goto("/tour/public/index.html?lesson=library.bounded-media-codecs");
+  await expect(page.locator("#project-progress")).toHaveText("Cookbook recipe");
+  await expect(page.locator("#reader-section-title")).toHaveText(
+    "Use exact PCM and WAVE operations",
+  );
 });
 
 test("keeps prose, action, real lab, result and explanation in document order", async ({ page }) => {
@@ -366,18 +482,42 @@ test("keeps one public latest-value ticker Watch live in the production executor
   });
 
   await page.goto("/tour/public/index.html?lesson=panels.tiny-instrument");
-  await expect(page.locator("#title")).toHaveText("A live ticker Watch");
+  await expect(page.locator("#title")).toHaveText(
+    "Project one: A living instrument — Wake the instrument",
+  );
+  await expect(page.locator("#source")).toHaveValue(
+    /conduit\.media\/control\/clock-divider/,
+  );
+  await expect(page.locator("#source")).toHaveValue(
+    /conduit\.media\/control\/sequencer/,
+  );
+  await expect(page.locator("#source")).toHaveValue(
+    /conduit\.media\/control\/mixer/,
+  );
+  await expect(page.locator("#instrument-result")).toBeVisible();
+  await expect(page.locator("#instrument-result-text")).toContainText(
+    "Start the exact run to produce the first beat",
+  );
   await page.locator("#accounting-drawer > summary").click();
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
 
   await expect.poll(async () => {
     const text = await page.locator("#watch-value").textContent();
-    return Number.parseInt(text, 10);
+    return parseWatchTick(text);
   }, { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
-  const firstTick = Number.parseInt(
+  const firstTick = parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
+  );
+  await expect(page.locator("#instrument-result")).toHaveAttribute(
+    "data-tick",
+    String(firstTick),
+  );
+  await expect(page.locator("#instrument-result-text")).toContainText(
+    `Exact Watch beat ${firstTick}`,
+  );
+  await expect(page.locator("#instrument-result-text")).toContainText(
+    "Audio remains off",
   );
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect(page.locator("#result")).toContainText("Live exact run remains waiting");
@@ -414,20 +554,30 @@ test("keeps one public latest-value ticker Watch live in the production executor
   const later = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
   );
-  expect(Number.parseInt(await page.locator("#watch-value").textContent(), 10))
+  expect(parseWatchTick(await page.locator("#watch-value").textContent()))
     .toBeGreaterThan(firstTick);
+  expect(Number.parseInt(
+    await page.locator("#instrument-result").getAttribute("data-tick"),
+    10,
+  )).toBeGreaterThan(firstTick);
   expect(later.run_id).toBe(first.run_id);
   expect(later.plan_identity).toBe(first.plan_identity);
   expect(later.source_semantic_hash).toBe(first.source_semantic_hash);
   expect(later.cursor).toBeGreaterThan(first.cursor);
-  expect(later.value_storage).toMatchObject({
-    resident_slots: 0,
-    resident_bytes: 0,
-    maximum_slots: first.value_storage.maximum_slots,
-    maximum_bytes: first.value_storage.maximum_bytes,
-  });
-  expect(later.value_storage.high_water_slots).toBeLessThanOrEqual(1);
-  expect(later.value_storage.high_water_bytes).toBeLessThanOrEqual(32);
+  expect(later.value_storage.maximum_slots).toBe(first.value_storage.maximum_slots);
+  expect(later.value_storage.maximum_bytes).toBe(first.value_storage.maximum_bytes);
+  expect(later.value_storage.resident_slots).toBeLessThanOrEqual(
+    later.value_storage.maximum_slots,
+  );
+  expect(later.value_storage.resident_bytes).toBeLessThanOrEqual(
+    later.value_storage.maximum_bytes,
+  );
+  expect(later.value_storage.high_water_slots).toBeLessThanOrEqual(
+    later.value_storage.maximum_slots,
+  );
+  expect(later.value_storage.high_water_bytes).toBeLessThanOrEqual(
+    later.value_storage.maximum_bytes,
+  );
   expect(later.evidence_store.next_cursor).toBeGreaterThan(first.evidence_store.next_cursor);
   expect(later.evidence_store.retained_events).toBeLessThanOrEqual(
     later.evidence_store.maximum_events,
@@ -456,23 +606,21 @@ test("keeps one public latest-value ticker Watch live in the production executor
     "F",
   );
 
-  const beforeFreeze = Number.parseInt(
+  const beforeFreeze = parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
   );
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
   await page.waitForTimeout(1_700);
-  expect(Number.parseInt(await page.locator("#watch-value").textContent(), 10))
+  expect(parseWatchTick(await page.locator("#watch-value").textContent()))
     .toBe(beforeFreeze);
   await expect(page.locator("#display-freeze-status")).toContainText(
     "exact executor remains live",
   );
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(async () => Number.parseInt(
+  await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
   ), { timeout: 20_000 }).toBeGreaterThan(beforeFreeze);
   await expect(page.locator(".watch-semantics")).toContainText(
     "Watch is isolated instrumentation",
@@ -485,12 +633,13 @@ test("keeps one public latest-value ticker Watch live in the production executor
 
   const structuredCordWatch = page.locator(
     "#panel-connection-list .structured-watch-button",
-  ).first();
+  ).filter({ hasText: "Remove Watch" });
+  await expect(structuredCordWatch).toHaveCount(1);
   await expect(structuredCordWatch).toContainText("Remove Watch");
   await expect.poll(async () => {
     const pressed = await page.locator("#watch-toggle").getAttribute("aria-pressed");
     if (pressed === "true") {
-      await page.locator("#panel-connection-list .structured-watch-button").first().click();
+      await structuredCordWatch.click();
     }
     return page.locator("#watch-toggle").getAttribute("aria-pressed");
   }).toBe("false");
@@ -526,7 +675,9 @@ test("keeps one public latest-value ticker Watch live in the production executor
     "false",
   );
 
-  await page.locator('.faceplate-port-row[data-semantic-path$="/tick"] .jack-label')
+  await page.locator(
+    '.faceplate-port-row[data-semantic-path="root/scope/port/outgoing/text"] .jack-label',
+  )
     .dblclick();
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#watch-toggle")).toBeEnabled();
@@ -537,9 +688,8 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#watch-toggle")).toBeEnabled();
   await page.keyboard.press("w");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(async () => Number.parseInt(
+  await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
   ), { timeout: 20_000 }).toBeGreaterThan(firstTick);
   const reattached = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
@@ -558,14 +708,13 @@ test("keeps one public latest-value ticker Watch live in the production executor
     '.timeline-event[data-subject-kind="cord"]',
   ).last();
   await liveCordEvent.click();
-  await expect(page.locator(".react-flow__edge").first()).toHaveClass(/selected/);
+  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
   expect(await page.locator("#source").evaluate((element) =>
     element.selectionEnd > element.selectionStart
   )).toBe(true);
 
-  const activeValueBeforeEdit = Number.parseInt(
+  const activeValueBeforeEdit = parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
   );
   const authored = await page.locator("#source").inputValue();
   await page.locator("#source").fill(`${authored}\ncord`);
@@ -573,9 +722,8 @@ test("keeps one public latest-value ticker Watch live in the production executor
     "is separate from this active epoch",
   );
   await expect(page.locator("#workspace-error-count")).not.toHaveText("0");
-  await expect.poll(async () => Number.parseInt(
+  await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
   ), { timeout: 20_000 }).toBeGreaterThan(activeValueBeforeEdit);
   const afterCandidateEdit = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
@@ -614,9 +762,8 @@ test("keeps live textual instrumentation truthful when the topology renderer is 
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
-  await expect.poll(async () => Number.parseInt(
+  await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
-    10,
   ), { timeout: 20_000 }).toBeGreaterThanOrEqual(1);
   await expect(page.locator("#live-flow-status")).toContainText("authoritative event");
   await expect(page.locator("#live-flow-table tbody tr")).not.toHaveCount(0);
@@ -636,12 +783,12 @@ test("presents the persistent HTTP source and refuses to simulate its hosted pro
   );
 
   await expect(page.locator("#title")).toHaveText(
-    "A persistent bounded HTTP service",
+    "Project two: A small service that stays alive — Open the service boundary",
   );
   await expect(page.locator("#source")).toHaveValue(/node server : net\/http\/listen/);
   await expect(page.locator("#source")).toHaveValue(/deadline_ticks = "5000"/);
   await expect(page.locator("#runnability-state")).toHaveText(
-    "contract-only · browser",
+    "illustrative/unavailable · browser",
   );
   await expect(page.locator("#execution-note")).toContainText("CND-IMP-001");
   await expect(page.locator("#result")).toContainText("CND-IMP-001", {
@@ -856,11 +1003,11 @@ test("covers every published chapter and exposes production topology projections
         project.chapters.flatMap((chapter) => chapter.sections)).length,
     };
   });
-  expect(readerCatalog).toEqual({ projects: 2, chapters: 5, sections: 17 });
+  expect(readerCatalog).toEqual({ projects: 4, chapters: 6, sections: 20 });
   await expect(page.locator(".toc-project")).toHaveCount(readerCatalog.projects);
   await expect(page.locator(".toc-chapter")).toHaveCount(readerCatalog.chapters);
   await expect(page.locator("[data-section-id]")).toHaveCount(readerCatalog.sections);
-  await page.getByRole("button", { name: "Inside / outside" }).click();
+  await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   const logicalReceiving = page.locator("#panel-port-list").getByRole("button", {
@@ -1047,8 +1194,7 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
 });
 
 test("renders composite exports as public faceplate ports", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
-  await page.getByRole("button", { name: "Inside / outside" }).click();
+  await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
   const composite = page.locator(".composite-faceplate").first();
   await expect(composite).toContainText("public");
   await expect(composite.locator(".public-jack-handle")).toHaveCount(2);
@@ -1262,8 +1408,8 @@ test("retains committed topology positions across renders and visits", async ({ 
     async () => output.evaluate((element) => element.style.transform),
   ).toBe(committedOutputTransform);
 
-  await page.getByRole("button", { name: "Inside / outside" }).click();
-  await page.getByRole("button", { name: "Hello, panel" }).click();
+  await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
@@ -1302,7 +1448,10 @@ test("clears the previous diagram before redrawing a lesson that fails resolutio
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await expect(page.locator('.react-flow__node[data-id="greeting"]')).toHaveCount(1);
 
-  await page.getByRole("button", { name: "Types mean promises" }).click();
+  await page.evaluate(() => {
+    history.pushState({}, "", "?lesson=nodes.types-mean-promises");
+    dispatchEvent(new PopStateEvent("popstate"));
+  });
   await expect(page.locator("#result")).toContainText("CND-IMP-001");
   await expect(page.locator('.react-flow__node[data-id="greeting"]')).toHaveCount(0);
   await expect(page.locator('.react-flow__node[data-id="source"]')).toHaveCount(1);
@@ -1313,8 +1462,15 @@ test("clears the previous diagram before redrawing a lesson that fails resolutio
     "rust-authoritative",
   );
 
-  await page.getByRole("button", { name: "Empty is not never" }).click();
-  await expect(page.locator('.react-flow__node[data-id="empty"]')).toHaveCount(1);
+  await page.evaluate(() => {
+    history.pushState({}, "", "?lesson=nodes.empty-is-not-never");
+    dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.locator('.react-flow__node[data-id="server"]')).toHaveCount(1);
+  await expect(page.locator('.react-flow__node[data-id="empty"]')).toHaveCount(0);
+  await expect(page.locator("#reader-section-title")).toHaveText(
+    "Waiting is not completion",
+  );
   await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
     "data-projection",
     "rust-authoritative",
@@ -1344,16 +1500,16 @@ test("styles cords from their projected type and pressure policy", async ({ page
 test("routes stacked reverse cords with straight rectilinear segments", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem(
-      "conduit-tour-layout/nodes.empty-is-not-never",
+      "conduit-tour-layout/welcome.hello-panel",
       JSON.stringify({
-        empty: { x: 300, y: 280 },
-        sink: { x: 320, y: 20 },
+        greeting: { x: 300, y: 280 },
+        output: { x: 320, y: 20 },
       }),
     );
   });
-  await page.goto("/tour/public/index.html?lesson=nodes.empty-is-not-never");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
 
-  const path = page.locator(".patchbay-cord .react-flow__edge-path");
+  const path = page.locator(".patchbay-cord .react-flow__edge-path").first();
   await expect(path).toHaveAttribute("data-cord-geometry", "straight");
   await expect(path).toHaveAttribute("data-routing-mode", "rectilinear");
   const commands = await path.getAttribute("d");
@@ -2057,8 +2213,7 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("pedagogical completion is not execution evidence", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
-  await page.getByRole("button", { name: "Pull the cord" }).click();
+  await page.goto("/tour/public/index.html?lesson=welcome.pull-the-cord");
   await expect(page.locator("#run")).toBeDisabled();
   await page.locator("#check").click();
   await expect(page.locator("#result")).toContainText(
@@ -2070,8 +2225,7 @@ test("pedagogical completion is not execution evidence", async ({ page }) => {
 });
 
 test("multi-port lesson runs its explicit display composite", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
-  await page.getByRole("button", { name: "More than one port" }).click();
+  await page.goto("/tour/public/index.html?lesson=nodes.more-than-one-port");
   await expect(page.locator("#runnability-state")).toContainText(
     "runnable · browser",
   );

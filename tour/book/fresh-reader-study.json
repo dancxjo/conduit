@@ -1,0 +1,52 @@
+{
+  "schema": "conduit.tour-fresh-reader-study",
+  "schema_version": 0,
+  "status": "protocol-ready",
+  "participant_requirement": "A participant who has not read the issue bodies or authored the Tour changes.",
+  "route": "/tour/public/index.html",
+  "conditions": {
+    "maximum_minutes_to_first_result": 1,
+    "audio_optional": true,
+    "keyboard_only_pass_required": true,
+    "reduced_motion_pass_required": true,
+    "technical_drawers_initially_closed": true
+  },
+  "questions": [
+    {
+      "id": "why-conduit",
+      "prompt": "Why was Conduit built?",
+      "passing_evidence": [
+        "The program disappeared across callbacks, queues, processes, launch/configuration, providers and hosts.",
+        "Authored meaning needed to stay distinct from the exact implementation selected today.",
+        "Pressure, lifecycle, authority and evidence needed to become visible parts of the program."
+      ]
+    },
+    {
+      "id": "made",
+      "prompt": "What did you make?",
+      "passing_evidence": [
+        "A living rhythm/light instrument that starts and stops explicitly.",
+        "A bounded persistent service that waits, applies pressure, survives one worker failure and drains.",
+        "A simulated Pete rehearsal with isolated networking, exact placement, finite authority and safe degradation."
+      ]
+    },
+    {
+      "id": "needed-ideas",
+      "prompt": "Why did you need each new idea?",
+      "passing_evidence": [
+        "Clock for repeatable rhythm; explicit flow for a second layer and pressure.",
+        "State and delay for meaningful recurrence; Watch for non-invasive observation.",
+        "Waiting, capacity and supervision for the service.",
+        "Provider choice, leases, deadlines and degradation for the rehearsal."
+      ]
+    },
+    {
+      "id": "next",
+      "prompt": "What do you want to build next?",
+      "passing_evidence": [
+        "The participant names a concrete extension of one artifact or another system whose full program they want to keep visible."
+      ]
+    }
+  ],
+  "observations": []
+}

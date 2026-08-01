@@ -7,7 +7,8 @@ use conduit_core::NodeContract;
 use conduit_media::{
     DEMUX_CONTRACT, ENCODE_CONTRACT, MUX_CONTRACT, PROBE_CONTRACT, WAVE_LITERAL_CONTRACT,
     register_deterministic_codec_providers, register_deterministic_media_providers,
-    register_media_codec_contracts, register_media_contracts,
+    register_deterministic_signal_providers, register_media_codec_contracts,
+    register_media_contracts,
 };
 use conduit_runtime::{
     AvailabilityState, CompiledInHostService, Handler, Registry, RegistryError, RunIo,
@@ -189,6 +190,45 @@ fn typed_media_contracts_are_sealed_into_the_exact_compile_catalog() {
         node.contract.id == "conduit.media/audio-frame/literal"
             && node.implementation.id == "conduit.media/audio-literal-deterministic"
     }));
+}
+
+#[test]
+fn living_instrument_signal_graph_is_sealed_and_cli_checkable() {
+    let source = include_str!("../../../examples/living-instrument.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_signal_providers(&mut registry).unwrap();
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    let contracts = document
+        .nodes
+        .iter()
+        .map(|node| node.contract.id.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "conduit.media/event/from-ticker",
+        "conduit.media/event/tee",
+        "conduit.media/control/clock-divider",
+        "conduit.media/control/sequencer",
+        "conduit.media/control/slew",
+        "conduit.media/control/merge",
+        "conduit.media/control/mixer",
+        "conduit.media/control/register",
+        "conduit.media/control/scope",
+    ] {
+        assert!(contracts.contains(required), "instrument seals {required}");
+    }
+
+    let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .arg("--check")
+        .arg(workspace_file("examples/living-instrument.panel"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("14 root nodes; 14 root cords"));
 }
 
 #[test]

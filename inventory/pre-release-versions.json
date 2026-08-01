@@ -154,8 +154,10 @@
         "conduit.tour-browser-plan",
         "conduit.tour-book",
         "conduit.tour-contract-import-lesson",
+        "conduit.tour-fresh-reader-study",
         "conduit.tour-lessons",
         "conduit.tour-library-lesson",
+        "conduit.tour-migration-ledger",
         "conduit.tour-platform-lesson",
         "conduit.tour-reference-panels"
       ],

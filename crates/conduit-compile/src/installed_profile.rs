@@ -467,6 +467,7 @@ fn candidate(
         installed.implementation,
         HostedPrimitiveImplementation::Tee
             | HostedPrimitiveImplementation::Merge
+            | HostedPrimitiveImplementation::ControlMerge
             | HostedPrimitiveImplementation::Zip
             | HostedPrimitiveImplementation::Gate
             | HostedPrimitiveImplementation::Select

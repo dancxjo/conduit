@@ -42,6 +42,8 @@ const watchToggle = document.querySelector("#watch-toggle");
 const freezeDisplay = document.querySelector("#freeze-display");
 const displayFreezeStatus = document.querySelector("#display-freeze-status");
 const watchObservationLead = document.querySelector("#watch-observation-lead");
+const instrumentResult = document.querySelector("#instrument-result");
+const instrumentResultText = document.querySelector("#instrument-result-text");
 const liveFlowStatus = document.querySelector("#live-flow-status");
 const liveFlowTableBody = document.querySelector("#live-flow-table tbody");
 const workspace = document.querySelector("#workspace");
@@ -58,6 +60,12 @@ const expandLabButton = document.querySelector("#expand-lab");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const book = await (await fetch("../book/current.json", { cache: "no-store" })).json();
+const migrationLedger = await (
+  await fetch("../book/migration.json", { cache: "no-store" })
+).json();
+const freshReaderStudy = await (
+  await fetch("../book/fresh-reader-study.json", { cache: "no-store" })
+).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
 const referenceManifest = await (
   await fetch("../reference-panels/current.json", { cache: "no-store" })
@@ -68,6 +76,29 @@ if (referenceManifest.schema !== "conduit.tour-reference-panels") {
 if (book.schema !== "conduit.tour-book" || book.schema_version !== 0) {
   throw new Error("unsupported Tour book manifest");
 }
+if (
+  migrationLedger.schema !== "conduit.tour-migration-ledger" ||
+  migrationLedger.schema_version !== 0
+) {
+  throw new Error("unsupported Tour migration ledger");
+}
+if (
+  freshReaderStudy.schema !== "conduit.tour-fresh-reader-study" ||
+  freshReaderStudy.schema_version !== 0
+) {
+  throw new Error("unsupported Tour fresh-reader study");
+}
+const projectArtifactSources = new Map(await Promise.all(
+  book.projects.filter((project) => project.artifact.source_path).map(async (project) => {
+    const response = await fetch(new URL(project.artifact.source_path, import.meta.url), {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`project-artifact-fetch:${project.id}:${response.status}`);
+    }
+    return [project.id, await response.text()];
+  }),
+));
 const referencePanels = await Promise.all(referenceManifest.panels.map(async (panel) => {
   const response = await fetch(new URL(panel.source_path, import.meta.url), {
     cache: "no-store",
@@ -228,23 +259,39 @@ const layoutKey = (id) => `conduit-tour-layout/${id}`;
 const readingPositionKey = "conduit-tour-reader/0/reading-position";
 const checkpointKey = (projectId) =>
   `conduit-tour-reader/0/project-checkpoint/${projectId}`;
+const projectStateKey = (project) => project.artifact.state_key;
+const projectRecoveryKey = (project) => `${project.artifact.state_key}/recovery`;
 const bookSections = book.projects.flatMap((project) =>
   project.chapters.flatMap((chapter) =>
     chapter.sections.map((section) => ({ project, chapter, section })),
   ),
 );
 const sectionById = new Map(bookSections.map((entry) => [entry.section.id, entry]));
-const sectionByLessonId = new Map();
 for (const entry of bookSections) {
   const lab = entry.section.blocks.find((block) => block.kind === "lab");
   const lesson = lessons.lessons.find((candidate) => candidate.id === lab?.lesson_id);
   if (!lab || !lesson) {
     throw new Error(`unresolved reader lab reference in ${entry.section.id}`);
   }
-  sectionByLessonId.set(lab.lesson_id, entry);
 }
-const recipeByLessonId = new Map(
-  book.cookbook.recipes.map((recipe) => [recipe.lesson_id, recipe]),
+const migrationByLessonId = new Map(
+  migrationLedger.entries.map((entry) => [entry.lesson_id, entry]),
+);
+const referenceLessonById = new Map(
+  book.reference.lessons.map((lessonId) => {
+    const lesson = lessons.lessons.find((candidate) => candidate.id === lessonId);
+    if (!lesson) throw new Error(`unresolved Reference lesson ${lessonId}`);
+    return [lessonId, lesson];
+  }),
+);
+const retiredByLessonId = new Map(
+  book.retired.lessons.map((entry) => {
+    const lesson = lessons.lessons.find((candidate) => candidate.id === entry.lesson_id);
+    if (!lesson || !sectionById.has(entry.replacement_section)) {
+      throw new Error(`unresolved retired lesson ${entry.lesson_id}`);
+    }
+    return [entry.lesson_id, { ...entry, lesson }];
+  }),
 );
 let activeReaderSection = null;
 let activeReaderDestination = "cover";
@@ -305,6 +352,151 @@ function recordCheckpoint(entry) {
   visited.add(entry.section.id);
   localStorage.setItem(checkpointKey(entry.project.id), JSON.stringify([...visited]));
   return visited;
+}
+
+function projectSections(project) {
+  return project.chapters.flatMap((chapter) => chapter.sections);
+}
+
+function projectRevisions(project) {
+  return [
+    project.artifact.initial_revision,
+    ...projectSections(project).map((section) => section.state.produces),
+  ].filter((revision, index, revisions) => revisions.indexOf(revision) === index);
+}
+
+function initialProjectState(project) {
+  return {
+    revision: project.artifact.initial_revision,
+    completed_sections: [],
+  };
+}
+
+function storedProjectState(project) {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem(projectStateKey(project)) || "null",
+    );
+    if (
+      !value ||
+      !projectRevisions(project).includes(value.revision) ||
+      !Array.isArray(value.completed_sections)
+    ) {
+      return initialProjectState(project);
+    }
+    return value;
+  } catch {
+    localStorage.removeItem(projectStateKey(project));
+    return initialProjectState(project);
+  }
+}
+
+function saveProjectState(project, state) {
+  localStorage.setItem(projectStateKey(project), JSON.stringify(state));
+}
+
+function advanceProjectState(entry) {
+  const state = storedProjectState(entry.project);
+  const revisions = projectRevisions(entry.project);
+  const producedRevision = entry.section.state.produces;
+  if (revisions.indexOf(producedRevision) >= revisions.indexOf(state.revision)) {
+    state.revision = producedRevision;
+  }
+  if (!state.completed_sections.includes(entry.section.id)) {
+    state.completed_sections.push(entry.section.id);
+  }
+  saveProjectState(entry.project, state);
+  renderProjectArtifact(entry);
+  return state;
+}
+
+function projectLessonIds(project) {
+  const artifactDraftId = project.artifact.source_path
+    ? `project-artifact/${project.id}`
+    : null;
+  return [...new Set([artifactDraftId, ...projectSections(project).map((section) =>
+    section.blocks.find((block) => block.kind === "lab")?.lesson_id
+  )].filter(Boolean))];
+}
+
+function resetProjectState(entry) {
+  if (current?.id) {
+    localStorage.setItem(draftKey(current.id), source.value);
+  }
+  const drafts = Object.fromEntries(projectLessonIds(entry.project).flatMap((lessonId) => {
+    const draft = localStorage.getItem(draftKey(lessonId));
+    return draft === null ? [] : [[lessonId, draft]];
+  }));
+  localStorage.setItem(projectRecoveryKey(entry.project), JSON.stringify({
+    state: storedProjectState(entry.project),
+    checkpoints: storedCheckpoint(entry.project.id),
+    drafts,
+  }));
+  saveProjectState(entry.project, initialProjectState(entry.project));
+  localStorage.removeItem(checkpointKey(entry.project.id));
+  for (const lessonId of projectLessonIds(entry.project)) {
+    localStorage.removeItem(draftKey(lessonId));
+    localStorage.removeItem(recoveryKey(lessonId));
+  }
+  const first = sectionById.get(projectSections(entry.project)[0].id);
+  openReaderSection(first);
+}
+
+function recoverProjectState(entry) {
+  try {
+    const recovery = JSON.parse(
+      localStorage.getItem(projectRecoveryKey(entry.project)) || "null",
+    );
+    if (!recovery?.state || !Array.isArray(recovery.checkpoints)) return;
+    saveProjectState(entry.project, recovery.state);
+    localStorage.setItem(
+      checkpointKey(entry.project.id),
+      JSON.stringify(recovery.checkpoints),
+    );
+    for (const [lessonId, draft] of Object.entries(recovery.drafts || {})) {
+      if (projectLessonIds(entry.project).includes(lessonId)) {
+        localStorage.setItem(draftKey(lessonId), draft);
+      }
+    }
+    localStorage.removeItem(projectRecoveryKey(entry.project));
+    openReaderSection(entry);
+  } catch {
+    localStorage.removeItem(projectRecoveryKey(entry.project));
+  }
+}
+
+function renderProjectArtifact(entry) {
+  const card = document.querySelector("#project-artifact");
+  card.hidden = false;
+  document.querySelector("#opening-result").textContent = entry.section.opening_result;
+  document.querySelector("#artifact-id").textContent = entry.project.artifact.id;
+  document.querySelector("#artifact-inherits").textContent =
+    entry.section.state.inherits;
+  document.querySelector("#artifact-produces").textContent =
+    entry.section.state.produces;
+  document.querySelector("#section-non-audio").textContent =
+    entry.section.accessibility.non_audio;
+  document.querySelector("#section-reduced-motion").textContent =
+    entry.section.accessibility.reduced_motion;
+  document.querySelector("#section-screen-reader").textContent =
+    entry.section.accessibility.screen_reader;
+  const state = storedProjectState(entry.project);
+  const revisions = projectRevisions(entry.project);
+  document.querySelector("#artifact-status").textContent =
+    `Local project state: ${state.revision} · ${state.completed_sections.length} ` +
+    `of ${projectSections(entry.project).length} sections carried forward. ` +
+    "This is reader state, not a live-run claim.";
+  document.querySelector("#reset-project").onclick = () => resetProjectState(entry);
+  const recover = document.querySelector("#recover-project");
+  recover.disabled = localStorage.getItem(projectRecoveryKey(entry.project)) === null;
+  recover.onclick = () => recoverProjectState(entry);
+  card.dataset.revision = state.revision;
+  card.dataset.revisionIndex = String(revisions.indexOf(state.revision));
+  instrumentResult.hidden = !(
+    entry.project.id === "living-instrument" &&
+    projectArtifactSources.has(entry.project.id)
+  );
+  if (instrumentResult && !instrumentResult.hidden) resetInstrumentResult();
 }
 
 function saveReadingPosition() {
@@ -421,9 +613,13 @@ function renderCover({ updateHistory = true } = {}) {
     description.textContent = project.description;
     const count = document.createElement("p");
     count.className = "section-progress";
-    const projectSections = project.chapters.flatMap((chapter) => chapter.sections);
-    count.textContent = `${storedCheckpoint(project.id).length} of ${projectSections.length} sections visited`;
-    card.append(title, description, count);
+    const sections = projectSections(project);
+    const state = storedProjectState(project);
+    count.textContent = `${storedCheckpoint(project.id).length} of ${sections.length} sections visited · ` +
+      `${state.completed_sections.length} carried forward · ${state.revision}`;
+    const result = document.createElement("p");
+    result.textContent = project.artifact.non_audio_result;
+    card.append(title, description, result, count);
     projects.append(card);
   }
   readerContent.scrollTop = 0;
@@ -451,10 +647,13 @@ function openReaderSection(entry, { updateHistory = true, scrollTop = 0 } = {}) 
     `${visited.size} of ${allProjectSections.length} project sections visited`;
   document.querySelector("#reader-section-title").textContent = entry.section.title;
   document.querySelector("#reader-section-summary").textContent = entry.section.summary;
-  document.querySelector("#chapter-number").textContent = `Chapter ${entry.chapter.number}`;
+  document.querySelector("#chapter-number").textContent = entry.chapter.kind === "interlude"
+    ? "Optional interlude"
+    : `Chapter ${entry.chapter.number}`;
   document.querySelector("#chapter-opening-title").textContent = entry.chapter.title;
   document.querySelector("#chapter-description").textContent = entry.chapter.description;
   document.querySelector("#chapter-opening-copy").textContent = entry.chapter.opening;
+  renderProjectArtifact(entry);
 
   const labIndex = entry.section.blocks.findIndex((block) => block.kind === "lab");
   narrativeBeforeLab.replaceChildren(
@@ -465,7 +664,31 @@ function openReaderSection(entry, { updateHistory = true, scrollTop = 0 } = {}) 
   );
   const lab = entry.section.blocks[labIndex];
   const lesson = lessons.lessons.find((candidate) => candidate.id === lab.lesson_id);
-  show(lesson);
+  const artifactSource = projectArtifactSources.get(entry.project.id);
+  const presentedLesson = artifactSource
+    ? {
+        ...lesson,
+        id: `project-artifact/${entry.project.id}`,
+        title: `${entry.project.title} — ${entry.section.title}`,
+        objective: entry.section.summary,
+        prose: `${entry.section.state.carry_forward} ${lesson.prose || ""}`.trim(),
+        source: artifactSource,
+        supporting_source: lesson.source,
+        supporting_execution: lesson.execution || "run-to-completion",
+        supporting_validation: lesson.validation,
+        supporting_watch_target: lesson.watch_target,
+        supporting_runnability: lesson.runnability,
+        execution: entry.project.artifact.execution,
+        validation: entry.project.artifact.validation,
+        watch_target: entry.project.artifact.watch_target,
+        runnability: entry.project.artifact.runnability || {
+          state: "runnable",
+          profile: "browser",
+          proof: "browser-worker-exact-plan",
+        },
+      }
+    : lesson;
+  show(presentedLesson);
   setLabExpanded(lab.presentation === "expanded" || preserveExpandedWorkspace);
   closeTechnicalDrawers();
 
@@ -480,12 +703,17 @@ function openReaderSection(entry, { updateHistory = true, scrollTop = 0 } = {}) 
     : `Previous: ${bookSections[index - 1].section.title}`;
   previous.setAttribute("aria-label", "Previous section");
   previous.onclick = () => openReaderSection(bookSections[index - 1]);
-  next.disabled = index === bookSections.length - 1;
+  next.disabled = false;
   next.textContent = index === bookSections.length - 1
-    ? "End of the book path"
+    ? "Complete final project"
     : `Next: ${bookSections[index + 1].section.title}`;
   next.setAttribute("aria-label", "Next section");
-  next.onclick = () => openReaderSection(bookSections[index + 1]);
+  next.onclick = () => {
+    advanceProjectState(entry);
+    if (index < bookSections.length - 1) {
+      openReaderSection(bookSections[index + 1]);
+    }
+  };
   const permalink = document.querySelector("#section-permalink");
   permalink.href = `?section=${encodeURIComponent(entry.section.id)}`;
 
@@ -503,13 +731,31 @@ function openReaderSection(entry, { updateHistory = true, scrollTop = 0 } = {}) 
 
 function directoryEntries(kind) {
   if (kind === "reference") {
-    return referencePanels.map((panel) => ({
-      id: panel.id,
-      title: panel.title,
-      description: panel.objective || panel.prose || "Canonical checked panel",
-      search: [panel.id, panel.title, panel.objective, panel.prose].filter(Boolean).join(" "),
-      target: panel,
-    }));
+    return [
+      ...referencePanels.map((panel) => ({
+        id: panel.id,
+        title: panel.title,
+        description: panel.objective || panel.prose || "Canonical checked panel",
+        search: [panel.id, panel.title, panel.objective, panel.prose]
+          .filter(Boolean).join(" "),
+        target: panel,
+        referenceKind: "panel",
+      })),
+      ...[...referenceLessonById.values()].map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.objective,
+        search: [
+          lesson.id,
+          lesson.title,
+          lesson.objective,
+          lesson.prose,
+          ...(lesson.vocabulary || []),
+        ].filter(Boolean).join(" "),
+        target: lesson,
+        referenceKind: "lesson",
+      })),
+    ];
   }
   return book.cookbook.recipes.map((recipe) => {
     const lesson = lessons.lessons.find((candidate) => candidate.id === recipe.lesson_id);
@@ -576,10 +822,12 @@ function openDirectoryLab(kind, entry, { updateHistory = true } = {}) {
   directoryView.hidden = true;
   readerSection.hidden = false;
   workspace.hidden = false;
+  document.querySelector("#project-artifact").hidden = true;
   chapterOpening.hidden = true;
   readerPager.hidden = false;
-  document.querySelector("#project-progress").textContent =
-    kind === "reference" ? "Reference panel" : "Cookbook recipe";
+  document.querySelector("#project-progress").textContent = kind === "reference"
+    ? `Reference ${entry.referenceKind || "panel"}`
+    : "Cookbook recipe";
   document.querySelector("#section-progress").textContent = "Outside sequential book progress";
   document.querySelector("#reader-section-title").textContent = entry.title;
   document.querySelector("#reader-section-summary").textContent = entry.description;
@@ -606,6 +854,59 @@ function openDirectoryLab(kind, entry, { updateHistory = true } = {}) {
   readerContent.scrollTop = 0;
 }
 
+function openRetiredLesson(entry, { updateHistory = true } = {}) {
+  const preserveExpandedWorkspace = workspace.dataset.mode === "expanded";
+  saveReadingPosition();
+  activeReaderSection = null;
+  activeDirectoryKind = "retired";
+  setDestination("reference");
+  bookCover.hidden = true;
+  directoryView.hidden = true;
+  readerSection.hidden = false;
+  workspace.hidden = false;
+  document.querySelector("#project-artifact").hidden = true;
+  chapterOpening.hidden = true;
+  readerPager.hidden = false;
+  document.querySelector("#project-progress").textContent = "Retired opening fixture";
+  document.querySelector("#section-progress").textContent =
+    "Outside sequential book progress · exact fixture retained";
+  document.querySelector("#reader-section-title").textContent =
+    `Retired: ${entry.lesson.title}`;
+  document.querySelector("#reader-section-summary").textContent = entry.reason;
+  narrativeBeforeLab.replaceChildren(
+    renderNarrativeBlock({
+      id: "retired-need",
+      kind: "need",
+      body: entry.reason,
+    }),
+    renderNarrativeBlock({
+      id: "retired-action",
+      kind: "action",
+      body: "Inspect the retained production fixture without returning it to the curriculum.",
+    }),
+  );
+  narrativeAfterLab.replaceChildren(renderNarrativeBlock({
+    id: "retired-explanation",
+    kind: "explanation",
+    body: "Git history is not a second Tour schema. This current route keeps the useful exact fixture and points reading progress to its project-driven replacement.",
+  }));
+  show(entry.lesson);
+  setLabExpanded(preserveExpandedWorkspace);
+  closeTechnicalDrawers();
+  const replacement = sectionById.get(entry.replacement_section);
+  const previous = document.querySelector("#previous-section");
+  const next = document.querySelector("#next-section");
+  previous.disabled = false;
+  previous.hidden = false;
+  previous.textContent = `Continue to replacement: ${replacement.section.title}`;
+  previous.onclick = () => openReaderSection(replacement);
+  next.hidden = true;
+  document.querySelector("#section-permalink").href =
+    `?lesson=${encodeURIComponent(entry.lesson_id)}`;
+  if (updateHistory) updateRoute({ lesson: entry.lesson_id });
+  readerContent.scrollTop = 0;
+}
+
 function clearLiveWakeTimer() {
   if (liveWakeTimer !== null) {
     clearTimeout(liveWakeTimer);
@@ -629,6 +930,49 @@ function resetWatchPresentation(message = "No Watch is attached.") {
   displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
   liveFlowStatus.textContent = "No authoritative live-flow delta yet.";
   liveFlowTableBody.replaceChildren();
+  if (instrumentResult && !instrumentResult.hidden) resetInstrumentResult();
+}
+
+function resetInstrumentResult(message =
+  "Ready. Start the exact run to produce the first beat; audio remains off.") {
+  if (!instrumentResult || !instrumentResultText) return;
+  instrumentResult.dataset.state = "ready";
+  instrumentResult.dataset.phase = "";
+  instrumentResult.dataset.tick = "";
+  instrumentResult.dataset.accent = "false";
+  instrumentResult.style.setProperty("--instrument-level", "0%");
+  instrumentResultText.textContent = message;
+}
+
+function renderInstrumentWatch(record) {
+  if (!instrumentResult || !instrumentResultText || instrumentResult.hidden) return;
+  const text = record?.material?.kind === "preview"
+    ? record.material.text
+    : null;
+  const scoped = text?.match(/^tick=(\d+) level=(\d+)\s*$/);
+  const beat = Number.parseInt(scoped?.[1] ?? text ?? "", 10);
+  if (!Number.isSafeInteger(beat) || beat < 0) {
+    instrumentResult.dataset.state = "observed";
+    instrumentResultText.textContent = text
+      ? `Exact Watch value: ${text.trim() || "empty"}. Audio remains off.`
+      : "The exact Watch has not produced a numeric beat yet. Audio remains off.";
+    return;
+  }
+  const phase = beat % 8;
+  const exactLevel = scoped ? Number.parseInt(scoped[2], 10) : null;
+  const intensity = Number.isSafeInteger(exactLevel)
+    ? Math.min(4, Math.round(exactLevel / 256))
+    : (phase <= 4 ? phase : 8 - phase);
+  const accent = phase === 0 || phase === 4;
+  instrumentResult.dataset.state = "live";
+  instrumentResult.dataset.tick = String(beat);
+  instrumentResult.dataset.phase = String(phase);
+  instrumentResult.dataset.accent = String(accent);
+  instrumentResult.style.setProperty("--instrument-level", `${25 + intensity * 18.75}%`);
+  instrumentResultText.textContent =
+    `Exact Watch beat ${beat}. Step ${phase + 1} of 8; ` +
+    `${accent ? "accent on" : "accent off"}; intensity ${intensity} of 4. ` +
+    "Audio remains off.";
 }
 
 function disableWatchControl() {
@@ -797,6 +1141,11 @@ async function toggleWatch() {
   setWatchControl(control);
   if (!control.attached) {
     watchValue.textContent = "Watch detached; the exact ticker continues without observation pressure.";
+    if (instrumentResult && instrumentResultText && !instrumentResult.hidden) {
+      instrumentResult.dataset.state = "detached";
+      instrumentResultText.textContent =
+        "Watch detached. The exact ticker continues, but this presentation no longer receives beat values; audio remains off.";
+    }
   }
   recordEvidence({
     kind: control.attached ? "watch-attached" : "watch-detached",
@@ -810,7 +1159,10 @@ function renderLatestWatch(batch, run) {
   const text = record?.material?.kind === "preview"
     ? record.material.text
     : null;
-  watchValue.textContent = text ?? (record?.material?.kind || "No value observed yet.");
+  if (record) {
+    watchValue.textContent = text ?? record.material?.kind ?? "Observed non-preview value.";
+    renderInstrumentWatch(record);
+  }
   watchAccounting.textContent = JSON.stringify({
     run_id: run.run_id,
     plan_identity: run.plan_identity,
@@ -1234,7 +1586,7 @@ function applyPatchbayOperations(operations, options = {}) {
   positions = transaction.result.presentation.node_positions;
   syncDiagnosticSourceHighlights();
   runButton.disabled =
-    current?.runnability?.state !== "runnable" || !patchbayView.plan || Boolean(activeAdapter);
+    activeRunnability()?.state !== "runnable" || !patchbayView.plan || Boolean(activeAdapter);
   rememberLayout(current.id, positions, patchbayView);
   if (!options.preserveFaceplateFocus && !options.skipRender) {
     updateCytoscapeGraph();
@@ -1268,9 +1620,17 @@ function activeScenario() {
     : `rejected before execution with ${platformProfile.code}`;
   return {
     ...platformProfile,
-    source: current.source,
+    source: current.supporting_source || current.source,
+    execution: current.supporting_execution || current.execution,
+    validation: current.supporting_validation || current.validation,
+    watch_target: current.supporting_watch_target || current.watch_target,
+    runnability: current.supporting_runnability || current.runnability,
     explanation: `${platformProfile.id}: ${outcome}. The editable representative panel remains real source and reruns independently.`,
   };
+}
+
+function activeRunnability() {
+  return activeScenario()?.runnability || current?.runnability;
 }
 
 function authoredSource() {
@@ -1631,7 +1991,7 @@ async function stopExactSession(cause, message) {
   freezeDisplay.setAttribute("aria-pressed", "false");
   freezeDisplay.textContent = "Freeze Display (F)";
   displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
-  runButton.disabled = current?.runnability?.state !== "runnable";
+  runButton.disabled = activeRunnability()?.state !== "runnable";
   stopButton.disabled = true;
   consoleBadge.textContent = "Ready";
   consoleBadge.className = "badge status-badge idle";
@@ -1802,7 +2162,7 @@ function clearTopologySelection() {
 
 function check() {
   const parsed = JSON.parse(parse_panel(source.value));
-  const availability = current.runnability;
+  const availability = activeRunnability();
   if (!parsed.ok) {
     result.textContent = parsed.diagnostic;
   } else if (availability.state === "runnable") {
@@ -1829,7 +2189,7 @@ function check() {
   updateCytoscapeGraph();
   renderTopology();
   runButton.disabled =
-    current?.runnability?.state !== "runnable" || !patchbayView?.plan;
+    activeRunnability()?.state !== "runnable" || !patchbayView?.plan;
 }
 
 function renderTopology() {
@@ -1917,6 +2277,24 @@ function moveSelected(delta) {
 moveLeftBtn.onclick = () => moveSelected(-20);
 moveRightBtn.onclick = () => moveSelected(20);
 
+const EXACT_PUMP_TURN_DECISIONS = 32;
+const MAXIMUM_EXACT_PUMP_TURNS = 8;
+
+async function pumpExactRunCooperatively(adapter, sessionId, runIdentity) {
+  let response = null;
+  for (let turn = 0; turn < MAXIMUM_EXACT_PUMP_TURNS; turn += 1) {
+    response = await adapter.request("patchbay-pump-exact-run", {
+      sessionId,
+      ...runIdentity,
+      quantum: EXACT_PUMP_TURN_DECISIONS,
+    });
+    if (!response.ok || !response.value?.ok || response.value.state !== "active") {
+      break;
+    }
+  }
+  return response;
+}
+
 function scheduleContinuousWatch({
   adapter, sessionId, runIdentity, watchId, epoch, cursor, deadline,
 }) {
@@ -1934,11 +2312,7 @@ function scheduleContinuousWatch({
       if (!advanced.ok || !advanced.value?.ok) {
         throw new Error(advanced.value?.diagnostic || advanced.code || "timer wake failed");
       }
-      const pumped = await adapter.request("patchbay-pump-exact-run", {
-        sessionId,
-        ...runIdentity,
-        quantum: 256,
-      });
+      const pumped = await pumpExactRunCooperatively(adapter, sessionId, runIdentity);
       if (!pumped.ok || !pumped.value?.ok) {
         throw new Error(pumped.value?.diagnostic || pumped.code || "ticker pump failed");
       }
@@ -2012,9 +2386,10 @@ function scheduleContinuousWatch({
 }
 
 async function run() {
-  if (current.runnability?.state !== "runnable") {
+  const runnability = activeRunnability();
+  if (runnability?.state !== "runnable") {
     result.textContent =
-      `${current.runnability.code}: ${current.runnability.reason}`;
+      `${runnability.code}: ${runnability.reason}`;
     return;
   }
   if (!patchbayView?.plan) {
@@ -2100,12 +2475,20 @@ async function run() {
     };
     activeWorkerRunIdentity = runIdentity;
     setLivePresentationActive();
-    if (current.execution === "continuous-watch") {
-      const admission = started.value.view.plan.watch_admissions.find(
+    if ((activeScenario()?.execution || current.execution) === "continuous-watch") {
+      const compatibleAdmissions = started.value.view.plan.watch_admissions.filter(
         (watch) => watch.representation_id === "std/text" &&
           watch.retention === "latest" &&
           watch.sensitivity_ceiling === "public",
       );
+      const targetCord = current.watch_target
+        ? started.value.view.topology.cords.find((cord) =>
+            cord.from_node === current.watch_target.from_node &&
+            cord.from_port === current.watch_target.from_port)
+        : null;
+      const admission = current.watch_target
+        ? compatibleAdmissions.find((watch) => watch.cord === targetCord?.id)
+        : compatibleAdmissions[0];
       if (!admission) throw new Error("exact plan has no public latest-value text Watch");
       watchId = admission.id;
       const attached = await adapter.request("patchbay-attach-exact-watch", {
@@ -2131,9 +2514,9 @@ async function run() {
     const operation = activeScenario()?.execution === "cancel-before-first-step"
       ? "patchbay-cancel-exact-run"
       : "patchbay-pump-exact-run";
-    const executed = await adapter.request(operation, operation === "patchbay-cancel-exact-run"
-      ? { sessionId, ...runIdentity, disposition: "abort" }
-      : { sessionId, ...runIdentity, quantum: 256 });
+    const executed = operation === "patchbay-cancel-exact-run"
+      ? await adapter.request(operation, { sessionId, ...runIdentity, disposition: "abort" })
+      : await pumpExactRunCooperatively(adapter, sessionId, runIdentity);
     if (epoch !== runEpoch) return;
     if (!executed.ok || !executed.value?.ok) {
       const rejection = {
@@ -2197,6 +2580,8 @@ async function run() {
             || (value.stderr || "").includes(validation.value)
           : validation?.kind === "watch"
             ? value.ok && watched?.records?.at(-1)?.material?.text === validation.value
+          : validation?.kind === "watch-prefix"
+            ? value.ok && watched?.records?.at(-1)?.material?.text?.startsWith(validation.value)
           : value.ok;
 
     result.textContent = lessonComplete
@@ -2248,7 +2633,7 @@ async function run() {
       freezeDisplay.setAttribute("aria-pressed", "false");
       freezeDisplay.textContent = "Freeze Display (F)";
       disableWatchControl();
-      runButton.disabled = current.runnability?.state !== "runnable";
+      runButton.disabled = activeRunnability()?.state !== "runnable";
       stopButton.disabled = true;
       consoleBadge.textContent = "Idle";
       consoleBadge.className = "badge status-badge idle";
@@ -2398,25 +2783,32 @@ function applyReaderRoute({ restoreReading = false } = {}) {
 
   const requestedLesson = parameters.get("lesson");
   if (requestedLesson) {
-    const section = sectionByLessonId.get(requestedLesson);
-    if (section) {
+    const disposition = migrationByLessonId.get(requestedLesson);
+    if (disposition) {
       workspace.dataset.mode = "expanded";
-      openReaderSection(section, { updateHistory: false });
-      return;
-    }
-    const recipe = recipeByLessonId.get(requestedLesson);
-    if (recipe) {
-      const entry = directoryEntries("cookbook").find((candidate) => candidate.id === recipe.id);
-      workspace.dataset.mode = "expanded";
-      openDirectoryLab("cookbook", entry, { updateHistory: false });
-      return;
-    }
-    const reference = directoryEntries("reference")
-      .find((candidate) => candidate.target.id === requestedLesson);
-    if (reference) {
-      workspace.dataset.mode = "expanded";
-      openDirectoryLab("reference", reference, { updateHistory: false });
-      return;
+      const destination = disposition.destination;
+      if (["Book", "Interlude"].includes(disposition.classification)) {
+        openReaderSection(sectionById.get(destination.id), { updateHistory: false });
+        return;
+      }
+      if (disposition.classification === "Cookbook") {
+        const entry = directoryEntries("cookbook")
+          .find((candidate) => candidate.id === destination.id);
+        openDirectoryLab("cookbook", entry, { updateHistory: false });
+        return;
+      }
+      if (disposition.classification === "Reference") {
+        const entry = directoryEntries("reference")
+          .find((candidate) => candidate.id === destination.id);
+        openDirectoryLab("reference", entry, { updateHistory: false });
+        return;
+      }
+      if (disposition.classification === "Retire/Replace") {
+        openRetiredLesson(retiredByLessonId.get(requestedLesson), {
+          updateHistory: false,
+        });
+        return;
+      }
     }
   }
 

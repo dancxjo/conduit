@@ -3,208 +3,54 @@
   "schema_version": 0,
   "id": "conduit-reader",
   "title": "Build a living system you can see",
-  "subtitle": "A reader-first tour of Conduit, with the real Patchbay opened only when the work calls for it.",
+  "subtitle": "Make an instrument, keep a service alive, and rehearse a robot safely with the real Conduit parser, resolver, runtime and Patchbay inside the page.",
+  "migration_ledger": "./migration.json",
+  "fresh_reader_study": "./fresh-reader-study.json",
   "cover": {
     "kicker": "The Conduit book",
-    "invitation": "Begin with the problem that made Conduit necessary, then build a visible, bounded program one connection at a time.",
+    "invitation": "First recover the program that disappeared inside a real living system. Then build three systems whose topology, limits, realization and evidence stay visible.",
     "start_section": "why.visible-program"
   },
   "projects": [
     {
-      "id": "visible-program",
-      "title": "Project one: Make the program visible",
-      "description": "Build a small continuous system whose components, connections, limits and meaning can be read as one program.",
+      "id": "origin",
+      "kind": "prologue",
+      "title": "Prologue: Recover the program",
+      "description": "Follow the concrete Tongues to PETE/Netherwick to Conduit story before learning a categorical definition.",
+      "artifact": {
+        "id": "origin-map",
+        "initial_revision": "scattered-realization",
+        "final_revision": "visible-semantic-program",
+        "state_key": "conduit-book/origin-map",
+        "non_audio_result": "A linear account names the products, hidden glue, semantic program, exact realization, authority boundary, lifecycle and evidence in that order."
+      },
       "chapters": [
         {
           "id": "why",
           "number": 0,
           "title": "The program we could no longer see",
-          "description": "Why a living system needs a visible topology before it needs more machinery.",
-          "opening": "Conduit began as an attempt to see one behavior that had scattered across speech, sensors, models, services, motors, microcontrollers and computers.",
+          "description": "Why a working speech and robot system needed one readable program more than it needed another layer of glue.",
+          "opening": "Conduit exists because we were trying to build one living system out of speech, sensors, websites, models, motors, microcontrollers and several unreliable computers—and we could no longer see the program we had made.",
           "sections": [
             {
               "id": "why.visible-program",
               "title": "Recover the hidden program",
-              "summary": "Separate the program's promises from the machinery currently realizing them.",
+              "summary": "Trace the actual pain from Tongues through PETE, then separate authored meaning from today's machinery.",
+              "opening_result": "Toggle from recognizable products and scattered glue to one semantic panel; the adjacent prose carries the complete linear equivalent.",
+              "starting_artifact": "scattered-realization",
+              "state": {"inherits":"scattered-realization","produces":"visible-semantic-program","carry_forward":"Continue into the living instrument with one small system whose whole program stays visible."},
+              "accessibility": {"non_audio":"The prose names every revealed product, callback, queue, process, host assumption and semantic boundary.","reduced_motion":"The two states switch without animation and preserve the same ordered labels.","screen_reader":"The lineage, problem, separation and conclusion precede the embedded lab in document order."},
+              "technical_refs": [],
               "blocks": [
-                { "id": "invitation", "kind": "invitation", "body": "Picture one behavior that starts with a person and ends in software, sound or motion. The interesting thing is the whole path, not any one function call." },
-                { "id": "need", "kind": "need", "body": "When that path dissolves into callbacks, processes, deployment files and private conventions, changing one implementation means rediscovering the program." },
-                { "id": "idea", "kind": "idea", "body": "Name components, cords, contracts, placement, pressure and observation as parts of the program itself." },
-                { "id": "action", "kind": "action", "body": "Open the compact lab and inspect a current checked ticker: a tiny system that starts once, waits, wakes, flows and remains alive." },
-                { "id": "lab", "kind": "lab", "lesson_id": "book.origin-hidden-program", "presentation": "compact" },
-                { "id": "witness", "kind": "witness", "body": "The Patchbay and result are projections of the same checked source and exact run session; expanding the lab does not create a second example." },
-                { "id": "explanation", "kind": "explanation", "body": "A realization may move or be replaced while the declared topology, contracts and bounded flow stay legible." },
-                { "id": "reflection", "kind": "reflection", "body": "Which parts of one of your systems are truly the program, and which are only today's realization?" },
-                { "id": "next-hook", "kind": "next-hook", "body": "Next, make the smallest visible message path and witness its result." }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "first-path",
-          "number": 1,
-          "title": "Patch a first message",
-          "description": "Turn source into a visible path, disturb it, repair it and inspect what actually ran.",
-          "opening": "A useful first program is small enough to understand completely and real enough to fail honestly.",
-          "sections": [
-            {
-              "id": "first-path.hello",
-              "title": "Hello, panel",
-              "summary": "Create, conduct and display one bounded text value.",
-              "blocks": [
-                { "id": "invitation", "kind": "invitation", "body": "Start with one literal, one display and one cord." },
-                { "id": "action", "kind": "action", "body": "Run the panel and read the result before opening its technical proof." },
-                { "id": "lab", "kind": "lab", "lesson_id": "welcome.hello-panel", "presentation": "compact" },
-                { "id": "explanation", "kind": "explanation", "body": "The visible result, plan and evidence belong to the same exact worker run." },
-                { "id": "next-hook", "kind": "next-hook", "body": "Now break the path deliberately." }
-              ]
-            },
-            {
-              "id": "first-path.pull",
-              "title": "Pull the cord",
-              "summary": "See an incomplete graph remain readable without pretending it can run.",
-              "blocks": [
-                { "id": "need", "kind": "need", "body": "A visual editor must keep invalid authored intent visible instead of silently inventing a runnable graph." },
-                { "id": "lab", "kind": "lab", "lesson_id": "welcome.pull-the-cord", "presentation": "compact" },
-                { "id": "reflection", "kind": "reflection", "body": "The unavailable Run control is part of the explanation, not an inconvenience to hide." }
-              ]
-            },
-            {
-              "id": "first-path.change",
-              "title": "Change the value, not the topology",
-              "summary": "Keep source identity and a local learner draft distinct.",
-              "blocks": [
-                { "id": "idea", "kind": "idea", "body": "A draft is local reading work; it is not authored source, a resolved plan or a surviving run." },
-                { "id": "lab", "kind": "lab", "lesson_id": "welcome.change-message", "presentation": "compact" },
-                { "id": "explanation", "kind": "explanation", "body": "Refresh can restore your text without claiming that the previous execution session survived." }
-              ]
-            },
-            {
-              "id": "first-path.proof",
-              "title": "Ask how we know",
-              "summary": "Reveal exact plan and evidence only when the question requires them.",
-              "blocks": [
-                { "id": "invitation", "kind": "invitation", "body": "Read the action and result first, then open the proof drawers." },
-                { "id": "lab", "kind": "lab", "lesson_id": "welcome.nothing-up-our-sleeves", "presentation": "compact" },
-                { "id": "reflection", "kind": "reflection", "body": "Progressive disclosure changes presentation, never the authority of the underlying records." }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "components",
-          "number": 2,
-          "title": "Read components and cords",
-          "description": "Use ports, direction, types, fan-out and terminal states as explicit promises.",
-          "opening": "A box and a line become useful only when their semantic responsibilities remain readable without color or motion.",
-          "sections": [
-            {
-              "id": "components.ports",
-              "title": "More than one port",
-              "summary": "Read each receiving and outgoing promise independently.",
-              "blocks": [
-                { "id": "idea", "kind": "idea", "body": "Ports are named semantic boundaries, not decoration on a node." },
-                { "id": "lab", "kind": "lab", "lesson_id": "nodes.more-than-one-port", "presentation": "compact" },
-                { "id": "explanation", "kind": "explanation", "body": "The textual port list follows the same projection as the visible faceplate." }
-              ]
-            },
-            {
-              "id": "components.direction",
-              "title": "Direction is part of the promise",
-              "summary": "Reject a cord whose endpoints cannot satisfy receiving and outgoing roles.",
-              "blocks": [
-                { "id": "need", "kind": "need", "body": "A line between two boxes is ambiguous unless both endpoint roles are explicit." },
-                { "id": "lab", "kind": "lab", "lesson_id": "nodes.direction-matters", "presentation": "compact" },
-                { "id": "reflection", "kind": "reflection", "body": "The diagnosis remains in reading order even when the visual canvas is unavailable." }
-              ]
-            },
-            {
-              "id": "components.fan-out",
-              "title": "Make fan-out a choice",
-              "summary": "Treat delivery multiplicity and pressure as semantics.",
-              "blocks": [
-                { "id": "idea", "kind": "idea", "body": "Duplicating a value is a node-level decision with bounded downstream delivery, not a free visual fork." },
-                { "id": "lab", "kind": "lab", "lesson_id": "nodes.fan-out-is-a-choice", "presentation": "compact" },
-                { "id": "next-hook", "kind": "next-hook", "body": "Types make the promise more precise." }
-              ]
-            },
-            {
-              "id": "components.types",
-              "title": "Types mean promises",
-              "summary": "Keep compatibility proof separate from visual proximity.",
-              "blocks": [
-                { "id": "need", "kind": "need", "body": "Nearby ports are not necessarily substitutable." },
-                { "id": "lab", "kind": "lab", "lesson_id": "nodes.types-mean-promises", "presentation": "compact" },
-                { "id": "explanation", "kind": "explanation", "body": "Compatibility comes from semantic contracts; the canvas only presents the proof or failure." }
-              ]
-            },
-            {
-              "id": "components.terminal",
-              "title": "Empty is not never",
-              "summary": "Read terminal state independently from the absence of a value.",
-              "blocks": [
-                { "id": "idea", "kind": "idea", "body": "No value yet, no value ever and an explicit empty value are different facts." },
-                { "id": "lab", "kind": "lab", "lesson_id": "nodes.empty-is-not-never", "presentation": "compact" },
-                { "id": "reflection", "kind": "reflection", "body": "A bounded live system needs terminal meaning as much as it needs value meaning." }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "panels",
-          "number": 3,
-          "title": "Compose a larger faceplate",
-          "description": "Nest panels while keeping public jacks, internal realization and reusable meaning distinct.",
-          "opening": "Composition should make a system easier to read without erasing how its public promises are realized.",
-          "sections": [
-            {
-              "id": "panels.nest",
-              "title": "Put a panel in a panel",
-              "summary": "Compose a checked definition without copying its implementation.",
-              "blocks": [
-                { "id": "invitation", "kind": "invitation", "body": "Build a larger component from a smaller visible program." },
-                { "id": "lab", "kind": "lab", "lesson_id": "panels.put-a-panel-in-a-panel", "presentation": "compact" },
-                { "id": "next-hook", "kind": "next-hook", "body": "Bring its useful promises to the front." }
-              ]
-            },
-            {
-              "id": "panels.jacks",
-              "title": "Put the jacks on the front",
-              "summary": "Expose explicit public ports for a composite.",
-              "blocks": [
-                { "id": "idea", "kind": "idea", "body": "A composite's interface is a contract, not a leak of its private wiring." },
-                { "id": "lab", "kind": "lab", "lesson_id": "panels.jacks-on-the-front", "presentation": "compact" },
-                { "id": "explanation", "kind": "explanation", "body": "Logical and expanded projections preserve the same source-backed identity." }
-              ]
-            },
-            {
-              "id": "panels.boundary",
-              "title": "Inside / outside",
-              "summary": "Move between a public faceplate and its expanded realization.",
-              "blocks": [
-                { "id": "action", "kind": "action", "body": "Toggle the topology projection and follow the same semantic port across the boundary." },
-                { "id": "lab", "kind": "lab", "lesson_id": "panels.inside-outside", "presentation": "compact" },
-                { "id": "witness", "kind": "witness", "body": "Source selection, logical ports and expanded ports remain linked by projected identities." }
-              ]
-            },
-            {
-              "id": "panels.reuse",
-              "title": "Reuse without copying",
-              "summary": "Keep one definition and multiple exact realizations distinguishable.",
-              "blocks": [
-                { "id": "need", "kind": "need", "body": "Copying implementation text makes later replacement and proof harder." },
-                { "id": "lab", "kind": "lab", "lesson_id": "panels.reuse-without-copying", "presentation": "compact" },
-                { "id": "reflection", "kind": "reflection", "body": "Reuse should preserve meaning while exact plan identity records each realization." }
-              ]
-            },
-            {
-              "id": "panels.watch",
-              "title": "Observe a living value",
-              "summary": "Attach bounded presentation to a running system without turning it into a semantic cord.",
-              "blocks": [
-                { "id": "invitation", "kind": "invitation", "body": "Let the system remain alive between admitted wakes." },
-                { "id": "lab", "kind": "lab", "lesson_id": "panels.tiny-instrument", "presentation": "compact" },
-                { "id": "explanation", "kind": "explanation", "body": "Watch is isolated instrumentation; semantic tee and recorder behavior remain plan-visible choices." }
+                {"id":"invitation","kind":"invitation","body":"Tongues already carried live speech, transcript revisions, language transforms, voices and web sessions. PETE added sensors, memory, models, browsers, motors, Motherbrain, Forebrain and Brainstem/Pico work across several hosts."},
+                {"id":"need","kind":"need","body":"The pieces worked, yet the program dissolved into callbacks, queues, launch/configuration, provider choices, processes and safety conventions. RxJS made flow visible but left capacity, pressure, cancellation, ordering, work identity and authority too easy to keep implicit."},
+                {"id":"idea","kind":"idea","body":"Keep one readable semantic program distinct from the exact implementation selected today. Make bounded cords, host/provider choice, authority, lifecycle and evidence explicit instead of hiding them in deployment glue."},
+                {"id":"action","kind":"action","body":"Inspect the checked origin composite. Toggle the scattered realization and semantic view, then follow the same current ticker into the real Patchbay."},
+                {"id":"lab","kind":"lab","lesson_id":"book.origin-hidden-program","presentation":"compact"},
+                {"id":"witness","kind":"witness","body":"Source and Patchbay are two views of one authored program. The candidate/exact plan, active run and evidence remain separate records revealed only when the story needs them."},
+                {"id":"explanation","kind":"explanation","body":"A speech node can use another model, the graph can cross Linux, browser and Pico hosts, and a planner can remain unable to acquire motor authority while the authored meaning stays readable."},
+                {"id":"reflection","kind":"reflection","body":"The problem was not that Tongues or PETE failed. They worked well enough to expose a reusable shape that their surrounding tools could not name as one program."},
+                {"id":"next-hook","kind":"next-hook","body":"Now make a small living instrument. One explicit Start will wake it; every later idea must earn its place by solving something you can see or hear."}
               ]
             }
           ]
@@ -212,35 +58,215 @@
       ]
     },
     {
-      "id": "trustworthy-run",
-      "title": "Project two: Trust the running system",
-      "description": "Carry visible source through exact plans, bounded execution and evidence without confusing any of their identities.",
+      "id": "living-instrument",
+      "kind": "project",
+      "title": "Project one: A living instrument",
+      "description": "Build a browser-local rhythm and light composition that remains alive, gains a second rhythm, shape, memory, bounded feedback and honest observation, then stops explicitly.",
+      "artifact": {
+        "id": "living-instrument.panel",
+        "initial_revision": "instrument-ready",
+        "final_revision": "instrument-exported",
+        "state_key": "conduit-book/living-instrument",
+        "source_path": "../../examples/living-instrument.panel",
+        "execution": "continuous-watch",
+        "watch_target": {"from_node":"scope","from_port":"text"},
+        "validation": {"kind":"watch-prefix","value":"tick="},
+        "non_audio_result": "A synchronized beat counter, intensity trace, event timeline and textual state remain complete when sound is unavailable or not activated."
+      },
       "chapters": [
         {
-          "id": "witness",
-          "number": 4,
-          "title": "Witness without rewriting history",
-          "description": "Use Patchbay observation and exact records to explain what ran.",
-          "opening": "Observation is trustworthy only when presentation never becomes execution authority.",
+          "id": "instrument-awake",
+          "number": 1,
+          "title": "Wake the instrument",
+          "description": "Start with a continuous result worth keeping, then expose time and branching only when expression demands them.",
+          "opening": "Let’s make this: one visible pulse becomes a living Patchbay run in less than a minute, without autoplay or a microphone.",
           "sections": [
             {
-              "id": "witness.patchbay",
-              "title": "Let Patchbay observe Patchbay",
-              "summary": "Read bounded evidence from the same exact run shown in the workspace.",
-              "blocks": [
-                { "id": "need", "kind": "need", "body": "A teaching timeline must reveal executor evidence, not synthesize a friendlier history." },
-                { "id": "lab", "kind": "lab", "lesson_id": "patchbay.observes-patchbay", "presentation": "compact" },
-                { "id": "witness", "kind": "witness", "body": "The compact result, expanded timeline and textual evidence table share one ordered record." }
+              "id":"instrument.wake","title":"Wake the instrument","summary":"Start one pre-patched rhythm/light composition and learn only Running, Waiting and Stop.",
+              "opening_result":"A visible beat and ordered text timeline update from the exact ticker run; optional sound remains off until explicitly activated.","starting_artifact":"instrument-ready","state":{"inherits":"instrument-ready","produces":"instrument-running","carry_forward":"Keep the same running source and expose the clock that is already driving it."},
+              "accessibility":{"non_audio":"Beat number, run state and admitted wake appear as live text.","reduced_motion":"Intensity changes become discrete labeled steps.","screen_reader":"Start, immediate result, lifecycle status and explanation are announced in that order."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Press Start once. The instrument should feel alive before you need to know how its clock, plan or provider works."},
+                {"id":"need","kind":"need","body":"A living source cannot finish merely because no work is ready at this instant."},
+                {"id":"idea","kind":"idea","body":"Running may become Waiting between admitted wakes; only an explicit lifecycle transition ends the plan epoch."},
+                {"id":"action","kind":"action","body":"Start the compact Patchbay and watch the beat value change. Leave sound disabled unless you explicitly choose it."},
+                {"id":"lab","kind":"lab","lesson_id":"panels.tiny-instrument","presentation":"compact"},
+                {"id":"witness","kind":"witness","body":"The visual pulse and text timeline come from the same exact worker session. Neither a decorative animation nor autoplay stands in for execution."},
+                {"id":"explanation","kind":"explanation","body":"Editing or connecting cords never starts the run. One Start creates one immutable active plan epoch."},
+                {"id":"reflection","kind":"reflection","body":"You made a continuous behavior before learning a node taxonomy."},
+                {"id":"next-hook","kind":"next-hook","body":"The beat works, but its timing is still mysterious. Expose the heartbeat next."}
               ]
             },
             {
-              "id": "witness.identities",
-              "title": "Keep four records distinct",
-              "summary": "Separate source, plan, run and presentation while moving between them deliberately.",
-              "blocks": [
-                { "id": "idea", "kind": "idea", "body": "A source draft, resolved plan, exact run and Patchbay layout answer different questions." },
-                { "id": "lab", "kind": "lab", "lesson_id": "platform.panel-capsules", "presentation": "compact" },
-                { "id": "reflection", "kind": "reflection", "body": "Reading progress and local drafts can survive refresh; a live run cannot be inferred to survive with them." }
+              "id":"instrument.heartbeat","title":"Give it a heartbeat","summary":"Name the clock because the composition needs repeatable time.",
+              "opening_result":"The beat timeline shows a named monotonic clock and finite tick bounds beside the same instrument artifact.","starting_artifact":"instrument-running","state":{"inherits":"instrument-running","produces":"instrument-clock-visible","carry_forward":"Preserve the clocked artifact and branch its pulse into a second layer."},
+              "accessibility":{"non_audio":"Every pulse is listed with sequence and clock basis.","reduced_motion":"No continuous sweep is required.","screen_reader":"The observed timing limitation precedes the clock controls and result."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Keep the instrument running and ask one practical question: what makes the next beat happen?"},
+                {"id":"need","kind":"need","body":"An ambient timer would hide time basis, pending work, reset and cancellation."},
+                {"id":"idea","kind":"idea","body":"A clock is a semantic source with an explicit time basis, period and finite pending capacity."},
+                {"id":"action","kind":"action","body":"Open the time lab, compare admitted and coalesced events, and keep the named clock visible."},
+                {"id":"lab","kind":"lab","lesson_id":"library.explicit-time","presentation":"compact"},
+                {"id":"witness","kind":"witness","body":"The textual timeline remains the full result when motion is reduced."},
+                {"id":"explanation","kind":"explanation","body":"Delay, debounce and throttle retain finite state against the same explicit clock instead of relying on callback order."},
+                {"id":"reflection","kind":"reflection","body":"Time entered the book because the instrument needed a repeatable heartbeat."},
+                {"id":"next-hook","kind":"next-hook","body":"One pulse is useful; two related rhythms make a composition."}
+              ]
+            },
+            {
+              "id":"instrument.rhythms","title":"Make a second rhythm","summary":"Branch and order pulses because the instrument needs another layer.",
+              "opening_result":"Two labeled rhythm lanes share one source while their bounded queues remain independently visible.","starting_artifact":"instrument-clock-visible","state":{"inherits":"instrument-clock-visible","produces":"instrument-dual-rhythm","carry_forward":"Keep both rhythmic lanes and shape their abrupt steps."},
+              "accessibility":{"non_audio":"Primary and divided rhythms appear as two ordered text lanes.","reduced_motion":"Lane events use static markers and timestamps.","screen_reader":"The need for a second layer precedes tee, selection and pressure details."},"technical_refs":["nodes.fan-out-is-a-choice"],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Add a slower answer to the original beat without inventing a second hidden loop."},
+                {"id":"need","kind":"need","body":"Drawing a fork does not define who duplicates values, how ordering works or which slow consumer applies pressure."},
+                {"id":"idea","kind":"idea","body":"Use explicit bounded flow nodes so fan-out, selection, merging and queue pressure belong to the plan."},
+                {"id":"action","kind":"action","body":"Patch the second lane, then slow one consumer until the pressure state becomes visible."},
+                {"id":"lab","kind":"lab","lesson_id":"library.standard-flow-control","presentation":"compact"},
+                {"id":"witness","kind":"witness","body":"Both outputs stay ordered; a coupled tee cannot silently let one branch outrun the other."},
+                {"id":"explanation","kind":"explanation","body":"The supporting fan-out proof is linked from this section rather than promoted to a disconnected lesson."},
+                {"id":"reflection","kind":"reflection","body":"A second rhythm introduced branching because the music needed it."},
+                {"id":"next-hook","kind":"next-hook","body":"The two lanes still jump abruptly. Make the instrument breathe."}
+              ]
+            }
+          ]
+        },
+        {
+          "id":"instrument-expression","number":2,"title":"Give the rhythm shape and memory","description":"Introduce finite control state and feedback only when the instrument needs motion and recurrence.","opening":"The graph already lives. Now make its changes expressive without hiding state in callbacks.",
+          "sections":[
+            {
+              "id":"instrument.breathe","title":"Make it breathe","summary":"Shape abrupt steps with finite, clocked control facts.","opening_result":"The intensity trace changes in bounded labeled stages with an equivalent ordered table.","starting_artifact":"instrument-dual-rhythm","state":{"inherits":"instrument-dual-rhythm","produces":"instrument-shaped","carry_forward":"Keep the shaped lanes and add an explicit memory of the last admitted value."},
+              "accessibility":{"non_audio":"An intensity table lists value, clock, uncertainty and transition.","reduced_motion":"Static before/after traces replace interpolation.","screen_reader":"The abrupt-step problem precedes envelope facts and their result."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Turn mechanical on/off steps into a visible rise and fall."},{"id":"need","kind":"need","body":"A presentation-only fade would lie about the graph that produced the control signal."},{"id":"idea","kind":"idea","body":"Admit finite envelope facts against an explicit clock and bounded retained state."},{"id":"action","kind":"action","body":"Inspect the shaped control and compare its payload-only and bounded-envelope profiles."},{"id":"lab","kind":"lab","lesson_id":"platform.value-envelope-clock-feedback","presentation":"compact"},{"id":"witness","kind":"witness","body":"The trace and text table share the admitted values; neither claims an audio provider."},{"id":"explanation","kind":"explanation","body":"Optional value facts remain absent unless the exact plan authorizes them."},{"id":"reflection","kind":"reflection","body":"Shape became semantic because the composition needed visible motion."},{"id":"next-hook","kind":"next-hook","body":"Now let the instrument remember one moment."}
+              ]
+            },
+            {
+              "id":"instrument.remember","title":"Remember the last moment","summary":"Add bounded in-run state because recurrence needs a finite memory.","opening_result":"Repeated values are retained, deduplicated and recalled within exact entry and byte ceilings.","starting_artifact":"instrument-shaped","state":{"inherits":"instrument-shaped","produces":"instrument-with-memory","carry_forward":"Use the explicit memory as the only legal boundary for feedback."},
+              "accessibility":{"non_audio":"State transitions and retained-byte totals are ordered text.","reduced_motion":"No animated memory cells are required.","screen_reader":"The need for recall precedes the state contract and result."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Hold the last admitted intensity long enough for the next beat to answer it."},{"id":"need","kind":"need","body":"Hidden mutable variables would make restart, capacity and cancellation unknowable."},{"id":"idea","kind":"idea","body":"State is an explicit node with finite entries, bytes, eviction and restart behavior."},{"id":"action","kind":"action","body":"Run the bounded state composition and inspect what is stored, dropped and recalled."},{"id":"lab","kind":"lab","lesson_id":"library.bounded-state","presentation":"compact"},{"id":"witness","kind":"witness","body":"The state result and evidence report the same admitted transitions."},{"id":"explanation","kind":"explanation","body":"The current plan owns the memory ceiling; reading progress and browser storage do not become runtime state."},{"id":"reflection","kind":"reflection","body":"Memory is now visible enough to reason about recurrence."},{"id":"next-hook","kind":"next-hook","body":"Feed the answer back—but break the cycle on purpose first."}
+              ]
+            },
+            {
+              "id":"instrument.feedback","title":"Let it answer itself","summary":"Break an invalid zero-delay cycle, then admit bounded delayed feedback.","opening_result":"The invalid cord remains visible with CND-FBK-002; the repaired path shows one finite retained boundary.","starting_artifact":"instrument-with-memory","state":{"inherits":"instrument-with-memory","produces":"instrument-bounded-feedback","carry_forward":"Keep the repaired feedback artifact and observe it without adding semantic demand."},
+              "accessibility":{"non_audio":"The rejected cycle and repaired path are described as ordered endpoints and one finite boundary.","reduced_motion":"Error emphasis is static.","screen_reader":"Failure, exact code, repair and resulting state appear in order."},"technical_refs":["nodes.direction-matters"],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Let one rhythm answer the last—but first connect it with no delay and watch admission fail."},{"id":"need","kind":"need","body":"Zero-delay recurrence has no defined temporal meaning and cannot be rescued by scheduler order."},{"id":"idea","kind":"idea","body":"Every intentional cycle needs one explicit finite state or delay boundary."},{"id":"action","kind":"action","body":"Inspect the rejected cycle-without-boundary profile, then select the finite-state feedback repair."},{"id":"lab","kind":"lab","lesson_id":"platform.value-envelope-clock-feedback","presentation":"compact"},{"id":"witness","kind":"witness","body":"The bad cord stays readable; the repair changes the admitted plan and retained-state ceiling."},{"id":"explanation","kind":"explanation","body":"Feedback identity, initialization, capacity, cancellation and terminal behavior are plan facts."},{"id":"reflection","kind":"reflection","body":"The failure taught what makes recurrence meaningful."},{"id":"next-hook","kind":"next-hook","body":"Observe the living result without touching its demand or timing."}
+              ]
+            },
+            {
+              "id":"instrument.watch","title":"Watch without touching","summary":"Attach non-invasive observation, then contrast it with a semantic tee.","opening_result":"Watch adds a presentation lead while the plan identity stays fixed; adding a tee produces a new authored graph and plan.","starting_artifact":"instrument-bounded-feedback","state":{"inherits":"instrument-bounded-feedback","produces":"instrument-observed","carry_forward":"Keep the observed artifact and end its exact run deliberately."},
+              "accessibility":{"non_audio":"Watch attach/detach, plan identity and tee change are listed explicitly.","reduced_motion":"The scope is mirrored by an ordered value table.","screen_reader":"Observation choice, unchanged plan and tee contrast are announced."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Open a scope and event timeline without making the instrument serve a new consumer."},{"id":"need","kind":"need","body":"Instrumentation that creates demand, timing or pressure would change the behavior it claims to observe."},{"id":"idea","kind":"idea","body":"Watch is isolated presentation; a real tee is an executable graph element with declared fan-out semantics."},{"id":"action","kind":"action","body":"Attach and remove Watch, record the unchanged plan identity, then compare the checked tee proof."},{"id":"lab","kind":"lab","lesson_id":"patchbay.observes-patchbay","presentation":"compact"},{"id":"witness","kind":"witness","body":"The scope, timeline and evidence table consume one ordered record without fabricating history."},{"id":"explanation","kind":"explanation","body":"Observation availability is not authority and cannot create adapters, providers or effects."},{"id":"reflection","kind":"reflection","body":"You can now see the instrument without hiding another cord inside the UI."},{"id":"next-hook","kind":"next-hook","body":"A living program also needs an honest ending."}
+              ]
+            },
+            {
+              "id":"instrument.stop","title":"Stop it properly and take it home","summary":"Stop the exact plan epoch, distinguish cancellation from drain, and export the accumulated artifact.","opening_result":"The status changes from Running or Waiting to an explicit terminal cause; the accumulated current source downloads as a panel.","starting_artifact":"instrument-observed","state":{"inherits":"instrument-observed","produces":"instrument-exported","carry_forward":"The exported artifact is the completed project; the next project starts independently."},
+              "accessibility":{"non_audio":"Lifecycle transitions and terminal cause are announced as text.","reduced_motion":"No fade-out is required to prove Stop.","screen_reader":"Stop, terminal evidence and download follow the running result."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Stop the instrument you have kept alive since the first section."},{"id":"need","kind":"need","body":"Closing a page or exhausting a queue cannot truthfully stand in for lifecycle control."},{"id":"idea","kind":"idea","body":"Stop requests cancellation or drain against the active plan epoch and records one exact terminal cause."},{"id":"action","kind":"action","body":"Press Stop, inspect the human-readable terminal result, then download the current project source."},{"id":"lab","kind":"lab","lesson_id":"panels.tiny-instrument","presentation":"expanded"},{"id":"witness","kind":"witness","body":"The exported source remains runnable through the canonical conduct path; it does not contain Patchbay layout or a claim that the run survived."},{"id":"explanation","kind":"explanation","body":"Local project state can preserve drafts and revisions, but only exact evidence records the ended run."},{"id":"reflection","kind":"reflection","body":"You made one living system and learned time, flow, state, feedback and observation only as it demanded them."},{"id":"next-hook","kind":"next-hook","body":"Next, build a service whose hardest trick is not starting—it is staying alive without drowning."}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id":"bounded-service","kind":"project","title":"Project two: A small service that stays alive","description":"Build a persistent bounded HTTP experience, keep Waiting distinct from completion, apply pressure and supervision, then drain with evidence.",
+      "artifact":{"id":"bounded-service.panel","initial_revision":"service-ready","final_revision":"service-drained","state_key":"conduit-book/bounded-service","source_path":"../../examples/http-loopback-listener.panel","runnability":{"state":"illustrative/unavailable","profile":"browser","proof":"canonical-run-rejection","code":"CND-IMP-001","reason":"The browser profile has no listening-socket provider; the canonical persistent service source remains exact."},"non_audio_result":"Request, queue, lifecycle, failure and terminal states are fully represented as ordered text even when the browser lacks the listener provider."},
+      "chapters":[
+        {"id":"service-life","number":3,"title":"Keep the service alive","description":"Introduce lifecycle and pressure because a useful service waits for repeated work.","opening":"Let’s make this: a health service that stays present between requests, refuses unbounded work and never turns provider absence into a fake success.",
+          "sections":[
+            {
+              "id":"service.listen","title":"Open the service boundary","summary":"Start from a persistent bounded HTTP result and explain browser provider absence without abandoning the project.","opening_result":"A health response, listener/session bounds and an adjacent unavailable-provider explanation describe the same checked service artifact.","starting_artifact":"service-ready","state":{"inherits":"service-ready","produces":"service-listening","carry_forward":"Keep the listener contract and ask what no request means."},
+              "accessibility":{"non_audio":"The expected response and every listener bound are text.","reduced_motion":"No network animation is required.","screen_reader":"Desired response precedes provider status and exact details."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Aim for a tiny health service that can accept repeated requests without rebuilding its program."},{"id":"need","kind":"need","body":"The browser profile does not own a real listening socket provider, and the book must not simulate one."},{"id":"idea","kind":"idea","body":"Keep the semantic listener, bounds and expected response exact while explaining that this host cannot realize it."},{"id":"action","kind":"action","body":"Inspect the checked listener and its browser-unsupported proof, then continue with the same service design."},{"id":"lab","kind":"lab","lesson_id":"library.bounded-http-service","presentation":"compact"},{"id":"witness","kind":"witness","body":"Run stays unavailable with CND-IMP-001; the canonical source and headless provider scenarios remain intact."},{"id":"explanation","kind":"explanation","body":"Availability is a host observation, not permission to invent a provider or weaken the contract."},{"id":"reflection","kind":"reflection","body":"An unavailable lab can advance the narrative when its limitation is the real lesson."},{"id":"next-hook","kind":"next-hook","body":"A service with no request is not done. Name Waiting."}
+              ]
+            },
+            {
+              "id":"service.waiting","title":"Waiting is not completion","summary":"Keep the listener alive when no request is ready.","opening_result":"The lifecycle view distinguishes no value yet, explicit empty, Waiting, completion, deadlock and failure.","starting_artifact":"service-listening","state":{"inherits":"service-listening","produces":"service-waiting","carry_forward":"Keep the Waiting service and put a finite queue in front of repeated requests."},
+              "accessibility":{"non_audio":"Every lifecycle state has a distinct text label and definition.","reduced_motion":"State changes use no pulsing animation.","screen_reader":"The empty interval, Waiting state and terminal alternatives are read separately."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Leave the service idle between two requests without ending its run."},{"id":"need","kind":"need","body":"No ready work might mean Waiting, completion, deadlock or failure; the scheduler cannot guess from emptiness."},{"id":"idea","kind":"idea","body":"Lifecycle and terminal meaning are explicit contracts independent of whether a value is presently available."},{"id":"action","kind":"action","body":"Compare the checked empty/terminal states and keep Waiting visible in the service notebook."},{"id":"lab","kind":"lab","lesson_id":"nodes.empty-is-not-never","presentation":"compact"},{"id":"witness","kind":"witness","body":"The textual state remains meaningful without a running listener provider."},{"id":"explanation","kind":"explanation","body":"Open-ended sources and persistent sessions end only through explicit lifecycle transitions."},{"id":"reflection","kind":"reflection","body":"Staying alive is now a visible property rather than a loop hidden in server code."},{"id":"next-hook","kind":"next-hook","body":"Repeated requests can arrive faster than the service can answer."}
+              ]
+            },
+            {
+              "id":"service.pressure","title":"Do not let it drown","summary":"Bound repeated requests and expose pressure before capacity is exhausted.","opening_result":"Queue bytes, high/low watermarks and the selected pressure policy appear beside accepted and blocked requests.","starting_artifact":"service-waiting","state":{"inherits":"service-waiting","produces":"service-pressure-bound","carry_forward":"Keep the bounded request path and fail one worker deliberately."},
+              "accessibility":{"non_audio":"Accepted, queued and blocked requests are ordered text.","reduced_motion":"Queue occupancy uses numbers and static bars.","screen_reader":"The overload need precedes bounds and consequence."},"technical_refs":["nodes.fan-out-is-a-choice"],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Send more work than one service worker can finish immediately."},{"id":"need","kind":"need","body":"An unbounded queue postpones failure until memory and latency have already escaped the program."},{"id":"idea","kind":"idea","body":"Every cord declares capacity, byte ceilings, watermarks and pressure behavior."},{"id":"action","kind":"action","body":"Use the checked bounded flow composition to select, duplicate and block work explicitly."},{"id":"lab","kind":"lab","lesson_id":"library.standard-flow-control","presentation":"compact"},{"id":"witness","kind":"witness","body":"A slow branch cannot disappear from the evidence or silently become lossy."},{"id":"explanation","kind":"explanation","body":"The pressure contract belongs to the cord and node semantics, not a dashboard estimate."},{"id":"reflection","kind":"reflection","body":"Capacity became part of the service because repeated work made it necessary."},{"id":"next-hook","kind":"next-hook","body":"A bounded service can still lose a worker."}
+              ]
+            },
+            {
+              "id":"service.supervision","title":"Let one worker fail","summary":"Keep the composition alive with finite retry and circuit-breaker policy.","opening_result":"One deliberate failure opens the breaker, one probe is admitted, and the service graph itself remains unchanged.","starting_artifact":"service-pressure-bound","state":{"inherits":"service-pressure-bound","produces":"service-supervised","carry_forward":"Keep the supervised service and end it through explicit drain/cancellation."},
+              "accessibility":{"non_audio":"Worker terminal events, retry count and breaker state are ordered text.","reduced_motion":"Failure emphasis is static.","screen_reader":"Failure, policy decision, probe and result are read in order."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Fail one worker on purpose without destroying the whole service composition."},{"id":"need","kind":"need","body":"Ad hoc retries can multiply effects, hide terminal state and mutate behavior outside the plan."},{"id":"idea","kind":"idea","body":"Retry and circuit breaking are finite semantic nodes with counted outcomes, cooldown, pending capacity and reset behavior."},{"id":"action","kind":"action","body":"Run the breaker composition and follow the first request, failure observation and half-open probe."},{"id":"lab","kind":"lab","lesson_id":"library.bounded-supervision","presentation":"compact"},{"id":"witness","kind":"witness","body":"The plan does not change when the breaker changes state."},{"id":"explanation","kind":"explanation","body":"Supervision observes explicit terminal facts; it cannot infer a safe retry across unknown effect commit."},{"id":"reflection","kind":"reflection","body":"Failure became a bounded part of the service rather than an exception path outside it."},{"id":"next-hook","kind":"next-hook","body":"Now stop accepting work and drain what the service already admitted."}
+              ]
+            },
+            {
+              "id":"service.drain","title":"Cancel and drain honestly","summary":"Stop admission, bound retained work and record one terminal cause.","opening_result":"The notebook separates stop requested, admission closed, queued work drained or cancelled, cleanup and terminal evidence.","starting_artifact":"service-supervised","state":{"inherits":"service-supervised","produces":"service-drained","carry_forward":"The drained service is complete; its evidence notebook remains inspectable outside live execution."},
+              "accessibility":{"non_audio":"All drain/cancel stages and counts are text.","reduced_motion":"No progress animation is required.","screen_reader":"Stop request through terminal cause follows chronological order."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Stop taking new requests and decide what happens to admitted work."},{"id":"need","kind":"need","body":"A process exit cannot distinguish completed drain, cancellation, cleanup failure or unknown commit."},{"id":"idea","kind":"idea","body":"Lifecycle control closes admission, applies finite drain/cancel policy and reserves terminal evidence."},{"id":"action","kind":"action","body":"Step through the explicit-time cancellation and flush profiles, then return to the same reading position."},{"id":"lab","kind":"lab","lesson_id":"library.explicit-time","presentation":"compact"},{"id":"witness","kind":"witness","body":"The terminal cause is not inferred from an empty ready queue."},{"id":"explanation","kind":"explanation","body":"The evidence notebook stays collapsed until this section asks how the service ended."},{"id":"reflection","kind":"reflection","body":"You built a service whose continued life, pressure, worker failure and ending are all part of the program."},{"id":"next-hook","kind":"next-hook","body":"Before the robot rehearsal, pause for one optional question: which record proves any of this?"}
+              ]
+            }
+          ]
+        },
+        {"id":"evidence-interlude","number":4,"kind":"interlude","title":"Interlude: Which record answers the question?","description":"Keep source, exact plan, live state and evidence distinct after the service creates a reason to ask.","opening":"This is an optional evidence-notebook stop, not a metadata chapter required to continue.",
+          "sections":[
+            {"id":"interlude.records","title":"One program, four records","summary":"Choose the record that can truthfully answer a source, realization, live-state or historical question.","opening_result":"Four labeled records answer four different questions without becoming one interchangeable blob.","starting_artifact":"service-drained","state":{"inherits":"service-drained","produces":"service-drained","carry_forward":"Return to the completed service without changing its project state."},
+              "accessibility":{"non_audio":"The four questions and records are an ordered definition list.","reduced_motion":"Record transitions are instantaneous.","screen_reader":"This interlude is announced as optional and outside project progress."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Ask whether the service was authored, could be realized, is running now or actually produced a past event."},{"id":"need","kind":"need","body":"One overloaded record would let presentation or a draft masquerade as execution evidence."},{"id":"idea","kind":"idea","body":"Panel source, candidate/exact plan, active run state and evidence have distinct identities and authority."},{"id":"action","kind":"action","body":"Inspect the four-record projection without changing service state."},{"id":"lab","kind":"lab","lesson_id":"platform.panel-capsules","presentation":"compact"},{"id":"witness","kind":"witness","body":"Each question resolves to exactly one owning record."},{"id":"explanation","kind":"explanation","body":"Reading position and a local draft are presentation state; neither proves a live run survived refresh."},{"id":"reflection","kind":"reflection","body":"Evidence becomes useful when it answers a question created by real work."},{"id":"next-hook","kind":"next-hook","body":"Now rehearse a distributed robot interaction without granting physical authority."}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id":"safe-robot-rehearsal","kind":"project","title":"Project three: A safe robot rehearsal","description":"Build a simulated Pete path across an isolated network, choose hosts/providers, admit finite authority and deadlines, then degrade safely when a path fails. No real actuation.",
+      "artifact":{"id":"pete-rehearsal.panel","initial_revision":"robot-simulated","final_revision":"robot-degraded-safe","state_key":"conduit-book/safe-robot-rehearsal","source_path":"../../examples/pico-network-providers.panel","runnability":{"state":"illustrative/unavailable","profile":"browser","proof":"canonical-run-rejection","code":"CND-IMP-001","reason":"The browser profile has no isolated Wi-Fi or DHCP provider; the rehearsal source issues no motor command."},"non_audio_result":"Every simulated request, host choice, lease, deadline, network failure and safe terminal state is available as ordered text; no motor command is sent."},
+      "chapters":[
+        {"id":"robot-boundaries","number":5,"title":"Rehearse without touching hardware","description":"Introduce distributed placement, authority and failure because the simulated Pete path demands them.","opening":"Let’s make this: a Pete rehearsal that can cross hosts and fail visibly while remaining incapable of real actuation.",
+          "sections":[
+            {
+              "id":"robot.rehearse","title":"Start inside the safety boundary","summary":"Bring up an isolated simulated Brainstem network that explicitly forbids routing, bridging, NAT and robot authority.","opening_result":"The result names the simulated access point, address, client bound and every forbidden external capability.","starting_artifact":"robot-simulated","state":{"inherits":"robot-simulated","produces":"robot-network-isolated","carry_forward":"Keep the isolated rehearsal and decide which host can realize each semantic role."},
+              "accessibility":{"non_audio":"Network state and prohibitions are complete text.","reduced_motion":"Topology uses static labeled boundaries.","screen_reader":"Simulation and no-actuation limits are announced before Start."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Start a Pete-shaped interaction in simulation, with no real device or motor provider in scope."},{"id":"need","kind":"need","body":"A distributed rehearsal is unsafe if network attachment silently implies routing or physical authority."},{"id":"idea","kind":"idea","body":"Declare the isolated network, attachment lease and explicit prohibitions as semantic boundaries."},{"id":"action","kind":"action","body":"Run the checked Brainstem network fixture and read every granted and forbidden capability."},{"id":"lab","kind":"lab","lesson_id":"library.bounded-brainstem-network","presentation":"compact"},{"id":"witness","kind":"witness","body":"The result proves only the simulated network state; it does not claim possession of PETE or any actuator."},{"id":"explanation","kind":"explanation","body":"Availability, attachment and observation remain separate from motor authority."},{"id":"reflection","kind":"reflection","body":"The rehearsal begins useful precisely because its safety boundary is explicit."},{"id":"next-hook","kind":"next-hook","body":"The semantic roles are clear; now choose where they may run."}
+              ]
+            },
+            {
+              "id":"robot.placement","title":"Choose hosts without changing meaning","summary":"Resolve exact providers for browser, Linux or constrained hosts while preserving semantic contracts.","opening_result":"The same authored role receives explicit supported, describe-only or unavailable dispositions per host.","starting_artifact":"robot-network-isolated","state":{"inherits":"robot-network-isolated","produces":"robot-exactly-placed","carry_forward":"Keep exact placement and request a finite simulated effect lease."},
+              "accessibility":{"non_audio":"Role, provider, host, artifact and disposition are an ordered table.","reduced_motion":"Host movement is represented by labels rather than animation.","screen_reader":"Semantic role precedes provider selection and availability."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Place one role in the browser, one on a Linux host and one as unsupported firmware without rewriting the panel."},{"id":"need","kind":"need","body":"A matching label or downloadable implementation does not prove contract satisfaction, host support or authority."},{"id":"idea","kind":"idea","body":"Resolve exact provider artifacts against semantic contracts and current host observations."},{"id":"action","kind":"action","body":"Compare deterministic host, provider fixture, describe-only, unsupported and provider-lost profiles."},{"id":"lab","kind":"lab","lesson_id":"platform.cross-host-provider-conformance","presentation":"compact"},{"id":"witness","kind":"witness","body":"Unsupported remains visible and fail-closed; the authored role does not mutate."},{"id":"explanation","kind":"explanation","body":"Exact placement selects a realization. It does not rewrite semantic meaning or grant effects."},{"id":"reflection","kind":"reflection","body":"Replacement is now possible because meaning and implementation were kept apart."},{"id":"next-hook","kind":"next-hook","body":"A provider exists. It still cannot act until authority and capacity are admitted."}
+              ]
+            },
+            {
+              "id":"robot.authority","title":"Lease simulated authority","summary":"Admit one finite run-scoped lease and keep proposal, observation and effect authority distinct.","opening_result":"The rehearsal shows holder, run, epoch, scope, expiry, commit state and cleanup without issuing a physical command.","starting_artifact":"robot-exactly-placed","state":{"inherits":"robot-exactly-placed","produces":"robot-leased","carry_forward":"Keep the finite lease and ask whether the host can meet the response deadline."},
+              "accessibility":{"non_audio":"Lease and commit facts are ordered text.","reduced_motion":"Authority boundaries use labels and outlines.","screen_reader":"No-actuation status precedes every simulated commit profile."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Allow one simulated stop proposal to reach an effect boundary without granting any physical motor capability."},{"id":"need","kind":"need","body":"A model proposal, provider availability or sensor observation must not silently acquire effect authority."},{"id":"idea","kind":"idea","body":"Bind fresh authority to a finite holder, run, epoch, resource and expiry; reserve evidence before the domain commit boundary."},{"id":"action","kind":"action","body":"Compare acknowledged, lost-ack, wrong-holder and cleanup-timeout profiles."},{"id":"lab","kind":"lab","lesson_id":"platform.resource-lease-effect-commit","presentation":"compact"},{"id":"witness","kind":"witness","body":"Lost acknowledgement becomes commit-unknown, never success; every profile remains simulated."},{"id":"explanation","kind":"explanation","body":"A lease reserves finite capacity. It neither creates a provider nor upgrades a planner into an actuator."},{"id":"reflection","kind":"reflection","body":"Safety is now part of the plan and evidence rather than a comment around the code."},{"id":"next-hook","kind":"next-hook","body":"Authority is finite; time guarantees must be equally honest."}
+              ]
+            },
+            {
+              "id":"robot.deadline","title":"Admit the deadline honestly","summary":"Distinguish a hard guarantee from Linux measurements, browser best effort and unsupported constrained hosts.","opening_result":"Each host profile names its clock, reservation evidence and guarantee or exact rejection reason.","starting_artifact":"robot-leased","state":{"inherits":"robot-leased","produces":"robot-deadline-bounded","carry_forward":"Keep only admitted timing claims and break the cross-host path deliberately."},
+              "accessibility":{"non_audio":"Guarantee, observation, deadline, miss and reason code are text.","reduced_motion":"Timing is a table, not a racing animation.","screen_reader":"Desired response time precedes evidence and disposition."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Ask whether the simulated stop path can meet a declared deadline on each selected host."},{"id":"need","kind":"need","body":"A fast benchmark or fresh observation cannot grant hard real-time authority."},{"id":"idea","kind":"idea","body":"Admit a hard guarantee only from exact enforcement evidence on the named clock with every required resource reserved."},{"id":"action","kind":"action","body":"Compare hard exact enforcement, Linux measurement, browser best effort, unsupported firmware and deadline miss."},{"id":"lab","kind":"lab","lesson_id":"platform.workload-admission-deadline","presentation":"compact"},{"id":"witness","kind":"witness","body":"Unsupported and missed deadlines stay explicit instead of silently degrading to success."},{"id":"explanation","kind":"explanation","body":"Measurements remain observations even when they look fast."},{"id":"reflection","kind":"reflection","body":"The rehearsal can now distinguish what a host promises from what it merely observed."},{"id":"next-hook","kind":"next-hook","body":"Finally, lose the network path and degrade without inventing delivery."}
+              ]
+            },
+            {
+              "id":"robot.degrade","title":"Fail the path and stop safely","summary":"Keep the missing browser socket provider visible, withdraw simulated authority and end in an explicit degraded state.","opening_result":"The broken cord, unavailable provider, cleanup disposition and final no-actuation state remain visible together.","starting_artifact":"robot-deadline-bounded","state":{"inherits":"robot-deadline-bounded","produces":"robot-degraded-safe","carry_forward":"The rehearsal ends with no physical authority and one explicit degraded terminal state."},
+              "accessibility":{"non_audio":"Failure, provider reason, withdrawn lease and terminal state are ordered text.","reduced_motion":"The failed path uses static markers.","screen_reader":"Path failure, unavailable provider, cleanup and safe result follow chronology."},"technical_refs":[],
+              "blocks":[
+                {"id":"invitation","kind":"invitation","body":"Remove the cross-host path while the rehearsal still expects a response."},{"id":"need","kind":"need","body":"A browser without the bounded socket provider cannot truthfully deliver the request or pretend an equivalent path exists."},{"id":"idea","kind":"idea","body":"Keep provider loss, path failure, cancellation, cleanup and explicit degradation separate and fail closed."},{"id":"action","kind":"action","body":"Inspect the bounded socket declaration and browser-unsupported scenario, then withdraw the simulated lease."},{"id":"lab","kind":"lab","lesson_id":"library.bounded-sockets","presentation":"compact"},{"id":"witness","kind":"witness","body":"The failed cord stays visible; the final state names degraded-safe and no actuation."},{"id":"explanation","kind":"explanation","body":"Software evidence can prove the rehearsal path and authority boundaries. It cannot prove physical acceptance, possession or motion."},{"id":"reflection","kind":"reflection","body":"You built a distributed rehearsal that remains honest when its path, provider, deadline or authority disappears."},{"id":"next-hook","kind":"next-hook","body":"You now have three artifacts worth extending: a living instrument, a bounded service and a safe rehearsal. Choose the next real system whose whole program you want to see."}
               ]
             }
           ]
@@ -250,36 +276,44 @@
   ],
   "reference": {
     "title": "Reference",
-    "description": "Search canonical checked panels by capability without entering the book's Previous/Next path.",
-    "panel_manifest": "../reference-panels/current.json"
+    "description": "Search canonical checked panels and semantic explanations without entering the book's Previous/Next path.",
+    "panel_manifest": "../reference-panels/current.json",
+    "lessons": [
+      "nodes.more-than-one-port",
+      "nodes.direction-matters",
+      "nodes.types-mean-promises",
+      "panels.jacks-on-the-front",
+      "panels.inside-outside",
+      "library.bounded-media-values",
+      "library.bounded-spatial-foundation",
+      "library.bounded-process-exec",
+      "library.contract-package-imports"
+    ]
   },
   "cookbook": {
     "title": "Cookbook",
-    "description": "Search focused recipes and open their exact lesson artifacts independently of the sequential book.",
+    "description": "Open focused production-backed recipes independently of the sequential projects.",
     "recipes": [
-      { "id": "typed-text", "title": "Format typed text", "lesson_id": "library.typed-text-format", "tags": ["text", "format"] },
-      { "id": "media-values", "title": "Carry bounded media values", "lesson_id": "library.bounded-media-values", "tags": ["media", "values"] },
-      { "id": "media-codecs", "title": "Use exact PCM and WAVE operations", "lesson_id": "library.bounded-media-codecs", "tags": ["media", "codec"] },
-      { "id": "spatial", "title": "Keep frames and calibration explicit", "lesson_id": "library.bounded-spatial-foundation", "tags": ["spatial", "calibration"] },
-      { "id": "inference", "title": "Run bounded learned inference", "lesson_id": "library.bounded-learned-inference", "tags": ["model", "inference"] },
-      { "id": "retrieval", "title": "Retrieve knowledge with source revisions", "lesson_id": "library.bounded-knowledge-retrieval", "tags": ["knowledge", "citation"] },
-      { "id": "knowledge-graph", "title": "Traverse a bounded cited-claim graph", "lesson_id": "library.bounded-knowledge-graph", "tags": ["knowledge", "graph", "citation"] },
-      { "id": "flow-control", "title": "Choose bounded flow control", "lesson_id": "library.standard-flow-control", "tags": ["flow", "pressure"] },
-      { "id": "state", "title": "Keep bounded in-run state", "lesson_id": "library.bounded-state", "tags": ["state"] },
-      { "id": "cache", "title": "Use an evictable large-value cache", "lesson_id": "library.evictable-storage-cache", "tags": ["state", "cache"] },
-      { "id": "supervision", "title": "Retry and break explicitly", "lesson_id": "library.bounded-supervision", "tags": ["supervision", "failure"] },
-      { "id": "time", "title": "Make bounded time explicit", "lesson_id": "library.explicit-time", "tags": ["time"] },
-      { "id": "data", "title": "Cross explicit data boundaries", "lesson_id": "library.explicit-data-boundaries", "tags": ["data", "representation"] },
-      { "id": "process", "title": "Declare bounded process execution", "lesson_id": "library.bounded-process-exec", "tags": ["host", "process"] },
-      { "id": "sockets", "title": "Declare bounded sockets", "lesson_id": "library.bounded-sockets", "tags": ["host", "network"] },
-      { "id": "http", "title": "Build a persistent bounded HTTP service", "lesson_id": "library.bounded-http-service", "tags": ["host", "http"] },
-      { "id": "filesystem", "title": "Cross bounded file boundaries", "lesson_id": "library.bounded-filesystem", "tags": ["host", "filesystem"] },
-      { "id": "brainstem", "title": "Describe a bounded brainstem network", "lesson_id": "library.bounded-brainstem-network", "tags": ["network", "isolation"] },
-      { "id": "envelope", "title": "Carry value, clock and feedback facts", "lesson_id": "platform.value-envelope-clock-feedback", "tags": ["platform", "clock"] },
-      { "id": "lease", "title": "Lease resources and commit effects", "lesson_id": "platform.resource-lease-effect-commit", "tags": ["platform", "resource"] },
-      { "id": "admission", "title": "Admit workloads against deadlines", "lesson_id": "platform.workload-admission-deadline", "tags": ["platform", "admission"] },
-      { "id": "provider", "title": "Check cross-host provider conformance", "lesson_id": "platform.cross-host-provider-conformance", "tags": ["platform", "provider"] },
-      { "id": "packages", "title": "Import contract packages without acquiring implementations", "lesson_id": "library.contract-package-imports", "tags": ["contract", "package"] }
+      {"id":"cache","title":"Use an evictable large-value cache","lesson_id":"library.evictable-storage-cache","tags":["state","cache"]},
+      {"id":"nested-panel","title":"Put a panel inside a panel","lesson_id":"panels.put-a-panel-in-a-panel","tags":["panel","composition"]},
+      {"id":"panel-reuse","title":"Reuse a panel without copying","lesson_id":"panels.reuse-without-copying","tags":["panel","reuse"]},
+      {"id":"typed-text","title":"Format typed text","lesson_id":"library.typed-text-format","tags":["text","format"]},
+      {"id":"media-codecs","title":"Use exact PCM and WAVE operations","lesson_id":"library.bounded-media-codecs","tags":["media","codec"]},
+      {"id":"inference","title":"Run bounded learned inference","lesson_id":"library.bounded-learned-inference","tags":["model","inference"]},
+      {"id":"retrieval","title":"Retrieve knowledge with source revisions","lesson_id":"library.bounded-knowledge-retrieval","tags":["knowledge","citation"]},
+      {"id":"knowledge-graph","title":"Traverse a bounded cited-claim graph","lesson_id":"library.bounded-knowledge-graph","tags":["knowledge","graph","citation"]},
+      {"id":"data","title":"Cross explicit data boundaries","lesson_id":"library.explicit-data-boundaries","tags":["data","representation"]},
+      {"id":"filesystem","title":"Cross bounded file boundaries","lesson_id":"library.bounded-filesystem","tags":["host","filesystem"]}
+    ]
+  },
+  "retired": {
+    "title": "Retired opening fixtures",
+    "description": "These exact fixtures remain available for tests and reference, but the living instrument replaces them in the reading path.",
+    "lessons": [
+      {"lesson_id":"welcome.hello-panel","replacement_section":"instrument.wake","reason":"A literal display is not the book's motivating outcome."},
+      {"lesson_id":"welcome.pull-the-cord","replacement_section":"instrument.feedback","reason":"Deliberate failure now repairs a meaningful feedback path."},
+      {"lesson_id":"welcome.change-message","replacement_section":"instrument.rhythms","reason":"Editing now advances cumulative project state."},
+      {"lesson_id":"welcome.nothing-up-our-sleeves","replacement_section":"service.drain","reason":"Technical proof now answers a question created by a real project."}
     ]
   }
 }

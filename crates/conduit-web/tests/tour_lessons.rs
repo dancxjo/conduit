@@ -2381,9 +2381,13 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
         .expect("Tour lesson manifest is valid JSON");
     let book: Value = serde_json::from_str(include_str!("../../../tour/book/current.json"))
         .expect("Tour book manifest is valid JSON");
+    let ledger: Value = serde_json::from_str(include_str!("../../../tour/book/migration.json"))
+        .expect("Tour migration ledger is valid JSON");
 
     assert_eq!(book["schema"], "conduit.tour-book");
     assert_eq!(book["schema_version"], 0);
+    assert_eq!(book["migration_ledger"], "./migration.json");
+    assert_eq!(book["fresh_reader_study"], "./fresh-reader-study.json");
     assert!(
         book["cover"]["start_section"]
             .as_str()
@@ -2391,7 +2395,7 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
         "the reader cover names its first section"
     );
 
-    let lesson_ids = lessons["lessons"]
+    let lesson_by_id = lessons["lessons"]
         .as_array()
         .expect("lessons are listed")
         .iter()
@@ -2401,9 +2405,20 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
                 "reader narrative is not stored in machine lesson {}",
                 lesson["id"]
             );
-            lesson["id"].as_str().expect("lesson id")
+            (lesson["id"].as_str().expect("lesson id"), lesson)
         })
-        .collect::<BTreeSet<_>>();
+        .collect::<BTreeMap<_, _>>();
+    let disposition_by_id = ledger["entries"]
+        .as_array()
+        .expect("migration entries are listed")
+        .iter()
+        .map(|entry| {
+            (
+                entry["lesson_id"].as_str().expect("ledger lesson id"),
+                entry,
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
     let allowed_kinds = BTreeSet::from([
         "invitation",
         "need",
@@ -2425,12 +2440,21 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
         "reflection",
         "next-hook",
     ]);
-    let mut actual_narrative_kinds = BTreeSet::new();
     let mut section_ids = BTreeSet::new();
-    let mut book_lesson_ids = BTreeSet::new();
+    let mut sequential_lesson_ids = BTreeSet::new();
     let mut first_section = None;
+    let mut build_projects = 0;
 
     for project in book["projects"].as_array().expect("projects are listed") {
+        let project_id = project["id"].as_str().expect("project id");
+        let kind = project["kind"].as_str().expect("project kind");
+        assert!(
+            ["prologue", "project"].contains(&kind),
+            "{project_id} has a reader-facing kind"
+        );
+        if kind == "project" {
+            build_projects += 1;
+        }
         assert!(
             project["title"]
                 .as_str()
@@ -2440,6 +2464,35 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
                     .is_some_and(|value| !value.is_empty()),
             "every cumulative project is named and described"
         );
+        let artifact = &project["artifact"];
+        for field in [
+            "id",
+            "initial_revision",
+            "final_revision",
+            "state_key",
+            "non_audio_result",
+        ] {
+            assert!(
+                artifact[field]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty()),
+                "{project_id} artifact records {field}"
+            );
+        }
+        if let Some(source_path) = artifact["source_path"].as_str() {
+            let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+            let source_path = root.join("tour/public").join(source_path);
+            let source = std::fs::read_to_string(&source_path).unwrap_or_else(|error| {
+                panic!(
+                    "{project_id} exact artifact {} is readable: {error}",
+                    source_path.display()
+                )
+            });
+            assert_current_panel_source(project_id, &source);
+        }
+        let mut expected_revision = artifact["initial_revision"]
+            .as_str()
+            .expect("initial revision");
         for chapter in project["chapters"].as_array().expect("chapters are listed") {
             assert!(chapter["number"].is_u64(), "chapter number is explicit");
             for field in ["title", "description", "opening"] {
@@ -2463,6 +2516,39 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
                             .is_some_and(|value| !value.is_empty()),
                     "section headings are meaningful without a lab"
                 );
+                for field in ["opening_result", "starting_artifact"] {
+                    assert!(
+                        section[field]
+                            .as_str()
+                            .is_some_and(|value| !value.is_empty()),
+                        "{section_id} begins from a meaningful project result"
+                    );
+                }
+                assert_eq!(
+                    section["starting_artifact"], section["state"]["inherits"],
+                    "{section_id} starts from its inherited artifact"
+                );
+                assert_eq!(
+                    section["state"]["inherits"], expected_revision,
+                    "{section_id} carries the previous section artifact forward"
+                );
+                expected_revision = section["state"]["produces"]
+                    .as_str()
+                    .expect("produced artifact revision");
+                assert!(
+                    section["state"]["carry_forward"]
+                        .as_str()
+                        .is_some_and(|value| !value.is_empty()),
+                    "{section_id} names what continues"
+                );
+                for field in ["non_audio", "reduced_motion", "screen_reader"] {
+                    assert!(
+                        section["accessibility"][field]
+                            .as_str()
+                            .is_some_and(|value| !value.is_empty()),
+                        "{section_id} has an adjacent {field} equivalent"
+                    );
+                }
                 let blocks = section["blocks"]
                     .as_array()
                     .expect("ordered section blocks");
@@ -2479,18 +2565,31 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
                 );
                 let lesson_id = lab["lesson_id"].as_str().expect("exact lesson reference");
                 assert!(
-                    lesson_ids.contains(lesson_id),
+                    lesson_by_id.contains_key(lesson_id),
                     "{section_id} resolves lesson {lesson_id}"
                 );
                 assert!(
-                    book_lesson_ids.insert(lesson_id),
-                    "book lab references are not duplicated"
+                    !lesson_id.starts_with("welcome."),
+                    "the main book never returns to the retired Hello Panel curriculum"
                 );
+                sequential_lesson_ids.insert(lesson_id);
+                for technical_ref in section["technical_refs"]
+                    .as_array()
+                    .expect("technical references are listed")
+                {
+                    let technical_ref = technical_ref.as_str().expect("technical lesson id");
+                    assert!(
+                        lesson_by_id.contains_key(technical_ref),
+                        "{section_id} resolves supporting proof {technical_ref}"
+                    );
+                    sequential_lesson_ids.insert(technical_ref);
+                }
+                let mut section_narrative_kinds = BTreeSet::new();
                 for block in blocks {
                     let kind = block["kind"].as_str().expect("block kind");
                     assert!(allowed_kinds.contains(kind), "known reader block {kind}");
                     if kind != "lab" {
-                        actual_narrative_kinds.insert(kind);
+                        section_narrative_kinds.insert(kind);
                         assert!(
                             block["body"]
                                 .as_str()
@@ -2499,17 +2598,40 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
                         );
                     }
                 }
+                assert_eq!(
+                    section_narrative_kinds, required_narrative_kinds,
+                    "{section_id} follows the complete project chapter anatomy"
+                );
             }
         }
+        assert_eq!(
+            expected_revision,
+            artifact["final_revision"].as_str().expect("final revision"),
+            "{project_id} reaches its declared final artifact"
+        );
     }
+    assert_eq!(
+        build_projects, 3,
+        "the first book release has three cumulative builds"
+    );
+    let instrument = book["projects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|project| project["id"] == "living-instrument")
+        .expect("living instrument project");
+    assert_eq!(
+        instrument["artifact"]["source_path"],
+        "../../examples/living-instrument.panel"
+    );
+    assert_eq!(instrument["artifact"]["execution"], "continuous-watch");
+    assert_eq!(instrument["artifact"]["watch_target"]["from_node"], "scope");
+    assert_eq!(instrument["artifact"]["watch_target"]["from_port"], "text");
+    assert_eq!(instrument["artifact"]["validation"]["kind"], "watch-prefix");
     assert_eq!(
         first_section,
         book["cover"]["start_section"].as_str(),
         "the cover begins the sequential path"
-    );
-    assert_eq!(
-        actual_narrative_kinds, required_narrative_kinds,
-        "the reader supports the complete narrative vocabulary"
     );
 
     let mut cookbook_lesson_ids = BTreeSet::new();
@@ -2522,29 +2644,271 @@ fn reader_manifest_resolves_every_exact_lab_and_separates_book_from_directories(
         let lesson_id = recipe["lesson_id"].as_str().expect("recipe lesson id");
         assert!(recipe_ids.insert(recipe_id), "recipe ids are unique");
         assert!(
-            lesson_ids.contains(lesson_id),
+            lesson_by_id.contains_key(lesson_id),
             "recipe resolves {lesson_id}"
-        );
-        assert!(
-            !book_lesson_ids.contains(lesson_id),
-            "Cookbook remains outside sequential navigation"
         );
         assert!(
             cookbook_lesson_ids.insert(lesson_id),
             "Cookbook lesson references are unique"
         );
     }
-    let represented = book_lesson_ids
-        .union(&cookbook_lesson_ids)
-        .copied()
+    let reference_lesson_ids = book["reference"]["lessons"]
+        .as_array()
+        .expect("Reference lessons are listed")
+        .iter()
+        .map(|lesson| lesson.as_str().expect("reference lesson id"))
         .collect::<BTreeSet<_>>();
+    let retired_lesson_ids = book["retired"]["lessons"]
+        .as_array()
+        .expect("retired lessons are listed")
+        .iter()
+        .map(|lesson| {
+            assert!(
+                section_ids.contains(
+                    lesson["replacement_section"]
+                        .as_str()
+                        .expect("replacement section")
+                ),
+                "every retired fixture has a current reading destination"
+            );
+            assert!(
+                lesson["reason"]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty()),
+                "retirement is explained honestly"
+            );
+            lesson["lesson_id"].as_str().expect("retired lesson id")
+        })
+        .collect::<BTreeSet<_>>();
+
+    for (lesson_id, disposition) in &disposition_by_id {
+        let destination_id = disposition["destination"]["id"]
+            .as_str()
+            .expect("destination id");
+        match disposition["classification"]
+            .as_str()
+            .expect("classification")
+        {
+            "Book" | "Interlude" => {
+                assert!(
+                    section_ids.contains(destination_id),
+                    "{lesson_id} resolves section"
+                );
+                assert!(
+                    sequential_lesson_ids.contains(lesson_id),
+                    "{lesson_id} is backed by a lab or technical proof in its project section"
+                );
+            }
+            "Cookbook" => assert!(
+                cookbook_lesson_ids.contains(lesson_id),
+                "{lesson_id} resolves a Cookbook recipe"
+            ),
+            "Reference" => assert!(
+                reference_lesson_ids.contains(lesson_id),
+                "{lesson_id} resolves a Reference entry"
+            ),
+            "Retire/Replace" => assert!(
+                retired_lesson_ids.contains(lesson_id),
+                "{lesson_id} resolves an honest retired page"
+            ),
+            _ => unreachable!(),
+        }
+    }
     assert_eq!(
-        represented, lesson_ids,
-        "every machine lesson is reachable exactly once through the book or Cookbook"
+        disposition_by_id.keys().copied().collect::<BTreeSet<_>>(),
+        lesson_by_id.keys().copied().collect::<BTreeSet<_>>(),
+        "every machine lesson is reachable through its deliberate editorial disposition"
     );
     assert_eq!(
         book["reference"]["panel_manifest"], "../reference-panels/current.json",
         "Reference navigation owns the canonical panel directory"
+    );
+}
+
+#[test]
+fn tour_migration_ledger_classifies_the_complete_machine_inventory() {
+    let lessons: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let ledger: Value = serde_json::from_str(include_str!("../../../tour/book/migration.json"))
+        .expect("Tour migration ledger is valid JSON");
+
+    assert_eq!(ledger["schema"], "conduit.tour-migration-ledger");
+    assert_eq!(ledger["schema_version"], 0);
+    assert_eq!(ledger["source_manifest"], "../lessons/current.json");
+
+    let machine_lessons = lessons["lessons"]
+        .as_array()
+        .expect("lessons are listed")
+        .iter()
+        .map(|lesson| (lesson["id"].as_str().expect("lesson id"), lesson))
+        .collect::<BTreeMap<_, _>>();
+    let entries = ledger["entries"]
+        .as_array()
+        .expect("migration entries are listed");
+    let mut ledger_ids = BTreeSet::new();
+    let mut classifications = BTreeSet::new();
+
+    for entry in entries {
+        let id = entry["lesson_id"].as_str().expect("ledger lesson id");
+        assert!(ledger_ids.insert(id), "ledger lesson ids are unique");
+        let lesson = machine_lessons
+            .get(id)
+            .unwrap_or_else(|| panic!("ledger resolves machine lesson {id}"));
+        assert_eq!(entry["title"], lesson["title"], "{id} title is current");
+        assert_eq!(
+            entry["chapter"], lesson["chapter"],
+            "{id} source chapter is recorded"
+        );
+        assert_eq!(
+            entry["runnability"], lesson["runnability"]["state"],
+            "{id} runnability is current"
+        );
+        assert_eq!(
+            entry["prerequisites"], lesson["prerequisites"],
+            "{id} prerequisites are current"
+        );
+        for field in ["concept_proof", "reader_payoff", "narrative_rewrite"] {
+            assert!(
+                entry[field].as_str().is_some_and(|value| !value.is_empty()),
+                "{id} records {field}"
+            );
+        }
+        assert!(entry["advances_project"].is_boolean(), "{id} is classified");
+        assert_eq!(entry["preserve"]["source"], true, "{id} keeps exact source");
+
+        let classification = entry["classification"].as_str().expect("classification");
+        assert!(
+            [
+                "Book",
+                "Interlude",
+                "Cookbook",
+                "Reference",
+                "Retire/Replace"
+            ]
+            .contains(&classification),
+            "{id} uses one editorial classification"
+        );
+        classifications.insert(classification);
+        let destination_kind = entry["destination"]["kind"]
+            .as_str()
+            .expect("destination kind");
+        let expected_kind = match classification {
+            "Book" | "Interlude" => "section",
+            "Cookbook" => "recipe",
+            "Reference" => "reference",
+            "Retire/Replace" => "retired",
+            _ => unreachable!(),
+        };
+        assert_eq!(destination_kind, expected_kind, "{id} has an honest route");
+        assert_eq!(
+            entry["old_route"]["kind"], entry["destination"]["kind"],
+            "{id} old deep links resolve through the current destination kind"
+        );
+        if entry["advances_project"] == true {
+            assert_eq!(
+                classification, "Book",
+                "only project work advances a project"
+            );
+        }
+
+        let expected_scenarios = lesson["library"]["scenarios"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|scenario| scenario["id"].as_str())
+            .chain(
+                lesson["platform"]["profiles"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|profile| profile["id"].as_str()),
+            )
+            .collect::<BTreeSet<_>>();
+        let preserved_scenarios = entry["preserve"]["scenarios"]
+            .as_array()
+            .expect("preserved scenarios are listed")
+            .iter()
+            .map(|scenario| scenario.as_str().expect("scenario id"))
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            preserved_scenarios, expected_scenarios,
+            "{id} preserves every scenario/profile proof"
+        );
+    }
+
+    assert_eq!(
+        ledger_ids,
+        machine_lessons.keys().copied().collect::<BTreeSet<_>>(),
+        "every current machine lesson has exactly one editorial disposition"
+    );
+    assert_eq!(
+        classifications,
+        BTreeSet::from([
+            "Book",
+            "Cookbook",
+            "Interlude",
+            "Reference",
+            "Retire/Replace"
+        ]),
+        "the migration uses every deliberate editorial destination"
+    );
+}
+
+#[test]
+fn fresh_reader_study_covers_the_book_promise_without_claiming_observations() {
+    let study: Value =
+        serde_json::from_str(include_str!("../../../tour/book/fresh-reader-study.json"))
+            .expect("Tour fresh-reader study is valid JSON");
+
+    assert_eq!(study["schema"], "conduit.tour-fresh-reader-study");
+    assert_eq!(study["schema_version"], 0);
+    assert_eq!(
+        study["status"], "protocol-ready",
+        "a checked protocol does not impersonate a completed independent study"
+    );
+    assert!(
+        study["participant_requirement"]
+            .as_str()
+            .is_some_and(|requirement| requirement.contains("not read the issue bodies")),
+        "the participant is independent of implementation context"
+    );
+    assert_eq!(study["conditions"]["maximum_minutes_to_first_result"], 1);
+    assert_eq!(study["conditions"]["audio_optional"], true);
+    assert_eq!(study["conditions"]["keyboard_only_pass_required"], true);
+    assert_eq!(study["conditions"]["reduced_motion_pass_required"], true);
+    assert_eq!(
+        study["conditions"]["technical_drawers_initially_closed"],
+        true
+    );
+    let questions = study["questions"]
+        .as_array()
+        .expect("study questions are listed");
+    assert_eq!(
+        questions
+            .iter()
+            .map(|question| question["id"].as_str().expect("question id"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["why-conduit", "made", "needed-ideas", "next"]),
+        "the study asks why, what was made, why each idea was needed, and what comes next"
+    );
+    for question in questions {
+        assert!(
+            question["prompt"]
+                .as_str()
+                .is_some_and(|prompt| !prompt.is_empty()),
+            "every question is askable"
+        );
+        assert!(
+            question["passing_evidence"]
+                .as_array()
+                .is_some_and(|evidence| !evidence.is_empty()),
+            "every question has an explicit evaluation boundary"
+        );
+    }
+    assert_eq!(
+        study["observations"].as_array().map(Vec::len),
+        Some(0),
+        "no independent participant observation is fabricated"
     );
 }
 

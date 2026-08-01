@@ -589,6 +589,8 @@ fn browser_registry() -> Registry {
     let mut registry = Registry::hosted_primitives();
     conduit_media::register_deterministic_media_providers(&mut registry)
         .expect("deterministic media providers have distinct identities");
+    conduit_media::register_deterministic_signal_providers(&mut registry)
+        .expect("deterministic signal providers have distinct identities");
     conduit_media::register_deterministic_codec_providers(&mut registry)
         .expect("deterministic codec providers have distinct identities");
     conduit_learned::register_deterministic_inference_provider(&mut registry)
@@ -4244,6 +4246,8 @@ fn run_panel_exact_inner(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use conduit_core::{SemanticHash, Sensitivity};
     use conduit_runtime::{
         ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject, ExactWatchTimestamp,
@@ -5274,6 +5278,165 @@ cord clock.tick -> drain.item {
                 .any(|record| record["event_kind"] == "terminal")),
             "terminal evidence was not retained after finalization: {resumed}"
         );
+    }
+
+    #[test]
+    fn living_instrument_runs_the_domain_signal_graph_until_explicit_stop() {
+        const SOURCE: &str = include_str!("../../../examples/living-instrument.panel");
+        let session_id = "test/living-instrument";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        let binding = test_run_binding(&started);
+        let contracts = started["view"]["topology"]["logical_nodes"]
+            .as_array()
+            .expect("planned nodes")
+            .iter()
+            .filter_map(|node| node["contract_id"].as_str())
+            .collect::<BTreeSet<_>>();
+        for required in [
+            "conduit.media/event/from-ticker",
+            "conduit.media/event/tee",
+            "conduit.media/control/clock-divider",
+            "conduit.media/control/sequencer",
+            "conduit.media/control/slew",
+            "conduit.media/control/merge",
+            "conduit.media/control/mixer",
+            "conduit.media/control/register",
+            "conduit.media/control/scope",
+        ] {
+            assert!(contracts.contains(required), "instrument plans {required}");
+        }
+        let scope_cord = started["view"]["topology"]["cords"]
+            .as_array()
+            .expect("projected cords")
+            .iter()
+            .find(|cord| cord["from_node"] == "scope" && cord["from_port"] == "text")
+            .expect("scope output cord")["id"]
+            .as_str()
+            .expect("scope cord identity");
+        let admission = started["view"]["plan"]["watch_admissions"]
+            .as_array()
+            .expect("Watch admissions")
+            .iter()
+            .find(|watch| watch["cord"] == scope_cord)
+            .expect("scope owns a public text Watch admission");
+        let watch_id = admission["id"].as_str().expect("Watch identity");
+        let attached: Value = serde_json::from_str(&bound_run!(
+            patchbay_attach_exact_watch,
+            session_id,
+            binding,
+            watch_id.to_owned(),
+        ))
+        .expect("attach JSON");
+        assert_eq!(attached["ok"], true, "{attached}");
+
+        let mut pumped = Value::Null;
+        for _ in 0..8 {
+            pumped = serde_json::from_str(&bound_run!(
+                patchbay_pump_exact_run,
+                session_id,
+                binding,
+                32,
+            ))
+            .expect("pump JSON");
+            assert_eq!(pumped["ok"], true, "{pumped}");
+            if pumped["state"] != "active" {
+                break;
+            }
+        }
+        assert_eq!(pumped["state"], "waiting", "{pumped}");
+        assert!(pumped["terminal"].is_null(), "{pumped}");
+        assert!(pumped["next_timer_deadline"].is_u64(), "{pumped}");
+
+        let watched: Value = serde_json::from_str(&bound_run!(
+            patchbay_read_exact_watch,
+            session_id,
+            binding,
+            watch_id.to_owned(),
+            0,
+            1,
+        ))
+        .expect("Watch JSON");
+        assert_eq!(watched["ok"], true, "{watched}");
+        assert_eq!(
+            watched["records"][0]["material"]["text"],
+            "tick=0 level=128\n"
+        );
+        let mut cursor = watched["next_cursor"].as_u64().expect("Watch cursor");
+        let mut last_watch_tick = 0_u64;
+        for _ in 0..12 {
+            let deadline = pumped["next_timer_deadline"]
+                .as_u64()
+                .expect("next instrument deadline");
+            let advanced: Value = serde_json::from_str(&bound_run!(
+                patchbay_advance_exact_run,
+                session_id,
+                binding,
+                deadline,
+            ))
+            .expect("advance JSON");
+            assert_eq!(advanced["ok"], true, "{advanced}");
+            for _ in 0..8 {
+                pumped = serde_json::from_str(&bound_run!(
+                    patchbay_pump_exact_run,
+                    session_id,
+                    binding,
+                    32,
+                ))
+                .expect("pump JSON");
+                assert_eq!(pumped["ok"], true, "{pumped}");
+                if pumped["state"] != "active" {
+                    break;
+                }
+            }
+            assert_eq!(pumped["state"], "waiting", "{pumped}");
+            let watched: Value = serde_json::from_str(&bound_run!(
+                patchbay_read_exact_watch,
+                session_id,
+                binding,
+                watch_id.to_owned(),
+                cursor,
+                1,
+            ))
+            .expect("Watch JSON");
+            assert_eq!(watched["ok"], true, "{watched}");
+            if let Some(material) = watched["records"]
+                .as_array()
+                .and_then(|records| records.first())
+                .and_then(|record| record["material"]["text"].as_str())
+            {
+                let tick = material
+                    .strip_prefix("tick=")
+                    .and_then(|value| value.split_once(' '))
+                    .and_then(|(tick, _)| tick.parse::<u64>().ok())
+                    .expect("instrument Watch tick");
+                assert!(tick > last_watch_tick, "{material}");
+                last_watch_tick = tick;
+            }
+            cursor = watched["next_cursor"].as_u64().expect("next Watch cursor");
+        }
+        assert!(
+            last_watch_tick > 2,
+            "instrument kept producing: {last_watch_tick}"
+        );
+
+        let cancelled: Value = serde_json::from_str(&bound_run!(
+            patchbay_cancel_exact_run,
+            session_id,
+            binding,
+            "abort".to_owned(),
+        ))
+        .expect("cancel JSON");
+        assert_eq!(cancelled["ok"], true, "{cancelled}");
+        assert_eq!(cancelled["state"], "cancelled", "{cancelled}");
     }
 
     #[test]
