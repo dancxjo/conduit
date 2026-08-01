@@ -1,7 +1,8 @@
 //! Bounded hosted projection of exact executor observations.
 
 use conduit_core::{
-    FlowEventKind, SchedulerDecisionReason, StepOutcomeKind, StopPolicy, TerminalClass,
+    CanonicalDescriptor, CanonicalValue, FieldDisposition, FlowEventKind, Id, MapField,
+    SchedulerDecisionReason, SemanticHash, StepOutcomeKind, StopPolicy, TerminalClass,
 };
 use serde::Serialize;
 
@@ -39,6 +40,46 @@ pub struct ExactEvidenceRecord {
     pub occupancy_bytes: u64,
     pub scheduling_latency_ticks: u64,
     pub processing_latency_ticks: u64,
+}
+
+/// Computes the exact, domain-separated identity of one cursor-bounded
+/// evidence commit batch.
+///
+/// `ExactEvidenceRecord` has one current pre-release serializer. Its complete
+/// ordered byte form is nested inside Conduit's canonical descriptor encoding,
+/// alongside the exact half-open cursor range. A retry therefore produces the
+/// same digest, while reordering, mutation, truncation, or range drift changes
+/// the identity checked by the runtime before scheduler reclamation.
+pub fn exact_evidence_batch_digest(
+    start_cursor: u64,
+    end_cursor: u64,
+    records: &[ExactEvidenceRecord],
+) -> Result<SemanticHash, serde_json::Error> {
+    let records = serde_json::to_vec(records)?;
+    let fields = [
+        MapField {
+            name: Id("start-cursor"),
+            value: CanonicalValue::Integer(i128::from(start_cursor)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("end-cursor"),
+            value: CanonicalValue::Integer(i128::from(end_cursor)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("records"),
+            value: CanonicalValue::Bytes(&records),
+            disposition: FieldDisposition::Semantic,
+        },
+    ];
+    Ok(CanonicalDescriptor {
+        kind: Id("conduit/exact-evidence-batch"),
+        schema_version: 0,
+        body: CanonicalValue::Map(&fields),
+    }
+    .semantic_hash()
+    .expect("the exact-evidence batch descriptor uses static valid identifiers"))
 }
 
 pub(crate) fn project_runtime_exact_evidence(
@@ -234,5 +275,61 @@ const fn terminal_class(value: TerminalClass) -> &'static str {
         TerminalClass::Cancelled => "cancelled",
         TerminalClass::Failed => "failed",
         TerminalClass::Disconnected => "disconnected",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ExactEvidenceRecord, exact_evidence_batch_digest};
+
+    fn record(sequence: u64, event_kind: &'static str) -> ExactEvidenceRecord {
+        ExactEvidenceRecord {
+            schema: "conduit.exact-execution-evidence",
+            schema_version: 0,
+            plan_identity: "sha256:fixture-plan".to_owned(),
+            plan_epoch: 7,
+            run_id: "run/fixture".to_owned(),
+            sequence,
+            tick: sequence,
+            subject_kind: "run",
+            subject_id: "run/fixture".to_owned(),
+            node_id: None,
+            semantic_contract_id: None,
+            semantic_contract_descriptor_hash: None,
+            cord_id: None,
+            from_port: None,
+            to_port: None,
+            implementation_id: None,
+            implementation_identity: None,
+            artifact_id: None,
+            host_id: None,
+            host_observation_id: None,
+            pressure: None,
+            event_kind,
+            event_detail: None,
+            terminal_cause: None,
+            occupancy_items: 0,
+            occupancy_bytes: 0,
+            scheduling_latency_ticks: 0,
+            processing_latency_ticks: 0,
+        }
+    }
+
+    #[test]
+    fn exact_batch_digest_binds_order_content_and_cursor_range() {
+        let records = [record(4, "run-started"), record(5, "value-accepted")];
+        let digest = exact_evidence_batch_digest(4, 6, &records).unwrap();
+        assert_eq!(exact_evidence_batch_digest(4, 6, &records).unwrap(), digest);
+
+        let reversed = [records[1].clone(), records[0].clone()];
+        assert_ne!(
+            exact_evidence_batch_digest(4, 6, &reversed).unwrap(),
+            digest
+        );
+        assert_ne!(exact_evidence_batch_digest(3, 6, &records).unwrap(), digest);
+        assert_ne!(exact_evidence_batch_digest(4, 7, &records).unwrap(), digest);
+
+        let mutated = [record(4, "run-started"), record(5, "value-consumed")];
+        assert_ne!(exact_evidence_batch_digest(4, 6, &mutated).unwrap(), digest);
     }
 }

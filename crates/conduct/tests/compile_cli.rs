@@ -275,6 +275,8 @@ fn input(source: &str) -> CompileInput {
         supervision_bindings: Vec::new(),
         hazard_closure: None,
         distribution: None,
+        evidence_provider: None,
+        watch_admissions: Vec::new(),
         source_semantic_hash: topology.source_semantic_hash.to_string(),
         resolver: pin("conduit/exact-compiler-resolver", 70),
         resolver_policy_hash: String::new(),

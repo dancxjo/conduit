@@ -314,6 +314,7 @@ fn with_equivalence_plans(
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        evidence_provider: None,
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],

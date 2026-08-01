@@ -103,6 +103,22 @@ pub struct PlanResourceBinding<'a> {
     pub lease: Option<ResourceLeaseContract<'a>>,
 }
 
+/// Exact provider selected for normative executor-evidence commitment.
+///
+/// This is a plan-level implementation binding rather than a semantic node or
+/// presentation callback. The current grant/lease observation remains a
+/// separate use-time runtime fact and is intentionally not embedded here.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanEvidenceProviderBinding<'a> {
+    pub implementation: PinnedDescriptor<'a>,
+    pub artifact: Id<'a>,
+    pub host_observation: Id<'a>,
+    pub store: crate::ResourceRef<'a>,
+    pub store_generation: u64,
+    pub grant_hash: SemanticHash,
+    pub time_basis: Id<'a>,
+}
+
 /// Exact workload declaration and independently sourced enforcement evidence.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanWorkload<'a> {
@@ -517,6 +533,9 @@ pub struct ExecutionPlan<'a> {
     pub event_streams: &'a [PlanEventStream<'a>],
     /// Exact executor-evidence projection policy.
     pub runtime_evidence: Option<RuntimeEvidencePolicy<'a>>,
+    /// Exact implementation/artifact/store binding used to commit normative
+    /// executor evidence before scheduler reclamation.
+    pub evidence_provider: Option<PlanEvidenceProviderBinding<'a>>,
     /// Finite non-interfering live-value observation slots.
     pub watch_admissions: &'a [WatchAdmission<'a>],
     /// Durable finite-job facts.
@@ -559,6 +578,7 @@ pub enum PlanCollection {
     Merges,
     EventStreams,
     RuntimeEvidence,
+    EvidenceProvider,
     WatchAdmissions,
     Jobs,
     SatisfactionProofs,
@@ -698,6 +718,7 @@ impl ExecutionPlan<'_> {
             .and_then(|value| value.checked_add(self.merges.len()))
             .and_then(|value| value.checked_add(self.event_streams.len()))
             .and_then(|value| value.checked_add(usize::from(self.runtime_evidence.is_some())))
+            .and_then(|value| value.checked_add(usize::from(self.evidence_provider.is_some())))
             .and_then(|value| value.checked_add(self.watch_admissions.len()))
             .and_then(|value| value.checked_add(self.jobs.len()))
             .and_then(|value| value.checked_add(self.satisfaction_proofs.len()))
@@ -850,6 +871,9 @@ impl ExecutionPlan<'_> {
         }
         if let Some(policy) = self.runtime_evidence {
             push!(hash_runtime_evidence_policy(policy));
+        }
+        if let Some(binding) = self.evidence_provider {
+            push!(hash_evidence_provider_binding(binding));
         }
         for admission in self.watch_admissions {
             push!(hash_watch_admission(*admission));
@@ -1881,6 +1905,34 @@ pub fn validate_execution_plan(
         }
     }
 
+    if let Some(binding) = plan.evidence_provider {
+        if !valid_pin(binding.implementation)
+            || !valid_id(binding.artifact)
+            || !valid_id(binding.host_observation)
+            || !valid_id(binding.store.kind)
+            || !valid_id(binding.store.id)
+            || binding.store_generation == 0
+            || binding.grant_hash.as_bytes() == &[0; 32]
+            || !valid_id(binding.time_basis)
+            || binding.time_basis != plan.created_at.basis
+            || plan.budget.evidence_bytes == 0
+            || !plan
+                .artifacts
+                .iter()
+                .any(|artifact| artifact.id == binding.artifact)
+            || !plan.host_observations.iter().any(|observation| {
+                observation.id == binding.host_observation
+                    && observation.time_basis == binding.time_basis
+            })
+        {
+            return Err(error(
+                PlanDiagnosticCode::RuntimeEvidenceInvalid,
+                PlanCollection::EvidenceProvider,
+                None,
+            ));
+        }
+    }
+
     if !plan.watch_admissions.is_empty() {
         validate_watch_admissions(WATCH_ADMISSION_SCHEMA_VERSION, plan.watch_admissions).map_err(
             |reason| {
@@ -1948,11 +2000,11 @@ pub fn validate_execution_plan(
                     index,
                 ));
             }
-            if let Some(action) = admission.reveal_action
-                && !plan
-                    .authorities
-                    .iter()
-                    .any(|authority| authority.effect.action == action)
+            if let (Some(action), Some(grant_hash)) =
+                (admission.reveal_action, admission.reveal_grant_hash)
+                && !plan.authorities.iter().any(|authority| {
+                    authority.effect.action == action && authority.grant_hash == grant_hash
+                })
             {
                 return Err(indexed(
                     PlanDiagnosticCode::WatchAdmission(WatchAdmissionReason::RevealActionRequired),
@@ -2890,6 +2942,44 @@ fn hash_resource_binding(
     )
 }
 
+fn hash_evidence_provider_binding(
+    value: PlanEvidenceProviderBinding<'_>,
+) -> Result<SemanticHash, CanonicalError<Infallible>> {
+    descriptor_hash(
+        Id("conduit/plan-evidence-provider-binding"),
+        &[
+            semantic(
+                "implementation_id",
+                CanonicalValue::Identifier(value.implementation.id),
+            ),
+            semantic(
+                "implementation_schema_version",
+                CanonicalValue::Integer(i128::from(value.implementation.schema_version)),
+            ),
+            semantic(
+                "implementation_semantic_hash",
+                CanonicalValue::Bytes(value.implementation.semantic_hash.as_bytes()),
+            ),
+            semantic("artifact", CanonicalValue::Identifier(value.artifact)),
+            semantic(
+                "host_observation",
+                CanonicalValue::Identifier(value.host_observation),
+            ),
+            semantic("store_kind", CanonicalValue::Identifier(value.store.kind)),
+            semantic("store_id", CanonicalValue::Identifier(value.store.id)),
+            semantic(
+                "store_generation",
+                CanonicalValue::Integer(i128::from(value.store_generation)),
+            ),
+            semantic(
+                "grant_hash",
+                CanonicalValue::Bytes(value.grant_hash.as_bytes()),
+            ),
+            semantic("time_basis", CanonicalValue::Identifier(value.time_basis)),
+        ],
+    )
+}
+
 fn hash_workload(value: PlanWorkload<'_>) -> Result<SemanticHash, CanonicalError<Infallible>> {
     let contract = value.contract;
     let deadline = contract.deadline;
@@ -3757,6 +3847,12 @@ fn hash_watch_admission(
         Id("conduit/watch-admission"),
         &[
             semantic("id", CanonicalValue::Identifier(value.id)),
+            semantic("operator", CanonicalValue::Identifier(value.operator)),
+            semantic(
+                "control_grant_hash",
+                CanonicalValue::Bytes(value.control_grant_hash.as_bytes()),
+            ),
+            semantic("lease", CanonicalValue::Identifier(value.lease)),
             semantic("subject_kind", CanonicalValue::Identifier(Id(subject_kind))),
             semantic(
                 "node",
@@ -3815,6 +3911,15 @@ fn hash_watch_admission(
                 value
                     .reveal_action
                     .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "reveal_grant_hash",
+                value
+                    .reveal_grant_hash
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |hash| {
+                        CanonicalValue::Bytes(hash.as_bytes())
+                    }),
             ),
         ],
     )

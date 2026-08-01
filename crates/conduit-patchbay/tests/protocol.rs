@@ -788,6 +788,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        evidence_provider: None,
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],

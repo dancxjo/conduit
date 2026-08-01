@@ -3,27 +3,31 @@
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, VecDeque},
+    rc::Rc,
 };
 
+use sha2::{Digest, Sha256};
 use wasm_bindgen::prelude::*;
 
 use conduit_compile::{
-    CompileInput, ExactPlanDocument, InstalledProfile, PinDocument, WatchAdmissionDocument,
-    compile_source,
+    CompileInput, EvidenceProviderBindingDocument, InstalledProfile, PinDocument,
+    PlanArtifactDocument, PlanHostDocument, WatchAdmissionDocument, compile_source,
 };
 use conduit_core::{
-    EvidenceCursorStatus, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
-    SemanticHash, TerminalClass, classify_evidence_cursor,
+    ArtifactDigest, EvidenceCursorStatus, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
+    SchedulerPolicy, SemanticHash, TerminalClass, classify_evidence_cursor,
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, ExactEvidenceBatch, ExactEvidenceDrainError, ExactEvidenceRecord,
-    ExactEvidenceSink, ExactExecutionReport, ExactHostedRunSession,
-    ExactHostedServiceUseObservation, ExactRunContext, ExactRunIdentity, ExactRunIo,
-    ExactRunSessionRegistry, ExactRunState, ExactWatchBatch, ExactWatchMaterial,
-    ExactWatchObservation, ExactWatchSubject, ExactWatchUsage, Handler, Registry, ResolutionError,
-    RunIo, RuntimeError, SchedulerReservation, Value, file_read_contract, file_watch_contract,
-    file_write_contract, hosted_service_use_observations,
+    CompiledInHostService, ExactEvidenceBatch, ExactEvidenceCommitReceipt,
+    ExactEvidenceCommitRequest, ExactEvidenceDrainError, ExactEvidenceProvider,
+    ExactEvidenceProviderBinding, ExactEvidenceRecord, ExactEvidenceUseAuthority,
+    ExactExecutionReport, ExactHostedRunSession, ExactHostedServiceUseObservation, ExactRunContext,
+    ExactRunIo, ExactRunSessionRegistry, ExactRunState, ExactWatchBatch, ExactWatchMaterial,
+    ExactWatchObservation, ExactWatchOperation, ExactWatchSubject, ExactWatchUsage,
+    ExactWatchUseAuthority, Handler, Registry, ResolutionError, RunIo, RuntimeError,
+    SchedulerReservation, Value, exact_evidence_provider_binding, file_read_contract,
+    file_watch_contract, file_write_contract, hosted_service_use_observations,
 };
 use conduit_std::{
     FileHandle, FileSlot, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
@@ -42,11 +46,109 @@ const MAXIMUM_PATCHBAY_PROJECTED_EVIDENCE_EVENTS: usize = 32;
 const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
 const BROWSER_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
+const BROWSER_EVIDENCE_IMPLEMENTATION: &str = "conduit/browser-worker-exact-evidence";
+const BROWSER_EVIDENCE_ARTIFACT: &str = "conduit/browser-worker-exact-evidence-artifact";
+const BROWSER_EVIDENCE_STORE: &str = "conduit.resource/browser-exact-evidence";
+const BROWSER_EVIDENCE_LEASE: &str = "conduit.lease/browser-exact-evidence";
+const BROWSER_EVIDENCE_HOST_OBSERVATION: &str = "conduit/browser-worker-evidence-host-observation";
+const BROWSER_EVIDENCE_HOST: &str = "conduit/browser-worker";
+const BROWSER_WATCH_OPERATOR: &str = "operator/browser-patchbay";
 const BROWSER_FILE_BYTES: &[u8] = b"bounded filesystem fixture\n";
 const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
     0x6b, 0x9c, 0x68, 0x72, 0x26, 0xd4, 0xa1, 0x96, 0x5e, 0x78, 0x0b, 0x63, 0xb4, 0xbd, 0xc0, 0x92,
     0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
 ];
+
+fn browser_evidence_hash(domain: &[u8], facts: &[&[u8]]) -> SemanticHash {
+    let mut hasher = Sha256::new();
+    hasher.update(b"conduit.browser-evidence-observation\0");
+    hasher.update((domain.len() as u64).to_be_bytes());
+    hasher.update(domain);
+    for fact in facts {
+        hasher.update((fact.len() as u64).to_be_bytes());
+        hasher.update(fact);
+    }
+    SemanticHash::from_bytes(hasher.finalize().into())
+}
+
+fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
+    // This artifact is the exact source compiled into the current provider,
+    // rather than a placeholder digest. The generated WASM/browser-plan gate
+    // separately binds the deployed binary bytes.
+    let artifact_digest =
+        ArtifactDigest::from_bytes(Sha256::digest(include_bytes!("lib.rs")).into());
+    let implementation_identity = browser_evidence_hash(
+        b"implementation",
+        &[
+            BROWSER_EVIDENCE_IMPLEMENTATION.as_bytes(),
+            artifact_digest.as_bytes(),
+        ],
+    );
+    let grant_hash = browser_evidence_hash(
+        b"grant",
+        &[
+            BROWSER_EVIDENCE_STORE.as_bytes(),
+            b"commit-exact-evidence",
+            b"clock/conduct-host",
+        ],
+    );
+    let host_semantic_hash = browser_evidence_hash(
+        b"host-observation",
+        &[
+            BROWSER_EVIDENCE_HOST.as_bytes(),
+            BROWSER_EVIDENCE_STORE.as_bytes(),
+            artifact_digest.as_bytes(),
+            &1_u64.to_be_bytes(),
+        ],
+    );
+    EvidenceProviderBindingDocument {
+        implementation: PinDocument {
+            id: BROWSER_EVIDENCE_IMPLEMENTATION.to_owned(),
+            schema_version: 0,
+            semantic_hash: implementation_identity.to_string(),
+        },
+        artifact: PlanArtifactDocument {
+            id: BROWSER_EVIDENCE_ARTIFACT.to_owned(),
+            digest: artifact_digest.to_string(),
+        },
+        host_observation: PlanHostDocument {
+            id: BROWSER_EVIDENCE_HOST_OBSERVATION.to_owned(),
+            host: BROWSER_EVIDENCE_HOST.to_owned(),
+            semantic_hash: host_semantic_hash.to_string(),
+            time_basis: "clock/conduct-host".to_owned(),
+            observed_at_tick: 12,
+            valid_until_tick: u64::MAX,
+        },
+        store_kind: "evidence-store".to_owned(),
+        store_id: BROWSER_EVIDENCE_STORE.to_owned(),
+        store_generation: 1,
+        grant_hash: grant_hash.to_string(),
+        time_basis: "clock/conduct-host".to_owned(),
+    }
+}
+
+fn browser_evidence_authority(
+    binding: &ExactEvidenceProviderBinding,
+    run_id: &str,
+    plan_epoch: u64,
+) -> ExactEvidenceUseAuthority {
+    ExactEvidenceUseAuthority {
+        grant_hash: binding.grant_hash,
+        grant_active: true,
+        run_id: run_id.to_owned(),
+        plan_epoch,
+        host_observation_id: binding.host_observation_id.clone(),
+        store_resource_kind: binding.store_resource_kind.clone(),
+        store_resource_id: binding.store_resource_id.clone(),
+        store_generation: binding.store_generation,
+        lease_id: BROWSER_EVIDENCE_LEASE.to_owned(),
+        lease_epoch: plan_epoch,
+        lease_available: true,
+        time_basis: binding.time_basis.clone(),
+        validated_at_tick: 12,
+        valid_until_tick: u64::MAX,
+    }
+}
 
 thread_local! {
     static PATCHBAY_SESSIONS: RefCell<BTreeMap<String, BrowserPatchbaySession>> =
@@ -75,13 +177,14 @@ struct BrowserExactRun {
     session: Option<ExactHostedRunSession>,
     use_observations: Vec<ExactHostedServiceUseObservation>,
     watch_admissions: Vec<BrowserWatchAdmission>,
-    evidence: BrowserEvidenceStore,
+    evidence: Rc<RefCell<BrowserEvidenceStore>>,
     terminal: Option<BrowserExactRunTerminal>,
 }
 
 /// Worker-owned committed evidence for the rolling browser service profile.
 /// Patchbay may read this bounded projection but cannot acknowledge scheduler
 /// storage or become the authoritative sink.
+#[derive(Clone)]
 struct BrowserEvidenceStore {
     records: VecDeque<(ExactEvidenceRecord, u64)>,
     earliest_cursor: u64,
@@ -91,6 +194,7 @@ struct BrowserEvidenceStore {
     high_water_bytes: u64,
     dropped_events: u64,
     maximum_bytes: u64,
+    committed: BTreeMap<(u64, u64), ExactEvidenceCommitReceipt>,
 }
 
 impl BrowserEvidenceStore {
@@ -110,6 +214,7 @@ impl BrowserEvidenceStore {
             high_water_bytes: 0,
             dropped_events: 0,
             maximum_bytes,
+            committed: BTreeMap::new(),
         })
     }
 
@@ -180,19 +285,67 @@ impl BrowserEvidenceStore {
     }
 }
 
-impl ExactEvidenceSink for BrowserEvidenceStore {
-    type Error = RuntimeError;
+struct BrowserEvidenceProvider {
+    binding: ExactEvidenceProviderBinding,
+    store: Rc<RefCell<BrowserEvidenceStore>>,
+    authority: Rc<RefCell<Option<ExactEvidenceUseAuthority>>>,
+}
+
+impl ExactEvidenceProvider for BrowserEvidenceProvider {
+    fn binding(&self) -> &ExactEvidenceProviderBinding {
+        &self.binding
+    }
+
+    fn observe_use_authority(
+        &self,
+        _run: &conduit_runtime::ExactRunIdentity,
+    ) -> Result<ExactEvidenceUseAuthority, RuntimeError> {
+        self.authority.borrow().clone().ok_or_else(|| {
+            RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence provider authority is unavailable at use time",
+            )
+        })
+    }
 
     fn commit_exact_evidence(
         &mut self,
-        run: &ExactRunIdentity,
+        request: &ExactEvidenceCommitRequest,
         records: &[ExactEvidenceRecord],
-    ) -> Result<(), Self::Error> {
+    ) -> Result<ExactEvidenceCommitReceipt, RuntimeError> {
+        if request.provider != self.binding {
+            return Err(RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence provider rejected exact binding drift",
+            ));
+        }
+        let key = (request.start_cursor, request.end_cursor);
+        let mut store = self.store.borrow_mut();
+        if let Some(receipt) = store.committed.get(&key) {
+            if receipt.batch_digest == request.batch_digest {
+                return Ok(receipt.clone());
+            }
+            return Err(RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence provider rejected a changed idempotent batch",
+            ));
+        }
+        if request.start_cursor != store.next_cursor || request.end_cursor <= request.start_cursor {
+            return Err(RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence provider rejected cursor drift",
+            ));
+        }
+
+        // Validate and apply to a complete staged store. No visible state is
+        // changed unless every record and every accounting operation succeeds.
+        let mut staged = store.clone();
         for record in records {
-            if record.plan_identity != run.plan_identity.to_string()
-                || record.plan_epoch != run.plan_epoch
-                || record.run_id != run.run_id
-                || record.sequence < self.next_cursor
+            if record.plan_identity != request.plan_identity.to_string()
+                || record.plan_epoch != request.plan_epoch
+                || record.run_id != request.run_id
+                || record.sequence < request.start_cursor
+                || record.sequence >= request.end_cursor
             {
                 return Err(RuntimeError::new(
                     "CND-PBY-009",
@@ -205,38 +358,42 @@ impl ExactEvidenceSink for BrowserEvidenceStore {
                     .len(),
             )
             .expect("usize fits u64");
-            if bytes > self.maximum_bytes {
+            if bytes > staged.maximum_bytes {
                 return Err(RuntimeError::new(
                     "CND-PBY-009",
                     "one exact evidence record exceeds the browser provider byte bound",
                 ));
             }
-            self.records.push_back((record.clone(), bytes));
-            self.retained_bytes = self
+            staged.records.push_back((record.clone(), bytes));
+            staged.retained_bytes = staged
                 .retained_bytes
                 .checked_add(bytes)
                 .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence byte overflow"))?;
-            while self.records.len() > MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS
-                || self.retained_bytes > self.maximum_bytes
+            while staged.records.len() > MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS
+                || staged.retained_bytes > staged.maximum_bytes
             {
-                let (evicted, evicted_bytes) = self
+                let (evicted, evicted_bytes) = staged
                     .records
                     .pop_front()
                     .expect("an over-bound evidence store is nonempty");
-                self.retained_bytes -= evicted_bytes;
-                self.dropped_events = self
+                staged.retained_bytes -= evicted_bytes;
+                staged.dropped_events = staged
                     .dropped_events
                     .checked_add(1)
                     .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence gap overflow"))?;
-                self.earliest_cursor = evicted
+                staged.earliest_cursor = evicted
                     .sequence
                     .checked_add(1)
                     .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence cursor overflow"))?;
             }
-            self.high_water_events = self.high_water_events.max(self.records.len());
-            self.high_water_bytes = self.high_water_bytes.max(self.retained_bytes);
+            staged.high_water_events = staged.high_water_events.max(staged.records.len());
+            staged.high_water_bytes = staged.high_water_bytes.max(staged.retained_bytes);
         }
-        Ok(())
+        staged.commit_through(request.end_cursor)?;
+        let receipt = ExactEvidenceCommitReceipt::acknowledged(request);
+        staged.committed.insert(key, receipt.clone());
+        *store = staged;
+        Ok(receipt)
     }
 }
 
@@ -244,6 +401,56 @@ impl ExactEvidenceSink for BrowserEvidenceStore {
 struct BrowserWatchAdmission {
     id: String,
     maximum_history: u32,
+    operator: String,
+    control_grant_hash: SemanticHash,
+    control_grant_active: bool,
+    lease: String,
+    lease_available: bool,
+    reveal_grant_hash: Option<SemanticHash>,
+    reveal_grant_active: bool,
+    time_basis: String,
+    valid_until_tick: u64,
+}
+
+fn browser_watch_use_authority(
+    run: &BrowserExactRun,
+    operator_id: &str,
+    watch_id: &str,
+    operation: ExactWatchOperation,
+) -> Result<ExactWatchUseAuthority, RuntimeError> {
+    let admission = run
+        .watch_admissions
+        .iter()
+        .find(|watch| watch.id == watch_id)
+        .ok_or_else(|| RuntimeError::new("CND-WAT-002", "Watch is not admitted by this plan"))?;
+    if operator_id != admission.operator
+        || !admission.control_grant_active
+        || !admission.lease_available
+        || (admission.reveal_grant_hash.is_some() && !admission.reveal_grant_active)
+        || 12 >= admission.valid_until_tick
+    {
+        return Err(RuntimeError::new(
+            "CND-WAT-004",
+            "browser Watch operator, grant, reveal, lease, or time observation is not current",
+        ));
+    }
+    Ok(ExactWatchUseAuthority {
+        operation,
+        operator_id: operator_id.to_owned(),
+        control_grant_hash: admission.control_grant_hash,
+        control_grant_active: admission.control_grant_active,
+        run_id: run.run_id.clone(),
+        plan_epoch: run.source_revision,
+        watch_id: watch_id.to_owned(),
+        lease_id: admission.lease.clone(),
+        lease_epoch: run.source_revision,
+        lease_available: admission.lease_available,
+        reveal_grant_hash: admission.reveal_grant_hash,
+        reveal_grant_active: admission.reveal_grant_active,
+        time_basis: admission.time_basis.clone(),
+        validated_at_tick: 12,
+        valid_until_tick: admission.valid_until_tick,
+    })
 }
 
 /// The finite terminal projection retained after the executor and its session
@@ -796,8 +1003,8 @@ fn browser_run_high_water(run: &BrowserExactRun) -> conduit_runtime::SchedulerHi
 fn browser_run_evidence_records(
     run: &BrowserExactRun,
 ) -> Vec<conduit_runtime::ExactEvidenceRecord> {
-    let mut records = run
-        .evidence
+    let evidence = run.evidence.borrow();
+    let mut records = evidence
         .records
         .iter()
         .rev()
@@ -813,25 +1020,25 @@ fn browser_exact_evidence_delta(
     cursor: u64,
     maximum_events: u32,
 ) -> Result<conduit_runtime::ExactEvidenceBatch, RuntimeError> {
-    run.evidence.read(cursor, maximum_events)
+    run.evidence.borrow().read(cursor, maximum_events)
 }
 
 fn drain_browser_exact_evidence(run: &mut BrowserExactRun) -> Result<(), RuntimeError> {
-    let BrowserExactRun {
-        session, evidence, ..
-    } = run;
+    let BrowserExactRun { session, .. } = run;
     let Some(session) = session.as_mut() else {
         return Ok(());
     };
     while session.retained_event_cursor() < session.next_event_cursor() {
         let cursor = session.retained_event_cursor();
         let batch = session
-            .drain_exact_evidence(cursor, MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS, evidence)
+            .drain_exact_evidence(cursor, MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS)
             .map_err(|error| match error {
                 ExactEvidenceDrainError::Scheduler(error) => {
                     RuntimeError::new(error.code(), error.to_string())
                 }
-                ExactEvidenceDrainError::Sink(error) => error,
+                ExactEvidenceDrainError::Provider(error)
+                | ExactEvidenceDrainError::Authority(error)
+                | ExactEvidenceDrainError::Receipt(error) => error,
             })?;
         if batch.next_cursor <= cursor {
             return Err(RuntimeError::new(
@@ -839,7 +1046,6 @@ fn drain_browser_exact_evidence(run: &mut BrowserExactRun) -> Result<(), Runtime
                 "browser evidence drain made no cursor progress",
             ));
         }
-        evidence.commit_through(batch.next_cursor)?;
     }
     Ok(())
 }
@@ -861,9 +1067,10 @@ fn browser_watch_delta(
     watch_id: &str,
     cursor: u64,
     maximum_records: u32,
+    authority: &ExactWatchUseAuthority,
 ) -> Result<ExactWatchBatch, RuntimeError> {
     if let Some(session) = run.session.as_ref() {
-        return session.read_watch(watch_id, cursor, maximum_records);
+        return session.read_watch(watch_id, cursor, maximum_records, authority);
     }
     let retained = run
         .terminal
@@ -1136,8 +1343,14 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
                 .watch_admissions
                 .iter()
                 .map(|watch| {
+                    let authority = browser_watch_use_authority(
+                        run,
+                        &watch.operator,
+                        &watch.id,
+                        ExactWatchOperation::Read,
+                    )?;
                     session
-                        .read_watch(&watch.id, 0, watch.maximum_history)
+                        .read_watch(&watch.id, 0, watch.maximum_history, &authority)
                         .map(|batch| (watch.id.clone(), batch))
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()?,
@@ -1156,61 +1369,42 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
     Ok(())
 }
 
-fn admit_browser_watches(
-    document: &mut ExactPlanDocument,
-) -> Result<Vec<BrowserWatchAdmission>, RuntimeError> {
-    if document.watch_admissions.is_empty() {
-        document.watch_admissions = document
-            .cords
-            .iter()
-            .map(|cord| WatchAdmissionDocument {
-                id: format!("watch/{}", cord.id),
-                subject_kind: "cord".to_owned(),
-                cord: Some(cord.id.clone()),
-                node: None,
-                port: None,
-                direction: None,
-                representation: PinDocument {
-                    id: cord.from.value_type_id.clone(),
-                    schema_version: cord.from.value_type_schema_version,
-                    semantic_hash: cord.from.value_type_semantic_hash.clone(),
-                },
-                maximum_preview_bytes: cord
-                    .max_value_bytes
-                    .min(MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES),
-                maximum_history: 1,
-                minimum_tick_interval: 1,
-                retention: "latest".to_owned(),
-                sensitivity_ceiling: "public".to_owned(),
-                reveal_action: None,
-            })
-            .collect();
-        let arena = bumpalo::Bump::new();
-        let plan = document
-            .as_plan(&arena)
-            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-        let mut scratch = vec![
-            SemanticHash::from_bytes([0; 32]);
-            plan.validation_scratch_count().map_err(|error| {
-                RuntimeError::new("CND-CMP-002", format!("{error:?}"))
-            })?
-        ];
-        document.identity = plan
-            .semantic_hash(&mut scratch)
-            .map_err(|error| RuntimeError::new("CND-CMP-002", format!("{error:?}")))?
-            .to_string();
-    }
-    document
-        .validate()
-        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-    Ok(document
-        .watch_admissions
+fn browser_watch_admissions(
+    topology: &conduit_runtime::ExactTopologyView,
+) -> Vec<WatchAdmissionDocument> {
+    topology
+        .cords
         .iter()
-        .map(|watch| BrowserWatchAdmission {
-            id: watch.id.clone(),
-            maximum_history: u32::from(watch.maximum_history),
+        .map(|cord| WatchAdmissionDocument {
+            id: format!("watch/{}", cord.id),
+            subject_kind: "cord".to_owned(),
+            operator: BROWSER_WATCH_OPERATOR.to_owned(),
+            control_grant_hash: browser_evidence_hash(
+                b"watch-control-grant",
+                &[BROWSER_WATCH_OPERATOR.as_bytes(), cord.id.as_bytes()],
+            )
+            .to_string(),
+            lease: format!("lease/watch/{}", cord.id),
+            cord: Some(cord.id.clone()),
+            node: None,
+            port: None,
+            direction: None,
+            representation: PinDocument {
+                id: cord.from_port.value_type.contract_id.to_string(),
+                schema_version: cord.from_port.value_type.schema_version,
+                semantic_hash: cord.from_port.value_type.semantic_hash.to_string(),
+            },
+            maximum_preview_bytes: cord
+                .max_value_bytes
+                .min(MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES),
+            maximum_history: 1,
+            minimum_tick_interval: 1,
+            retention: "latest".to_owned(),
+            sensitivity_ceiling: "public".to_owned(),
+            reveal_action: None,
+            reveal_grant_hash: None,
         })
-        .collect())
+        .collect()
 }
 
 fn start_browser_exact_run(
@@ -1221,14 +1415,69 @@ fn start_browser_exact_run(
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
     let registry = browser_registry();
-    let installed = InstalledProfile::observe_registry(source, &registry)?;
-    let mut document = compile_source(source, &installed.input)
+    let topology = registry
+        .resolve(&panel)
+        .and_then(|resolved| resolved.exact_topology())
+        .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    let installed = InstalledProfile::observe_registry(source, &registry)?
+        .with_evidence_provider_observation(browser_evidence_provider_observation())?
+        .with_watch_admissions(browser_watch_admissions(&topology))?;
+    let document = compile_source(source, &installed.input)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
-    let watch_admissions = admit_browser_watches(&mut document)?;
     let arena = bumpalo::Bump::new();
     let plan = document
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let watch_admissions = plan
+        .watch_admissions
+        .iter()
+        .map(|watch| {
+            let cord = plan
+                .cords
+                .iter()
+                .find(|cord| match watch.subject {
+                    conduit_core::WatchSubject::Cord(id) => cord.id == id,
+                    conduit_core::WatchSubject::NodePort {
+                        node,
+                        port,
+                        direction,
+                    } => {
+                        let endpoint = if direction == conduit_core::Direction::Output {
+                            cord.from
+                        } else {
+                            cord.to
+                        };
+                        endpoint.node == node && endpoint.port == port
+                    }
+                })
+                .ok_or_else(|| RuntimeError::new("CND-WAT-002", "Watch cord is absent"))?;
+            let node = plan
+                .nodes
+                .iter()
+                .find(|node| node.instance == cord.from.node)
+                .ok_or_else(|| RuntimeError::new("CND-WAT-002", "Watch producer is absent"))?;
+            let host = plan
+                .host_observations
+                .iter()
+                .find(|host| host.id == node.host_observation)
+                .ok_or_else(|| RuntimeError::new("CND-WAT-002", "Watch host is absent"))?;
+            Ok(BrowserWatchAdmission {
+                id: watch.id.to_string(),
+                maximum_history: u32::from(watch.maximum_history),
+                operator: watch.operator.to_string(),
+                control_grant_hash: watch.control_grant_hash,
+                control_grant_active: true,
+                lease: watch.lease.to_string(),
+                lease_available: true,
+                reveal_grant_hash: watch.reveal_grant_hash,
+                // The browser host does not currently have a separate reveal
+                // grant observer. Non-public Watches therefore fail closed.
+                reveal_grant_active: false,
+                time_basis: host.time_basis.to_string(),
+                valid_until_tick: host.valid_until_tick,
+            })
+        })
+        .collect::<Result<Vec<_>, RuntimeError>>()?;
     if plan.budget.memory_bytes > MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES {
         return Err(RuntimeError::new(
             "CND-RUN-009",
@@ -1268,12 +1517,25 @@ fn start_browser_exact_run(
             executor_overhead_limit_bytes: plan.budget.memory_bytes,
         },
     };
-    let session = resolved.start_exact_session(
+    let evidence_binding = exact_evidence_provider_binding(&plan)?;
+    let evidence_authority = Rc::new(RefCell::new(Some(browser_evidence_authority(
+        &evidence_binding,
+        &run_id,
+        source_revision,
+    ))));
+    let evidence = Rc::new(RefCell::new(BrowserEvidenceStore::new(evidence_bytes)?));
+    let evidence_provider = BrowserEvidenceProvider {
+        binding: evidence_binding.clone(),
+        store: Rc::clone(&evidence),
+        authority: Rc::clone(&evidence_authority),
+    };
+    let session = resolved.start_exact_session_with_evidence_provider(
         &plan,
         &bindings,
         context,
         &browser_run_registry()?,
         ExactRunIo::for_plan(&plan)?,
+        Box::new(evidence_provider),
     )?;
     let mut run = BrowserExactRun {
         plan: plan_snapshot,
@@ -1284,7 +1546,7 @@ fn start_browser_exact_run(
         session: Some(session),
         use_observations,
         watch_admissions,
-        evidence: BrowserEvidenceStore::new(evidence_bytes)?,
+        evidence,
         terminal: None,
     };
     drain_browser_exact_evidence(&mut run)?;
@@ -1490,7 +1752,10 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
         .session
         .as_ref()
         .and_then(ExactHostedRunSession::next_timer_deadline);
-    let next_event_cursor = run.evidence.next_cursor;
+    let (earliest_event_cursor, next_event_cursor, evidence_store) = {
+        let store = run.evidence.borrow();
+        (store.earliest_cursor, store.next_cursor, store.usage())
+    };
     let value_storage = run
         .session
         .as_ref()
@@ -1517,9 +1782,9 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
             "completed_nodes": completed_nodes,
             "cords_conducted": cords_conducted,
             "next_timer_deadline": next_timer_deadline,
-            "earliest_event_cursor": run.evidence.earliest_cursor,
+            "earliest_event_cursor": earliest_event_cursor,
             "next_event_cursor": next_event_cursor,
-            "evidence_store": run.evidence.usage(),
+            "evidence_store": evidence_store,
             "value_storage": value_storage,
             "stdout": String::from_utf8_lossy(&output),
             "stderr": String::from_utf8_lossy(&error),
@@ -1709,6 +1974,7 @@ pub fn patchbay_attach_exact_watch(
     run_id: String,
     source_revision: u64,
     plan_identity: String,
+    operator_id: String,
     watch_id: String,
 ) -> String {
     if watch_id.is_empty() || watch_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
@@ -1742,6 +2008,22 @@ pub fn patchbay_attach_exact_watch(
         {
             return error;
         }
+        let authority = match browser_watch_use_authority(
+            run,
+            &operator_id,
+            &watch_id,
+            ExactWatchOperation::Attach,
+        ) {
+            Ok(authority) => authority,
+            Err(error) => {
+                return serde_json::json!({
+                    "ok": false,
+                    "code": error.code,
+                    "diagnostic": error.to_string(),
+                })
+                .to_string();
+            }
+        };
         let Some(exact_session) = run.session.as_mut() else {
             return serde_json::json!({
                 "ok": false,
@@ -1750,7 +2032,7 @@ pub fn patchbay_attach_exact_watch(
             })
             .to_string();
         };
-        match exact_session.attach_watch(&watch_id) {
+        match exact_session.attach_watch(&watch_id, &authority) {
             Ok(()) => serde_json::json!({
                 "ok": true,
                 "run_id": run.run_id,
@@ -1778,6 +2060,7 @@ pub fn patchbay_detach_exact_watch(
     run_id: String,
     source_revision: u64,
     plan_identity: String,
+    operator_id: String,
     watch_id: String,
 ) -> String {
     PATCHBAY_SESSIONS.with(|sessions| {
@@ -1803,6 +2086,22 @@ pub fn patchbay_detach_exact_watch(
         {
             return error;
         }
+        let authority = match browser_watch_use_authority(
+            run,
+            &operator_id,
+            &watch_id,
+            ExactWatchOperation::Detach,
+        ) {
+            Ok(authority) => authority,
+            Err(error) => {
+                return serde_json::json!({
+                    "ok": false,
+                    "code": error.code,
+                    "diagnostic": error.to_string(),
+                })
+                .to_string();
+            }
+        };
         let Some(exact_session) = run.session.as_mut() else {
             return serde_json::json!({
                 "ok": false,
@@ -1811,7 +2110,7 @@ pub fn patchbay_detach_exact_watch(
             })
             .to_string();
         };
-        match exact_session.detach_watch(&watch_id) {
+        match exact_session.detach_watch(&watch_id, &authority) {
             Ok(()) => serde_json::json!({
                 "ok": true,
                 "run_id": run.run_id,
@@ -1836,11 +2135,13 @@ pub fn patchbay_detach_exact_watch(
 /// window. Binary bytes remain bytes; only the exact `std/text`
 /// representation receives a UTF-8 text projection.
 #[wasm_bindgen]
+#[allow(clippy::too_many_arguments)] // Flat WASM ABI keeps every exact identity explicit.
 pub fn patchbay_read_exact_watch(
     session_id: String,
     run_id: String,
     source_revision: u64,
     plan_identity: String,
+    operator_id: String,
     watch_id: String,
     cursor: u64,
     maximum_records: u32,
@@ -1876,7 +2177,23 @@ pub fn patchbay_read_exact_watch(
         {
             return error;
         }
-        match browser_watch_delta(run, &watch_id, cursor, maximum_records) {
+        let authority = match browser_watch_use_authority(
+            run,
+            &operator_id,
+            &watch_id,
+            ExactWatchOperation::Read,
+        ) {
+            Ok(authority) => authority,
+            Err(error) => {
+                return serde_json::json!({
+                    "ok": false,
+                    "code": error.code,
+                    "diagnostic": error.to_string(),
+                })
+                .to_string();
+            }
+        };
+        match browser_watch_delta(run, &watch_id, cursor, maximum_records, &authority) {
             Ok(batch) => serde_json::json!({
                 "ok": true,
                 "run_id": run.run_id,
@@ -2295,9 +2612,15 @@ fn validate_patchbay_candidate(
 
 fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let registry = browser_registry();
-    let installed = InstalledProfile::observe_registry(source, &registry).ok()?;
-    let mut document = compile_source(source, &installed.input).ok()?;
-    admit_browser_watches(&mut document).ok()?;
+    let panel = conduit_panel::parse(source).ok()?;
+    let topology = registry.resolve(&panel).ok()?.exact_topology().ok()?;
+    let installed = InstalledProfile::observe_registry(source, &registry)
+        .ok()?
+        .with_evidence_provider_observation(browser_evidence_provider_observation())
+        .ok()?
+        .with_watch_admissions(browser_watch_admissions(&topology))
+        .ok()?;
+    let document = compile_source(source, &installed.input).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
     Some(conduit_patchbay::PlanSnapshot::from_exact_plan(&plan))
@@ -4224,7 +4547,13 @@ fn run_panel_exact_inner(
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
     let registry = browser_registry();
-    let installed = InstalledProfile::observe_registry(source, &registry)?;
+    let topology = registry
+        .resolve(&panel)
+        .and_then(|resolved| resolved.exact_topology())
+        .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    let installed = InstalledProfile::observe_registry(source, &registry)?
+        .with_evidence_provider_observation(browser_evidence_provider_observation())?
+        .with_watch_admissions(browser_watch_admissions(&topology))?;
     let explicit_input = compile_input_json
         .map(|json| {
             serde_json::from_str::<CompileInput>(json)
@@ -4367,6 +4696,38 @@ mod tests {
     }
 
     macro_rules! bound_run {
+        (patchbay_attach_exact_watch, $session:expr, $binding:expr, $watch:expr $(,)?) => {
+            patchbay_attach_exact_watch(
+                $session.to_owned(),
+                $binding.run_id.clone(),
+                $binding.source_revision,
+                $binding.plan_identity.clone(),
+                super::BROWSER_WATCH_OPERATOR.to_owned(),
+                $watch,
+            )
+        };
+        (patchbay_detach_exact_watch, $session:expr, $binding:expr, $watch:expr $(,)?) => {
+            patchbay_detach_exact_watch(
+                $session.to_owned(),
+                $binding.run_id.clone(),
+                $binding.source_revision,
+                $binding.plan_identity.clone(),
+                super::BROWSER_WATCH_OPERATOR.to_owned(),
+                $watch,
+            )
+        };
+        (patchbay_read_exact_watch, $session:expr, $binding:expr, $watch:expr, $cursor:expr, $maximum:expr $(,)?) => {
+            patchbay_read_exact_watch(
+                $session.to_owned(),
+                $binding.run_id.clone(),
+                $binding.source_revision,
+                $binding.plan_identity.clone(),
+                super::BROWSER_WATCH_OPERATOR.to_owned(),
+                $watch,
+                $cursor,
+                $maximum,
+            )
+        };
         ($function:ident, $session:expr, $binding:expr $(, $argument:expr)* $(,)?) => {
             $function(
                 $session.to_owned(),
@@ -5022,6 +5383,18 @@ cord output.value -> sink.result\n\
         assert_eq!(admission["maximum_history"], 1);
         assert_eq!(admission["sensitivity_ceiling"], "public");
         let watch_id = admission["id"].as_str().expect("Watch identity");
+
+        let wrong_operator: Value = serde_json::from_str(&patchbay_attach_exact_watch(
+            session_id.to_owned(),
+            binding.run_id.clone(),
+            binding.source_revision,
+            binding.plan_identity.clone(),
+            "operator/wrong".to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("operator rejection JSON");
+        assert_eq!(wrong_operator["ok"], false, "{wrong_operator}");
+        assert_eq!(wrong_operator["code"], "CND-WAT-004");
 
         let capacity_rejected: Value = serde_json::from_str(&bound_run!(
             patchbay_attach_exact_watch,
@@ -5941,5 +6314,127 @@ cord first.value -> second.value {\n\
                     .as_u64()
                     .unwrap()
         );
+    }
+
+    #[test]
+    fn browser_evidence_commit_is_atomic_and_idempotent() {
+        use std::{cell::RefCell, rc::Rc};
+
+        use conduit_core::ArtifactDigest;
+        use conduit_runtime::{
+            ExactEvidenceCommitRequest, ExactEvidenceProvider, ExactEvidenceProviderBinding,
+            ExactEvidenceRecord, ExactRunIdentity, exact_evidence_batch_digest,
+        };
+        use sha2::{Digest, Sha256};
+
+        let artifact_digest =
+            ArtifactDigest::from_bytes(Sha256::digest(include_bytes!("lib.rs")).into());
+        let binding = ExactEvidenceProviderBinding {
+            implementation_id: super::BROWSER_EVIDENCE_IMPLEMENTATION.to_owned(),
+            implementation_identity: super::browser_evidence_hash(
+                b"implementation",
+                &[
+                    super::BROWSER_EVIDENCE_IMPLEMENTATION.as_bytes(),
+                    artifact_digest.as_bytes(),
+                ],
+            ),
+            artifact_id: super::BROWSER_EVIDENCE_ARTIFACT.to_owned(),
+            artifact_digest,
+            host_observation_id: super::BROWSER_EVIDENCE_HOST_OBSERVATION.to_owned(),
+            store_resource_kind: "evidence-store".to_owned(),
+            store_resource_id: super::BROWSER_EVIDENCE_STORE.to_owned(),
+            store_generation: 1,
+            grant_hash: super::browser_evidence_hash(
+                b"grant",
+                &[
+                    super::BROWSER_EVIDENCE_STORE.as_bytes(),
+                    b"commit-exact-evidence",
+                    b"clock/conduct-host",
+                ],
+            ),
+            time_basis: "clock/conduct-host".to_owned(),
+        };
+        let run = ExactRunIdentity {
+            plan_identity: SemanticHash::from_bytes([71; 32]),
+            source_semantic_hash: SemanticHash::from_bytes([72; 32]),
+            plan_epoch: 9,
+            run_id: "fixture/browser-evidence-run".to_owned(),
+        };
+        let authority = Rc::new(RefCell::new(Some(super::browser_evidence_authority(
+            &binding,
+            &run.run_id,
+            run.plan_epoch,
+        ))));
+        let store = Rc::new(RefCell::new(
+            super::BrowserEvidenceStore::new(16 * 1024).unwrap(),
+        ));
+        let mut provider = super::BrowserEvidenceProvider {
+            binding: binding.clone(),
+            store: Rc::clone(&store),
+            authority: Rc::clone(&authority),
+        };
+        let record = |sequence| ExactEvidenceRecord {
+            schema: "conduit.exact-execution-evidence",
+            schema_version: 0,
+            plan_identity: run.plan_identity.to_string(),
+            plan_epoch: run.plan_epoch,
+            run_id: run.run_id.clone(),
+            sequence,
+            tick: sequence,
+            subject_kind: "run",
+            subject_id: run.run_id.clone(),
+            node_id: None,
+            semantic_contract_id: None,
+            semantic_contract_descriptor_hash: None,
+            cord_id: None,
+            from_port: None,
+            to_port: None,
+            implementation_id: None,
+            implementation_identity: None,
+            artifact_id: None,
+            host_id: None,
+            host_observation_id: None,
+            pressure: None,
+            event_kind: "fixture",
+            event_detail: None,
+            terminal_cause: None,
+            occupancy_items: 0,
+            occupancy_bytes: 0,
+            scheduling_latency_ticks: 0,
+            processing_latency_ticks: 0,
+        };
+        let valid_records = vec![record(0), record(1)];
+        let mut invalid_records = valid_records.clone();
+        invalid_records[1].run_id = "fixture/wrong-run".to_owned();
+        let request = ExactEvidenceCommitRequest {
+            plan_identity: run.plan_identity,
+            plan_epoch: run.plan_epoch,
+            run_id: run.run_id.clone(),
+            provider: binding,
+            authority: provider.observe_use_authority(&run).unwrap(),
+            start_cursor: 0,
+            end_cursor: 2,
+            batch_digest: exact_evidence_batch_digest(0, 2, &valid_records).unwrap(),
+        };
+
+        assert!(
+            provider
+                .commit_exact_evidence(&request, &invalid_records)
+                .is_err()
+        );
+        assert!(store.borrow().records.is_empty());
+        assert!(store.borrow().committed.is_empty());
+        assert_eq!(store.borrow().next_cursor, 0);
+
+        let first = provider
+            .commit_exact_evidence(&request, &valid_records)
+            .unwrap();
+        let retry = provider
+            .commit_exact_evidence(&request, &valid_records)
+            .unwrap();
+        assert_eq!(retry, first);
+        assert_eq!(store.borrow().records.len(), 2);
+        assert_eq!(store.borrow().committed.len(), 1);
+        assert_eq!(store.borrow().next_cursor, 2);
     }
 }

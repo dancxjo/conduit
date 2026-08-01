@@ -1,4 +1,5 @@
 use std::cell::{Cell, RefCell};
+use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::time::Instant;
 
@@ -25,12 +26,13 @@ use conduit_core::{
     resolve_authority,
 };
 use conduit_runtime::{
-    DeterministicExecutor, ExactEvidenceDrainError, ExactEvidenceSink, ExactRunIdentity,
-    ExactRunSession, ExactRunSessionRegistry, ExactRunState, OwnedEventPayload,
-    RuntimeEvidenceContext, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
-    SchedulerError, SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus,
-    SchedulerStep, SendStatus, StepIo, record_scheduler_evidence, validate_hosted_execution_plan,
-    validate_runtime_value_for_cord,
+    DeterministicExecutor, ExactEvidenceCommitReceipt, ExactEvidenceCommitRequest,
+    ExactEvidenceDrainError, ExactEvidenceProvider, ExactEvidenceProviderBinding,
+    ExactEvidenceUseAuthority, ExactRunIdentity, ExactRunSession, ExactRunSessionRegistry,
+    ExactRunState, OwnedEventPayload, RuntimeError, RuntimeEvidenceContext, RuntimeTimestamp,
+    RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind,
+    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    record_scheduler_evidence, validate_hosted_execution_plan, validate_runtime_value_for_cord,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -241,6 +243,7 @@ fn with_plan(
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        evidence_provider: None,
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],
@@ -725,25 +728,208 @@ fn session(executor: DeterministicExecutor<FixtureNode>) -> ExactRunSession<Fixt
 }
 
 #[derive(Default)]
-struct RecordingExactEvidenceSink {
+struct RecordingExactEvidenceState {
     fail: bool,
+    fail_after_commit_once: bool,
+    authority: Option<ExactEvidenceUseAuthority>,
+    receipt_fault: Option<ReceiptFault>,
     committed: Vec<Vec<conduit_runtime::ExactEvidenceRecord>>,
+    receipts: BTreeMap<(u64, u64), ExactEvidenceCommitReceipt>,
 }
 
-impl ExactEvidenceSink for RecordingExactEvidenceSink {
-    type Error = ();
+#[derive(Clone, Copy)]
+enum ReceiptFault {
+    Plan,
+    Epoch,
+    Run,
+    ProviderId,
+    Provider,
+    ArtifactId,
+    Artifact,
+    HostObservation,
+    StoreKind,
+    Store,
+    StoreGeneration,
+    Grant,
+    Lease,
+    LeaseEpoch,
+    Cursor,
+    Digest,
+    CommitIdentity,
+}
+
+struct RecordingExactEvidenceProvider {
+    binding: ExactEvidenceProviderBinding,
+    state: Rc<RefCell<RecordingExactEvidenceState>>,
+}
+
+impl ExactEvidenceProvider for RecordingExactEvidenceProvider {
+    fn binding(&self) -> &ExactEvidenceProviderBinding {
+        &self.binding
+    }
+
+    fn observe_use_authority(
+        &self,
+        _run: &ExactRunIdentity,
+    ) -> Result<ExactEvidenceUseAuthority, RuntimeError> {
+        self.state.borrow().authority.clone().ok_or_else(|| {
+            RuntimeError::new(
+                "CND-EVC-902",
+                "fixture evidence provider is unavailable at use time",
+            )
+        })
+    }
 
     fn commit_exact_evidence(
         &mut self,
-        _run: &ExactRunIdentity,
+        request: &ExactEvidenceCommitRequest,
         records: &[conduit_runtime::ExactEvidenceRecord],
-    ) -> Result<(), Self::Error> {
-        if self.fail {
-            return Err(());
+    ) -> Result<ExactEvidenceCommitReceipt, RuntimeError> {
+        let mut state = self.state.borrow_mut();
+        if state.fail {
+            return Err(RuntimeError::new(
+                "CND-EVC-900",
+                "fixture provider failed before commit",
+            ));
         }
-        self.committed.push(records.to_vec());
-        Ok(())
+        let key = (request.start_cursor, request.end_cursor);
+        if let Some(receipt) = state.receipts.get(&key) {
+            return Ok(receipt.clone());
+        }
+        state.committed.push(records.to_vec());
+        let mut receipt = ExactEvidenceCommitReceipt::acknowledged(request);
+        match state.receipt_fault {
+            Some(ReceiptFault::Plan) => receipt.plan_identity = hash(220),
+            Some(ReceiptFault::Epoch) => receipt.plan_epoch += 1,
+            Some(ReceiptFault::Run) => receipt.run_id = "run/wrong".to_owned(),
+            Some(ReceiptFault::ProviderId) => {
+                receipt.provider_implementation_id = "provider/wrong".to_owned();
+            }
+            Some(ReceiptFault::Provider) => {
+                receipt.provider_implementation_identity = hash(221);
+            }
+            Some(ReceiptFault::ArtifactId) => {
+                receipt.provider_artifact_id = "artifact/wrong".to_owned();
+            }
+            Some(ReceiptFault::Artifact) => {
+                receipt.provider_artifact_digest = ArtifactDigest::from_bytes([222; 32]);
+            }
+            Some(ReceiptFault::HostObservation) => {
+                receipt.host_observation_id = "observation/wrong".to_owned();
+            }
+            Some(ReceiptFault::StoreKind) => {
+                receipt.store_resource_kind = "store-kind/wrong".to_owned();
+            }
+            Some(ReceiptFault::Store) => receipt.store_resource_id = "store/wrong".to_owned(),
+            Some(ReceiptFault::StoreGeneration) => receipt.store_generation += 1,
+            Some(ReceiptFault::Grant) => receipt.grant_hash = hash(224),
+            Some(ReceiptFault::Lease) => receipt.lease_id = "lease/wrong".to_owned(),
+            Some(ReceiptFault::LeaseEpoch) => receipt.lease_epoch += 1,
+            Some(ReceiptFault::Cursor) => receipt.end_cursor += 1,
+            Some(ReceiptFault::Digest) => receipt.batch_digest = hash(223),
+            Some(ReceiptFault::CommitIdentity) => receipt.provider_commit_identity = hash(225),
+            None => {}
+        }
+        if state.receipt_fault.is_some() {
+            return Ok(receipt);
+        }
+        state.receipts.insert(key, receipt.clone());
+        if state.fail_after_commit_once {
+            state.fail_after_commit_once = false;
+            return Err(RuntimeError::new(
+                "CND-EVC-901",
+                "fixture provider crashed after commit before acknowledgement",
+            ));
+        }
+        Ok(receipt)
     }
+}
+
+fn evidence_binding() -> ExactEvidenceProviderBinding {
+    ExactEvidenceProviderBinding {
+        implementation_id: "fixture/evidence-provider".to_owned(),
+        implementation_identity: hash(210),
+        artifact_id: "fixture/evidence-artifact".to_owned(),
+        artifact_digest: ArtifactDigest::from_bytes([211; 32]),
+        host_observation_id: "observation/evidence-host".to_owned(),
+        store_resource_kind: "evidence-store".to_owned(),
+        store_resource_id: "fixture/evidence-store".to_owned(),
+        store_generation: 3,
+        grant_hash: hash(212),
+        time_basis: "clock/monotonic".to_owned(),
+    }
+}
+
+fn evidence_authority() -> ExactEvidenceUseAuthority {
+    ExactEvidenceUseAuthority {
+        grant_hash: hash(212),
+        grant_active: true,
+        run_id: "fixture/persistent-run".to_owned(),
+        plan_epoch: 7,
+        host_observation_id: "observation/evidence-host".to_owned(),
+        store_resource_kind: "evidence-store".to_owned(),
+        store_resource_id: "fixture/evidence-store".to_owned(),
+        store_generation: 3,
+        lease_id: "fixture/evidence-lease".to_owned(),
+        lease_epoch: 7,
+        lease_available: true,
+        time_basis: "clock/monotonic".to_owned(),
+        validated_at_tick: 2,
+        valid_until_tick: 100,
+    }
+}
+
+fn session_with_evidence(
+    executor: DeterministicExecutor<FixtureNode>,
+) -> (
+    ExactRunSession<FixtureNode>,
+    Rc<RefCell<RecordingExactEvidenceState>>,
+) {
+    let registry =
+        ExactRunSessionRegistry::new(1, reservation().available_runtime_memory_bytes).unwrap();
+    let state = Rc::new(RefCell::new(RecordingExactEvidenceState::default()));
+    state.borrow_mut().authority = Some(evidence_authority());
+    let binding = evidence_binding();
+    let provider = RecordingExactEvidenceProvider {
+        binding: binding.clone(),
+        state: Rc::clone(&state),
+    };
+    let session = ExactRunSession::new_with_evidence_provider(
+        registry
+            .admit(reservation().available_runtime_memory_bytes)
+            .unwrap(),
+        ExactRunIdentity {
+            plan_identity: hash(201),
+            source_semantic_hash: hash(202),
+            plan_epoch: 7,
+            run_id: "fixture/persistent-run".to_owned(),
+        },
+        executor,
+        binding,
+        Box::new(provider),
+    )
+    .unwrap();
+    (session, state)
+}
+
+fn evidence_fixture_session(
+    plan: &ExecutionPlan<'_>,
+    profile: &ExecutionProfile<'_>,
+) -> (
+    ExactRunSession<FixtureNode>,
+    Rc<RefCell<RecordingExactEvidenceState>>,
+) {
+    let source = FixtureNode::HostProgress {
+        remaining: 24,
+        prepare_count: Rc::new(Cell::new(0)),
+        start_count: Rc::new(Cell::new(0)),
+    };
+    let sink = FixtureNode::HostProgress {
+        remaining: 24,
+        prepare_count: Rc::new(Cell::new(0)),
+        start_count: Rc::new(Cell::new(0)),
+    };
+    session_with_evidence(start_executor(plan, profile, source, sink, policy(512, 16)).unwrap())
 }
 
 #[test]
@@ -938,25 +1124,23 @@ fn exact_evidence_drain_commits_before_releasing_the_resident_prefix() {
             prepare_count: Rc::new(Cell::new(0)),
             start_count: Rc::new(Cell::new(0)),
         };
-        let mut run =
-            session(start_executor(&plan, profile, source, sink, policy(512, 16)).unwrap());
-        let mut evidence_sink = RecordingExactEvidenceSink::default();
+        let (mut run, evidence_provider) = session_with_evidence(
+            start_executor(&plan, profile, source, sink, policy(512, 16)).unwrap(),
+        );
         let mut cursor = 0;
 
         run.pump(1).unwrap();
-        evidence_sink.fail = true;
+        evidence_provider.borrow_mut().fail = true;
         assert!(matches!(
-            run.drain_exact_evidence(cursor, 16, &mut evidence_sink),
-            Err(ExactEvidenceDrainError::Sink(()))
+            run.drain_exact_evidence(cursor, 16),
+            Err(ExactEvidenceDrainError::Provider(_))
         ));
         assert!(run.scheduler_event_count() > 0);
         assert_eq!(run.retained_event_cursor(), cursor);
 
-        evidence_sink.fail = false;
+        evidence_provider.borrow_mut().fail = false;
         while run.state() == ExactRunState::Active {
-            let batch = run
-                .drain_exact_evidence(cursor, 16, &mut evidence_sink)
-                .unwrap();
+            let batch = run.drain_exact_evidence(cursor, 16).unwrap();
             assert_eq!(batch.status, EvidenceCursorStatus::Available);
             assert!(batch.next_cursor > cursor);
             cursor = batch.next_cursor;
@@ -965,28 +1149,179 @@ fn exact_evidence_drain_commits_before_releasing_the_resident_prefix() {
         }
 
         if run.scheduler_event_count() != 0 {
-            let batch = run
-                .drain_exact_evidence(cursor, 16, &mut evidence_sink)
-                .unwrap();
+            let batch = run.drain_exact_evidence(cursor, 16).unwrap();
             assert_eq!(batch.status, EvidenceCursorStatus::Available);
             cursor = batch.next_cursor;
         }
 
         assert!(
-            evidence_sink
+            evidence_provider
+                .borrow()
                 .committed
                 .iter()
                 .flatten()
                 .any(|record| record.sequence == 0)
         );
         assert!(
-            evidence_sink
+            evidence_provider
+                .borrow()
                 .committed
                 .iter()
                 .flatten()
                 .any(|record| record.terminal_cause.is_some())
         );
         assert_eq!(run.scheduler_event_count(), 0);
+        assert_eq!(run.retained_event_cursor(), cursor);
+    });
+}
+
+#[test]
+fn exact_evidence_rejects_every_inexact_provider_receipt_before_reclamation() {
+    let faults = [
+        ReceiptFault::Plan,
+        ReceiptFault::Epoch,
+        ReceiptFault::Run,
+        ReceiptFault::ProviderId,
+        ReceiptFault::Provider,
+        ReceiptFault::ArtifactId,
+        ReceiptFault::Artifact,
+        ReceiptFault::HostObservation,
+        ReceiptFault::StoreKind,
+        ReceiptFault::Store,
+        ReceiptFault::StoreGeneration,
+        ReceiptFault::Grant,
+        ReceiptFault::Lease,
+        ReceiptFault::LeaseEpoch,
+        ReceiptFault::Cursor,
+        ReceiptFault::Digest,
+        ReceiptFault::CommitIdentity,
+    ];
+    with_plan(1, 64, |plan, profile| {
+        for fault in faults {
+            let (mut run, provider) = evidence_fixture_session(&plan, profile);
+            run.pump(1).unwrap();
+            let cursor = run.retained_event_cursor();
+            provider.borrow_mut().receipt_fault = Some(fault);
+            assert!(matches!(
+                run.drain_exact_evidence(cursor, 16),
+                Err(ExactEvidenceDrainError::Receipt(_))
+            ));
+            assert_eq!(run.retained_event_cursor(), cursor);
+            assert!(run.scheduler_event_count() > 0);
+        }
+    });
+}
+
+#[test]
+fn exact_evidence_rechecks_grant_lease_and_time_at_use() {
+    with_plan(1, 64, |plan, profile| {
+        let (mut run, provider) = evidence_fixture_session(&plan, profile);
+        run.pump(1).unwrap();
+        let cursor = run.retained_event_cursor();
+        let mut observations = Vec::new();
+
+        let mut revoked = evidence_authority();
+        revoked.grant_active = false;
+        observations.push(revoked);
+        let mut wrong_grant = evidence_authority();
+        wrong_grant.grant_hash = hash(230);
+        observations.push(wrong_grant);
+        let mut missing_lease = evidence_authority();
+        missing_lease.lease_available = false;
+        observations.push(missing_lease);
+        let mut wrong_lease = evidence_authority();
+        wrong_lease.lease_id.clear();
+        observations.push(wrong_lease);
+        let mut wrong_lease_epoch = evidence_authority();
+        wrong_lease_epoch.lease_epoch += 1;
+        observations.push(wrong_lease_epoch);
+        let mut wrong_epoch = evidence_authority();
+        wrong_epoch.plan_epoch += 1;
+        observations.push(wrong_epoch);
+        let mut wrong_run = evidence_authority();
+        wrong_run.run_id = "fixture/wrong-run".to_owned();
+        observations.push(wrong_run);
+        let mut wrong_store = evidence_authority();
+        wrong_store.store_generation += 1;
+        observations.push(wrong_store);
+        let mut wrong_store_id = evidence_authority();
+        wrong_store_id.store_resource_id = "fixture/wrong-store".to_owned();
+        observations.push(wrong_store_id);
+        let mut wrong_store_kind = evidence_authority();
+        wrong_store_kind.store_resource_kind = "wrong-store-kind".to_owned();
+        observations.push(wrong_store_kind);
+        let mut wrong_host_observation = evidence_authority();
+        wrong_host_observation.host_observation_id = "observation/wrong".to_owned();
+        observations.push(wrong_host_observation);
+        let mut wrong_time_basis = evidence_authority();
+        wrong_time_basis.time_basis = "clock/wrong".to_owned();
+        observations.push(wrong_time_basis);
+        let mut stale = evidence_authority();
+        stale.validated_at_tick = stale.valid_until_tick;
+        observations.push(stale);
+
+        for authority in observations {
+            provider.borrow_mut().authority = Some(authority);
+            assert!(matches!(
+                run.drain_exact_evidence(cursor, 16),
+                Err(ExactEvidenceDrainError::Authority(_))
+            ));
+            assert_eq!(run.retained_event_cursor(), cursor);
+        }
+        provider.borrow_mut().authority = None;
+        assert!(matches!(
+            run.drain_exact_evidence(cursor, 16),
+            Err(ExactEvidenceDrainError::Authority(_))
+        ));
+        assert_eq!(run.retained_event_cursor(), cursor);
+    });
+}
+
+#[test]
+fn exact_evidence_retry_reconciles_commit_before_runtime_ack_without_duplication() {
+    with_plan(1, 64, |plan, profile| {
+        let (mut run, provider) = evidence_fixture_session(&plan, profile);
+        run.pump(1).unwrap();
+        let cursor = run.retained_event_cursor();
+        provider.borrow_mut().fail_after_commit_once = true;
+
+        assert!(matches!(
+            run.drain_exact_evidence(cursor, 16),
+            Err(ExactEvidenceDrainError::Provider(_))
+        ));
+        assert_eq!(run.retained_event_cursor(), cursor);
+        assert_eq!(provider.borrow().committed.len(), 1);
+        assert_eq!(provider.borrow().receipts.len(), 1);
+
+        let batch = run.drain_exact_evidence(cursor, 16).unwrap();
+        assert!(batch.next_cursor > cursor);
+        assert_eq!(run.retained_event_cursor(), batch.next_cursor);
+        assert_eq!(provider.borrow().committed.len(), 1);
+        assert_eq!(provider.borrow().receipts.len(), 1);
+    });
+}
+
+#[test]
+fn exact_evidence_without_a_plan_selected_provider_cannot_release_events() {
+    with_plan(1, 64, |plan, profile| {
+        let source = FixtureNode::HostProgress {
+            remaining: 24,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let sink = FixtureNode::HostProgress {
+            remaining: 24,
+            prepare_count: Rc::new(Cell::new(0)),
+            start_count: Rc::new(Cell::new(0)),
+        };
+        let mut run =
+            session(start_executor(&plan, profile, source, sink, policy(512, 16)).unwrap());
+        run.pump(1).unwrap();
+        let cursor = run.retained_event_cursor();
+        assert!(matches!(
+            run.drain_exact_evidence(cursor, 16),
+            Err(ExactEvidenceDrainError::Provider(_))
+        ));
         assert_eq!(run.retained_event_cursor(), cursor);
     });
 }
@@ -2213,6 +2548,7 @@ fn scheduler_observations_become_bounded_execution_events_on_resonance() {
             nodes: &nodes,
             event_streams: std::slice::from_ref(&stream),
             runtime_evidence: Some(evidence_policy),
+            evidence_provider: None,
             authorities: &authorities,
             composites: &composites,
             ..plan

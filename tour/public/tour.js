@@ -1126,6 +1126,7 @@ async function toggleWatch() {
   const response = await control.adapter.request(operation, {
     sessionId: control.sessionId,
     ...control.runIdentity,
+    operatorId: control.operatorId,
     watchId: control.watchId,
   });
   if (activeWatchControl !== control) return;
@@ -2330,6 +2331,7 @@ function scheduleContinuousWatch({
         watched = await adapter.request("patchbay-read-exact-watch", {
           sessionId,
           ...runIdentity,
+          operatorId: control.operatorId,
           watchId,
           cursor,
           maximumRecords: 1,
@@ -2437,6 +2439,7 @@ async function run() {
 
   let terminal = false;
   let watchId = null;
+  let watchOperatorId = null;
   let watchCursor = 0;
   let sessionId = null;
   let runIdentity = null;
@@ -2491,9 +2494,11 @@ async function run() {
         : compatibleAdmissions[0];
       if (!admission) throw new Error("exact plan has no public latest-value text Watch");
       watchId = admission.id;
+      watchOperatorId = admission.operator;
       const attached = await adapter.request("patchbay-attach-exact-watch", {
         sessionId,
         ...runIdentity,
+        operatorId: watchOperatorId,
         watchId,
       });
       if (!attached.ok || !attached.value?.ok) {
@@ -2504,6 +2509,7 @@ async function run() {
         sessionId,
         runIdentity,
         watchId,
+        operatorId: watchOperatorId,
         subjectLabel: admission.subject_kind === "cord"
           ? `cord ${admission.cord}`
           : `${admission.node}.${admission.port}`,
@@ -2540,6 +2546,7 @@ async function run() {
       const read = await adapter.request("patchbay-read-exact-watch", {
         sessionId,
         ...runIdentity,
+        operatorId: watchOperatorId,
         watchId,
         cursor: watchCursor,
         maximumRecords: 1,

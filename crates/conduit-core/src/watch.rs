@@ -4,7 +4,7 @@
 //! source edit. This module only describes its finite envelope; hosted
 //! runtimes own attached previews and must keep them outside cord pressure.
 
-use crate::{Direction, Id, InstancePath, PinnedDescriptor, Sensitivity};
+use crate::{Direction, Id, InstancePath, PinnedDescriptor, SemanticHash, Sensitivity};
 
 pub const WATCH_ADMISSION_SCHEMA_VERSION: u32 = 0;
 
@@ -44,6 +44,13 @@ impl WatchRetention {
 pub struct WatchAdmission<'a> {
     pub id: Id<'a>,
     pub subject: WatchSubject<'a>,
+    /// Exact authenticated operator principal allowed to control this slot.
+    pub operator: Id<'a>,
+    /// Immutable grant identity for attach/read/detach control. Status remains
+    /// a fresh use-time host observation.
+    pub control_grant_hash: SemanticHash,
+    /// Exact lease identity reserved for this Watch slot.
+    pub lease: Id<'a>,
     /// Exact value representation the host may use for previews.
     pub representation: PinnedDescriptor<'a>,
     /// Maximum material copied into one preview, excluding metadata.
@@ -59,6 +66,8 @@ pub struct WatchAdmission<'a> {
     /// Optional exact effect action required before non-public material is
     /// revealed. Absence still permits a redacted structural observation.
     pub reveal_action: Option<Id<'a>>,
+    /// Exact reveal grant when non-public material may be projected.
+    pub reveal_grant_hash: Option<SemanticHash>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -97,7 +106,12 @@ pub fn validate_watch_admissions(
         return Err(WatchAdmissionReason::EmptySlots);
     }
     for (index, slot) in slots.iter().enumerate() {
-        if slot.id.as_str().is_empty() {
+        if slot.id.as_str().is_empty()
+            || slot.operator.as_str().is_empty()
+            || slot.lease.as_str().is_empty()
+            || slot.control_grant_hash.as_bytes() == &[0; 32]
+            || slot.reveal_action.is_some() != slot.reveal_grant_hash.is_some()
+        {
             return Err(WatchAdmissionReason::InvalidIdentity);
         }
         if slot.maximum_preview_bytes == 0
@@ -129,6 +143,9 @@ mod tests {
     const SLOT: WatchAdmission<'static> = WatchAdmission {
         id: Id("watch/output"),
         subject: WatchSubject::Cord(Id("cord/output")),
+        operator: Id("operator/fixture"),
+        control_grant_hash: SemanticHash::from_bytes([3; 32]),
+        lease: Id("lease/watch-output"),
         representation: PinnedDescriptor {
             id: Id("representation/utf8"),
             schema_version: 0,
@@ -140,6 +157,7 @@ mod tests {
         retention: WatchRetention::Latest,
         sensitivity_ceiling: Sensitivity::Public,
         reveal_action: None,
+        reveal_grant_hash: None,
     };
 
     #[test]
@@ -158,6 +176,7 @@ mod tests {
             Err(WatchAdmissionReason::RevealActionRequired)
         );
         ring.reveal_action = Some(Id("conduit/data.inspect"));
+        ring.reveal_grant_hash = Some(SemanticHash::from_bytes([5; 32]));
         assert_eq!(
             validate_watch_admissions(0, &[ring]),
             Err(WatchAdmissionReason::RevealActionRequired)

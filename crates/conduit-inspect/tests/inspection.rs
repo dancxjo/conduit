@@ -431,6 +431,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
+        evidence_provider: None,
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],

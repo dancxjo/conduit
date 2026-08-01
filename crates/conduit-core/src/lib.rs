@@ -112,13 +112,14 @@ pub use evidence::{
 pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, PinnedDescriptor, PlanArtifact,
     PlanAuthority, PlanCollection, PlanCompositeMapping, PlanDiagnosticCode, PlanEventStream,
-    PlanExportBinding, PlanFanOut, PlanHazardClosure, PlanHostObservation, PlanIdentityError,
-    PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput, PlanPolicyBudget, PlanPoolRuntime,
-    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget,
-    PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision, PlanSupervisionTarget,
-    PlanValidationContext, PlanValidationError, PlanWorkload, ResolvedPlanCord, ResolvedPlanNode,
-    ResolvedPlanPort, UnresolvedPlanConstraint, UnresolvedPlanKind, minimum_supervision_allocation,
-    validate_execution_plan, validate_supervision_allocation,
+    PlanEvidenceProviderBinding, PlanExportBinding, PlanFanOut, PlanHazardClosure,
+    PlanHostObservation, PlanIdentityError, PlanInstancePool, PlanJob, PlanMerge, PlanMergeInput,
+    PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup, PlanPortGroupMember, PlanResourceBinding,
+    PlanResourceBudget, PlanSatisfactionProof, PlanSatisfactionSubject, PlanSupervision,
+    PlanSupervisionTarget, PlanValidationContext, PlanValidationError, PlanWorkload,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, UnresolvedPlanConstraint,
+    UnresolvedPlanKind, minimum_supervision_allocation, validate_execution_plan,
+    validate_supervision_allocation,
 };
 pub use flow::{
     BlockingFairness, BoundedFlowQueue, FlowCapacity, FlowEvent, FlowEventKind, FlowEvents,

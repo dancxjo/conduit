@@ -75,7 +75,7 @@ pub use evidence_ndjson::{
     OwnedPayloadShape, OwnedTypeRef, decode_event_ndjson, decode_event_ndjson_with_limits,
     encode_event_ndjson, encode_owned_event_ndjson,
 };
-pub use exact_evidence::ExactEvidenceRecord;
+pub use exact_evidence::{ExactEvidenceRecord, exact_evidence_batch_digest};
 pub use host_conformance::{
     BoundedProviderRun, ProviderRunError, ProviderRunEvidence, ProviderRunEvidenceKind,
     ProviderRunPhase,
@@ -111,9 +111,46 @@ pub use scheduler::{
     SchedulerSubject, SendStatus, StepIo, ValueStorageUsage, validate_runtime_value_for_cord,
 };
 pub use session::{
-    ExactEvidenceBatch, ExactEvidenceDrainError, ExactEvidenceSink, ExactRunIdentity, ExactRunPump,
-    ExactRunSession, ExactRunSessionRegistry, ExactRunState,
+    ExactEvidenceBatch, ExactEvidenceCommitReceipt, ExactEvidenceCommitRequest,
+    ExactEvidenceDrainError, ExactEvidenceProvider, ExactEvidenceProviderBinding,
+    ExactEvidenceUseAuthority, ExactRunIdentity, ExactRunPump, ExactRunSession,
+    ExactRunSessionRegistry, ExactRunState,
 };
+
+/// Resolves the immutable runtime evidence-provider identity solely from the
+/// exact plan and its exact artifact collection.
+pub fn exact_evidence_provider_binding(
+    plan: &ExecutionPlan<'_>,
+) -> Result<ExactEvidenceProviderBinding, RuntimeError> {
+    let selected = plan.evidence_provider.ok_or_else(|| {
+        RuntimeError::new(
+            "CND-EVC-001",
+            "exact plan does not select an evidence provider",
+        )
+    })?;
+    let artifact = plan
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.id == selected.artifact)
+        .ok_or_else(|| {
+            RuntimeError::new(
+                "CND-EVC-001",
+                "exact plan evidence-provider artifact is absent",
+            )
+        })?;
+    Ok(ExactEvidenceProviderBinding {
+        implementation_id: selected.implementation.id.to_string(),
+        implementation_identity: selected.implementation.semantic_hash,
+        artifact_id: artifact.id.to_string(),
+        artifact_digest: artifact.digest,
+        host_observation_id: selected.host_observation.to_string(),
+        store_resource_kind: selected.store.kind.to_string(),
+        store_resource_id: selected.store.id.to_string(),
+        store_generation: selected.store_generation,
+        grant_hash: selected.grant_hash,
+        time_basis: selected.time_basis.to_string(),
+    })
+}
 pub use source_lowering::{
     ConfigProvenance, LOWERED_SOURCE_SCHEMA_VERSION, LiteralValidationError, LoweredAuthoredNode,
     LoweredBinding, LoweredComposite, LoweredCompositeChild, LoweredConfigEntry,
@@ -144,8 +181,8 @@ pub use type_registry::{
     TypeRegistry, TypeRegistryError, TypeSatisfactionReport,
 };
 pub use watch::{
-    ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject,
-    ExactWatchTimestamp, ExactWatchUsage,
+    ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchOperation,
+    ExactWatchSubject, ExactWatchTimestamp, ExactWatchUsage, ExactWatchUseAuthority,
 };
 pub use workload::{
     LinuxWorkloadObservation, WorkloadRunEvidence, observe_linux_workload,
@@ -1970,14 +2007,28 @@ impl ExactHostedRunSession {
     /// Attaches one exact-plan-admitted structural Watch. Public material is
     /// copied into its fixed preview buffer; protected material remains
     /// redacted until a later exact reveal-authority boundary authorizes it.
-    pub fn attach_watch(&mut self, watch_id: &str) -> Result<(), RuntimeError> {
-        self.watches.borrow_mut().attach(watch_id)
+    pub fn attach_watch(
+        &mut self,
+        watch_id: &str,
+        authority: &ExactWatchUseAuthority,
+    ) -> Result<(), RuntimeError> {
+        let identity = self.session.identity().clone();
+        self.watches
+            .borrow_mut()
+            .attach(&identity, watch_id, authority)
     }
 
     /// Stops future observation without mutating the run or discarding the
     /// Watch's already retained bounded window.
-    pub fn detach_watch(&mut self, watch_id: &str) -> Result<(), RuntimeError> {
-        self.watches.borrow_mut().detach(watch_id)
+    pub fn detach_watch(
+        &mut self,
+        watch_id: &str,
+        authority: &ExactWatchUseAuthority,
+    ) -> Result<(), RuntimeError> {
+        let identity = self.session.identity().clone();
+        self.watches
+            .borrow_mut()
+            .detach(&identity, watch_id, authority)
     }
 
     /// Reads one bounded caller-owned Watch delta from its isolated window.
@@ -1986,10 +2037,12 @@ impl ExactHostedRunSession {
         watch_id: &str,
         cursor: u64,
         maximum_records: u32,
+        authority: &ExactWatchUseAuthority,
     ) -> Result<ExactWatchBatch, RuntimeError> {
+        let identity = self.session.identity().clone();
         self.watches
             .borrow()
-            .read(watch_id, cursor, maximum_records)
+            .read(&identity, watch_id, cursor, maximum_records, authority)
     }
 
     #[must_use]
@@ -2007,15 +2060,13 @@ impl ExactHostedRunSession {
     }
 
     /// Commits one bounded exact-evidence batch and releases its scheduler
-    /// prefix only after the external evidence sink accepts it.
-    pub fn drain_exact_evidence<S: ExactEvidenceSink>(
+    /// prefix only after the plan-selected provider returns an exact receipt.
+    pub fn drain_exact_evidence(
         &mut self,
         cursor: u64,
         maximum_events: u32,
-        sink: &mut S,
-    ) -> Result<ExactEvidenceBatch, ExactEvidenceDrainError<S::Error>> {
-        self.session
-            .drain_exact_evidence(cursor, maximum_events, sink)
+    ) -> Result<ExactEvidenceBatch, ExactEvidenceDrainError> {
+        self.session.drain_exact_evidence(cursor, maximum_events)
     }
 
     #[must_use]
@@ -5600,6 +5651,43 @@ impl ResolvedPanel<'_> {
             context,
             sessions,
             HostedRunIo::Owned(Rc::clone(&io)),
+            None,
+        )?;
+        Ok(ExactHostedRunSession {
+            session,
+            host_failure,
+            io,
+            watches,
+        })
+    }
+
+    /// Starts one persistent session with the evidence provider selected by
+    /// the exact plan. The provider is owned by the session and cannot be
+    /// substituted by a later Patchbay/UI drain request.
+    pub fn start_exact_session_with_evidence_provider<'p>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        sessions: &ExactRunSessionRegistry,
+        io: ExactRunIo,
+        evidence_provider: Box<dyn ExactEvidenceProvider>,
+    ) -> Result<ExactHostedRunSession, RuntimeError> {
+        if io.capacity_bytes() != exact_host_io_capacity(plan)? {
+            return Err(RuntimeError::new(
+                "CND-RUN-009",
+                "owned host I/O capacity does not match the exact plan",
+            ));
+        }
+        let evidence_binding = exact_evidence_provider_binding(plan)?;
+        let io = Rc::new(RefCell::new(io));
+        let (session, host_failure, watches) = self.start_exact_session_with_io(
+            plan,
+            bindings,
+            context,
+            sessions,
+            HostedRunIo::Owned(Rc::clone(&io)),
+            Some((evidence_binding, evidence_provider)),
         )?;
         Ok(ExactHostedRunSession {
             session,
@@ -5616,6 +5704,7 @@ impl ResolvedPanel<'_> {
         context: ExactRunContext<'p>,
         sessions: &ExactRunSessionRegistry,
         io: HostedRunIo<'r, 'i>,
+        evidence_provider: Option<(ExactEvidenceProviderBinding, Box<dyn ExactEvidenceProvider>)>,
     ) -> Result<StartedHostedSession<'r, 'i>, RuntimeError> {
         let admission = sessions
             .admit(context.reservation.available_runtime_memory_bytes)
@@ -6349,16 +6438,19 @@ impl ResolvedPanel<'_> {
                 .take()
                 .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
         })?;
-        let session = ExactRunSession::new(
-            admission,
-            ExactRunIdentity {
-                plan_identity: plan.identity,
-                source_semantic_hash: plan.source_semantic_hash,
-                plan_epoch: context.plan_epoch,
-                run_id: context.run_id.as_str().to_owned(),
-            },
-            executor,
-        );
+        let identity = ExactRunIdentity {
+            plan_identity: plan.identity,
+            source_semantic_hash: plan.source_semantic_hash,
+            plan_epoch: context.plan_epoch,
+            run_id: context.run_id.as_str().to_owned(),
+        };
+        let session = if let Some((binding, provider)) = evidence_provider {
+            ExactRunSession::new_with_evidence_provider(
+                admission, identity, executor, binding, provider,
+            )?
+        } else {
+            ExactRunSession::new(admission, identity, executor)
+        };
         Ok((session, host_failure, watches))
     }
 
@@ -6380,6 +6472,7 @@ impl ResolvedPanel<'_> {
             context,
             &sessions,
             HostedRunIo::Borrowed(borrowed_io),
+            None,
         )?;
         if let Some(stop) = initial_stop {
             session.cancel(stop).map_err(|error| {

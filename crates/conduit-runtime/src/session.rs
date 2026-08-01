@@ -6,7 +6,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use conduit_core::{EvidenceCursorStatus, SemanticHash, StopPolicy, TerminalClass};
+use conduit_core::{
+    ArtifactDigest, CanonicalDescriptor, CanonicalValue, EvidenceCursorStatus, FieldDisposition,
+    Id, MapField, SemanticHash, StopPolicy, TerminalClass,
+};
 
 use crate::{
     DeterministicExecutor, SchedulerError, SchedulerEventBatch, SchedulerHighWater, SchedulerNode,
@@ -64,25 +67,277 @@ pub struct ExactEvidenceBatch {
     pub records: Vec<crate::ExactEvidenceRecord>,
 }
 
-/// The authoritative external boundary for retained exact evidence. It is
-/// deliberately not a Patchbay or UI callback: successful commitment is what
-/// permits the scheduler to reuse a resident observation slot.
-pub trait ExactEvidenceSink {
-    type Error;
+/// Exact plan-selected evidence-provider identity retained by the runtime.
+/// Availability, storage identity, authority, and commitment are distinct
+/// facts; this binding never makes a provider current merely by naming it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactEvidenceProviderBinding {
+    pub implementation_id: String,
+    pub implementation_identity: SemanticHash,
+    pub artifact_id: String,
+    pub artifact_digest: ArtifactDigest,
+    pub host_observation_id: String,
+    pub store_resource_kind: String,
+    pub store_resource_id: String,
+    pub store_generation: u64,
+    pub grant_hash: SemanticHash,
+    pub time_basis: String,
+}
+
+/// Fresh host observation used for one exact evidence-provider operation.
+/// It is supplied at use time and is not part of exact-plan identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactEvidenceUseAuthority {
+    pub grant_hash: SemanticHash,
+    pub grant_active: bool,
+    pub run_id: String,
+    pub plan_epoch: u64,
+    pub host_observation_id: String,
+    pub store_resource_kind: String,
+    pub store_resource_id: String,
+    pub store_generation: u64,
+    pub lease_id: String,
+    pub lease_epoch: u64,
+    pub lease_available: bool,
+    pub time_basis: String,
+    pub validated_at_tick: u64,
+    pub valid_until_tick: u64,
+}
+
+/// Complete immutable request sent only to the exact bound evidence provider.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactEvidenceCommitRequest {
+    pub plan_identity: SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    pub provider: ExactEvidenceProviderBinding,
+    pub authority: ExactEvidenceUseAuthority,
+    pub start_cursor: u64,
+    pub end_cursor: u64,
+    pub batch_digest: SemanticHash,
+}
+
+/// Provider acknowledgement verified by the runtime before reclamation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactEvidenceCommitReceipt {
+    pub plan_identity: SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    pub provider_implementation_id: String,
+    pub provider_implementation_identity: SemanticHash,
+    pub provider_artifact_id: String,
+    pub provider_artifact_digest: ArtifactDigest,
+    pub host_observation_id: String,
+    pub store_resource_kind: String,
+    pub store_resource_id: String,
+    pub store_generation: u64,
+    pub grant_hash: SemanticHash,
+    pub lease_id: String,
+    pub lease_epoch: u64,
+    pub start_cursor: u64,
+    pub end_cursor: u64,
+    pub batch_digest: SemanticHash,
+    pub provider_commit_identity: SemanticHash,
+}
+
+impl ExactEvidenceCommitReceipt {
+    /// Creates the one valid receipt shape for a successfully published
+    /// request. Providers must call this only after their atomic commit or
+    /// successful reconciliation of the same idempotent request.
+    #[must_use]
+    pub fn acknowledged(request: &ExactEvidenceCommitRequest) -> Self {
+        let mut receipt = Self {
+            plan_identity: request.plan_identity,
+            plan_epoch: request.plan_epoch,
+            run_id: request.run_id.clone(),
+            provider_implementation_id: request.provider.implementation_id.clone(),
+            provider_implementation_identity: request.provider.implementation_identity,
+            provider_artifact_id: request.provider.artifact_id.clone(),
+            provider_artifact_digest: request.provider.artifact_digest,
+            host_observation_id: request.provider.host_observation_id.clone(),
+            store_resource_kind: request.provider.store_resource_kind.clone(),
+            store_resource_id: request.provider.store_resource_id.clone(),
+            store_generation: request.provider.store_generation,
+            grant_hash: request.authority.grant_hash,
+            lease_id: request.authority.lease_id.clone(),
+            lease_epoch: request.authority.lease_epoch,
+            start_cursor: request.start_cursor,
+            end_cursor: request.end_cursor,
+            batch_digest: request.batch_digest,
+            provider_commit_identity: SemanticHash::from_bytes([0; 32]),
+        };
+        receipt.provider_commit_identity = receipt_identity(&receipt);
+        receipt
+    }
+}
+
+/// The authoritative external boundary for retained exact evidence. One
+/// provider is selected before Start and owned by the exact session; Patchbay
+/// and other callers cannot substitute a sink at drain time.
+pub trait ExactEvidenceProvider {
+    fn binding(&self) -> &ExactEvidenceProviderBinding;
+
+    /// Re-observes the provider grant, store generation, and lease at the
+    /// operation boundary. This comes from the installed provider boundary;
+    /// a Patchbay/read caller cannot supply or substitute it.
+    fn observe_use_authority(
+        &self,
+        run: &ExactRunIdentity,
+    ) -> Result<ExactEvidenceUseAuthority, crate::RuntimeError>;
 
     fn commit_exact_evidence(
         &mut self,
-        run: &ExactRunIdentity,
+        request: &ExactEvidenceCommitRequest,
         records: &[crate::ExactEvidenceRecord],
-    ) -> Result<(), Self::Error>;
+    ) -> Result<ExactEvidenceCommitReceipt, crate::RuntimeError>;
 }
 
-/// Failure while draining evidence. Sink failure leaves the exact-run cursor
+/// Failure while draining evidence. Every failure leaves the exact-run cursor
 /// and resident scheduler observations unchanged for an explicit retry.
 #[derive(Debug)]
-pub enum ExactEvidenceDrainError<E> {
+pub enum ExactEvidenceDrainError {
     Scheduler(SchedulerError),
-    Sink(E),
+    Provider(crate::RuntimeError),
+    Authority(crate::RuntimeError),
+    Receipt(crate::RuntimeError),
+}
+
+fn receipt_identity(receipt: &ExactEvidenceCommitReceipt) -> SemanticHash {
+    let fields = [
+        MapField {
+            name: Id("plan-identity"),
+            value: CanonicalValue::Bytes(receipt.plan_identity.as_bytes()),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("plan-epoch"),
+            value: CanonicalValue::Integer(i128::from(receipt.plan_epoch)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("run-id"),
+            value: CanonicalValue::Text(&receipt.run_id),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("provider-implementation-id"),
+            value: CanonicalValue::Text(&receipt.provider_implementation_id),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("provider-implementation"),
+            value: CanonicalValue::Bytes(receipt.provider_implementation_identity.as_bytes()),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("provider-artifact-id"),
+            value: CanonicalValue::Text(&receipt.provider_artifact_id),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("provider-artifact"),
+            value: CanonicalValue::Bytes(receipt.provider_artifact_digest.as_bytes()),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("host-observation"),
+            value: CanonicalValue::Text(&receipt.host_observation_id),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("store-resource-kind"),
+            value: CanonicalValue::Text(&receipt.store_resource_kind),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("store-resource"),
+            value: CanonicalValue::Text(&receipt.store_resource_id),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("store-generation"),
+            value: CanonicalValue::Integer(i128::from(receipt.store_generation)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("grant"),
+            value: CanonicalValue::Bytes(receipt.grant_hash.as_bytes()),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("lease"),
+            value: CanonicalValue::Text(&receipt.lease_id),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("lease-epoch"),
+            value: CanonicalValue::Integer(i128::from(receipt.lease_epoch)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("start-cursor"),
+            value: CanonicalValue::Integer(i128::from(receipt.start_cursor)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("end-cursor"),
+            value: CanonicalValue::Integer(i128::from(receipt.end_cursor)),
+            disposition: FieldDisposition::Semantic,
+        },
+        MapField {
+            name: Id("batch-digest"),
+            value: CanonicalValue::Bytes(receipt.batch_digest.as_bytes()),
+            disposition: FieldDisposition::Semantic,
+        },
+    ];
+    CanonicalDescriptor {
+        kind: Id("conduit/exact-evidence-commit-receipt"),
+        schema_version: 0,
+        body: CanonicalValue::Map(&fields),
+    }
+    .semantic_hash()
+    .expect("the exact-evidence receipt uses static valid identifiers")
+}
+
+fn validate_evidence_authority(
+    run: &ExactRunIdentity,
+    binding: &ExactEvidenceProviderBinding,
+    authority: &ExactEvidenceUseAuthority,
+) -> Result<(), crate::RuntimeError> {
+    if !authority.grant_active
+        || !authority.lease_available
+        || authority.grant_hash != binding.grant_hash
+        || authority.run_id != run.run_id
+        || authority.plan_epoch != run.plan_epoch
+        || authority.host_observation_id != binding.host_observation_id
+        || authority.store_resource_kind != binding.store_resource_kind
+        || authority.store_resource_id != binding.store_resource_id
+        || authority.store_generation != binding.store_generation
+        || authority.lease_id.is_empty()
+        || authority.lease_epoch != run.plan_epoch
+        || authority.time_basis != binding.time_basis
+        || authority.validated_at_tick >= authority.valid_until_tick
+    {
+        return Err(crate::RuntimeError::new(
+            "CND-EVC-004",
+            "evidence provider grant or lease is revoked, expired, stale, or inexact",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_evidence_receipt(
+    request: &ExactEvidenceCommitRequest,
+    receipt: &ExactEvidenceCommitReceipt,
+) -> Result<(), crate::RuntimeError> {
+    let expected = ExactEvidenceCommitReceipt::acknowledged(request);
+    if receipt != &expected || receipt.provider_commit_identity != receipt_identity(receipt) {
+        return Err(crate::RuntimeError::new(
+            "CND-EVC-005",
+            "evidence provider receipt does not match the exact request",
+        ));
+    }
+    Ok(())
 }
 
 /// Finite admission controller for concurrently retained exact-run sessions.
@@ -201,6 +456,7 @@ pub struct ExactRunSession<N: SchedulerNode> {
     identity: ExactRunIdentity,
     executor: Option<DeterministicExecutor<N>>,
     admission: Option<ExactRunSessionAdmission>,
+    evidence_provider: Option<Box<dyn ExactEvidenceProvider>>,
     stop: Option<StopPolicy>,
 }
 
@@ -230,8 +486,34 @@ impl<N: SchedulerNode> ExactRunSession<N> {
             identity,
             executor: Some(executor),
             admission: Some(admission),
+            evidence_provider: None,
             stop: None,
         }
+    }
+
+    /// Starts one session with the exact plan-selected evidence provider. The
+    /// installed provider must identify the same implementation, artifact,
+    /// store generation, grant, and lease as the immutable plan binding.
+    pub fn new_with_evidence_provider(
+        admission: ExactRunSessionAdmission,
+        identity: ExactRunIdentity,
+        executor: DeterministicExecutor<N>,
+        binding: ExactEvidenceProviderBinding,
+        provider: Box<dyn ExactEvidenceProvider>,
+    ) -> Result<Self, crate::RuntimeError> {
+        if provider.binding() != &binding {
+            return Err(crate::RuntimeError::new(
+                "CND-EVC-001",
+                "installed evidence provider does not match the exact plan binding",
+            ));
+        }
+        Ok(Self {
+            identity,
+            executor: Some(executor),
+            admission: Some(admission),
+            evidence_provider: Some(provider),
+            stop: None,
+        })
     }
 
     #[must_use]
@@ -394,12 +676,11 @@ impl<N: SchedulerNode> ExactRunSession<N> {
     /// Projects and commits one bounded exact-evidence batch. The scheduler
     /// acknowledges the batch only after the external sink succeeds, so a
     /// provider crash or backpressure cannot silently discard observations.
-    pub fn drain_exact_evidence<S: ExactEvidenceSink>(
+    pub fn drain_exact_evidence(
         &mut self,
         cursor: u64,
         maximum_events: u32,
-        sink: &mut S,
-    ) -> Result<ExactEvidenceBatch, ExactEvidenceDrainError<S::Error>> {
+    ) -> Result<ExactEvidenceBatch, ExactEvidenceDrainError> {
         let batch = self
             .read_scheduler_events(cursor, maximum_events)
             .map_err(ExactEvidenceDrainError::Scheduler)?;
@@ -410,8 +691,44 @@ impl<N: SchedulerNode> ExactRunSession<N> {
             &batch.events,
         );
         if batch.status == EvidenceCursorStatus::Available && !batch.events.is_empty() {
-            sink.commit_exact_evidence(&self.identity, &records)
-                .map_err(ExactEvidenceDrainError::Sink)?;
+            let provider = self.evidence_provider.as_mut().ok_or_else(|| {
+                ExactEvidenceDrainError::Provider(crate::RuntimeError::new(
+                    "CND-EVC-002",
+                    "exact run has no plan-selected evidence provider",
+                ))
+            })?;
+            let binding = provider.binding().clone();
+            let authority = provider
+                .observe_use_authority(&self.identity)
+                .map_err(ExactEvidenceDrainError::Authority)?;
+            validate_evidence_authority(&self.identity, &binding, &authority)
+                .map_err(ExactEvidenceDrainError::Authority)?;
+            let batch_digest = crate::exact_evidence_batch_digest(
+                cursor,
+                batch.next_cursor,
+                &records,
+            )
+            .map_err(|error| {
+                ExactEvidenceDrainError::Receipt(crate::RuntimeError::new(
+                    "CND-EVC-003",
+                    format!("exact evidence batch could not be canonically encoded: {error}"),
+                ))
+            })?;
+            let request = ExactEvidenceCommitRequest {
+                plan_identity: self.identity.plan_identity,
+                plan_epoch: self.identity.plan_epoch,
+                run_id: self.identity.run_id.clone(),
+                provider: binding,
+                authority,
+                start_cursor: cursor,
+                end_cursor: batch.next_cursor,
+                batch_digest,
+            };
+            let receipt = provider
+                .commit_exact_evidence(&request, &records)
+                .map_err(ExactEvidenceDrainError::Provider)?;
+            validate_evidence_receipt(&request, &receipt)
+                .map_err(ExactEvidenceDrainError::Receipt)?;
             self.acknowledge_scheduler_events_through(batch.next_cursor)
                 .map_err(ExactEvidenceDrainError::Scheduler)?;
         }

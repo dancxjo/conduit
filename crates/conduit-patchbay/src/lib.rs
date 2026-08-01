@@ -794,6 +794,9 @@ pub struct PlanSnapshot {
 pub struct WatchAdmissionProjection {
     pub id: String,
     pub subject_kind: String,
+    pub operator: String,
+    pub control_grant_hash: String,
+    pub lease: String,
     pub cord: Option<String>,
     pub node: Option<String>,
     pub port: Option<String>,
@@ -806,6 +809,7 @@ pub struct WatchAdmissionProjection {
     pub retention: String,
     pub sensitivity_ceiling: String,
     pub reveal_action: Option<String>,
+    pub reveal_grant_hash: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1180,6 +1184,9 @@ impl PlanSnapshot {
                 WatchAdmissionProjection {
                     id: watch.id.as_str().to_owned(),
                     subject_kind,
+                    operator: watch.operator.to_string(),
+                    control_grant_hash: watch.control_grant_hash.to_string(),
+                    lease: watch.lease.to_string(),
                     cord,
                     node,
                     port,
@@ -1192,6 +1199,7 @@ impl PlanSnapshot {
                     retention: watch.retention.as_str().to_owned(),
                     sensitivity_ceiling: watch.sensitivity_ceiling.as_str().to_owned(),
                     reveal_action: watch.reveal_action.map(|action| action.as_str().to_owned()),
+                    reveal_grant_hash: watch.reveal_grant_hash.map(|hash| hash.to_string()),
                 }
             })
             .collect();

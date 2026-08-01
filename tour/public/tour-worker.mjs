@@ -67,6 +67,7 @@ function response(operation, value) {
         value.runId,
         exactUnsigned(value.sourceRevision, "sourceRevision"),
         value.planIdentity,
+        value.operatorId,
         value.watchId,
       );
     case "patchbay-detach-exact-watch":
@@ -75,6 +76,7 @@ function response(operation, value) {
         value.runId,
         exactUnsigned(value.sourceRevision, "sourceRevision"),
         value.planIdentity,
+        value.operatorId,
         value.watchId,
       );
     case "patchbay-read-exact-watch":
@@ -83,6 +85,7 @@ function response(operation, value) {
         value.runId,
         exactUnsigned(value.sourceRevision, "sourceRevision"),
         value.planIdentity,
+        value.operatorId,
         value.watchId,
         exactUnsigned(value.cursor, "cursor"),
         exactU32(value.maximumRecords, "maximumRecords"),

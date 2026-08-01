@@ -40,6 +40,7 @@ fn standing_packet_path_waits_observes_resumes_and_stops_explicitly() {
         run_id.clone(),
         revision,
         plan_identity.clone(),
+        "operator/browser-patchbay".to_owned(),
         "watch/cord-2".to_owned(),
     ));
     assert_eq!(attached["ok"], true, "{attached}");
@@ -69,6 +70,7 @@ fn standing_packet_path_waits_observes_resumes_and_stops_explicitly() {
         run_id.clone(),
         revision,
         plan_identity.clone(),
+        "operator/browser-patchbay".to_owned(),
         "watch/cord-2".to_owned(),
     ));
     assert_eq!(detached["ok"], true, "{detached}");

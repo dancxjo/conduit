@@ -5,9 +5,10 @@ use crate::{
     AuthorityDecisionDocument, AuthorityGrantDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
     CompileSourceLimits, EffectCommitProfileDocument, EffectRequirementDocument,
-    ExecutionLimitsDocument, ExecutionProfileDocument, ExternalLeafContractDocument,
-    HostCapabilityDocument, HostReportDocument, ImplementationDocument, MemoryClaimDocument,
-    PinDocument, ResourceLeaseDocument, builtin_catalog_document,
+    EvidenceProviderBindingDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
+    ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
+    ImplementationDocument, MemoryClaimDocument, PinDocument, ResourceLeaseDocument,
+    WatchAdmissionDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -48,6 +49,34 @@ impl InstalledProfile {
     /// extension point for linked host-service providers.
     pub fn observe_registry(source: &str, registry: &Registry) -> Result<Self, RuntimeError> {
         Self::observe_registry_with_stdout_grant(source, registry, true)
+    }
+
+    /// Adds one independently observed host evidence-provider binding to the
+    /// compile input and reseals its exact identity. The observation remains
+    /// distinct from panel source and from later use-time grant/lease status.
+    pub fn with_evidence_provider_observation(
+        mut self,
+        provider: EvidenceProviderBindingDocument,
+    ) -> Result<Self, RuntimeError> {
+        self.input.evidence_provider = Some(provider);
+        self.input
+            .seal()
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        Ok(self)
+    }
+
+    /// Adds exact host-policy Watch admissions before compilation seals the
+    /// plan. These controls are compiler input, never a post-compile identity
+    /// rewrite or a Patchbay presentation claim.
+    pub fn with_watch_admissions(
+        mut self,
+        admissions: Vec<WatchAdmissionDocument>,
+    ) -> Result<Self, RuntimeError> {
+        self.input.watch_admissions = admissions;
+        self.input
+            .seal()
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        Ok(self)
     }
 
     fn observe_registry_with_stdout_grant(
@@ -224,6 +253,8 @@ impl InstalledProfile {
             supervision_bindings: Vec::new(),
             hazard_closure: None,
             distribution: None,
+            evidence_provider: None,
+            watch_admissions: Vec::new(),
             source_semantic_hash: topology.source_semantic_hash.to_string(),
             resolver: pin("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),

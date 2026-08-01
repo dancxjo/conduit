@@ -13,7 +13,36 @@ use conduit_core::{
 };
 use sha2::{Digest as _, Sha256};
 
-use crate::{HostValueStore, RuntimeError, RuntimeValue};
+use crate::{ExactRunIdentity, HostValueStore, RuntimeError, RuntimeValue};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExactWatchOperation {
+    Attach,
+    Read,
+    Detach,
+}
+
+/// Fresh host authority observation for one exact Watch control operation.
+/// The plan owns immutable identities; active/revoked/expired status is
+/// re-observed at each attach, read, and detach boundary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactWatchUseAuthority {
+    pub operation: ExactWatchOperation,
+    pub operator_id: String,
+    pub control_grant_hash: SemanticHash,
+    pub control_grant_active: bool,
+    pub run_id: String,
+    pub plan_epoch: u64,
+    pub watch_id: String,
+    pub lease_id: String,
+    pub lease_epoch: u64,
+    pub lease_available: bool,
+    pub reveal_grant_hash: Option<SemanticHash>,
+    pub reveal_grant_active: bool,
+    pub time_basis: String,
+    pub validated_at_tick: u64,
+    pub valid_until_tick: u64,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExactWatchSubject {
@@ -117,6 +146,10 @@ struct StoredWatchObservation {
 struct HostedWatchSlot {
     id: String,
     subject: ExactWatchSubject,
+    operator: String,
+    control_grant_hash: SemanticHash,
+    lease: String,
+    reveal_grant_hash: Option<SemanticHash>,
     cord: usize,
     producing_host: String,
     host_observation: String,
@@ -256,6 +289,10 @@ impl HostedWatchRuntime {
             slots.push(HostedWatchSlot {
                 id: admission.id.as_str().to_owned(),
                 subject,
+                operator: admission.operator.as_str().to_owned(),
+                control_grant_hash: admission.control_grant_hash,
+                lease: admission.lease.as_str().to_owned(),
+                reveal_grant_hash: admission.reveal_grant_hash,
                 cord,
                 producing_host: producing_node.host.as_str().to_owned(),
                 host_observation: host_observation.id.as_str().to_owned(),
@@ -282,14 +319,26 @@ impl HostedWatchRuntime {
         Ok(Self { slots })
     }
 
-    pub(crate) fn attach(&mut self, watch_id: &str) -> Result<(), RuntimeError> {
+    pub(crate) fn attach(
+        &mut self,
+        run: &ExactRunIdentity,
+        watch_id: &str,
+        authority: &ExactWatchUseAuthority,
+    ) -> Result<(), RuntimeError> {
         let slot = self.slot_mut(watch_id)?;
+        validate_watch_authority(run, slot, ExactWatchOperation::Attach, authority)?;
         slot.attached = true;
         Ok(())
     }
 
-    pub(crate) fn detach(&mut self, watch_id: &str) -> Result<(), RuntimeError> {
+    pub(crate) fn detach(
+        &mut self,
+        run: &ExactRunIdentity,
+        watch_id: &str,
+        authority: &ExactWatchUseAuthority,
+    ) -> Result<(), RuntimeError> {
         let slot = self.slot_mut(watch_id)?;
+        validate_watch_authority(run, slot, ExactWatchOperation::Detach, authority)?;
         slot.attached = false;
         Ok(())
     }
@@ -371,9 +420,11 @@ impl HostedWatchRuntime {
 
     pub(crate) fn read(
         &self,
+        run: &ExactRunIdentity,
         watch_id: &str,
         cursor: u64,
         maximum_records: u32,
+        authority: &ExactWatchUseAuthority,
     ) -> Result<ExactWatchBatch, RuntimeError> {
         if maximum_records == 0 {
             return Err(RuntimeError::new(
@@ -382,6 +433,7 @@ impl HostedWatchRuntime {
             ));
         }
         let slot = self.slot(watch_id)?;
+        validate_watch_authority(run, slot, ExactWatchOperation::Read, authority)?;
         let retained = slot.next_cursor.min(slot.maximum_history as u64);
         let earliest_cursor = slot.next_cursor.saturating_sub(retained);
         let status =
@@ -513,6 +565,40 @@ impl HostedWatchRuntime {
     }
 }
 
+fn validate_watch_authority(
+    run: &ExactRunIdentity,
+    slot: &HostedWatchSlot,
+    operation: ExactWatchOperation,
+    authority: &ExactWatchUseAuthority,
+) -> Result<(), RuntimeError> {
+    let reveal_matches = match slot.reveal_grant_hash {
+        Some(expected) => {
+            authority.reveal_grant_hash == Some(expected) && authority.reveal_grant_active
+        }
+        None => authority.reveal_grant_hash.is_none(),
+    };
+    if authority.operation != operation
+        || authority.operator_id != slot.operator
+        || authority.control_grant_hash != slot.control_grant_hash
+        || !authority.control_grant_active
+        || authority.run_id != run.run_id
+        || authority.plan_epoch != run.plan_epoch
+        || authority.watch_id != slot.id
+        || authority.lease_id != slot.lease
+        || authority.lease_epoch != run.plan_epoch
+        || !authority.lease_available
+        || !reveal_matches
+        || authority.time_basis != slot.time_basis
+        || authority.validated_at_tick >= authority.valid_until_tick
+    {
+        return Err(RuntimeError::new(
+            "CND-WAT-004",
+            "Watch operator, grant, reveal, lease, or time observation is not current and exact",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn planned_watch_memory_bytes(
     plan: &ExecutionPlan<'_>,
 ) -> Result<u64, crate::SchedulerError> {
@@ -577,6 +663,8 @@ pub(crate) fn planned_watch_memory_bytes(
             });
         let strings = u64::try_from(
             admission.id.as_str().len()
+                + admission.operator.as_str().len()
+                + admission.lease.as_str().len()
                 + admission.representation.id.as_str().len()
                 + clock_domain_bytes
                 + origin_bytes
@@ -609,6 +697,10 @@ mod tests {
             subject: ExactWatchSubject::Cord {
                 cord: "cord/test".to_owned(),
             },
+            operator: "operator/fixture".to_owned(),
+            control_grant_hash: SemanticHash::from_bytes([8; 32]),
+            lease: "lease/watch-test".to_owned(),
+            reveal_grant_hash: None,
             cord: 0,
             producing_host: "host/producer".to_owned(),
             host_observation: "observation/producer".to_owned(),
@@ -630,6 +722,35 @@ mod tests {
             dropped_observations: 0,
             records: vec![None; 2],
             previews: vec![0; 6],
+        }
+    }
+
+    fn run() -> ExactRunIdentity {
+        ExactRunIdentity {
+            plan_identity: SemanticHash::from_bytes([9; 32]),
+            source_semantic_hash: SemanticHash::from_bytes([10; 32]),
+            plan_epoch: 3,
+            run_id: "run/watch-test".to_owned(),
+        }
+    }
+
+    fn authority(operation: ExactWatchOperation) -> ExactWatchUseAuthority {
+        ExactWatchUseAuthority {
+            operation,
+            operator_id: "operator/fixture".to_owned(),
+            control_grant_hash: SemanticHash::from_bytes([8; 32]),
+            control_grant_active: true,
+            run_id: "run/watch-test".to_owned(),
+            plan_epoch: 3,
+            watch_id: "watch/test".to_owned(),
+            lease_id: "lease/watch-test".to_owned(),
+            lease_epoch: 3,
+            lease_available: true,
+            reveal_grant_hash: None,
+            reveal_grant_active: false,
+            time_basis: "clock/producer".to_owned(),
+            validated_at_tick: 1,
+            valid_until_tick: 20,
         }
     }
 
@@ -658,7 +779,15 @@ mod tests {
         watches.observe(0, public, 2, &values);
         watches.observe(0, public, 4, &values);
 
-        let retained = watches.read("watch/test", 0, 8).unwrap();
+        let retained = watches
+            .read(
+                &run(),
+                "watch/test",
+                0,
+                8,
+                &authority(ExactWatchOperation::Read),
+            )
+            .unwrap();
         assert_eq!(retained.status, EvidenceCursorStatus::Gap { resume_at: 1 });
         assert_eq!(retained.records.len(), 2);
         assert_eq!(retained.records[0].gap_before, 1);
@@ -679,7 +808,15 @@ mod tests {
             envelope: protected_envelope,
         };
         watches.observe(0, protected, 6, &values);
-        let protected_batch = watches.read("watch/test", 3, 1).unwrap();
+        let protected_batch = watches
+            .read(
+                &run(),
+                "watch/test",
+                3,
+                1,
+                &authority(ExactWatchOperation::Read),
+            )
+            .unwrap();
         assert_eq!(protected_batch.records.len(), 1);
         assert_eq!(
             protected_batch.records[0].material,
@@ -688,11 +825,31 @@ mod tests {
         assert_eq!(protected_batch.records[0].content_hash, None);
         assert_eq!(protected_batch.records[0].original_bytes, 6);
 
-        watches.detach("watch/test").unwrap();
+        watches
+            .detach(
+                &run(),
+                "watch/test",
+                &authority(ExactWatchOperation::Detach),
+            )
+            .unwrap();
         watches.observe(0, public, 8, &values);
-        watches.attach("watch/test").unwrap();
+        watches
+            .attach(
+                &run(),
+                "watch/test",
+                &authority(ExactWatchOperation::Attach),
+            )
+            .unwrap();
         watches.observe(0, public, 10, &values);
-        let resumed = watches.read("watch/test", 4, 1).unwrap();
+        let resumed = watches
+            .read(
+                &run(),
+                "watch/test",
+                4,
+                1,
+                &authority(ExactWatchOperation::Read),
+            )
+            .unwrap();
         assert_eq!(resumed.records[0].source_sequence, 6);
         assert_eq!(resumed.records[0].producing_host, "host/producer");
         assert_eq!(resumed.records[0].time_basis, "clock/producer");
@@ -732,12 +889,98 @@ mod tests {
         assert_eq!(values.get(source_handle), None);
         assert_eq!(values.usage().resident_bytes, 0);
 
-        let retained = watches.read("watch/test", 0, 1).unwrap();
+        let retained = watches
+            .read(
+                &run(),
+                "watch/test",
+                0,
+                1,
+                &authority(ExactWatchOperation::Read),
+            )
+            .unwrap();
         assert_eq!(retained.records.len(), 1);
         assert_eq!(
             retained.records[0].material,
             ExactWatchMaterial::Preview(b"hel".to_vec())
         );
         assert_eq!(watches.usage().retained_preview_bytes, 3);
+    }
+
+    #[test]
+    fn watch_control_rechecks_exact_operator_grant_lease_and_time_for_every_operation() {
+        let mut watches = HostedWatchRuntime {
+            slots: vec![slot()],
+        };
+        let exact_run = run();
+        let mut invalid = Vec::new();
+
+        let mut wrong_operation = authority(ExactWatchOperation::Attach);
+        wrong_operation.operation = ExactWatchOperation::Detach;
+        invalid.push(wrong_operation);
+        let mut wrong_operator = authority(ExactWatchOperation::Attach);
+        wrong_operator.operator_id = "operator/wrong".to_owned();
+        invalid.push(wrong_operator);
+        let mut revoked = authority(ExactWatchOperation::Attach);
+        revoked.control_grant_active = false;
+        invalid.push(revoked);
+        let mut wrong_grant = authority(ExactWatchOperation::Attach);
+        wrong_grant.control_grant_hash = SemanticHash::from_bytes([99; 32]);
+        invalid.push(wrong_grant);
+        let mut wrong_run = authority(ExactWatchOperation::Attach);
+        wrong_run.run_id = "run/wrong".to_owned();
+        invalid.push(wrong_run);
+        let mut wrong_epoch = authority(ExactWatchOperation::Attach);
+        wrong_epoch.plan_epoch += 1;
+        invalid.push(wrong_epoch);
+        let mut wrong_watch = authority(ExactWatchOperation::Attach);
+        wrong_watch.watch_id = "watch/wrong".to_owned();
+        invalid.push(wrong_watch);
+        let mut missing_lease = authority(ExactWatchOperation::Attach);
+        missing_lease.lease_available = false;
+        invalid.push(missing_lease);
+        let mut wrong_lease = authority(ExactWatchOperation::Attach);
+        wrong_lease.lease_id = "lease/wrong".to_owned();
+        invalid.push(wrong_lease);
+        let mut unexpected_reveal = authority(ExactWatchOperation::Attach);
+        unexpected_reveal.reveal_grant_hash = Some(SemanticHash::from_bytes([98; 32]));
+        unexpected_reveal.reveal_grant_active = true;
+        invalid.push(unexpected_reveal);
+        let mut stale = authority(ExactWatchOperation::Attach);
+        stale.validated_at_tick = stale.valid_until_tick;
+        invalid.push(stale);
+
+        for observation in invalid {
+            assert_eq!(
+                watches
+                    .attach(&exact_run, "watch/test", &observation)
+                    .unwrap_err()
+                    .code,
+                "CND-WAT-004"
+            );
+        }
+
+        watches
+            .attach(
+                &exact_run,
+                "watch/test",
+                &authority(ExactWatchOperation::Attach),
+            )
+            .unwrap();
+        watches
+            .read(
+                &exact_run,
+                "watch/test",
+                0,
+                1,
+                &authority(ExactWatchOperation::Read),
+            )
+            .unwrap();
+        watches
+            .detach(
+                &exact_run,
+                "watch/test",
+                &authority(ExactWatchOperation::Detach),
+            )
+            .unwrap();
     }
 }
