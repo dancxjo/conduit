@@ -239,6 +239,15 @@ test("keeps one public latest-value ticker Watch live in the production executor
     representation: { id: "std/text" },
     sensitivity: "public",
     value_storage: { resident_slots: 0, resident_bytes: 0 },
+    evidence_store: {
+      earliest_cursor: expect.any(Number),
+      next_cursor: expect.any(Number),
+      retained_events: expect.any(Number),
+      retained_bytes: expect.any(Number),
+      maximum_events: 256,
+      maximum_bytes: 262144,
+      dropped_events: expect.any(Number),
+    },
   });
 
   await expect.poll(async () => {
@@ -264,6 +273,13 @@ test("keeps one public latest-value ticker Watch live in the production executor
   });
   expect(later.value_storage.high_water_slots).toBeLessThanOrEqual(1);
   expect(later.value_storage.high_water_bytes).toBeLessThanOrEqual(32);
+  expect(later.evidence_store.next_cursor).toBeGreaterThan(first.evidence_store.next_cursor);
+  expect(later.evidence_store.retained_events).toBeLessThanOrEqual(
+    later.evidence_store.maximum_events,
+  );
+  expect(later.evidence_store.retained_bytes).toBeLessThanOrEqual(
+    later.evidence_store.maximum_bytes,
+  );
 
   await page.locator("#stop").click();
   await expect(page.locator("#console-status-badge")).toHaveText("Ready");

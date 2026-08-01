@@ -231,6 +231,7 @@ function renderLatestWatch(batch, run) {
     sensitivity: record?.sensitivity,
     gap_before: record?.gap_before ?? 0,
     value_storage: run.value_storage,
+    evidence_store: run.evidence_store,
   }, null, 2);
 }
 
