@@ -284,6 +284,10 @@ containment program is tracked by
   distinct event, gate, control, audio, and retained-state ports; clocked
   modulation, sequencing, mixing, feedback, Waiting, observation, and exact
   lifecycle semantics for standing patches.
+- [`077-standing-network-services.md`](077-standing-network-services.md)
+  defines exact link, frame, packet, datagram, stream, session, control, and
+  retained-state values; standing services, finite routes and sessions,
+  independent effects, observation, provider plurality, and explicit stop.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

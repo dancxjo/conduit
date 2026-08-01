@@ -107,13 +107,10 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
         "supervision/retry",
         "supervision/circuit-breaker",
         "supervision/health-gate",
-        "net/wifi/join",
-        "net/interface",
         "conduit.host/net/tcp/connect",
         "conduit.host/net/tcp/listen",
         "conduit.host/net/udp/connected",
         "conduit.host/net/udp/datagram",
-        "net/dns/resolve",
         "net/http/serve",
     ] {
         let availability = registry.node_availability(kind);

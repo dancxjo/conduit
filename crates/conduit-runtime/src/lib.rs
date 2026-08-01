@@ -921,24 +921,6 @@ pub const HEALTH_GATE_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &[named_text_input("observation")],
     outputs: &[named_text_output("healthy")],
 };
-pub const WIFI_STATION_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/wifi/join"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("configuration")],
-    outputs: &[named_text_output("state")],
-};
-pub const NETWORK_INTERFACE_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/interface"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("configuration")],
-    outputs: &[named_text_output("state")],
-};
-pub const DNS_RESOLVER_CONTRACT: NodeContract<'static> = NodeContract {
-    id: Id("net/dns/resolve"),
-    config: EMPTY_CONFIG,
-    inputs: &[named_text_input("name")],
-    outputs: &[named_text_output("addresses")],
-};
 /// Minimal bounded hosted HTTP listener boundary.
 ///
 /// Rich HTTP request/response/route contracts remain in `conduit-http`; this
@@ -3750,9 +3732,6 @@ impl Default for Registry {
             standard_supervision_contract("supervision/retry"),
             standard_supervision_contract("supervision/circuit-breaker"),
             &HEALTH_GATE_CONTRACT,
-            &WIFI_STATION_CONTRACT,
-            &NETWORK_INTERFACE_CONTRACT,
-            &DNS_RESOLVER_CONTRACT,
             &HTTP_LISTENER_CONTRACT,
         ];
 

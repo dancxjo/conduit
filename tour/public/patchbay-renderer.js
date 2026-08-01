@@ -102,6 +102,30 @@ function typePresentation(valueType) {
     return { color: "#94a3b8", family: "unknown" };
   }
   const normalized = valueType.toLowerCase();
+  if (normalized.startsWith("conduit.net/")) {
+    if (normalized.includes("link-observation")) {
+      return { color: "#2dd4bf", family: "network-link" };
+    }
+    if (normalized.endsWith("/frame")) {
+      return { color: "#38bdf8", family: "network-frame" };
+    }
+    if (normalized.endsWith("/packet")) {
+      return { color: "#818cf8", family: "network-packet" };
+    }
+    if (normalized.endsWith("/datagram")) {
+      return { color: "#a78bfa", family: "network-datagram" };
+    }
+    if (normalized.includes("byte-stream")) {
+      return { color: "#f472b6", family: "network-stream" };
+    }
+    if (normalized.endsWith("/session")) {
+      return { color: "#f59e0b", family: "network-session" };
+    }
+    if (normalized.includes("control-event")) {
+      return { color: "#facc15", family: "network-control" };
+    }
+    return { color: "#e879f9", family: "network-state" };
+  }
   if (normalized.includes("retained-state") || normalized.includes("retained_state")) {
     return { color: "#e879f9", family: "state" };
   }

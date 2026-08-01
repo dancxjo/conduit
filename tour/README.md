@@ -38,6 +38,14 @@ the graph remains present and live, pulses advance state, cords carry typed
 values and events, explicit delay or memory gives feedback temporal meaning,
 and lifecycle control starts and stops one immutable plan epoch.
 
+The standing-network project likewise begins with two isolated application
+endpoints and adds link/address readiness, DHCP, a local name, a route, a
+listener, bounded frame/packet/datagram/stream exchanges, observation, failure,
+and recovery in explicit stages. Patchbay duplicates every network family with
+text and jack/cord shape, not color alone. Its full assembled topology is a
+checked design; the smaller runnable stages keep each exact run inside the
+finite scheduler-evidence window.
+
 Lesson source is real `.panel` input. This directory deliberately contains no
 tutorial-only parser, graph, port model, or runtime. A browser delivery layer
 must invoke the production parser/lowering/resolver/runtime artifacts and may

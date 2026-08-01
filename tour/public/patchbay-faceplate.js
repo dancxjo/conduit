@@ -11,6 +11,16 @@ const e = window.React.createElement;
 function signalFamily(typeId, nodeKind, portId) {
   const normalized = typeof typeId === "string" ? typeId.toLowerCase() : "";
   const normalizedKind = typeof nodeKind === "string" ? nodeKind.toLowerCase() : "";
+  if (normalized.startsWith("conduit.net/")) {
+    if (normalized.includes("link-observation")) return "network-link";
+    if (normalized.endsWith("/frame")) return "network-frame";
+    if (normalized.endsWith("/packet")) return "network-packet";
+    if (normalized.endsWith("/datagram")) return "network-datagram";
+    if (normalized.includes("byte-stream")) return "network-stream";
+    if (normalized.endsWith("/session")) return "network-session";
+    if (normalized.includes("control-event")) return "network-control";
+    return "network-state";
+  }
   if ((normalizedKind.includes("/time/") || normalizedKind.startsWith("time/")) &&
       ["tick", "pulse", "phase", "rate", "reset"].includes(portId)) {
     return "clock";

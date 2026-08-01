@@ -137,6 +137,11 @@ fn tour_lessons_declare_verified_browser_runnability() {
             conduit_media::register_deterministic_audio_processing_providers(&mut registry)
                 .expect("browser audio providers register");
             registry
+        } else if id == "library.bounded-brainstem-network" {
+            let mut registry = Registry::hosted_primitives();
+            conduit_net::register_deterministic_network_fixture_providers(&mut registry)
+                .expect("browser network fixture providers register");
+            registry
         } else {
             Registry::compatibility_demo()
         };
@@ -949,6 +954,12 @@ fn bounded_brainstem_network_lesson_keeps_observation_and_robot_authority_separa
         .expect("brainstem network lesson is selectable");
 
     assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["execution"], "continuous-watch");
+    assert_eq!(lesson["validation"]["kind"], "watch");
+    assert_eq!(
+        lesson["source"],
+        include_str!("../../../examples/pico-network-providers.panel")
+    );
     assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
     for field in [
         "compiled_inventory",
@@ -992,21 +1003,35 @@ fn bounded_brainstem_network_lesson_keeps_observation_and_robot_authority_separa
         .into_iter()
         .collect()
     );
-    assert_eq!(lesson["library"]["scenarios"].as_array().unwrap().len(), 5);
+    let scenarios = lesson["library"]["scenarios"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|scenario| scenario["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "two-isolated-endpoints",
+        "attachment-lease-composition",
+        "route-and-observation",
+        "listener-and-sessions",
+        "application-exchanges",
+        "failure-and-recovery",
+        "assembled-topology",
+    ] {
+        assert!(
+            scenarios.contains(required),
+            "missing Tour stage {required}"
+        );
+    }
     assert_eq!(lesson["accessibility"]["reduced_motion"], true);
     for forbidden in ["CreateUart", "motor_grant", "possession_grant"] {
         assert!(!lesson["source"].as_str().unwrap().contains(forbidden));
     }
 
-    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
-    let result: Value = serde_json::from_str(&raw).unwrap();
+    let result: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
     assert_eq!(result["ok"], true, "{result}");
-    assert_eq!(
-        result["display"],
-        "wifi-ap:pete-fixture:192.168.4.1:clients=8:no-route:no-bridge:no-nat"
-    );
-    assert_eq!(result["stdout"], "");
-    assert_eq!(result["stderr"], "");
+    assert_eq!(result["terminal"], "cancelled");
 }
 
 #[test]

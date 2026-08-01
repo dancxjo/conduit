@@ -52,17 +52,21 @@ fn library_catalog_projection_keeps_provider_bundles_separate_from_observation()
     let projection =
         project_library_catalog(include_str!("../../../library/catalog.json")).unwrap();
     assert_eq!(projection.schema, "conduit.library-catalog");
-    assert_eq!(projection.entries.len(), 154);
-    for signal_boundary in [
+    assert_eq!(projection.entries.len(), 171);
+    for semantic_boundary in [
         "conduit.media/audio/capture",
         "conduit.media/audio/playback",
+        "net/frame/source",
+        "net/address/assign",
+        "net/wifi/join",
+        "net/internet/access",
     ] {
         assert!(
             projection
                 .entries
                 .iter()
-                .any(|entry| entry.semantic_identity == signal_boundary),
-            "catalog projects {signal_boundary}"
+                .any(|entry| entry.semantic_identity == semantic_boundary),
+            "catalog projects {semantic_boundary}"
         );
     }
     let media = projection

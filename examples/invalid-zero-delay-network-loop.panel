@@ -1,0 +1,11 @@
+# Invalid by design: packet recirculation has no finite retained state, delay,
+# hop boundary, or lifecycle policy. Patchbay must render and diagnose it.
+panel 0
+
+node router : net/packet/route {
+    lifecycle = "standing" prefix = "10.1.0.0" prefix_length = 16
+    egress_interface = 2 mtu = 1500 forwarding = "admitted" maximum_routes = 16
+    maximum_packet_bytes = 1500 maximum_evidence_events = 64
+}
+
+cord router.packet -> router.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }

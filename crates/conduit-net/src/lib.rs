@@ -7,11 +7,21 @@
 //! contracts, never their semantic identity.
 
 mod runtime_nodes;
+mod standing;
+mod types;
 
 pub use runtime_nodes::{
     DHCP_SERVER_CONTRACT, DNS_SD_CONTRACT, NETWORK_CONTRACTS, REACHABILITY_CONTRACT,
     WIFI_AP_CONTRACT, register_deterministic_network_fixture_providers, register_network_contracts,
 };
+pub use standing::{
+    EXECUTABLE_STANDING_NETWORK_CONTRACTS, LINK_OBSERVE_CONTRACT, NETWORK_EFFECT_CONTRACTS,
+    NETWORK_METER_CONTRACT, PACKET_CLASSIFY_CONTRACT, PACKET_ROUTE_CONTRACT, PACKET_SINK_CONTRACT,
+    PACKET_SOURCE_CONTRACT, SERVICE_OBSERVE_CONTRACT, SESSION_LISTEN_CONTRACT,
+    STANDING_NETWORK_CONTRACTS, register_deterministic_standing_network_providers,
+    register_portable_route_provider, register_standing_network_contracts,
+};
+pub use types::*;
 
 pub const MAXIMUM_CLIENTS: usize = 8;
 pub const MAXIMUM_NAME_BYTES: usize = 63;
@@ -53,6 +63,18 @@ pub enum NetworkReason {
     Cancelled,
     EvidenceFull,
     RoutingForbidden,
+    NoRoute,
+    HopExhausted,
+    MtuExceeded,
+    ForwardingDenied,
+    RouteTableFull,
+    RouteInvalid,
+    SessionTableFull,
+    SessionMissing,
+    StaleGeneration,
+    Bounds,
+    Unsupported,
+    InvalidTopology,
 }
 
 impl NetworkReason {
@@ -75,6 +97,15 @@ impl NetworkReason {
             Self::Cancelled => "CND-NET-009",
             Self::EvidenceFull => "CND-NET-010",
             Self::RoutingForbidden => "CND-NET-011",
+            Self::NoRoute => "CND-NET-012",
+            Self::HopExhausted => "CND-NET-013",
+            Self::MtuExceeded => "CND-NET-014",
+            Self::ForwardingDenied => "CND-NET-015",
+            Self::RouteTableFull | Self::RouteInvalid => "CND-NET-016",
+            Self::SessionTableFull | Self::SessionMissing | Self::StaleGeneration => "CND-NET-017",
+            Self::Bounds => "CND-NET-018",
+            Self::Unsupported => "CND-NET-019",
+            Self::InvalidTopology => "CND-NET-020",
         }
     }
 }
@@ -228,6 +259,16 @@ impl DhcpLeaseTable {
         }
     }
 
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.leases.iter().flatten().count()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn handle(
         &mut self,
         message: DhcpMessage,
@@ -257,7 +298,9 @@ impl DhcpLeaseTable {
             .flatten()
             .find(|lease| lease.client == client)
         {
-            lease.expires_at_tick = now_tick.saturating_add(DHCP_LEASE_TICKS);
+            lease.expires_at_tick = now_tick
+                .checked_add(DHCP_LEASE_TICKS)
+                .ok_or(NetworkReason::Bounds)?;
             return Ok(match message {
                 DhcpMessage::Discover => DhcpOutcome::Offered(*lease),
                 DhcpMessage::Renew => DhcpOutcome::Acknowledged(*lease),
@@ -269,14 +312,18 @@ impl DhcpLeaseTable {
             .iter()
             .position(Option::is_none)
             .ok_or(NetworkReason::PoolExhausted)?;
-        let generation = self.next_generation.max(1);
-        self.next_generation = self.next_generation.wrapping_add(1).max(1);
+        let generation = self.next_generation;
+        let next_generation = generation.checked_add(1).ok_or(NetworkReason::Bounds)?;
+        let expires_at_tick = now_tick
+            .checked_add(DHCP_LEASE_TICKS)
+            .ok_or(NetworkReason::Bounds)?;
         let lease = DhcpLease {
             client,
             address: Ipv4Address([192, 168, 4, DHCP_FIRST_ADDRESS + slot_index as u8]),
             generation,
-            expires_at_tick: now_tick.saturating_add(DHCP_LEASE_TICKS),
+            expires_at_tick,
         };
+        self.next_generation = next_generation;
         self.leases[slot_index] = Some(lease);
         Ok(match message {
             DhcpMessage::Discover => DhcpOutcome::Offered(lease),
@@ -294,9 +341,14 @@ impl DhcpLeaseTable {
             .find(|lease| lease.client == client)
     }
 
-    pub fn reboot(&mut self) {
+    pub fn reboot(&mut self) -> Result<(), NetworkReason> {
+        let next_generation = self
+            .next_generation
+            .checked_add(1)
+            .ok_or(NetworkReason::Bounds)?;
         self.leases = [None; MAXIMUM_CLIENTS];
-        self.next_generation = self.next_generation.wrapping_add(1).max(1);
+        self.next_generation = next_generation;
+        Ok(())
     }
 
     fn expire(&mut self, now_tick: u64) {
@@ -331,7 +383,10 @@ impl IcmpRateLimiter {
                 NetworkReason::PacketTooLarge
             });
         }
-        if now_tick.saturating_sub(self.window_started_at) >= ICMP_WINDOW_TICKS {
+        let elapsed = now_tick
+            .checked_sub(self.window_started_at)
+            .ok_or(NetworkReason::Bounds)?;
+        if elapsed >= ICMP_WINDOW_TICKS {
             self.window_started_at = now_tick;
             self.packets = 0;
         }
@@ -429,13 +484,18 @@ impl DnsSdTable {
             .iter_mut()
             .find(|record| record.is_none())
             .ok_or(NetworkReason::RecordTableFull)?;
+        let expires_at_tick = now_tick
+            .checked_add(ttl_ticks)
+            .ok_or(NetworkReason::Bounds)?;
+        let generation = self.next_generation;
+        let next_generation = generation.checked_add(1).ok_or(NetworkReason::Bounds)?;
         let record = DnsSdRecord {
             name,
             address,
-            generation: self.next_generation.max(1),
-            expires_at_tick: now_tick.saturating_add(ttl_ticks),
+            generation,
+            expires_at_tick,
         };
-        self.next_generation = self.next_generation.wrapping_add(1).max(1);
+        self.next_generation = next_generation;
         *slot = Some(record);
         Ok(record)
     }
@@ -449,9 +509,14 @@ impl DnsSdTable {
             .find(|record| record.name == name)
     }
 
-    pub fn reboot(&mut self) {
+    pub fn reboot(&mut self) -> Result<(), NetworkReason> {
+        let next_generation = self
+            .next_generation
+            .checked_add(1)
+            .ok_or(NetworkReason::Bounds)?;
         self.records = [None; MAXIMUM_RECORDS];
-        self.next_generation = self.next_generation.wrapping_add(1).max(1);
+        self.next_generation = next_generation;
+        Ok(())
     }
 
     fn expire(&mut self, now_tick: u64) {
@@ -566,9 +631,10 @@ impl MotherbrainRegistry {
         if requested_ttl_ticks == 0 {
             return Err(NetworkReason::RegistrationStale);
         }
-        let expires_at_tick = lease
-            .expires_at_tick
-            .min(now_tick.saturating_add(requested_ttl_ticks));
+        let requested_expiry = now_tick
+            .checked_add(requested_ttl_ticks)
+            .ok_or(NetworkReason::Bounds)?;
+        let expires_at_tick = lease.expires_at_tick.min(requested_expiry);
         let same = self.current.is_some_and(|current| {
             current.lease.client == lease.client
                 && current.lease.generation == lease.generation
@@ -579,8 +645,8 @@ impl MotherbrainRegistry {
         let generation = if same {
             self.current.expect("checked").registration_generation
         } else {
-            let generation = self.next_generation.max(1);
-            self.next_generation = self.next_generation.wrapping_add(1).max(1);
+            let generation = self.next_generation;
+            self.next_generation = generation.checked_add(1).ok_or(NetworkReason::Bounds)?;
             generation
         };
         let registration = MotherbrainRegistration {
@@ -600,10 +666,15 @@ impl MotherbrainRegistry {
             .filter(|registration| now_tick < registration.expires_at_tick)
     }
 
-    pub fn reboot(&mut self, boot_identity: u64) {
+    pub fn reboot(&mut self, boot_identity: u64) -> Result<(), NetworkReason> {
+        let next_generation = self
+            .next_generation
+            .checked_add(1)
+            .ok_or(NetworkReason::Bounds)?;
         self.expected_boot_identity = boot_identity;
         self.current = None;
-        self.next_generation = self.next_generation.wrapping_add(1).max(1);
+        self.next_generation = next_generation;
+        Ok(())
     }
 }
 
@@ -628,6 +699,8 @@ pub struct NetworkEvidence {
 pub struct EvidenceLog {
     events: [Option<NetworkEvidence>; MAXIMUM_EVIDENCE_EVENTS],
     length: usize,
+    head: usize,
+    next_sequence: u32,
 }
 
 impl Default for EvidenceLog {
@@ -642,6 +715,8 @@ impl EvidenceLog {
         Self {
             events: [None; MAXIMUM_EVIDENCE_EVENTS],
             length: 0,
+            head: 0,
+            next_sequence: 1,
         }
     }
 
@@ -651,19 +726,53 @@ impl EvidenceLog {
         kind: EvidenceKind,
         reason: Option<NetworkReason>,
     ) -> Result<NetworkEvidence, NetworkReason> {
-        let slot = self
-            .events
-            .get_mut(self.length)
+        let following_sequence = self
+            .next_sequence
+            .checked_add(1)
             .ok_or(NetworkReason::EvidenceFull)?;
+        let index = if self.length < MAXIMUM_EVIDENCE_EVENTS {
+            let index = (self.head + self.length) % MAXIMUM_EVIDENCE_EVENTS;
+            self.length += 1;
+            index
+        } else {
+            let index = self.head;
+            self.head = (self.head + 1) % MAXIMUM_EVIDENCE_EVENTS;
+            index
+        };
         let event = NetworkEvidence {
-            sequence: self.length as u32 + 1,
+            sequence: self.next_sequence,
             tick,
             kind,
             reason,
         };
-        *slot = Some(event);
-        self.length += 1;
+        self.events[index] = Some(event);
+        self.next_sequence = following_sequence;
         Ok(event)
+    }
+
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.length
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.length == 0
+    }
+
+    #[must_use]
+    pub fn oldest(&self) -> Option<NetworkEvidence> {
+        (self.length != 0).then(|| self.events[self.head]).flatten()
+    }
+
+    #[must_use]
+    pub fn latest(&self) -> Option<NetworkEvidence> {
+        (self.length != 0)
+            .then(|| {
+                let index = (self.head + self.length - 1) % MAXIMUM_EVIDENCE_EVENTS;
+                self.events[index]
+            })
+            .flatten()
     }
 }
 
@@ -796,7 +905,7 @@ mod tests {
         assert!(table.resolve(name, 9).is_some());
         assert_eq!(table.resolve(name, 10), None);
         table.publish(name, AP_ADDRESS, 10, 10).unwrap();
-        table.reboot();
+        table.reboot().expect("generation remains bounded");
         assert_eq!(table.resolve(name, 11), None);
     }
 
@@ -809,6 +918,65 @@ mod tests {
             Err(NetworkReason::PortConflict)
         );
         ports.bind(TransportProtocol::Udp, 80).unwrap();
+    }
+
+    #[test]
+    fn retained_generations_time_and_expiry_fail_closed_without_wrap_or_saturation() {
+        let mut leases = DhcpLeaseTable::new();
+        leases.next_generation = u32::MAX;
+        assert_eq!(
+            leases.handle(DhcpMessage::Discover, client(1), 64, 0),
+            Err(NetworkReason::Bounds)
+        );
+        assert!(leases.is_empty());
+
+        let mut leases = DhcpLeaseTable::new();
+        let near_max = u64::MAX - DHCP_LEASE_TICKS;
+        leases
+            .handle(DhcpMessage::Discover, client(1), 64, near_max)
+            .unwrap();
+        let original = leases.lease_for(client(1), near_max).unwrap();
+        assert_eq!(
+            leases.handle(DhcpMessage::Renew, client(1), 64, near_max + 1),
+            Err(NetworkReason::Bounds)
+        );
+        assert_eq!(leases.lease_for(client(1), near_max + 1), Some(original));
+        leases.next_generation = u32::MAX;
+        assert_eq!(leases.reboot(), Err(NetworkReason::Bounds));
+        assert_eq!(leases.lease_for(client(1), near_max + 1), Some(original));
+
+        let mut limiter = IcmpRateLimiter::new();
+        limiter.admit(64, ICMP_WINDOW_TICKS).unwrap();
+        assert_eq!(
+            limiter.admit(64, ICMP_WINDOW_TICKS - 1),
+            Err(NetworkReason::Bounds)
+        );
+
+        let mut records = DnsSdTable::new();
+        let name = ServiceName::new("pete.local").unwrap();
+        assert_eq!(
+            records.publish(name, AP_ADDRESS, 2, u64::MAX - 1),
+            Err(NetworkReason::Bounds)
+        );
+        records.next_generation = u32::MAX;
+        assert_eq!(
+            records.publish(name, AP_ADDRESS, 1, 0),
+            Err(NetworkReason::Bounds)
+        );
+        assert_eq!(records.resolve(name, 0), None);
+
+        let DhcpOutcome::Offered(lease) = DhcpLeaseTable::new()
+            .handle(DhcpMessage::Discover, client(2), 64, 0)
+            .unwrap()
+        else {
+            panic!("discover did not offer");
+        };
+        let mut registry = MotherbrainRegistry::new(10, 20);
+        assert_eq!(
+            registry.register(lease, 10, 20, lease.generation, u64::MAX, 1,),
+            Err(NetworkReason::Bounds)
+        );
+        assert_eq!(registry.resolve(1), None);
     }
 
     #[test]
@@ -838,7 +1006,7 @@ mod tests {
             .unwrap();
         assert_eq!(registry.resolve(99), Some(registration));
         assert_eq!(registry.resolve(100), None);
-        registry.reboot(21);
+        registry.reboot(21).expect("generation remains bounded");
         assert_eq!(registry.resolve(1), None);
     }
 
@@ -874,6 +1042,20 @@ mod tests {
             )
             .unwrap();
         evidence.push(5, EvidenceKind::Terminal, None).unwrap();
+    }
+
+    #[test]
+    fn standing_evidence_retains_one_exact_bounded_window() {
+        let mut evidence = EvidenceLog::new();
+        for tick in 0..(MAXIMUM_EVIDENCE_EVENTS as u64 + 3) {
+            evidence.push(tick, EvidenceKind::Accepted, None).unwrap();
+        }
+        assert_eq!(evidence.len(), MAXIMUM_EVIDENCE_EVENTS);
+        assert_eq!(evidence.oldest().unwrap().sequence, 4);
+        assert_eq!(
+            evidence.latest().unwrap().sequence,
+            MAXIMUM_EVIDENCE_EVENTS as u32 + 3
+        );
     }
 
     #[test]

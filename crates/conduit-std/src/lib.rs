@@ -2829,45 +2829,6 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "receipt",
         "host/evidence-export"
     ),
-    host_entry!(
-        "net/observe",
-        Network,
-        "request",
-        "observation",
-        "host/network-observe"
-    ),
-    host_entry!(
-        "net/wifi/scan",
-        Network,
-        "request",
-        "network",
-        "host/wifi-scan"
-    ),
-    host_entry!(
-        "net/wifi/join",
-        Network,
-        "configuration",
-        "state",
-        "host/wifi-station"
-    ),
-    host_entry!(
-        "net/ip/configure-static",
-        Network,
-        "configuration",
-        "state",
-        "host/address-config"
-    ),
-    host_entry!(
-        "net/dhcp/client",
-        Network,
-        "request",
-        "lease",
-        "host/dhcp-client"
-    ),
-    host_entry!("net/dns/resolve", Network, "name", "addresses", "host/dns"),
-    host_entry!("net/route", Network, "route", "state", "host/route"),
-    host_entry!("net/bridge", Network, "frame", "frame", "host/bridge"),
-    host_entry!("net/nat", Network, "packet", "packet", "host/nat"),
     {
         let mut value = entry!(
             "conduit.host/net/tcp/connect",

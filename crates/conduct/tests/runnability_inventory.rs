@@ -290,7 +290,13 @@ fn every_checked_panel_has_one_verified_runnability_state() {
         }
         if entry.state == "persistent" {
             assert!(
-                ["canonical-file-watch", "canonical-http-listener"].contains(&entry.proof.as_str()),
+                [
+                    "canonical-file-watch",
+                    "canonical-http-listener",
+                    "canonical-standing-network",
+                    "canonical-standing-network-check",
+                ]
+                .contains(&entry.proof.as_str()),
                 "{} has a checked persistent-provider proof",
                 entry.path
             );
@@ -467,11 +473,19 @@ fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_bindin
     conduit_net::register_deterministic_network_fixture_providers(&mut registry)
         .expect("no-radio fixtures install");
 
-    for key in ["resource", "grant", "interface"] {
+    for key in [
+        "resource",
+        "grant",
+        "provider",
+        "initialized",
+        "fresh",
+        "authenticated",
+        "internet",
+    ] {
         let source = base.replace(
-            "    maximum_request_bytes =",
+            "    address = \"192.168.4.1\"",
             &format!(
-                "    {key} = secret(\"forged/network-authority\")\n    maximum_request_bytes ="
+                "    {key} = secret(\"forged/network-authority\")\n    address = \"192.168.4.1\""
             ),
         );
         let error = match conduit_compile::InstalledProfile::observe_registry(&source, &registry) {
@@ -507,26 +521,14 @@ fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_bindin
             .all(|resource| !resource.node.as_str().starts_with("wifi_ap"))
     );
 
-    // The compatibility path can invoke this handler without an exact binding
-    // only because this fixture is deterministic and has no radio/socket/effect
-    // backend. A physical provider must reject this path before opening I/O.
-    let panel = conduit_panel::parse(&base).expect("fixture panel parses");
-    let resolved = registry.resolve(&panel).expect("fixture resolves");
-    let mut input = &b""[..];
-    let mut output = Vec::new();
-    let mut error = Vec::new();
-    let mut display = Vec::new();
-    resolved
-        .run_batch(&mut conduit_runtime::RunIo {
-            input: &mut input,
-            output: &mut output,
-            error: &mut error,
-            display: &mut display,
-        })
-        .expect("pure no-radio fixture may not require a physical effect binding");
-    assert_eq!(
-        display,
-        b"wifi-ap:pete-fixture:192.168.4.1:clients=8:no-route:no-bridge:no-nat"
+    // These are standing step providers, so the displaced finite `run_batch`
+    // compatibility path is intentionally absent. Exact execution profiles
+    // are still sealed without any physical resource or authority binding.
+    assert!(
+        plan.nodes
+            .iter()
+            .all(|node| node.execution_profile.is_some()),
+        "every standing fixture node pins bounded step limits"
     );
 }
 

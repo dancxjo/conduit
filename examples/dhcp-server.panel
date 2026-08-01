@@ -1,11 +1,25 @@
+# One standing deterministic isolated-local network. The same typed chain is the
+# semantic overlap a truthful Pico W provider may satisfy with current observation and authority.
 panel 0
-node request : std/literal { value = "discover:client-fixture" }
-node dhcp : net/dhcp/server {
-    maximum_request_bytes = 1500 maximum_response_bytes = 256 maximum_pending = 1 maximum_evidence_events = 64 deadline_ticks = 1000 cancellation = "cancel-before-commit"
-    server_address = "192.168.4.1" pool_first = "192.168.4.2" pool_last = "192.168.4.9" maximum_leases = 8 lease_ticks = 3600000
+
+node wifi_ap : net/wifi/access-point {
+    lifecycle = "standing" topology = "isolated-local-only" interface = 1
+    address = "192.168.4.1" prefix_length = 24 maximum_clients = 8
+    period_ticks = 1000 freshness_ticks = 2000 maximum_evidence_events = 64
 }
-node summary : std/text/join { separator = "" maximum_items = 1 maximum_item_bytes = 256 maximum_separator_bytes = 1 maximum_output_bytes = 256 }
-node display : display/text
-cord request.value -> dhcp.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord dhcp.lease -> summary.item { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord summary.text -> display.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+node dhcp : net/dhcp/server {
+    lifecycle = "standing" lease_ticks = 3600000 maximum_leases = 8 maximum_pending = 1
+    maximum_evidence_events = 64 cancellation = "cancel-before-commit"
+}
+node dns_sd : net/dns-sd {
+    lifecycle = "standing" name = "pete.local" port = 8080 ttl_ticks = 120000
+    maximum_records = 8 maximum_name_bytes = 63 maximum_evidence_events = 64
+}
+node reachability : net/reachability {
+    lifecycle = "standing" scope = "local-network" maximum_packet_bytes = 1500
+    maximum_packets_per_window = 4 window_ticks = 1000 maximum_evidence_events = 64
+}
+
+cord wifi_ap.address -> dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+cord dhcp.lease -> dns_sd.lease { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+cord dns_sd.registration -> reachability.registration { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }

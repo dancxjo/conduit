@@ -2,7 +2,7 @@
 
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, VecDeque},
+    collections::{BTreeMap, BTreeSet, VecDeque},
 };
 
 use wasm_bindgen::prelude::*;
@@ -2301,6 +2301,49 @@ fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     Some(conduit_patchbay::PlanSnapshot::from_exact_plan(&plan))
 }
 
+fn patchbay_cycle_participants(
+    cords: &[conduit_patchbay::PatchbayCordProjection],
+) -> (BTreeSet<String>, BTreeSet<String>) {
+    let mut cycle_nodes = BTreeSet::new();
+    let mut cycle_cords = BTreeSet::new();
+    for candidate in cords {
+        let (Some(from), Some(to)) = (&candidate.from_node, &candidate.to_node) else {
+            continue;
+        };
+        let mut visited = BTreeSet::new();
+        let mut pending = vec![to.clone()];
+        let mut returns_to_source = to == from;
+        while !returns_to_source {
+            let Some(node) = pending.pop() else {
+                break;
+            };
+            if !visited.insert(node.clone()) {
+                continue;
+            }
+            for cord in cords.iter().filter(|cord| {
+                cord.from_node
+                    .as_deref()
+                    .is_some_and(|source| source == node)
+            }) {
+                let Some(next) = cord.to_node.as_ref() else {
+                    continue;
+                };
+                if next == from {
+                    returns_to_source = true;
+                    break;
+                }
+                pending.push(next.clone());
+            }
+        }
+        if returns_to_source {
+            cycle_cords.insert(candidate.id.clone());
+            cycle_nodes.insert(from.clone());
+            cycle_nodes.insert(to.clone());
+        }
+    }
+    (cycle_nodes, cycle_cords)
+}
+
 fn authoritative_patchbay_view(
     workspace: &conduit_patchbay::Workspace,
     exact_plan: Option<conduit_patchbay::PlanSnapshot>,
@@ -2865,10 +2908,41 @@ fn authoritative_patchbay_view(
     }
 
     mark_connected_ports(&mut logical_nodes, &cords);
-    let resolved = document
-        .ast
-        .as_ref()
-        .and_then(|panel| registry.resolve(panel).ok());
+    let resolved_result = document.ast.as_ref().map(|panel| registry.resolve(panel));
+    if let Some(Err(error)) = resolved_result.as_ref()
+        && error.code == "CND-CMP-001"
+    {
+        let (cycle_nodes, cycle_cords) = patchbay_cycle_participants(&cords);
+        let id = add_patchbay_diagnostic(
+            &mut diagnostics,
+            source_revision,
+            error.code,
+            "error",
+            "invalid-topology",
+            error.message.clone(),
+            "This dependency cycle has no explicit finite temporal boundary. Add a domain-appropriate retained-state, delay, or lifecycle boundary, or remove the cycle; scheduler order cannot define feedback.",
+            cords
+                .iter()
+                .find(|cord| cycle_cords.contains(&cord.id))
+                .and_then(|cord| cord.source_range.clone()),
+            vec![("source", workspace.source().document_id.as_str())],
+        );
+        for node in logical_nodes
+            .iter_mut()
+            .filter(|node| cycle_nodes.contains(&node.id))
+        {
+            node.validity = "invalid-topology".to_owned();
+            node.diagnostic_ids.push(id.clone());
+        }
+        for cord in cords
+            .iter_mut()
+            .filter(|cord| cycle_cords.contains(&cord.id))
+        {
+            cord.validity = "invalid-topology".to_owned();
+            cord.diagnostic_ids.push(id.clone());
+        }
+    }
+    let resolved = resolved_result.and_then(Result::ok);
     let resolved_view = resolved.as_ref().map(conduit_runtime::ResolvedPanel::view);
     if let Some(view) = resolved_view.as_ref() {
         for cord in &mut cords {

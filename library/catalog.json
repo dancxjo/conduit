@@ -3250,7 +3250,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3339,7 +3339,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3449,7 +3449,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3538,7 +3538,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -3642,7 +3642,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4000,7 +4000,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4559,7 +4559,7 @@
         {
           "implementation": "conduit/hosted-discard",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4641,7 +4641,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5145,7 +5145,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5762,7 +5762,7 @@
         {
           "implementation": "conduit/hosted-file-chunk-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6165,7 +6165,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6217,7 +6217,7 @@
         {
           "implementation": "conduit/hosted-stderr-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6269,7 +6269,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6321,7 +6321,7 @@
         {
           "implementation": "conduit/hosted-stdin-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6373,7 +6373,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6425,7 +6425,7 @@
         {
           "implementation": "conduit/hosted-stdout-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6935,6 +6935,125 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "net/address/assign",
+      "public_source_spelling": "net/address/assign",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/address/assign",
+      "schema_version": 0,
+      "semantic_hash": "sha256:008695a51a54170c2491760968ced18521865a5496c631ef0ede91d7870f475e",
+      "ports": [
+        {
+          "id": "request",
+          "direction": "input",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/address-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "family",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "address",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "prefix_length",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_states",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.address.assign.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.address.assign.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "net/bridge",
       "public_source_spelling": "net/bridge",
       "classification": "optional-host-boundary",
@@ -6942,14 +7061,14 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/bridge",
       "schema_version": 0,
-      "semantic_hash": "sha256:6cf423b8ab6cfe0abb8b8c367e77db4f4f86a026563f66717e59bc4e161a626e",
+      "semantic_hash": "sha256:903b5d77a678beb056fc4e87dd1ef066934b730757d23e09cacb3acce80f399d",
       "ports": [
         {
           "id": "frame",
           "direction": "input",
-          "value_type": "std/bytes",
+          "value_type": "conduit.net/frame",
           "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "type_hash": "sha256:14a02e0431c15373f1bb621a813adcf2be9099c070a54a5ced1a4cbae257f34b",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -6957,57 +7076,72 @@
           "temporal": "committed",
           "terminal": "either",
           "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "loss": "type-contract-defined"
         },
         {
           "id": "frame",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "conduit.net/frame",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:14a02e0431c15373f1bb621a813adcf2be9099c070a54a5ced1a4cbae257f34b",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "lifecycle",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
+          "key": "left_interface",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "right_interface",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "maximum_frame_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
-      "catalog_membership": "portable-catalog",
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7027,6 +7161,273 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "net/datagram/impair",
+      "public_source_spelling": "net/datagram/impair",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/datagram/impair",
+      "schema_version": 0,
+      "semantic_hash": "sha256:91516529ebd09ef1b401452c2a1abf54e8f9ba656c08db85b7ec1b37b82bbf1b",
+      "ports": [
+        {
+          "id": "datagram",
+          "direction": "input",
+          "value_type": "conduit.net/datagram",
+          "type_schema_version": 0,
+          "type_hash": "sha256:84129420b69e60fc4ec72aec0054d23cb725529c0fc3a0db9f25a583cb723378",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "datagram",
+          "direction": "output",
+          "value_type": "conduit.net/datagram",
+          "type_schema_version": 0,
+          "type_hash": "sha256:84129420b69e60fc4ec72aec0054d23cb725529c0fc3a0db9f25a583cb723378",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "pattern",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_datagram_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.datagram.impair.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.datagram.impair.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/datagram/sink",
+      "public_source_spelling": "net/datagram/sink",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/datagram/sink",
+      "schema_version": 0,
+      "semantic_hash": "sha256:16b88ac0aacd0b4456874b9828eb64021fed10cc52278619ff1b6088b930723c",
+      "ports": [
+        {
+          "id": "datagram",
+          "direction": "input",
+          "value_type": "conduit.net/datagram",
+          "type_schema_version": 0,
+          "type_hash": "sha256:84129420b69e60fc4ec72aec0054d23cb725529c0fc3a0db9f25a583cb723378",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_datagrams_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_items",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.datagram.sink.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.datagram.sink.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/datagram/source",
+      "public_source_spelling": "net/datagram/source",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/datagram/source",
+      "schema_version": 0,
+      "semantic_hash": "sha256:7aa5fd65cb5b550691b5c22a9804792fcf09a4cc478d4a714e9deeb693b9896d",
+      "ports": [
+        {
+          "id": "datagram",
+          "direction": "output",
+          "value_type": "conduit.net/datagram",
+          "type_schema_version": 0,
+          "type_hash": "sha256:84129420b69e60fc4ec72aec0054d23cb725529c0fc3a0db9f25a583cb723378",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "source_port",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "destination_port",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "payload_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_datagram_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_datagrams_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.datagram.source.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.datagram.source.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "net/dhcp/client",
       "public_source_spelling": "net/dhcp/client",
       "classification": "optional-host-boundary",
@@ -7034,16 +7435,16 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/dhcp/client",
       "schema_version": 0,
-      "semantic_hash": "sha256:d3049a2fb777a38e02bf70ebd047f4dd55f7ac9d1f96f4f7288d90548ce035ab",
+      "semantic_hash": "sha256:3896686f1b30b43d803d46253c6594eda7bb50243a0e49ee9c265ed195f047e9",
       "ports": [
         {
           "id": "request",
           "direction": "input",
-          "value_type": "std/bytes",
+          "value_type": "conduit.net/control-event",
           "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -7054,52 +7455,82 @@
         {
           "id": "lease",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "conduit.net/dhcp-lease",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:f782e5c0fccc186c6e934a399315c2f998ae2bf034b9f3f6d688301eef25c5c4",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "lifecycle",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
+          "key": "interface",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "maximum_leases",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
-      "catalog_membership": "portable-catalog",
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7126,48 +7557,69 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/dhcp/server",
       "schema_version": 0,
-      "semantic_hash": "sha256:aa061b955e99e55a3ee077a190bbcd5748c69efb6703a342942b44c697b0ac31",
+      "semantic_hash": "sha256:e258ebfb88118205a1b1f4c148b6f362e8f84a06b309eecc2679b586bc925047",
       "ports": [
         {
-          "id": "request",
+          "id": "address",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "conduit.net/address-state",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
           "id": "lease",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/dhcp-lease",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f782e5c0fccc186c6e934a399315c2f998ae2bf034b9f3f6d688301eef25c5c4",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
         }
       ],
       "config": [
         {
-          "key": "maximum_request_bytes",
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "lease_ticks",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "maximum_leases",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
@@ -7185,46 +7637,10 @@
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "deadline_ticks",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
           "key": "cancellation",
           "value_type": "std/text",
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "server_address",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "pool_first",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "pool_last",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "maximum_leases",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "lease_ticks",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
       "catalog_membership": "host-registry",
@@ -7254,72 +7670,57 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/dns-sd",
       "schema_version": 0,
-      "semantic_hash": "sha256:8aab452175fcb2335268adb221d6d715f6fd2f8f4a1d4d8142d9cad865a33b05",
+      "semantic_hash": "sha256:35493926a4c630a703c9382a6625cbee6a52e8bd6a1184b4f6ccb9533ad3e6ce",
       "ports": [
         {
-          "id": "request",
+          "id": "lease",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "conduit.net/dhcp-lease",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:f782e5c0fccc186c6e934a399315c2f998ae2bf034b9f3f6d688301eef25c5c4",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
-          "id": "record",
+          "id": "registration",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/service-registration",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:c2366ca453ddf5ef1540c1f7eca5ad8242964705baaafd3ac6eb531bd559024b",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
         }
       ],
       "config": [
         {
-          "key": "maximum_request_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_response_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_pending",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_evidence_events",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "deadline_ticks",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "cancellation",
+          "key": "lifecycle",
           "value_type": "std/text",
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
@@ -7331,10 +7732,10 @@
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "address",
-          "value_type": "std/text",
+          "key": "port",
+          "value_type": "std/u64",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
           "key": "ttl_ticks",
@@ -7350,6 +7751,12 @@
         },
         {
           "key": "maximum_name_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
@@ -7382,41 +7789,93 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/dns/resolve",
       "schema_version": 0,
-      "semantic_hash": "sha256:1e185fff11986720a6ce4c1d799f0cc54147d8a57f9fac079905223afbec4d03",
+      "semantic_hash": "sha256:8905c8afcd79cfb888d338dc6be8a150f2b7b0a8512a1895f09d7893a64ce1a5",
       "ports": [
         {
-          "id": "name",
+          "id": "request",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "conduit.net/control-event",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
-          "id": "addresses",
+          "id": "result",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/service-registration",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "type_hash": "sha256:c2366ca453ddf5ef1540c1f7eca5ad8242964705baaafd3ac6eb531bd559024b",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
-      "config": [],
-      "catalog_membership": "portable-catalog",
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "name",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "family",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "transport",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_results",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7429,6 +7888,389 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.net.dns.resolve.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/firewall",
+      "public_source_spelling": "net/firewall",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/firewall",
+      "schema_version": 0,
+      "semantic_hash": "sha256:5514e8c6d3893cc8783a9baefdcd2284fecbf1d926441a7536bbfb459266f689",
+      "ports": [
+        {
+          "id": "packet",
+          "direction": "input",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "packet",
+          "direction": "output",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "policy",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packets_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.firewall.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.firewall.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/forward",
+      "public_source_spelling": "net/forward",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/forward",
+      "schema_version": 0,
+      "semantic_hash": "sha256:39790da1272927930b603c6b04e4178deda1af775c9987fc02c7ce82b74b4e9e",
+      "ports": [
+        {
+          "id": "packet",
+          "direction": "input",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "packet",
+          "direction": "output",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "policy",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packets_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.forward.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.forward.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/frame/sink",
+      "public_source_spelling": "net/frame/sink",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/frame/sink",
+      "schema_version": 0,
+      "semantic_hash": "sha256:bdc5716f507cf16942d9fa33588e4fd3aaff5e2f9193f54a097744f358f8d3e1",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.net/frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:14a02e0431c15373f1bb621a813adcf2be9099c070a54a5ced1a4cbae257f34b",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_frames_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_items",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.frame.sink.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.frame.sink.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/frame/source",
+      "public_source_spelling": "net/frame/source",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/frame/source",
+      "schema_version": 0,
+      "semantic_hash": "sha256:5f450a8ed1371be66f1943ee98b0b6964980ffd320a73b1078a6fcbbfc1b6dc0",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.net/frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:14a02e0431c15373f1bb621a813adcf2be9099c070a54a5ced1a4cbae257f34b",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "payload_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_frame_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.frame.source.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.frame.source.composition",
         "status": "required"
       },
       "successor": null,
@@ -7875,47 +8717,93 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "net/interface",
-      "public_source_spelling": "net/interface",
+      "semantic_identity": "net/internet/access",
+      "public_source_spelling": "net/internet/access",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.net",
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
-      "export_path": "conduit.host.net/net/interface",
+      "export_path": "conduit.host.net/net/internet/access",
       "schema_version": 0,
-      "semantic_hash": "sha256:9fb0bf94aaa25603457903eeee35f0bb4ceed96f9050f2bda901dc6b805ca2e1",
+      "semantic_hash": "sha256:e50eddd4e975b50b01165aded8704799159f328de36ca4c39aed16c1b24f9b0b",
       "ports": [
         {
-          "id": "configuration",
+          "id": "request",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "conduit.net/control-event",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
-          "id": "state",
+          "id": "observation",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/reachability-observation",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "type_hash": "sha256:c3be7e12d014da886c0d5f099f0b4202f87754e46eac4ecaa703f9cdd488803f",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
-      "config": [],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "scope",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_observations",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
       "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
@@ -7924,11 +8812,11 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.interface.standalone",
+        "artifact": "tour/lessons/current.json#library.net.internet.access.standalone",
         "status": "required"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.interface.composition",
+        "artifact": "tour/lessons/current.json#library.net.internet.access.composition",
         "status": "required"
       },
       "successor": null,
@@ -7936,79 +8824,103 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "net/ip/configure-static",
-      "public_source_spelling": "net/ip/configure-static",
+      "semantic_identity": "net/link/observe",
+      "public_source_spelling": "net/link/observe",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.net",
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
-      "export_path": "conduit.host.net/net/ip/configure-static",
+      "export_path": "conduit.host.net/net/link/observe",
       "schema_version": 0,
-      "semantic_hash": "sha256:82a6df8b45798e3ac89e25201bbdbc08d44285039f898b950d05909b71b8c2bd",
+      "semantic_hash": "sha256:75d0103c5d61d79150f39aaec6d9c8240f8e9c19e3f90a504b99736aef204b4e",
       "ports": [
         {
-          "id": "configuration",
-          "direction": "input",
-          "value_type": "std/bytes",
+          "id": "observation",
+          "direction": "output",
+          "value_type": "conduit.net/link-observation",
           "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:0ee5fc0b873d70a2e53816ea5b2cb8a3633c06104cf3d3ee4bc15a3cf14aca02",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "type-contract-defined"
         },
         {
-          "id": "state",
+          "id": "event",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "conduit.net/control-event",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "lifecycle",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
+          "key": "interface",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "kind",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "carrier",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "address",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "mtu",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "freshness_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
-      "catalog_membership": "portable-catalog",
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8016,11 +8928,237 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.ip.configure-static.standalone",
+        "artifact": "tour/lessons/current.json#library.net.link.observe.standalone",
         "status": "required"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.ip.configure-static.composition",
+        "artifact": "tour/lessons/current.json#library.net.link.observe.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/link/virtual",
+      "public_source_spelling": "net/link/virtual",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/link/virtual",
+      "schema_version": 0,
+      "semantic_hash": "sha256:4ef5ccb81bdaa517f16feebed4118d22d218479a5ea39341d855da192856819a",
+      "ports": [
+        {
+          "id": "request",
+          "direction": "input",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "observation",
+          "direction": "output",
+          "value_type": "conduit.net/link-observation",
+          "type_schema_version": 0,
+          "type_hash": "sha256:0ee5fc0b873d70a2e53816ea5b2cb8a3633c06104cf3d3ee4bc15a3cf14aca02",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "mtu",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_events_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.link.virtual.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.link.virtual.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/link/wired",
+      "public_source_spelling": "net/link/wired",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/link/wired",
+      "schema_version": 0,
+      "semantic_hash": "sha256:bc69cfb61052bad600e6f6097d943f364d04fcb5d5600dd57e1a4d44f0e3e702",
+      "ports": [
+        {
+          "id": "request",
+          "direction": "input",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "observation",
+          "direction": "output",
+          "value_type": "conduit.net/link-observation",
+          "type_schema_version": 0,
+          "type_hash": "sha256:0ee5fc0b873d70a2e53816ea5b2cb8a3633c06104cf3d3ee4bc15a3cf14aca02",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "mtu",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_events_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.link.wired.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.link.wired.composition",
         "status": "required"
       },
       "successor": null,
@@ -8035,14 +9173,14 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/nat",
       "schema_version": 0,
-      "semantic_hash": "sha256:c26d9833eb8eef32fe25a48ba6ecc1a82819c77384c9e2374bf6755a04b53303",
+      "semantic_hash": "sha256:3a2ff5e28a41edefc81f351e5b197a6511c07938b8340e2470d6458e9ee9b4e3",
       "ports": [
         {
           "id": "packet",
           "direction": "input",
-          "value_type": "std/bytes",
+          "value_type": "conduit.net/packet",
           "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -8050,57 +9188,72 @@
           "temporal": "committed",
           "terminal": "either",
           "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "loss": "type-contract-defined"
         },
         {
           "id": "packet",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "conduit.net/packet",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "lifecycle",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
+          "key": "policy",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "maximum_request_bytes",
+          "key": "maximum_packet_bytes",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "maximum_packets_per_step",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
-      "catalog_membership": "portable-catalog",
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8120,21 +9273,21 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "net/observe",
-      "public_source_spelling": "net/observe",
+      "semantic_identity": "net/observe/meter",
+      "public_source_spelling": "net/observe/meter",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.net",
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
-      "export_path": "conduit.host.net/net/observe",
+      "export_path": "conduit.host.net/net/observe/meter",
       "schema_version": 0,
-      "semantic_hash": "sha256:b09e3150534162e58befb9a6f6cfaedc5f1540372be1dfb584b1555d3b83851a",
+      "semantic_hash": "sha256:ddccceb7bbc19b85ae07621c7cf13232126c0f71637eaefd19e5125d5b9651b1",
       "ports": [
         {
-          "id": "request",
+          "id": "packet",
           "direction": "input",
-          "value_type": "std/bytes",
+          "value_type": "conduit.net/packet",
           "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -8142,57 +9295,51 @@
           "temporal": "committed",
           "terminal": "either",
           "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "loss": "type-contract-defined"
         },
         {
-          "id": "observation",
+          "id": "state",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "conduit.net/retained-state",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
-          "loss": "lossless-only"
+          "loss": "type-contract-defined"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "lifecycle",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
+          "key": "maximum_packets_per_step",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "maximum_retained_items",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
-      "catalog_membership": "portable-catalog",
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8200,11 +9347,501 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.observe.standalone",
+        "artifact": "tour/lessons/current.json#library.net.observe.meter.standalone",
         "status": "required"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.observe.composition",
+        "artifact": "tour/lessons/current.json#library.net.observe.meter.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/observe/service",
+      "public_source_spelling": "net/observe/service",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/observe/service",
+      "schema_version": 0,
+      "semantic_hash": "sha256:f48097f2b7c2464e4ad75d2d86fc867a085ecc829638b58eb147aa0f57b6b0bf",
+      "ports": [
+        {
+          "id": "session",
+          "direction": "input",
+          "value_type": "conduit.net/session",
+          "type_schema_version": 0,
+          "type_hash": "sha256:439e482e79761a55c1b1891e6348506ac32464b960669edcf519203970d75ebf",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "event",
+          "direction": "input",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "input",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_retained_items",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.observe.service.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.observe.service.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/packet/classify",
+      "public_source_spelling": "net/packet/classify",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/packet/classify",
+      "schema_version": 0,
+      "semantic_hash": "sha256:508c3984a4457f88759219562ee0d1ab57ca327983e86404ffd89ceea1d9bc60",
+      "ports": [
+        {
+          "id": "packet",
+          "direction": "input",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "packet",
+          "direction": "output",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "admitted_prefix",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "prefix_length",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.classify.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.classify.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/packet/route",
+      "public_source_spelling": "net/packet/route",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/packet/route",
+      "schema_version": 0,
+      "semantic_hash": "sha256:be3bbed29eae49fccfb96b341e1c9cf82e9183a1476f9320eb787dd935b49125",
+      "ports": [
+        {
+          "id": "packet",
+          "direction": "input",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "packet",
+          "direction": "output",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "prefix",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "prefix_length",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "egress_interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "mtu",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "forwarding",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_routes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.route.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.route.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/packet/sink",
+      "public_source_spelling": "net/packet/sink",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/packet/sink",
+      "schema_version": 0,
+      "semantic_hash": "sha256:183b7eab9cbf942464c688598427a6852a4993423bb688063af4972223105c0b",
+      "ports": [
+        {
+          "id": "packet",
+          "direction": "input",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_packets_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_items",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.sink.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.sink.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/packet/source",
+      "public_source_spelling": "net/packet/source",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/packet/source",
+      "schema_version": 0,
+      "semantic_hash": "sha256:b70ccbb10beec590e8b86b2bc6a05b29fa2790e0d67c21435c73bff255b8a0fd",
+      "ports": [
+        {
+          "id": "packet",
+          "direction": "output",
+          "value_type": "conduit.net/packet",
+          "type_schema_version": 0,
+          "type_hash": "sha256:4d207e68277c9048a20292bab7cefb77b7df6bdafd466595d4372fb4c50010bd",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "source",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "destination",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "hop_limit",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "payload_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packets_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.source.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.packet.source.composition",
         "status": "required"
       },
       "successor": null,
@@ -8219,78 +9856,48 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/reachability",
       "schema_version": 0,
-      "semantic_hash": "sha256:c3150aca74524a62e44564a40502e2651ad0f27b300413706088e73e310fdf06",
+      "semantic_hash": "sha256:b4cbb0e3f6e676583a3ef2eb7a4f2eed59ed82ea842f0f8fe4e6eeafea8ed91c",
       "ports": [
         {
-          "id": "target",
+          "id": "registration",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "conduit.net/service-registration",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:c2366ca453ddf5ef1540c1f7eca5ad8242964705baaafd3ac6eb531bd559024b",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
           "id": "observation",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/reachability-observation",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
+          "type_hash": "sha256:c3be7e12d014da886c0d5f099f0b4202f87754e46eac4ecaa703f9cdd488803f",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "finite",
+          "terminal": "open-ended",
           "sensitivity": "public",
           "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "maximum_request_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_response_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_pending",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_evidence_events",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "deadline_ticks",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "cancellation",
+          "key": "lifecycle",
           "value_type": "std/text",
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "address",
+          "key": "scope",
           "value_type": "std/text",
           "type_schema_version": 0,
           "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
@@ -8309,6 +9916,12 @@
         },
         {
           "key": "window_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
@@ -8334,23 +9947,23 @@
       "compatible_adapter_artifacts": []
     },
     {
-      "semantic_identity": "net/route",
-      "public_source_spelling": "net/route",
+      "semantic_identity": "net/route/install",
+      "public_source_spelling": "net/route/install",
       "classification": "optional-host-boundary",
       "package_owner": "conduit.host.net",
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
-      "export_path": "conduit.host.net/net/route",
+      "export_path": "conduit.host.net/net/route/install",
       "schema_version": 0,
-      "semantic_hash": "sha256:a0e1f7a99440ad00c9ce3d1476f74628067eb6449d13fe023f33bd9f36c83053",
+      "semantic_hash": "sha256:499979a51d6b3e8f47ba8a9a89352972e5cd26c674e7c76ddbda0ef992a795db",
       "ports": [
         {
-          "id": "route",
+          "id": "request",
           "direction": "input",
-          "value_type": "std/bytes",
+          "value_type": "conduit.net/control-event",
           "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -8359,54 +9972,108 @@
           "loss": "lossless-only"
         },
         {
+          "id": "route",
+          "direction": "output",
+          "value_type": "conduit.net/route-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:95b32e940737886b9d718c562cae5b35a23337576faeb37ca55e9ca04f134520",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
           "id": "state",
           "direction": "output",
-          "value_type": "std/record",
+          "value_type": "conduit.net/retained-state",
           "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "either",
+          "terminal": "open-ended",
           "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "resource",
-          "value_type": "std/reference/any",
+          "key": "lifecycle",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "grant",
-          "value_type": "std/reference/any",
+          "key": "family",
+          "value_type": "std/text",
           "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         },
         {
-          "key": "maximum_request_bytes",
+          "key": "prefix",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "prefix_length",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "next_hop",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "mtu",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "policy",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_evidence_events",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         }
       ],
-      "catalog_membership": "portable-catalog",
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8414,11 +10081,136 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.route.standalone",
+        "artifact": "tour/lessons/current.json#library.net.route.install.standalone",
         "status": "required"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.route.composition",
+        "artifact": "tour/lessons/current.json#library.net.route.install.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/session/listen",
+      "public_source_spelling": "net/session/listen",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/session/listen",
+      "schema_version": 0,
+      "semantic_hash": "sha256:14fb086782c790c63bb677584a6a69775e617e23278fb379a5d74346795ad153",
+      "ports": [
+        {
+          "id": "session",
+          "direction": "output",
+          "value_type": "conduit.net/session",
+          "type_schema_version": 0,
+          "type_hash": "sha256:439e482e79761a55c1b1891e6348506ac32464b960669edcf519203970d75ebf",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "transport",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "local_port",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "session_timeout_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_sessions",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_items",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.session.listen.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.session.listen.composition",
         "status": "required"
       },
       "successor": null,
@@ -8511,6 +10303,175 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.net.sse.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/stream/sink",
+      "public_source_spelling": "net/stream/sink",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/stream/sink",
+      "schema_version": 0,
+      "semantic_hash": "sha256:dff9d79a7d85dfbc3af4858005fd9e944ea9c97948e20c857fd5efbe85d16208",
+      "ports": [
+        {
+          "id": "chunk",
+          "direction": "input",
+          "value_type": "conduit.net/byte-stream",
+          "type_schema_version": 0,
+          "type_hash": "sha256:dbae71ae4dca1318b9516227e7113d034b45e2bba12e81cc58e9474137d7260f",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_chunks_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_items",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.stream.sink.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.stream.sink.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/stream/source",
+      "public_source_spelling": "net/stream/source",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/stream/source",
+      "schema_version": 0,
+      "semantic_hash": "sha256:543634a1f092cd304648d22a0b45001d8ca353eb3953c8ee49357c30ef2f4ca2",
+      "ports": [
+        {
+          "id": "chunk",
+          "direction": "output",
+          "value_type": "conduit.net/byte-stream",
+          "type_schema_version": 0,
+          "type_hash": "sha256:dbae71ae4dca1318b9516227e7113d034b45e2bba12e81cc58e9474137d7260f",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "session",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "chunk_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_chunk_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.stream.source.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.stream.source.composition",
         "status": "required"
       },
       "successor": null,
@@ -8617,54 +10578,99 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/wifi/access-point",
       "schema_version": 0,
-      "semantic_hash": "sha256:0363df0cbaa2352927ab859e1630a079e0f000fded9f9eafbc7af9a44a08d5d3",
+      "semantic_hash": "sha256:7c2b750c6c10927474b49da33e47604487ffda8f333c067aa41ef0f3aa594503",
       "ports": [
         {
-          "id": "configuration",
-          "direction": "input",
-          "value_type": "std/text",
+          "id": "link",
+          "direction": "output",
+          "value_type": "conduit.net/link-observation",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
+          "type_hash": "sha256:0ee5fc0b873d70a2e53816ea5b2cb8a3633c06104cf3d3ee4bc15a3cf14aca02",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
           "sensitivity": "public",
           "loss": "lossless-only"
         },
         {
-          "id": "state",
+          "id": "address",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/address-state",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
           "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
       "config": [
         {
-          "key": "maximum_request_bytes",
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "topology",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_response_bytes",
+          "key": "address",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "prefix_length",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
         },
         {
-          "key": "maximum_pending",
+          "key": "maximum_clients",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "period_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "freshness_ticks",
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
@@ -8674,54 +10680,6 @@
           "value_type": "std/u64",
           "type_schema_version": 0,
           "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "deadline_ticks",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "cancellation",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "ssid_prefix",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "address",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "maximum_clients",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "routing",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "bridging",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
-        },
-        {
-          "key": "nat",
-          "value_type": "std/text",
-          "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
         }
       ],
       "catalog_membership": "host-registry",
@@ -8751,41 +10709,93 @@
       "contract_package_artifact": "conduit.contract-package/conduit.host.net",
       "export_path": "conduit.host.net/net/wifi/join",
       "schema_version": 0,
-      "semantic_hash": "sha256:5e5097e2806a08dcd87c964155131593db4a8760e2843a93a94fc80f65e06a7f",
+      "semantic_hash": "sha256:62e016d274c347a01c46d7f70ee0bbce68a45bc4e84cf62199cfb52d11d38f72",
       "ports": [
         {
-          "id": "configuration",
+          "id": "request",
           "direction": "input",
-          "value_type": "std/text",
+          "value_type": "conduit.net/control-event",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
-          "sensitivity": "public",
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         },
         {
-          "id": "state",
+          "id": "observation",
           "direction": "output",
-          "value_type": "std/text",
+          "value_type": "conduit.net/link-observation",
           "type_schema_version": 0,
-          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
-          "presence": "required",
-          "connections": "one-or-more",
-          "values": "exactly-one",
-          "delivery": "finite-batch",
-          "temporal": "atemporal",
-          "terminal": "finite",
+          "type_hash": "sha256:0ee5fc0b873d70a2e53816ea5b2cb8a3633c06104cf3d3ee4bc15a3cf14aca02",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
           "sensitivity": "public",
+          "loss": "type-contract-defined"
+        },
+        {
+          "id": "event",
+          "direction": "output",
+          "value_type": "conduit.net/control-event",
+          "type_schema_version": 0,
+          "type_hash": "sha256:bfbc5c81420621d7c8a17350c7744deb65b8da3260281390ce11155c96b3a594",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
           "loss": "lossless-only"
         }
       ],
-      "config": [],
-      "catalog_membership": "portable-catalog",
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interface",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "mtu",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_events_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
       "compiler_exported": false,
       "known_provider_bundles": [],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -8798,98 +10808,6 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.net.wifi.join.composition",
-        "status": "required"
-      },
-      "successor": null,
-      "deprecation": null,
-      "compatible_adapter_artifacts": []
-    },
-    {
-      "semantic_identity": "net/wifi/scan",
-      "public_source_spelling": "net/wifi/scan",
-      "classification": "optional-host-boundary",
-      "package_owner": "conduit.host.net",
-      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
-      "export_path": "conduit.host.net/net/wifi/scan",
-      "schema_version": 0,
-      "semantic_hash": "sha256:d6c091f5bd9989eccf6d8f0cda398bb55e95b60dc3b6ef61435cb71622931d70",
-      "ports": [
-        {
-          "id": "request",
-          "direction": "input",
-          "value_type": "std/bytes",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f8551a629e94f0d3662f02781d1763db29df21ce977a90f5c74376599b219074",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only"
-        },
-        {
-          "id": "network",
-          "direction": "output",
-          "value_type": "std/record",
-          "type_schema_version": 0,
-          "type_hash": "sha256:de0b25edf415c72c7dbbe11dc778bd12e68e5fc73ab2e38f61072e1d295f22fa",
-          "presence": "required",
-          "connections": "exactly-one",
-          "values": "zero-or-more",
-          "delivery": "stream",
-          "temporal": "committed",
-          "terminal": "either",
-          "sensitivity": "restricted",
-          "loss": "lossless-only"
-        }
-      ],
-      "config": [
-        {
-          "key": "resource",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "grant",
-          "value_type": "std/reference/any",
-          "type_schema_version": 0,
-          "type_hash": "sha256:730202bc0e9f520c30742651503d166872bf79df7dd525220fa8c83176fc7bfb"
-        },
-        {
-          "key": "maximum_request_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_response_bytes",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        },
-        {
-          "key": "maximum_pending",
-          "value_type": "std/u64",
-          "type_schema_version": 0,
-          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
-        }
-      ],
-      "catalog_membership": "portable-catalog",
-      "compiler_exported": false,
-      "known_provider_bundles": [],
-      "current_provider_observation": "not-recorded-in-catalog",
-      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
-      "required_result_profile": "conduit.cross-host-provider",
-      "structural_facet_owner": "conduit.host.net/facets",
-      "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.wifi.scan.standalone",
-        "status": "required"
-      },
-      "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.net.wifi.scan.composition",
         "status": "required"
       },
       "successor": null,
@@ -10233,7 +12151,7 @@
         {
           "implementation": "conduit/hosted-state-cache",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10382,7 +12300,7 @@
         {
           "implementation": "conduit/hosted-state-cell",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10672,7 +12590,7 @@
         {
           "implementation": "conduit/hosted-state-deduplicate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -10960,7 +12878,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11064,7 +12982,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11162,7 +13080,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11266,7 +13184,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11391,7 +13309,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11555,7 +13473,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11614,7 +13532,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11743,7 +13661,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11802,7 +13720,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11884,7 +13802,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -11982,7 +13900,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12062,7 +13980,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -12660,7 +14578,7 @@
         {
           "implementation": "conduit/hosted-supervision-circuit-breaker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13031,7 +14949,7 @@
         {
           "implementation": "conduit/hosted-supervision-retry",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13603,7 +15521,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13891,7 +15809,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14007,7 +15925,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14295,7 +16213,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14366,7 +16284,7 @@
         {
           "implementation": "conduit/hosted-time-ticker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14488,7 +16406,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:350044064d6615548be9ce4056cf566b655b2f273af296e487d5fa7ccb48fc07"
+          "artifact_digest": "sha256:660a5d053e3f4e42508b51de43a8196eb752212fd5a18a2f7261a5be0726a5a4"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

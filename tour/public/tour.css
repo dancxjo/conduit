@@ -1815,6 +1815,91 @@ path.patchbay-cord {
   clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
 }
 
+/* Network layers use the same color-independent taxonomy mechanism as the
+   standing signal/audio ports, while keeping each protocol layer distinct. */
+.patchbay-cord.type-family-network-link .react-flow__edge-path {
+  stroke-dasharray: 14 3;
+}
+
+.patchbay-cord.type-family-network-frame .react-flow__edge-path {
+  stroke-dasharray: 2 2;
+  stroke-linecap: square;
+}
+
+.patchbay-cord.type-family-network-packet .react-flow__edge-path {
+  stroke-dasharray: 7 3;
+}
+
+.patchbay-cord.type-family-network-datagram .react-flow__edge-path {
+  stroke-dasharray: 3 5;
+  stroke-linecap: round;
+}
+
+.patchbay-cord.type-family-network-stream .react-flow__edge-path {
+  stroke-dasharray: none;
+  stroke-linecap: round;
+}
+
+.patchbay-cord.type-family-network-session .react-flow__edge-path {
+  stroke-dasharray: 10 2 2 2;
+}
+
+.patchbay-cord.type-family-network-control .react-flow__edge-path {
+  stroke-dasharray: 5 2 1 2;
+}
+
+.patchbay-cord.type-family-network-state .react-flow__edge-path {
+  stroke-dasharray: 12 3 2 3;
+  stroke-linecap: square;
+}
+
+.faceplate-port-row.signal-family-network-link .jack-handle {
+  background: #2dd4bf !important;
+  border-radius: 999px !important;
+  width: 17px !important;
+}
+
+.faceplate-port-row.signal-family-network-frame .jack-handle {
+  background: #38bdf8 !important;
+  border-radius: 1px !important;
+}
+
+.faceplate-port-row.signal-family-network-packet .jack-handle {
+  background: #818cf8 !important;
+  border-radius: 0 !important;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.faceplate-port-row.signal-family-network-datagram .jack-handle {
+  background: #a78bfa !important;
+  border-radius: 50% !important;
+  outline: 2px dotted #111827;
+}
+
+.faceplate-port-row.signal-family-network-stream .jack-handle {
+  background: #f472b6 !important;
+  border-radius: 999px !important;
+  width: 19px !important;
+}
+
+.faceplate-port-row.signal-family-network-session .jack-handle {
+  background: #f59e0b !important;
+  border-radius: 0 !important;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.faceplate-port-row.signal-family-network-control .jack-handle {
+  background: #facc15 !important;
+  border-radius: 0 !important;
+  transform: rotate(45deg);
+}
+
+.faceplate-port-row.signal-family-network-state .jack-handle {
+  background: #e879f9 !important;
+  border-radius: 0 !important;
+  clip-path: polygon(15% 0, 85% 0, 100% 35%, 85% 100%, 15% 100%, 0 35%);
+}
+
 .patchbay-flow-container .react-flow__edge-textbg {
   fill: #111827;
   stroke: color-mix(in srgb, var(--cord-color) 70%, #0f172a);

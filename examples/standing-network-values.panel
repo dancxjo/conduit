@@ -1,0 +1,38 @@
+# Distinct frame, datagram, and byte-stream values move through standing bounded paths.
+# The deterministic providers open no interface or socket and grant no network authority.
+panel 0
+
+node frame_source : net/frame/source {
+    lifecycle = "standing" interface = 1 period_ticks = 1000 payload_bytes = 64
+    maximum_frame_bytes = 1518 maximum_evidence_events = 64
+}
+node frame_sink : net/frame/sink {
+    lifecycle = "standing" maximum_frames_per_step = 1 maximum_retained_items = 1
+    maximum_evidence_events = 64
+}
+node datagram_source : net/datagram/source {
+    lifecycle = "standing" source_port = 30000 destination_port = 30001 period_ticks = 1000
+    payload_bytes = 64 maximum_datagram_bytes = 1472 maximum_datagrams_per_step = 1
+    maximum_evidence_events = 64
+}
+node impairment : net/datagram/impair {
+    lifecycle = "standing" pattern = "deliver,loss,duplicate,reorder"
+    maximum_datagram_bytes = 1472 maximum_evidence_events = 64
+}
+node datagram_sink : net/datagram/sink {
+    lifecycle = "standing" maximum_datagrams_per_step = 1 maximum_retained_items = 1
+    maximum_evidence_events = 64
+}
+node stream_source : net/stream/source {
+    lifecycle = "standing" session = 1 period_ticks = 1000 chunk_bytes = 64
+    maximum_chunk_bytes = 1024 maximum_evidence_events = 64
+}
+node stream_sink : net/stream/sink {
+    lifecycle = "standing" maximum_chunks_per_step = 1 maximum_retained_items = 1
+    maximum_evidence_events = 64
+}
+
+cord frame_source.frame -> frame_sink.frame { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+cord datagram_source.datagram -> impairment.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+cord impairment.datagram -> datagram_sink.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+cord stream_source.chunk -> stream_sink.chunk { capacity = 2 max_value_bytes = 96 max_queued_bytes = 192 low_watermark = 0 high_watermark = 2 pressure = block }

@@ -1,37 +1,42 @@
 {
-  "schema": "conduit.performance-baseline",
-  "owner": "@dancxjo",
-  "reviewed_commit": "f7cad05cb6fadeae1350b87664d6b0ecdcb79aea",
-  "rustc": "1.97.1",
-  "host_target": "x86_64-unknown-linux-gnu",
+  "artifacts": {
+    "conduct-release": {
+      "baseline_bytes": 13967576,
+      "kind": "host-executable",
+      "maximum_growth_bytes": 262144,
+      "maximum_growth_percent": 12
+    },
+    "conduit-core-release": {
+      "baseline_bytes": 9328214,
+      "kind": "host-library-archive",
+      "maximum_growth_bytes": 131072,
+      "maximum_growth_percent": 10
+    },
+    "conduit-core-thumbv6m-release": {
+      "baseline_bytes": 8985150,
+      "kind": "embedded-library-archive-not-flash",
+      "maximum_growth_bytes": 131072,
+      "maximum_growth_percent": 10
+    }
+  },
+  "deferred_workloads": {
+    "netherwick": "issue #33",
+    "plan_transition_overlap": "issue #57",
+    "rp2040_flash_static_ram_and_stack": "issue #28",
+    "tongues": "issue #31"
+  },
   "fixture_revision": 18,
+  "host_target": "x86_64-unknown-linux-gnu",
+  "owner": "@dancxjo",
+  "reviewed_commit": "8aad74f5b6befc8e4fcd895af900ff13234a947f",
+  "rustc": "1.97.1",
+  "schema": "conduit.performance-baseline",
   "threshold_policy": {
     "rule": "fail when growth exceeds the larger of percent and absolute allowances",
     "update": "Run `cargo xtask performance-gate --update`, inspect the semantic and artifact-size explanation, then commit the reviewed baseline."
   },
-  "artifacts": {
-    "conduct-release": {
-      "kind": "host-executable",
-      "baseline_bytes": 12432256,
-      "maximum_growth_percent": 12,
-      "maximum_growth_bytes": 262144
-    },
-    "conduit-core-release": {
-      "kind": "host-library-archive",
-      "baseline_bytes": 9261738,
-      "maximum_growth_percent": 10,
-      "maximum_growth_bytes": 131072
-    },
-    "conduit-core-thumbv6m-release": {
-      "kind": "embedded-library-archive-not-flash",
-      "baseline_bytes": 8918992,
-      "maximum_growth_percent": 10,
-      "maximum_growth_bytes": 131072
-    }
-  },
   "workloads": [
     {
-      "id": "canonicalization",
       "command": [
         "cargo",
         "test",
@@ -41,10 +46,10 @@
         "--test",
         "canonical_vectors"
       ],
+      "id": "canonicalization",
       "timing": "report-only"
     },
     {
-      "id": "compatibility",
       "command": [
         "cargo",
         "test",
@@ -54,10 +59,10 @@
         "--test",
         "compatibility_vectors"
       ],
+      "id": "compatibility",
       "timing": "report-only"
     },
     {
-      "id": "panel-parse",
       "command": [
         "cargo",
         "test",
@@ -67,10 +72,10 @@
         "--test",
         "panel_grammar_vectors"
       ],
+      "id": "panel-parse",
       "timing": "report-only"
     },
     {
-      "id": "graph-scale-parse",
       "command": [
         "cargo",
         "test",
@@ -83,15 +88,15 @@
         "--",
         "--exact"
       ],
-      "timing": "report-only",
+      "id": "graph-scale-parse",
       "node_counts": [
         2,
         32,
         256
-      ]
+      ],
+      "timing": "report-only"
     },
     {
-      "id": "source-lowering",
       "command": [
         "cargo",
         "test",
@@ -101,10 +106,10 @@
         "--test",
         "source_lowering_vectors"
       ],
+      "id": "source-lowering",
       "timing": "report-only"
     },
     {
-      "id": "plan-validation",
       "command": [
         "cargo",
         "test",
@@ -114,10 +119,10 @@
         "--test",
         "execution_plan_vectors"
       ],
+      "id": "plan-validation",
       "timing": "report-only"
     },
     {
-      "id": "scheduler-throughput-latency",
       "command": [
         "cargo",
         "test",
@@ -130,10 +135,10 @@
         "--",
         "--exact"
       ],
+      "id": "scheduler-throughput-latency",
       "timing": "report-only"
     },
     {
-      "id": "fan-out-pressure",
       "command": [
         "cargo",
         "test",
@@ -146,10 +151,10 @@
         "--",
         "--exact"
       ],
+      "id": "fan-out-pressure",
       "timing": "report-only"
     },
     {
-      "id": "evidence-recording",
       "command": [
         "cargo",
         "test",
@@ -162,13 +167,8 @@
         "--",
         "--exact"
       ],
+      "id": "evidence-recording",
       "timing": "report-only"
     }
-  ],
-  "deferred_workloads": {
-    "tongues": "issue #31",
-    "netherwick": "issue #33",
-    "rp2040_flash_static_ram_and_stack": "issue #28",
-    "plan_transition_overlap": "issue #57"
-  }
+  ]
 }

@@ -1,0 +1,16 @@
+# One service node accepts many bounded sessions without growing graph topology.
+# This deterministic listener opens no socket and grants no reachability or authority.
+panel 0
+
+node listener : net/session/listen {
+    lifecycle = "standing" transport = "tcp-fixture" local_port = 8080 period_ticks = 10
+    session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8
+    maximum_evidence_events = 64
+}
+node observe : net/observe/service {
+    lifecycle = "standing" maximum_retained_items = 0 maximum_evidence_events = 64
+}
+
+cord listener.session -> observe.session { capacity = 8 max_value_bytes = 64 max_queued_bytes = 512 low_watermark = 2 high_watermark = 8 pressure = block }
+cord listener.event -> observe.event { capacity = 8 max_value_bytes = 32 max_queued_bytes = 256 low_watermark = 2 high_watermark = 8 pressure = block }
+cord listener.state -> observe.state { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }

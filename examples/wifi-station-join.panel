@@ -1,17 +1,12 @@
-# Wi-Fi station join configuration reference panel.
+# Wi-Fi station join effect request. This remains contract-only until a host
+# installs an exact provider and supplies current use-time authority.
 panel 0
 
 node wifi_sta : net/wifi/join {
-    ssid = "ConduitNet"
-}
-
-node status_logger : observe/log
-
-cord wifi_sta.state -> status_logger.message {
-    capacity = 4
-    max_value_bytes = 1024
-    max_queued_bytes = 4096
-    low_watermark = 1
-    high_watermark = 4
-    pressure = block
+    lifecycle = "standing"
+    interface = 1
+    profile = "ConduitNet"
+    mtu = 1500
+    maximum_events_per_step = 1
+    maximum_evidence_events = 64
 }
