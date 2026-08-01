@@ -35,7 +35,7 @@ test("opens with the real reason Conduit was built", async ({ page }) => {
     "we could no longer see the program we had made",
   );
   await expect(page.locator(".book-section")).toHaveCount(7);
-  await expect(page.locator("#source")).toContainText("time/ticker");
+  await expect(page.locator("#source")).toHaveValue(/time\/ticker/);
   await expect(page.locator("#origin-comparison")).toContainText(
     "hidden across many artifacts",
   );
