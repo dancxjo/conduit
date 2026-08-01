@@ -293,7 +293,7 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
 
-  await page.locator("#watch-toggle").click();
+  await page.locator("#watch-toggle").press("Enter");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect.poll(async () => {
