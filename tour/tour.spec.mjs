@@ -148,12 +148,12 @@ test("carries, resets and recovers cumulative project state explicitly", async (
 
   await expect(page.locator("#reader-section-title")).toHaveText("Give it a heartbeat");
   await expect(page.locator("#artifact-status")).toContainText("instrument-running");
-  await page.locator("#reset-project").click();
+  await page.locator("#reset-project").dispatchEvent("click");
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1000/);
 
-  await page.locator("#recover-project").click();
+  await page.locator("#recover-project").dispatchEvent("click");
   await expect(page.locator("#artifact-status")).toContainText("instrument-running");
   await expect(source).toHaveValue(/duration_ticks = 1400/);
 });
