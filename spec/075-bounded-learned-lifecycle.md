@@ -19,6 +19,13 @@ separate effect requiring an exact `conduit.action/promote` grant, resource
 lease, commit profile, and acknowledged receipt. Missing, revoked, or stale
 authority fails before the promotion provider runs.
 
+The authored approval, checkpoint, evaluation report, desired target, and
+finite limits are semantic requests. The host independently observes the
+provider, model-slot resource generation, current time, grant, run/epoch lease,
+and use-time status before plan sealing and again where required at use. Merely
+installing `learned/promote` or naming those source values creates none of that
+authority.
+
 `LML-003` An inference provider, a training/evaluation provider, and a
 promotion provider are independently installable. Contract knowledge does not
 install any of them.
@@ -38,6 +45,12 @@ a checkpoint, report, approval, or receipt.
 `LML-006` Cancellation and provider loss are terminal for the current job.
 Unknown promotion commit requires reconciliation under the pinned commit
 policy; retry does not imply global exactly-once behavior.
+
+An acknowledged promotion receipt is a bounded domain-separated commitment to
+the exact plan, epoch, run, promotion instance, checkpoint bytes, evaluation
+bytes, approval, target, resource binding and generation, lease, commit
+profile, effect, and grant. No receipt exists for a rejected, duplicate,
+cancelled, provider-lost, or commit-unknown attempt.
 
 ## First proof
 

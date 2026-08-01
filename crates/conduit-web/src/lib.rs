@@ -12,6 +12,7 @@ use wasm_bindgen::prelude::*;
 use conduit_compile::{
     CompileInput, EvidenceProviderBindingDocument, InstalledProfile, PinDocument,
     PlanArtifactDocument, PlanHostDocument, WatchAdmissionDocument, compile_source,
+    deterministic_host_service_authority_observation, observed_host_service_constraints,
 };
 use conduit_core::{
     ArtifactDigest, EvidenceCursorStatus, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
@@ -59,6 +60,30 @@ const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
     0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
 ];
 
+fn browser_learned_promotion_authorities(
+    topology: &conduit_runtime::ExactTopologyView,
+    run_id: &str,
+    epoch: u64,
+) -> Vec<conduit_compile::ObservedHostServiceAuthority> {
+    let constraints = observed_host_service_constraints(
+        &conduit_learned::lifecycle::PROMOTION_AUTHORITY_CONSTRAINTS,
+    );
+    topology
+        .nodes
+        .iter()
+        .filter(|node| node.contract_id == "learned/promote")
+        .filter_map(|node| {
+            deterministic_host_service_authority_observation(
+                "learned/promote",
+                &node.instance,
+                run_id,
+                epoch,
+                &constraints,
+            )
+        })
+        .collect()
+}
+
 fn browser_evidence_hash(domain: &[u8], facts: &[&[u8]]) -> SemanticHash {
     let mut hasher = Sha256::new();
     hasher.update(b"conduit.browser-evidence-observation\0");
@@ -69,6 +94,20 @@ fn browser_evidence_hash(domain: &[u8], facts: &[&[u8]]) -> SemanticHash {
         hasher.update(fact);
     }
     SemanticHash::from_bytes(hasher.finalize().into())
+}
+
+fn browser_exact_run_id(session_id: &str, source_revision: u64) -> String {
+    let identity = browser_evidence_hash(
+        b"exact-run-id",
+        &[session_id.as_bytes(), &source_revision.to_be_bytes()],
+    )
+    .to_string();
+    format!(
+        "conduit/browser-run-{}",
+        identity
+            .strip_prefix("sha256:")
+            .expect("semantic hashes use the canonical sha256 prefix")
+    )
 }
 
 fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
@@ -1414,14 +1453,19 @@ fn start_browser_exact_run(
 ) -> Result<BrowserExactRun, RuntimeError> {
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
+    let run_id = browser_exact_run_id(session_id, source_revision);
     let registry = browser_registry();
     let topology = registry
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
-    let installed = InstalledProfile::observe_registry(source, &registry)?
-        .with_evidence_provider_observation(browser_evidence_provider_observation())?
-        .with_watch_admissions(browser_watch_admissions(&topology))?;
+    let installed = InstalledProfile::observe_registry_with_host_authorities(
+        source,
+        &registry,
+        &browser_learned_promotion_authorities(&topology, &run_id, source_revision),
+    )?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())?
+    .with_watch_admissions(browser_watch_admissions(&topology))?;
     let document = compile_source(source, &installed.input)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let arena = bumpalo::Bump::new();
@@ -1491,7 +1535,6 @@ fn start_browser_exact_run(
     let evidence_bytes = plan.budget.evidence_bytes;
     let node_count = plan.nodes.len();
     let cord_count = plan.cords.len();
-    let run_id = format!("conduit/browser-run/{session_id}/{source_revision}");
     let resolved = registry
         .resolve(&panel)
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
@@ -2614,12 +2657,16 @@ fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let registry = browser_registry();
     let panel = conduit_panel::parse(source).ok()?;
     let topology = registry.resolve(&panel).ok()?.exact_topology().ok()?;
-    let installed = InstalledProfile::observe_registry(source, &registry)
-        .ok()?
-        .with_evidence_provider_observation(browser_evidence_provider_observation())
-        .ok()?
-        .with_watch_admissions(browser_watch_admissions(&topology))
-        .ok()?;
+    let installed = InstalledProfile::observe_registry_with_host_authorities(
+        source,
+        &registry,
+        &browser_learned_promotion_authorities(&topology, "conduit/browser-run", 1),
+    )
+    .ok()?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())
+    .ok()?
+    .with_watch_admissions(browser_watch_admissions(&topology))
+    .ok()?;
     let document = compile_source(source, &installed.input).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
@@ -4551,9 +4598,13 @@ fn run_panel_exact_inner(
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
-    let installed = InstalledProfile::observe_registry(source, &registry)?
-        .with_evidence_provider_observation(browser_evidence_provider_observation())?
-        .with_watch_admissions(browser_watch_admissions(&topology))?;
+    let installed = InstalledProfile::observe_registry_with_host_authorities(
+        source,
+        &registry,
+        &browser_learned_promotion_authorities(&topology, "conduit/browser-run", 1),
+    )?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())?
+    .with_watch_admissions(browser_watch_admissions(&topology))?;
     let explicit_input = compile_input_json
         .map(|json| {
             serde_json::from_str::<CompileInput>(json)
@@ -5341,6 +5392,29 @@ cord output.value -> sink.result\n\
                 .expect("dispose JSON");
         assert_eq!(disposed["ok"], true, "{disposed}");
         assert!(disposed["view"]["run"].is_null(), "{disposed}");
+    }
+
+    #[test]
+    fn browser_learned_promotion_binds_the_dynamic_run_before_execution() {
+        let session_id = "test/browser-learned-promotion";
+        let source = include_str!("../../../examples/learned-lifecycle.panel");
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            source.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        assert_eq!(started["state"], "active");
+        assert_eq!(started["source_revision"], 0);
+        assert!(
+            started["run_id"]
+                .as_str()
+                .is_some_and(|run| run.starts_with("conduit/browser-run-") && run.len() == 84)
+        );
     }
 
     #[test]

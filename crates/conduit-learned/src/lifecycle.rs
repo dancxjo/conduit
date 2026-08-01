@@ -5,16 +5,20 @@
 //! is a finite conformance witness; ordinary inference does not install it.
 
 use conduit_core::{
-    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
-    ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,
-    PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract, TerminalContract,
+    AuthorityTime, ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability,
+    ConfigRequirement, ConnectionCardinality, Delivery, Direction, EffectAttemptState, Id,
+    InstancePath, LossAcceptance, NodeContract, PortContract, PortFlowConstraints, Presence,
+    ResourceLeaseState, SemanticHash, Sensitivity, TemporalContract, TerminalContract,
     TypeContractRef, ValueCardinality,
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, Handler, Registry, RegistryError, ResolutionError, RunIo, RuntimeError,
-    Value,
+    CompiledInHostService, DeterministicEffectBackend, DeterministicEffectFault,
+    ExactHostedServiceBinding, Handler, HostedEffectDisposition, HostedEffectError, HostedLeaseUse,
+    Registry, RegistryError, ResolutionError, RunIo, RuntimeError, Value,
+    hosted_effect_constraint_hash,
 };
+use sha2::{Digest as _, Sha256};
 
 use crate::{MODEL_ARTIFACT_BYTES, MODEL_ARTIFACT_IDENTITY, MODEL_ARTIFACT_TYPE};
 
@@ -49,8 +53,34 @@ pub const CHECKPOINT_BYTES: &[u8] =
     b"CLC0|checkpoint:job:tiny|step=4|base=fixed-linear|reproducible=exact";
 pub const EVALUATION_BYTES: &[u8] =
     b"CLE0|evaluation:suite:tiny|metric=accuracy@1|cases=4|score=4/4";
-pub const PROMOTION_RECEIPT_BYTES: &[u8] =
-    b"CLP0|promotion:tiny|slot=learned/reference|commit=acknowledged";
+const PROMOTION_RECEIPT_MAGIC: &[u8; 4] = b"CLP0";
+const PROMOTION_RECEIPT_LENGTH: usize = PROMOTION_RECEIPT_MAGIC.len() + 32;
+
+pub const PROMOTION_APPROVAL_CONSTRAINT: &str = "conduit.constraint/learned-approval";
+pub const PROMOTION_CHECKPOINT_CONSTRAINT: &str = "conduit.constraint/learned-checkpoint";
+pub const PROMOTION_EVALUATION_CONSTRAINT: &str = "conduit.constraint/learned-evaluation";
+pub const PROMOTION_TARGET_CONSTRAINT: &str = "conduit.constraint/learned-target";
+pub const PROMOTION_RESOURCE_GENERATION_CONSTRAINT: &str =
+    "conduit.constraint/learned-resource-generation";
+
+/// Exact values a host policy must independently bind into a promotion grant.
+/// The panel can request these semantics, but cannot create the observation.
+pub const PROMOTION_AUTHORITY_CONSTRAINTS: [(&str, &[u8]); 5] = [
+    (
+        PROMOTION_APPROVAL_CONSTRAINT,
+        PROMOTION_APPROVAL_IDENTITY.as_bytes(),
+    ),
+    (
+        PROMOTION_CHECKPOINT_CONSTRAINT,
+        CHECKPOINT_IDENTITY.as_bytes(),
+    ),
+    (
+        PROMOTION_EVALUATION_CONSTRAINT,
+        EVALUATION_REPORT_IDENTITY.as_bytes(),
+    ),
+    (PROMOTION_TARGET_CONSTRAINT, b"learned/reference"),
+    (PROMOTION_RESOURCE_GENERATION_CONSTRAINT, b"1"),
+];
 
 pub const DATASET_SNAPSHOT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("learned/dataset-snapshot"),
@@ -507,7 +537,7 @@ pub fn promote_fixture(
     report: &[u8],
     authorized: bool,
     disposition: CommitDisposition,
-) -> Result<Vec<u8>, LifecycleReason> {
+) -> Result<(), LifecycleReason> {
     if !authorized {
         return Err(LifecycleReason::PromotionDenied);
     }
@@ -518,7 +548,7 @@ pub fn promote_fixture(
         return Err(LifecycleReason::MetricVersionMismatch);
     }
     match disposition {
-        CommitDisposition::Acknowledged => Ok(PROMOTION_RECEIPT_BYTES.to_vec()),
+        CommitDisposition::Acknowledged => Ok(()),
         CommitDisposition::Unknown => Err(LifecycleReason::UnknownCommit),
         CommitDisposition::Duplicate => Err(LifecycleReason::DuplicateCommit),
     }
@@ -726,8 +756,113 @@ impl Handler for Evaluate {
         ])
     }
 }
-struct Promote;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PromotionProviderFault {
+    None,
+    BeforeCommit,
+    AfterCommitBeforeAcknowledgement,
+    Rejected,
+    ProviderLost,
+    Duplicate,
+}
+
+struct Promote {
+    binding: Option<ExactHostedServiceBinding>,
+    fault: PromotionProviderFault,
+}
+
+impl Promote {
+    const fn new(fault: PromotionProviderFault) -> Self {
+        Self {
+            binding: None,
+            fault,
+        }
+    }
+}
+
+fn promotion_receipt(
+    binding: &ExactHostedServiceBinding,
+    authority: &conduit_runtime::ExactHostedServiceAuthority,
+    checkpoint: &[u8],
+    report: &[u8],
+) -> Vec<u8> {
+    fn commit(hasher: &mut Sha256, bytes: &[u8]) {
+        hasher.update((bytes.len() as u64).to_be_bytes());
+        hasher.update(bytes);
+    }
+
+    let mut hash = Sha256::new();
+    commit(&mut hash, b"conduit.learned/promotion-receipt");
+    commit(&mut hash, binding.plan_identity.as_bytes());
+    commit(&mut hash, &binding.plan_epoch.to_be_bytes());
+    commit(&mut hash, binding.run_id.as_bytes());
+    commit(&mut hash, binding.instance.as_bytes());
+    commit(&mut hash, checkpoint);
+    commit(&mut hash, report);
+    commit(&mut hash, PROMOTION_APPROVAL_IDENTITY.as_bytes());
+    commit(&mut hash, b"learned/reference");
+    commit(&mut hash, authority.resource_id.as_bytes());
+    commit(&mut hash, authority.resource_binding_id.as_bytes());
+    commit(&mut hash, authority.resource_lease.identity.as_bytes());
+    commit(&mut hash, authority.commit_profile.identity.as_bytes());
+    commit(&mut hash, authority.effect_hash.as_bytes());
+    commit(&mut hash, authority.grant_id.as_bytes());
+    let generation = hosted_effect_constraint_hash(PROMOTION_RESOURCE_GENERATION_CONSTRAINT, b"1");
+    commit(&mut hash, generation.as_bytes());
+    let mut receipt = Vec::with_capacity(PROMOTION_RECEIPT_LENGTH);
+    receipt.extend_from_slice(PROMOTION_RECEIPT_MAGIC);
+    receipt.extend_from_slice(&hash.finalize());
+    receipt
+}
+
+fn validate_promotion_authority(
+    binding: &ExactHostedServiceBinding,
+) -> Result<&conduit_runtime::ExactHostedServiceAuthority, RuntimeError> {
+    let [authority] = binding.authorities.as_slice() else {
+        return Err(runtime(LifecycleReason::PromotionDenied));
+    };
+    if authority.action != "conduit.action/promote"
+        || authority.resource_kind != "conduit.resource/learned-model-slot"
+        || authority.resource_id != "conduit.resource/learned-reference-slot"
+        || authority.resource_lease_run_id != binding.run_id
+        || authority.resource_lease_epoch != binding.plan_epoch
+        || authority.resource_lease_time_basis != authority.resource_lease.time_basis
+        || authority.resource_lease_id != authority.resource_lease.id
+        || authority.resource_lease.run != binding.run_id
+        || authority.resource_lease.epoch != binding.plan_epoch
+        || authority.resource_lease.holder != binding.instance
+        || authority.resource_lease.identity != authority.resource_lease_identity
+        || authority.commit_profile.identity != authority.commit_profile_identity
+        || authority.commit_profile.operation != authority.action
+        || authority.commit_profile.resource_lease != authority.resource_lease.id
+        || !authority.check_at_use
+        || binding.use_time_tick >= authority.valid_until_tick
+        || authority.constraints.len() != PROMOTION_AUTHORITY_CONSTRAINTS.len()
+    {
+        return Err(runtime(LifecycleReason::PromotionDenied));
+    }
+    for (id, value) in PROMOTION_AUTHORITY_CONSTRAINTS {
+        let expected = hosted_effect_constraint_hash(id, value);
+        if authority
+            .constraints
+            .iter()
+            .find(|(candidate, _)| candidate == id)
+            .map(|(_, actual)| *actual)
+            != Some(expected)
+        {
+            return Err(runtime(LifecycleReason::PromotionDenied));
+        }
+    }
+    Ok(authority)
+}
+
 impl Handler for Promote {
+    fn bind_exact(&mut self, binding: ExactHostedServiceBinding) -> Result<(), RuntimeError> {
+        validate_promotion_authority(&binding)?;
+        self.binding = Some(binding);
+        Ok(())
+    }
+
     fn run(
         &mut self,
         node: &Node,
@@ -741,15 +876,84 @@ impl Handler for Promote {
         if checkpoint.value_type != CHECKPOINT_TYPE || report.value_type != EVALUATION_REPORT_TYPE {
             return Err(runtime(LifecycleReason::WrongType));
         }
+        if checkpoint.bytes != CHECKPOINT_BYTES {
+            return Err(runtime(LifecycleReason::IncompatibleCheckpoint));
+        }
+        if report.bytes != EVALUATION_BYTES {
+            return Err(runtime(LifecycleReason::MetricVersionMismatch));
+        }
+        let binding = self
+            .binding
+            .as_ref()
+            .ok_or_else(|| runtime(LifecycleReason::PromotionDenied))?;
+        let authority = validate_promotion_authority(binding)?;
+        let backend_fault = match self.fault {
+            PromotionProviderFault::BeforeCommit => DeterministicEffectFault::BeforeCommit,
+            PromotionProviderFault::AfterCommitBeforeAcknowledgement => {
+                DeterministicEffectFault::AfterCommitBeforeAcknowledgement
+            }
+            _ => DeterministicEffectFault::None,
+        };
+        authority.resource_lease.with_contract(|lease_contract| {
+            if lease_contract.semantic_hash().ok() != Some(authority.resource_lease_identity) {
+                return Err(runtime(LifecycleReason::PromotionDenied));
+            }
+            let mut lease = ResourceLeaseState::new(lease_contract)
+                .map_err(|reason| RuntimeError::new(reason.code(), reason.to_string()))?;
+            authority.commit_profile.with_contract(|commit_profile| {
+                if commit_profile.semantic_hash().ok() != Some(authority.commit_profile_identity) {
+                    return Err(runtime(LifecycleReason::PromotionDenied));
+                }
+                let mut attempt = EffectAttemptState::new(commit_profile, lease_contract, 1, None)
+                    .map_err(|reason| RuntimeError::new(reason.code(), reason.to_string()))?;
+                let disposition = DeterministicEffectBackend::new(backend_fault)
+                    .execute(
+                        &mut lease,
+                        &mut attempt,
+                        HostedLeaseUse {
+                            resource_binding: Id(&authority.resource_lease.resource_binding),
+                            holder: InstancePath::new(&binding.instance)
+                                .map_err(|_| runtime(LifecycleReason::PromotionDenied))?,
+                            run: Id(&binding.run_id),
+                            epoch: binding.plan_epoch,
+                            now: AuthorityTime {
+                                basis: Id(&authority.resource_lease.time_basis),
+                                tick: binding.use_time_tick,
+                            },
+                        },
+                        || match self.fault {
+                            PromotionProviderFault::Rejected => {
+                                Err(LifecycleReason::PromotionDenied)
+                            }
+                            PromotionProviderFault::ProviderLost => {
+                                Err(LifecycleReason::ProviderLost)
+                            }
+                            PromotionProviderFault::Duplicate => {
+                                Err(LifecycleReason::DuplicateCommit)
+                            }
+                            _ => Ok(()),
+                        },
+                    )
+                    .map_err(|error| match error {
+                        HostedEffectError::Lease(reason) | HostedEffectError::Effect(reason) => {
+                            RuntimeError::new(reason.code(), reason.to_string())
+                        }
+                        HostedEffectError::Provider(reason) => runtime(reason),
+                    })?;
+                if disposition != HostedEffectDisposition::Acknowledged
+                    || !attempt.may_report_success()
+                {
+                    return Err(runtime(match disposition {
+                        HostedEffectDisposition::CommitUnknown => LifecycleReason::UnknownCommit,
+                        _ => LifecycleReason::PromotionDenied,
+                    }));
+                }
+                Ok(())
+            })
+        })?;
         Ok(vec![Value {
             value_type: PROMOTION_RECEIPT_TYPE,
-            bytes: promote_fixture(
-                &checkpoint.bytes,
-                &report.bytes,
-                true,
-                CommitDisposition::Acknowledged,
-            )
-            .map_err(runtime)?,
+            bytes: promotion_receipt(binding, authority, &checkpoint.bytes, &report.bytes),
         }])
     }
 }
@@ -781,7 +985,9 @@ impl Handler for PromotionInspect {
         let [receipt] = inputs else {
             return Err(runtime(LifecycleReason::WrongType));
         };
-        if receipt.value_type != PROMOTION_RECEIPT_TYPE || receipt.bytes != PROMOTION_RECEIPT_BYTES
+        if receipt.value_type != PROMOTION_RECEIPT_TYPE
+            || receipt.bytes.len() != PROMOTION_RECEIPT_LENGTH
+            || !receipt.bytes.starts_with(PROMOTION_RECEIPT_MAGIC)
         {
             return Err(runtime(LifecycleReason::UnknownCommit));
         }
@@ -817,6 +1023,43 @@ pub fn register_learned_lifecycle_contracts(registry: &mut Registry) {
 }
 
 pub const PROMOTION_AUTHORITY: SemanticHash = SemanticHash::from_bytes([0x54; 32]);
+
+fn promote_provider() -> Box<dyn Handler> {
+    Box::new(Promote::new(PromotionProviderFault::None))
+}
+
+fn promote_before_commit_provider() -> Box<dyn Handler> {
+    Box::new(Promote::new(PromotionProviderFault::BeforeCommit))
+}
+
+fn promote_unknown_commit_provider() -> Box<dyn Handler> {
+    Box::new(Promote::new(
+        PromotionProviderFault::AfterCommitBeforeAcknowledgement,
+    ))
+}
+
+fn promote_rejected_provider() -> Box<dyn Handler> {
+    Box::new(Promote::new(PromotionProviderFault::Rejected))
+}
+
+fn promote_lost_provider() -> Box<dyn Handler> {
+    Box::new(Promote::new(PromotionProviderFault::ProviderLost))
+}
+
+fn promote_duplicate_provider() -> Box<dyn Handler> {
+    Box::new(Promote::new(PromotionProviderFault::Duplicate))
+}
+
+fn promotion_factory(fault: PromotionProviderFault) -> conduit_runtime::HandlerFactory {
+    match fault {
+        PromotionProviderFault::None => promote_provider,
+        PromotionProviderFault::BeforeCommit => promote_before_commit_provider,
+        PromotionProviderFault::AfterCommitBeforeAcknowledgement => promote_unknown_commit_provider,
+        PromotionProviderFault::Rejected => promote_rejected_provider,
+        PromotionProviderFault::ProviderLost => promote_lost_provider,
+        PromotionProviderFault::Duplicate => promote_duplicate_provider,
+    }
+}
 
 pub fn register_deterministic_training_provider(
     registry: &mut Registry,
@@ -887,6 +1130,16 @@ pub fn register_deterministic_training_provider(
 pub fn register_deterministic_lifecycle_provider(
     registry: &mut Registry,
 ) -> Result<(), RegistryError> {
+    register_deterministic_lifecycle_provider_with_promotion_fault(
+        registry,
+        PromotionProviderFault::None,
+    )
+}
+
+pub fn register_deterministic_lifecycle_provider_with_promotion_fault(
+    registry: &mut Registry,
+    promotion_fault: PromotionProviderFault,
+) -> Result<(), RegistryError> {
     register_deterministic_training_provider(registry)?;
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
     static PROMOTION_AUTHORITIES: [SemanticHash; 1] = [PROMOTION_AUTHORITY];
@@ -896,7 +1149,7 @@ pub fn register_deterministic_lifecycle_provider(
             "conduit.learned/promote-deterministic",
             "learned-promote",
             &PROMOTION_AUTHORITIES[..],
-            (|| Box::new(Promote) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+            promotion_factory(promotion_fault),
             validate_promote as conduit_runtime::ConfigValidator,
         ),
         (
@@ -958,7 +1211,7 @@ mod tests {
                 CommitDisposition::Acknowledged
             )
             .unwrap(),
-            PROMOTION_RECEIPT_BYTES
+            ()
         );
     }
 
@@ -1066,6 +1319,11 @@ mod tests {
             "metric-version-mismatch",
             "evaluation-leakage",
             "promotion-without-grant",
+            "promotion-revoked-at-use",
+            "promotion-wrong-resource",
+            "promotion-wrong-resource-generation",
+            "promotion-wrong-run",
+            "promotion-wrong-epoch",
             "unknown-commit",
             "duplicate-commit",
         ] {

@@ -20,7 +20,8 @@ use conduit_capsule::{
 };
 use conduit_compile::{
     CompileInput, ExactPlanDocument, InstalledProfile, MAXIMUM_COMPILE_INPUT_DOCUMENT_BYTES,
-    compile_source,
+    ObservedHostServiceAuthority, compile_source, deterministic_host_service_authority_observation,
+    observed_host_service_constraints,
 };
 use conduit_core::{ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy};
 use conduit_diagnostics::{
@@ -52,6 +53,35 @@ struct PresentationOptions {
 enum RunOutcome {
     Exact(Box<ExactExecutionReport>),
     Compatibility(ExecutionSummary),
+}
+
+fn learned_promotion_authorities(
+    panel: &conduit_panel::Panel,
+    registry: &Registry,
+    run_id: &str,
+    epoch: u64,
+) -> Result<Vec<ObservedHostServiceAuthority>, RuntimeError> {
+    let constraints = observed_host_service_constraints(
+        &conduit_learned::lifecycle::PROMOTION_AUTHORITY_CONSTRAINTS,
+    );
+    let topology = registry
+        .resolve(panel)
+        .and_then(|resolved| resolved.exact_topology())
+        .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    Ok(topology
+        .nodes
+        .iter()
+        .filter(|node| node.contract_id == "learned/promote")
+        .filter_map(|node| {
+            deterministic_host_service_authority_observation(
+                "learned/promote",
+                &node.instance,
+                run_id,
+                epoch,
+                &constraints,
+            )
+        })
+        .collect())
 }
 
 impl RunOutcome {
@@ -555,7 +585,19 @@ fn run(
     };
     let installed_profile = if arguments.mode() == Mode::Run && !arguments.compatibility_demo {
         Some(
-            InstalledProfile::observe_registry(&source, &registry).map_err(|error| {
+            InstalledProfile::observe_registry_with_host_authorities(
+                &source,
+                &registry,
+                &learned_promotion_authorities(&panel, &registry, "conduit/conduct-run", 1)
+                    .map_err(|error| {
+                        cli_error(
+                            from_runtime_error(&error),
+                            presentation,
+                            vec![source_document.clone()],
+                        )
+                    })?,
+            )
+            .map_err(|error| {
                 cli_error(
                     from_runtime_error(&error),
                     presentation,

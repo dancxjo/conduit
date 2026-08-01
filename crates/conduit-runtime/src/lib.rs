@@ -1487,6 +1487,119 @@ pub struct ExactHostedServiceUseObservation {
     pub lease_available: bool,
 }
 
+/// Owned form of one plan-selected descriptor pin. Hosted providers receive
+/// this through the executor binding; panel source cannot manufacture it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactPinnedDescriptor {
+    pub id: String,
+    pub schema_version: u32,
+    pub semantic_hash: SemanticHash,
+}
+
+impl ExactPinnedDescriptor {
+    fn as_contract(&self) -> PinnedDescriptor<'_> {
+        PinnedDescriptor {
+            id: Id(&self.id),
+            schema_version: self.schema_version,
+            semantic_hash: self.semantic_hash,
+        }
+    }
+}
+
+/// Owned exact lease copied from the sealed plan for an effectful hosted
+/// provider. The semantic identity is retained separately and rechecked by
+/// providers before mutation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactResourceLeaseBinding {
+    pub identity: SemanticHash,
+    pub schema_version: u32,
+    pub id: String,
+    pub resource_binding: String,
+    pub holder: String,
+    pub run: String,
+    pub epoch: u64,
+    pub scope: String,
+    pub sharing: conduit_core::ResourceSharingMode,
+    pub reservation: conduit_core::PlanResourceBudget,
+    pub time_basis: String,
+    pub issued_at_tick: u64,
+    pub expires_at_tick: u64,
+    pub revocation_grace_ticks: u64,
+    pub cleanup_ticks: u64,
+    pub maximum_operations: u32,
+    pub maximum_evidence_events: u32,
+    pub cleanup_escalation: ExactPinnedDescriptor,
+    pub foreign_retention: conduit_core::ForeignRetention,
+}
+
+impl ExactResourceLeaseBinding {
+    pub fn with_contract<T>(
+        &self,
+        use_contract: impl FnOnce(conduit_core::ResourceLeaseContract<'_>) -> T,
+    ) -> T {
+        use_contract(conduit_core::ResourceLeaseContract {
+            schema_version: self.schema_version,
+            id: Id(&self.id),
+            resource_binding: Id(&self.resource_binding),
+            holder: conduit_core::InstancePath::new(&self.holder)
+                .expect("exact hosted lease holder was validated by the sealed plan"),
+            run: Id(&self.run),
+            epoch: self.epoch,
+            scope: Id(&self.scope),
+            sharing: self.sharing,
+            reservation: self.reservation,
+            time_basis: Id(&self.time_basis),
+            issued_at_tick: self.issued_at_tick,
+            expires_at_tick: self.expires_at_tick,
+            revocation_grace_ticks: self.revocation_grace_ticks,
+            cleanup_ticks: self.cleanup_ticks,
+            maximum_operations: self.maximum_operations,
+            maximum_evidence_events: self.maximum_evidence_events,
+            cleanup_escalation: self.cleanup_escalation.as_contract(),
+            foreign_retention: self.foreign_retention,
+        })
+    }
+}
+
+/// Owned exact commit profile copied from the sealed plan for an effectful
+/// hosted provider.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactEffectCommitBinding {
+    pub identity: SemanticHash,
+    pub schema_version: u32,
+    pub id: String,
+    pub operation: String,
+    pub resource_lease: String,
+    pub commit_boundary: ExactPinnedDescriptor,
+    pub idempotency: conduit_core::EffectIdempotency,
+    pub unknown_commit: conduit_core::UnknownCommitPolicy,
+    pub discontinuity: conduit_core::EffectDiscontinuity,
+    pub cleanup: ExactPinnedDescriptor,
+    pub maximum_attempts: u16,
+    pub evidence_events_per_attempt: u16,
+}
+
+impl ExactEffectCommitBinding {
+    pub fn with_contract<T>(
+        &self,
+        use_contract: impl FnOnce(conduit_core::EffectCommitProfile<'_>) -> T,
+    ) -> T {
+        use_contract(conduit_core::EffectCommitProfile {
+            schema_version: self.schema_version,
+            id: Id(&self.id),
+            operation: Id(&self.operation),
+            resource_lease: Id(&self.resource_lease),
+            commit_boundary: self.commit_boundary.as_contract(),
+            idempotency: self.idempotency,
+            unknown_commit: self.unknown_commit,
+            discontinuity: self.discontinuity,
+            cleanup: self.cleanup.as_contract(),
+            maximum_attempts: self.maximum_attempts,
+            evidence_events_per_attempt: self.evidence_events_per_attempt,
+        })
+    }
+}
+
 impl<'a> From<ExactGrantObservation<'a>> for ExactHostedServiceUseObservation {
     fn from(observation: ExactGrantObservation<'a>) -> Self {
         Self {
@@ -1519,6 +1632,13 @@ pub struct ExactHostedServiceAuthority {
     pub resource_id: String,
     pub resource_binding_id: String,
     pub resource_lease_id: String,
+    pub resource_lease_identity: SemanticHash,
+    pub resource_lease_run_id: String,
+    pub resource_lease_epoch: u64,
+    pub resource_lease_time_basis: String,
+    pub commit_profile_identity: SemanticHash,
+    pub resource_lease: ExactResourceLeaseBinding,
+    pub commit_profile: ExactEffectCommitBinding,
     pub grant_id: String,
     /// The last exact authority/lease tick at which this effect may begin a
     /// hosted operation. This is derived from the pinned grant, capability,
@@ -1532,6 +1652,9 @@ pub struct ExactHostedServiceAuthority {
 /// Source cannot construct this value or replace its plan-derived contents.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactHostedServiceBinding {
+    pub plan_identity: SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: String,
     pub instance: String,
     pub implementation_id: String,
     pub artifact_id: String,
@@ -1750,6 +1873,12 @@ fn exact_host_service_binding(
                     "hosted service authority lacks its exact resource lease",
                 )
             })?;
+            let commit_profile = authority.commit_profile.ok_or_else(|| {
+                RuntimeError::new(
+                    "CND-RUN-010",
+                    "hosted service effect lacks its exact commit profile",
+                )
+            })?;
             let observation = context
                 .grant_observations
                 .iter()
@@ -1768,6 +1897,78 @@ fn exact_host_service_binding(
                 resource_id: authority.binding.resource.id.to_string(),
                 resource_binding_id: resource.id.to_string(),
                 resource_lease_id: lease.id.to_string(),
+                resource_lease_identity: lease.semantic_hash().map_err(|_| {
+                    RuntimeError::new(
+                        "CND-RUN-010",
+                        "hosted service resource lease identity is invalid",
+                    )
+                })?,
+                resource_lease_run_id: lease.run.to_string(),
+                resource_lease_epoch: lease.epoch,
+                resource_lease_time_basis: lease.time_basis.to_string(),
+                commit_profile_identity: commit_profile.semantic_hash().map_err(|_| {
+                    RuntimeError::new(
+                        "CND-RUN-010",
+                        "hosted service commit profile identity is invalid",
+                    )
+                })?,
+                resource_lease: ExactResourceLeaseBinding {
+                    identity: lease.semantic_hash().map_err(|_| {
+                        RuntimeError::new(
+                            "CND-RUN-010",
+                            "hosted service resource lease identity is invalid",
+                        )
+                    })?,
+                    schema_version: lease.schema_version,
+                    id: lease.id.to_string(),
+                    resource_binding: lease.resource_binding.to_string(),
+                    holder: lease.holder.as_str().to_owned(),
+                    run: lease.run.to_string(),
+                    epoch: lease.epoch,
+                    scope: lease.scope.to_string(),
+                    sharing: lease.sharing,
+                    reservation: lease.reservation,
+                    time_basis: lease.time_basis.to_string(),
+                    issued_at_tick: lease.issued_at_tick,
+                    expires_at_tick: lease.expires_at_tick,
+                    revocation_grace_ticks: lease.revocation_grace_ticks,
+                    cleanup_ticks: lease.cleanup_ticks,
+                    maximum_operations: lease.maximum_operations,
+                    maximum_evidence_events: lease.maximum_evidence_events,
+                    cleanup_escalation: ExactPinnedDescriptor {
+                        id: lease.cleanup_escalation.id.to_string(),
+                        schema_version: lease.cleanup_escalation.schema_version,
+                        semantic_hash: lease.cleanup_escalation.semantic_hash,
+                    },
+                    foreign_retention: lease.foreign_retention,
+                },
+                commit_profile: ExactEffectCommitBinding {
+                    identity: commit_profile.semantic_hash().map_err(|_| {
+                        RuntimeError::new(
+                            "CND-RUN-010",
+                            "hosted service commit profile identity is invalid",
+                        )
+                    })?,
+                    schema_version: commit_profile.schema_version,
+                    id: commit_profile.id.to_string(),
+                    operation: commit_profile.operation.to_string(),
+                    resource_lease: commit_profile.resource_lease.to_string(),
+                    commit_boundary: ExactPinnedDescriptor {
+                        id: commit_profile.commit_boundary.id.to_string(),
+                        schema_version: commit_profile.commit_boundary.schema_version,
+                        semantic_hash: commit_profile.commit_boundary.semantic_hash,
+                    },
+                    idempotency: commit_profile.idempotency,
+                    unknown_commit: commit_profile.unknown_commit,
+                    discontinuity: commit_profile.discontinuity,
+                    cleanup: ExactPinnedDescriptor {
+                        id: commit_profile.cleanup.id.to_string(),
+                        schema_version: commit_profile.cleanup.schema_version,
+                        semantic_hash: commit_profile.cleanup.semantic_hash,
+                    },
+                    maximum_attempts: commit_profile.maximum_attempts,
+                    evidence_events_per_attempt: commit_profile.evidence_events_per_attempt,
+                },
                 grant_id: authority.grant.id.to_string(),
                 valid_until_tick,
                 check_at_use: authority.binding.check_at_use,
@@ -1781,6 +1982,9 @@ fn exact_host_service_binding(
         })
         .collect::<Result<Vec<_>, RuntimeError>>()?;
     Ok(ExactHostedServiceBinding {
+        plan_identity: plan.identity,
+        plan_epoch: context.plan_epoch,
+        run_id: context.run_id.to_string(),
         instance: node.instance.as_str().to_owned(),
         implementation_id: node.implementation.id.to_string(),
         artifact_id: node.artifact.to_string(),

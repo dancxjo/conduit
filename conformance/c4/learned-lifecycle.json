@@ -44,6 +44,11 @@
     "metric-version-mismatch",
     "evaluation-leakage",
     "promotion-without-grant",
+    "promotion-revoked-at-use",
+    "promotion-wrong-resource",
+    "promotion-wrong-resource-generation",
+    "promotion-wrong-run",
+    "promotion-wrong-epoch",
     "rejected-promotion",
     "unknown-commit",
     "duplicate-commit"

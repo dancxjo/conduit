@@ -550,7 +550,16 @@ impl Handler for TensorLiteral {
         }])
     }
 }
-struct Infer;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InferenceProviderFault {
+    None,
+    ProviderLost,
+}
+
+struct Infer {
+    fault: InferenceProviderFault,
+}
+
 impl Handler for Infer {
     fn run(
         &mut self,
@@ -558,6 +567,9 @@ impl Handler for Infer {
         inputs: &[Value],
         _io: &mut RunIo<'_>,
     ) -> Result<Vec<Value>, RuntimeError> {
+        if self.fault == InferenceProviderFault::ProviderLost {
+            return Err(runtime(InferenceReason::ProviderLost));
+        }
         let [model, tensor] = inputs else {
             return Err(runtime(InferenceReason::WrongType));
         };
@@ -604,6 +616,25 @@ pub fn register_learned_contracts(registry: &mut Registry) {
 pub fn register_deterministic_inference_provider(
     registry: &mut Registry,
 ) -> Result<(), RegistryError> {
+    register_deterministic_inference_provider_with_fault(registry, InferenceProviderFault::None)
+}
+
+fn inference_provider() -> Box<dyn Handler> {
+    Box::new(Infer {
+        fault: InferenceProviderFault::None,
+    })
+}
+
+fn lost_inference_provider() -> Box<dyn Handler> {
+    Box::new(Infer {
+        fault: InferenceProviderFault::ProviderLost,
+    })
+}
+
+pub fn register_deterministic_inference_provider_with_fault(
+    registry: &mut Registry,
+    fault: InferenceProviderFault,
+) -> Result<(), RegistryError> {
     register_learned_contracts(registry);
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
     for (contract, implementation_id, artifact_id, entrypoint, factory, validator) in [
@@ -628,7 +659,10 @@ pub fn register_deterministic_inference_provider(
             "conduit.learned/fixed-linear-rust",
             "conduit.learned/fixed-linear-rust-artifact",
             "learned-fixed-linear-infer",
-            (|| Box::new(Infer) as Box<dyn Handler>) as conduit_runtime::HandlerFactory,
+            match fault {
+                InferenceProviderFault::None => inference_provider,
+                InferenceProviderFault::ProviderLost => lost_inference_provider,
+            },
             validate_inference_config as conduit_runtime::ConfigValidator,
         ),
         (
