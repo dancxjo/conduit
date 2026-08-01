@@ -109,6 +109,11 @@ export class PatchbayInspectorElement extends HTMLElement {
           <summary>📡 Bounded Execution Evidence Stream</summary>
           <pre id="evidence">No run evidence yet.</pre>
         </details>
+        <details class="card inspector-card" open>
+          <summary>⌁ Live latest-value Watch</summary>
+          <output id="watch-value" class="watch-value" aria-live="polite">No Watch is attached.</output>
+          <pre id="watch-accounting">No Watch accounting yet.</pre>
+        </details>
       </div>
     `;
   }

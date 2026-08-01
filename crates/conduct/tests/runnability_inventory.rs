@@ -337,6 +337,12 @@ fn every_checked_panel_has_one_verified_runnability_state() {
             .output()
             .expect("canonical check executes");
         assert!(checked.status.success(), "{id} exported source checks");
+        if lesson["execution"] == "continuous-watch" {
+            fs::remove_file(&path).expect("temporary export is removed");
+            assert_eq!(lesson["validation"]["kind"], "watch");
+            assert_eq!(lesson["profile"], "browser-dedicated-worker");
+            continue;
+        }
         let ran = run_command
             .arg(&path)
             .output()

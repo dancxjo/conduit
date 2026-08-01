@@ -792,41 +792,43 @@
     {
       "id": "panels.tiny-instrument",
       "chapter": 2,
-      "title": "A tiny instrument",
+      "title": "A live ticker Watch",
       "prerequisites": [
         "panels.reuse-without-copying"
       ],
-      "objective": "Build a small reusable source panel with one explicit tick output.",
-      "prose": "This deterministic metronome emits one finite tick. Later timing lessons will replace the fixture with an explicit clock contract rather than ambient wall time.",
+      "objective": "Run one continuous ticker in the production executor and observe its latest public text through a bounded Patchbay Watch.",
+      "prose": "Start owns one exact worker session. The ticker emits public text, the discard node consumes it without retaining history, and Patchbay copies only the latest admitted preview. The browser schedules explicit timer wakes; it does not execute the graph.",
       "vocabulary": [
-        "source panel",
-        "deterministic fixture",
-        "tick"
+        "exact run",
+        "timer wake",
+        "latest-value Watch"
       ],
-      "source": "panel 0\n\ncomposite example/metronome {\n    node pulse : std/literal {\n        value = \"tick\\n\"\n    }\n    export tick > = pulse.value\n}\n\nnode clock : example/metronome\nnode display : display/text\n\ncord clock.tick -> display.text {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 0\n\nnode clock : time/ticker {\n    duration_ticks = 10\n    time_basis = ref(\"conduit.clock/monotonic-ticks\")\n    maximum_pending = 1\n}\nnode drain : flow/discard\n\ncord clock.tick -> drain.item {\n    capacity = 1\n    max_value_bytes = 32\n    max_queued_bytes = 32\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "command": "conduct --run lesson.panel",
-      "expected_display": "tick\n",
+      "execution": "continuous-watch",
       "profile": "browser-dedicated-worker",
       "budgets": {
-        "runtime_ticks": 16,
-        "queue_bytes": 1024,
-        "evidence_events": 16
+        "runtime_ticks": 512,
+        "queue_bytes": 32,
+        "evidence_events": 64
       },
       "presentation": {
         "layout": "instrument",
-        "show_plan": false
+        "show_plan": true,
+        "watch": "latest-public-text"
       },
       "validation": {
-        "kind": "display",
-        "value": "tick\n"
+        "kind": "watch",
+        "value": "0\n"
       },
       "hints": [
-        "The composite exports pulse.value as clock.tick.",
-        "The finite fixture does not read wall time."
+        "The time/ticker provider remains Waiting between exact timer deadlines.",
+        "The Watch is latest-only, public, bounded, and cannot backpressure the cord.",
+        "Stop aborts this same epoch; source edits never recreate it."
       ],
-      "solution": "Export one literal pulse and connect the metronome boundary to the display.",
+      "solution": "Connect time/ticker to the bounded discard sink, Start once, attach the plan-admitted text Watch, and keep advancing only the exact pending deadline until Stop.",
       "accessibility": {
-        "non_audio": "The tick is visible text; no sound or motion is required.",
+        "non_audio": "The latest tick, run state, exact timer deadline, plan identity, and resident value accounting remain visible as live text; no sound or motion is required.",
         "reduced_motion": true
       },
       "runnability": {

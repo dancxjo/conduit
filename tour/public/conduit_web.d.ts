@@ -31,6 +31,14 @@ export function panel_source_metadata(source: string): string;
 export function parse_panel(source: string): string;
 
 /**
+ * Releases the exact scheduler-evidence prefix only after the browser caller
+ * has copied that prefix into its bounded Patchbay presentation. This is an
+ * explicit commit acknowledgement; reading or projecting evidence never
+ * releases it implicitly.
+ */
+export function patchbay_acknowledge_exact_evidence(session_id: string, cursor: bigint): string;
+
+/**
  * Advances deterministic browser-host time to an exact pending deadline.
  * It is an explicit host wake, not a JavaScript executor or clock jump.
  */
@@ -138,6 +146,7 @@ export interface InitOutput {
     readonly panel_language_metadata: () => [number, number];
     readonly panel_source_metadata: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
+    readonly patchbay_acknowledge_exact_evidence: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_advance_exact_run: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_attach_exact_watch: (a: number, b: number, c: number, d: number) => [number, number];

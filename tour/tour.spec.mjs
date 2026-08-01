@@ -183,6 +183,75 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   expect(result.viewed.value.view.run.state).toBe("Terminal");
 });
 
+test("keeps one public latest-value ticker Watch live in the production executor", async ({
+  page,
+}) => {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));
+  page.on("console", (message) => {
+    if (message.type() === "error") failures.push(message.text());
+  });
+
+  await page.goto("/tour/public/index.html?lesson=panels.tiny-instrument");
+  await expect(page.locator("#title")).toHaveText("A live ticker Watch");
+  await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
+  await page.locator("#run").click();
+
+  await expect.poll(async () => {
+    const text = await page.locator("#watch-value").textContent();
+    return Number.parseInt(text, 10);
+  }, { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
+  const firstTick = Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  );
+  await expect(page.locator("#console-status-badge")).toHaveText("Live");
+  await expect(page.locator("#result")).toContainText("Live exact run remains waiting");
+  const first = await page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+  expect(first).toMatchObject({
+    state: "waiting",
+    retention: "latest",
+    representation: { id: "std/text" },
+    sensitivity: "public",
+    value_storage: { resident_slots: 0, resident_bytes: 0 },
+  });
+
+  await expect.poll(async () => {
+    const accounting = await page.locator("#watch-accounting").evaluate((element) =>
+      JSON.parse(element.textContent)
+    );
+    return accounting.cursor;
+  }, { timeout: 20_000 }).toBeGreaterThan(first.cursor);
+  const later = await page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+  expect(Number.parseInt(await page.locator("#watch-value").textContent(), 10))
+    .toBeGreaterThan(firstTick);
+  expect(later.run_id).toBe(first.run_id);
+  expect(later.plan_identity).toBe(first.plan_identity);
+  expect(later.source_semantic_hash).toBe(first.source_semantic_hash);
+  expect(later.cursor).toBeGreaterThan(first.cursor);
+  expect(later.value_storage).toMatchObject({
+    resident_slots: 0,
+    resident_bytes: 0,
+    maximum_slots: first.value_storage.maximum_slots,
+    maximum_bytes: first.value_storage.maximum_bytes,
+  });
+  expect(later.value_storage.high_water_slots).toBeLessThanOrEqual(1);
+  expect(later.value_storage.high_water_bytes).toBeLessThanOrEqual(32);
+
+  await page.locator("#stop").click();
+  await expect(page.locator("#console-status-badge")).toHaveText("Ready");
+  await expect(page.locator("#result")).toContainText(
+    "Run cancelled; exact worker placement is terminal.",
+  );
+  await expect(page.locator("#run")).toBeEnabled();
+  await expect(page.locator("#stop")).toBeDisabled();
+  expect(failures).toEqual([]);
+});
+
 test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");

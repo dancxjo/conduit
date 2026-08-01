@@ -172,7 +172,20 @@ fn tour_lessons_declare_verified_browser_runnability() {
         let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
         let registry = Registry::compatibility_demo();
 
-        if let Some(expected_display) = lesson["expected_display"].as_str() {
+        if lesson["validation"]["kind"] == "watch" {
+            assert_eq!(runnability["state"], "runnable");
+            assert_eq!(runnability["proof"], "browser-worker-exact-plan");
+            assert!(lesson["expected_display"].is_null());
+            assert!(
+                lesson["validation"]["value"]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty()),
+                "{id} names its initial observed Watch value"
+            );
+            registry
+                .resolve(&panel)
+                .unwrap_or_else(|error| panic!("{id} resolves its Watch lesson: {error}"));
+        } else if let Some(expected_display) = lesson["expected_display"].as_str() {
             assert_eq!(lesson["validation"]["value"], expected_display);
             if runnability["state"] == "runnable" {
                 assert_eq!(runnability["proof"], "browser-worker-exact-plan");

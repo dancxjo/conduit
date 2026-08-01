@@ -990,8 +990,8 @@ fn start_browser_exact_run(
         scheduler_policy: SchedulerPolicy {
             schema_version: SCHEDULER_CONTRACT_VERSION,
             ready_queue: ReadyQueueDiscipline::RoundRobin,
-            max_decisions: MAXIMUM_BROWSER_RUN_PUMP_DECISIONS,
-            max_tick: 512,
+            max_decisions: 0,
+            max_tick: u64::MAX,
             max_consecutive_yields: 8,
             max_events: if plan.nodes.len() > 4 { 256 } else { 128 },
         },
@@ -1152,6 +1152,33 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
         state,
         ExactRunState::Terminal(TerminalClass::Succeeded)
     )) * run.cord_count;
+    let next_timer_deadline = run
+        .session
+        .as_ref()
+        .and_then(ExactHostedRunSession::next_timer_deadline);
+    let next_event_cursor = run.terminal.as_ref().map_or_else(
+        || {
+            run.session
+                .as_ref()
+                .expect("live browser run retains its exact session")
+                .next_event_cursor()
+        },
+        |terminal| terminal.next_event_cursor,
+    );
+    let value_storage = run
+        .session
+        .as_ref()
+        .and_then(ExactHostedRunSession::value_storage_usage)
+        .map(|usage| {
+            serde_json::json!({
+                "resident_slots": usage.resident_slots,
+                "resident_bytes": usage.resident_bytes,
+                "high_water_slots": usage.high_water_slots,
+                "high_water_bytes": usage.high_water_bytes,
+                "maximum_slots": usage.maximum_slots,
+                "maximum_bytes": usage.maximum_bytes,
+            })
+        });
     match browser_session_view(session) {
         Ok(view) => serde_json::json!({
             "ok": true,
@@ -1162,6 +1189,9 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
             "terminal": terminal,
             "completed_nodes": completed_nodes,
             "cords_conducted": cords_conducted,
+            "next_timer_deadline": next_timer_deadline,
+            "next_event_cursor": next_event_cursor,
+            "value_storage": value_storage,
             "stdout": String::from_utf8_lossy(&output),
             "stderr": String::from_utf8_lossy(&error),
             "display": String::from_utf8_lossy(&display),
@@ -1303,6 +1333,58 @@ pub fn patchbay_read_exact_evidence(
                 "status": browser_evidence_cursor_status(batch.status),
                 "next_cursor": batch.next_cursor,
                 "records": batch.records,
+            })
+            .to_string(),
+            Err(error) => serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string(),
+        }
+    })
+}
+
+/// Releases the exact scheduler-evidence prefix only after the browser caller
+/// has copied that prefix into its bounded Patchbay presentation. This is an
+/// explicit commit acknowledgement; reading or projecting evidence never
+/// releases it implicitly.
+#[wasm_bindgen]
+pub fn patchbay_acknowledge_exact_evidence(session_id: String, cursor: u64) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "Patchbay session has no exact run",
+            })
+            .to_string();
+        };
+        let Some(exact_session) = run.session.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-015",
+                "diagnostic": "terminal exact run has no live evidence window",
+            })
+            .to_string();
+        };
+        match exact_session.acknowledge_scheduler_events_through(cursor) {
+            Ok(()) => serde_json::json!({
+                "ok": true,
+                "run_id": run.run_id,
+                "plan_identity": run.plan.identity,
+                "source_semantic_hash": run.plan.source_semantic_hash,
+                "retained_event_cursor": exact_session.retained_event_cursor(),
+                "next_event_cursor": exact_session.next_event_cursor(),
             })
             .to_string(),
             Err(error) => serde_json::json!({
@@ -3708,11 +3790,13 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        explain_panel, panel_language_metadata, panel_source_metadata, patchbay_apply_transaction,
-        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
-        patchbay_move_node, patchbay_notify_host_operation, patchbay_open_session,
-        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
-        patchbay_replace_source, patchbay_session_view, patchbay_start_exact_run,
+        explain_panel, panel_language_metadata, panel_source_metadata,
+        patchbay_acknowledge_exact_evidence, patchbay_advance_exact_run,
+        patchbay_apply_transaction, patchbay_attach_exact_watch, patchbay_cancel_exact_run,
+        patchbay_detach_exact_watch, patchbay_move_node, patchbay_notify_host_operation,
+        patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
+        patchbay_read_exact_watch, patchbay_replace_source, patchbay_session_view,
+        patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -4232,6 +4316,129 @@ cord output.value -> sink.result\n\
                 .as_str()
                 .is_some_and(|hash| hash.starts_with("sha256:"))
         );
+    }
+
+    #[test]
+    fn browser_exact_run_keeps_one_public_text_ticker_watch_live_and_bounded() {
+        const TICKER_SOURCE: &str = r#"panel 0
+
+node clock : time/ticker {
+    duration_ticks = 10
+    time_basis = ref("conduit.clock/monotonic-ticks")
+    maximum_pending = 1
+}
+node drain : flow/discard
+
+cord clock.tick -> drain.item {
+    capacity = 1
+    max_value_bytes = 32
+    max_queued_bytes = 32
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+"#;
+
+        let session_id = "test/browser-live-ticker-watch";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            TICKER_SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        let run_id = started["run_id"].clone();
+        let plan_identity = started["plan_identity"].clone();
+        let source_identity = started["source_semantic_hash"].clone();
+        let admission = &started["view"]["plan"]["watch_admissions"][0];
+        assert_eq!(admission["retention"], "latest");
+        assert_eq!(admission["representation_id"], "std/text");
+        assert_eq!(admission["sensitivity_ceiling"], "public");
+        let watch_id = admission["id"].as_str().expect("Watch identity");
+
+        let attached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("attach JSON");
+        assert_eq!(attached["ok"], true, "{attached}");
+
+        let mut cursor = 0;
+        for expected_tick in 0..80_u64 {
+            let pumped: Value =
+                serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 256))
+                    .expect("pump JSON");
+            assert_eq!(pumped["ok"], true, "{pumped}");
+            assert_eq!(pumped["state"], "waiting", "{pumped}");
+            assert!(pumped["terminal"].is_null(), "{pumped}");
+            assert_eq!(pumped["run_id"], run_id);
+            assert_eq!(pumped["plan_identity"], plan_identity);
+            assert_eq!(pumped["source_semantic_hash"], source_identity);
+            assert_eq!(pumped["value_storage"]["resident_slots"], 0);
+            assert_eq!(pumped["value_storage"]["resident_bytes"], 0);
+            assert!(
+                pumped["value_storage"]["high_water_slots"]
+                    .as_u64()
+                    .is_some_and(|slots| slots <= 1),
+                "{pumped}"
+            );
+            assert!(
+                pumped["value_storage"]["high_water_bytes"]
+                    .as_u64()
+                    .is_some_and(|bytes| bytes <= 32),
+                "{pumped}"
+            );
+
+            let watched: Value = serde_json::from_str(&patchbay_read_exact_watch(
+                session_id.to_owned(),
+                watch_id.to_owned(),
+                cursor,
+                1,
+            ))
+            .expect("Watch JSON");
+            assert_eq!(watched["ok"], true, "{watched}");
+            assert_eq!(watched["records"].as_array().map(Vec::len), Some(1));
+            assert_eq!(
+                watched["records"][0]["material"]["text"],
+                format!("{expected_tick}\n")
+            );
+            cursor = watched["next_cursor"].as_u64().expect("next Watch cursor");
+
+            let event_cursor = pumped["next_event_cursor"]
+                .as_u64()
+                .expect("next exact evidence cursor");
+            let acknowledged: Value = serde_json::from_str(&patchbay_acknowledge_exact_evidence(
+                session_id.to_owned(),
+                event_cursor,
+            ))
+            .expect("evidence acknowledgement JSON");
+            assert_eq!(acknowledged["ok"], true, "{acknowledged}");
+            assert_eq!(acknowledged["retained_event_cursor"], event_cursor);
+            assert_eq!(acknowledged["next_event_cursor"], event_cursor);
+            assert_eq!(acknowledged["run_id"], run_id);
+
+            let deadline = pumped["next_timer_deadline"]
+                .as_u64()
+                .expect("pending exact timer deadline");
+            assert_eq!(deadline, (expected_tick + 1) * 11);
+            let advanced: Value =
+                serde_json::from_str(&patchbay_advance_exact_run(session_id.to_owned(), deadline))
+                    .expect("advance JSON");
+            assert_eq!(advanced["ok"], true, "{advanced}");
+            assert_eq!(advanced["run_id"], run_id);
+        }
+
+        let cancelled: Value = serde_json::from_str(&patchbay_cancel_exact_run(
+            session_id.to_owned(),
+            "abort".to_owned(),
+        ))
+        .expect("cancel JSON");
+        assert_eq!(cancelled["ok"], true, "{cancelled}");
+        assert_eq!(cancelled["state"], "cancelled");
+        assert_eq!(cancelled["run_id"], run_id);
     }
 
     #[test]

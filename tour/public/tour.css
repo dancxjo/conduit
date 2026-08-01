@@ -1867,6 +1867,18 @@ path.patchbay-smart-cord.compatibility-incompatible {
   border-radius: 2px;
 }
 
+.watch-value {
+  display: block;
+  margin: 0.75rem 1rem 0;
+  color: #86efac;
+  font: 700 clamp(1.5rem, 4vw, 3rem)/1 "Fira Code", monospace;
+  white-space: pre-wrap;
+}
+
+#watch-accounting {
+  margin-top: 0.5rem;
+}
+
 @media (forced-colors: active) {
   .receiving-port-label,
   .outgoing-port-label,

@@ -36,6 +36,8 @@ const timelinePositionLabel = document.querySelector("#timeline-position-label")
 const timelineLanes = document.querySelector("#timeline-lanes");
 const timelineExplanation = document.querySelector("#timeline-explanation");
 const timelineTableBody = document.querySelector("#timeline-table tbody");
+const watchValue = document.querySelector("#watch-value");
+const watchAccounting = document.querySelector("#watch-accounting");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
@@ -185,6 +187,7 @@ let patchbayView = null;
 let activeAdapter = null;
 let activeWorkerSessionId = null;
 let runEpoch = 0;
+let liveWakeTimer = null;
 let topologyView = "logical";
 const evidence = [];
 let timelineRecords = [];
@@ -196,6 +199,56 @@ const layoutKey = (id) => `conduit-tour-layout/${id}`;
 const MIN_I32 = -2_147_483_648;
 const MAX_I32 = 2_147_483_647;
 const MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION = 32;
+
+function clearLiveWakeTimer() {
+  if (liveWakeTimer !== null) {
+    clearTimeout(liveWakeTimer);
+    liveWakeTimer = null;
+  }
+}
+
+function resetWatchPresentation(message = "No Watch is attached.") {
+  watchValue.textContent = message;
+  watchAccounting.textContent = "No Watch accounting yet.";
+}
+
+function renderLatestWatch(batch, run) {
+  const record = batch?.records?.at(-1);
+  const text = record?.material?.kind === "preview"
+    ? record.material.text
+    : null;
+  watchValue.textContent = text ?? (record?.material?.kind || "No value observed yet.");
+  watchAccounting.textContent = JSON.stringify({
+    run_id: run.run_id,
+    plan_identity: run.plan_identity,
+    source_semantic_hash: run.source_semantic_hash,
+    state: run.state,
+    next_timer_deadline: run.next_timer_deadline,
+    watch_id: batch.watch_id,
+    retention: "latest",
+    cursor: batch.next_cursor,
+    representation: record?.representation,
+    sensitivity: record?.sensitivity,
+    gap_before: record?.gap_before ?? 0,
+    value_storage: run.value_storage,
+  }, null, 2);
+}
+
+async function acknowledgeRenderedEvidence(adapter, sessionId, run) {
+  if (run.terminal) return;
+  if (!Number.isSafeInteger(run.next_event_cursor)) {
+    throw new Error("exact run omitted its evidence commit cursor");
+  }
+  const acknowledged = await adapter.request("patchbay-acknowledge-exact-evidence", {
+    sessionId,
+    cursor: run.next_event_cursor,
+  });
+  if (!acknowledged.ok || !acknowledged.value?.ok) {
+    throw new Error(
+      acknowledged.value?.diagnostic || acknowledged.code || "evidence commit failed",
+    );
+  }
+}
 
 function validPosition(position) {
   return position &&
@@ -816,6 +869,7 @@ function renderRustProjection(projection) {
 
 async function stopExactSession(cause, message) {
   runEpoch += 1;
+  clearLiveWakeTimer();
   stopTimelinePlayback();
   const adapter = activeAdapter;
   const sessionId = activeWorkerSessionId;
@@ -847,6 +901,7 @@ async function stopExactSession(cause, message) {
 
 function show(lesson) {
   void stopExactSession("lesson-changed");
+  resetWatchPresentation();
   current = lesson;
   workspaceController?.setDocument(lesson.id);
   document.querySelector("#title").textContent = lesson.title;
@@ -1135,6 +1190,71 @@ function moveSelected(delta) {
 moveLeftBtn.onclick = () => moveSelected(-20);
 moveRightBtn.onclick = () => moveSelected(20);
 
+function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, deadline }) {
+  if (epoch !== runEpoch || activeAdapter !== adapter || !Number.isSafeInteger(deadline)) return;
+  clearLiveWakeTimer();
+  liveWakeTimer = setTimeout(async () => {
+    liveWakeTimer = null;
+    if (epoch !== runEpoch || activeAdapter !== adapter) return;
+    try {
+      const advanced = await adapter.request("patchbay-advance-exact-run", {
+        sessionId,
+        tick: deadline,
+      });
+      if (!advanced.ok || !advanced.value?.ok) {
+        throw new Error(advanced.value?.diagnostic || advanced.code || "timer wake failed");
+      }
+      const pumped = await adapter.request("patchbay-pump-exact-run", {
+        sessionId,
+        quantum: 256,
+      });
+      if (!pumped.ok || !pumped.value?.ok) {
+        throw new Error(pumped.value?.diagnostic || pumped.code || "ticker pump failed");
+      }
+      const watched = await adapter.request("patchbay-read-exact-watch", {
+        sessionId,
+        watchId,
+        cursor,
+        maximumRecords: 1,
+      });
+      if (!watched.ok || !watched.value?.ok) {
+        throw new Error(watched.value?.diagnostic || watched.code || "Watch read failed");
+      }
+      if (epoch !== runEpoch || activeAdapter !== adapter) return;
+      renderRustProjection(pumped.value.view);
+      renderExactResultTimeline(pumped.value);
+      renderLatestWatch(watched.value, pumped.value);
+      await acknowledgeRenderedEvidence(adapter, sessionId, pumped.value);
+      result.textContent =
+        `✓ Live exact run remains ${pumped.value.state}.\n` +
+        `Latest public text: ${JSON.stringify(watched.value.records.at(-1)?.material?.text ?? "")}\n` +
+        `Next admitted timer deadline: ${pumped.value.next_timer_deadline}.`;
+      recordEvidence({
+        kind: "watch-latest",
+        lesson: current.id,
+        cursor: watched.value.next_cursor,
+        state: pumped.value.state,
+      });
+      if (!pumped.value.terminal) {
+        scheduleContinuousWatch({
+          adapter,
+          sessionId,
+          watchId,
+          epoch,
+          cursor: watched.value.next_cursor,
+          deadline: pumped.value.next_timer_deadline,
+        });
+      }
+    } catch (error) {
+      if (epoch === runEpoch) {
+        result.textContent = `Live ticker stopped: ${error}`;
+        consoleBadge.textContent = "Failed";
+        consoleBadge.className = "badge status-badge failed";
+      }
+    }
+  }, 350);
+}
+
 async function run() {
   if (current.runnability?.state !== "runnable") {
     result.textContent =
@@ -1185,6 +1305,8 @@ async function run() {
   result.textContent = "Executing graph in browser placement worker…";
 
   let terminal = false;
+  let watchId = null;
+  let watchCursor = 0;
   try {
     const configured = await adapter.request("configure", {
       wasmUrl: wasmArtifact.url.href,
@@ -1213,6 +1335,22 @@ async function run() {
       recordEvidence({ kind: "run-rejected", lesson: current.id, code: rejection.code });
       return;
     }
+    if (current.execution === "continuous-watch") {
+      const admission = started.value.view.plan.watch_admissions.find(
+        (watch) => watch.representation_id === "std/text" &&
+          watch.retention === "latest" &&
+          watch.sensitivity_ceiling === "public",
+      );
+      if (!admission) throw new Error("exact plan has no public latest-value text Watch");
+      watchId = admission.id;
+      const attached = await adapter.request("patchbay-attach-exact-watch", {
+        sessionId,
+        watchId,
+      });
+      if (!attached.ok || !attached.value?.ok) {
+        throw new Error(attached.value?.diagnostic || attached.code || "Watch attach failed");
+      }
+    }
     const operation = activeScenario()?.execution === "cancel-before-first-step"
       ? "patchbay-cancel-exact-run"
       : "patchbay-pump-exact-run";
@@ -1236,6 +1374,22 @@ async function run() {
     terminal = Boolean(value.terminal);
     renderRustProjection(value.view);
     renderExactResultTimeline(value);
+    await acknowledgeRenderedEvidence(adapter, sessionId, value);
+    let watched = null;
+    if (watchId) {
+      const read = await adapter.request("patchbay-read-exact-watch", {
+        sessionId,
+        watchId,
+        cursor: watchCursor,
+        maximumRecords: 1,
+      });
+      if (!read.ok || !read.value?.ok) {
+        throw new Error(read.value?.diagnostic || read.code || "Watch read failed");
+      }
+      watched = read.value;
+      watchCursor = watched.next_cursor;
+      renderLatestWatch(watched, value);
+    }
     const counts = Number.isInteger(value.completed_nodes)
       ? `\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
       : "";
@@ -1256,9 +1410,11 @@ async function run() {
         ? value.ok && Boolean(value.terminal) && value.display === validation.value
       : validation?.kind === "terminal"
         ? value.ok && value.terminal === validation.value
-        : validation?.kind === "diagnostic"
+      : validation?.kind === "diagnostic"
           ? (!value.ok && value.diagnostic.includes(validation.value))
             || (value.stderr || "").includes(validation.value)
+          : validation?.kind === "watch"
+            ? value.ok && watched?.records?.at(-1)?.material?.text === validation.value
           : value.ok;
 
     result.textContent = lessonComplete
@@ -1272,6 +1428,16 @@ async function run() {
       cordsConducted: value.cords_conducted,
       state: value.state,
     });
+    if (watchId && !terminal) {
+      scheduleContinuousWatch({
+        adapter,
+        sessionId,
+        watchId,
+        epoch,
+        cursor: watchCursor,
+        deadline: value.next_timer_deadline,
+      });
+    }
   } catch (error) {
     if (epoch === runEpoch) result.textContent = `Run failed: ${error}`;
   } finally {
@@ -1310,6 +1476,7 @@ document.addEventListener("keydown", (event) => {
 
 document.querySelector("#reset").onclick = () => {
   void stopExactSession("reset");
+  resetWatchPresentation();
   localStorage.setItem(recoveryKey(current.id), source.value);
   localStorage.removeItem(layoutKey(current.id));
   source.value = authoredSource();

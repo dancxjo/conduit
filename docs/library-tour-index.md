@@ -35,7 +35,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `flow/combine-latest` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.combine-latest.standalone (required) | tour/lessons/current.json#library.flow.combine-latest.composition (required) |
 | `flow/count` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.count.standalone (required) | tour/lessons/current.json#library.flow.count.composition (required) |
 | `flow/demux` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.demux.standalone (required) | tour/lessons/current.json#library.flow.demux.composition (required) |
-| `flow/discard` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.discard.standalone (required) | tour/lessons/current.json#library.flow.discard.composition (required) |
+| `flow/discard` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.flow.discard.standalone (required) | tour/lessons/current.json#library.flow.discard.composition (required) |
 | `flow/fallback` | portable-standard | `conduit.std.flow` | 1 | tour/lessons/current.json#library.flow.fallback.standalone (required) | tour/lessons/current.json#library.flow.fallback.composition (required) |
 | `flow/feedback-delay` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.feedback-delay.standalone (required) | tour/lessons/current.json#library.flow.feedback-delay.composition (required) |
 | `flow/filter` | portable-standard | `conduit.std.flow` | 0 | tour/lessons/current.json#library.flow.filter.standalone (required) | tour/lessons/current.json#library.flow.filter.composition (required) |

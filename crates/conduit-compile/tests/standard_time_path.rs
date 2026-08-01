@@ -17,21 +17,21 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 const TICKER_SOURCE: &str = "panel 0\n\
 node ticker : time/ticker { duration_ticks = 10 time_basis = ref(\"conduit.clock/monotonic-ticks\") maximum_pending = 1 }\n\
 node sink : acme/tick-sink\n\
-cord ticker.tick -> sink.tick { capacity = 1 max_value_bytes = 8 max_queued_bytes = 8 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+cord ticker.tick -> sink.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }\n";
 
-const TICK_U64: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("std/u64"),
+const TICK_TEXT: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("std/text"),
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([
-        0xf9, 0xba, 0xd3, 0xea, 0x53, 0xd3, 0xca, 0x01, 0xa0, 0xa4, 0xd6, 0x9f, 0x86, 0xc8, 0x25,
-        0x65, 0x17, 0x07, 0x16, 0x45, 0xea, 0x7d, 0x68, 0xef, 0x63, 0x6b, 0x6d, 0x94, 0x87, 0x70,
-        0xf0, 0xec,
+        0x94, 0xdf, 0xe2, 0x55, 0x09, 0xfe, 0x62, 0x4d, 0x89, 0x74, 0xb1, 0xdd, 0x44, 0x2e, 0xb7,
+        0xf9, 0x6f, 0x7e, 0x62, 0x1e, 0x6e, 0x71, 0xf0, 0x35, 0xac, 0x6f, 0x08, 0x04, 0x63, 0x61,
+        0x80, 0x72,
     ]),
 };
 const TICK_SINK_INPUT: PortContract<'static> = PortContract {
     id: Id("tick"),
     direction: Direction::Input,
-    value_type: TICK_U64,
+    value_type: TICK_TEXT,
     presence: Presence::Required,
     connections: ConnectionCardinality::ExactlyOne,
     values: ValueCardinality::ZeroOrMore,
@@ -69,16 +69,18 @@ impl Handler for TickSink {
                 "tick sink requires one value",
             ));
         };
-        if value.value_type != TICK_U64 {
+        if value.value_type != TICK_TEXT {
             return Err(RuntimeError::new(
                 "CND-RUN-004",
                 "ticker changed its exact value type",
             ));
         }
-        let bytes: [u8; 8] = value.bytes.as_slice().try_into().map_err(|_| {
-            RuntimeError::new("CND-RUN-004", "ticker value is not the exact u64 encoding")
-        })?;
-        TICK_SINK_LAST.store(u64::from_be_bytes(bytes), Ordering::SeqCst);
+        let tick = std::str::from_utf8(&value.bytes)
+            .ok()
+            .and_then(|text| text.strip_suffix('\n'))
+            .and_then(|text| text.parse::<u64>().ok())
+            .ok_or_else(|| RuntimeError::new("CND-RUN-004", "ticker value is not exact text"))?;
+        TICK_SINK_LAST.store(tick, Ordering::SeqCst);
         TICK_SINK_COUNT.fetch_add(1, Ordering::SeqCst);
         Ok(HostedServiceStep::produced(Vec::new()))
     }

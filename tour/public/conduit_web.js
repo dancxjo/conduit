@@ -102,6 +102,30 @@ export function parse_panel(source) {
 }
 
 /**
+ * Releases the exact scheduler-evidence prefix only after the browser caller
+ * has copied that prefix into its bounded Patchbay presentation. This is an
+ * explicit commit acknowledgement; reading or projecting evidence never
+ * releases it implicitly.
+ * @param {string} session_id
+ * @param {bigint} cursor
+ * @returns {string}
+ */
+export function patchbay_acknowledge_exact_evidence(session_id, cursor) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(session_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.patchbay_acknowledge_exact_evidence(ptr0, len0, cursor);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Advances deterministic browser-host time to an exact pending deadline.
  * It is an explicit host wake, not a JavaScript executor or clock jump.
  * @param {string} session_id

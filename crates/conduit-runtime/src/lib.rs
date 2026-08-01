@@ -551,6 +551,11 @@ const STREAM_INPUT_TEXT: PortContract<'static> = PortContract {
     id: Id("value"),
     ..TEXT_INPUT
 };
+const DISCARD_TEXT_INPUT: PortContract<'static> = PortContract {
+    id: Id("item"),
+    sensitivity: Sensitivity::Public,
+    ..STREAM_INPUT_TEXT
+};
 const STREAM_INPUT_TEXT_1: PortContract<'static> = PortContract {
     id: Id("left"),
     ..STREAM_INPUT_TEXT
@@ -787,6 +792,12 @@ pub const PASS_THROUGH_CONTRACT: NodeContract<'static> = NodeContract {
     config: EMPTY_CONFIG,
     inputs: &[VALUE_TEXT_INPUT],
     outputs: &[VALUE_TEXT_OUTPUT],
+};
+pub const DISCARD_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("flow/discard"),
+    config: EMPTY_CONFIG,
+    inputs: &[DISCARD_TEXT_INPUT],
+    outputs: &[],
 };
 pub const TEE_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("conduit.std/tee"),
@@ -1310,6 +1321,7 @@ pub enum HostedPrimitiveImplementation {
     StdoutStream,
     StderrStream,
     DisplayText,
+    Discard,
     PassThrough,
     Tee,
     Merge,
@@ -2994,6 +3006,11 @@ impl Registry {
             validate_empty_config,
         );
         install(
+            &DISCARD_CONTRACT,
+            || Box::new(DiscardHandler),
+            validate_empty_config,
+        );
+        install(
             &SUPERVISOR_CONTRACT,
             || Box::new(Supervisor),
             validate_empty_config,
@@ -3328,6 +3345,13 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                 "display-text",
                 HostedPrimitiveImplementation::DisplayText,
                 || Box::new(DisplayText),
+                validate_empty_config,
+            ),
+            (
+                &DISCARD_CONTRACT,
+                "discard",
+                HostedPrimitiveImplementation::Discard,
+                || Box::new(DiscardHandler),
                 validate_empty_config,
             ),
             (
@@ -5693,6 +5717,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::StdoutStream => "io/stdout-stream",
                 HostedPrimitiveImplementation::StderrStream => "io/stderr-stream",
                 HostedPrimitiveImplementation::DisplayText => "display/text",
+                HostedPrimitiveImplementation::Discard => "flow/discard",
                 HostedPrimitiveImplementation::PassThrough => "flow/identity",
                 HostedPrimitiveImplementation::Tee => "conduit.std/tee",
                 HostedPrimitiveImplementation::Merge => "conduit.std/merge",
@@ -6095,6 +6120,7 @@ impl ResolvedPanel<'_> {
                 HostedPrimitiveImplementation::StdoutStream => HostedNodeKind::Stdout,
                 HostedPrimitiveImplementation::StderrStream => HostedNodeKind::Stderr,
                 HostedPrimitiveImplementation::DisplayText => HostedNodeKind::DisplayText,
+                HostedPrimitiveImplementation::Discard => HostedNodeKind::Discard,
                 HostedPrimitiveImplementation::PassThrough => HostedNodeKind::PassThrough,
                 HostedPrimitiveImplementation::Tee => HostedNodeKind::Tee {
                     isolated: resolved.source.config("mode") == Some("isolated"),
@@ -6880,6 +6906,7 @@ enum HostedNodeKind {
     Stdout,
     Stderr,
     DisplayText,
+    Discard,
     PassThrough,
     DataUtf8 {
         utf8: conduit_std::Utf8State,
@@ -7128,6 +7155,7 @@ impl HostedNodeKind {
             | Self::Stdout
             | Self::Stderr
             | Self::DisplayText
+            | Self::Discard
             | Self::PassThrough
             | Self::ValidationDecisionAssert { .. }
             | Self::Merge { .. }
@@ -8258,6 +8286,20 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                             code: Id("display/text-write-error"),
                         };
                     }
+                    SchedulerStep::Progress
+                } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
+                    SchedulerStep::Completed
+                } else {
+                    let _ = io.wait_for_input(in_cord);
+                    SchedulerStep::Pending
+                }
+            }
+            HostedNodeKind::Discard => {
+                let in_cord = match self.in_cords.first() {
+                    Some(&cord) => cord,
+                    None => return SchedulerStep::Completed,
+                };
+                if matches!(io.receive(in_cord), Ok(Some(_))) {
                     SchedulerStep::Progress
                 } else if matches!(io.input_state(in_cord), Ok(FlowQueueState::Completed)) {
                     SchedulerStep::Completed
@@ -12157,7 +12199,7 @@ impl Handler for Ticker {
             .value_type;
         Ok(HostedServiceStep::produced(vec![Value {
             value_type,
-            bytes: tick.to_be_bytes().to_vec(),
+            bytes: format!("{tick}\n").into_bytes(),
         }]))
     }
 }
@@ -12575,6 +12617,19 @@ impl Handler for DisplayText {
         io.display
             .write_all(&input.bytes)
             .map_err(|error| RuntimeError::new("CND-RUN-005", error.to_string()))?;
+        Ok(Vec::new())
+    }
+}
+
+struct DiscardHandler;
+
+impl Handler for DiscardHandler {
+    fn run(
+        &mut self,
+        _node: &Node,
+        _inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
         Ok(Vec::new())
     }
 }

@@ -751,13 +751,36 @@ const OUT_U64: PortContract<'static> = port(
     ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
-const OUT_TICKER_U64: PortContract<'static> = port(
-    "tick",
-    Direction::Output,
-    U64,
-    ValueCardinality::ZeroOrMore,
-    TerminalContract::OpenEnded,
-);
+const OUT_TICKER_TEXT: PortContract<'static> = PortContract {
+    id: Id("tick"),
+    direction: Direction::Output,
+    value_type: TEXT,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::OpenEnded,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
+const DISCARD_TEXT_INPUT: PortContract<'static> = PortContract {
+    id: Id("item"),
+    direction: Direction::Input,
+    value_type: TEXT,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::Either,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+};
 const OUT_RECORD: PortContract<'static> = port(
     "result",
     Direction::Output,
@@ -2051,7 +2074,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         "flow/discard",
         Sink,
         EMPTY,
-        &[named("item", IN_BYTES)],
+        &[DISCARD_TEXT_INPUT],
         &[],
         Preserving,
         None,
@@ -2263,7 +2286,7 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
         Time,
         TIMED,
         &[],
-        &[OUT_TICKER_U64],
+        &[OUT_TICKER_TEXT],
         ProducesDeclaredType,
         Monotonic,
         TIMERS,
