@@ -988,7 +988,7 @@ function disableWatchControl() {
 
 function setWatchControl(control) {
   activeWatchControl = control;
-  watchToggle.disabled = false;
+  watchToggle.disabled = Boolean(control.pending);
   watchToggle.textContent = control.attached ? "Remove Watch (W)" : "Attach Watch (W)";
   watchToggle.setAttribute("aria-pressed", String(control.attached));
   watchObservationLead.dataset.attached = String(control.attached);
@@ -2897,4 +2897,5 @@ if (requestedScenario && scenarioSelect &&
   scenarioSelect.value = requestedScenario;
   scenarioSelect.dispatchEvent(new Event("change"));
 }
+document.documentElement.dataset.tourReady = "true";
 if (pageParameters.has("autorun") && !workspace.hidden) await run();
