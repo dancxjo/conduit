@@ -1,0 +1,285 @@
+{
+  "schema": "conduit.tour-book",
+  "schema_version": 0,
+  "id": "conduit-reader",
+  "title": "Build a living system you can see",
+  "subtitle": "A reader-first tour of Conduit, with the real Patchbay opened only when the work calls for it.",
+  "cover": {
+    "kicker": "The Conduit book",
+    "invitation": "Begin with the problem that made Conduit necessary, then build a visible, bounded program one connection at a time.",
+    "start_section": "why.visible-program"
+  },
+  "projects": [
+    {
+      "id": "visible-program",
+      "title": "Project one: Make the program visible",
+      "description": "Build a small continuous system whose components, connections, limits and meaning can be read as one program.",
+      "chapters": [
+        {
+          "id": "why",
+          "number": 0,
+          "title": "The program we could no longer see",
+          "description": "Why a living system needs a visible topology before it needs more machinery.",
+          "opening": "Conduit began as an attempt to see one behavior that had scattered across speech, sensors, models, services, motors, microcontrollers and computers.",
+          "sections": [
+            {
+              "id": "why.visible-program",
+              "title": "Recover the hidden program",
+              "summary": "Separate the program's promises from the machinery currently realizing them.",
+              "blocks": [
+                { "id": "invitation", "kind": "invitation", "body": "Picture one behavior that starts with a person and ends in software, sound or motion. The interesting thing is the whole path, not any one function call." },
+                { "id": "need", "kind": "need", "body": "When that path dissolves into callbacks, processes, deployment files and private conventions, changing one implementation means rediscovering the program." },
+                { "id": "idea", "kind": "idea", "body": "Name components, cords, contracts, placement, pressure and observation as parts of the program itself." },
+                { "id": "action", "kind": "action", "body": "Open the compact lab and inspect a current checked ticker: a tiny system that starts once, waits, wakes, flows and remains alive." },
+                { "id": "lab", "kind": "lab", "lesson_id": "book.origin-hidden-program", "presentation": "compact" },
+                { "id": "witness", "kind": "witness", "body": "The Patchbay and result are projections of the same checked source and exact run session; expanding the lab does not create a second example." },
+                { "id": "explanation", "kind": "explanation", "body": "A realization may move or be replaced while the declared topology, contracts and bounded flow stay legible." },
+                { "id": "reflection", "kind": "reflection", "body": "Which parts of one of your systems are truly the program, and which are only today's realization?" },
+                { "id": "next-hook", "kind": "next-hook", "body": "Next, make the smallest visible message path and witness its result." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "first-path",
+          "number": 1,
+          "title": "Patch a first message",
+          "description": "Turn source into a visible path, disturb it, repair it and inspect what actually ran.",
+          "opening": "A useful first program is small enough to understand completely and real enough to fail honestly.",
+          "sections": [
+            {
+              "id": "first-path.hello",
+              "title": "Hello, panel",
+              "summary": "Create, conduct and display one bounded text value.",
+              "blocks": [
+                { "id": "invitation", "kind": "invitation", "body": "Start with one literal, one display and one cord." },
+                { "id": "action", "kind": "action", "body": "Run the panel and read the result before opening its technical proof." },
+                { "id": "lab", "kind": "lab", "lesson_id": "welcome.hello-panel", "presentation": "compact" },
+                { "id": "explanation", "kind": "explanation", "body": "The visible result, plan and evidence belong to the same exact worker run." },
+                { "id": "next-hook", "kind": "next-hook", "body": "Now break the path deliberately." }
+              ]
+            },
+            {
+              "id": "first-path.pull",
+              "title": "Pull the cord",
+              "summary": "See an incomplete graph remain readable without pretending it can run.",
+              "blocks": [
+                { "id": "need", "kind": "need", "body": "A visual editor must keep invalid authored intent visible instead of silently inventing a runnable graph." },
+                { "id": "lab", "kind": "lab", "lesson_id": "welcome.pull-the-cord", "presentation": "compact" },
+                { "id": "reflection", "kind": "reflection", "body": "The unavailable Run control is part of the explanation, not an inconvenience to hide." }
+              ]
+            },
+            {
+              "id": "first-path.change",
+              "title": "Change the value, not the topology",
+              "summary": "Keep source identity and a local learner draft distinct.",
+              "blocks": [
+                { "id": "idea", "kind": "idea", "body": "A draft is local reading work; it is not authored source, a resolved plan or a surviving run." },
+                { "id": "lab", "kind": "lab", "lesson_id": "welcome.change-message", "presentation": "compact" },
+                { "id": "explanation", "kind": "explanation", "body": "Refresh can restore your text without claiming that the previous execution session survived." }
+              ]
+            },
+            {
+              "id": "first-path.proof",
+              "title": "Ask how we know",
+              "summary": "Reveal exact plan and evidence only when the question requires them.",
+              "blocks": [
+                { "id": "invitation", "kind": "invitation", "body": "Read the action and result first, then open the proof drawers." },
+                { "id": "lab", "kind": "lab", "lesson_id": "welcome.nothing-up-our-sleeves", "presentation": "compact" },
+                { "id": "reflection", "kind": "reflection", "body": "Progressive disclosure changes presentation, never the authority of the underlying records." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "components",
+          "number": 2,
+          "title": "Read components and cords",
+          "description": "Use ports, direction, types, fan-out and terminal states as explicit promises.",
+          "opening": "A box and a line become useful only when their semantic responsibilities remain readable without color or motion.",
+          "sections": [
+            {
+              "id": "components.ports",
+              "title": "More than one port",
+              "summary": "Read each receiving and outgoing promise independently.",
+              "blocks": [
+                { "id": "idea", "kind": "idea", "body": "Ports are named semantic boundaries, not decoration on a node." },
+                { "id": "lab", "kind": "lab", "lesson_id": "nodes.more-than-one-port", "presentation": "compact" },
+                { "id": "explanation", "kind": "explanation", "body": "The textual port list follows the same projection as the visible faceplate." }
+              ]
+            },
+            {
+              "id": "components.direction",
+              "title": "Direction is part of the promise",
+              "summary": "Reject a cord whose endpoints cannot satisfy receiving and outgoing roles.",
+              "blocks": [
+                { "id": "need", "kind": "need", "body": "A line between two boxes is ambiguous unless both endpoint roles are explicit." },
+                { "id": "lab", "kind": "lab", "lesson_id": "nodes.direction-matters", "presentation": "compact" },
+                { "id": "reflection", "kind": "reflection", "body": "The diagnosis remains in reading order even when the visual canvas is unavailable." }
+              ]
+            },
+            {
+              "id": "components.fan-out",
+              "title": "Make fan-out a choice",
+              "summary": "Treat delivery multiplicity and pressure as semantics.",
+              "blocks": [
+                { "id": "idea", "kind": "idea", "body": "Duplicating a value is a node-level decision with bounded downstream delivery, not a free visual fork." },
+                { "id": "lab", "kind": "lab", "lesson_id": "nodes.fan-out-is-a-choice", "presentation": "compact" },
+                { "id": "next-hook", "kind": "next-hook", "body": "Types make the promise more precise." }
+              ]
+            },
+            {
+              "id": "components.types",
+              "title": "Types mean promises",
+              "summary": "Keep compatibility proof separate from visual proximity.",
+              "blocks": [
+                { "id": "need", "kind": "need", "body": "Nearby ports are not necessarily substitutable." },
+                { "id": "lab", "kind": "lab", "lesson_id": "nodes.types-mean-promises", "presentation": "compact" },
+                { "id": "explanation", "kind": "explanation", "body": "Compatibility comes from semantic contracts; the canvas only presents the proof or failure." }
+              ]
+            },
+            {
+              "id": "components.terminal",
+              "title": "Empty is not never",
+              "summary": "Read terminal state independently from the absence of a value.",
+              "blocks": [
+                { "id": "idea", "kind": "idea", "body": "No value yet, no value ever and an explicit empty value are different facts." },
+                { "id": "lab", "kind": "lab", "lesson_id": "nodes.empty-is-not-never", "presentation": "compact" },
+                { "id": "reflection", "kind": "reflection", "body": "A bounded live system needs terminal meaning as much as it needs value meaning." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "panels",
+          "number": 3,
+          "title": "Compose a larger faceplate",
+          "description": "Nest panels while keeping public jacks, internal realization and reusable meaning distinct.",
+          "opening": "Composition should make a system easier to read without erasing how its public promises are realized.",
+          "sections": [
+            {
+              "id": "panels.nest",
+              "title": "Put a panel in a panel",
+              "summary": "Compose a checked definition without copying its implementation.",
+              "blocks": [
+                { "id": "invitation", "kind": "invitation", "body": "Build a larger component from a smaller visible program." },
+                { "id": "lab", "kind": "lab", "lesson_id": "panels.put-a-panel-in-a-panel", "presentation": "compact" },
+                { "id": "next-hook", "kind": "next-hook", "body": "Bring its useful promises to the front." }
+              ]
+            },
+            {
+              "id": "panels.jacks",
+              "title": "Put the jacks on the front",
+              "summary": "Expose explicit public ports for a composite.",
+              "blocks": [
+                { "id": "idea", "kind": "idea", "body": "A composite's interface is a contract, not a leak of its private wiring." },
+                { "id": "lab", "kind": "lab", "lesson_id": "panels.jacks-on-the-front", "presentation": "compact" },
+                { "id": "explanation", "kind": "explanation", "body": "Logical and expanded projections preserve the same source-backed identity." }
+              ]
+            },
+            {
+              "id": "panels.boundary",
+              "title": "Inside / outside",
+              "summary": "Move between a public faceplate and its expanded realization.",
+              "blocks": [
+                { "id": "action", "kind": "action", "body": "Toggle the topology projection and follow the same semantic port across the boundary." },
+                { "id": "lab", "kind": "lab", "lesson_id": "panels.inside-outside", "presentation": "compact" },
+                { "id": "witness", "kind": "witness", "body": "Source selection, logical ports and expanded ports remain linked by projected identities." }
+              ]
+            },
+            {
+              "id": "panels.reuse",
+              "title": "Reuse without copying",
+              "summary": "Keep one definition and multiple exact realizations distinguishable.",
+              "blocks": [
+                { "id": "need", "kind": "need", "body": "Copying implementation text makes later replacement and proof harder." },
+                { "id": "lab", "kind": "lab", "lesson_id": "panels.reuse-without-copying", "presentation": "compact" },
+                { "id": "reflection", "kind": "reflection", "body": "Reuse should preserve meaning while exact plan identity records each realization." }
+              ]
+            },
+            {
+              "id": "panels.watch",
+              "title": "Observe a living value",
+              "summary": "Attach bounded presentation to a running system without turning it into a semantic cord.",
+              "blocks": [
+                { "id": "invitation", "kind": "invitation", "body": "Let the system remain alive between admitted wakes." },
+                { "id": "lab", "kind": "lab", "lesson_id": "panels.tiny-instrument", "presentation": "compact" },
+                { "id": "explanation", "kind": "explanation", "body": "Watch is isolated instrumentation; semantic tee and recorder behavior remain plan-visible choices." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trustworthy-run",
+      "title": "Project two: Trust the running system",
+      "description": "Carry visible source through exact plans, bounded execution and evidence without confusing any of their identities.",
+      "chapters": [
+        {
+          "id": "witness",
+          "number": 4,
+          "title": "Witness without rewriting history",
+          "description": "Use Patchbay observation and exact records to explain what ran.",
+          "opening": "Observation is trustworthy only when presentation never becomes execution authority.",
+          "sections": [
+            {
+              "id": "witness.patchbay",
+              "title": "Let Patchbay observe Patchbay",
+              "summary": "Read bounded evidence from the same exact run shown in the workspace.",
+              "blocks": [
+                { "id": "need", "kind": "need", "body": "A teaching timeline must reveal executor evidence, not synthesize a friendlier history." },
+                { "id": "lab", "kind": "lab", "lesson_id": "patchbay.observes-patchbay", "presentation": "compact" },
+                { "id": "witness", "kind": "witness", "body": "The compact result, expanded timeline and textual evidence table share one ordered record." }
+              ]
+            },
+            {
+              "id": "witness.identities",
+              "title": "Keep four records distinct",
+              "summary": "Separate source, plan, run and presentation while moving between them deliberately.",
+              "blocks": [
+                { "id": "idea", "kind": "idea", "body": "A source draft, resolved plan, exact run and Patchbay layout answer different questions." },
+                { "id": "lab", "kind": "lab", "lesson_id": "platform.panel-capsules", "presentation": "compact" },
+                { "id": "reflection", "kind": "reflection", "body": "Reading progress and local drafts can survive refresh; a live run cannot be inferred to survive with them." }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "reference": {
+    "title": "Reference",
+    "description": "Search canonical checked panels by capability without entering the book's Previous/Next path.",
+    "panel_manifest": "../reference-panels/current.json"
+  },
+  "cookbook": {
+    "title": "Cookbook",
+    "description": "Search focused recipes and open their exact lesson artifacts independently of the sequential book.",
+    "recipes": [
+      { "id": "typed-text", "title": "Format typed text", "lesson_id": "library.typed-text-format", "tags": ["text", "format"] },
+      { "id": "media-values", "title": "Carry bounded media values", "lesson_id": "library.bounded-media-values", "tags": ["media", "values"] },
+      { "id": "media-codecs", "title": "Use exact PCM and WAVE operations", "lesson_id": "library.bounded-media-codecs", "tags": ["media", "codec"] },
+      { "id": "spatial", "title": "Keep frames and calibration explicit", "lesson_id": "library.bounded-spatial-foundation", "tags": ["spatial", "calibration"] },
+      { "id": "inference", "title": "Run bounded learned inference", "lesson_id": "library.bounded-learned-inference", "tags": ["model", "inference"] },
+      { "id": "retrieval", "title": "Retrieve knowledge with source revisions", "lesson_id": "library.bounded-knowledge-retrieval", "tags": ["knowledge", "citation"] },
+      { "id": "knowledge-graph", "title": "Traverse a bounded cited-claim graph", "lesson_id": "library.bounded-knowledge-graph", "tags": ["knowledge", "graph", "citation"] },
+      { "id": "flow-control", "title": "Choose bounded flow control", "lesson_id": "library.standard-flow-control", "tags": ["flow", "pressure"] },
+      { "id": "state", "title": "Keep bounded in-run state", "lesson_id": "library.bounded-state", "tags": ["state"] },
+      { "id": "cache", "title": "Use an evictable large-value cache", "lesson_id": "library.evictable-storage-cache", "tags": ["state", "cache"] },
+      { "id": "supervision", "title": "Retry and break explicitly", "lesson_id": "library.bounded-supervision", "tags": ["supervision", "failure"] },
+      { "id": "time", "title": "Make bounded time explicit", "lesson_id": "library.explicit-time", "tags": ["time"] },
+      { "id": "data", "title": "Cross explicit data boundaries", "lesson_id": "library.explicit-data-boundaries", "tags": ["data", "representation"] },
+      { "id": "process", "title": "Declare bounded process execution", "lesson_id": "library.bounded-process-exec", "tags": ["host", "process"] },
+      { "id": "sockets", "title": "Declare bounded sockets", "lesson_id": "library.bounded-sockets", "tags": ["host", "network"] },
+      { "id": "http", "title": "Build a persistent bounded HTTP service", "lesson_id": "library.bounded-http-service", "tags": ["host", "http"] },
+      { "id": "filesystem", "title": "Cross bounded file boundaries", "lesson_id": "library.bounded-filesystem", "tags": ["host", "filesystem"] },
+      { "id": "brainstem", "title": "Describe a bounded brainstem network", "lesson_id": "library.bounded-brainstem-network", "tags": ["network", "isolation"] },
+      { "id": "envelope", "title": "Carry value, clock and feedback facts", "lesson_id": "platform.value-envelope-clock-feedback", "tags": ["platform", "clock"] },
+      { "id": "lease", "title": "Lease resources and commit effects", "lesson_id": "platform.resource-lease-effect-commit", "tags": ["platform", "resource"] },
+      { "id": "admission", "title": "Admit workloads against deadlines", "lesson_id": "platform.workload-admission-deadline", "tags": ["platform", "admission"] },
+      { "id": "provider", "title": "Check cross-host provider conformance", "lesson_id": "platform.cross-host-provider-conformance", "tags": ["platform", "provider"] },
+      { "id": "packages", "title": "Import contract packages without acquiring implementations", "lesson_id": "library.contract-package-imports", "tags": ["contract", "package"] }
+    ]
+  }
+}

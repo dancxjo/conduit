@@ -14,6 +14,7 @@ mkdir -p \
   "${site_dir}/conformance/c4"
 cp "${root_dir}/tour/site-index.html" "${site_dir}/index.html"
 cp -R "${root_dir}/tour/public" "${site_dir}/tour/public"
+cp -R "${root_dir}/tour/book" "${site_dir}/tour/book"
 cp -R "${root_dir}/tour/lessons" "${site_dir}/tour/lessons"
 cp -R "${root_dir}/tour/reference-panels" "${site_dir}/tour/reference-panels"
 cp "${root_dir}"/examples/*.panel "${site_dir}/examples/"

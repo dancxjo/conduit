@@ -26,29 +26,107 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
   expect(failures).toEqual([]);
 });
 
-test("opens with the real reason Conduit was built", async ({ page }) => {
+test("opens as a book and embeds the same real lab in compact and expanded modes", async ({ page }) => {
   await page.goto("/tour/public/index.html");
 
-  await expect(page.locator("#title")).toHaveText("The program we could no longer see");
-  await expect(page.locator("#book-chapter")).toBeVisible();
-  await expect(page.locator("#book-anchor")).toContainText(
-    "we could no longer see the program we had made",
+  await expect(page.locator("#book-cover")).toBeVisible();
+  await expect(page.locator("#cover-title")).toHaveText(
+    "Build a living system you can see",
   );
-  await expect(page.locator(".book-section")).toHaveCount(7);
+  await expect(page.locator("#cover-projects article")).toHaveCount(2);
+  await expect(page.locator("#workspace")).toBeHidden();
+
+  await page.locator("#begin-book").click();
+  await expect(page.locator("#reader-section-title")).toHaveText(
+    "Recover the hidden program",
+  );
+  await expect(page.locator("#chapter-opening-title")).toHaveText(
+    "The program we could no longer see",
+  );
+  await expect(page.locator("#narrative-before-lab .narrative-block")).toHaveCount(4);
+  await expect(page.locator("#narrative-after-lab .narrative-block")).toHaveCount(4);
+  await expect(page.locator("#workspace")).toHaveAttribute("data-mode", "compact");
   await expect(page.locator("#source")).toHaveValue(/time\/ticker/);
-  await expect(page.locator("#origin-comparison")).toContainText(
-    "hidden across many artifacts",
-  );
+  await expect(page.locator("#plan-drawer")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#evidence-drawer")).not.toHaveAttribute("open", "");
 
-  await page.locator("#origin-conduit").click();
-  await expect(page.locator("#origin-comparison")).toContainText(
-    "named as components and cords",
-  );
-  await expect(page.locator("#origin-conduit")).toHaveAttribute("aria-pressed", "true");
+  const sourceBeforeExpansion = await page.locator("#source").inputValue();
+  await page.locator("#expand-lab").click();
+  await expect(page.locator("#workspace")).toHaveAttribute("data-mode", "expanded");
+  await expect(page.locator("#source")).toHaveValue(sourceBeforeExpansion);
+  await expect(page.locator("#expand-lab")).toHaveAttribute("aria-expanded", "true");
 
-  await page.locator("#origin-continue").click();
-  await expect(page.locator("#title")).toHaveText("A live ticker Watch");
-  await expect(page.locator("#book-chapter")).toBeHidden();
+  await page.locator("#next-section").click();
+  await expect(page.locator("#reader-section-title")).toHaveText("Hello, panel");
+  await expect(page.locator("#previous-section")).toContainText(
+    "Previous: Recover the hidden program",
+  );
+});
+
+test("keeps Reference and Cookbook searchable outside sequential navigation", async ({ page }) => {
+  await page.goto("/tour/public/index.html");
+
+  await page.locator("#show-cookbook").click();
+  await expect(page.locator("#directory-title")).toHaveText("Cookbook");
+  await page.locator("#directory-query").fill("codec");
+  await expect(page.locator("#directory-results")).toContainText(
+    "Use exact PCM and WAVE operations",
+  );
+  await page.getByRole("button", { name: /Use exact PCM and WAVE operations/ }).click();
+  await expect(page.locator("#section-progress")).toHaveText(
+    "Outside sequential book progress",
+  );
+  await expect(page.locator("#previous-section")).toHaveText("Back to Cookbook");
+  await expect(page.locator("#next-section")).toBeHidden();
+
+  await page.locator("#show-reference").click();
+  await expect(page.locator("#directory-title")).toHaveText("Reference");
+  await page.locator("#directory-query").fill("filesystem");
+  await expect(page.locator("#directory-results")).toContainText("File Copier Pipeline");
+});
+
+test("restores reading position and a local draft without reviving a run", async ({ page }) => {
+  await page.goto("/tour/public/index.html?section=first-path.hello");
+  await page.locator("#expand-lab").click();
+  const source = page.locator("#source");
+  await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Reader draft."));
+  await page.locator("#reader-content").evaluate((reader) => {
+    reader.scrollTop = 420;
+    reader.dispatchEvent(new Event("scroll"));
+  });
+  await page.reload();
+
+  await expect(page.locator("#reader-section-title")).toHaveText("Hello, panel");
+  await expect(source).toHaveValue(/Reader draft\./);
+  await expect(page.locator("#console-status-badge")).toHaveText("Ready");
+  await expect(page.locator("#result")).not.toContainText("Live exact run remains");
+  expect(await page.locator("#reader-content").evaluate((reader) => reader.scrollTop)).toBeGreaterThan(0);
+});
+
+test("keeps prose, action, real lab, result and explanation in document order", async ({ page }) => {
+  await page.goto("/tour/public/index.html?section=why.visible-program#plan-drawer");
+  await expect(page.locator("#plan-drawer")).toHaveAttribute("open", "");
+  const order = await page.evaluate(() => {
+    const nodes = [
+      document.querySelector("#narrative-before-lab"),
+      document.querySelector("#run"),
+      document.querySelector("#result"),
+      document.querySelector("#narrative-after-lab"),
+    ];
+    return nodes.map((node) => {
+      let index = 0;
+      for (const candidate of document.querySelectorAll("body *")) {
+        if (candidate === node) return index;
+        index += 1;
+      }
+      return -1;
+    });
+  });
+  expect(order).toEqual([...order].sort((left, right) => left - right));
+  await expect(page.locator("#section-permalink")).toHaveAttribute(
+    "href",
+    "?section=why.visible-program",
+  );
 });
 
 test("owns an exact Patchbay run session inside the dedicated worker", async ({ page }) => {
@@ -289,6 +367,7 @@ test("keeps one public latest-value ticker Watch live in the production executor
 
   await page.goto("/tour/public/index.html?lesson=panels.tiny-instrument");
   await expect(page.locator("#title")).toHaveText("A live ticker Watch");
+  await page.locator("#accounting-drawer > summary").click();
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
 
@@ -767,20 +846,20 @@ test("covers every published chapter and exposes production topology projections
   page,
 }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
-  const lessonCatalog = await page.evaluate(async () => {
-    const response = await fetch("../lessons/current.json", { cache: "no-store" });
+  const readerCatalog = await page.evaluate(async () => {
+    const response = await fetch("../book/current.json", { cache: "no-store" });
     const catalog = await response.json();
     return {
-      count: catalog.lessons.length,
-      chapters: [...new Set(catalog.lessons.map((lesson) => lesson.chapter))].sort(
-        (left, right) => left - right,
-      ),
+      projects: catalog.projects.length,
+      chapters: catalog.projects.flatMap((project) => project.chapters).length,
+      sections: catalog.projects.flatMap((project) =>
+        project.chapters.flatMap((chapter) => chapter.sections)).length,
     };
   });
-  expect(lessonCatalog.chapters).toEqual(
-    Array.from({ length: lessonCatalog.chapters.at(-1) + 1 }, (_, chapter) => chapter),
-  );
-  await expect(page.locator("#lessons > li")).toHaveCount(lessonCatalog.count);
+  expect(readerCatalog).toEqual({ projects: 2, chapters: 5, sections: 17 });
+  await expect(page.locator(".toc-project")).toHaveCount(readerCatalog.projects);
+  await expect(page.locator(".toc-chapter")).toHaveCount(readerCatalog.chapters);
+  await expect(page.locator("[data-section-id]")).toHaveCount(readerCatalog.sections);
   await page.getByRole("button", { name: "Inside / outside" }).click();
   await expect(page.locator("#source")).toHaveValue(/example\/upper-box/);
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
@@ -1715,6 +1794,7 @@ test("navigates incomplete source and diagnostics in fullscreen with reduced mot
     element.selectionEnd > element.selectionStart
   )).toBe(true);
   await page.locator("#workspace-hide-editor").click();
+  await page.locator("#workspace-hide-console").click();
   await page.locator('[data-id="first"]').click();
   await page.locator("#workspace-show-editor").click();
   await expect(page.locator(".panel-source-selection")).toContainText(
@@ -1965,6 +2045,8 @@ test("routes cords through free space by default and keeps labels off node faces
 
 test("filesystem reference panels use the explicit bounded browser provider", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await page.locator("#show-reference").click();
+  await page.locator("#directory-query").fill("File Copier Pipeline");
   await page.getByRole("button", { name: "File Copier Pipeline" }).click();
   await expect(page.locator("#runnability-state")).toContainText("runnable · browser");
   await expect(page.locator("#run")).toBeEnabled();
