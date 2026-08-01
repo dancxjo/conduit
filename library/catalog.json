@@ -979,10 +979,10 @@
           "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
           "presence": "required",
           "connections": "exactly-one",
-          "values": "exactly-one",
+          "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
-          "terminal": "finite",
+          "terminal": "either",
           "sensitivity": "public",
           "loss": "lossless-only"
         },
@@ -1069,6 +1069,110 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.bounded-media-values",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/channel-map",
+      "public_source_spelling": "conduit.media/audio/channel-map",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/channel-map",
+      "schema_version": 0,
+      "semantic_hash": "sha256:201b802cfaa72e6162b85e45e435b02cfe03ef589fea952178229cfb8ce7f8b2",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "input_layout",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "output_layout",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "matrix_q15",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_channels",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
         "status": "published"
       },
       "successor": null,
@@ -1361,6 +1465,878 @@
       },
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.bounded-media-codecs",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/from-control",
+      "public_source_spelling": "conduit.media/audio/from-control",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/from-control",
+      "schema_version": 0,
+      "semantic_hash": "sha256:3daa14ef6a2bc9df398d2f62fdf5908d348c9981b212db0df666b80dbc6ddc2f",
+      "ports": [
+        {
+          "id": "level",
+          "direction": "input",
+          "value_type": "conduit.media/control",
+          "type_schema_version": 0,
+          "type_hash": "sha256:45bc3832792a43282512646885344c319973817fb3b30442cde2d59f481c1293",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "sample_rate_hz",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "layout",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "frames_per_control",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/gain",
+      "public_source_spelling": "conduit.media/audio/gain",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/gain",
+      "schema_version": 0,
+      "semantic_hash": "sha256:cf24555d2eb13218b975acd226f7706a8c812ae904fb8cb6e5d02069861b0395",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "curve",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "start_gain_q15",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "end_gain_q15",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "ramp_start_frame",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "ramp_end_frame",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_automation_points",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_samples",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/meter",
+      "public_source_spelling": "conduit.media/audio/meter",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/meter",
+      "schema_version": 0,
+      "semantic_hash": "sha256:c0224337faea228310544f307ba2959d4e07b15eb693a8fc07db6d7fe973e5d0",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "level",
+          "direction": "output",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "window_basis",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "window_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "peak",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "rms",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "cadence_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "latency_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_retained_samples",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_side_outputs",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/mix",
+      "public_source_spelling": "conduit.media/audio/mix",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/mix",
+      "schema_version": 0,
+      "semantic_hash": "sha256:7a0cb1b5bfb9696317095b90752033906428cda02f8c904ecab2a7326bfbf1d6",
+      "ports": [
+        {
+          "id": "left",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "right",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "alignment",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "missing_late",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "left_gain_q15",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "right_gain_q15",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "headroom",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "clipping",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "output_layout",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "latency_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "terminal_drain",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_inputs",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/resample",
+      "public_source_spelling": "conduit.media/audio/resample",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/resample",
+      "schema_version": 0,
+      "semantic_hash": "sha256:b8a5e0cf71fc5c64deda43bfb673980aa1040e464c5ba2e2f7a6464cc0bbd119",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "input_rate_hz",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "output_rate_hz",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "quality_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "group_delay_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "timestamp_mapping",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "drift",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "flush",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_history_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_work",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/tee",
+      "public_source_spelling": "conduit.media/audio/tee",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/tee",
+      "schema_version": 0,
+      "semantic_hash": "sha256:53aedf8dec3d7170062965a846226590bee4ca3c259fa61225f87a94d89e07af",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "left",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "right",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "mode",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "conduit.media/audio/trim",
+      "public_source_spelling": "conduit.media/audio/trim",
+      "classification": "reusable-domain-package",
+      "package_owner": "conduit.domain.media",
+      "contract_package_artifact": "conduit.contract-package/conduit.domain.media",
+      "export_path": "conduit.domain.media/conduit.media/audio/trim",
+      "schema_version": 0,
+      "semantic_hash": "sha256:96285c2ec3159d32ac251d5ab52bcfd253c738bc6bd05c707c08c05211a8245f",
+      "ports": [
+        {
+          "id": "frame",
+          "direction": "input",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "frame",
+          "direction": "output",
+          "value_type": "conduit.media/audio-frame",
+          "type_schema_version": 0,
+          "type_hash": "sha256:107ef41baaa81b3567513dd1d9f404aee48313914643a031fb9744cf498420ea",
+          "presence": "required",
+          "connections": "one-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "public",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "numeric_profile",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "interval_basis",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "start_frame",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "end_frame",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "open_ended",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "boundary_rounding",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "discontinuity",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "fade_in_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "fade_out_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_frames",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c4/media-values.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.domain.media/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
+        "status": "published"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.bounded-audio-processing",
         "status": "published"
       },
       "successor": null,

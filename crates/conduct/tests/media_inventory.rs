@@ -6,6 +6,7 @@ use conduit_compile::{InstalledProfile, compile_source};
 use conduit_core::NodeContract;
 use conduit_media::{
     DEMUX_CONTRACT, ENCODE_CONTRACT, MUX_CONTRACT, PROBE_CONTRACT, WAVE_LITERAL_CONTRACT,
+    register_audio_processing_contracts, register_deterministic_audio_processing_providers,
     register_deterministic_codec_providers, register_deterministic_media_providers,
     register_deterministic_signal_providers, register_media_codec_contracts,
     register_media_contracts,
@@ -19,6 +20,22 @@ fn workspace_file(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .join(path)
+}
+
+fn run_source(source: &str) -> std::process::Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(source.as_bytes())
+        .unwrap();
+    child.wait_with_output().unwrap()
 }
 
 fn register_codec_fixture_provider(
@@ -253,6 +270,193 @@ fn standalone_and_composed_media_panels_run_through_the_canonical_cli() {
             String::from_utf8_lossy(&output.stderr)
         );
         assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+    }
+}
+
+#[test]
+fn bounded_audio_processors_bind_and_run_through_the_production_executor() {
+    let source = include_str!("../../../examples/audio-processing.panel");
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_media_providers(&mut registry).unwrap();
+    register_deterministic_audio_processing_providers(&mut registry).unwrap();
+    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    for (contract, implementation) in [
+        (
+            "conduit.media/audio/mix",
+            "conduit.media/audio-mix-reference",
+        ),
+        (
+            "conduit.media/audio/gain",
+            "conduit.media/audio-gain-reference",
+        ),
+        (
+            "conduit.media/audio/channel-map",
+            "conduit.media/audio-channel-map-reference",
+        ),
+        (
+            "conduit.media/audio/resample",
+            "conduit.media/audio-resample-reference",
+        ),
+        (
+            "conduit.media/audio/trim",
+            "conduit.media/audio-trim-reference",
+        ),
+        (
+            "conduit.media/audio/meter",
+            "conduit.media/audio-meter-reference",
+        ),
+    ] {
+        assert!(document.nodes.iter().any(|node| {
+            node.contract.id == contract && node.implementation.id == implementation
+        }));
+    }
+    assert_eq!(document.cords.len(), 8);
+    assert!(document.cords.iter().all(|cord| {
+        cord.capacity_items == 1
+            && cord.high_watermark_items == 1
+            && matches!(cord.pressure, conduit_compile::PressureDocument::BlockFifo)
+    }));
+
+    for (path, expected) in [
+        ("examples/audio-mix.panel", "audio:s16le:48000:stereo-lr:16"),
+        (
+            "examples/audio-gain.panel",
+            "audio:s16le:48000:stereo-lr:16",
+        ),
+        (
+            "examples/audio-channel-map.panel",
+            "audio:s16le:48000:mono-center:16",
+        ),
+        (
+            "examples/audio-resample.panel",
+            "audio:s16le:24000:stereo-lr:8",
+        ),
+        (
+            "examples/audio-trim.panel",
+            "audio:s16le:48000:stereo-lr:12",
+        ),
+        ("examples/audio-meter.panel", ""),
+        ("examples/audio-processing.panel", ""),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+            .arg(workspace_file(path))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+    }
+}
+
+#[test]
+fn audio_contract_only_unsupported_and_pressure_states_fail_closed() {
+    let source = include_str!("../../../examples/audio-resample.panel");
+    let panel = conduit_panel::parse(source).unwrap();
+    let mut contract_only = Registry::default();
+    register_media_contracts(&mut contract_only);
+    register_audio_processing_contracts(&mut contract_only);
+    assert_eq!(
+        contract_only
+            .node_availability("conduit.media/audio/resample")
+            .state,
+        AvailabilityState::ContractOnly
+    );
+    assert_eq!(
+        contract_only.resolve(&panel).unwrap_err().code,
+        "CND-IMP-001"
+    );
+
+    for (from, to, code) in [
+        (
+            "output_rate_hz = 24000",
+            "output_rate_hz = 44100",
+            "CND-AUDIO-005",
+        ),
+        (
+            "quality_profile = \"nearest-hold-bit-exact\"",
+            "quality_profile = \"high-quality\"",
+            "CND-AUDIO-005",
+        ),
+        (
+            "maximum_history_frames = 0",
+            "maximum_history_frames = 1",
+            "CND-AUDIO-005",
+        ),
+        (
+            "maximum_frames = 16",
+            "maximum_frames = 33",
+            "CND-AUDIO-002",
+        ),
+    ] {
+        let output = run_source(&source.replacen(from, to, 1));
+        assert!(!output.status.success(), "mutation {from} unexpectedly ran");
+        assert!(String::from_utf8_lossy(&output.stderr).contains(code));
+    }
+
+    for (source, from, to) in [
+        (
+            include_str!("../../../examples/audio-gain.panel"),
+            "maximum_frames = 16",
+            "maximum_frames = 8",
+        ),
+        (
+            include_str!("../../../examples/audio-mix.panel"),
+            "maximum_work = 64",
+            "maximum_work = 16",
+        ),
+    ] {
+        let output = run_source(&source.replacen(from, to, 1));
+        assert!(
+            !output.status.success(),
+            "under-declared {from} unexpectedly ran"
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("CND-AUDIO-002"));
+    }
+
+    let pressured = include_str!("../../../examples/audio-gain.panel")
+        .replacen("max_value_bytes = 152", "max_value_bytes = 16", 1)
+        .replacen("max_queued_bytes = 152", "max_queued_bytes = 16", 1);
+    let output = run_source(&pressured);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("CND-RUN-004"));
+}
+
+#[test]
+fn audio_conformance_fixture_names_every_required_boundary_case() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/c4/audio-processing.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 0);
+    assert_eq!(fixture["contracts"].as_array().unwrap().len(), 8);
+    let positive = fixture["positive_cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    for required in [
+        "silence",
+        "late-or-missing-mix-input",
+        "gain-ramp-across-chunk-boundary",
+        "resampler-zero-history-flush",
+        "trim-half-open-rounding",
+        "meter-window-cadence",
+        "standing-clock-control-mix-gain-resample-meter",
+        "explicit-cancellation",
+        "reference-optimized-zero-tolerance",
+    ] {
+        let present = positive.contains(required)
+            || fixture["negative_cases"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|case| case["id"] == required);
+        assert!(present, "fixture includes {required}");
     }
 }
 

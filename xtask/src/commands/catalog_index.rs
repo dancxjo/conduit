@@ -348,6 +348,17 @@ fn lesson(id: &str, composition: bool) -> Lesson {
         ) => Some("library.bounded-media-codecs"),
         (id, _) if id.starts_with("learned/") => Some("library.bounded-learned-inference"),
         (id, _) if id.starts_with("spatial/") => Some("library.bounded-spatial-foundation"),
+        (
+            "conduit.media/audio/mix"
+            | "conduit.media/audio/tee"
+            | "conduit.media/audio/gain"
+            | "conduit.media/audio/channel-map"
+            | "conduit.media/audio/resample"
+            | "conduit.media/audio/trim"
+            | "conduit.media/audio/meter"
+            | "conduit.media/audio/from-control",
+            _,
+        ) => Some("library.bounded-audio-processing"),
         (id, _) if id.starts_with("conduit.media/") => Some("library.bounded-media-values"),
         ("text/uppercase", true) => Some("panels.put-a-panel-in-a-panel"),
         ("time/ticker", _) => Some("panels.tiny-instrument"),
@@ -393,6 +404,7 @@ fn validate_semantic_port_inventory(entries: &[Entry]) -> Result<(), String> {
 fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     let mut registry = Registry::default();
     conduit_media::register_media_contracts(&mut registry);
+    conduit_media::register_audio_processing_contracts(&mut registry);
     conduit_media::register_media_codec_contracts(&mut registry);
     conduit_learned::register_learned_contracts(&mut registry);
     conduit_spatial::register_spatial_contracts(&mut registry);

@@ -4,9 +4,11 @@
 //! codecs, devices, host discovery, implicit conversion, or another event
 //! model.
 
+mod audio;
 mod codec;
 mod signal;
 
+pub use audio::*;
 pub use codec::*;
 pub use signal::*;
 
@@ -85,7 +87,21 @@ const fn port(
 
 const AUDIO_OUTPUT: [PortContract<'static>; 1] =
     [port("frame", Direction::Output, AUDIO_FRAME_TYPE)];
-const AUDIO_INPUT: [PortContract<'static>; 1] = [port("frame", Direction::Input, AUDIO_FRAME_TYPE)];
+const AUDIO_INPUT: [PortContract<'static>; 1] = [PortContract {
+    id: Id("frame"),
+    direction: Direction::Input,
+    value_type: AUDIO_FRAME_TYPE,
+    presence: Presence::Required,
+    connections: ConnectionCardinality::ExactlyOne,
+    values: ValueCardinality::ZeroOrMore,
+    delivery: Delivery::Stream,
+    temporal: TemporalContract::Committed,
+    terminal: TerminalContract::Either,
+    sensitivity: Sensitivity::Public,
+    flow: PortFlowConstraints {
+        loss: LossAcceptance::LosslessOnly,
+    },
+}];
 const VIDEO_OUTPUT: [PortContract<'static>; 1] =
     [port("frame", Direction::Output, VIDEO_FRAME_TYPE)];
 const VIDEO_INPUT: [PortContract<'static>; 1] = [port("frame", Direction::Input, VIDEO_FRAME_TYPE)];
@@ -201,6 +217,20 @@ impl Handler for InspectHandler {
                 "media inspector requires one frame",
             ));
         };
+        if self.expected_type == AUDIO_FRAME_TYPE && input.bytes.starts_with(b"CAP0") {
+            let chunk = decode_pcm_chunk(input).map_err(|reason| {
+                RuntimeError::new(
+                    reason.code(),
+                    "processed PCM frame representation is invalid",
+                )
+            })?;
+            return Ok(vec![Value::text(format!(
+                "audio:s16le:{}:{}:{}",
+                chunk.sample_rate_hz,
+                chunk.layout.name(),
+                chunk.frames()
+            ))]);
+        }
         if input.value_type != self.expected_type
             || input.bytes.len() > 64
             || !input.bytes.starts_with(self.magic)

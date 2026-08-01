@@ -1,0 +1,20 @@
+panel 0
+
+node left : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+node right : conduit.media/audio-frame/literal { fixture = "silence-s16le-stereo-48000" }
+node mix : conduit.media/audio/mix { lifecycle = "finite" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" alignment = "exact-start-rate-layout-frames" missing_late = "wait-then-fail-terminal" left_gain_q15 = 32768 right_gain_q15 = 32768 headroom = "none" clipping = "saturate-s16" output_layout = "same-as-aligned-inputs" latency_frames = 0 terminal_drain = "no-retained-samples" maximum_inputs = 2 maximum_frames = 16 maximum_work = 64 }
+node gain : conduit.media/audio/gain { lifecycle = "finite" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" curve = "linear-q15-absolute-frame" start_gain_q15 = 16384 end_gain_q15 = 32768 ramp_start_frame = 0 ramp_end_frame = 15 discontinuity = "absolute-timeline" maximum_automation_points = 2 maximum_retained_samples = 0 maximum_frames = 16 }
+node map : conduit.media/audio/channel-map { lifecycle = "finite" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" input_layout = "stereo-lr" output_layout = "mono-center" matrix_q15 = "mono=(16384*L+16384*R)/32768" maximum_channels = 2 maximum_frames = 16 }
+node resample : conduit.media/audio/resample { lifecycle = "finite" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" input_rate_hz = 48000 output_rate_hz = 24000 quality_profile = "nearest-hold-bit-exact" group_delay_frames = 0 timestamp_mapping = "absolute-rational-grid" drift = "reject-rate-or-discontinuity" flush = "no-pending-output" maximum_history_frames = 0 maximum_frames = 16 maximum_work = 64 }
+node trim : conduit.media/audio/trim { lifecycle = "finite" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" interval_basis = "absolute-input-frame-half-open" start_frame = 1 end_frame = 7 open_ended = "false" boundary_rounding = "ceil-start-floor-end" discontinuity = "preserve-if-first-retained" fade_in_frames = 1 fade_out_frames = 1 maximum_frames = 8 }
+node meter : conduit.media/audio/meter { lifecycle = "finite" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" window_basis = "input-frame-clock" window_frames = 6 peak = "absolute-s16" rms = "integer-sqrt-mean-square" cadence_frames = 6 latency_frames = 0 maximum_retained_samples = 0 maximum_side_outputs = 1 maximum_work = 16 }
+node level_drain : flow/discard
+
+cord left.frame -> mix.left { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord right.frame -> mix.right { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord mix.frame -> gain.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }
+cord gain.frame -> map.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }
+cord map.frame -> resample.frame { capacity = 1 max_value_bytes = 88 max_queued_bytes = 88 low_watermark = 0 high_watermark = 1 pressure = block }
+cord resample.frame -> trim.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+cord trim.frame -> meter.frame { capacity = 1 max_value_bytes = 36 max_queued_bytes = 36 low_watermark = 0 high_watermark = 1 pressure = block }
+cord meter.level -> level_drain.item { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -401,6 +401,15 @@ fn run(
                 vec![source_document.clone()],
             )
         })?;
+        conduit_media::register_deterministic_audio_processing_providers(&mut registry).map_err(
+            |error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            },
+        )?;
         conduit_media::register_deterministic_codec_providers(&mut registry).map_err(|error| {
             cli_error(
                 simple_diagnostic(error.code, &error.message),

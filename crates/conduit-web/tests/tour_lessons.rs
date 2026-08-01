@@ -130,7 +130,16 @@ fn tour_lessons_declare_verified_browser_runnability() {
         }
         assert_current_panel_source(id, source);
         let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
-        let registry = Registry::compatibility_demo();
+        let registry = if id == "library.bounded-audio-processing" {
+            let mut registry = Registry::hosted_primitives();
+            conduit_media::register_deterministic_signal_providers(&mut registry)
+                .expect("browser signal providers register");
+            conduit_media::register_deterministic_audio_processing_providers(&mut registry)
+                .expect("browser audio providers register");
+            registry
+        } else {
+            Registry::compatibility_demo()
+        };
 
         if lesson["validation"]["kind"] == "watch" {
             assert_eq!(runnability["state"], "runnable");
@@ -292,6 +301,92 @@ fn bounded_media_lesson_exposes_exact_time_layout_pressure_and_terminal_facts() 
     assert_eq!(cancelled["terminal"], "cancelled");
     assert_eq!(cancelled["stdout"], "");
     assert_eq!(cancelled["stderr"], "");
+}
+
+#[test]
+fn bounded_audio_lesson_covers_every_processor_and_the_standing_patch() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-audio-processing")
+        .expect("bounded audio lesson is selectable");
+    assert_eq!(lesson["execution"], "continuous-watch");
+    assert_eq!(lesson["validation"]["kind"], "watch");
+    assert_eq!(
+        lesson["source"],
+        include_str!("../../../examples/audio-standing-patch.panel")
+    );
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.media/audio/channel-map",
+            "conduit.media/audio/from-control",
+            "conduit.media/audio/gain",
+            "conduit.media/audio/meter",
+            "conduit.media/audio/mix",
+            "conduit.media/audio/resample",
+            "conduit.media/audio/tee",
+            "conduit.media/audio/trim",
+        ]
+        .into_iter()
+        .collect()
+    );
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 10);
+    for contract in ["mix", "gain", "channel-map", "resample", "trim", "meter"] {
+        assert!(scenarios.iter().any(|scenario| {
+            scenario["id"]
+                .as_str()
+                .is_some_and(|id| id.contains(contract) && id.contains("standalone"))
+        }));
+    }
+    for field in [
+        "numeric_profile",
+        "named_channel_layout",
+        "matrix_q15",
+        "ramp_points",
+        "group_delay",
+        "retained_history",
+        "flush",
+        "meter_window",
+        "pressure",
+        "cancellation",
+        "run_state",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "audio lesson exposes {field}"
+        );
+    }
+    let accessibility = &lesson["accessibility"];
+    assert_eq!(accessibility["reduced_motion"], true);
+    assert!(
+        accessibility["keyboard"]
+            .as_str()
+            .unwrap()
+            .contains("ArrowRight")
+    );
+    assert!(
+        accessibility["non_audio"]
+            .as_str()
+            .unwrap()
+            .contains("ordered event table")
+    );
 }
 
 #[test]

@@ -1,0 +1,20 @@
+panel 0
+
+node source : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+node meter : conduit.media/audio/meter {
+    lifecycle = "finite"
+    numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact"
+    window_basis = "input-frame-clock"
+    window_frames = 16
+    peak = "absolute-s16"
+    rms = "integer-sqrt-mean-square"
+    cadence_frames = 16
+    latency_frames = 0
+    maximum_retained_samples = 0
+    maximum_side_outputs = 1
+    maximum_work = 64
+}
+node level_drain : flow/discard
+
+cord source.frame -> meter.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cord meter.level -> level_drain.item { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
