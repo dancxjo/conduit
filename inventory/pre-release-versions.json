@@ -195,6 +195,7 @@
         "conduit.release-capabilities",
         "conduit.rp2040-budget",
         "conduit.spatial-foundation-conformance",
+        "conduit.spatial-data-conformance",
         "conduit.standard-node-library-fixture",
         "conduit.supervision-fixtures",
         "conduit.text-format-fixture",

@@ -720,6 +720,129 @@ fn bounded_spatial_lesson_exposes_frames_calibration_and_finite_history() {
 }
 
 #[test]
+fn bounded_spatial_data_lesson_runs_standalone_and_composed_exact_plans() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-spatial-data")
+        .expect("bounded spatial-data lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    for field in [
+        "scan_schema_identity",
+        "grid_schema_identity",
+        "trajectory_schema_identity",
+        "snapshot_identity",
+        "representation_identity",
+        "provider_identity",
+        "frame",
+        "unit",
+        "clock",
+        "calibration_identity",
+        "chunk_index",
+        "chunk_count",
+        "point_count",
+        "grid_dimensions",
+        "coverage",
+        "trajectory_history",
+        "retained_bytes",
+        "numeric_work",
+        "queue_bytes",
+        "pressure",
+        "cancellation",
+        "provider_loss",
+        "error",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "spatial/grid/from-scan",
+            "spatial/grid/inspect",
+            "spatial/scan/fixture",
+            "spatial/scan/transform",
+            "spatial/trajectory/fixture",
+            "spatial/trajectory/inspect",
+        ]
+        .into_iter()
+        .collect()
+    );
+
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 3);
+    assert!(scenarios.iter().all(|scenario| {
+        scenario["execution"] == "run"
+            && scenario["source"]
+                .as_str()
+                .is_some_and(|source| source.starts_with("panel 0"))
+    }));
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(
+        result["display"],
+        "spatial:grid:map:2x2:occupied=2:coverage=complete"
+    );
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+
+    let standalone = scenarios
+        .iter()
+        .find(|scenario| scenario["id"] == "spatial-grid-standalone")
+        .unwrap();
+    let standalone_result: Value = serde_json::from_str(&run_panel(
+        standalone["source"].as_str().unwrap().to_owned(),
+    ))
+    .unwrap();
+    assert_eq!(standalone_result["ok"], true, "{standalone_result}");
+    assert_eq!(
+        standalone_result["display"],
+        "spatial:grid:sensor:2x2:occupied=2:coverage=complete"
+    );
+
+    let trajectory = scenarios
+        .iter()
+        .find(|scenario| scenario["id"] == "spatial-trajectory-text-composition")
+        .unwrap();
+    let trajectory_result: Value = serde_json::from_str(&run_panel(
+        trajectory["source"].as_str().unwrap().to_owned(),
+    ))
+    .unwrap();
+    assert_eq!(trajectory_result["ok"], true, "{trajectory_result}");
+    assert_eq!(
+        trajectory_result["display"],
+        "SPATIAL:TRAJECTORY:MAP:2:CLOCK/FIXTURE:LINEAR-Q30-SHORTEST"
+    );
+
+    let cancelled: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(cancelled["ok"], true, "{cancelled}");
+    assert_eq!(cancelled["terminal"], "cancelled");
+}
+
+#[test]
 fn bounded_brainstem_network_lesson_keeps_observation_and_robot_authority_separate() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");

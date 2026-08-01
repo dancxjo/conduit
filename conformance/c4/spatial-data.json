@@ -1,0 +1,36 @@
+{
+  "schema": "conduit.spatial-data-conformance",
+  "schema_version": 0,
+  "limits": {
+    "maximum_points": 8,
+    "maximum_chunks": 4,
+    "maximum_grid_cells": 16,
+    "maximum_trajectory_poses": 8,
+    "maximum_bytes": 4096,
+    "maximum_work": 128
+  },
+  "positive_cases": [
+    "split-and-coalesced-scan-normalize-identically",
+    "scan-transform-grid-production-path",
+    "trajectory-frame-clock-interpolation-exact",
+    "transform-only-host-without-scan-provider"
+  ],
+  "negative_cases": [
+    {"id":"oversized-cloud","reason":"CND-SPATIAL-DATA-008"},
+    {"id":"oversized-grid","reason":"CND-SPATIAL-DATA-008"},
+    {"id":"wrong-schema","reason":"CND-SPATIAL-DATA-001"},
+    {"id":"wrong-snapshot","reason":"CND-SPATIAL-DATA-002"},
+    {"id":"wrong-representation","reason":"CND-SPATIAL-DATA-002"},
+    {"id":"unsupported-provider","reason":"CND-SPATIAL-DATA-003"},
+    {"id":"wrong-frame-unit-time","reason":"CND-SPATIAL-DATA-004"},
+    {"id":"calibration-mismatch","reason":"CND-SPATIAL-DATA-005"},
+    {"id":"missing-transform","reason":"CND-SPATIAL-DATA-004","resolution_reason":"CND-PRT-002"},
+    {"id":"stale-transform","reason":"CND-SPATIAL-DATA-006"},
+    {"id":"uncertainty-threshold","reason":"CND-SPATIAL-DATA-007"},
+    {"id":"chunk-reordering-or-gap","reason":"CND-SPATIAL-DATA-009"},
+    {"id":"partial-map-coverage","reason":"CND-SPATIAL-DATA-010"},
+    {"id":"pressure","reason":"CND-SPATIAL-DATA-008"},
+    {"id":"cancellation","reason":"CND-SPATIAL-DATA-011"},
+    {"id":"wrong-value-type","reason":"CND-SPATIAL-DATA-012"}
+  ]
+}

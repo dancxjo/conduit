@@ -1,0 +1,20 @@
+panel 0
+
+node trajectory : spatial/trajectory/fixture {
+  trajectory_schema_identity = "sha256:a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3"
+  trajectory_schema_version = 0
+  snapshot_identity = "sha256:a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
+  frame = "map"
+  clock = "clock/fixture"
+  interpolation = "linear-q30-shortest"
+  maximum_trajectory_poses = 8
+  maximum_bytes = 4096
+  maximum_work = 128
+}
+node inspect : spatial/trajectory/inspect
+node uppercase : text/uppercase
+node output : display/text
+
+cord trajectory.trajectory -> inspect.trajectory { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect.summary -> uppercase.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+cord uppercase.text -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

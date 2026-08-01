@@ -444,6 +444,15 @@ fn run(
                 )
             },
         )?;
+        conduit_spatial::register_deterministic_spatial_data_provider(&mut registry).map_err(
+            |error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            },
+        )?;
         conduit_net::register_deterministic_network_fixture_providers(&mut registry).map_err(
             |error| {
                 cli_error(
