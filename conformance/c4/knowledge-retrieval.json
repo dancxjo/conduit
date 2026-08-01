@@ -1,0 +1,15 @@
+{
+  "schema": "conduit.knowledge-retrieval-conformance",
+  "schema_version": 0,
+  "profile": "deterministic-bounded-source-grounded-retrieval",
+  "positive": [
+    "exact-source-revision", "exact-source-span", "case-insensitive-text-match",
+    "deterministic-rerank", "citation-assembly", "known-contract-without-provider"
+  ],
+  "negative": [
+    "empty-corpus", "duplicate-or-revised-source", "deleted-source", "invalid-span",
+    "document-or-query-overflow", "top-k-overflow", "embedding-dimension-mismatch",
+    "embedding-model-mismatch", "stale-or-partial-index", "access-denial", "score-tie",
+    "reranker-reorder", "cancellation", "provider-loss", "citation-to-wrong-revision"
+  ]
+}

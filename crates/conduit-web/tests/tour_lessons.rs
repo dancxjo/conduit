@@ -452,6 +452,80 @@ fn bounded_learned_inference_lesson_exposes_exact_model_and_runtime_facts() {
 }
 
 #[test]
+fn bounded_knowledge_lesson_keeps_source_citation_and_run_evidence_distinct() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-knowledge-retrieval")
+        .expect("bounded knowledge lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "runnable");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
+    for field in [
+        "source_identity",
+        "revision_identity",
+        "span",
+        "index_identity",
+        "coverage",
+        "embedding_identity",
+        "embedding_dimensions",
+        "provider_artifact",
+        "retained_bytes",
+        "work",
+        "pressure",
+        "cancellation",
+        "provider_loss",
+        "error",
+        "terminal",
+    ] {
+        assert!(
+            lesson["presentation"]["patchbay_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == field),
+            "Patchbay exposes {field}"
+        );
+    }
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "knowledge/citation/assemble",
+            "knowledge/citation/inspect",
+            "knowledge/document/literal",
+            "knowledge/index/fixture",
+            "knowledge/query/literal",
+            "knowledge/rerank",
+            "knowledge/retrieve",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let raw = run_panel(lesson["source"].as_str().unwrap().to_owned());
+    let result: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(result["display"], "knowledge:citation:31..42:exact plans");
+    assert_eq!(result["stdout"], "");
+    assert_eq!(result["stderr"], "");
+
+    let cancelled: Value =
+        serde_json::from_str(&cancel_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(cancelled["ok"], true, "{cancelled}");
+    assert_eq!(cancelled["terminal"], "cancelled");
+}
+
+#[test]
 fn bounded_spatial_lesson_exposes_frames_calibration_and_finite_history() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
