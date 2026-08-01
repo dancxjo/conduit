@@ -136,16 +136,16 @@
             "href": "../../README.md"
           },
           {
-            "label": "Spec 007: panels and cords",
-            "href": "../../spec/007-panels-and-cords.md"
+            "label": "Spec 007: bounded flow policy",
+            "href": "../../spec/007-bounded-flow-policy.md"
           },
           {
-            "label": "Spec 011: component identity",
-            "href": "../../spec/011-component-identity.md"
+            "label": "Spec 011: exact execution plan",
+            "href": "../../spec/011-exact-execution-plan.md"
           },
           {
-            "label": "Spec 037: patchbay observation",
-            "href": "../../spec/037-patchbay-observation.md"
+            "label": "Spec 035: Patchbay protocol",
+            "href": "../../spec/035-patchbay-protocol.md"
           },
           {
             "label": "Issue #139: persistent programs",
