@@ -822,23 +822,23 @@ fn collect_files(
         let entry = entry?;
         let path = entry.path();
         let relative = path.strip_prefix(root).unwrap_or(&path);
+        if matches!(
+            relative
+                .components()
+                .next()
+                .and_then(|part| part.as_os_str().to_str()),
+            Some(
+                ".git"
+                    | "target"
+                    | "node_modules"
+                    | "test-results"
+                    | "playwright-report"
+                    | "__pycache__"
+            )
+        ) {
+            continue;
+        }
         if path.is_dir() {
-            if matches!(
-                relative
-                    .components()
-                    .next()
-                    .and_then(|part| part.as_os_str().to_str()),
-                Some(
-                    ".git"
-                        | "target"
-                        | "node_modules"
-                        | "test-results"
-                        | "playwright-report"
-                        | "__pycache__"
-                )
-            ) {
-                continue;
-            }
             collect_files(root, &path, output)?;
         } else {
             output.push(path);
@@ -1075,6 +1075,7 @@ mod tests {
     #[test]
     fn miniature_current_repository_passes_with_external_and_historical_versions() {
         let repository = MiniRepository::new();
+        repository.write(".git", "gitdir: /tmp/conduit-worktrees/example\n");
         validate_repository(&repository.root).unwrap();
     }
 
