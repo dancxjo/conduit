@@ -244,7 +244,12 @@ fn learned_lifecycle_schema_resources_metrics_and_promotion_fail_closed() {
         (
             "sensitivity = \"public\"",
             "sensitivity = \"secret\"",
-            "CND-LEARN-010",
+            "CND-LEARN-012",
+        ),
+        (
+            "sha256:d5ac227d73ef18638d38b51c67b816148cd18c837680cc2fb827e4ef773c5145",
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "CND-LEARN-011",
         ),
         ("maximum_work = 64", "maximum_work = 65", "CND-LEARN-013"),
         ("metric_version = 1", "metric_version = 2", "CND-LEARN-018"),
