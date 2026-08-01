@@ -44,6 +44,20 @@ const displayFreezeStatus = document.querySelector("#display-freeze-status");
 const watchObservationLead = document.querySelector("#watch-observation-lead");
 const liveFlowStatus = document.querySelector("#live-flow-status");
 const liveFlowTableBody = document.querySelector("#live-flow-table tbody");
+const workspace = document.querySelector("#workspace");
+const workspaceKicker = document.querySelector("#workspace-kicker");
+const bookChapter = document.querySelector("#book-chapter");
+const bookKicker = document.querySelector("#book-kicker");
+const bookChapterTitle = document.querySelector("#book-chapter-title");
+const bookDeck = document.querySelector("#book-deck");
+const bookAnchor = document.querySelector("#book-anchor");
+const bookSections = document.querySelector("#book-sections");
+const originScattered = document.querySelector("#origin-scattered");
+const originConduit = document.querySelector("#origin-conduit");
+const originComparison = document.querySelector("#origin-comparison");
+const bookRepresentativeNote = document.querySelector("#book-representative-note");
+const bookReferences = document.querySelector("#book-references");
+const originContinue = document.querySelector("#origin-continue");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
@@ -180,7 +194,7 @@ if (hostReport.ok === false) {
   throw new Error(`${hostReport.code}:${hostReport.detail}`);
 }
 
-let current = lessons.lessons.find((lesson) => lesson.id === "welcome.hello-panel")
+let current = lessons.lessons.find((lesson) => lesson.id === "book.origin-hidden-program")
   || lessons.lessons[0];
 let acceptedSource = "";
 let selectedNode = null;
@@ -1248,6 +1262,84 @@ async function stopExactSession(cause, message) {
   if (message) result.textContent = message;
 }
 
+function renderOriginComparison(origin, mode) {
+  const view = origin.comparison?.[mode];
+  if (!view) return;
+
+  originScattered.setAttribute("aria-pressed", String(mode === "scattered"));
+  originConduit.setAttribute("aria-pressed", String(mode === "conduit"));
+  originComparison.replaceChildren();
+
+  const title = document.createElement("h4");
+  title.textContent = view.title;
+  const summary = document.createElement("p");
+  summary.textContent = view.summary;
+  const list = document.createElement("ul");
+  for (const item of view.items || []) {
+    const entry = document.createElement("li");
+    entry.textContent = item;
+    list.append(entry);
+  }
+  originComparison.append(title, summary, list);
+}
+
+function renderOriginStory(lesson) {
+  const origin = lesson.origin;
+  const isOrigin = Boolean(origin);
+  workspace.classList.toggle("book-origin-active", isOrigin);
+  bookChapter.hidden = !isOrigin;
+  workspaceKicker.textContent = isOrigin ? "Conduit, chapter zero" : "Interactive Workspace";
+  if (!isOrigin) return;
+
+  bookKicker.textContent = origin.kicker;
+  bookChapterTitle.textContent = origin.title;
+  bookDeck.textContent = origin.deck;
+  bookAnchor.textContent = origin.anchor;
+  bookSections.replaceChildren();
+
+  for (const [index, section] of (origin.sections || []).entries()) {
+    const article = document.createElement("article");
+    article.className = "book-section";
+    const marker = document.createElement("p");
+    marker.className = "book-section-number";
+    marker.textContent = String(index + 1).padStart(2, "0");
+    const title = document.createElement("h3");
+    title.textContent = section.title;
+    const body = document.createElement("p");
+    body.textContent = section.body;
+    article.append(marker, title, body);
+    bookSections.append(article);
+  }
+
+  originScattered.textContent = origin.comparison.scattered.label;
+  originConduit.textContent = origin.comparison.conduit.label;
+  originScattered.onclick = () => renderOriginComparison(origin, "scattered");
+  originConduit.onclick = () => renderOriginComparison(origin, "conduit");
+  renderOriginComparison(origin, "scattered");
+
+  bookRepresentativeNote.textContent = origin.representative_note;
+  bookReferences.replaceChildren();
+  for (const reference of origin.references || []) {
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = reference.href;
+    link.textContent = reference.label;
+    item.append(link);
+    bookReferences.append(item);
+  }
+
+  originContinue.textContent = origin.next_label;
+  originContinue.onclick = () => {
+    const next = lessons.lessons.find((candidate) => candidate.id === origin.next_lesson);
+    if (!next) throw new Error(`missing origin continuation ${origin.next_lesson}`);
+    show(next);
+  };
+
+  document.querySelectorAll("#workspace details").forEach((details) => {
+    details.open = false;
+  });
+}
+
 function show(lesson) {
   void stopExactSession("lesson-changed");
   resetWatchPresentation();
@@ -1261,6 +1353,7 @@ function show(lesson) {
   document.querySelector("#title").textContent = lesson.title;
   document.querySelector("#goal").textContent = lesson.objective || lesson.title;
   document.querySelector("#prose").textContent = lesson.prose || "";
+  renderOriginStory(lesson);
   const availability = lesson.runnability;
   if (!availability) {
     throw new Error(`missing runnability declaration for ${lesson.id}`);

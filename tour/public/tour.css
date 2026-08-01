@@ -2006,3 +2006,203 @@ path.patchbay-cord.compatibility-incompatible {
     max-height: none;
   }
 }
+
+
+/* Origin chapter */
+.book-chapter {
+  max-width: 78rem;
+  margin: 0 auto 2rem;
+  padding: clamp(1.5rem, 3vw, 3.5rem);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 34rem),
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(9, 13, 18, 0.96));
+  box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, 0.28);
+}
+
+.book-origin-active .host-status,
+.book-origin-active .lesson-machine-summary,
+.book-origin-active #prose {
+  display: none;
+}
+
+.book-origin-active .workspace-header {
+  display: none;
+}
+
+.book-chapter-header {
+  max-width: 58rem;
+  padding-block: 1rem 3rem;
+}
+
+.book-kicker,
+.book-section-number {
+  margin: 0 0 0.65rem;
+  color: var(--text-accent);
+  font: 600 0.76rem/1.2 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.book-chapter-header h3 {
+  max-width: 14ch;
+  margin: 0;
+  font-size: clamp(2.4rem, 6vw, 5.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.book-deck {
+  max-width: 46rem;
+  margin: 2rem 0 0;
+  color: #d8e2ee;
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  line-height: 1.55;
+}
+
+.book-anchor {
+  margin: 2.5rem 0 0;
+  padding: 1.4rem 1.6rem;
+  border-left: 4px solid var(--accent-amber);
+  color: #fff5d6;
+  background: rgba(245, 158, 11, 0.08);
+  font-size: clamp(1.2rem, 2vw, 1.65rem);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.book-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line-color);
+  border-radius: 14px;
+  background: var(--line-color);
+}
+
+.book-section {
+  min-height: 18rem;
+  padding: clamp(1.35rem, 3vw, 2.5rem);
+  background: rgba(13, 18, 26, 0.94);
+}
+
+.book-section:last-child {
+  grid-column: 1 / -1;
+  min-height: auto;
+}
+
+.book-section h3,
+.origin-comparison h3,
+.book-lab-note h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  line-height: 1.2;
+}
+
+.book-section p:last-child,
+.origin-comparison-panel p,
+.book-lab-note p:last-child {
+  color: #bac8d8;
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
+.origin-comparison {
+  margin-top: 3rem;
+  padding: clamp(1.35rem, 3vw, 2.5rem);
+  border-radius: 14px;
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.origin-comparison-heading {
+  max-width: 42rem;
+}
+
+.origin-comparison-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin: 1.5rem 0;
+}
+
+.origin-comparison-tabs button[aria-pressed="true"] {
+  border-color: var(--accent-cyan);
+  color: #fff;
+  background: rgba(6, 182, 212, 0.22);
+}
+
+.origin-comparison-panel {
+  min-height: 15rem;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px solid rgba(6, 182, 212, 0.24);
+  border-radius: 12px;
+  background: rgba(9, 13, 18, 0.72);
+}
+
+.origin-comparison-panel h4 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.origin-comparison-panel li {
+  margin-block: 0.55rem;
+}
+
+.book-lab-note {
+  margin-top: 3rem;
+  padding: clamp(1.35rem, 3vw, 2.5rem);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  border-radius: 14px;
+  background: rgba(168, 85, 247, 0.07);
+}
+
+.book-chapter-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 2rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line-color);
+}
+
+.book-references {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.book-references a {
+  color: #a5e7f3;
+}
+
+@media (max-width: 800px) {
+  .book-sections,
+  .book-chapter-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .book-section:last-child {
+    grid-column: auto;
+  }
+
+  .book-chapter-footer {
+    align-items: start;
+  }
+}
+
+@media (forced-colors: active) {
+  .book-chapter,
+  .book-sections,
+  .book-section,
+  .origin-comparison,
+  .origin-comparison-panel,
+  .book-lab-note {
+    border: 1px solid CanvasText;
+  }
+}

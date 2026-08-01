@@ -2,6 +2,13 @@
 
 Live site: <https://dancxjo.github.io/conduit/>
 
+The default route opens **The program we could no longer see**, a
+source-grounded origin chapter that explains the Tongues and PETE/Netherwick
+pressures that led to Conduit before asking the reader to learn its machinery.
+The chapter uses a current checked ticker panel as a clearly labeled
+representative living system; it does not pretend the historical products
+already ran on Conduit.
+
 Lesson source is real `.panel` input. This directory deliberately contains no
 tutorial-only parser, graph, port model, or runtime. A browser delivery layer
 must invoke the production parser/lowering/resolver/runtime artifacts and may

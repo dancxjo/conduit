@@ -2,6 +2,165 @@
   "schema": "conduit.tour-lessons",
   "lessons": [
     {
+      "id": "book.origin-hidden-program",
+      "chapter": 0,
+      "title": "The program we could no longer see",
+      "prerequisites": [],
+      "objective": "Understand why we built Conduit before trying to define its machinery.",
+      "prose": "Conduit began when one living system became too scattered to see: speech, sensors, websites, models, memory, motors, microcontrollers, and several computers.",
+      "vocabulary": [
+        "living system",
+        "distributed program",
+        "replaceable realization",
+        "continuous flow",
+        "visible topology"
+      ],
+      "source": "panel 0\n\nnode clock : time/ticker {\n    duration_ticks = 10\n    time_basis = ref(\"conduit.clock/monotonic-ticks\")\n    maximum_pending = 1\n}\nnode drain : flow/discard\n\ncord clock.tick -> drain.item {\n    capacity = 1\n    max_value_bytes = 32\n    max_queued_bytes = 32\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "command": "conduct --run lesson.panel",
+      "execution": "continuous-watch",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 512,
+        "queue_bytes": 32,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "origin-story",
+        "show_plan": false,
+        "watch": "latest-public-text",
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "run_state",
+          "timer_deadline",
+          "host_wake",
+          "latest_public_text",
+          "watch_attach_detach",
+          "watch_gap",
+          "watch_redaction",
+          "watch_tee_recorder_comparison",
+          "freeze_display",
+          "resident_values",
+          "evidence_cursor",
+          "retention_gap",
+          "reconnect",
+          "cleanup",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "watch",
+        "value": "0\n"
+      },
+      "hints": [
+        "Read the chapter before opening the workbench; the panel below is a present-day representative, not a historical reconstruction.",
+        "The ticker matters because it remains alive between events instead of running once and returning.",
+        "Use the comparison to move between the scattered realization and the one visible program."
+      ],
+      "solution": "Read the origin, compare the scattered realization with its visible Conduit program, then open the first small living system and run the checked ticker panel.",
+      "accessibility": {
+        "non_audio": "The complete origin, comparison, representative panel, run state, and latest tick are available as text; no sound or motion is required.",
+        "reduced_motion": true,
+        "keyboard": "Read in document order, use the two native comparison buttons, then activate the native continue button. Shift+Enter starts the representative panel.",
+        "color_independent": "The two comparison states and every runtime state are named in text and never depend on color."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "origin": {
+        "kicker": "Why we built Conduit",
+        "title": "The program we could no longer see",
+        "deck": "We were not trying to invent another language. We were trying to keep one living system understandable while its speech, sensors, models, memory, websites, motors, microcontrollers, and computers kept changing.",
+        "anchor": "Conduit exists because the realization of our system had become so scattered that we could no longer see the program we had made.",
+        "sections": [
+          {
+            "title": "Tongues became more than a speech command",
+            "body": "Tongues began with a human speaking to software. Soon a sentence could wake a model, reach a website, consult memory, move data across computers, and produce a physical response. The interesting unit was no longer one function call. It was the whole path from intention to consequence."
+          },
+          {
+            "title": "PETE made the hidden graph impossible to ignore",
+            "body": "With PETE and Netherwick, cameras, microphones, learned models, motors, microcontrollers, services, and user interfaces all participated in one behavior. Each part could be explained locally. The behavior that mattered lived between them, in connections nobody could inspect as one program."
+          },
+          {
+            "title": "Reactive streams revealed flow, but not the whole promise",
+            "body": "Streams helped us think in ongoing values instead of a stack of commands. They made backpressure and time visible. But the graph still dissolved into framework code, process boundaries, deployment files, callbacks, and private conventions. The flow was real; the program remained implicit."
+          },
+          {
+            "title": "The program scattered into its realization",
+            "body": "A choice of model, sensor, transport, host, or machine should have been a replaceable realization. Instead those choices became the architecture. Changing one implementation meant rediscovering assumptions spread through source code, infrastructure, and running processes."
+          },
+          {
+            "title": "Meaning had to survive replacement",
+            "body": "We wanted to say what a component promised, what values could cross a connection, how much could wait, and what pressure meant—then replace the component or move it elsewhere without erasing those facts. Identity and contract had to outlive any one library, language, or host."
+          },
+          {
+            "title": "Living systems do not merely run and return",
+            "body": "They wait. They wake. They observe. They accumulate state. They react to the world and continue. A useful program for this work had to describe continuous loops and bounded flows directly, not disguise them as an imperative script that happened to stay alive."
+          },
+          {
+            "title": "So we built the program we wanted to see",
+            "body": "Conduit makes components, cords, contracts, placement, pressure, and observation part of the program itself. The patchbay is not a dashboard pasted on afterward. It is where a living system becomes legible enough to build, change, and trust."
+          }
+        ],
+        "comparison": {
+          "scattered": {
+            "label": "Scattered realization",
+            "title": "One behavior, hidden across many artifacts",
+            "summary": "The system works, but its meaning is reconstructed from implementation details.",
+            "items": [
+              "Callbacks and processes imply the topology",
+              "Deployment choices masquerade as program structure",
+              "Queues and pressure hide behind library defaults",
+              "Replacing a component means tracing private assumptions",
+              "Observation is bolted on after the fact"
+            ]
+          },
+          "conduit": {
+            "label": "One visible program",
+            "title": "One behavior, named as components and cords",
+            "summary": "The realization can change while the program keeps its visible promises.",
+            "items": [
+              "The topology is declared and inspectable",
+              "Placement is explicit without becoming identity",
+              "Capacity and pressure belong to each cord",
+              "Contracts survive replacement of implementations",
+              "Observation is admitted as part of the running system"
+            ]
+          }
+        },
+        "representative_note": "The ticker panel below is a current, checked Conduit example—not a claim that Tongues or PETE historically ran on Conduit. It is here because a small continuous system lets us touch the need immediately: start once, wait, wake, flow, observe, and keep going.",
+        "references": [
+          {
+            "label": "Repository overview",
+            "href": "../../README.md"
+          },
+          {
+            "label": "Spec 007: bounded flow policy",
+            "href": "../../spec/007-bounded-flow-policy.md"
+          },
+          {
+            "label": "Spec 011: exact execution plan",
+            "href": "../../spec/011-exact-execution-plan.md"
+          },
+          {
+            "label": "Spec 035: Patchbay protocol",
+            "href": "../../spec/035-patchbay-protocol.md"
+          },
+          {
+            "label": "Issue #139: persistent programs",
+            "href": "https://github.com/dancxjo/conduit/issues/139"
+          },
+          {
+            "label": "Issue #141: observable execution",
+            "href": "https://github.com/dancxjo/conduit/issues/141"
+          }
+        ],
+        "next_lesson": "panels.tiny-instrument",
+        "next_label": "Open the first small living system"
+      }
+    },
+    {
       "id": "library.evictable-storage-cache",
       "chapter": 4,
       "title": "Evictable large-value cache",

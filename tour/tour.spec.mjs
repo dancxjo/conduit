@@ -7,7 +7,7 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
     if (message.type() === "error") failures.push(message.text());
   });
 
-  await page.goto("/tour/public/index.html?autorun");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel&autorun");
   await expect(page.locator("#result")).toContainText("Hello from the Tour.", {
     timeout: 20_000,
   });
@@ -26,8 +26,33 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
   expect(failures).toEqual([]);
 });
 
-test("owns an exact Patchbay run session inside the dedicated worker", async ({ page }) => {
+test("opens with the real reason Conduit was built", async ({ page }) => {
   await page.goto("/tour/public/index.html");
+
+  await expect(page.locator("#title")).toHaveText("The program we could no longer see");
+  await expect(page.locator("#book-chapter")).toBeVisible();
+  await expect(page.locator("#book-anchor")).toContainText(
+    "we could no longer see the program we had made",
+  );
+  await expect(page.locator(".book-section")).toHaveCount(7);
+  await expect(page.locator("#source")).toHaveValue(/time\/ticker/);
+  await expect(page.locator("#origin-comparison")).toContainText(
+    "hidden across many artifacts",
+  );
+
+  await page.locator("#origin-conduit").click();
+  await expect(page.locator("#origin-comparison")).toContainText(
+    "named as components and cords",
+  );
+  await expect(page.locator("#origin-conduit")).toHaveAttribute("aria-pressed", "true");
+
+  await page.locator("#origin-continue").click();
+  await expect(page.locator("#title")).toHaveText("A live ticker Watch");
+  await expect(page.locator("#book-chapter")).toBeHidden();
+});
+
+test("owns an exact Patchbay run session inside the dedicated worker", async ({ page }) => {
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
 
   const result = await page.evaluate(async () => {
     const plan = await fetch("/tour/public/browser-plan.json", { cache: "no-store" })
@@ -557,7 +582,7 @@ test("presents the persistent HTTP source and refuses to simulate its hosted pro
 });
 
 test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   const result = page.locator("#result");
 
@@ -584,7 +609,7 @@ test("runs with Shift+Enter from editor and workspace focus", async ({ page }) =
 });
 
 test("preserves a recoverable draft across reset", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/Hello from the Tour\./);
   await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Recover me."));
@@ -595,7 +620,7 @@ test("preserves a recoverable draft across reset", async ({ page }) => {
 });
 
 test("highlights panel source while retaining the native editor surface", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const editor = page.locator(".panel-source-editor");
   const source = page.locator("#source");
   const highlight = page.locator(".panel-source-highlight");
@@ -741,7 +766,7 @@ test("highlights panel source while retaining the native editor surface", async 
 test("covers every published chapter and exposes production topology projections", async ({
   page,
 }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const lessonCatalog = await page.evaluate(async () => {
     const response = await fetch("../lessons/current.json", { cache: "no-store" });
     const catalog = await response.json();
@@ -789,7 +814,7 @@ test("covers every published chapter and exposes production topology projections
 });
 
 test("accepts a semantically correct alternate solution", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/Hello from the Tour\./);
   await source.fill(
@@ -805,7 +830,7 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
 });
 
 test("uses React Flow with legacy line placement disabled", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const canvas = page.locator("#patchbay-flow-root");
   await expect(canvas).toHaveAttribute("data-renderer", "react-flow");
   await expect(canvas).toHaveAttribute("data-projection", "rust-authoritative");
@@ -888,7 +913,7 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
 });
 
 test("draws bounded cords and exposes draggable rewire ends", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
@@ -943,7 +968,7 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
 });
 
 test("renders composite exports as public faceplate ports", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await page.getByRole("button", { name: "Inside / outside" }).click();
   const composite = page.locator(".composite-faceplate").first();
   await expect(composite).toContainText("public");
@@ -971,7 +996,7 @@ test("keeps semantic port direction redundant across presentation media", async 
     forcedColors: "active",
     reducedMotion: "reduce",
   });
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const receiving = page.locator(".react-flow__node").getByRole("button", {
     name: "text, receiving port; type std/text",
     exact: true,
@@ -1011,7 +1036,7 @@ test("keeps semantic port direction redundant across presentation media", async 
 });
 
 test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const input = page.locator('[data-id="greeting"] .control-input');
   const selectedSourceText = async () =>
     (await page.locator(".panel-source-selection").allTextContents()).join("");
@@ -1028,7 +1053,7 @@ test("keeps faceplate controls focused while highlighting and updating source", 
 });
 
 test("selects a cord by authoritative identity and reveals its declaration", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const edge = page.locator(".react-flow__edge").first();
   await edge.locator(".react-flow__edge-textbg").click();
 
@@ -1080,7 +1105,7 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
 });
 
 test("shows node movement while a topology box is being dragged", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const node = page.locator(".react-flow__node").first();
   await node.scrollIntoViewIfNeeded();
   const before = await node.boundingBox();
@@ -1106,7 +1131,7 @@ test("shows node movement while a topology box is being dragged", async ({ page 
 });
 
 test("retains committed topology positions across renders and visits", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const greeting = page.locator('[data-id="greeting"]');
   await greeting.scrollIntoViewIfNeeded();
   const before = await greeting.boundingBox();
@@ -1174,7 +1199,7 @@ test("retains committed topology positions across renders and visits", async ({ 
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await page.evaluate(() => {
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
@@ -1195,7 +1220,7 @@ test("retains headless editing and execution when presentation fails", async ({ 
 test("clears the previous diagram before redrawing a lesson that fails resolution", async ({
   page,
 }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await expect(page.locator('.react-flow__node[data-id="greeting"]')).toHaveCount(1);
 
   await page.getByRole("button", { name: "Types mean promises" }).click();
@@ -1218,7 +1243,7 @@ test("clears the previous diagram before redrawing a lesson that fails resolutio
 });
 
 test("styles cords from their projected type and pressure policy", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const edge = page.locator(".patchbay-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/pressure-lossless/);
@@ -1337,7 +1362,7 @@ test("keeps current diagnostic source ranges marked as the source changes", asyn
 });
 
 test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   const original = await source.inputValue();
@@ -1384,7 +1409,7 @@ test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", 
 
 test("projects every authored cord failure family with static reduced-motion cues", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   const cases = [
@@ -1429,7 +1454,7 @@ test("projects every authored cord failure family with static reduced-motion cue
 });
 
 test("emphasizes one of several diagnostics without replaying unchanged checks", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   await source.fill(
@@ -1470,7 +1495,7 @@ test("emphasizes one of several diagnostics without replaying unchanged checks",
 });
 
 test("enters and exits the same fullscreen workspace without rebuilding state", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   await page.locator("#expanded-view").click();
@@ -1550,7 +1575,7 @@ test("falls back honestly and keeps one movable shadeable dockable editor", asyn
     Element.prototype.requestFullscreen = () =>
       Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   await source.evaluate((element) => {
@@ -1760,7 +1785,7 @@ test("standalone Patchbay app exposes the same live fullscreen editor workspace"
 });
 
 test("routes cords through free space by default and keeps labels off node faces", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
 
   const panelSource = "panel 0\n\n" +
     "node source : std/literal {\n" +
@@ -1939,7 +1964,7 @@ test("routes cords through free space by default and keeps labels off node faces
 });
 
 test("filesystem reference panels use the explicit bounded browser provider", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await page.getByRole("button", { name: "File Copier Pipeline" }).click();
   await expect(page.locator("#runnability-state")).toContainText("runnable · browser");
   await expect(page.locator("#run")).toBeEnabled();
@@ -1950,7 +1975,7 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("pedagogical completion is not execution evidence", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await page.getByRole("button", { name: "Pull the cord" }).click();
   await expect(page.locator("#run")).toBeDisabled();
   await page.locator("#check").click();
@@ -1963,7 +1988,7 @@ test("pedagogical completion is not execution evidence", async ({ page }) => {
 });
 
 test("multi-port lesson runs its explicit display composite", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await page.getByRole("button", { name: "More than one port" }).click();
   await expect(page.locator("#runnability-state")).toContainText(
     "runnable · browser",

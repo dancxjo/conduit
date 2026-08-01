@@ -37,15 +37,52 @@
     <section id="workspace" aria-labelledby="title">
       <header class="workspace-header">
         <div class="header-top">
-          <p class="eyebrow">Interactive Workspace</p>
+          <p id="workspace-kicker" class="eyebrow">Interactive Workspace</p>
           <span id="execution-note" class="host-status">Preparing browser placement…</span>
         </div>
         <h2 id="title">Loading Patchbay…</h2>
         <p id="goal" class="goal"></p>
         <p id="prose" class="prose-text"></p>
-        <p><span id="runnability-state" class="badge">Checking runnability…</span></p>
-        <p class="command-box"><code id="command"></code></p>
+        <p class="lesson-machine-summary"><span id="runnability-state" class="badge">Checking runnability…</span></p>
+        <p class="command-box lesson-machine-summary"><code id="command"></code></p>
       </header>
+
+      <section id="book-chapter" class="book-chapter" aria-labelledby="book-chapter-title" hidden>
+        <header class="book-chapter-header">
+          <p id="book-kicker" class="book-kicker"></p>
+          <h3 id="book-chapter-title"></h3>
+          <p id="book-deck" class="book-deck"></p>
+          <p id="book-anchor" class="book-anchor"></p>
+        </header>
+
+        <div id="book-sections" class="book-sections"></div>
+
+        <section class="origin-comparison" aria-labelledby="origin-comparison-heading">
+          <div class="origin-comparison-heading">
+            <p class="book-kicker">See the difference</p>
+            <h3 id="origin-comparison-heading">The same system, two ways of understanding it</h3>
+          </div>
+          <div class="origin-comparison-tabs" role="group" aria-label="Compare program views">
+            <button id="origin-scattered" class="btn secondary" type="button" aria-pressed="true">Scattered realization</button>
+            <button id="origin-conduit" class="btn secondary" type="button" aria-pressed="false">One visible program</button>
+          </div>
+          <div id="origin-comparison" class="origin-comparison-panel" aria-live="polite"></div>
+        </section>
+
+        <aside class="book-lab-note" aria-labelledby="book-lab-heading">
+          <p class="book-kicker">Touch the idea</p>
+          <h3 id="book-lab-heading">A small living system, available now</h3>
+          <p id="book-representative-note"></p>
+        </aside>
+
+        <footer class="book-chapter-footer">
+          <div>
+            <p class="book-kicker">Follow the trail</p>
+            <ul id="book-references" class="book-references"></ul>
+          </div>
+          <button id="origin-continue" class="btn primary" type="button"></button>
+        </footer>
+      </section>
 
       <div class="button-row primary-actions" role="group" aria-label="Lesson controls">
         <button id="run" class="btn primary" aria-keyshortcuts="Shift+Enter" disabled>⚡ Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
