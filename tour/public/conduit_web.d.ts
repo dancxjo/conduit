@@ -31,14 +31,6 @@ export function panel_source_metadata(source: string): string;
 export function parse_panel(source: string): string;
 
 /**
- * Releases the exact scheduler-evidence prefix only after the browser caller
- * has copied that prefix into its bounded Patchbay presentation. This is an
- * explicit commit acknowledgement; reading or projecting evidence never
- * releases it implicitly.
- */
-export function patchbay_acknowledge_exact_evidence(session_id: string, cursor: bigint): string;
-
-/**
  * Advances deterministic browser-host time to an exact pending deadline.
  * It is an explicit host wake, not a JavaScript executor or clock jump.
  */
@@ -90,9 +82,9 @@ export function patchbay_open_session(document_id: string, source: string): stri
 export function patchbay_pump_exact_run(session_id: string, quantum: bigint): string;
 
 /**
- * Returns one bounded, read-only exact-evidence delta for the browser-owned
- * run. The caller supplies the scheduler cursor from the preceding result;
- * this bridge never acknowledges or releases the executor's event window.
+ * Returns one bounded, read-only delta from the worker-owned committed
+ * evidence provider. Patchbay never acknowledges or releases scheduler
+ * storage and therefore cannot become the authoritative evidence store.
  */
 export function patchbay_read_exact_evidence(session_id: string, cursor: bigint, maximum_events: number): string;
 
@@ -146,7 +138,6 @@ export interface InitOutput {
     readonly panel_language_metadata: () => [number, number];
     readonly panel_source_metadata: (a: number, b: number) => [number, number];
     readonly parse_panel: (a: number, b: number) => [number, number];
-    readonly patchbay_acknowledge_exact_evidence: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_advance_exact_run: (a: number, b: number, c: bigint) => [number, number];
     readonly patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
     readonly patchbay_attach_exact_watch: (a: number, b: number, c: number, d: number) => [number, number];

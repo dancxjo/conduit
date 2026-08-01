@@ -110,6 +110,15 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         sessionId,
         disposition: "abort",
       });
+      const terminalEvidence = await request("patchbay-read-exact-evidence", {
+        sessionId,
+        cursor: 0,
+        maximumEvents: 256,
+      });
+      const presentationAcknowledge = await request(
+        "patchbay-acknowledge-exact-evidence",
+        { sessionId, cursor: terminalEvidence.value?.next_cursor ?? 0 },
+      );
       const viewed = await request("patchbay-session-view", { sessionId });
       return {
         configured,
@@ -126,6 +135,8 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         malformed,
         unrelated,
         cancelled,
+        terminalEvidence,
+        presentationAcknowledge,
         viewed,
       };
     } finally {
@@ -180,6 +191,18 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   expect(result.malformed.value).toMatchObject({ ok: false, code: "CND-PBY-012" });
   expect(result.unrelated.value).toMatchObject({ ok: true, state: "active" });
   expect(result.cancelled.value).toMatchObject({ ok: true, state: "cancelled" });
+  expect(result.terminalEvidence.value).toMatchObject({
+    ok: true,
+    status: { kind: "available" },
+  });
+  expect(result.terminalEvidence.value.records.at(-1)).toMatchObject({
+    event_kind: "terminal",
+    terminal_cause: "cancelled",
+  });
+  expect(result.presentationAcknowledge).toMatchObject({
+    ok: false,
+    code: "unsupported-operation",
+  });
   expect(result.viewed.value.view.run.state).toBe("Terminal");
 });
 

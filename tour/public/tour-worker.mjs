@@ -1,5 +1,4 @@
 import init, {
-  patchbay_acknowledge_exact_evidence,
   patchbay_apply_transaction,
   patchbay_attach_exact_watch,
   patchbay_advance_exact_run,
@@ -50,11 +49,6 @@ function response(operation, value) {
         value.sessionId,
         exactUnsigned(value.cursor, "cursor"),
         exactU32(value.maximumEvents, "maximumEvents"),
-      );
-    case "patchbay-acknowledge-exact-evidence":
-      return patchbay_acknowledge_exact_evidence(
-        value.sessionId,
-        exactUnsigned(value.cursor, "cursor"),
       );
     case "patchbay-attach-exact-watch":
       return patchbay_attach_exact_watch(value.sessionId, value.watchId);

@@ -95,6 +95,14 @@ from a retained source arena. It therefore preserves the same plan, node,
 cord, implementation, artifact, host, pressure, scheduler, and terminal facts
 after the caller's planning allocation has been released.
 
+A hosted rolling evidence provider commits each bounded batch before the
+session reuses its scheduler observation slots. Provider failure leaves the
+same resident prefix available for retry. The provider retains one finite
+event/byte window, advances an explicit earliest cursor when that window
+evicts old records, and commits the terminal record before finalization. A
+read-only Patchbay projection may resume from that cursor or observe a gap; it
+cannot acknowledge scheduler storage or become the provider.
+
 ## Headless conformance
 
 The scheduler fixture suite proves finite completion, waiting across 100 pump
@@ -122,3 +130,5 @@ second executor or a compatibility path.
 | SES-007 | Admit finite session count and aggregate reservation before Start; release the reservation at terminal finalization or failed Start, and fail a registry closed after nonterminal abandonment. |
 | SES-008 | Project exact evidence from the owned runtime identity snapshot. |
 | SES-009 | Keep provider cleanup bounded and scheduler-owned; retain Aborting while exact cleanup is pending and fail the same epoch at its plan-pinned deadline. |
+| SES-010 | Commit bounded evidence before releasing scheduler slots; retain monotonic cursors, explicit rolling gaps, and terminal evidence after finalization. |
+| SES-011 | Keep Patchbay and renderer evidence access read-only and rebuildable; presentation cannot acknowledge or own executor evidence. |

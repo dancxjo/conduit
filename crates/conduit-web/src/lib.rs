@@ -1,6 +1,9 @@
 //! Safe browser bindings to the production `.panel` parser.
 
-use std::{cell::RefCell, collections::BTreeMap};
+use std::{
+    cell::RefCell,
+    collections::{BTreeMap, VecDeque},
+};
 
 use wasm_bindgen::prelude::*;
 
@@ -14,12 +17,13 @@ use conduit_core::{
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, ExactExecutionReport, ExactHostedRunSession,
-    ExactHostedServiceUseObservation, ExactRunContext, ExactRunIo, ExactRunSessionRegistry,
-    ExactRunState, ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject,
-    ExactWatchUsage, Handler, Registry, ResolutionError, RunIo, RuntimeError, SchedulerReservation,
-    Value, file_read_contract, file_watch_contract, file_write_contract,
-    hosted_service_use_observations,
+    CompiledInHostService, ExactEvidenceBatch, ExactEvidenceDrainError, ExactEvidenceRecord,
+    ExactEvidenceSink, ExactExecutionReport, ExactHostedRunSession,
+    ExactHostedServiceUseObservation, ExactRunContext, ExactRunIdentity, ExactRunIo,
+    ExactRunSessionRegistry, ExactRunState, ExactWatchBatch, ExactWatchMaterial,
+    ExactWatchObservation, ExactWatchSubject, ExactWatchUsage, Handler, Registry, ResolutionError,
+    RunIo, RuntimeError, SchedulerReservation, Value, file_read_contract, file_watch_contract,
+    file_write_contract, hosted_service_use_observations,
 };
 use conduit_std::{
     FileHandle, FileSlot, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
@@ -32,6 +36,10 @@ const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
 const MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES: u64 = 32 * 1024 * 1024;
 const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
 const MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES: u32 = 256;
+const MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS: u32 = 128;
+const MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS: usize = 256;
+const MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES: u64 = 1024 * 1024;
+const MAXIMUM_PATCHBAY_PROJECTED_EVIDENCE_EVENTS: usize = 32;
 const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
 const BROWSER_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
@@ -67,7 +75,161 @@ struct BrowserExactRun {
     session: Option<ExactHostedRunSession>,
     use_observations: Vec<ExactHostedServiceUseObservation>,
     watch_admissions: Vec<BrowserWatchAdmission>,
+    evidence: BrowserEvidenceStore,
     terminal: Option<BrowserExactRunTerminal>,
+}
+
+/// Worker-owned committed evidence for the rolling browser service profile.
+/// Patchbay may read this bounded projection but cannot acknowledge scheduler
+/// storage or become the authoritative sink.
+struct BrowserEvidenceStore {
+    records: VecDeque<(ExactEvidenceRecord, u64)>,
+    earliest_cursor: u64,
+    next_cursor: u64,
+    retained_bytes: u64,
+    high_water_events: usize,
+    high_water_bytes: u64,
+    dropped_events: u64,
+}
+
+impl BrowserEvidenceStore {
+    const fn new() -> Self {
+        Self {
+            records: VecDeque::new(),
+            earliest_cursor: 0,
+            next_cursor: 0,
+            retained_bytes: 0,
+            high_water_events: 0,
+            high_water_bytes: 0,
+            dropped_events: 0,
+        }
+    }
+
+    fn commit_through(&mut self, cursor: u64) -> Result<(), RuntimeError> {
+        if cursor < self.next_cursor {
+            return Err(RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence provider cursor reversed",
+            ));
+        }
+        self.next_cursor = cursor;
+        if self.dropped_events != 0 {
+            self.earliest_cursor = self
+                .records
+                .front()
+                .map_or(cursor, |(record, _)| record.sequence);
+        }
+        Ok(())
+    }
+
+    fn read(&self, cursor: u64, maximum_events: u32) -> Result<ExactEvidenceBatch, RuntimeError> {
+        let status = classify_evidence_cursor(cursor, self.earliest_cursor, self.next_cursor)
+            .map_err(|error| RuntimeError::new("CND-PBY-009", error.to_string()))?;
+        let start = match status {
+            EvidenceCursorStatus::Available => cursor,
+            EvidenceCursorStatus::Gap { resume_at } => resume_at,
+            EvidenceCursorStatus::Future { next_sequence } => next_sequence,
+        };
+        let records = if status == EvidenceCursorStatus::Available {
+            self.records
+                .iter()
+                .filter(|(record, _)| record.sequence >= start)
+                .take(usize::try_from(maximum_events).expect("u32 fits usize"))
+                .map(|(record, _)| record.clone())
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let next_cursor = match status {
+            EvidenceCursorStatus::Available => records.last().map_or(self.next_cursor, |record| {
+                record
+                    .sequence
+                    .checked_add(1)
+                    .expect("exact evidence cursor cannot overflow")
+            }),
+            EvidenceCursorStatus::Gap { resume_at } => resume_at,
+            EvidenceCursorStatus::Future { next_sequence } => next_sequence,
+        };
+        Ok(ExactEvidenceBatch {
+            status,
+            next_cursor,
+            records,
+        })
+    }
+
+    fn usage(&self) -> serde_json::Value {
+        serde_json::json!({
+            "earliest_cursor": self.earliest_cursor,
+            "next_cursor": self.next_cursor,
+            "retained_events": self.records.len(),
+            "retained_bytes": self.retained_bytes,
+            "high_water_events": self.high_water_events,
+            "high_water_bytes": self.high_water_bytes,
+            "dropped_events": self.dropped_events,
+            "maximum_events": MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS,
+            "maximum_bytes": MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES,
+        })
+    }
+}
+
+impl ExactEvidenceSink for BrowserEvidenceStore {
+    type Error = RuntimeError;
+
+    fn commit_exact_evidence(
+        &mut self,
+        run: &ExactRunIdentity,
+        records: &[ExactEvidenceRecord],
+    ) -> Result<(), Self::Error> {
+        for record in records {
+            if record.plan_identity != run.plan_identity.to_string()
+                || record.plan_epoch != run.plan_epoch
+                || record.run_id != run.run_id
+                || record.sequence < self.next_cursor
+            {
+                return Err(RuntimeError::new(
+                    "CND-PBY-009",
+                    "browser evidence provider rejected identity or cursor drift",
+                ));
+            }
+            let bytes = u64::try_from(
+                serde_json::to_vec(record)
+                    .map_err(|error| RuntimeError::new("CND-PBY-009", error.to_string()))?
+                    .len(),
+            )
+            .expect("usize fits u64");
+            if bytes > MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES {
+                return Err(RuntimeError::new(
+                    "CND-PBY-009",
+                    "one exact evidence record exceeds the browser provider byte bound",
+                ));
+            }
+            self.records.push_back((record.clone(), bytes));
+            self.retained_bytes = self
+                .retained_bytes
+                .checked_add(bytes)
+                .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence byte overflow"))?;
+            while self.records.len() > MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS
+                || self.retained_bytes > MAXIMUM_BROWSER_RETAINED_EVIDENCE_BYTES
+            {
+                let (evicted, evicted_bytes) = self
+                    .records
+                    .pop_front()
+                    .expect("an over-bound evidence store is nonempty");
+                self.retained_bytes -= evicted_bytes;
+                self.dropped_events = self
+                    .dropped_events
+                    .checked_add(1)
+                    .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence gap overflow"))?;
+                self.earliest_cursor = evicted
+                    .sequence
+                    .checked_add(1)
+                    .ok_or_else(|| RuntimeError::new("CND-PBY-009", "evidence cursor overflow"))?;
+            }
+            self.high_water_events = self.high_water_events.max(self.records.len());
+            self.high_water_bytes = self.high_water_bytes.max(self.retained_bytes);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -82,10 +244,6 @@ struct BrowserWatchAdmission {
 struct BrowserExactRunTerminal {
     state: ExactRunState,
     high_water: conduit_runtime::SchedulerHighWater,
-    retained_event_cursor: u64,
-    next_event_cursor: u64,
-    events: Vec<conduit_runtime::SchedulerEvent>,
-    evidence: Vec<conduit_runtime::ExactEvidenceRecord>,
     watches: BTreeMap<String, ExactWatchBatch>,
     output: Vec<u8>,
     error: Vec<u8>,
@@ -618,15 +776,16 @@ fn browser_run_high_water(run: &BrowserExactRun) -> conduit_runtime::SchedulerHi
 fn browser_run_evidence_records(
     run: &BrowserExactRun,
 ) -> Vec<conduit_runtime::ExactEvidenceRecord> {
-    run.terminal
-        .as_ref()
-        .map(|terminal| terminal.evidence.clone())
-        .unwrap_or_else(|| {
-            run.session
-                .as_ref()
-                .expect("live browser run retains its exact session")
-                .exact_evidence()
-        })
+    let mut records = run
+        .evidence
+        .records
+        .iter()
+        .rev()
+        .take(MAXIMUM_PATCHBAY_PROJECTED_EVIDENCE_EVENTS)
+        .map(|(record, _)| record.clone())
+        .collect::<Vec<_>>();
+    records.reverse();
+    records
 }
 
 fn browser_exact_evidence_delta(
@@ -634,54 +793,35 @@ fn browser_exact_evidence_delta(
     cursor: u64,
     maximum_events: u32,
 ) -> Result<conduit_runtime::ExactEvidenceBatch, RuntimeError> {
-    if let Some(session) = run.session.as_ref() {
-        return session.read_exact_evidence(cursor, maximum_events);
-    }
-    let terminal = run
-        .terminal
-        .as_ref()
-        .expect("browser run has either a live session or terminal snapshot");
-    let status = classify_evidence_cursor(
-        cursor,
-        terminal.retained_event_cursor,
-        terminal.next_event_cursor,
-    )
-    .map_err(|error| RuntimeError::new("CND-RUN-009", error.to_string()))?;
-    let sequences = if status == EvidenceCursorStatus::Available {
-        terminal
-            .events
-            .iter()
-            .filter(|event| event.sequence >= cursor)
-            .take(usize::try_from(maximum_events).expect("u32 fits usize"))
-            .map(|event| event.sequence)
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
+    run.evidence.read(cursor, maximum_events)
+}
+
+fn drain_browser_exact_evidence(run: &mut BrowserExactRun) -> Result<(), RuntimeError> {
+    let BrowserExactRun {
+        session, evidence, ..
+    } = run;
+    let Some(session) = session.as_mut() else {
+        return Ok(());
     };
-    let next_cursor = match status {
-        EvidenceCursorStatus::Available => {
-            sequences
-                .last()
-                .map_or(terminal.next_event_cursor, |sequence| {
-                    sequence
-                        .checked_add(1)
-                        .expect("retained event cursor cannot overflow")
-                })
+    while session.retained_event_cursor() < session.next_event_cursor() {
+        let cursor = session.retained_event_cursor();
+        let batch = session
+            .drain_exact_evidence(cursor, MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS, evidence)
+            .map_err(|error| match error {
+                ExactEvidenceDrainError::Scheduler(error) => {
+                    RuntimeError::new(error.code(), error.to_string())
+                }
+                ExactEvidenceDrainError::Sink(error) => error,
+            })?;
+        if batch.next_cursor <= cursor {
+            return Err(RuntimeError::new(
+                "CND-PBY-009",
+                "browser evidence drain made no cursor progress",
+            ));
         }
-        EvidenceCursorStatus::Gap { resume_at } => resume_at,
-        EvidenceCursorStatus::Future { next_sequence } => next_sequence,
-    };
-    let records = terminal
-        .evidence
-        .iter()
-        .filter(|record| sequences.contains(&record.sequence))
-        .cloned()
-        .collect();
-    Ok(conduit_runtime::ExactEvidenceBatch {
-        status,
-        next_cursor,
-        records,
-    })
+        evidence.commit_through(batch.next_cursor)?;
+    }
+    Ok(())
 }
 
 fn browser_evidence_cursor_status(status: EvidenceCursorStatus) -> serde_json::Value {
@@ -862,10 +1002,6 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
         let terminal = BrowserExactRunTerminal {
             state: session.state(),
             high_water: session.high_water(),
-            retained_event_cursor: session.retained_event_cursor(),
-            next_event_cursor: session.next_event_cursor(),
-            events: session.scheduler_events().copied().collect(),
-            evidence: session.exact_evidence(),
             watches: run
                 .watch_admissions
                 .iter()
@@ -1008,7 +1144,7 @@ fn start_browser_exact_run(
         &browser_run_registry()?,
         ExactRunIo::for_plan(&plan)?,
     )?;
-    Ok(BrowserExactRun {
+    let mut run = BrowserExactRun {
         plan: plan_snapshot,
         run_id,
         node_count,
@@ -1016,8 +1152,11 @@ fn start_browser_exact_run(
         session: Some(session),
         use_observations,
         watch_admissions,
+        evidence: BrowserEvidenceStore::new(),
         terminal: None,
-    })
+    };
+    drain_browser_exact_evidence(&mut run)?;
+    Ok(run)
 }
 
 /// Opens one finite, revisioned Patchbay authoring session.
@@ -1161,15 +1300,7 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
         .session
         .as_ref()
         .and_then(ExactHostedRunSession::next_timer_deadline);
-    let next_event_cursor = run.terminal.as_ref().map_or_else(
-        || {
-            run.session
-                .as_ref()
-                .expect("live browser run retains its exact session")
-                .next_event_cursor()
-        },
-        |terminal| terminal.next_event_cursor,
-    );
+    let next_event_cursor = run.evidence.next_cursor;
     let value_storage = run
         .session
         .as_ref()
@@ -1195,7 +1326,9 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
             "completed_nodes": completed_nodes,
             "cords_conducted": cords_conducted,
             "next_timer_deadline": next_timer_deadline,
+            "earliest_event_cursor": run.evidence.earliest_cursor,
             "next_event_cursor": next_event_cursor,
+            "evidence_store": run.evidence.usage(),
             "value_storage": value_storage,
             "stdout": String::from_utf8_lossy(&output),
             "stderr": String::from_utf8_lossy(&error),
@@ -1288,6 +1421,14 @@ pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
             })
             .to_string();
         }
+        if let Err(error) = drain_browser_exact_evidence(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
         if let Err(error) = finalize_browser_run_if_terminal(run) {
             return serde_json::json!({
                 "ok": false,
@@ -1300,9 +1441,9 @@ pub fn patchbay_pump_exact_run(session_id: String, quantum: u64) -> String {
     })
 }
 
-/// Returns one bounded, read-only exact-evidence delta for the browser-owned
-/// run. The caller supplies the scheduler cursor from the preceding result;
-/// this bridge never acknowledges or releases the executor's event window.
+/// Returns one bounded, read-only delta from the worker-owned committed
+/// evidence provider. Patchbay never acknowledges or releases scheduler
+/// storage and therefore cannot become the authoritative evidence store.
 #[wasm_bindgen]
 pub fn patchbay_read_exact_evidence(
     session_id: String,
@@ -1338,58 +1479,6 @@ pub fn patchbay_read_exact_evidence(
                 "status": browser_evidence_cursor_status(batch.status),
                 "next_cursor": batch.next_cursor,
                 "records": batch.records,
-            })
-            .to_string(),
-            Err(error) => serde_json::json!({
-                "ok": false,
-                "code": error.code,
-                "diagnostic": error.to_string(),
-            })
-            .to_string(),
-        }
-    })
-}
-
-/// Releases the exact scheduler-evidence prefix only after the browser caller
-/// has copied that prefix into its bounded Patchbay presentation. This is an
-/// explicit commit acknowledgement; reading or projecting evidence never
-/// releases it implicitly.
-#[wasm_bindgen]
-pub fn patchbay_acknowledge_exact_evidence(session_id: String, cursor: u64) -> String {
-    PATCHBAY_SESSIONS.with(|sessions| {
-        let mut sessions = sessions.borrow_mut();
-        let Some(session) = sessions.get_mut(&session_id) else {
-            return serde_json::json!({
-                "ok": false,
-                "code": "CND-PBY-011",
-                "diagnostic": "unknown Patchbay session",
-            })
-            .to_string();
-        };
-        let Some(run) = session.run.as_mut() else {
-            return serde_json::json!({
-                "ok": false,
-                "code": "CND-PBY-015",
-                "diagnostic": "Patchbay session has no exact run",
-            })
-            .to_string();
-        };
-        let Some(exact_session) = run.session.as_mut() else {
-            return serde_json::json!({
-                "ok": false,
-                "code": "CND-PBY-015",
-                "diagnostic": "terminal exact run has no live evidence window",
-            })
-            .to_string();
-        };
-        match exact_session.acknowledge_scheduler_events_through(cursor) {
-            Ok(()) => serde_json::json!({
-                "ok": true,
-                "run_id": run.run_id,
-                "plan_identity": run.plan.identity,
-                "source_semantic_hash": run.plan.source_semantic_hash,
-                "retained_event_cursor": exact_session.retained_event_cursor(),
-                "next_event_cursor": exact_session.next_event_cursor(),
             })
             .to_string(),
             Err(error) => serde_json::json!({
@@ -1603,6 +1692,14 @@ pub fn patchbay_advance_exact_run(session_id: String, tick: u64) -> String {
             })
             .to_string();
         }
+        if let Err(error) = drain_browser_exact_evidence(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
         if let Err(error) = finalize_browser_run_if_terminal(run) {
             return serde_json::json!({
                 "ok": false,
@@ -1663,6 +1760,14 @@ pub fn patchbay_notify_host_operation(session_id: String, subject: String) -> St
             })
             .to_string();
         }
+        if let Err(error) = drain_browser_exact_evidence(run) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
         if let Err(error) = finalize_browser_run_if_terminal(run) {
             return serde_json::json!({
                 "ok": false,
@@ -1708,6 +1813,14 @@ pub fn patchbay_cancel_exact_run(session_id: String, disposition: String) -> Str
             return browser_run_result(session);
         };
         if let Err(error) = exact_session.cancel(stop) {
+            return serde_json::json!({
+                "ok": false,
+                "code": error.code,
+                "diagnostic": error.to_string(),
+            })
+            .to_string();
+        }
+        if let Err(error) = drain_browser_exact_evidence(run) {
             return serde_json::json!({
                 "ok": false,
                 "code": error.code,
@@ -3820,8 +3933,7 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        explain_panel, panel_language_metadata, panel_source_metadata,
-        patchbay_acknowledge_exact_evidence, patchbay_advance_exact_run,
+        explain_panel, panel_language_metadata, panel_source_metadata, patchbay_advance_exact_run,
         patchbay_apply_transaction, patchbay_attach_exact_watch, patchbay_cancel_exact_run,
         patchbay_detach_exact_watch, patchbay_move_node, patchbay_notify_host_operation,
         patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
@@ -4437,19 +4549,6 @@ cord clock.tick -> drain.item {
             );
             cursor = watched["next_cursor"].as_u64().expect("next Watch cursor");
 
-            let event_cursor = pumped["next_event_cursor"]
-                .as_u64()
-                .expect("next exact evidence cursor");
-            let acknowledged: Value = serde_json::from_str(&patchbay_acknowledge_exact_evidence(
-                session_id.to_owned(),
-                event_cursor,
-            ))
-            .expect("evidence acknowledgement JSON");
-            assert_eq!(acknowledged["ok"], true, "{acknowledged}");
-            assert_eq!(acknowledged["retained_event_cursor"], event_cursor);
-            assert_eq!(acknowledged["next_event_cursor"], event_cursor);
-            assert_eq!(acknowledged["run_id"], run_id);
-
             let deadline = pumped["next_timer_deadline"]
                 .as_u64()
                 .expect("pending exact timer deadline");
@@ -4469,6 +4568,57 @@ cord clock.tick -> drain.item {
         assert_eq!(cancelled["ok"], true, "{cancelled}");
         assert_eq!(cancelled["state"], "cancelled");
         assert_eq!(cancelled["run_id"], run_id);
+        assert_eq!(cancelled["evidence_store"]["maximum_events"], 256);
+        assert_eq!(cancelled["evidence_store"]["maximum_bytes"], 1024 * 1024);
+        assert!(
+            cancelled["evidence_store"]["retained_events"]
+                .as_u64()
+                .is_some_and(|events| events <= 256),
+            "{cancelled}"
+        );
+        assert!(
+            cancelled["evidence_store"]["retained_bytes"]
+                .as_u64()
+                .is_some_and(|bytes| bytes <= 1024 * 1024),
+            "{cancelled}"
+        );
+        assert!(
+            cancelled["evidence_store"]["dropped_events"]
+                .as_u64()
+                .is_some_and(|events| events > 0),
+            "{cancelled}"
+        );
+        assert!(
+            cancelled["evidence"]
+                .as_array()
+                .is_some_and(|events| events.len() <= 32),
+            "Patchbay projection exceeded its separate presentation bound: {cancelled}"
+        );
+
+        let gap: Value =
+            serde_json::from_str(&patchbay_read_exact_evidence(session_id.to_owned(), 0, 32))
+                .expect("evidence gap JSON");
+        assert_eq!(gap["ok"], true, "{gap}");
+        assert_eq!(gap["status"]["kind"], "gap", "{gap}");
+        let resume_at = gap["status"]["resume_at"]
+            .as_u64()
+            .expect("rolling evidence gap resume cursor");
+        assert!(resume_at > 0, "{gap}");
+
+        let resumed: Value = serde_json::from_str(&patchbay_read_exact_evidence(
+            session_id.to_owned(),
+            resume_at,
+            256,
+        ))
+        .expect("resumed evidence JSON");
+        assert_eq!(resumed["ok"], true, "{resumed}");
+        assert_eq!(resumed["status"]["kind"], "available", "{resumed}");
+        assert!(
+            resumed["records"].as_array().is_some_and(|records| records
+                .iter()
+                .any(|record| record["event_kind"] == "terminal")),
+            "terminal evidence was not retained after finalization: {resumed}"
+        );
     }
 
     #[test]

@@ -6,7 +6,6 @@ export const explain_panel: (a: number, b: number) => [number, number];
 export const panel_language_metadata: () => [number, number];
 export const panel_source_metadata: (a: number, b: number) => [number, number];
 export const parse_panel: (a: number, b: number) => [number, number];
-export const patchbay_acknowledge_exact_evidence: (a: number, b: number, c: bigint) => [number, number];
 export const patchbay_advance_exact_run: (a: number, b: number, c: bigint) => [number, number];
 export const patchbay_apply_transaction: (a: number, b: number, c: number, d: number) => [number, number];
 export const patchbay_attach_exact_watch: (a: number, b: number, c: number, d: number) => [number, number];

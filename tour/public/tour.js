@@ -234,22 +234,6 @@ function renderLatestWatch(batch, run) {
   }, null, 2);
 }
 
-async function acknowledgeRenderedEvidence(adapter, sessionId, run) {
-  if (run.terminal) return;
-  if (!Number.isSafeInteger(run.next_event_cursor)) {
-    throw new Error("exact run omitted its evidence commit cursor");
-  }
-  const acknowledged = await adapter.request("patchbay-acknowledge-exact-evidence", {
-    sessionId,
-    cursor: run.next_event_cursor,
-  });
-  if (!acknowledged.ok || !acknowledged.value?.ok) {
-    throw new Error(
-      acknowledged.value?.diagnostic || acknowledged.code || "evidence commit failed",
-    );
-  }
-}
-
 function validPosition(position) {
   return position &&
     Number.isInteger(position.x) &&
@@ -1240,7 +1224,6 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
       renderRustProjection(pumped.value.view);
       renderExactResultTimeline(pumped.value);
       renderLatestWatch(watched.value, pumped.value);
-      await acknowledgeRenderedEvidence(adapter, sessionId, pumped.value);
       result.textContent =
         `✓ Live exact run remains ${pumped.value.state}.\n` +
         `Latest public text: ${JSON.stringify(watched.value.records.at(-1)?.material?.text ?? "")}\n` +
@@ -1390,7 +1373,6 @@ async function run() {
     terminal = Boolean(value.terminal);
     renderRustProjection(value.view);
     renderExactResultTimeline(value);
-    await acknowledgeRenderedEvidence(adapter, sessionId, value);
     let watched = null;
     if (watchId) {
       const read = await adapter.request("patchbay-read-exact-watch", {

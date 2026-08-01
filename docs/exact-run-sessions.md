@@ -186,13 +186,23 @@ an unbounded loop. The old terminal-only worker `run` command and its
 fresh-run `cancel` command are not part of the current protocol: Stop targets
 the already started session and returns its own terminal cleanup evidence.
 
+The browser host drains scheduler observations synchronously into its own
+bounded committed evidence provider before returning each Start, pump, wake,
+or Stop result. Only that provider can release scheduler slots. Its rolling
+window retains at most 256 exact records and 1 MiB; eviction advances the
+earliest available cursor without changing later sequence identities. The
+terminal record is committed before the exact session is finalized and stays
+queryable from that retained window.
+
 `patchbay-read-exact-evidence` reads one caller-selected bounded delta from
-that same run. Its cursor is the scheduler's monotonic cursor, and its result
-names `available`, `gap`, or `future` explicitly with the cursor to use next.
-It is read-only: a Patchbay or browser renderer cannot acknowledge, compact,
-or otherwise release executor evidence. A worker may request a fresh
-authoritative snapshot after a gap, but it must not recreate omitted evidence
-or resend the complete history as a substitute for cursor progress.
+that worker-owned provider. Its result names `available`, `gap`, or `future`
+explicitly with the cursor to use next. It is read-only: the worker protocol
+has no Patchbay or renderer acknowledgement operation. The ordinary Patchbay
+view projects at most the newest 32 retained records; a reconnecting client
+uses the cursor API instead of treating that presentation subset as the
+evidence store. After a gap it resumes at the advertised earliest cursor or
+requests a fresh authoritative projection; it never recreates omitted
+evidence or resends complete history as a substitute for cursor progress.
 
 An invalid candidate remains visible in its next source revision without
 removing the prior active plan epoch from the worker's authoritative
