@@ -235,8 +235,15 @@ export class PatchbayReactFlowRenderer {
     this.viewModel = viewModel;
     this.lessonId = lessonId;
     this.topologyView = topologyView;
+    if (!viewModel) {
+      this.selectedNodeId = null;
+      this.selectedCordId = null;
+      this.renderedCordIds = [];
+      this.flowInstance = null;
+    }
     this.updateRunPresentation(viewModel);
     const renderIdentity = JSON.stringify([
+      lessonId,
       viewModel?.source?.identity,
       viewModel?.source?.revision,
       viewModel?.presentation?.identity,
@@ -379,6 +386,14 @@ export class PatchbayReactFlowRenderer {
     const viewModel = this.viewModel;
     if (!viewModel) {
       this.flowWrapper.dataset.projection = "unavailable";
+      this.flowWrapper.dataset.nodeCount = "0";
+      this.flowWrapper.dataset.edgeCount = "0";
+      delete this.flowWrapper.dataset.layout;
+      if (this.reactRoot) {
+        this.reactRoot.render(null);
+      } else {
+        this.flowWrapper.replaceChildren();
+      }
       return;
     }
 

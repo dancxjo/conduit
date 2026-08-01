@@ -986,6 +986,31 @@ test("retains headless editing and execution when presentation fails", async ({ 
   });
 });
 
+test("clears the previous diagram before redrawing a lesson that fails resolution", async ({
+  page,
+}) => {
+  await page.goto("/tour/public/index.html");
+  await expect(page.locator('.react-flow__node[data-id="greeting"]')).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Types mean promises" }).click();
+  await expect(page.locator("#result")).toContainText("CND-IMP-001");
+  await expect(page.locator('.react-flow__node[data-id="greeting"]')).toHaveCount(0);
+  await expect(page.locator('.react-flow__node[data-id="source"]')).toHaveCount(1);
+  await expect(page.locator('.react-flow__node[data-id="adapter"]')).toHaveCount(1);
+  await expect(page.locator('.react-flow__node[data-id="sink"]')).toHaveCount(1);
+  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
+    "data-projection",
+    "rust-authoritative",
+  );
+
+  await page.getByRole("button", { name: "Empty is not never" }).click();
+  await expect(page.locator('.react-flow__node[data-id="empty"]')).toHaveCount(1);
+  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
+    "data-projection",
+    "rust-authoritative",
+  );
+});
+
 test("styles cords from their projected type and pressure policy", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const edge = page.locator(".patchbay-cord").first();

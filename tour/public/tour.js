@@ -414,7 +414,7 @@ if (cyContainer) {
 
 function updateCytoscapeGraph() {
   syncDiagnosticSourceHighlights();
-  if (patchbayRenderer && patchbayView) {
+  if (patchbayRenderer) {
     patchbayRenderer.setViewModel(patchbayView, current.id, topologyView);
   }
   renderStructuredTopology();
@@ -539,6 +539,7 @@ function openPatchbaySession() {
   const opened = JSON.parse(patchbay_open_session(patchbaySessionId, acceptedSource));
   if (!opened.ok) {
     patchbayView = null;
+    updateCytoscapeGraph();
     result.textContent = opened.diagnostic;
     return false;
   }
@@ -977,6 +978,11 @@ function show(lesson) {
   void stopExactSession("lesson-changed");
   resetWatchPresentation();
   current = lesson;
+  patchbayView = null;
+  patchbaySourceRevision = 0;
+  patchbayPresentationRevision = 0;
+  positions = {};
+  updateCytoscapeGraph();
   workspaceController?.setDocument(lesson.id);
   document.querySelector("#title").textContent = lesson.title;
   document.querySelector("#goal").textContent = lesson.objective || lesson.title;
@@ -1007,7 +1013,6 @@ function show(lesson) {
   acceptedSource = parsedDraft.ok ? source.value : lesson.source;
   selectedNode = null;
   selectedCord = null;
-  positions = {};
   topologyView = "logical";
   undoResetButton.disabled = localStorage.getItem(recoveryKey(lesson.id)) === null;
   document.querySelector("#topology-inspector").open =
@@ -1209,6 +1214,11 @@ scenarioSelect?.addEventListener("change", () => {
   void stopExactSession("scenario-changed");
   const scenario = activeScenario();
   if (!scenario) return;
+  patchbayView = null;
+  patchbaySourceRevision = 0;
+  patchbayPresentationRevision = 0;
+  positions = {};
+  updateCytoscapeGraph();
   source.value = scenario.source;
   source.setSourceDiagnosticRanges?.([]);
   syncSourceHighlight();
@@ -1216,7 +1226,6 @@ scenarioSelect?.addEventListener("change", () => {
   acceptedSource = scenario.source;
   selectedNode = null;
   selectedCord = null;
-  positions = {};
   evidence.length = 0;
   recordEvidence({ kind: "scenario-selected", scenario: scenario.id });
   renderPlan();
