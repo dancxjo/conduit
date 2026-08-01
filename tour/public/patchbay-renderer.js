@@ -7,6 +7,7 @@
 
 import { FaceplateNodeComponent } from "./patchbay-faceplate.js";
 import { patchbayFeatures } from "./patchbay-features.js";
+import { PatchbayCordEdge } from "./patchbay-cord-edge.js";
 
 const e = window.React.createElement;
 
@@ -214,7 +215,6 @@ export class PatchbayReactFlowRenderer {
     this.onPortSelect = options.onPortSelect || null;
     this.onSelectionClear = options.onSelectionClear || null;
     this.onOpenNested = options.onOpenNested || null;
-    this.patchbaySmartEdge = null;
   }
 
   init() {
@@ -228,20 +228,7 @@ export class PatchbayReactFlowRenderer {
     this.liveRunStatus.setAttribute("role", "status");
     this.liveRunStatus.setAttribute("aria-live", "polite");
     this.container.appendChild(this.liveRunStatus);
-    import("./patchbay-smart-edge.js")
-      .then((legacy) => {
-        this.patchbaySmartEdge = legacy.PatchbaySmartEdge || null;
-      })
-      .catch((error) => {
-        console.error(
-          "patchbay smart-edge module unavailable, using built-in React Flow routing:",
-          error,
-        );
-        this.patchbaySmartEdge = null;
-      })
-      .finally(() => {
-        this.renderFlow();
-      });
+    this.renderFlow();
   }
 
   setViewModel(viewModel, lessonId = "default", topologyView = "logical") {
@@ -501,14 +488,13 @@ export class PatchbayReactFlowRenderer {
     )?.edge.id;
     const edges = projectedEdges.map(({ edge, source, target }) => {
       const presentation = edgePresentation(edge);
-      const edgeType = this.patchbaySmartEdge ? "patchbaySmartEdge" : "bezier";
       return {
         id: edge.id,
         source: source.node,
         sourceHandle: source.port,
         target: target.node,
         targetHandle: target.port,
-        type: edgeType,
+        type: "patchbayCord",
         label: presentation.label,
         markerEnd: {
           type: window.ReactFlow.MarkerType.ArrowClosed,
@@ -517,13 +503,10 @@ export class PatchbayReactFlowRenderer {
           height: 18,
         },
         className: [
-          "patchbay-smart-cord",
+          "patchbay-cord",
           presentation.className,
           edge.id === emphasizedDiagnosticCord ? "diagnostic-emphasized" : "",
         ].join(" "),
-        data: {
-          presentationClass: `patchbay-smart-cord ${presentation.className}`,
-        },
         style: {
           stroke: presentation.color,
           strokeWidth: presentation.strokeWidth,
@@ -581,16 +564,7 @@ export class PatchbayReactFlowRenderer {
       diagnosticAnchor: DiagnosticAnchorNode,
     };
 
-    const edgeTypes = {};
-    if (this.patchbaySmartEdge) {
-      edgeTypes.patchbaySmartEdge = (props) =>
-        e(this.patchbaySmartEdge, {
-          ...props,
-          className: `${props.className || ""} ${props.data?.presentationClass || ""}`,
-          markerEnd: props.markerEnd,
-          markerStart: props.markerStart,
-        });
-    }
+    const edgeTypes = { patchbayCord: PatchbayCordEdge };
 
     const topologyIdentity = [
       ...nodes.map((node) =>
@@ -611,6 +585,7 @@ export class PatchbayReactFlowRenderer {
         nodesConnectable: this.topologyView === "logical",
         elementsSelectable: true,
         connectionMode: window.ReactFlow.ConnectionMode.Loose,
+        connectionLineType: window.ReactFlow.ConnectionLineType.Straight,
         onConnect: (connection) => {
           const normalizedConnection = normalizeConnection(connection, projectedNodes);
           const operation = connectOperation(normalizedConnection);

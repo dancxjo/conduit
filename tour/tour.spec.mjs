@@ -686,7 +686,7 @@ test("keeps semantic port direction redundant across presentation media", async 
     "data-port-direction",
     "outgoing",
   );
-  await expect(page.locator(".patchbay-smart-cord").first()).toHaveCSS(
+  await expect(page.locator(".patchbay-cord").first()).toHaveCSS(
     "animation-name",
     "none",
   );
@@ -890,7 +890,7 @@ test("retains headless editing and execution when presentation fails", async ({ 
 
 test("styles cords from their projected type and pressure policy", async ({ page }) => {
   await page.goto("/tour/public/index.html");
-  const edge = page.locator(".patchbay-smart-cord").first();
+  const edge = page.locator(".patchbay-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/pressure-lossless/);
   await expect(edge).toHaveClass(/value-type-std-text/);
@@ -908,7 +908,7 @@ test("styles cords from their projected type and pressure policy", async ({ page
   await expect(page.locator(".cord-legend-item")).toHaveCount(4);
 });
 
-test("keeps stacked reverse cords cable-like instead of mixing step geometry", async ({ page }) => {
+test("routes stacked reverse cords with straight rectilinear segments", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem(
       "conduit-tour-layout/nodes.empty-is-not-never",
@@ -920,12 +920,13 @@ test("keeps stacked reverse cords cable-like instead of mixing step geometry", a
   });
   await page.goto("/tour/public/index.html?lesson=nodes.empty-is-not-never");
 
-  const path = page.locator(".patchbay-smart-cord .react-flow__edge-path");
-  await expect(path).toHaveAttribute("data-cord-geometry", "cable");
-  await expect(path).toHaveAttribute("data-routing-mode", /cable/);
+  const path = page.locator(".patchbay-cord .react-flow__edge-path");
+  await expect(path).toHaveAttribute("data-cord-geometry", "straight");
+  await expect(path).toHaveAttribute("data-routing-mode", "rectilinear");
   const commands = await path.getAttribute("d");
-  expect(commands?.match(/\bC\b/g)?.length).toBeGreaterThanOrEqual(3);
-  expect(commands).not.toMatch(/\b[QL]\b/);
+  expect(commands).toMatch(/^M\s/);
+  expect(commands).toMatch(/\bL\b/);
+  expect(commands).not.toMatch(/\b[CQAS]\b/i);
 });
 
 test("renders the direction lesson as an invalid authored graph", async ({ page }) => {
@@ -936,7 +937,7 @@ test("renders the direction lesson as an invalid authored graph", async ({ page 
   await expect(
     page.locator('[data-id="second"] [data-port-direction="outgoing"]'),
   ).toContainText("value >");
-  const edge = page.locator(".patchbay-smart-cord");
+  const edge = page.locator(".patchbay-cord");
   await expect(edge).toHaveCount(1);
   await expect(edge).toHaveClass(/cord-diagnostic-error/);
   await expect(edge).toHaveClass(/cord-validity-wrong-direction/);
@@ -974,6 +975,38 @@ test("renders the direction lesson as an invalid authored graph", async ({ page 
   await expect(page.locator("#evidence")).not.toContainText('"event_kind"');
 });
 
+test("keeps current diagnostic source ranges marked as the source changes", async ({ page }) => {
+  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  const source = page.locator("#source");
+  const diagnosticMark = page.locator(".panel-source-diagnostic");
+
+  await expect(diagnosticMark).toHaveText("second.value");
+  const original = await source.inputValue();
+  const moved = `# moved diagnostic\n${original}`;
+  await source.fill(moved);
+  await expect(diagnosticMark).toHaveText("second.value");
+  await expect.poll(async () => page.locator(".panel-source-highlight").evaluate(
+    (highlight) => {
+      const mark = highlight.querySelector(".panel-source-diagnostic");
+      if (!mark) return -1;
+      const prefix = document.createRange();
+      prefix.setStart(highlight, 0);
+      prefix.setEndBefore(mark);
+      return prefix.toString().length;
+    },
+  )).toBe(moved.lastIndexOf("second.value"));
+
+  const corrected = moved
+    .replace(
+      'node second : std/literal {\n    value = "Second.\\n"\n}',
+      "node second : display/text",
+    )
+    .replace("cord first.value -> second.value", "cord first.value -> second.text");
+  await source.fill(corrected);
+  await expect(page.locator(".patchbay-cord")).toHaveClass(/cord-validity-valid/);
+  await expect(diagnosticMark).toHaveCount(0);
+});
+
 test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");
@@ -985,7 +1018,7 @@ test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", 
     "cord greeting.value -> greeting.value\n";
   await source.fill(destinationInvalid);
   await expect(source).toHaveValue(/greeting\.value -> greeting\.value/);
-  await expect(page.locator(".patchbay-smart-cord")).toHaveClass(
+  await expect(page.locator(".patchbay-cord")).toHaveClass(
     /cord-validity-wrong-direction/,
     { timeout: 20_000 },
   );
@@ -1012,7 +1045,7 @@ test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", 
   );
 
   await source.fill(original);
-  await expect(page.locator(".patchbay-smart-cord")).toHaveClass(
+  await expect(page.locator(".patchbay-cord")).toHaveClass(
     /cord-validity-valid/,
     { timeout: 20_000 },
   );
@@ -1048,7 +1081,7 @@ test("projects every authored cord failure family with static reduced-motion cue
   for (const fixture of cases) {
     await source.fill(fixture.panel);
     await expect(source).toHaveValue(fixture.panel);
-    const edge = page.locator(".patchbay-smart-cord");
+    const edge = page.locator(".patchbay-cord");
     await expect(edge).toHaveClass(
       new RegExp(`cord-validity-${fixture.state}`),
       { timeout: 20_000 },
@@ -1078,17 +1111,18 @@ test("emphasizes one of several diagnostics without replaying unchanged checks",
     "cord a.value -> b.value\n" +
     "cord b.value -> c.value\n",
   );
-  const edges = page.locator(".patchbay-smart-cord");
+  const edges = page.locator(".patchbay-cord");
   await expect(edges).toHaveCount(2);
+  await expect(page.locator(".panel-source-diagnostic")).toHaveCount(2);
   await expect(edges.filter({ has: page.locator(".react-flow__edge-path") })).toHaveCount(2);
-  await expect(page.locator(".patchbay-smart-cord.diagnostic-emphasized")).toHaveCount(1);
+  await expect(page.locator(".patchbay-cord.diagnostic-emphasized")).toHaveCount(1);
   await expect(
-    page.locator(".patchbay-smart-cord:not(.diagnostic-emphasized)")
+    page.locator(".patchbay-cord:not(.diagnostic-emphasized)")
       .locator(".react-flow__edge-path"),
   ).toHaveCSS("animation-name", "none");
 
   const emphasizedPath = page.locator(
-    ".patchbay-smart-cord.diagnostic-emphasized .react-flow__edge-path",
+    ".patchbay-cord.diagnostic-emphasized .react-flow__edge-path",
   );
   await page.waitForTimeout(250);
   const before = await emphasizedPath.evaluate((element) => ({
@@ -1340,7 +1374,7 @@ test("navigates incomplete source and diagnostics in fullscreen with reduced mot
   await page.locator("#workspace-shade-editor").click();
   await page.locator("#workspace-shade-editor").click();
   await expect(
-    page.locator(".patchbay-smart-cord.diagnostic-emphasized .react-flow__edge-path"),
+    page.locator(".patchbay-cord.diagnostic-emphasized .react-flow__edge-path"),
   ).toHaveCSS("animation-name", "none");
 });
 
@@ -1350,10 +1384,10 @@ test("window presentation changes do not recreate unchanged diagnostic motion", 
       Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
   await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
-  await expect(page.locator(".patchbay-smart-cord.diagnostic-emphasized")).toHaveCount(1);
+  await expect(page.locator(".patchbay-cord.diagnostic-emphasized")).toHaveCount(1);
   await page.locator("#workspace-fullscreen").click();
   const path = page.locator(
-    ".patchbay-smart-cord.diagnostic-emphasized .react-flow__edge-path",
+    ".patchbay-cord.diagnostic-emphasized .react-flow__edge-path",
   );
   await expect(path).toHaveCSS("animation-name", "patchbay-new-error");
   const before = await path.evaluate((element) => {
@@ -1463,11 +1497,14 @@ test("routes cords through free space by default and keeps labels off node faces
     320,
   );
 
-  const edge = page.locator(".patchbay-smart-cord").nth(1);
+  const edge = page.locator(".patchbay-cord").nth(1);
   await expect(edge).toHaveCount(1);
   await expect.poll(async () =>
     edge.locator(".react-flow__edge-path").getAttribute("d")
-  ).toMatch(/C/);
+  ).toMatch(/\bL\b/);
+  await expect.poll(async () =>
+    edge.locator(".react-flow__edge-path").getAttribute("d")
+  ).not.toMatch(/\b[CQAS]\b/i);
   await expect
     .poll(async () => edge.locator(".react-flow__edge-path").getAttribute("d"))
     .not.toBe("");

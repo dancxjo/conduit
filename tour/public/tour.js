@@ -354,12 +354,25 @@ if (cyContainer) {
 }
 
 function updateCytoscapeGraph() {
+  syncDiagnosticSourceHighlights();
   if (patchbayRenderer && patchbayView) {
     patchbayRenderer.setViewModel(patchbayView, current.id, topologyView);
   }
   renderStructuredTopology();
   renderDiagnosticConsole();
   workspaceController?.updateStatus();
+}
+
+function syncDiagnosticSourceHighlights() {
+  const projectionIsCurrent = patchbayView &&
+    patchbayView.source.revision === patchbaySourceRevision &&
+    patchbayView.source.source === source.value;
+  const ranges = projectionIsCurrent
+    ? (patchbayView.diagnostics || [])
+      .map((diagnostic) => diagnostic.primary_range)
+      .filter((range) => range?.source_revision === patchbaySourceRevision)
+    : [];
+  source.setSourceDiagnosticRanges?.(ranges);
 }
 
 function renderDiagnosticConsole() {
@@ -543,6 +556,7 @@ function applyPatchbayOperations(operations, options = {}) {
     syncSourceHighlight();
   }
   positions = transaction.result.presentation.node_positions;
+  syncDiagnosticSourceHighlights();
   runButton.disabled =
     current?.runnability?.state !== "runnable" || !patchbayView.plan;
   rememberLayout(current.id, positions, patchbayView);
@@ -927,6 +941,7 @@ function show(lesson) {
 
   const draft = localStorage.getItem(draftKey(lesson.id));
   source.value = draft ?? lesson.source;
+  source.setSourceDiagnosticRanges?.([]);
   syncSourceHighlight();
   const parsedDraft = JSON.parse(parse_panel(source.value));
   acceptedSource = parsedDraft.ok ? source.value : lesson.source;
@@ -1135,6 +1150,7 @@ scenarioSelect?.addEventListener("change", () => {
   const scenario = activeScenario();
   if (!scenario) return;
   source.value = scenario.source;
+  source.setSourceDiagnosticRanges?.([]);
   syncSourceHighlight();
   localStorage.removeItem(draftKey(current.id));
   acceptedSource = scenario.source;

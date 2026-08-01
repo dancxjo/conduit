@@ -1993,6 +1993,15 @@ fn authoritative_patchbay_view(
             let to_port_range = endpoint_ranges.and_then(|(_, to)| {
                 source_range_from_offsets(source_text, to, source_revision, "authored-endpoint")
             });
+            let to_diagnostic_range = endpoint_ranges.and_then(|(_, to)| {
+                endpoint_source_range(
+                    source_text,
+                    to,
+                    &source_cord.to,
+                    source_revision,
+                    "authored-diagnostic-endpoint",
+                )
+            });
             let assessment = registry.assess_authored_cord(panel, source_cord);
             let mut diagnostic_ids = Vec::new();
             if assessment.state != "valid" {
@@ -2023,6 +2032,7 @@ fn authoritative_patchbay_view(
                     assessment.explanation.clone(),
                     invalid_field
                         .map(|(_, range)| range)
+                        .or(to_diagnostic_range)
                         .or_else(|| to_port_range.clone())
                         .or_else(|| source_range.clone()),
                     targets,
@@ -3356,6 +3366,21 @@ fn endpoint_member_offset(
     }?;
     let member_start = search_start + relative + complete.len() - endpoint.port.len();
     Some((member_start, member_start + endpoint.port.len()))
+}
+
+fn endpoint_source_range(
+    source: &str,
+    member_range: (usize, usize),
+    endpoint: &conduit_panel::Endpoint,
+    source_revision: u64,
+    provenance: &str,
+) -> Option<conduit_patchbay::SourceRangeProjection> {
+    let endpoint_text = format!("{}.{}", endpoint.node, endpoint.port);
+    let start = member_range.0.checked_sub(endpoint.node.len() + 1)?;
+    if source.get(start..member_range.1)? != endpoint_text {
+        return None;
+    }
+    source_range_from_offsets(source, (start, member_range.1), source_revision, provenance)
 }
 
 fn cord_endpoint_member_offsets(
@@ -4727,6 +4752,10 @@ cord first.value -> second.value {\n\
             source.to_owned(),
         ))
         .unwrap();
+        let opened_range = &opened["view"]["diagnostics"][0]["primary_range"];
+        let opened_start = opened_range["start_byte"].as_u64().unwrap() as usize;
+        let opened_end = opened_range["end_byte"].as_u64().unwrap() as usize;
+        assert_eq!(&source[opened_start..opened_end], "b.value");
         let replacement = serde_json::json!({
             "protocol_version": 0,
             "document_id": "test/diagnostic-revision",

@@ -44,7 +44,12 @@ function semanticAttributes(annotation) {
     ` title="${label}" data-semantic-path="${path}"`;
 }
 
-export function highlightPanelSource(source, selectedRange = null, metadata = null) {
+export function highlightPanelSource(
+  source,
+  selectedRange = null,
+  metadata = null,
+  diagnosticRanges = [],
+) {
   const runs = [];
   let cursor = 0;
   let expectTypeName = false;
@@ -119,6 +124,13 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
       range.start < range.end
     )
     : [];
+  const activeDiagnosticRanges = Array.isArray(diagnosticRanges)
+    ? diagnosticRanges.filter((range) =>
+      Number.isInteger(range?.start) &&
+      Number.isInteger(range?.end) &&
+      range.start < range.end
+    )
+    : [];
   const semanticAnnotations = metadata?.semantic_available === true &&
       Array.isArray(metadata.annotations)
     ? metadata.annotations.filter((annotation) =>
@@ -130,8 +142,32 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
     )
     : [];
   let output = "";
-  let selectionOpen = false;
-  let relatedOpen = false;
+  let openLayers = [];
+  const layerMarkup = {
+    selection: '<mark class="panel-source-selection">',
+    diagnostic: '<mark class="panel-source-diagnostic">',
+    related: '<span class="panel-source-endpoint">',
+  };
+  const closeMarkup = {
+    selection: "</mark>",
+    diagnostic: "</mark>",
+    related: "</span>",
+  };
+
+  const transitionLayers = (nextLayers) => {
+    let shared = 0;
+    while (shared < openLayers.length && shared < nextLayers.length &&
+        openLayers[shared] === nextLayers[shared]) {
+      shared += 1;
+    }
+    for (let index = openLayers.length - 1; index >= shared; index -= 1) {
+      output += closeMarkup[openLayers[index]];
+    }
+    for (let index = shared; index < nextLayers.length; index += 1) {
+      output += layerMarkup[nextLayers[index]];
+    }
+    openLayers = nextLayers;
+  };
 
   for (const { text, tokenStart, kind, attributes } of runs) {
     const tokenEnd = tokenStart + text.length;
@@ -150,6 +186,14 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
         boundaries.push(range.end);
       }
     }
+    for (const range of activeDiagnosticRanges) {
+      if (range.start > tokenStart && range.start < tokenEnd) {
+        boundaries.push(range.start);
+      }
+      if (range.end > tokenStart && range.end < tokenEnd) {
+        boundaries.push(range.end);
+      }
+    }
     for (const annotation of semanticAnnotations) {
       if (annotation.start_utf16 > tokenStart &&
           annotation.start_utf16 < tokenEnd) {
@@ -161,6 +205,11 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
       }
     }
     boundaries.sort((left, right) => left - right);
+    for (let index = boundaries.length - 1; index > 0; index -= 1) {
+      if (boundaries[index] === boundaries[index - 1]) {
+        boundaries.splice(index, 1);
+      }
+    }
 
     for (let index = 0; index < boundaries.length - 1; index += 1) {
       const fragmentStart = boundaries[index];
@@ -171,25 +220,14 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
       const related = relatedRanges.some((range) =>
         fragmentStart >= range.start && fragmentEnd <= range.end
       );
-
-      if (selected && !selectionOpen) {
-        output += '<mark class="panel-source-selection">';
-        selectionOpen = true;
-      } else if (!selected && selectionOpen) {
-        if (relatedOpen) {
-          output += "</span>";
-          relatedOpen = false;
-        }
-        output += "</mark>";
-        selectionOpen = false;
-      }
-      if (related && !relatedOpen) {
-        output += '<span class="panel-source-endpoint">';
-        relatedOpen = true;
-      } else if (!related && relatedOpen) {
-        output += "</span>";
-        relatedOpen = false;
-      }
+      const diagnostic = activeDiagnosticRanges.some((range) =>
+        fragmentStart >= range.start && fragmentEnd <= range.end
+      );
+      transitionLayers([
+        ...(selected ? ["selection"] : []),
+        ...(diagnostic ? ["diagnostic"] : []),
+        ...(related ? ["related"] : []),
+      ]);
 
       const escaped = escapeHtml(
         text.slice(fragmentStart - tokenStart, fragmentEnd - tokenStart),
@@ -213,8 +251,7 @@ export function highlightPanelSource(source, selectedRange = null, metadata = nu
       output += rendered;
     }
   }
-  if (relatedOpen) output += "</span>";
-  if (selectionOpen) output += "</mark>";
+  transitionLayers([]);
 
   // A final newline needs a visible line box to keep overlay scrolling aligned.
   return source.endsWith("\n") ? `${output} ` : output;
@@ -245,6 +282,7 @@ export function attachPanelSourceHighlighting(textarea) {
       textarea.value,
       textarea.sourceHighlightRange,
       metadata,
+      textarea.sourceDiagnosticRanges,
     );
     highlight.dataset.semanticMetadata =
       metadata?.semantic_available === true ? "available" : "unavailable";
@@ -271,7 +309,22 @@ export function attachPanelSourceHighlighting(textarea) {
       : { related };
     sync();
   };
-  textarea.addEventListener("input", sync);
+  textarea.setSourceDiagnosticRanges = (ranges) => {
+    textarea.sourceDiagnosticRanges = Array.isArray(ranges)
+      ? ranges.filter(Boolean).map((range) => ({
+        start: range.start_utf16,
+        end: range.end_utf16,
+      }))
+      : [];
+    sync();
+  };
+  textarea.addEventListener("input", () => {
+    // The old projection belongs to the previous source revision. Remove it
+    // synchronously; the editor controller supplies freshly compiled ranges.
+    textarea.sourceHighlightRange = null;
+    textarea.sourceDiagnosticRanges = [];
+    sync();
+  });
   textarea.addEventListener("scroll", syncScroll);
   sync();
   return sync;
