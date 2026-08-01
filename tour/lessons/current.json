@@ -797,11 +797,14 @@
         "panels.reuse-without-copying"
       ],
       "objective": "Run one continuous ticker in the production executor and observe its latest public text through a bounded Patchbay Watch.",
-      "prose": "Start owns one exact worker session. The ticker emits public text, the discard node consumes it without retaining value history, and Patchbay copies only the latest admitted preview. Separately, the worker commits ordered run evidence into the exact plan's finite evidence-byte budget before scheduler slots are reused. That rolling history has monotonic cursors: a reconnect resumes at its saved cursor, or receives an explicit gap and the earliest cursor still available. Strict audit instead stops when required evidence cannot be committed. The browser schedules explicit timer wakes; it does not execute the graph or own the evidence store.",
+      "prose": "Start owns one exact worker session. The ticker emits public text, the discard node consumes it without retaining value history, and Patchbay copies only the latest admitted preview. Watch is isolated runtime instrumentation: removing it leaves this same panel, plan, demand, timing, and cord pressure running. Adding a semantic tee would edit this panel and exact plan; adding a lossless recorder would be a plan-visible node or evidence stream and could apply its declared pressure. Separately, the worker commits ordered run evidence into the exact plan's finite evidence-byte budget before scheduler slots are reused. That rolling history has monotonic cursors: a reconnect resumes at its saved cursor, or receives an explicit gap and the earliest cursor still available. Protected material remains structurally visible but redacted. Strict audit instead stops when required evidence cannot be committed. The browser schedules explicit timer wakes; it does not execute the graph or own the evidence store.",
       "vocabulary": [
         "exact run",
         "timer wake",
         "latest-value Watch",
+        "semantic tee",
+        "lossless recorder",
+        "redaction",
         "evidence cursor",
         "rolling gap",
         "strict audit"
@@ -825,6 +828,10 @@
           "timer_deadline",
           "host_wake",
           "latest_public_text",
+          "watch_attach_detach",
+          "watch_gap",
+          "watch_redaction",
+          "watch_tee_recorder_comparison",
           "resident_values",
           "evidence_cursor",
           "retention_gap",
@@ -848,7 +855,7 @@
       "accessibility": {
         "non_audio": "The latest tick, run state, exact timer deadline, plan identity, resident value accounting, evidence bounds, earliest cursor, next cursor, and dropped-row count remain visible as live text; no sound or motion is required.",
         "reduced_motion": true,
-        "keyboard": "Native controls plus Shift+Enter to Start or Stop and ArrowRight to inspect the ordered ticker event table while it has focus.",
+        "keyboard": "Native controls plus Shift+Enter to Start, W to attach or remove the admitted Watch outside the editor, and ArrowRight to inspect the ordered ticker event table while it has focus.",
         "color_independent": "Active, Waiting, wake, tick, cleanup, and terminal states are written in the ordered table and never depend on color or animation."
       },
       "runnability": {

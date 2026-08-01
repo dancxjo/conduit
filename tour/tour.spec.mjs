@@ -284,6 +284,37 @@ test("keeps one public latest-value ticker Watch live in the production executor
   expect(later.evidence_store.retained_bytes).toBeLessThanOrEqual(
     later.evidence_store.maximum_bytes,
   );
+  await expect(page.locator(".watch-semantics")).toContainText(
+    "Watch is isolated instrumentation",
+  );
+  await expect(page.locator(".watch-semantics")).toContainText(
+    "semantic tee changes this panel and its exact plan",
+  );
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
+
+  await page.locator("#watch-toggle").click();
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#console-status-badge")).toHaveText("Live");
+  await expect.poll(async () => {
+    const accounting = await page.locator("#watch-accounting").evaluate((element) =>
+      JSON.parse(element.textContent)
+    );
+    return accounting.evidence_store.next_cursor;
+  }, { timeout: 20_000 }).toBeGreaterThan(later.evidence_store.next_cursor);
+
+  await page.locator("#check").focus();
+  await page.keyboard.press("w");
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  ), { timeout: 20_000 }).toBeGreaterThan(firstTick);
+  const reattached = await page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+  expect(reattached.plan_identity).toBe(first.plan_identity);
+  expect(reattached.source_semantic_hash).toBe(first.source_semantic_hash);
   expect(browserPlan.evidence_provider).toMatchObject({
     implementation_id: "conduit/browser-worker-exact-evidence",
     retention: "rolling",

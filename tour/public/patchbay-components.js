@@ -111,6 +111,8 @@ export class PatchbayInspectorElement extends HTMLElement {
         </details>
         <details class="card inspector-card" open>
           <summary>⌁ Live latest-value Watch</summary>
+          <p class="watch-semantics"><strong>Watch</strong> is isolated instrumentation. A semantic <strong>tee</strong> changes this panel and its exact plan; a lossless <strong>recorder</strong> is a plan-visible node or evidence stream that may apply declared pressure.</p>
+          <button id="watch-toggle" type="button" aria-keyshortcuts="W" disabled>Attach Watch (W)</button>
           <output id="watch-value" class="watch-value" aria-live="polite">No Watch is attached.</output>
           <pre id="watch-accounting">No Watch accounting yet.</pre>
         </details>

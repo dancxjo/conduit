@@ -1883,6 +1883,16 @@ path.patchbay-cord.compatibility-incompatible {
   white-space: pre-wrap;
 }
 
+.watch-semantics {
+  margin: 0.75rem 1rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+#watch-toggle {
+  margin: 0 1rem;
+}
+
 #watch-accounting {
   margin-top: 0.5rem;
 }

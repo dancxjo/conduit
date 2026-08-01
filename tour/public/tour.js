@@ -38,6 +38,7 @@ const timelineExplanation = document.querySelector("#timeline-explanation");
 const timelineTableBody = document.querySelector("#timeline-table tbody");
 const watchValue = document.querySelector("#watch-value");
 const watchAccounting = document.querySelector("#watch-accounting");
+const watchToggle = document.querySelector("#watch-toggle");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
@@ -188,6 +189,7 @@ let activeAdapter = null;
 let activeWorkerSessionId = null;
 let runEpoch = 0;
 let liveWakeTimer = null;
+let activeWatchControl = null;
 let topologyView = "logical";
 const evidence = [];
 let timelineRecords = [];
@@ -208,8 +210,51 @@ function clearLiveWakeTimer() {
 }
 
 function resetWatchPresentation(message = "No Watch is attached.") {
+  disableWatchControl();
   watchValue.textContent = message;
   watchAccounting.textContent = "No Watch accounting yet.";
+}
+
+function disableWatchControl() {
+  activeWatchControl = null;
+  watchToggle.disabled = true;
+  watchToggle.textContent = "Attach Watch (W)";
+  watchToggle.setAttribute("aria-pressed", "false");
+}
+
+function setWatchControl(control) {
+  activeWatchControl = control;
+  watchToggle.disabled = false;
+  watchToggle.textContent = control.attached ? "Remove Watch (W)" : "Attach Watch (W)";
+  watchToggle.setAttribute("aria-pressed", String(control.attached));
+}
+
+async function toggleWatch() {
+  const control = activeWatchControl;
+  if (!control || watchToggle.disabled) return;
+  watchToggle.disabled = true;
+  const operation = control.attached
+    ? "patchbay-detach-exact-watch"
+    : "patchbay-attach-exact-watch";
+  const response = await control.adapter.request(operation, {
+    sessionId: control.sessionId,
+    watchId: control.watchId,
+  });
+  if (!response.ok || !response.value?.ok) {
+    watchToggle.disabled = false;
+    result.textContent = response.value?.diagnostic || response.code || "Watch control failed";
+    return;
+  }
+  control.attached = !control.attached;
+  setWatchControl(control);
+  if (!control.attached) {
+    watchValue.textContent = "Watch detached; the exact ticker continues without observation pressure.";
+  }
+  recordEvidence({
+    kind: control.attached ? "watch-attached" : "watch-detached",
+    lesson: current.id,
+    watch_id: control.watchId,
+  });
 }
 
 function renderLatestWatch(batch, run) {
@@ -874,6 +919,7 @@ async function stopExactSession(cause, message) {
   const sessionId = activeWorkerSessionId;
   activeAdapter = null;
   activeWorkerSessionId = null;
+  disableWatchControl();
   if (adapter && sessionId) {
     try {
       const cancelled = await adapter.request("patchbay-cancel-exact-run", {
@@ -1225,6 +1271,9 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
       renderRustProjection(pumped.value.view);
       renderExactResultTimeline(pumped.value);
       renderLatestWatch(watched.value, pumped.value);
+      if (activeWatchControl?.watchId === watchId) {
+        activeWatchControl.cursor = watched.value.next_cursor;
+      }
       result.textContent =
         `✓ Live exact run remains ${pumped.value.state}.\n` +
         `Latest public text: ${JSON.stringify(watched.value.records.at(-1)?.material?.text ?? "")}\n` +
@@ -1350,6 +1399,13 @@ async function run() {
       if (!attached.ok || !attached.value?.ok) {
         throw new Error(attached.value?.diagnostic || attached.code || "Watch attach failed");
       }
+      setWatchControl({
+        adapter,
+        sessionId,
+        watchId,
+        attached: true,
+        cursor: 0,
+      });
     }
     const operation = activeScenario()?.execution === "cancel-before-first-step"
       ? "patchbay-cancel-exact-run"
@@ -1387,6 +1443,9 @@ async function run() {
       }
       watched = read.value;
       watchCursor = watched.next_cursor;
+      if (activeWatchControl?.watchId === watchId) {
+        activeWatchControl.cursor = watchCursor;
+      }
       renderLatestWatch(watched, value);
     }
     const counts = Number.isInteger(value.completed_nodes)
@@ -1444,6 +1503,7 @@ async function run() {
       adapter.terminate("completed");
       activeAdapter = null;
       activeWorkerSessionId = null;
+      disableWatchControl();
       runButton.disabled = current.runnability?.state !== "runnable";
       stopButton.disabled = true;
       consoleBadge.textContent = "Idle";
@@ -1456,12 +1516,25 @@ async function run() {
 }
 
 runButton.onclick = run;
+watchToggle.onclick = () => void toggleWatch();
 stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
 );
 
 document.addEventListener("keydown", (event) => {
+  const target = event.target;
+  const isEditing = target instanceof HTMLElement && (
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+    target.isContentEditable
+  );
+  const isWatchShortcut = event.key.toLowerCase() === "w" &&
+    !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+  if (isWatchShortcut && !isEditing && !event.repeat && !event.isComposing) {
+    event.preventDefault();
+    if (!watchToggle.disabled) void toggleWatch();
+    return;
+  }
   const isRunShortcut = event.shiftKey
     && event.key === "Enter"
     && !event.altKey

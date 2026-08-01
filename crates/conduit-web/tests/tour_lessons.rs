@@ -940,13 +940,18 @@ fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
             .as_str()
             .is_some_and(|prose| prose.contains("monotonic cursors")
                 && prose.contains("explicit gap")
+                && prose.contains("semantic tee")
+                && prose.contains("lossless recorder")
+                && prose.contains("structurally visible but redacted")
                 && prose.contains("Strict audit")
                 && prose.contains("does not execute the graph or own the evidence store"))
     );
     assert!(
         lesson["accessibility"]["keyboard"]
             .as_str()
-            .is_some_and(|text| text.contains("Shift+Enter") && text.contains("ArrowRight"))
+            .is_some_and(|text| text.contains("Shift+Enter")
+                && text.contains("W to attach or remove")
+                && text.contains("ArrowRight"))
     );
     assert_eq!(lesson["library"]["contracts"][0]["id"], "time/ticker");
 
@@ -968,6 +973,10 @@ fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
         "timer_deadline",
         "host_wake",
         "latest_public_text",
+        "watch_attach_detach",
+        "watch_gap",
+        "watch_redaction",
+        "watch_tee_recorder_comparison",
         "evidence_cursor",
         "retention_gap",
         "reconnect",
