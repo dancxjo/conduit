@@ -3000,16 +3000,16 @@
       }
     },
     {
-      "id": "library.bounded-http-client",
+      "id": "library.bounded-http-service",
       "chapter": 4,
-      "title": "Bounded HTTP clients and listeners",
+      "title": "A persistent bounded HTTP service",
       "prerequisites": [
         "nodes.types-mean-promises",
         "platform.resource-lease-effect-commit",
         "platform.workload-admission-deadline"
       ],
-      "objective": "Compose one typed HTTP request with an explicitly admitted client, then inspect the persistent listener's repeated admission, Waiting, quiescence, and cleanup lifecycle.",
-      "prose": "The request value carries method, scheme, authority, target, finite headers and a finite body stream. The client separately binds a numeric address, fresh DNS and provider observations, an exact network resource and grant, TLS and proxy policy, finite pools and buffers, redirect authority, deadlines, cancellation, and cleanup. The listener is one long-lived exact session: completing a request returns it to Waiting rather than completing the server. Drain closes admission and finishes admitted work; Abort disposes it under the plan-pinned cleanup bound.",
+      "objective": "Keep one exact loopback listener alive across repeated bounded requests, Waiting periods, Drain, Abort, and cleanup without inventing a browser server.",
+      "prose": "This authored panel is the checked blueprint, not a running server. On the hosted profile, one authorized Start binds one loopback listener and pins one immutable exact run. Each accepted request resumes that same epoch, its bounded request and response observations enter the exact evidence stream, and the listener returns to Waiting after the response instead of completing. Drain closes admission and finishes an already admitted exchange; Abort disposes it under the plan-pinned cleanup bound. Patchbay observes the normalized evidence and bounded high-water accounting without becoming the listener or applying pressure. Browsers run the same parser, compiler, worker protocol, and Patchbay projection far enough to report the missing hosted provider honestly; they never substitute fetch, a JavaScript server, or a replay animation.",
       "vocabulary": [
         "numeric endpoint",
         "DNS observation",
@@ -3021,23 +3021,23 @@
         "listener admission",
         "Active and Waiting"
       ],
-      "source": "panel 0\n\nnode request : net/http/request/literal {\n    method = \"GET\"\n    scheme = \"http\"\n    authority = \"loopback.test\"\n    target = \"/health\"\n    body = bytes(\"\")\n    redirect_policy = \"return\"\n}\n\nnode client : net/http/fetch {\n    address = \"127.0.0.1:38153\"\n    authority = \"loopback.test\"\n    transport = \"http\"\n    redirect_policy = \"return\"\n    maximum_connections = 1\n    maximum_pending = 1\n    maximum_request_headers = 16\n    maximum_request_header_bytes = 4096\n    maximum_request_body_bytes = 16384\n    maximum_response_headers = 16\n    maximum_response_header_bytes = 4096\n    maximum_response_body_bytes = 65536\n    maximum_body_chunk_bytes = 4096\n    maximum_redirects = 0\n    maximum_retained_buffer_bytes = 81920\n    maximum_timers = 2\n    maximum_work = 131072\n    maximum_evidence_events = 32\n    deadline_ticks = 5000\n    cleanup_ticks = 1000\n    cancellation = \"abort-and-cleanup\"\n}\n\ncord request.request -> client.request {\n    capacity = 1\n    max_value_bytes = 32768\n    max_queued_bytes = 32768\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
-      "command": "conduct --enable-http-client-loopback examples/http-client-loopback.panel",
+      "source": "panel 0\n\nnode server : net/http/listen {\n    listen = \"127.0.0.1:0\"\n    method = \"GET\"\n    path = \"/health\"\n    response = \"conduit http ready\\n\"\n    deadline_ticks = \"5000\"\n}\n",
+      "command": "conduct --check examples/http-loopback-listener.panel",
       "commands": [
-        "conduct --check examples/http-client-loopback.panel",
-        "conduct --enable-http-client-loopback --explain examples/http-client-loopback.panel",
-        "conduct --enable-http-client-loopback examples/http-client-loopback.panel",
-        "conduct --check examples/http-loopback-listener.panel"
+        "conduct --check examples/http-loopback-listener.panel",
+        "conduct --explain examples/http-loopback-listener.panel",
+        "conduct --enable-http-client-loopback examples/http-client-loopback.panel"
       ],
+      "execution": "persistent-hosted-service",
       "expected_diagnostic": "CND-IMP-001",
       "profile": "browser-dedicated-worker",
       "budgets": {
         "runtime_ticks": 5000,
-        "queue_bytes": 32768,
-        "evidence_events": 32
+        "queue_bytes": 4096,
+        "evidence_events": 16
       },
       "presentation": {
-        "layout": "http-client-story",
+        "layout": "persistent-http-service",
         "show_plan": true,
         "timeline": "exact-evidence",
         "patchbay_fields": [
@@ -3071,23 +3071,24 @@
         "value": "CND-IMP-001"
       },
       "hints": [
-        "The typed authority and checked numeric address are separate facts; no ambient resolver is consulted at execution.",
-        "Redirects are new destination admissions. A required HTTPS request cannot downgrade to HTTP.",
+        "The listener's exact loopback resource, grant, provider observation, request limit, response limit, timer, evidence capacity, and cleanup bound are admitted before Start.",
         "A listener that finishes one request returns to Waiting in the same epoch; it does not report server completion.",
-        "The browser has no outbound HTTP provider. Export the panel to an explicitly enabled hosted Conduct profile."
+        "Drain refuses a new connection before finishing an admitted request; Abort closes the same listener immediately.",
+        "The browser has no HTTP listener provider. Its resolver rejection is the executable browser result, not a substitute server."
       ],
-      "solution": "Construct one finite typed request, bind it to a fresh exact destination, network resource, outbound grant, TLS and proxy policy, and declare finite request, response, pool, queue, work, evidence, deadline, cancellation, and cleanup bounds.",
+      "solution": "Start the checked listener once on the hosted exact-run profile, deliver only its named readiness wakes and deadline ticks, drain committed evidence into finite storage, and Stop that same session with Drain or Abort.",
       "accessibility": {
-        "non_audio": "An ordered text table names the request, destination observations, provider state, Active or Waiting lifecycle, host wake, admitted request count, resource, grant, TLS and proxy policy, redirect decision, commit certainty, quiescence, cleanup, error, and terminal cause.",
+        "non_audio": "An ordered text table names the immutable plan and run, provider state, Active or Waiting lifecycle, readiness wake, admitted request count, bounded request and response facts, resident and evidence high-water marks, quiescence, cleanup, error, and terminal cause.",
         "reduced_motion": true,
-        "keyboard": "Native controls plus ArrowRight to inspect the ordered HTTP evidence when the lesson story has focus.",
-        "color_independent": "Schemes, authorities, observation freshness, grant state, redirect decisions, commit states, byte counts, errors, and terminal text duplicate every graph color."
+        "keyboard": "Native controls plus ArrowRight to inspect the ordered HTTP evidence when the lesson story has focus; the browser resolver rejection is readable without the graph.",
+        "color_independent": "Provider availability, authority, Active, Waiting, request, response, Drain, Abort, cleanup, bounds, errors, and terminal state are all written as text."
       },
       "runnability": {
         "state": "contract-only",
         "profile": "browser",
         "proof": "resolver-rejection",
-        "reason": "Browsers do not expose the checked outbound HTTP provider; hosted loopback execution requires the explicit --enable-http-client-loopback gate."
+        "code": "CND-IMP-001",
+        "reason": "Browsers do not expose the checked HTTP listener provider; the multi-request run executes only in the existing hosted exact-run profile."
       },
       "library": {
         "schema": "conduit.tour-library-lesson",

@@ -6437,11 +6437,11 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "artifact": "tour/lessons/current.json#library.bounded-http-service",
         "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "artifact": "tour/lessons/current.json#library.bounded-http-service",
         "status": "published"
       },
       "successor": null,
@@ -6498,11 +6498,11 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "artifact": "tour/lessons/current.json#library.bounded-http-service",
         "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "artifact": "tour/lessons/current.json#library.bounded-http-service",
         "status": "published"
       },
       "successor": null,
@@ -6581,11 +6581,11 @@
       "required_result_profile": "conduit.cross-host-provider",
       "structural_facet_owner": "conduit.host.net/facets",
       "standalone_lesson": {
-        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "artifact": "tour/lessons/current.json#library.bounded-http-service",
         "status": "published"
       },
       "composition_lesson": {
-        "artifact": "tour/lessons/current.json#library.bounded-http-client",
+        "artifact": "tour/lessons/current.json#library.bounded-http-service",
         "status": "published"
       },
       "successor": null,

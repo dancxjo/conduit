@@ -194,6 +194,18 @@ crosses a lossless leading throttle. A persistent ticker session likewise
 advances only when its host supplies the plan-retained timer deadline; neither
 path reads ambient wall-clock state.
 
+### Hosted companion: one persistent HTTP service
+
+[`http-loopback-listener.panel`](../examples/http-loopback-listener.panel) is
+the hosted-I/O counterpart to the ticker. The panel is only a checked
+blueprint. One authorized Start binds one loopback listener and owns one exact
+run; each readiness wake admits at most one bounded step, and completing a
+request returns that same run to Waiting. Drain closes admission before
+finishing an accepted request, while Abort closes the same listener and runs
+its bounded cleanup. The Tour uses this listener source but reports
+`CND-IMP-001` in browsers because no browser listener provider exists; it does
+not replace the provider with JavaScript or a replay.
+
 ---
 
 ## 4. State & Memory Nodes

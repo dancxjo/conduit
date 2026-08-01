@@ -325,8 +325,8 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.host/net/udp/datagram",
             _,
         ) => Some("library.bounded-sockets"),
-        ("net/http/request/literal" | "net/http/fetch", _) => Some("library.bounded-http-client"),
-        ("net/http/listen", _) => Some("library.bounded-http-client"),
+        ("net/http/request/literal" | "net/http/fetch", _) => Some("library.bounded-http-service"),
+        ("net/http/listen", _) => Some("library.bounded-http-service"),
         ("net/wifi/access-point" | "net/dhcp/server" | "net/reachability" | "net/dns-sd", _) => {
             Some("library.bounded-brainstem-network")
         }

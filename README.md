@@ -74,7 +74,10 @@ Primary values stay on stdout; diagnostics and status stay on stderr, so
 For an exact run that stays alive between inputs, timers, or host operations,
 see [hosted exact-run sessions](docs/exact-run-sessions.md). It explains the
 difference between an editable blueprint, one pinned active run, Waiting,
-Drain, and Abort.
+Drain, and Abort. The Tour's live ticker shows a public latest value changing
+in one browser-worker run; its HTTP service lesson uses the same checked
+listener source as the hosted multi-request proof and reports the unavailable
+browser provider instead of simulating a server.
 
 ## What exists today
 

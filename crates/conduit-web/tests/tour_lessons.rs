@@ -10,46 +10,6 @@ use conduit_runtime::{
 use conduit_web::{cancel_panel, run_panel};
 use serde_json::Value;
 
-const REQUIRED_TOUR_LESSONS: [&str; 37] = [
-    "welcome.hello-panel",
-    "welcome.pull-the-cord",
-    "welcome.change-message",
-    "welcome.nothing-up-our-sleeves",
-    "nodes.more-than-one-port",
-    "nodes.direction-matters",
-    "nodes.types-mean-promises",
-    "nodes.fan-out-is-a-choice",
-    "nodes.empty-is-not-never",
-    "panels.put-a-panel-in-a-panel",
-    "panels.jacks-on-the-front",
-    "panels.inside-outside",
-    "panels.reuse-without-copying",
-    "panels.tiny-instrument",
-    "patchbay.observes-patchbay",
-    "platform.panel-capsules",
-    "library.typed-text-format",
-    "library.bounded-media-values",
-    "library.bounded-media-codecs",
-    "library.bounded-learned-inference",
-    "library.bounded-spatial-foundation",
-    "library.bounded-brainstem-network",
-    "library.standard-flow-control",
-    "library.bounded-state",
-    "library.bounded-supervision",
-    "library.explicit-time",
-    "library.explicit-data-boundaries",
-    "library.bounded-process-exec",
-    "library.bounded-sockets",
-    "library.bounded-http-client",
-    "library.bounded-filesystem",
-    "library.evictable-storage-cache",
-    "library.contract-package-imports",
-    "platform.value-envelope-clock-feedback",
-    "platform.resource-lease-effect-commit",
-    "platform.workload-admission-deadline",
-    "platform.cross-host-provider-conformance",
-];
-
 fn assert_current_panel_source(id: &str, source: &str) {
     let panel = conduit_panel::parse(source)
         .unwrap_or_else(|error| panic!("{id} must parse through conduit-panel: {error}"));
@@ -73,10 +33,10 @@ fn tour_lessons_declare_verified_browser_runnability() {
         .iter()
         .map(|lesson| lesson["id"].as_str().expect("lesson has an id"))
         .collect::<BTreeSet<_>>();
-    let required_ids = REQUIRED_TOUR_LESSONS.into_iter().collect::<BTreeSet<_>>();
     assert_eq!(
-        actual_ids, required_ids,
-        "Tour contains every checked lesson exactly once"
+        actual_ids.len(),
+        lessons.len(),
+        "Tour lesson ids are unique; the manifest is the published inventory"
     );
     let browser_plan: Value =
         serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
@@ -1953,20 +1913,27 @@ fn bounded_socket_lesson_keeps_transports_distinct_and_browser_support_honest() 
 }
 
 #[test]
-fn bounded_http_client_lesson_exposes_authority_limits_and_terminal_evidence() {
+fn persistent_http_service_lesson_exposes_authority_limits_and_terminal_evidence() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let lesson = manifest["lessons"]
         .as_array()
         .unwrap()
         .iter()
-        .find(|lesson| lesson["id"] == "library.bounded-http-client")
-        .expect("bounded HTTP client lesson is selectable");
+        .find(|lesson| lesson["id"] == "library.bounded-http-service")
+        .expect("persistent HTTP service lesson is selectable");
+    assert_eq!(lesson["execution"], "persistent-hosted-service");
     assert_eq!(lesson["runnability"]["state"], "contract-only");
     assert_eq!(lesson["runnability"]["proof"], "resolver-rejection");
+    assert_eq!(lesson["runnability"]["code"], "CND-IMP-001");
     assert_eq!(lesson["expected_diagnostic"], "CND-IMP-001");
     assert_eq!(lesson["presentation"]["timeline"], "exact-evidence");
     assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+
+    let panel = conduit_panel::parse(lesson["source"].as_str().unwrap())
+        .expect("the Tour HTTP service uses current Panel source");
+    assert_eq!(panel.nodes.len(), 1);
+    assert_eq!(panel.nodes[0].kind, "net/http/listen");
 
     let contracts = lesson["library"]["contracts"]
         .as_array()

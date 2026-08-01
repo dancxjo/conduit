@@ -3286,9 +3286,10 @@ mod tests {
         SchedulerPolicy, StopPolicy,
     };
     use conduit_runtime::{
-        ExactHostedServiceAuthority, ExactHostedServiceBinding, ExactHostedServiceUseObservation,
-        ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState, Registry,
-        SchedulerReservation, hosted_service_use_observations,
+        ExactEvidenceSink, ExactHostedServiceAuthority, ExactHostedServiceBinding,
+        ExactHostedServiceUseObservation, ExactRunContext, ExactRunIdentity, ExactRunIo,
+        ExactRunSessionRegistry, ExactRunState, Registry, SchedulerReservation,
+        hosted_service_use_observations,
     };
 
     use super::{
@@ -3467,10 +3468,50 @@ mod tests {
         std::net::SocketAddr,
         Vec<ExactHostedServiceUseObservation>,
     ) {
-        start_listener_for_source(
-            include_str!("../../../examples/http-loopback-listener.panel"),
-            run_id,
-        )
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+                .expect("Tour lesson manifest parses");
+        let source = manifest["lessons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|lesson| lesson["id"] == "library.bounded-http-service")
+            .and_then(|lesson| lesson["source"].as_str())
+            .expect("persistent HTTP Tour lesson owns checked source");
+        start_listener_for_source(source, run_id)
+    }
+
+    #[derive(Default)]
+    struct CountingEvidenceSink {
+        records: usize,
+    }
+
+    impl ExactEvidenceSink for CountingEvidenceSink {
+        type Error = std::convert::Infallible;
+
+        fn commit_exact_evidence(
+            &mut self,
+            _run: &ExactRunIdentity,
+            records: &[conduit_runtime::ExactEvidenceRecord],
+        ) -> Result<(), Self::Error> {
+            self.records += records.len();
+            Ok(())
+        }
+    }
+
+    fn drain_listener_evidence(
+        session: &mut conduit_runtime::ExactHostedRunSession,
+        cursor: &mut u64,
+        sink: &mut CountingEvidenceSink,
+    ) {
+        while session.scheduler_events().next().is_some() {
+            let batch = session
+                .drain_exact_evidence(*cursor, 64, sink)
+                .expect("listener evidence commits before resident slots are released");
+            assert!(batch.next_cursor > *cursor);
+            *cursor = batch.next_cursor;
+        }
+        assert_eq!(session.retained_event_cursor(), *cursor);
     }
 
     fn serve_request(
@@ -3502,10 +3543,18 @@ mod tests {
     }
 
     #[test]
-    fn hosted_listener_serves_multiple_requests_in_one_exact_session() {
+    fn tour_hosted_listener_serves_repeated_requests_in_one_exact_session() {
         let (mut session, sessions, address, observations) =
             start_listener(Id("run/http/listener"));
         let identity = session.identity().clone();
+        let reservation = session.reserved_session_bytes();
+        let allocation = session.allocation();
+        let value_capacity = session
+            .value_storage_usage()
+            .expect("hosted listener owns fixed value storage");
+        let mut evidence_cursor = session.retained_event_cursor();
+        let mut evidence_sink = CountingEvidenceSink::default();
+        drain_listener_evidence(&mut session, &mut evidence_cursor, &mut evidence_sink);
         assert_eq!(
             session
                 .notify_host_operation(Id("conduit/http-other-event"), &observations)
@@ -3514,7 +3563,12 @@ mod tests {
             ExactRunState::Waiting
         );
 
-        for path in ["/health", "/missing"] {
+        for index in 0..2 {
+            let path = if index % 2 == 0 {
+                "/health"
+            } else {
+                "/missing"
+            };
             let response = serve_request(&mut session, address, path, &observations);
             assert!(
                 response.starts_with(if path == "/health" {
@@ -3524,6 +3578,18 @@ mod tests {
                 }),
                 "{path} has its exact route result"
             );
+            drain_listener_evidence(&mut session, &mut evidence_cursor, &mut evidence_sink);
+            assert_eq!(session.identity(), &identity);
+            assert_eq!(session.reserved_session_bytes(), reservation);
+            assert_eq!(session.allocation(), allocation);
+            let usage = session.value_storage_usage().unwrap();
+            assert_eq!(usage.maximum_slots, value_capacity.maximum_slots);
+            assert_eq!(usage.maximum_bytes, value_capacity.maximum_bytes);
+            assert!(usage.resident_slots <= usage.maximum_slots);
+            assert!(usage.resident_bytes <= usage.maximum_bytes);
+            assert!(session.high_water().queue_items <= allocation.queue_slots);
+            assert!(session.high_water().queue_payload_bytes <= allocation.queue_payload_bytes);
+            assert!(session.high_water().event_slots <= allocation.event_slots);
         }
         assert_eq!(session.identity(), &identity);
         session.cancel(StopPolicy::Abort).unwrap();
@@ -3531,6 +3597,8 @@ mod tests {
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
         );
+        drain_listener_evidence(&mut session, &mut evidence_cursor, &mut evidence_sink);
+        assert!(evidence_sink.records > 2);
         session.finalize().unwrap();
         assert_eq!(sessions.active_sessions(), 0);
     }

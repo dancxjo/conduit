@@ -103,6 +103,13 @@ declared response and cleanup; `Abort` disposes the same bounded remainder
 immediately. Neither path creates a new listener, reuses a completed run, or
 turns a host readiness callback into semantic authority.
 
+The persistent HTTP Tour lesson owns the same checked listener source used by
+the hosted multi-request test. Browser, embedded, and distributed profiles do
+not currently install that listener provider: the browser worker therefore
+returns `CND-IMP-001`, and the other profiles remain explicitly unsupported.
+None of them substitutes ambient fetch, a JavaScript listener, or a replayed
+value table for the hosted proof.
+
 Cancellation invokes the provider's bounded stop disposition and cleanup on
 the same scheduler path. Natural completion also runs cleanup before the node
 is terminal. Cleanup is itself one bounded nonblocking provider step: it may

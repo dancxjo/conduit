@@ -523,6 +523,39 @@ test("keeps live textual instrumentation truthful when the topology renderer is 
   );
 });
 
+test("presents the persistent HTTP source and refuses to simulate its hosted provider", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(
+    "/tour/public/index.html?lesson=library.bounded-http-service",
+  );
+
+  await expect(page.locator("#title")).toHaveText(
+    "A persistent bounded HTTP service",
+  );
+  await expect(page.locator("#source")).toHaveValue(/node server : net\/http\/listen/);
+  await expect(page.locator("#source")).toHaveValue(/deadline_ticks = "5000"/);
+  await expect(page.locator("#runnability-state")).toHaveText(
+    "contract-only · browser",
+  );
+  await expect(page.locator("#execution-note")).toContainText("CND-IMP-001");
+  await expect(page.locator("#result")).toContainText("CND-IMP-001", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator('.react-flow__node[data-id="server"]')).toBeVisible();
+  await expect(page.locator("#prose")).toContainText(
+    "one authorized Start binds one loopback listener",
+  );
+  await expect(page.locator("#prose")).toContainText(
+    "they never substitute fetch, a JavaScript server, or a replay animation",
+  );
+  await expect(
+    page.locator('.react-flow__node[data-id="server"]'),
+  ).toHaveCSS("animation-name", "none");
+});
+
 test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {
   await page.goto("/tour/public/index.html");
   const source = page.locator("#source");
