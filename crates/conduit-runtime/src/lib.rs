@@ -144,7 +144,8 @@ pub use type_registry::{
     TypeRegistry, TypeRegistryError, TypeSatisfactionReport,
 };
 pub use watch::{
-    ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject, ExactWatchUsage,
+    ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject,
+    ExactWatchTimestamp, ExactWatchUsage,
 };
 pub use workload::{
     LinuxWorkloadObservation, WorkloadRunEvidence, observe_linux_workload,

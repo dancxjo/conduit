@@ -34,6 +34,13 @@ pub enum ExactWatchMaterial {
     Absent,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactWatchTimestamp {
+    pub clock_domain: String,
+    pub tick: i64,
+    pub uncertainty_ticks: u64,
+}
+
 /// One caller-owned value observation copied from fixed session storage.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactWatchObservation {
@@ -42,6 +49,15 @@ pub struct ExactWatchObservation {
     pub tick: u64,
     pub watch_id: String,
     pub subject: ExactWatchSubject,
+    /// Host that committed the observed publication. For a cross-host cord
+    /// this is the writer/producing host, never the Patchbay reader.
+    pub producing_host: String,
+    pub host_observation: String,
+    pub time_basis: String,
+    /// Scheduler ticks are observed in the producing host's pinned local time
+    /// basis, so no cross-clock conversion uncertainty has been introduced.
+    pub clock_uncertainty_ticks: u64,
+    pub value_timestamps: Vec<ExactWatchTimestamp>,
     pub value_handle: u64,
     pub accounted_bytes: u32,
     pub representation_id: String,
@@ -87,6 +103,8 @@ struct StoredWatchObservation {
     sensitivity: Sensitivity,
     value_identity: Option<SemanticHash>,
     provenance: Option<SemanticHash>,
+    timestamp_count: u8,
+    timestamps: [crate::RuntimeTimestamp; conduit_core::MAX_VALUE_CLOCK_DOMAINS],
     content_hash: Option<SemanticHash>,
     original_bytes: u32,
     preview_len: u32,
@@ -100,6 +118,10 @@ struct HostedWatchSlot {
     id: String,
     subject: ExactWatchSubject,
     cord: usize,
+    producing_host: String,
+    host_observation: String,
+    time_basis: String,
+    clock_domains: Vec<String>,
     representation_id: String,
     representation_schema_version: u32,
     representation_semantic_hash: SemanticHash,
@@ -184,7 +206,38 @@ impl HostedWatchRuntime {
                     )
                 }
             };
+            let producing_node = plan
+                .nodes
+                .iter()
+                .find(|node| node.instance == plan.cords[cord].from.node)
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-WAT-002",
+                        "Watch producing node is absent from the exact plan",
+                    )
+                })?;
+            let host_observation = plan
+                .host_observations
+                .iter()
+                .find(|observation| observation.id == producing_node.host_observation)
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        "CND-WAT-002",
+                        "Watch producing host observation is absent from the exact plan",
+                    )
+                })?;
             let maximum_history = usize::from(admission.maximum_history);
+            let clock_domains = plan
+                .value_envelopes
+                .iter()
+                .find(|policy| policy.cord == plan.cords[cord].id)
+                .map_or_else(Vec::new, |policy| {
+                    policy
+                        .clock_domains
+                        .iter()
+                        .map(|domain| domain.as_str().to_owned())
+                        .collect()
+                });
             let maximum_preview_bytes = usize::try_from(admission.maximum_preview_bytes)
                 .map_err(|_| RuntimeError::new("CND-WAT-003", "Watch preview bound overflowed"))?;
             let preview_capacity = maximum_history
@@ -204,6 +257,10 @@ impl HostedWatchRuntime {
                 id: admission.id.as_str().to_owned(),
                 subject,
                 cord,
+                producing_host: producing_node.host.as_str().to_owned(),
+                host_observation: host_observation.id.as_str().to_owned(),
+                time_basis: host_observation.time_basis.as_str().to_owned(),
+                clock_domains,
                 representation_id: admission.representation.id.as_str().to_owned(),
                 representation_schema_version: admission.representation.schema_version,
                 representation_semantic_hash: admission.representation.semantic_hash,
@@ -299,6 +356,8 @@ impl HostedWatchRuntime {
                 sensitivity,
                 value_identity: value.envelope.identity,
                 provenance: value.envelope.provenance,
+                timestamp_count: value.envelope.timestamp_count,
+                timestamps: value.envelope.timestamps,
                 content_hash,
                 original_bytes,
                 preview_len: u32::try_from(preview_len).expect("preview bound is u32"),
@@ -378,6 +437,19 @@ impl HostedWatchRuntime {
                 tick: stored.tick,
                 watch_id: slot.id.clone(),
                 subject: slot.subject.clone(),
+                producing_host: slot.producing_host.clone(),
+                host_observation: slot.host_observation.clone(),
+                time_basis: slot.time_basis.clone(),
+                clock_uncertainty_ticks: 0,
+                value_timestamps: stored.timestamps[..usize::from(stored.timestamp_count)]
+                    .iter()
+                    .map(|timestamp| ExactWatchTimestamp {
+                        clock_domain: slot.clock_domains[usize::from(timestamp.domain_index)]
+                            .clone(),
+                        tick: timestamp.tick,
+                        uncertainty_ticks: timestamp.uncertainty_ticks,
+                    })
+                    .collect(),
                 value_handle: stored.value_handle,
                 accounted_bytes: stored.accounted_bytes,
                 representation_id: slot.representation_id.clone(),
@@ -460,9 +532,54 @@ pub(crate) fn planned_watch_memory_bytes(
             .ok_or(crate::SchedulerError::ArithmeticOverflow)?;
         let slot = u64::try_from(size_of::<HostedWatchSlot>())
             .map_err(|_| crate::SchedulerError::ArithmeticOverflow)?;
+        let watched_cord = plan.cords.iter().find(|cord| match admission.subject {
+            WatchSubject::Cord(id) => cord.id == id,
+            WatchSubject::NodePort {
+                node,
+                port,
+                direction,
+            } => {
+                let endpoint = if direction == Direction::Output {
+                    cord.from
+                } else {
+                    cord.to
+                };
+                endpoint.node == node && endpoint.port == port && endpoint.direction == direction
+            }
+        });
+        let clock_domain_bytes = watched_cord
+            .and_then(|cord| {
+                plan.value_envelopes
+                    .iter()
+                    .find(|policy| policy.cord == cord.id)
+            })
+            .map_or(0, |policy| {
+                policy
+                    .clock_domains
+                    .iter()
+                    .map(|domain| domain.as_str().len())
+                    .sum()
+            });
+        let origin_bytes = watched_cord
+            .and_then(|cord| {
+                plan.nodes
+                    .iter()
+                    .find(|node| node.instance == cord.from.node)
+            })
+            .map_or(0, |node| {
+                node.host.as_str().len()
+                    + node.host_observation.as_str().len()
+                    + plan
+                        .host_observations
+                        .iter()
+                        .find(|observation| observation.id == node.host_observation)
+                        .map_or(0, |observation| observation.time_basis.as_str().len())
+            });
         let strings = u64::try_from(
             admission.id.as_str().len()
                 + admission.representation.id.as_str().len()
+                + clock_domain_bytes
+                + origin_bytes
                 + match admission.subject {
                     WatchSubject::Cord(cord) => cord.as_str().len(),
                     WatchSubject::NodePort { node, port, .. } => {
@@ -484,7 +601,7 @@ pub(crate) fn planned_watch_memory_bytes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::RuntimeValueEnvelope;
+    use crate::{RuntimeTimestamp, RuntimeValueEnvelope};
 
     fn slot() -> HostedWatchSlot {
         HostedWatchSlot {
@@ -493,6 +610,10 @@ mod tests {
                 cord: "cord/test".to_owned(),
             },
             cord: 0,
+            producing_host: "host/producer".to_owned(),
+            host_observation: "observation/producer".to_owned(),
+            time_basis: "clock/producer".to_owned(),
+            clock_domains: vec!["clock/value".to_owned()],
             representation_id: "std/text".to_owned(),
             representation_schema_version: 0,
             representation_semantic_hash: SemanticHash::from_bytes([7; 32]),
@@ -519,10 +640,17 @@ mod tests {
         };
         let mut values = HostValueStore::with_limits(32, 4).unwrap();
         let public_handle = values.store(b"hello").unwrap();
+        let mut public_envelope = RuntimeValueEnvelope::EMPTY;
+        public_envelope.timestamp_count = 1;
+        public_envelope.timestamps[0] = RuntimeTimestamp {
+            domain_index: 0,
+            tick: 123,
+            uncertainty_ticks: 4,
+        };
         let public = RuntimeValue {
             handle: public_handle,
             accounted_bytes: 5,
-            envelope: RuntimeValueEnvelope::EMPTY,
+            envelope: public_envelope,
         };
 
         watches.observe(0, public, 0, &values);
@@ -562,6 +690,21 @@ mod tests {
 
         watches.detach("watch/test").unwrap();
         watches.observe(0, public, 8, &values);
+        watches.attach("watch/test").unwrap();
+        watches.observe(0, public, 10, &values);
+        let resumed = watches.read("watch/test", 4, 1).unwrap();
+        assert_eq!(resumed.records[0].source_sequence, 6);
+        assert_eq!(resumed.records[0].producing_host, "host/producer");
+        assert_eq!(resumed.records[0].time_basis, "clock/producer");
+        assert_eq!(resumed.records[0].clock_uncertainty_ticks, 0);
+        assert_eq!(
+            resumed.records[0].value_timestamps,
+            vec![ExactWatchTimestamp {
+                clock_domain: "clock/value".to_owned(),
+                tick: 123,
+                uncertainty_ticks: 4,
+            }]
+        );
         assert_eq!(watches.usage().retained_observations, 2);
         assert_eq!(watches.usage().dropped_observations, 1);
     }

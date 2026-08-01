@@ -912,16 +912,7 @@ fn browser_watch_observation(record: &ExactWatchObservation) -> serde_json::Valu
         }),
     };
     let material = match &record.material {
-        ExactWatchMaterial::Preview(bytes) => {
-            let text = (record.representation_id == "std/text")
-                .then(|| std::str::from_utf8(bytes).ok())
-                .flatten();
-            serde_json::json!({
-                "kind": "preview",
-                "bytes": bytes,
-                "text": text,
-            })
-        }
+        ExactWatchMaterial::Preview(bytes) => browser_watch_preview(record, bytes),
         ExactWatchMaterial::Redacted => serde_json::json!({"kind": "redacted"}),
         ExactWatchMaterial::Absent => serde_json::json!({"kind": "absent"}),
     };
@@ -931,6 +922,15 @@ fn browser_watch_observation(record: &ExactWatchObservation) -> serde_json::Valu
         "tick": record.tick,
         "watch_id": record.watch_id,
         "subject": subject,
+        "producing_host": record.producing_host,
+        "host_observation": record.host_observation,
+        "time_basis": record.time_basis,
+        "clock_uncertainty_ticks": record.clock_uncertainty_ticks,
+        "value_timestamps": record.value_timestamps.iter().map(|timestamp| serde_json::json!({
+            "clock_domain": timestamp.clock_domain,
+            "tick": timestamp.tick,
+            "uncertainty_ticks": timestamp.uncertainty_ticks,
+        })).collect::<Vec<_>>(),
         "value_handle": record.value_handle,
         "accounted_bytes": record.accounted_bytes,
         "representation": {
@@ -947,6 +947,116 @@ fn browser_watch_observation(record: &ExactWatchObservation) -> serde_json::Valu
         "gap_before": record.gap_before,
         "material": material,
     })
+}
+
+fn browser_watch_preview(record: &ExactWatchObservation, bytes: &[u8]) -> serde_json::Value {
+    let mut projection = serde_json::json!({
+        "kind": "preview",
+        "bytes": bytes,
+        "renderer": {
+            "status": "missing",
+            "id": serde_json::Value::Null,
+            "derivation": serde_json::Value::Null,
+        },
+    });
+    let Some(object) = projection.as_object_mut() else {
+        unreachable!("Watch preview projection is an object")
+    };
+    match record.representation_id.as_str() {
+        "std/text" => {
+            object.insert(
+                "renderer".to_owned(),
+                serde_json::json!({
+                    "status": "rendered",
+                    "id": "conduit.browser/utf8-text",
+                    "derivation": "identity",
+                }),
+            );
+            object.insert(
+                "text".to_owned(),
+                std::str::from_utf8(bytes)
+                    .ok()
+                    .map_or(serde_json::Value::Null, |text| {
+                        serde_json::Value::String(text.to_owned())
+                    }),
+            );
+        }
+        "std/record" if !record.truncated => {
+            if let Some(fields) = browser_closed_record_fields(bytes) {
+                object.insert(
+                    "renderer".to_owned(),
+                    serde_json::json!({
+                        "status": "rendered",
+                        "id": "conduit.browser/closed-record-fields",
+                        "derivation": "exact-closed-record-field-bytes",
+                    }),
+                );
+                object.insert("record".to_owned(), serde_json::json!({"fields": fields}));
+            }
+        }
+        "conduit.media/audio-frame" => {
+            object.insert(
+                "renderer".to_owned(),
+                serde_json::json!({
+                    "status": "rendered",
+                    "id": "conduit.browser/audio-frame-summary",
+                    "derivation": "bounded-byte-summary",
+                }),
+            );
+            object.insert(
+                "derived".to_owned(),
+                serde_json::json!({"kind": "audio", "preview_bytes": bytes.len()}),
+            );
+        }
+        "conduit.media/video-frame" => {
+            object.insert(
+                "renderer".to_owned(),
+                serde_json::json!({
+                    "status": "rendered",
+                    "id": "conduit.browser/video-frame-summary",
+                    "derivation": "bounded-byte-summary",
+                }),
+            );
+            object.insert(
+                "derived".to_owned(),
+                serde_json::json!({"kind": "image", "preview_bytes": bytes.len()}),
+            );
+        }
+        _ => {}
+    }
+    projection
+}
+
+fn browser_closed_record_fields(bytes: &[u8]) -> Option<Vec<serde_json::Value>> {
+    fn take_u16(bytes: &[u8], cursor: &mut usize) -> Option<usize> {
+        let end = cursor.checked_add(2)?;
+        let value = u16::from_be_bytes(bytes.get(*cursor..end)?.try_into().ok()?);
+        *cursor = end;
+        Some(usize::from(value))
+    }
+    fn take_u32(bytes: &[u8], cursor: &mut usize) -> Option<usize> {
+        let end = cursor.checked_add(4)?;
+        let value = u32::from_be_bytes(bytes.get(*cursor..end)?.try_into().ok()?);
+        *cursor = end;
+        usize::try_from(value).ok()
+    }
+
+    let mut cursor = 0;
+    let field_count = take_u16(bytes, &mut cursor)?;
+    let mut fields = Vec::new();
+    fields.try_reserve_exact(field_count).ok()?;
+    for _ in 0..field_count {
+        let name_length = take_u16(bytes, &mut cursor)?;
+        let name_end = cursor.checked_add(name_length)?;
+        let name = std::str::from_utf8(bytes.get(cursor..name_end)?).ok()?;
+        cursor = name_end;
+        let value_length = take_u32(bytes, &mut cursor)?;
+        let value_end = cursor.checked_add(value_length)?;
+        let value = bytes.get(cursor..value_end)?;
+        cursor = value_end;
+        fields.push(serde_json::json!({"name": name, "bytes": value}));
+    }
+    (cursor == bytes.len()).then_some(fields)
 }
 
 fn browser_run_io(run: &BrowserExactRun) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
@@ -3938,18 +4048,139 @@ fn run_panel_exact_inner(
 
 #[cfg(test)]
 mod tests {
+    use conduit_core::{SemanticHash, Sensitivity};
+    use conduit_runtime::{
+        ExactWatchMaterial, ExactWatchObservation, ExactWatchSubject, ExactWatchTimestamp,
+    };
     use serde_json::Value;
 
     use super::{
-        explain_panel, panel_language_metadata, panel_source_metadata, patchbay_advance_exact_run,
-        patchbay_apply_transaction, patchbay_attach_exact_watch, patchbay_cancel_exact_run,
-        patchbay_detach_exact_watch, patchbay_move_node, patchbay_notify_host_operation,
-        patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
-        patchbay_read_exact_watch, patchbay_replace_source, patchbay_session_view,
-        patchbay_start_exact_run,
+        browser_watch_observation, explain_panel, panel_language_metadata, panel_source_metadata,
+        patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
+        patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_move_node,
+        patchbay_notify_host_operation, patchbay_open_session, patchbay_pump_exact_run,
+        patchbay_read_exact_evidence, patchbay_read_exact_watch, patchbay_replace_source,
+        patchbay_session_view, patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
+
+    fn watch_observation(
+        representation_id: &str,
+        bytes: Vec<u8>,
+        truncated: bool,
+    ) -> ExactWatchObservation {
+        ExactWatchObservation {
+            cursor: 3,
+            source_sequence: 7,
+            tick: 11,
+            watch_id: "watch/cord-0".to_owned(),
+            subject: ExactWatchSubject::Cord {
+                cord: "cord-0".to_owned(),
+            },
+            producing_host: "conduit/producer-host".to_owned(),
+            host_observation: "conduit/producer-observation".to_owned(),
+            time_basis: "clock/producer".to_owned(),
+            clock_uncertainty_ticks: 0,
+            value_timestamps: vec![ExactWatchTimestamp {
+                clock_domain: "clock/value".to_owned(),
+                tick: 10,
+                uncertainty_ticks: 2,
+            }],
+            value_handle: 4,
+            accounted_bytes: u32::try_from(bytes.len()).unwrap(),
+            representation_id: representation_id.to_owned(),
+            representation_schema_version: 0,
+            representation_semantic_hash: SemanticHash::from_bytes([8; 32]),
+            sensitivity: Sensitivity::Public,
+            value_identity: Some(SemanticHash::from_bytes([9; 32])),
+            provenance: Some(SemanticHash::from_bytes([10; 32])),
+            content_hash: Some(SemanticHash::from_bytes([11; 32])),
+            original_bytes: u32::try_from(bytes.len()).unwrap(),
+            truncated,
+            gap_before: 0,
+            material: ExactWatchMaterial::Preview(bytes),
+        }
+    }
+
+    #[test]
+    fn exact_watch_projection_uses_only_pinned_renderers_and_keeps_bytes_as_fallback() {
+        let closed_record = vec![
+            0, 1, // one field
+            0, 4, b'n', b'a', b'm', b'e', // field name
+            0, 0, 0, 3, 0, 1, 255, // opaque field bytes
+        ];
+        let record =
+            browser_watch_observation(&watch_observation("std/record", closed_record, false));
+        assert_eq!(
+            record["material"]["renderer"]["id"],
+            "conduit.browser/closed-record-fields"
+        );
+        assert_eq!(record["material"]["record"]["fields"][0]["name"], "name");
+        assert_eq!(
+            record["material"]["record"]["fields"][0]["bytes"],
+            serde_json::json!([0, 1, 255])
+        );
+        assert_eq!(record["producing_host"], "conduit/producer-host");
+        assert_eq!(record["time_basis"], "clock/producer");
+        assert_eq!(record["clock_uncertainty_ticks"], 0);
+        assert_eq!(record["value_timestamps"][0]["clock_domain"], "clock/value");
+        assert_eq!(record["value_timestamps"][0]["uncertainty_ticks"], 2);
+
+        for (representation, kind, renderer) in [
+            (
+                "conduit.media/audio-frame",
+                "audio",
+                "conduit.browser/audio-frame-summary",
+            ),
+            (
+                "conduit.media/video-frame",
+                "image",
+                "conduit.browser/video-frame-summary",
+            ),
+        ] {
+            let derived =
+                browser_watch_observation(&watch_observation(representation, vec![1, 2, 3], false));
+            assert_eq!(derived["material"]["derived"]["kind"], kind);
+            assert_eq!(derived["material"]["renderer"]["id"], renderer);
+            assert_eq!(
+                derived["material"]["renderer"]["derivation"],
+                "bounded-byte-summary"
+            );
+        }
+
+        let binary = browser_watch_observation(&watch_observation(
+            "example/unknown-binary",
+            vec![0, 255],
+            false,
+        ));
+        assert_eq!(binary["material"]["bytes"], serde_json::json!([0, 255]));
+        assert_eq!(binary["material"]["renderer"]["status"], "missing");
+        assert!(binary["material"]["renderer"]["id"].is_null());
+
+        let mut truncated_text = watch_observation("std/text", b"prefix".to_vec(), true);
+        truncated_text.original_bytes = 4_096;
+        let truncated = browser_watch_observation(&truncated_text);
+        assert_eq!(truncated["truncated"], true);
+        assert_eq!(truncated["original_bytes"], 4_096);
+        assert_eq!(
+            truncated["content_hash"],
+            SemanticHash::from_bytes([11; 32]).to_string()
+        );
+        assert_eq!(truncated["material"]["text"], "prefix");
+
+        let mut protected = watch_observation("std/text", Vec::new(), false);
+        protected.sensitivity = Sensitivity::Restricted;
+        protected.content_hash = None;
+        protected.original_bytes = 42;
+        protected.material = ExactWatchMaterial::Redacted;
+        let redacted = browser_watch_observation(&protected);
+        assert_eq!(redacted["material"]["kind"], "redacted");
+        assert_eq!(redacted["subject"]["cord"], "cord-0");
+        assert_eq!(redacted["representation"]["id"], "std/text");
+        assert_eq!(redacted["original_bytes"], 42);
+        assert!(redacted["content_hash"].is_null());
+    }
 
     #[test]
     fn parser_metadata_and_patchbay_ranges_are_authoritative() {
@@ -4410,6 +4641,14 @@ cord output.value -> sink.result\n\
         assert_eq!(admission["sensitivity_ceiling"], "public");
         let watch_id = admission["id"].as_str().expect("Watch identity");
 
+        let capacity_rejected: Value = serde_json::from_str(&patchbay_attach_exact_watch(
+            session_id.to_owned(),
+            "watch/not-admitted".to_owned(),
+        ))
+        .expect("capacity rejection JSON");
+        assert_eq!(capacity_rejected["ok"], false, "{capacity_rejected}");
+        assert_eq!(capacity_rejected["code"], "CND-WAT-002");
+
         let attached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
             session_id.to_owned(),
             watch_id.to_owned(),
@@ -4460,6 +4699,16 @@ cord output.value -> sink.result\n\
         assert_eq!(watched["records"].as_array().map(Vec::len), Some(1));
         assert_eq!(watched["records"][0]["material"]["kind"], "preview");
         assert_eq!(watched["records"][0]["material"]["text"], "hello\n");
+        assert_eq!(
+            watched["records"][0]["material"]["renderer"]["id"],
+            "conduit.browser/utf8-text"
+        );
+        assert_eq!(
+            watched["records"][0]["producing_host"],
+            "conduit/conduct-host"
+        );
+        assert_eq!(watched["records"][0]["time_basis"], "clock/conduct-host");
+        assert_eq!(watched["records"][0]["clock_uncertainty_ticks"], 0);
         assert_eq!(watched["records"][0]["truncated"], false);
         assert!(
             watched["records"][0]["content_hash"]
@@ -4516,8 +4765,10 @@ cord clock.tick -> drain.item {
         .expect("attach JSON");
         assert_eq!(attached["ok"], true, "{attached}");
 
-        let mut cursor = 0;
-        for expected_tick in 0..80_u64 {
+        // A deliberately slow Patchbay reader does not delay the actual cord.
+        // Latest-only retention replaces isolated preview storage and reports
+        // one deterministic cursor gap when the reader catches up.
+        for expected_tick in 0..8_u64 {
             let pumped: Value =
                 serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 256))
                     .expect("pump JSON");
@@ -4542,6 +4793,54 @@ cord clock.tick -> drain.item {
                 "{pumped}"
             );
 
+            let deadline = pumped["next_timer_deadline"]
+                .as_u64()
+                .expect("pending exact timer deadline");
+            assert_eq!(deadline, (expected_tick + 1) * 11);
+            let advanced: Value =
+                serde_json::from_str(&patchbay_advance_exact_run(session_id.to_owned(), deadline))
+                    .expect("advance JSON");
+            assert_eq!(advanced["ok"], true, "{advanced}");
+            assert_eq!(advanced["run_id"], run_id);
+        }
+
+        let caught_up: Value = serde_json::from_str(&patchbay_read_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+            0,
+            1,
+        ))
+        .expect("slow Watch read JSON");
+        assert_eq!(caught_up["ok"], true, "{caught_up}");
+        assert_eq!(caught_up["status"]["kind"], "gap", "{caught_up}");
+        assert_eq!(caught_up["records"][0]["material"]["text"], "7\n");
+        let mut cursor = caught_up["next_cursor"]
+            .as_u64()
+            .expect("caught-up Watch cursor");
+
+        // The executor is Waiting here. Instrument control remains legal and
+        // detaching preserves the already copied latest preview.
+        let detached: Value = serde_json::from_str(&patchbay_detach_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("waiting detach JSON");
+        assert_eq!(detached["ok"], true, "{detached}");
+        assert_eq!(detached["usage"]["retained_observations"], 1);
+        let reattached: Value = serde_json::from_str(&patchbay_attach_exact_watch(
+            session_id.to_owned(),
+            watch_id.to_owned(),
+        ))
+        .expect("waiting reattach JSON");
+        assert_eq!(reattached["ok"], true, "{reattached}");
+
+        for expected_tick in 8..80_u64 {
+            let pumped: Value =
+                serde_json::from_str(&patchbay_pump_exact_run(session_id.to_owned(), 256))
+                    .expect("pump JSON");
+            assert_eq!(pumped["ok"], true, "{pumped}");
+            assert_eq!(pumped["state"], "waiting", "{pumped}");
+
             let watched: Value = serde_json::from_str(&patchbay_read_exact_watch(
                 session_id.to_owned(),
                 watch_id.to_owned(),
@@ -4550,7 +4849,7 @@ cord clock.tick -> drain.item {
             ))
             .expect("Watch JSON");
             assert_eq!(watched["ok"], true, "{watched}");
-            assert_eq!(watched["records"].as_array().map(Vec::len), Some(1));
+            assert_eq!(watched["status"]["kind"], "available", "{watched}");
             assert_eq!(
                 watched["records"][0]["material"]["text"],
                 format!("{expected_tick}\n")
@@ -4565,7 +4864,6 @@ cord clock.tick -> drain.item {
                 serde_json::from_str(&patchbay_advance_exact_run(session_id.to_owned(), deadline))
                     .expect("advance JSON");
             assert_eq!(advanced["ok"], true, "{advanced}");
-            assert_eq!(advanced["run_id"], run_id);
         }
 
         let cancelled: Value = serde_json::from_str(&patchbay_cancel_exact_run(

@@ -167,6 +167,41 @@ storage after a cord publication commits. It does not keep the executor value
 alive. Protected material remains redacted. Detaching a Watch stops future
 copies without changing queue ownership or the run.
 
+Watch is not a dataflow primitive. Attach and detach select an already admitted
+slot without changing source or exact-plan identity. A slow, disconnected, or
+closed Patchbay reader can lose only its isolated latest/ring/sample window; the
+next read receives an explicit cursor gap and the producing cord never waits for
+it. A semantic tee is an ordinary plan-visible fan-out. A lossless recorder is
+an ordinary node or Resonance/evidence stream with its own declared storage and
+pressure. Neither is represented as Watch.
+
+Each observation names the producing host, its pinned host observation and
+local time basis. `source_sequence` preserves publication order even while a
+Watch is detached; `clock_uncertainty_ticks` states the uncertainty introduced
+before the observation (zero for the producing host's local scheduler tick),
+while each authorized value-envelope timestamp retains its exact clock domain,
+tick, and uncertainty.
+For a distributed cord the writer host remains authoritative: a remote
+Patchbay reconnect reads the retained window or an explicit gap rather than
+reconstructing order from carrier arrival.
+
+The browser projection selects a renderer only from the exact representation
+pin. `std/text` uses the UTF-8 renderer; a complete `std/record` uses the
+closed-record field-byte renderer; known audio/video frame summaries name both
+their renderer and bounded derivation. Unknown binary representations retain
+their bounded byte preview and report a missing renderer. Truncation always
+keeps original byte length and content hash. Protected material keeps
+subject/type/flow/size identity but exposes neither preview nor content hash.
+
+The current Watch fixture matrix covers public and truncated text, exact
+closed-record field bytes, binary fallback, protected redaction, denied reveal
+authority, missing renderers, latest replacement, ring/rate gaps, exhausted
+admission, attach/detach during Active and Waiting, retained preview after
+detach, producing-host ordering across disconnect/reconnect, and semantic tee
+versus Watch non-interference. The continuous ticker Tour exercises the same
+runtime → worker → Patchbay path and exposes keyboard attach/remove without
+stopping the production executor.
+
 Hosted profiles use this preallocated byte arena and slot table. Constrained
 profiles may use caller-owned static pools instead, but the ownership and
 disposal rule is identical: accepted values have bounded storage, every live

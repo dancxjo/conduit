@@ -8905,6 +8905,28 @@ mod tests {
         };
 
         document.validate().unwrap();
+        let mut denied_reveal = document.clone();
+        denied_reveal.watch_admissions[0].sensitivity_ceiling = "restricted".to_owned();
+        denied_reveal.watch_admissions[0].reveal_action = Some("conduit/data.present".to_owned());
+        denied_reveal.identity = {
+            let arena = Bump::new();
+            let plan = denied_reveal.as_plan(&arena).unwrap();
+            let mut scratch =
+                vec![SemanticHash::from_bytes([0; 32]); plan.validation_scratch_count().unwrap()];
+            plan.semantic_hash(&mut scratch).unwrap().to_string()
+        };
+        let denied_arena = Bump::new();
+        let denied_plan = denied_reveal.as_plan(&denied_arena).unwrap();
+        let denied = validate_hosted_execution_plan(
+            &denied_plan,
+            PlanValidationContext {
+                supported_schema_version: denied_reveal.schema_version,
+                now: denied_plan.created_at,
+            },
+        )
+        .unwrap_err();
+        assert_eq!(denied.code.as_str(), "CND-WAT-004");
+
         let bytes = serde_json::to_vec(&document).unwrap();
         let decoded: ExactPlanDocument = serde_json::from_slice(&bytes).unwrap();
         decoded.validate().unwrap();
