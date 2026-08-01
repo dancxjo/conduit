@@ -302,6 +302,19 @@ test("keeps one public latest-value ticker Watch live in the production executor
     );
     return accounting.evidence_store.next_cursor;
   }, { timeout: 20_000 }).toBeGreaterThan(later.evidence_store.next_cursor);
+  const detached = await page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+  expect(detached).toMatchObject({
+    attached: false,
+    state: "waiting",
+    run_id: first.run_id,
+    plan_identity: first.plan_identity,
+    source_semantic_hash: first.source_semantic_hash,
+  });
+  await expect(page.locator("#watch-value")).toContainText(
+    "the exact ticker continues without observation pressure",
+  );
 
   await page.locator("#check").focus();
   await page.keyboard.press("w");

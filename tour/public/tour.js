@@ -232,20 +232,31 @@ function setWatchControl(control) {
 async function toggleWatch() {
   const control = activeWatchControl;
   if (!control || watchToggle.disabled) return;
+  const wasAttached = control.attached;
+  const nextAttached = !wasAttached;
+  control.pending = true;
+  // Stop issuing observation reads before the detach request reaches the
+  // worker. The ticker pump remains independent and continues below.
+  if (wasAttached) control.attached = false;
   watchToggle.disabled = true;
-  const operation = control.attached
+  watchToggle.setAttribute("aria-pressed", String(control.attached));
+  const operation = wasAttached
     ? "patchbay-detach-exact-watch"
     : "patchbay-attach-exact-watch";
   const response = await control.adapter.request(operation, {
     sessionId: control.sessionId,
     watchId: control.watchId,
   });
+  if (activeWatchControl !== control) return;
   if (!response.ok || !response.value?.ok) {
-    watchToggle.disabled = false;
+    control.attached = wasAttached;
+    control.pending = false;
+    setWatchControl(control);
     result.textContent = response.value?.diagnostic || response.code || "Watch control failed";
     return;
   }
-  control.attached = !control.attached;
+  control.attached = nextAttached;
+  control.pending = false;
   setWatchControl(control);
   if (!control.attached) {
     watchValue.textContent = "Watch detached; the exact ticker continues without observation pressure.";
@@ -275,6 +286,24 @@ function renderLatestWatch(batch, run) {
     representation: record?.representation,
     sensitivity: record?.sensitivity,
     gap_before: record?.gap_before ?? 0,
+    value_storage: run.value_storage,
+    evidence_store: run.evidence_store,
+  }, null, 2);
+}
+
+function renderDetachedWatch(run, control) {
+  watchAccounting.textContent = JSON.stringify({
+    run_id: run.run_id,
+    plan_identity: run.plan_identity,
+    source_semantic_hash: run.source_semantic_hash,
+    state: run.state,
+    next_timer_deadline: run.next_timer_deadline,
+    watch_id: control.watchId,
+    attached: false,
+    retention: "latest",
+    cursor: control.cursor,
+    representation: { id: "std/text" },
+    sensitivity: "public",
     value_storage: run.value_storage,
     evidence_store: run.evidence_store,
   }, null, 2);
@@ -1258,30 +1287,41 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
       if (!pumped.ok || !pumped.value?.ok) {
         throw new Error(pumped.value?.diagnostic || pumped.code || "ticker pump failed");
       }
-      const watched = await adapter.request("patchbay-read-exact-watch", {
-        sessionId,
-        watchId,
-        cursor,
-        maximumRecords: 1,
-      });
-      if (!watched.ok || !watched.value?.ok) {
-        throw new Error(watched.value?.diagnostic || watched.code || "Watch read failed");
-      }
       if (epoch !== runEpoch || activeAdapter !== adapter) return;
       renderRustProjection(pumped.value.view);
       renderExactResultTimeline(pumped.value);
-      renderLatestWatch(watched.value, pumped.value);
-      if (activeWatchControl?.watchId === watchId) {
-        activeWatchControl.cursor = watched.value.next_cursor;
+      const control = activeWatchControl?.watchId === watchId
+        ? activeWatchControl
+        : null;
+      let nextCursor = cursor;
+      let watched = null;
+      if (control?.attached && !control.pending) {
+        watched = await adapter.request("patchbay-read-exact-watch", {
+          sessionId,
+          watchId,
+          cursor,
+          maximumRecords: 1,
+        });
+        if (!watched.ok || !watched.value?.ok) {
+          throw new Error(watched.value?.diagnostic || watched.code || "Watch read failed");
+        }
+        if (epoch !== runEpoch || activeAdapter !== adapter) return;
+        nextCursor = watched.value.next_cursor;
+        control.cursor = nextCursor;
+        renderLatestWatch(watched.value, pumped.value);
+      } else if (control) {
+        renderDetachedWatch(pumped.value, control);
       }
       result.textContent =
         `✓ Live exact run remains ${pumped.value.state}.\n` +
-        `Latest public text: ${JSON.stringify(watched.value.records.at(-1)?.material?.text ?? "")}\n` +
+        (watched
+          ? `Latest public text: ${JSON.stringify(watched.value.records.at(-1)?.material?.text ?? "")}\n`
+          : "Watch detached; the ticker continues without observation pressure.\n") +
         `Next admitted timer deadline: ${pumped.value.next_timer_deadline}.`;
       recordEvidence({
-        kind: "watch-latest",
+        kind: watched ? "watch-latest" : "ticker-without-watch",
         lesson: current.id,
-        cursor: watched.value.next_cursor,
+        cursor: nextCursor,
         state: pumped.value.state,
       });
       if (!pumped.value.terminal) {
@@ -1290,7 +1330,7 @@ function scheduleContinuousWatch({ adapter, sessionId, watchId, epoch, cursor, d
           sessionId,
           watchId,
           epoch,
-          cursor: watched.value.next_cursor,
+          cursor: nextCursor,
           deadline: pumped.value.next_timer_deadline,
         });
       }
