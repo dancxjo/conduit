@@ -44,13 +44,13 @@ pub const PROMOTION_RECEIPT_IDENTITY: &str =
     "sha256:37fa44058daed10ea46d9543393df9577fb4fe447a6a33a160aff9bdb864a002";
 
 pub const DATASET_BYTES: &[u8] =
-    b"CLD0|dataset:snapshot:tiny-v1|revision=1|split=train|records=4|public";
+    b"CLD0|dataset:snapshot:tiny|revision=1|split=train|records=4|public";
 pub const CHECKPOINT_BYTES: &[u8] =
-    b"CLC0|checkpoint:job:tiny-v1|step=4|base=fixed-linear|reproducible=exact";
+    b"CLC0|checkpoint:job:tiny|step=4|base=fixed-linear|reproducible=exact";
 pub const EVALUATION_BYTES: &[u8] =
-    b"CLE0|evaluation:suite:tiny-v1|metric=accuracy@1|cases=4|score=4/4";
+    b"CLE0|evaluation:suite:tiny|metric=accuracy@1|cases=4|score=4/4";
 pub const PROMOTION_RECEIPT_BYTES: &[u8] =
-    b"CLP0|promotion:tiny-v1|slot=learned/reference|commit=acknowledged";
+    b"CLP0|promotion:tiny|slot=learned/reference|commit=acknowledged";
 
 pub const DATASET_SNAPSHOT_TYPE: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("learned/dataset-snapshot"),
@@ -537,7 +537,7 @@ fn invalid(code: &'static str, message: &'static str) -> ResolutionError {
 
 fn validate_dataset(node: &Node) -> Result<(), ResolutionError> {
     if node.config.len() != DATASET_FIELDS.len()
-        || node.config("fixture") != Some("tiny-supervised-v1")
+        || node.config("fixture") != Some("tiny-supervised")
         || node.config("snapshot_identity") != Some(DATASET_SNAPSHOT_IDENTITY)
         || node.config("revision_identity") != Some(DATASET_REVISION_IDENTITY)
         || node.config("provenance_identity") != Some(DATASET_PROVENANCE_IDENTITY)
@@ -579,7 +579,7 @@ fn validate_train(node: &Node) -> Result<(), ResolutionError> {
         && node.config("job_identity") == Some(TRAINING_JOB_IDENTITY)
         && node.config("dataset_identity") == Some(DATASET_SNAPSHOT_IDENTITY)
         && node.config("base_model_identity") == Some(MODEL_ARTIFACT_IDENTITY)
-        && node.config("trainer_profile") == Some("conduit.learned/trainer/deterministic-v1")
+        && node.config("trainer_profile") == Some("conduit.learned/trainer/deterministic")
         && node.config("resource_identity") == Some("conduit.learned/resource/training-fixture-0")
         && exact_u64(node, "deadline_tick") == Some(20)
         && exact_u64(node, "maximum_steps") == Some(4)
@@ -767,7 +767,7 @@ impl Handler for DatasetInspect {
         if dataset.value_type != DATASET_SNAPSHOT_TYPE || dataset.bytes != DATASET_BYTES {
             return Err(runtime(LifecycleReason::DatasetRevisionMismatch));
         }
-        Ok(vec![Value::text("learned:dataset:tiny-v1:train:4:public")])
+        Ok(vec![Value::text("learned:dataset:tiny:train:4:public")])
     }
 }
 struct PromotionInspect;

@@ -199,7 +199,7 @@ fn exact_lifecycle_plan_pins_training_evaluation_and_promotion_authority() {
     for (path, expected) in [
         (
             "examples/learned-lifecycle-standalone.panel",
-            "learned:dataset:tiny-v1:train:4:public",
+            "learned:dataset:tiny:train:4:public",
         ),
         (
             "examples/learned-evaluation.panel",

@@ -1,7 +1,7 @@
 panel 0
 
 node dataset : learned/dataset/literal {
-  fixture = "tiny-supervised-v1"
+  fixture = "tiny-supervised"
   snapshot_identity = "sha256:71d58097138d514f3220280698874fecce2486878fc5a2f7a9bc50a8e1341186"
   revision_identity = "sha256:5c434f11669a98b9587880d824f8fda7c19d26dc862696b2602066c79e794972"
   feature_schema_identity = "sha256:d5ac227d73ef18638d38b51c67b816148cd18c837680cc2fb827e4ef773c5145"

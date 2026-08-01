@@ -1,7 +1,7 @@
 panel 0
 
 node dataset : learned/dataset/literal {
-  fixture = "tiny-supervised-v1"
+  fixture = "tiny-supervised"
   snapshot_identity = "sha256:71d58097138d514f3220280698874fecce2486878fc5a2f7a9bc50a8e1341186"
   revision_identity = "sha256:5c434f11669a98b9587880d824f8fda7c19d26dc862696b2602066c79e794972"
   feature_schema_identity = "sha256:d5ac227d73ef18638d38b51c67b816148cd18c837680cc2fb827e4ef773c5145"
@@ -27,7 +27,7 @@ node train : learned/train {
   job_identity = "sha256:6483c5ec0278e838e741c47a00326843811240e68779861691eaefdf63acfb01"
   dataset_identity = "sha256:71d58097138d514f3220280698874fecce2486878fc5a2f7a9bc50a8e1341186"
   base_model_identity = "sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c"
-  trainer_profile = "conduit.learned/trainer/deterministic-v1"
+  trainer_profile = "conduit.learned/trainer/deterministic"
   resource_identity = "conduit.learned/resource/training-fixture-0"
   deadline_tick = 20 maximum_steps = 4 maximum_work = 64 maximum_checkpoints = 1
   maximum_checkpoint_bytes = 128 maximum_storage_bytes = 256 maximum_evidence_events = 16
