@@ -260,5 +260,16 @@ removing the prior active plan epoch from the worker's authoritative
 projection. Terminating a worker or closing its page outside that stop path is
 an abrupt placement loss, not graceful cancellation.
 
+Patchbay consumes the bounded authoritative deltas without rebuilding the
+immutable React Flow topology. Cord pulses, static reduced-motion state,
+occupancy, pressure, the ordered text table, and the latest Watch preview all
+come from those deltas. The dashed Watch lead is presentation-only and cannot
+carry demand or pressure. `Freeze Display` pauses only presentation updates;
+the production executor, timer wakes, evidence cursor, and Watch cursor keep
+advancing, and resume shows the newest bounded state rather than replaying an
+unbounded backlog. Candidate edits, gaps, redaction, missing renderers, and
+abrupt placement loss remain textual inspection facts pinned separately from
+the active epoch.
+
 Long-lived value reclamation and Patchbay Watches use this same boundary and
 retain their own explicit bounds and lifecycle rules.

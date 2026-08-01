@@ -942,6 +942,7 @@ fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
                 && prose.contains("explicit gap")
                 && prose.contains("semantic tee")
                 && prose.contains("lossless recorder")
+                && prose.contains("Freeze Display")
                 && prose.contains("structurally visible but redacted")
                 && prose.contains("Strict audit")
                 && prose.contains("does not execute the graph or own the evidence store"))
@@ -951,6 +952,7 @@ fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
             .as_str()
             .is_some_and(|text| text.contains("Shift+Enter")
                 && text.contains("W to attach or remove")
+                && text.contains("F to freeze or resume")
                 && text.contains("ArrowRight"))
     );
     assert_eq!(lesson["library"]["contracts"][0]["id"], "time/ticker");
@@ -977,6 +979,7 @@ fn live_ticker_lesson_covers_standalone_composition_and_accessible_lifecycle() {
         "watch_gap",
         "watch_redaction",
         "watch_tee_recorder_comparison",
+        "freeze_display",
         "evidence_cursor",
         "retention_gap",
         "reconnect",

@@ -15,6 +15,7 @@ function PortRow({
   isPublic,
   isConnectable,
   onPortSelect,
+  onPortWatch,
 }) {
   const receiving = direction === "input";
   const presentationDirection = receiving ? "receiving" : "outgoing";
@@ -48,6 +49,10 @@ function PortRow({
       onClick: (event) => {
         event.stopPropagation();
         onPortSelect?.(nodeId, port);
+      },
+      onDoubleClick: (event) => {
+        event.stopPropagation();
+        onPortWatch?.(nodeId, port);
       },
     }, port.display_label),
     e("code", { className: "faceplate-member-type" }, port.type_id),
@@ -83,6 +88,7 @@ export function FaceplateNodeComponent({ data, id }) {
     onConfigChange,
     onOpenNested,
     onPortSelect,
+    onPortWatch,
     validity = "valid",
     diagnosticIds = [],
     diagnosticAnchors = [],
@@ -143,6 +149,7 @@ export function FaceplateNodeComponent({ data, id }) {
       isPublic: isComposite,
       isConnectable: data.isConnectable,
       onPortSelect,
+      onPortWatch,
     })),
     ...outputs.map((port) => e(PortRow, {
       key: port.semantic_path,
@@ -152,6 +159,7 @@ export function FaceplateNodeComponent({ data, id }) {
       isPublic: isComposite,
       isConnectable: data.isConnectable,
       onPortSelect,
+      onPortWatch,
     })),
   ];
 

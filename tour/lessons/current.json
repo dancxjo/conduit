@@ -797,7 +797,7 @@
         "panels.reuse-without-copying"
       ],
       "objective": "Run one continuous ticker in the production executor and observe its latest public text through a bounded Patchbay Watch.",
-      "prose": "Start owns one exact worker session. The ticker emits public text, the discard node consumes it without retaining value history, and Patchbay copies only the latest admitted preview. Watch is isolated runtime instrumentation: removing it leaves this same panel, plan, demand, timing, and cord pressure running. Adding a semantic tee would edit this panel and exact plan; adding a lossless recorder would be a plan-visible node or evidence stream and could apply its declared pressure. Separately, the worker commits ordered run evidence into the exact plan's finite evidence-byte budget before scheduler slots are reused. That rolling history has monotonic cursors: a reconnect resumes at its saved cursor, or receives an explicit gap and the earliest cursor still available. Protected material remains structurally visible but redacted. Strict audit instead stops when required evidence cannot be committed. The browser schedules explicit timer wakes; it does not execute the graph or own the evidence store.",
+      "prose": "Start owns one exact worker session. Active means a bounded pump is doing admitted work; Waiting means this same epoch owns a named timer or host interest and is not finished. Quiesce stops new admissions, Drain preserves accepted work, Abort returns queued work, and Terminal is final. The ticker emits public text, the discard node consumes it without retaining value history, and Patchbay copies only the latest admitted preview. Watch is isolated runtime instrumentation: removing it leaves this same panel, plan, demand, timing, and cord pressure running. Adding a semantic tee would edit this panel and exact plan; adding a lossless recorder would be a plan-visible node or evidence stream and could apply its declared pressure. Freeze Display pauses only Patchbay advancement: the production executor, timer wakes, bounded evidence cursor, and Watch cursor continue, then the display resumes at the latest bounded state. Separately, the worker commits ordered run evidence into the exact plan's finite evidence-byte budget before scheduler slots are reused. That rolling history has monotonic cursors: a reconnect resumes at its saved cursor, or receives an explicit gap and the earliest cursor still available. Protected material remains structurally visible but redacted. Unsupported renderers and abrupt browser placement loss remain textual facts rather than invented execution states. Strict audit instead stops when required evidence cannot be committed. The browser schedules explicit timer wakes; it does not execute the graph or own the evidence store.",
       "vocabulary": [
         "exact run",
         "timer wake",
@@ -832,6 +832,7 @@
           "watch_gap",
           "watch_redaction",
           "watch_tee_recorder_comparison",
+          "freeze_display",
           "resident_values",
           "evidence_cursor",
           "retention_gap",
@@ -855,7 +856,7 @@
       "accessibility": {
         "non_audio": "The latest tick, run state, exact timer deadline, plan identity, resident value accounting, evidence bounds, earliest cursor, next cursor, and dropped-row count remain visible as live text; no sound or motion is required.",
         "reduced_motion": true,
-        "keyboard": "Native controls plus Shift+Enter to Start, W to attach or remove the admitted Watch outside the editor, and ArrowRight to inspect the ordered ticker event table while it has focus.",
+        "keyboard": "Native controls plus Shift+Enter to Start, W to attach or remove the admitted Watch, F to freeze or resume presentation outside the editor, and ArrowRight to inspect the ordered ticker event table while it has focus.",
         "color_independent": "Active, Waiting, wake, tick, cleanup, and terminal states are written in the ordered table and never depend on color or animation."
       },
       "runnability": {

@@ -331,6 +331,45 @@ test("keeps one public latest-value ticker Watch live in the production executor
   expect(later.evidence_store.retained_bytes).toBeLessThanOrEqual(
     later.evidence_store.maximum_bytes,
   );
+  await expect(page.locator("#live-flow-status")).toContainText(
+    "authoritative event",
+  );
+  await expect(page.locator("#watch-observation-lead")).toHaveAttribute(
+    "data-attached",
+    "true",
+  );
+  await expect(page.locator("#watch-observation-lead")).toContainText(
+    "cannot carry demand or pressure",
+  );
+  expect(await page.locator("#live-flow-table tbody tr").count()).toBeGreaterThan(0);
+  expect(await page.locator("#live-flow-table tbody tr").count())
+    .toBeLessThanOrEqual(12);
+  const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
+  await expect(liveEdge).toHaveAttribute("data-live-sequence", /\d+/);
+  await expect(liveEdge).toHaveAttribute("data-occupancy-items", /\d+/);
+  await expect(page.locator("#freeze-display")).toHaveAttribute(
+    "aria-keyshortcuts",
+    "F",
+  );
+
+  const beforeFreeze = Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  );
+  await page.locator("#freeze-display").click();
+  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(1_700);
+  expect(Number.parseInt(await page.locator("#watch-value").textContent(), 10))
+    .toBe(beforeFreeze);
+  await expect(page.locator("#display-freeze-status")).toContainText(
+    "exact executor remains live",
+  );
+  await page.locator("#freeze-display").click();
+  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(async () => Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  ), { timeout: 20_000 }).toBeGreaterThan(beforeFreeze);
   await expect(page.locator(".watch-semantics")).toContainText(
     "Watch is isolated instrumentation",
   );
@@ -340,8 +379,18 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
 
-  await page.locator("#watch-toggle").press("Enter");
-  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "false");
+  const structuredCordWatch = page.locator(
+    "#panel-connection-list .structured-watch-button",
+  ).first();
+  await expect(structuredCordWatch).toContainText("Remove Watch");
+  await expect.poll(async () => {
+    const pressed = await page.locator("#watch-toggle").getAttribute("aria-pressed");
+    if (pressed === "true") {
+      await page.locator("#panel-connection-list .structured-watch-button").first().click();
+    }
+    return page.locator("#watch-toggle").getAttribute("aria-pressed");
+  }).toBe("false");
+  await expect(page.locator("#watch-toggle")).toBeEnabled();
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect.poll(async () => {
     const accounting = await page.locator("#watch-accounting").evaluate((element) =>
@@ -368,8 +417,20 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#watch-value")).toContainText(
     "the exact ticker continues without observation pressure",
   );
+  await expect(page.locator("#watch-observation-lead")).toHaveAttribute(
+    "data-attached",
+    "false",
+  );
+
+  await page.locator('.faceplate-port-row[data-semantic-path$="/tick"] .jack-label')
+    .dblclick();
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#watch-toggle")).toBeEnabled();
 
   await page.locator("#check").focus();
+  await page.keyboard.press("w");
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#watch-toggle")).toBeEnabled();
   await page.keyboard.press("w");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
   await expect.poll(async () => Number.parseInt(
@@ -381,6 +442,42 @@ test("keeps one public latest-value ticker Watch live in the production executor
   );
   expect(reattached.plan_identity).toBe(first.plan_identity);
   expect(reattached.source_semantic_hash).toBe(first.source_semantic_hash);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reducedSequence = Number(await liveEdge.getAttribute("data-live-sequence"));
+  await expect.poll(async () => Number(
+    await liveEdge.getAttribute("data-live-sequence"),
+  ), { timeout: 20_000 }).toBeGreaterThan(reducedSequence);
+  await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
+
+  const liveCordEvent = page.locator(
+    '.timeline-event[data-subject-kind="cord"]',
+  ).last();
+  await liveCordEvent.click();
+  await expect(page.locator(".react-flow__edge").first()).toHaveClass(/selected/);
+  expect(await page.locator("#source").evaluate((element) =>
+    element.selectionEnd > element.selectionStart
+  )).toBe(true);
+
+  const activeValueBeforeEdit = Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  );
+  const authored = await page.locator("#source").inputValue();
+  await page.locator("#source").fill(`${authored}\ncord`);
+  await expect(page.locator(".patchbay-live-run-status")).toContainText(
+    "is separate from this active epoch",
+  );
+  await expect(page.locator("#workspace-error-count")).not.toHaveText("0");
+  await expect.poll(async () => Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  ), { timeout: 20_000 }).toBeGreaterThan(activeValueBeforeEdit);
+  const afterCandidateEdit = await page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+  expect(afterCandidateEdit.run_id).toBe(first.run_id);
+  expect(afterCandidateEdit.plan_identity).toBe(first.plan_identity);
   expect(browserPlan.evidence_provider).toMatchObject({
     implementation_id: "conduit/browser-worker-exact-evidence",
     retention: "rolling",
@@ -401,6 +498,29 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#run")).toBeEnabled();
   await expect(page.locator("#stop")).toBeDisabled();
   expect(failures).toEqual([]);
+});
+
+test("keeps live textual instrumentation truthful when the topology renderer is unavailable", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
+  });
+  await page.goto("/tour/public/index.html?lesson=panels.tiny-instrument");
+  await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
+  await page.locator("#run").click();
+  await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
+  await expect.poll(async () => Number.parseInt(
+    await page.locator("#watch-value").textContent(),
+    10,
+  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(1);
+  await expect(page.locator("#live-flow-status")).toContainText("authoritative event");
+  await expect(page.locator("#live-flow-table tbody tr")).not.toHaveCount(0);
+  await expect(page.locator("#console-status-badge")).toHaveText("Live");
+  await page.locator("#stop").click();
+  await expect(page.locator("#result")).toContainText(
+    "Run cancelled; exact worker placement is terminal.",
+  );
 });
 
 test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {

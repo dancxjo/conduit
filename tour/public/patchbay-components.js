@@ -112,9 +112,22 @@ export class PatchbayInspectorElement extends HTMLElement {
         <details class="card inspector-card" open>
           <summary>⌁ Live latest-value Watch</summary>
           <p class="watch-semantics"><strong>Watch</strong> is isolated instrumentation. A semantic <strong>tee</strong> changes this panel and its exact plan; a lossless <strong>recorder</strong> is a plan-visible node or evidence stream that may apply declared pressure.</p>
-          <button id="watch-toggle" type="button" aria-keyshortcuts="W" disabled>Attach Watch (W)</button>
+          <div class="button-row live-presentation-controls" role="group" aria-label="Live observation presentation controls">
+            <button id="watch-toggle" type="button" aria-keyshortcuts="W" disabled>Attach Watch (W)</button>
+            <button id="freeze-display" type="button" aria-keyshortcuts="F" aria-pressed="false" disabled>Freeze Display (F)</button>
+          </div>
+          <p id="display-freeze-status" class="card-subtitle" role="status">Display follows authoritative live deltas.</p>
+          <p id="watch-observation-lead" class="watch-observation-lead" data-attached="false">Observation lead detached. This dashed lead is presentation only and is never a graph cord.</p>
           <output id="watch-value" class="watch-value" aria-live="polite">No Watch is attached.</output>
           <pre id="watch-accounting">No Watch accounting yet.</pre>
+          <output id="live-flow-status" class="live-flow-status" aria-live="polite">No authoritative live-flow delta yet.</output>
+          <div class="table-scroll">
+            <table id="live-flow-table">
+              <caption>Bounded textual equivalent of recent authoritative live-flow deltas</caption>
+              <thead><tr><th scope="col">Seq.</th><th scope="col">Tick</th><th scope="col">Subject</th><th scope="col">Event</th><th scope="col">Pressure / occupancy</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </details>
       </div>
     `;

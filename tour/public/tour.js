@@ -39,6 +39,11 @@ const timelineTableBody = document.querySelector("#timeline-table tbody");
 const watchValue = document.querySelector("#watch-value");
 const watchAccounting = document.querySelector("#watch-accounting");
 const watchToggle = document.querySelector("#watch-toggle");
+const freezeDisplay = document.querySelector("#freeze-display");
+const displayFreezeStatus = document.querySelector("#display-freeze-status");
+const watchObservationLead = document.querySelector("#watch-observation-lead");
+const liveFlowStatus = document.querySelector("#live-flow-status");
+const liveFlowTableBody = document.querySelector("#live-flow-table tbody");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const browserPlan = await (await fetch("./browser-plan.json", { cache: "no-store" })).json();
@@ -191,6 +196,12 @@ let activeWorkerRunIdentity = null;
 let runEpoch = 0;
 let liveWakeTimer = null;
 let activeWatchControl = null;
+let activeRunProjection = null;
+let displayIsFrozen = false;
+let deferredLivePresentation = null;
+let deferredLiveDeltaCount = 0;
+let liveEvidenceSequence = -1;
+let liveFlowRows = [];
 let topologyView = "logical";
 const evidence = [];
 let timelineRecords = [];
@@ -203,6 +214,7 @@ const MIN_I32 = -2_147_483_648;
 const MAX_I32 = 2_147_483_647;
 const MAXIMUM_LAYOUT_OPERATIONS_PER_TRANSACTION = 32;
 const LIVE_WATCH_PRESENTATION_INTERVAL_MS = 750;
+const MAXIMUM_LIVE_FLOW_ROWS = 12;
 
 function clearLiveWakeTimer() {
   if (liveWakeTimer !== null) {
@@ -215,6 +227,18 @@ function resetWatchPresentation(message = "No Watch is attached.") {
   disableWatchControl();
   watchValue.textContent = message;
   watchAccounting.textContent = "No Watch accounting yet.";
+  activeRunProjection = null;
+  displayIsFrozen = false;
+  deferredLivePresentation = null;
+  deferredLiveDeltaCount = 0;
+  liveEvidenceSequence = -1;
+  liveFlowRows = [];
+  freezeDisplay.disabled = true;
+  freezeDisplay.setAttribute("aria-pressed", "false");
+  freezeDisplay.textContent = "Freeze Display (F)";
+  displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
+  liveFlowStatus.textContent = "No authoritative live-flow delta yet.";
+  liveFlowTableBody.replaceChildren();
 }
 
 function disableWatchControl() {
@@ -222,6 +246,10 @@ function disableWatchControl() {
   watchToggle.disabled = true;
   watchToggle.textContent = "Attach Watch (W)";
   watchToggle.setAttribute("aria-pressed", "false");
+  watchObservationLead.dataset.attached = "false";
+  watchObservationLead.textContent =
+    "Observation lead detached. This dashed lead is presentation only and is never a graph cord.";
+  renderStructuredTopology();
 }
 
 function setWatchControl(control) {
@@ -229,6 +257,122 @@ function setWatchControl(control) {
   watchToggle.disabled = false;
   watchToggle.textContent = control.attached ? "Remove Watch (W)" : "Attach Watch (W)";
   watchToggle.setAttribute("aria-pressed", String(control.attached));
+  watchObservationLead.dataset.attached = String(control.attached);
+  watchObservationLead.textContent = control.attached
+    ? `Presentation-only observation lead attached to ${control.subjectLabel || control.watchId}; it cannot carry demand or pressure.`
+    : `Observation lead detached from ${control.subjectLabel || control.watchId}; the exact dataflow continues.`;
+  renderStructuredTopology();
+}
+
+function setLivePresentationActive() {
+  freezeDisplay.disabled = false;
+  displayFreezeStatus.textContent = displayIsFrozen
+    ? "Display is frozen; the exact executor and bounded observation cursor continue."
+    : "Display follows authoritative live deltas.";
+}
+
+function authoritativeEvidenceDelta(records) {
+  const delta = (records || []).filter((record) =>
+    Number.isSafeInteger(record.sequence) && record.sequence > liveEvidenceSequence
+  );
+  for (const record of delta) {
+    liveEvidenceSequence = Math.max(liveEvidenceSequence, record.sequence);
+  }
+  return delta;
+}
+
+function renderLiveFlowRows(projection, delta, watchRecord, runtime = projection) {
+  if (delta.length > 0) {
+    liveFlowRows.push(...delta);
+    if (liveFlowRows.length > MAXIMUM_LIVE_FLOW_ROWS) {
+      liveFlowRows.splice(0, liveFlowRows.length - MAXIMUM_LIVE_FLOW_ROWS);
+    }
+  }
+  liveFlowTableBody.replaceChildren();
+  for (const record of liveFlowRows) {
+    const row = document.createElement("tr");
+    row.dataset.sequence = String(record.sequence);
+    const pressure = record.pressure
+      ? `${record.pressure}; ${record.occupancy_items} items / ${record.occupancy_bytes} bytes`
+      : "—";
+    for (const value of [
+      record.sequence,
+      record.tick,
+      `${record.subject_kind}: ${record.subject_id}`,
+      record.event_detail ? `${record.event_kind}: ${record.event_detail}` : record.event_kind,
+      pressure,
+    ]) {
+      const cell = document.createElement("td");
+      cell.textContent = String(value);
+      row.append(cell);
+    }
+    liveFlowTableBody.append(row);
+  }
+  const cordDeltas = delta.filter((record) => record.subject_kind === "cord");
+  const latest = cordDeltas.at(-1) || delta.at(-1);
+  const dropped = runtime.evidence_store?.dropped_events ?? 0;
+  liveFlowStatus.textContent = latest
+    ? `Batch rate: ${delta.length} authoritative event${delta.length === 1 ? "" : "s"} per bounded presentation update; ` +
+      `${cordDeltas.length} cord event${cordDeltas.length === 1 ? "" : "s"}. ` +
+      `Latest: ${latest.subject_kind} ${latest.subject_id}, ${latest.event_kind}, ` +
+      `${latest.occupancy_items} items / ${latest.occupancy_bytes} bytes. ` +
+      `Rolling evidence gaps: ${dropped}. Watch cursor: ${watchRecord?.cursor ?? "detached"}.`
+    : `No new authoritative event in this update. Rolling evidence gaps: ${dropped}.`;
+  patchbayRenderer?.presentLiveEvidence(patchbayView || projection, delta, watchRecord);
+}
+
+function applyLiveRunProjection(projection) {
+  if (!patchbayView) return;
+  patchbayView = {
+    ...patchbayView,
+    run: projection.run,
+    evidence: projection.evidence,
+  };
+  evidence.splice(0, evidence.length, ...projection.evidence);
+  document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
+  patchbayRenderer?.updateRunPresentation(patchbayView);
+}
+
+function presentContinuousUpdate(presentation) {
+  activeRunProjection = presentation.projection;
+  if (displayIsFrozen) {
+    deferredLivePresentation = presentation;
+    deferredLiveDeltaCount += presentation.delta.length;
+    displayFreezeStatus.textContent =
+      `Display frozen; ${deferredLiveDeltaCount} authoritative delta${deferredLiveDeltaCount === 1 ? "" : "s"} deferred while the exact executor remains live.`;
+    return;
+  }
+  applyLiveRunProjection(presentation.projection);
+  if (presentation.watched) {
+    renderLatestWatch(presentation.watched, presentation.result);
+  } else if (presentation.control) {
+    renderDetachedWatch(presentation.result, presentation.control);
+  }
+  renderExactResultTimeline(presentation.result);
+  renderLiveFlowRows(
+    presentation.projection,
+    presentation.delta,
+    presentation.watched?.records?.at(-1),
+    presentation.result,
+  );
+  result.textContent = presentation.message;
+}
+
+function toggleDisplayFreeze() {
+  if (freezeDisplay.disabled) return;
+  displayIsFrozen = !displayIsFrozen;
+  freezeDisplay.setAttribute("aria-pressed", String(displayIsFrozen));
+  freezeDisplay.textContent = displayIsFrozen ? "Resume Display (F)" : "Freeze Display (F)";
+  if (displayIsFrozen) {
+    displayFreezeStatus.textContent =
+      "Display frozen; the exact executor and bounded observation cursor continue.";
+    return;
+  }
+  const deferred = deferredLivePresentation;
+  deferredLivePresentation = null;
+  deferredLiveDeltaCount = 0;
+  displayFreezeStatus.textContent = "Display resumed at the latest bounded authoritative state.";
+  if (deferred) presentContinuousUpdate(deferred);
 }
 
 async function toggleWatch() {
@@ -288,6 +432,21 @@ function renderLatestWatch(batch, run) {
     cursor: batch.next_cursor,
     representation: record?.representation,
     sensitivity: record?.sensitivity,
+    timestamp: {
+      tick: record?.tick,
+      time_basis: record?.time_basis,
+      uncertainty_ticks: record?.clock_uncertainty_ticks,
+      value_timestamps: record?.value_timestamps || [],
+    },
+    renderer: record?.material?.renderer || { status: record?.material?.kind || "absent" },
+    material_kind: record?.material?.kind || "absent",
+    truncated: Boolean(record?.truncated),
+    recent_history: batch.records.slice(-1).map((item) => ({
+      cursor: item.cursor,
+      tick: item.tick,
+      material_kind: item.material?.kind,
+      truncated: Boolean(item.truncated),
+    })),
     gap_before: record?.gap_before ?? 0,
     value_storage: run.value_storage,
     evidence_store: run.evidence_store,
@@ -389,6 +548,8 @@ if (cyContainer) {
     onPortSelect: (nodeId, port) => {
       selectPort(nodeId, port);
     },
+    onCordWatch: (cordId) => toggleWatchForSubject({ cordId }),
+    onPortWatch: (nodeId, port) => toggleWatchForSubject({ nodeId, port }),
     onSelectionClear: () => {
       clearTopologySelection();
     },
@@ -459,6 +620,56 @@ function renderDiagnosticConsole() {
   }
 }
 
+function watchAdmissionForSubject({ cordId = null, nodeId = null, port = null }) {
+  const admissions = activeRunProjection?.plan?.watch_admissions ||
+    patchbayView?.plan?.watch_admissions || [];
+  const direct = admissions.find((admission) =>
+    (cordId && admission.subject_kind === "cord" && admission.cord === cordId) ||
+    (nodeId && port && admission.subject_kind === "node-port" &&
+      admission.node === nodeId && admission.port === port.id)
+  );
+  if (direct || !nodeId || !port) return direct;
+  const connectedCord = (patchbayView?.topology?.cords || []).find((cord) =>
+    (cord.from_node === nodeId && cord.from_port === port.id) ||
+    (cord.to_node === nodeId && cord.to_port === port.id)
+  );
+  return connectedCord
+    ? admissions.find((admission) =>
+        admission.subject_kind === "cord" && admission.cord === connectedCord.id
+      )
+    : null;
+}
+
+function toggleWatchForSubject(subject) {
+  const admission = watchAdmissionForSubject(subject);
+  if (!admission) {
+    result.textContent = "No exact-plan Watch admission exists for this selected subject.";
+    return;
+  }
+  if (activeWatchControl?.watchId !== admission.id) {
+    result.textContent =
+      `Watch ${admission.id} is admitted but is not the active bounded instrument control.`;
+    return;
+  }
+  void toggleWatch();
+}
+
+function watchSubjectButton(admission, label) {
+  if (!admission) return null;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "structured-watch-button";
+  const attached = activeWatchControl?.watchId === admission.id && activeWatchControl.attached;
+  button.textContent = attached ? `Remove Watch from ${label}` : `Watch ${label}`;
+  button.setAttribute("aria-label", button.textContent);
+  button.onclick = () => toggleWatchForSubject({
+    cordId: admission.cord,
+    nodeId: admission.node,
+    port: admission.port ? { id: admission.port } : null,
+  });
+  return button;
+}
+
 function selectDiagnostic(diagnostic) {
   const cord = diagnostic.targets.find((target) => target.kind === "cord");
   const node = diagnostic.targets.find((target) => target.kind === "node");
@@ -505,6 +716,9 @@ function renderStructuredTopology() {
       );
       button.onclick = () => selectPort(node.id, port);
       item.append(button);
+      const admission = watchAdmissionForSubject({ nodeId: node.id, port });
+      const watchButton = watchSubjectButton(admission, `${node.id}.${port.id}`);
+      if (watchButton) item.append(watchButton);
       portList.append(item);
     }
   }
@@ -533,6 +747,9 @@ function renderStructuredTopology() {
     );
     button.onclick = () => selectCord(cord.id);
     item.append(button);
+    const admission = watchAdmissionForSubject({ cordId: cord.id });
+    const watchButton = watchSubjectButton(admission, `cord ${cord.id}`);
+    if (watchButton) item.append(watchButton);
     connectionList.append(item);
   }
 }
@@ -610,7 +827,13 @@ function applyPatchbayOperations(operations, options = {}) {
     result.textContent = transaction.diagnostic;
     return transaction;
   }
-  patchbayView = transaction.view;
+  patchbayView = activeRunProjection?.run
+    ? {
+        ...transaction.view,
+        run: activeRunProjection.run,
+        evidence: activeRunProjection.evidence,
+      }
+    : transaction.view;
   patchbaySourceRevision = transaction.result.source.revision;
   patchbayPresentationRevision = transaction.result.presentation.revision;
   acceptedSource = transaction.result.source.source;
@@ -621,7 +844,7 @@ function applyPatchbayOperations(operations, options = {}) {
   positions = transaction.result.presentation.node_positions;
   syncDiagnosticSourceHighlights();
   runButton.disabled =
-    current?.runnability?.state !== "runnable" || !patchbayView.plan;
+    current?.runnability?.state !== "runnable" || !patchbayView.plan || Boolean(activeAdapter);
   rememberLayout(current.id, positions, patchbayView);
   if (!options.preserveFaceplateFocus && !options.skipRender) {
     updateCytoscapeGraph();
@@ -695,8 +918,10 @@ function highlightTimelineSubject(record) {
   );
   const targetId = record?.node_id || record?.cord_id;
   if (!targetId) return;
-  if (record.node_id && patchbayRenderer) {
-    patchbayRenderer.selectNode(record.node_id);
+  if (record.node_id) {
+    selectNode(record.node_id);
+  } else if (record.cord_id) {
+    selectCord(record.cord_id);
   }
   requestAnimationFrame(() => {
     document.querySelectorAll("[data-id]").forEach((element) => {
@@ -903,9 +1128,20 @@ function renderRustProjection(projection) {
       !projection.presentation || !projection.run || !Array.isArray(projection.evidence)) {
     throw new Error("CND-PBY-009: incomplete Rust Patchbay projection");
   }
-  if (!patchbayView ||
-      projection.source.semantic_hash !== patchbayView.source.semantic_hash) {
-    throw new Error("CND-PBY-009: run projection does not match the editor source");
+  if (!patchbayView) {
+    throw new Error("CND-PBY-009: run projection has no Patchbay workspace");
+  }
+  projection = {
+    ...projection,
+    run: {
+      ...projection.run,
+      source_revision: activeWorkerRunIdentity?.sourceRevision ?? null,
+    },
+  };
+  activeRunProjection = projection;
+  if (projection.source.semantic_hash !== patchbayView.source.semantic_hash) {
+    applyLiveRunProjection(projection);
+    return;
   }
   const sourceRevision = patchbayView.source.revision;
   const rebaseRange = (item) => ({
@@ -946,16 +1182,18 @@ function renderRustProjection(projection) {
 
 function renderLiveRunProjection(projection) {
   if (!projection?.source || !projection.run || !Array.isArray(projection.evidence) ||
-      !patchbayView || projection.source.semantic_hash !== patchbayView.source.semantic_hash) {
-    throw new Error("CND-PBY-009: live run projection does not match the editor source");
+      !patchbayView) {
+    throw new Error("CND-PBY-009: incomplete live run projection");
   }
-  patchbayView = {
-    ...patchbayView,
-    run: projection.run,
-    evidence: projection.evidence,
+  projection = {
+    ...projection,
+    run: {
+      ...projection.run,
+      source_revision: activeWorkerRunIdentity?.sourceRevision ?? null,
+    },
   };
-  evidence.splice(0, evidence.length, ...projection.evidence);
-  document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
+  activeRunProjection = projection;
+  return authoritativeEvidenceDelta(projection.evidence);
 }
 
 async function stopExactSession(cause, message) {
@@ -984,6 +1222,10 @@ async function stopExactSession(cause, message) {
           sessionId,
           ...runIdentity,
         });
+      } else {
+        patchbayRenderer?.presentPlacementLoss(
+          cancelled.value?.diagnostic || cancelled.code || "exact cancellation failed",
+        );
       }
     } finally {
       adapter.terminate(cause);
@@ -991,6 +1233,14 @@ async function stopExactSession(cause, message) {
   } else if (adapter) {
     adapter.terminate(cause);
   }
+  activeRunProjection = null;
+  deferredLivePresentation = null;
+  deferredLiveDeltaCount = 0;
+  displayIsFrozen = false;
+  freezeDisplay.disabled = true;
+  freezeDisplay.setAttribute("aria-pressed", "false");
+  freezeDisplay.textContent = "Freeze Display (F)";
+  displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
   runButton.disabled = current?.runnability?.state !== "runnable";
   stopButton.disabled = true;
   consoleBadge.textContent = "Ready";
@@ -1328,8 +1578,7 @@ function scheduleContinuousWatch({
       // The exact topology is immutable for this epoch. Rebuilding React Flow
       // for every value would spend the observation budget on static work and
       // can starve Stop/Watch input on slower browser hosts.
-      renderLiveRunProjection(pumped.value.view);
-      renderExactResultTimeline(pumped.value);
+      const liveDelta = renderLiveRunProjection(pumped.value.view);
       const control = activeWatchControl?.watchId === watchId
         ? activeWatchControl
         : null;
@@ -1349,16 +1598,21 @@ function scheduleContinuousWatch({
         if (epoch !== runEpoch || activeAdapter !== adapter) return;
         nextCursor = watched.value.next_cursor;
         control.cursor = nextCursor;
-        renderLatestWatch(watched.value, pumped.value);
-      } else if (control) {
-        renderDetachedWatch(pumped.value, control);
       }
-      result.textContent =
+      const message =
         `✓ Live exact run remains ${pumped.value.state}.\n` +
         (watched
           ? `Latest public text: ${JSON.stringify(watched.value.records.at(-1)?.material?.text ?? "")}\n`
           : "Watch detached; the ticker continues without observation pressure.\n") +
         `Next admitted timer deadline: ${pumped.value.next_timer_deadline}.`;
+      presentContinuousUpdate({
+        projection: activeRunProjection,
+        result: pumped.value,
+        watched: watched?.value || null,
+        control,
+        delta: liveDelta,
+        message,
+      });
       recordEvidence({
         kind: watched ? "watch-latest" : "ticker-without-watch",
         lesson: current.id,
@@ -1378,6 +1632,9 @@ function scheduleContinuousWatch({
       }
     } catch (error) {
       if (epoch === runEpoch) {
+        patchbayRenderer?.presentPlacementLoss(String(error));
+        liveFlowStatus.textContent =
+          `Abrupt browser placement loss: ${error}. This is not graceful cancellation.`;
         result.textContent = `Live ticker stopped: ${error}`;
         consoleBadge.textContent = "Failed";
         consoleBadge.className = "badge status-badge failed";
@@ -1474,6 +1731,7 @@ async function run() {
       planIdentity: started.value.plan_identity,
     };
     activeWorkerRunIdentity = runIdentity;
+    setLivePresentationActive();
     if (current.execution === "continuous-watch") {
       const admission = started.value.view.plan.watch_admissions.find(
         (watch) => watch.representation_id === "std/text" &&
@@ -1495,6 +1753,9 @@ async function run() {
         sessionId,
         runIdentity,
         watchId,
+        subjectLabel: admission.subject_kind === "cord"
+          ? `cord ${admission.cord}`
+          : `${admission.node}.${admission.port}`,
         attached: true,
         cursor: 0,
       });
@@ -1522,6 +1783,7 @@ async function run() {
     terminal = Boolean(value.terminal);
     renderRustProjection(value.view);
     renderExactResultTimeline(value);
+    const initialLiveDelta = authoritativeEvidenceDelta(value.view.evidence);
     let watched = null;
     if (watchId) {
       const read = await adapter.request("patchbay-read-exact-watch", {
@@ -1541,6 +1803,7 @@ async function run() {
       }
       renderLatestWatch(watched, value);
     }
+    renderLiveFlowRows(value.view, initialLiveDelta, watched?.records?.at(-1), value);
     const counts = Number.isInteger(value.completed_nodes)
       ? `\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
       : "";
@@ -1591,7 +1854,13 @@ async function run() {
       });
     }
   } catch (error) {
-    if (epoch === runEpoch) result.textContent = `Run failed: ${error}`;
+    if (epoch === runEpoch) {
+      patchbayRenderer?.presentPlacementLoss(String(error));
+      liveFlowStatus.textContent =
+        `Abrupt browser placement loss: ${error}. This is not graceful cancellation.`;
+      result.textContent = `Run failed: ${error}`;
+      await stopExactSession("run-failed");
+    }
   } finally {
     if (epoch === runEpoch && terminal) {
       if (sessionId && runIdentity) {
@@ -1604,6 +1873,12 @@ async function run() {
       activeAdapter = null;
       activeWorkerSessionId = null;
       activeWorkerRunIdentity = null;
+      activeRunProjection = null;
+      displayIsFrozen = false;
+      deferredLivePresentation = null;
+      freezeDisplay.disabled = true;
+      freezeDisplay.setAttribute("aria-pressed", "false");
+      freezeDisplay.textContent = "Freeze Display (F)";
       disableWatchControl();
       runButton.disabled = current.runnability?.state !== "runnable";
       stopButton.disabled = true;
@@ -1618,6 +1893,7 @@ async function run() {
 
 runButton.onclick = run;
 watchToggle.onclick = () => void toggleWatch();
+freezeDisplay.onclick = toggleDisplayFreeze;
 stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
@@ -1634,6 +1910,13 @@ document.addEventListener("keydown", (event) => {
   if (isWatchShortcut && !isEditing && !event.repeat && !event.isComposing) {
     event.preventDefault();
     if (!watchToggle.disabled) void toggleWatch();
+    return;
+  }
+  const isFreezeShortcut = event.key.toLowerCase() === "f" &&
+    !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+  if (isFreezeShortcut && !isEditing && !event.repeat && !event.isComposing) {
+    event.preventDefault();
+    toggleDisplayFreeze();
     return;
   }
   const isRunShortcut = event.shiftKey

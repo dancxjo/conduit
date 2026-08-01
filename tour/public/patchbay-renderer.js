@@ -213,8 +213,11 @@ export class PatchbayReactFlowRenderer {
     this.onNodeSelect = options.onNodeSelect || null;
     this.onCordSelect = options.onCordSelect || null;
     this.onPortSelect = options.onPortSelect || null;
+    this.onCordWatch = options.onCordWatch || null;
+    this.onPortWatch = options.onPortWatch || null;
     this.onSelectionClear = options.onSelectionClear || null;
     this.onOpenNested = options.onOpenNested || null;
+    this.livePulseTimers = new Map();
   }
 
   init() {
@@ -271,7 +274,9 @@ export class PatchbayReactFlowRenderer {
     const activeSource = run?.source_semantic_hash;
     const candidateSource = viewModel?.semantic?.source_semantic_hash;
     const candidateChanged = Boolean(
-      activeSource && candidateSource && activeSource !== candidateSource,
+      (activeSource && candidateSource && activeSource !== candidateSource) ||
+      (Number.isSafeInteger(run?.source_revision) &&
+        Number.isSafeInteger(sourceRevision) && run.source_revision !== sourceRevision),
     );
     this.flowWrapper.dataset.runState = state.toLowerCase();
     this.flowWrapper.dataset.activeEpoch = run?.plan_identity || "";
@@ -283,11 +288,63 @@ export class PatchbayReactFlowRenderer {
       return;
     }
     const lifecycle = state.toLowerCase();
+    const activeRevision = run.source_revision ?? "pinned at Start";
     const candidate = candidateChanged
       ? ` Candidate revision ${sourceRevision} is separate from this active epoch.`
       : "";
     this.liveRunStatus.textContent =
-      `Exact run ${run.run_id} is ${lifecycle}; active plan ${run.plan_identity}.${candidate}`;
+      `Exact run ${run.run_id} is ${lifecycle}; active plan ${run.plan_identity}; ` +
+      `active source revision ${activeRevision}; edited draft revision ${sourceRevision}.${candidate}`;
+  }
+
+  presentLiveEvidence(viewModel, records, watchRecord) {
+    this.updateRunPresentation(viewModel);
+    this.flowWrapper.querySelectorAll(".react-flow__edge[data-watch-observed]")
+      .forEach((edge) => delete edge.dataset.watchObserved);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for (const record of records.slice(-32)) {
+      if (record.subject_kind !== "cord" || !record.cord_id) continue;
+      const edge = [...this.flowWrapper.querySelectorAll(".react-flow__edge")]
+        .find((candidate) =>
+          candidate.dataset.id === record.cord_id ||
+          candidate.querySelector(".react-flow__edge-path")?.id === record.cord_id
+        );
+      if (!edge) continue;
+      edge.dataset.liveUpdate = "true";
+      edge.dataset.liveSequence = String(record.sequence);
+      edge.dataset.liveTick = String(record.tick);
+      edge.dataset.occupancyItems = String(record.occupancy_items);
+      edge.dataset.occupancyBytes = String(record.occupancy_bytes);
+      edge.setAttribute(
+        "aria-label",
+        `${record.cord_id}: ${record.event_kind}; ${record.pressure}; ` +
+        `${record.occupancy_items} items, ${record.occupancy_bytes} bytes`,
+      );
+      if (reducedMotion) continue;
+      edge.classList.remove("live-flow-pulse");
+      void edge.getBoundingClientRect();
+      edge.classList.add("live-flow-pulse");
+      clearTimeout(this.livePulseTimers.get(record.cord_id));
+      this.livePulseTimers.set(record.cord_id, setTimeout(() => {
+        edge.classList.remove("live-flow-pulse");
+        this.livePulseTimers.delete(record.cord_id);
+      }, 450));
+    }
+    if (watchRecord?.subject?.kind === "cord") {
+      const watched = [...this.flowWrapper.querySelectorAll(".react-flow__edge")]
+        .find((candidate) =>
+          candidate.dataset.id === watchRecord.subject.cord ||
+          candidate.querySelector(".react-flow__edge-path")?.id === watchRecord.subject.cord
+        );
+      if (watched) watched.dataset.watchObserved = "true";
+    }
+  }
+
+  presentPlacementLoss(detail) {
+    if (!this.flowWrapper || !this.liveRunStatus) return;
+    this.flowWrapper.dataset.runState = "placement-loss";
+    this.liveRunStatus.textContent =
+      `Abrupt browser placement loss: ${detail}. No graceful cancellation is claimed.`;
   }
 
   selectNode(nodeId) {
@@ -478,6 +535,9 @@ export class PatchbayReactFlowRenderer {
             this.onPortSelect(nodeId, port);
           }
         },
+        onPortWatch: (nodeId, port) => {
+          if (this.onPortWatch) this.onPortWatch(nodeId, port);
+        },
         },
         draggable: true,
         selectable: true,
@@ -642,6 +702,10 @@ export class PatchbayReactFlowRenderer {
           if (this.onCordSelect) {
             this.onCordSelect(edge.id);
           }
+        },
+        onEdgeDoubleClick: (event, edge) => {
+          event.preventDefault();
+          if (this.onCordWatch) this.onCordWatch(edge.id);
         },
         onSelectionChange: ({ nodes: selectedNodes, edges: selectedEdges }) => {
           if (selectedEdges.length > 0) {
