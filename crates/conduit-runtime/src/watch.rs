@@ -565,4 +565,36 @@ mod tests {
         assert_eq!(watches.usage().retained_observations, 2);
         assert_eq!(watches.usage().dropped_observations, 1);
     }
+
+    #[test]
+    fn watch_preview_owns_bounded_bytes_without_retaining_the_runtime_value() {
+        let mut watches = HostedWatchRuntime {
+            slots: vec![slot()],
+        };
+        let mut values = HostValueStore::with_limits(5, 1).unwrap();
+        let source_handle = values.store(b"hello").unwrap();
+        watches.observe(
+            0,
+            RuntimeValue {
+                handle: source_handle,
+                accounted_bytes: 5,
+                envelope: RuntimeValueEnvelope::EMPTY,
+            },
+            0,
+            &values,
+        );
+
+        values.begin_reconciliation();
+        values.finish_reconciliation();
+        assert_eq!(values.get(source_handle), None);
+        assert_eq!(values.usage().resident_bytes, 0);
+
+        let retained = watches.read("watch/test", 0, 1).unwrap();
+        assert_eq!(retained.records.len(), 1);
+        assert_eq!(
+            retained.records[0].material,
+            ExactWatchMaterial::Preview(b"hel".to_vec())
+        );
+        assert_eq!(watches.usage().retained_preview_bytes, 3);
+    }
 }

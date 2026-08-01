@@ -132,6 +132,42 @@ Sink failure leaves the same cursor and observations available for an explicit
 retry. Patchbay consumes the provider's committed projection; it is never this
 authoritative sink.
 
+### Bounded value lifetime
+
+The hosted executor admits one fixed value arena before Start. In plain terms,
+a value enters an already reserved slot, waits while a cord, node, pending
+output, host operation, or external output still owns it, and returns that slot
+when the last such owner is gone. Queue pressure never grows the arena. A
+coalescing replacement releases the displaced value; rejection and disposable
+drop retain nothing; cancellation, failure, completion, and failed startup
+cleanup release their bounded remainder.
+
+After every scheduler turn the accounting order is:
+
+1. clear the prior live marks;
+2. mark handles reachable from queues and nonterminal implementation state;
+3. release every unmarked slot and byte span;
+4. report current and high-water resident slots and bytes.
+
+Two tee branches may share one generation-safe opaque handle. Marking it twice
+does not copy the payload or charge two resident slots. Once released, that
+handle cannot resolve a later occupant of the reused slot. If the plan-admitted
+slot or byte ceiling is exhausted, publication fails with the exact
+`conduit/value-store-bound-exceeded` result rather than depending on allocator
+behavior.
+
+A public Watch copies only its admitted preview bytes into separate fixed Watch
+storage after a cord publication commits. It does not keep the executor value
+alive. Protected material remains redacted. Detaching a Watch stops future
+copies without changing queue ownership or the run.
+
+Hosted profiles use this preallocated byte arena and slot table. Constrained
+profiles may use caller-owned static pools instead, but the ownership and
+disposal rule is identical: accepted values have bounded storage, every live
+owner is explicit, and terminal or discarded work returns its storage exactly
+once. These storage-accounting transitions are session metrics, not fabricated
+domain events.
+
 ## Browser worker control
 
 The Tour's dedicated worker is a bounded host for the same exact session. It
@@ -157,5 +193,5 @@ removing the prior active plan epoch from the worker's authoritative
 projection. Terminating a worker or closing its page outside that stop path is
 an abrupt placement loss, not graceful cancellation.
 
-Long-lived value reclamation and Patchbay Watches build on this boundary and
-each have their own explicit bounds and lifecycle rules.
+Long-lived value reclamation and Patchbay Watches use this same boundary and
+retain their own explicit bounds and lifecycle rules.

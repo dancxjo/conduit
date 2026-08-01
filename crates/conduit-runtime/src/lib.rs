@@ -12759,6 +12759,107 @@ mod tests {
     }
 
     #[test]
+    fn million_value_pass_through_and_shared_tee_stay_inside_one_exact_slot() {
+        let mut store = HostValueStore::with_limits(1, 1).unwrap();
+        for _ in 0..1_000_000 {
+            let handle = store.store(b"x").expect("the released slot is reusable");
+            let value = RuntimeValue {
+                handle,
+                accounted_bytes: 1,
+                envelope: RuntimeValueEnvelope::EMPTY,
+            };
+
+            // A pass-through keeps the accepted handle. A shared-handle tee
+            // may expose that same handle to both branches, so duplicate marks
+            // must remain one resident value rather than hidden payload copies.
+            store.begin_reconciliation();
+            store.mark_live(value);
+            store.mark_live(value);
+            store.finish_reconciliation();
+            assert_eq!(store.usage().resident_slots, 1);
+            assert_eq!(store.usage().resident_bytes, 1);
+
+            // Once queues and node retention drain, the one value is released
+            // exactly once and the next turn returns to the same baseline.
+            store.begin_reconciliation();
+            store.finish_reconciliation();
+            store.finish_reconciliation();
+            assert_eq!(store.get(handle), None);
+            assert_eq!(store.usage().resident_slots, 0);
+            assert_eq!(store.usage().resident_bytes, 0);
+        }
+        assert_eq!(store.usage().high_water_slots, 1);
+        assert_eq!(store.usage().high_water_bytes, 1);
+        assert_eq!(store.usage().maximum_slots, 1);
+        assert_eq!(store.usage().maximum_bytes, 1);
+    }
+
+    #[test]
+    fn value_reconciliation_covers_retention_replacement_drop_and_terminal_cleanup() {
+        let mut store = HostValueStore::with_limits(8, 8).unwrap();
+        let coupled = store.store(b"c").unwrap();
+        let isolated = store.store(b"i").unwrap();
+        let coalesced_old = store.store(b"o").unwrap();
+        let coalesced_latest = store.store(b"n").unwrap();
+        let joined = store.store(b"j").unwrap();
+        let node_state = store.store(b"s").unwrap();
+        let disposable = store.store(b"d").unwrap();
+        let rejected = store.store(b"r").unwrap();
+        let value = |handle| RuntimeValue {
+            handle,
+            accounted_bytes: 1,
+            envelope: RuntimeValueEnvelope::EMPTY,
+        };
+
+        store.begin_reconciliation();
+        store.mark_live(value(coupled));
+        store.mark_live(value(coupled));
+        store.mark_live(value(isolated));
+        store.mark_live(value(coalesced_latest));
+        store.mark_live(value(joined));
+        store.mark_live(value(node_state));
+        store.finish_reconciliation();
+
+        for retained in [coupled, isolated, coalesced_latest, joined, node_state] {
+            assert!(store.get(retained).is_some());
+        }
+        for released in [coalesced_old, disposable, rejected] {
+            assert_eq!(store.get(released), None);
+        }
+        assert_eq!(store.usage().resident_slots, 5);
+        assert_eq!(store.usage().resident_bytes, 5);
+
+        // Abort, failed staged publication, node completion, and session
+        // disposal all converge on the same no-owner reconciliation. Repeating
+        // cleanup cannot release a later generation or underflow accounting.
+        store.begin_reconciliation();
+        store.finish_reconciliation();
+        store.finish_reconciliation();
+        assert_eq!(store.usage().resident_slots, 0);
+        assert_eq!(store.usage().resident_bytes, 0);
+        for stale in [coupled, isolated, coalesced_latest, joined, node_state] {
+            assert_eq!(store.get(stale), None);
+        }
+    }
+
+    #[test]
+    fn value_store_zero_and_exhausted_bounds_fail_deterministically() {
+        let mut absent = HostValueStore::with_limits(0, 0).unwrap();
+        assert_eq!(absent.store(b""), None);
+        assert_eq!(absent.store(b"x"), None);
+
+        let mut bounded = HostValueStore::with_limits(1, 1).unwrap();
+        let resident = bounded.store(b"x").unwrap();
+        assert_eq!(bounded.store(b"y"), None, "the sole slot is occupied");
+        assert_eq!(bounded.store(b"xx"), None, "the byte bound is exact");
+        assert_eq!(bounded.get(resident), Some(&b"x"[..]));
+        assert_eq!(bounded.usage().resident_slots, 1);
+        assert_eq!(bounded.usage().resident_bytes, 1);
+        assert_eq!(bounded.usage().high_water_slots, 1);
+        assert_eq!(bounded.usage().high_water_bytes, 1);
+    }
+
+    #[test]
     fn host_value_store_retires_a_slot_before_generation_wraparound() {
         let mut store = HostValueStore::with_limits(1, 1).unwrap();
         store.slots[0].generation = u32::MAX;
