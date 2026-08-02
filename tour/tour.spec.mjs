@@ -1157,9 +1157,11 @@ test("covers every published chapter and exposes production topology projections
   await page.locator("#logical-view").click();
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#topology")).toContainText('"id": "box"');
   await expect(page.locator("#topology")).toContainText(
-    "box: example/upper-box",
+    '"contract_id": "example/upper-box"',
   );
+  await expect(page.locator("#topology")).not.toContainText("worker");
 });
 
 test("accepts a semantically correct alternate solution", async ({ page }) => {
@@ -1190,6 +1192,119 @@ test("keeps Expanded unavailable when the semantic revision has no exact plan", 
   await expect(page.locator("#plan-view-notice")).toContainText(
     "no realization is manufactured from registry defaults",
   );
+});
+
+test("keeps structural lenses orthogonal to Use Build Inspect and preserves the exact subject", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  const workspace = page.locator("#workspace");
+  const status = page.locator("#presentation-status");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(workspace).toHaveAttribute("data-structural-lens", "face");
+  await expect(workspace).toHaveAttribute("data-topology-projection", "logical");
+  await expect(status).toContainText(
+    "No usable task front is declared, so this root opened in Build.",
+  );
+
+  await page.getByRole("button", {
+    name: "value, outgoing port; type std/text",
+    exact: true,
+  }).click();
+  await expect(status).toContainText("root/greeting/port/outgoing/value");
+
+  const sourceBefore = await page.locator("#source").inputValue();
+  await expect(page.locator('[data-presentation-mode="use"]')).toBeDisabled();
+  await page.locator('[data-presentation-mode="inspect"]').click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(page.locator("#source")).toHaveAttribute("readonly", "");
+  await expect(status).toContainText("root/greeting/port/outgoing/value");
+
+  await page.locator("#show-how").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(page.locator(".source-card")).toBeVisible();
+  await expect(page.locator("#source")).toHaveValue(sourceBefore);
+  await expect(status).toContainText("root/greeting/port/outgoing/value");
+
+  await page.locator("#show-why").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(workspace).toHaveAttribute("data-structural-lens", "context");
+  await expect(page.locator("#source")).toHaveAttribute("readonly", "");
+  await page.locator("#expanded-view").click();
+  await expect(workspace).toHaveAttribute("data-topology-projection", "expanded");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(workspace).toHaveAttribute("data-structural-lens", "context");
+
+  await page.locator('[data-structural-lens="configure"]').click();
+  await expect(page.locator("#configuration-layers")).toBeVisible();
+  await expect(page.locator("#configuration-layer-list")).toContainText(
+    "Owner: panel-instance",
+  );
+  await expect(page.locator("#configuration-layer-list")).toContainText(
+    "Owner: exact-plan",
+  );
+  await expect(page.locator("#configuration-layer-list")).toContainText(
+    "activation: re-resolution-or-plan-transition",
+  );
+});
+
+test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  await expect(page.locator('[data-presentation-mode="use"]')).toBeDisabled();
+  // #294 supplies the authoritative task front. This checks only the reserved
+  // presentation budget without claiming that this fallback lesson has one.
+  await page.evaluate(() => {
+    document.querySelector("#workspace").dataset.presentationMode = "use";
+    document.documentElement.style.zoom = "200%";
+  });
+  await expect(page.locator("#presentation-controls")).toBeVisible();
+  await expect(page.locator("#run")).toBeVisible();
+  await expect(page.locator("#result")).toBeVisible();
+  await expect(page.locator(".source-card")).toBeHidden();
+  await expect(page.locator(".inspectors")).toBeHidden();
+  const runBox = await page.locator("#run").boundingBox();
+  const resultBox = await page.locator("#result").boundingBox();
+  expect(runBox).not.toBeNull();
+  expect(resultBox).not.toBeNull();
+  expect(runBox.x).toBeLessThan(page.viewportSize().width);
+  expect(resultBox.x).toBeLessThan(page.viewportSize().width);
+});
+
+test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.inside-outside");
+  const workspace = page.locator("#workspace");
+  const status = page.locator("#presentation-status");
+  const sourceBefore = await page.locator("#source").inputValue();
+
+  await page.getByRole("button", { name: "Open box inside" }).first().click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "inside");
+  await expect(status).toContainText("root/box");
+  await expect(page.locator("#topology")).toContainText('"owner": "panel-definition"');
+  await expect(page.locator("#source")).toHaveValue(sourceBefore);
+
+  await page.locator("#panel-boundary-list").getByRole("button", {
+    name: "Open box context",
+  }).click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "context");
+  await expect(page.locator("#topology")).toContainText('"owner_kind": "enclosing-panel"');
+  await expect(page.locator("#topology")).toContainText("realization_bindings");
+  await expect(status).toContainText("root/box");
+
+  await page.locator('[data-structural-lens="at-rest"]').click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "at-rest");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator(".primary-actions")).toBeHidden();
+  await expect(page.locator("#topology")).toContainText(
+    '"provider_availability": "not-observed"',
+  );
+  await expect(page.locator("#topology")).toContainText('"resolved": false');
+  await expect(page.locator("#topology")).toContainText('"run_started": false');
+  await page.locator('[data-structural-lens="face"]').click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "face");
+  await expect(page.locator(".primary-actions")).toBeVisible();
+  await expect(page.locator("#topology")).not.toContainText("worker");
+  await expect(page.locator("#topology")).toContainText(
+    '"owner": "panel-instance-public-boundary"',
+  );
+  await expect(page.locator("#source")).toHaveValue(sourceBefore);
 });
 
 test("uses React Flow with legacy line placement disabled", async ({ page }) => {

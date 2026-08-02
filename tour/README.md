@@ -71,6 +71,14 @@ returns bounded diagnostics, a compatibility proof, a candidate exact-plan
 identity when one can be resolved, and a committed/rejected disposition.
 Presentation failure does not remove the editor, checker, or worker controls.
 
+Use/Build/Inspect intent, At rest/Face/Inside/Context/Configure lens,
+Logical/Expanded choice, stable selection, face collapse state, layout, and
+bounded viewport are one separate `PresentationDocument`. The Tour sends
+versioned presentation-only transactions back through Rust; changing a mode or
+lens cannot edit source, resolve a plan, grant authority, acquire a resource,
+or start/stop a run. Roots without a declared task front open in Build with an
+explicit explanation until the task-front contract supplies a real Use surface.
+
 Every lesson and reference panel declares `runnable`, `contract-only`, or
 `illustrative/unavailable`. Only `runnable` sources enable Run. Reference
 panels fetch their canonical checked-in `examples/*.panel` source; unavailable

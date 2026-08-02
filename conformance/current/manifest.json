@@ -4618,13 +4618,23 @@
         "PBY-005",
         "PBY-006",
         "PBY-007",
-        "PBY-008"
+        "PBY-008",
+        "PBL-001",
+        "PBL-002",
+        "PBL-003",
+        "PBL-004",
+        "PBL-005",
+        "PBL-006",
+        "PBL-007",
+        "PBL-008",
+        "PBL-009",
+        "PBL-010"
       ],
       "artifacts": [
         {
           "id": "patchbay-protocol",
           "path": "../c8/patchbay-protocol.json",
-          "sha256": "sha256:49c0d4ed9ef725d59673ef22661a74f997fab32fab9bcafee7aedc146fc64ebc",
+          "sha256": "sha256:12fc7163dffe8425adb14cdfe51709ca68ed3220be5e23054709bf1af29d0811",
           "operation": "patchbay-protocol",
           "requirement_ids": [
             "PBY-001",
@@ -4634,7 +4644,17 @@
             "PBY-005",
             "PBY-006",
             "PBY-007",
-            "PBY-008"
+            "PBY-008",
+            "PBL-001",
+            "PBL-002",
+            "PBL-003",
+            "PBL-004",
+            "PBL-005",
+            "PBL-006",
+            "PBL-007",
+            "PBL-008",
+            "PBL-009",
+            "PBL-010"
           ],
           "default_rule": "PBY-001",
           "case_rules": {
@@ -4654,7 +4674,16 @@
             "renderer-failure-preserves-headless-control": "PBY-006",
             "direct-active-plan-mutation-is-not-a-protocol-operation": "PBY-005",
             "candidate-plan-does-not-mutate-active-run": "PBY-005",
-            "authoritative-view-has-no-browser-inference": "PBY-006"
+            "authoritative-view-has-no-browser-inference": "PBY-006",
+            "mode-lens-topology-navigation-is-presentation-only": "PBL-009",
+            "unloaded-at-rest-inspection-has-no-resolution-or-effect": "PBL-001",
+            "usable-task-front-opens-use-and-missing-front-falls-back-build": "PBL-008",
+            "selected-subject-survives-mode-and-lens-navigation": "PBL-006",
+            "internal-and-external-cords-retain-distinct-owners": "PBL-002",
+            "two-instances-retain-distinct-config-and-enclosing-cords": "PBL-002",
+            "configuration-runtime-plan-and-evidence-layers-stay-distinct": "PBL-005",
+            "lens-navigation-has-keyboard-and-screen-reader-equivalents": "PBL-010",
+            "use-view-information-budget-survives-two-hundred-percent-zoom": "PBL-010"
           },
           "format": "json-vectors",
           "collection": "cases",
@@ -4672,7 +4701,14 @@
           "patchbay-protocol#source-edit-creates-new-semantic-revision",
           "patchbay-protocol#invalid-source-is-current-diagnostic",
           "patchbay-protocol#typed-connect-validates-through-resolver",
-          "patchbay-protocol#authoritative-view-has-no-browser-inference"
+          "patchbay-protocol#authoritative-view-has-no-browser-inference",
+          "patchbay-protocol#mode-lens-topology-navigation-is-presentation-only",
+          "patchbay-protocol#unloaded-at-rest-inspection-has-no-resolution-or-effect",
+          "patchbay-protocol#usable-task-front-opens-use-and-missing-front-falls-back-build",
+          "patchbay-protocol#internal-and-external-cords-retain-distinct-owners",
+          "patchbay-protocol#two-instances-retain-distinct-config-and-enclosing-cords",
+          "patchbay-protocol#configuration-runtime-plan-and-evidence-layers-stay-distinct",
+          "patchbay-protocol#lens-navigation-has-keyboard-and-screen-reader-equivalents"
         ],
         "negative": [
           "patchbay-protocol#stale-edit-is-atomic-conflict",
@@ -4681,12 +4717,14 @@
           "patchbay-protocol#incompatible-connection-is-atomic",
           "patchbay-protocol#hidden-composite-port-is-inaccessible",
           "patchbay-protocol#invalid-config-span-is-atomic",
-          "patchbay-protocol#direct-active-plan-mutation-is-not-a-protocol-operation"
+          "patchbay-protocol#direct-active-plan-mutation-is-not-a-protocol-operation",
+          "patchbay-protocol#selected-subject-survives-mode-and-lens-navigation"
         ],
         "boundary": [
           "patchbay-protocol#projection-gap-requires-resync",
           "patchbay-protocol#projection-truncation-is-explicit",
-          "patchbay-protocol#renderer-failure-preserves-headless-control"
+          "patchbay-protocol#renderer-failure-preserves-headless-control",
+          "patchbay-protocol#use-view-information-budget-survives-two-hundred-percent-zoom"
         ],
         "migration": [
           "patchbay-protocol#run-remains-pinned-while-source-changes",

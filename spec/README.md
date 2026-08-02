@@ -294,6 +294,9 @@ containment program is tracked by
 - [`079-temporal-modalities.md`](079-temporal-modalities.md) defines exact
   ordinary-value, closing-flow, open-flow, and current-observation contracts,
   compatibility, identity, and explicit conversion boundaries.
+- [`081-patchbay-structural-lenses.md`](081-patchbay-structural-lenses.md)
+  defines presentation-only structural lenses and orthogonal
+  Use/Build/Inspect modes.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

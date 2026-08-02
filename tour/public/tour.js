@@ -57,6 +57,13 @@ const narrativeAfterLab = document.querySelector("#narrative-after-lab");
 const chapterOpening = document.querySelector("#chapter-opening");
 const readerPager = document.querySelector(".reader-pager");
 const expandLabButton = document.querySelector("#expand-lab");
+const presentationStatus = document.querySelector("#presentation-status");
+const intentModeButtons = [...document.querySelectorAll("[data-presentation-mode]")];
+const structuralLensButtons = [...document.querySelectorAll("[data-structural-lens]")];
+const configurationLayers = document.querySelector("#configuration-layers");
+const configurationLayerList = document.querySelector("#configuration-layer-list");
+const showHowButton = document.querySelector("#show-how");
+const showWhyButton = document.querySelector("#show-why");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const book = await (await fetch("../book/current.json", { cache: "no-store" })).json();
@@ -1300,6 +1307,10 @@ if (cyContainer) {
     onPortSelect: (nodeId, port) => {
       selectPort(nodeId, port);
     },
+    onOpenNested: (nodeId) => {
+      selectNode(nodeId);
+      navigatePresentation({ mode: "build", lens: "inside", topology: "logical" });
+    },
     onCordWatch: (cordId) => toggleWatchForSubject({ cordId }),
     onPortWatch: (nodeId, port) => toggleWatchForSubject({ nodeId, port }),
     onSelectionClear: () => {
@@ -1465,13 +1476,43 @@ function projectedCordsForTopologyView() {
 }
 
 function renderStructuredTopology() {
+  const boundaryList = document.querySelector("#panel-boundary-list");
   const portList = document.querySelector("#panel-port-list");
   const connectionList = document.querySelector("#panel-connection-list");
-  if (!portList || !connectionList) return;
+  if (!boundaryList || !portList || !connectionList) return;
+  boundaryList.replaceChildren();
   portList.replaceChildren();
   connectionList.replaceChildren();
   const nodes = projectedNodesForTopologyView();
   for (const node of nodes) {
+    const composite = topologyView === "logical" &&
+      (patchbayView?.topology?.composites || []).some((candidate) => candidate.id === node.id);
+    if (composite) {
+      const item = document.createElement("li");
+      item.dataset.semanticPath = node.semantic_id;
+      const label = document.createElement("span");
+      label.textContent = `${node.id}: composite boundary`;
+      const actions = document.createElement("span");
+      actions.className = "button-row";
+      for (const [lens, text] of [
+        ["face", "Face"],
+        ["inside", "Inside"],
+        ["context", "Context"],
+      ]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn small secondary structured-boundary-button";
+        button.textContent = text;
+        button.setAttribute("aria-label", `Open ${node.id} ${lens}`);
+        button.onclick = () => {
+          selectNode(node.id);
+          navigatePresentation({ lens, topology: "logical" });
+        };
+        actions.append(button);
+      }
+      item.append(label, actions);
+      boundaryList.append(item);
+    }
     for (const port of [...node.inputs, ...node.outputs]) {
       const item = document.createElement("li");
       item.dataset.semanticPath = port.semantic_path;
@@ -1544,6 +1585,8 @@ function openPatchbaySession() {
   patchbaySourceRevision = opened.view.source.revision;
   patchbayPresentationRevision = opened.view.presentation.revision;
   positions = opened.view.presentation.node_positions;
+  topologyView = opened.view.presentation.topology;
+  syncPresentationControls();
   const rememberedOperations = rememberedLayoutOperations(current.id, opened.view);
   if (rememberedOperations.length > 0) {
     for (let offset = 0; offset < rememberedOperations.length;
@@ -1619,14 +1662,124 @@ function applyPatchbayOperations(operations, options = {}) {
     syncSourceHighlight();
   }
   positions = transaction.result.presentation.node_positions;
+  topologyView = transaction.result.presentation.topology;
   syncDiagnosticSourceHighlights();
   runButton.disabled =
     activeRunnability()?.state !== "runnable" || !patchbayView.plan || Boolean(activeAdapter);
+  syncPresentationControls();
   rememberLayout(current.id, positions, patchbayView);
   if (!options.preserveFaceplateFocus && !options.skipRender) {
     updateCytoscapeGraph();
   }
   return transaction;
+}
+
+function presentationSnapshot() {
+  return patchbayView?.presentation || null;
+}
+
+function renderConfigurationLayers() {
+  if (!configurationLayerList) return;
+  configurationLayerList.replaceChildren();
+  for (const layer of patchbayView?.configuration_layers || []) {
+    const item = document.createElement("li");
+    item.className = "configuration-layer-item";
+    const heading = document.createElement("strong");
+    heading.textContent = layer.id;
+    const ownership = document.createElement("p");
+    ownership.className = "card-subtitle";
+    ownership.textContent =
+      `Owner: ${layer.owner}; persists in: ${layer.persistence}; ` +
+      `revision: ${layer.revision}; sensitivity: ${layer.sensitivity}; ` +
+      `mutability: ${layer.mutability}; activation: ${layer.activation}.`;
+    const fields = document.createElement("dl");
+    fields.className = "configuration-layer-fields";
+    for (const field of layer.fields || []) {
+      const row = document.createElement("div");
+      const term = document.createElement("dt");
+      const value = document.createElement("dd");
+      term.textContent = field.id;
+      value.textContent = field.display_value;
+      row.append(term, value);
+      fields.append(row);
+    }
+    item.append(heading, ownership, fields);
+    configurationLayerList.append(item);
+  }
+}
+
+function syncPresentationControls() {
+  const presentation = presentationSnapshot();
+  if (!presentation) return;
+  topologyView = presentation.topology;
+  workspace.dataset.presentationMode = presentation.mode;
+  workspace.dataset.structuralLens = presentation.lens;
+  workspace.dataset.topologyProjection = presentation.topology;
+  for (const button of intentModeButtons) {
+    const active = button.dataset.presentationMode === presentation.mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.disabled = button.dataset.presentationMode === "use" &&
+      presentation.opening_reason !== "usable-task-front-declared";
+  }
+  for (const button of structuralLensButtons) {
+    const active = button.dataset.structuralLens === presentation.lens;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+  const selected = presentation.selected_subject
+    ? ` Selected subject: ${presentation.selected_subject.path}.`
+    : " No subject selected.";
+  const opening = presentation.opening_reason === "usable-task-front-declared"
+    ? "A declared usable task front opened in Use."
+    : "No usable task front is declared, so this root opened in Build.";
+  presentationStatus.textContent =
+    `${opening} ${presentation.mode} intent · ${presentation.lens} boundary · ` +
+    `${presentation.topology} topology.${selected}`;
+
+  const sourceCard = document.querySelector(".source-card");
+  if (sourceCard) sourceCard.hidden = presentation.mode === "use";
+  source.readOnly = presentation.mode !== "build";
+  document.querySelectorAll(".inspectors").forEach((element) => {
+    element.hidden = presentation.mode === "use";
+  });
+  configurationLayers.hidden = presentation.lens !== "configure";
+  renderConfigurationLayers();
+
+  const atRest = presentation.lens === "at-rest";
+  runButton.disabled ||= atRest;
+  stopButton.disabled = atRest || !activeAdapter;
+}
+
+function navigatePresentation({ mode, lens, topology } = {}) {
+  const presentation = presentationSnapshot();
+  if (!presentation) return null;
+  if (mode === "use" && presentation.opening_reason !== "usable-task-front-declared") {
+    result.textContent =
+      "No usable task front is declared; Build remains active until an authoritative front exists.";
+    return null;
+  }
+  const nextTopology = topology || presentation.topology;
+  if (nextTopology === "expanded" && !patchbayView?.topology?.planned_realization) {
+    result.textContent = "No exact plan has been resolved; Expanded remains unavailable.";
+    return null;
+  }
+  const transaction = applyPatchbayOperations([{
+    Navigate: {
+      mode: mode || presentation.mode,
+      lens: lens || presentation.lens,
+      topology: nextTopology,
+    },
+  }]);
+  if (transaction?.ok) renderTopology();
+  return transaction;
+}
+
+function selectPresentationSubject(subject) {
+  if (!presentationSnapshot()) return null;
+  return applyPatchbayOperations([{
+    SelectSubject: { subject },
+  }], { skipRender: true });
 }
 
 function recordEvidence(event) {
@@ -2126,6 +2279,7 @@ function show(lesson) {
   openPatchbaySession();
   check();
   runButton.disabled = availability.state !== "runnable";
+  syncPresentationControls();
 }
 
 function selectNode(node) {
@@ -2135,6 +2289,13 @@ function selectNode(node) {
     .find((candidate) => candidate.id === node);
   const projection = logicalProjection || plannedProjection;
   if (!selectSourceRange("node", node, projection?.source_range)) return;
+  if (logicalProjection) {
+    const selected = selectPresentationSubject({
+      kind: "instance",
+      path: logicalProjection.semantic_id,
+    });
+    if (selected && !selected.ok) return;
+  }
   selectedNode = node;
   selectedCord = null;
   selectedNodeLabel.textContent = plannedProjection
@@ -2162,6 +2323,11 @@ function selectCord(cordId) {
     return;
   }
   if (!selectSourceRange("cord", cordId, projection?.source_range)) return;
+  const selected = selectPresentationSubject({
+    kind: "cord",
+    path: projection.semantic_path,
+  });
+  if (selected && !selected.ok) return;
   source.setSourceRelatedRanges?.([
     projection.from_port_range,
     projection.to_port_range,
@@ -2214,6 +2380,11 @@ function selectPort(nodeId, port) {
         "does not match its authoritative cord projection.";
       return;
     }
+    const selected = selectPresentationSubject({
+      kind: "port",
+      path: port.semantic_path,
+    });
+    if (selected && !selected.ok) return;
     selectedNode = null;
     selectedCord = cord.id;
     patchbayRenderer?.selectCord(cord.id);
@@ -2228,6 +2399,11 @@ function selectPort(nodeId, port) {
   if (!selectSourceRange("port owner", port.semantic_path, projection?.source_range)) {
     return;
   }
+  const selected = selectPresentationSubject({
+    kind: "instance",
+    path: projection?.semantic_id || `root/${nodeId}`,
+  });
+  if (selected && !selected.ok) return;
   selectedNode = nodeId;
   selectedCord = null;
   selectedNodeLabel.textContent =
@@ -2259,6 +2435,7 @@ function selectSourceRange(kind, id, range) {
 }
 
 function clearTopologySelection() {
+  selectPresentationSubject(null);
   selectedNode = null;
   selectedCord = null;
   selectedNodeLabel.textContent = "No topology item selected";
@@ -2329,9 +2506,44 @@ function renderTopology() {
     ? "Read-only exact plan. Select an instance to reveal its authored semantic origin; resolve source changes into a new plan."
     : "Drag nodes to adjust presentation layout. Drag from an outgoing jack to a receiving jack to connect; select a cord and drag either end to rewire it.";
   if (arrangeButton) arrangeButton.disabled = topologyView === "expanded";
-  document.querySelector("#topology").textContent = topologyView === "expanded"
-    ? JSON.stringify(realization, null, 2)
-    : explanation.ok ? explanation.logical : explanation.diagnostic;
+  const lens = patchbayView?.presentation?.lens || "face";
+  const lensProjection = lens === "at-rest"
+    ? patchbayView?.at_rest || {
+        status: "unavailable",
+        explanation: "The current source is incomplete, so no at-rest definition projection exists.",
+      }
+    : lens === "inside"
+      ? {
+          owner: "panel-definition",
+          composites: (patchbayView?.topology?.composites || []).filter(
+            (composite) => !selectedNode || composite.id === selectedNode,
+          ),
+        }
+      : lens === "context"
+        ? {
+            semantic_cords: patchbayView?.topology?.cords || [],
+            realization_bindings: realization || null,
+            distinction: "enclosing-panel semantic cords are not exact-plan bindings",
+          }
+        : lens === "configure"
+          ? { layers: patchbayView?.configuration_layers || [] }
+          : lens === "face" && topologyView === "expanded"
+            ? realization
+          : lens === "face"
+            ? {
+                owner: "panel-instance-public-boundary",
+                faces: (patchbayView?.topology?.logical_nodes || []).map((node) => ({
+                  id: node.id,
+                  semantic_id: node.semantic_id,
+                  contract_id: node.contract_id || null,
+                  inputs: node.inputs || [],
+                  outputs: node.outputs || [],
+                })),
+              }
+            : explanation.ok ? explanation.logical : explanation.diagnostic;
+  document.querySelector("#topology").textContent = typeof lensProjection === "string"
+    ? lensProjection
+    : JSON.stringify(lensProjection, null, 2);
   renderStructuredTopology();
 }
 
@@ -2399,19 +2611,40 @@ if (arrangeButton) {
   };
 }
 document.querySelector("#logical-view").onclick = () => {
-  topologyView = "logical";
-  updateCytoscapeGraph();
-  renderTopology();
+  const transaction = navigatePresentation({ topology: "logical" });
+  if (transaction?.ok) {
+    updateCytoscapeGraph();
+    renderTopology();
+  }
 };
 document.querySelector("#expanded-view").onclick = () => {
-  if (!patchbayView?.topology?.planned_realization) {
-    result.textContent = "No exact plan has been resolved; Expanded remains unavailable.";
-    return;
+  const transaction = navigatePresentation({ topology: "expanded" });
+  if (transaction?.ok) {
+    updateCytoscapeGraph();
+    renderTopology();
   }
-  topologyView = "expanded";
-  updateCytoscapeGraph();
-  renderTopology();
 };
+
+for (const button of intentModeButtons) {
+  button.onclick = () => navigatePresentation({
+    mode: button.dataset.presentationMode,
+  });
+}
+for (const button of structuralLensButtons) {
+  button.onclick = () => navigatePresentation({
+    lens: button.dataset.structuralLens,
+  });
+}
+showHowButton.onclick = () => navigatePresentation({
+  mode: "build",
+  lens: patchbayView?.topology?.composites?.some(
+    (composite) => composite.id === selectedNode,
+  ) ? "inside" : "face",
+});
+showWhyButton.onclick = () => navigatePresentation({
+  mode: "inspect",
+  lens: selectedCord ? "context" : "configure",
+});
 
 function moveSelected(delta) {
   if (!selectedNode) return;

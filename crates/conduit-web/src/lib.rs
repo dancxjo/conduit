@@ -1659,6 +1659,31 @@ pub fn patchbay_open_session(document_id: String, source: String) -> String {
     })
 }
 
+/// Inspects one unloaded definition/source without opening a session or
+/// consulting the browser registry. The returned shape has no plan, run,
+/// resource, authority, or evidence fields.
+#[wasm_bindgen]
+pub fn patchbay_inspect_at_rest(document_id: String, source: String) -> String {
+    if document_id.is_empty() || document_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-006",
+            "diagnostic": "Patchbay inspection identity exceeds its finite bound",
+            "diagnostics": [],
+            "disposition": "rejected",
+        })
+        .to_string();
+    }
+    match conduit_patchbay::inspect_at_rest(document_id, source) {
+        Ok(inspection) => serde_json::json!({
+            "ok": true,
+            "inspection": inspection,
+        })
+        .to_string(),
+        Err(error) => patchbay_error(error),
+    }
+}
+
 /// Returns the current authoritative Rust projection for a Patchbay session.
 #[wasm_bindgen]
 pub fn patchbay_session_view(session_id: String) -> String {
@@ -2925,7 +2950,7 @@ fn authoritative_patchbay_view(
                 .config
                 .iter()
                 .map(|entry| {
-                    let mut projection = project_config_value(&entry.value);
+                    let mut projection = project_config_value(&entry.value, source_revision);
                     projection.source_range = source_range_for_span(
                         source_text,
                         entry.source_span,
@@ -3048,6 +3073,10 @@ fn authoritative_patchbay_view(
             });
             cords.push(conduit_patchbay::PatchbayCordProjection {
                 id: source_cord.id.clone(),
+                semantic_path: format!("root/cord/{}", source_cord.id),
+                owner_kind: "enclosing-panel".to_owned(),
+                owner_path: "root".to_owned(),
+                boundary_rule: "exported-public-ports-only".to_owned(),
                 from_node: Some(source_cord.from.node.clone()),
                 from_port: Some(source_cord.from.port.clone()),
                 from_port_path: Some(format!(
@@ -3317,6 +3346,10 @@ fn authoritative_patchbay_view(
             });
             cords.push(conduit_patchbay::PatchbayCordProjection {
                 id: recovered_cord.id.clone(),
+                semantic_path: format!("root/cord/{}", recovered_cord.id),
+                owner_kind: "enclosing-panel".to_owned(),
+                owner_path: "root".to_owned(),
+                boundary_rule: "exported-public-ports-only".to_owned(),
                 from_node: recovered_cord.from.node.clone(),
                 from_port: recovered_cord.from.port.clone(),
                 from_port_path: recovered_cord
@@ -3475,27 +3508,62 @@ fn authoritative_patchbay_view(
         "no-exact-plan"
     }
     .to_owned();
-    let mut composites = resolved_view.as_ref().map_or_else(Vec::new, |view| {
-        view.composites
+    let mut composites = document.ast.as_ref().map_or_else(Vec::new, |panel| {
+        panel
+            .nodes
             .iter()
-            .map(|composite| conduit_patchbay::PatchbayCompositeProjection {
-                id: composite.path.clone(),
-                definition: composite.definition.clone(),
-                members: composite
-                    .children
+            .filter_map(|instance| {
+                panel
+                    .definitions
                     .iter()
-                    .map(|child| child.path.clone())
-                    .collect(),
-                exports: composite
-                    .exports
-                    .iter()
-                    .map(|export| conduit_patchbay::PatchbayExportProjection {
-                        direction: export.direction.to_owned(),
-                        id: export.id.clone(),
-                        target_node: export.target_node.clone(),
-                        target_port: export.target_port.clone(),
+                    .find(|definition| definition.id == instance.kind)
+                    .map(|definition| conduit_patchbay::PatchbayCompositeProjection {
+                        id: instance.id.clone(),
+                        definition: definition.id.clone(),
+                        members: definition
+                            .nodes
+                            .iter()
+                            .map(|child| format!("{}.{}", instance.id, child.id))
+                            .collect(),
+                        internal_cords: definition
+                            .cords
+                            .iter()
+                            .map(
+                                |cord| conduit_patchbay::PatchbayOwnedInternalCordProjection {
+                                    from: format!("{}.{}", cord.from.node, cord.from.port),
+                                    to: format!("{}.{}", cord.to.node, cord.to.port),
+                                    owner_kind: "panel-definition".to_owned(),
+                                    owner_path: format!("definition/{}", definition.id),
+                                },
+                            )
+                            .collect(),
+                        exports: definition
+                            .exports
+                            .iter()
+                            .map(|export| conduit_patchbay::PatchbayExportProjection {
+                                direction: direction_name(export.direction).to_owned(),
+                                id: export.id.clone(),
+                                target_node: export.target.node.clone(),
+                                target_port: export.target.port.clone(),
+                            })
+                            .collect(),
+                        bindings: definition
+                            .bindings
+                            .iter()
+                            .map(
+                                |binding| conduit_patchbay::PatchbayDefinitionBindingProjection {
+                                    parameter: binding.parameter.clone(),
+                                    target: format!(
+                                        "{}.{}",
+                                        binding.target.node, binding.target.port
+                                    ),
+                                    owner_kind: "panel-definition".to_owned(),
+                                    persistence: "source-document".to_owned(),
+                                    activation: "source-candidate-requires-resolution".to_owned(),
+                                },
+                            )
+                            .collect(),
                     })
-                    .collect(),
             })
             .collect()
     });
@@ -3543,6 +3611,166 @@ fn authoritative_patchbay_view(
         composite.members.truncate(bounds.maximum_nodes);
         composite.exports.truncate(bounds.maximum_ports_per_node);
     }
+    let mut configuration_layers = Vec::new();
+    if let Some(panel) = document.ast.as_ref() {
+        for definition in &panel.definitions {
+            let fields = definition
+                .parameters
+                .iter()
+                .filter_map(|parameter| {
+                    parameter.default.as_ref().map(|value| {
+                        let projected = project_config_value(value, source_revision);
+                        conduit_patchbay::PatchbayConfigurationFieldProjection {
+                            id: parameter.id.clone(),
+                            display_value: projected.display_value,
+                        }
+                    })
+                })
+                .take(bounds.maximum_config_fields_per_node)
+                .collect::<Vec<_>>();
+            if !fields.is_empty() {
+                configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+                    id: format!("definition/{}/defaults", definition.id),
+                    owner: "panel-definition".to_owned(),
+                    persistence: "source-document".to_owned(),
+                    revision: source_revision.to_string(),
+                    sensitivity: "declared-per-field".to_owned(),
+                    mutability: "definition-source-candidate".to_owned(),
+                    activation: "re-resolution".to_owned(),
+                    fields,
+                });
+            }
+        }
+    }
+    for node in &logical_nodes {
+        if !node.config.is_empty() {
+            configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+                id: format!("root/{}/instance-authored", node.id),
+                owner: "panel-instance".to_owned(),
+                persistence: "source-document".to_owned(),
+                revision: source_revision.to_string(),
+                sensitivity: "declared-per-field".to_owned(),
+                mutability: "source-candidate".to_owned(),
+                activation: "re-resolution-or-plan-transition".to_owned(),
+                fields: node
+                    .config
+                    .iter()
+                    .map(
+                        |(id, value)| conduit_patchbay::PatchbayConfigurationFieldProjection {
+                            id: id.clone(),
+                            display_value: value.display_value.clone(),
+                        },
+                    )
+                    .collect(),
+            });
+        }
+        if !node.inputs.is_empty() {
+            configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+                id: format!("root/{}/live-inputs", node.id),
+                owner: "upstream-semantic-cords".to_owned(),
+                persistence: "run-only".to_owned(),
+                revision: matching_run
+                    .as_ref()
+                    .map_or_else(|| "no-run".to_owned(), |run| run.run_id.clone()),
+                sensitivity: "declared-per-port".to_owned(),
+                mutability: "ordinary-typed-input-not-config".to_owned(),
+                activation: "current-run-delivery".to_owned(),
+                fields: node
+                    .inputs
+                    .iter()
+                    .map(
+                        |port| conduit_patchbay::PatchbayConfigurationFieldProjection {
+                            id: port.id.clone(),
+                            display_value: port.type_id.clone(),
+                        },
+                    )
+                    .collect(),
+            });
+        }
+    }
+    if let Some(plan) = plan.as_ref() {
+        for binding in &plan.bindings {
+            let mut fields = vec![
+                conduit_patchbay::PatchbayConfigurationFieldProjection {
+                    id: "implementation".to_owned(),
+                    display_value: binding.implementation_id.clone(),
+                },
+                conduit_patchbay::PatchbayConfigurationFieldProjection {
+                    id: "host".to_owned(),
+                    display_value: binding.host_id.clone(),
+                },
+            ];
+            fields.extend(binding.resources.iter().map(|resource| {
+                conduit_patchbay::PatchbayConfigurationFieldProjection {
+                    id: format!("resource/{}", resource.binding_id),
+                    display_value: resource.resource_kind.clone(),
+                }
+            }));
+            configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+                id: format!("{}/resolved-binding", binding.instance),
+                owner: "exact-plan".to_owned(),
+                persistence: "plan-epoch".to_owned(),
+                revision: plan.identity.clone(),
+                sensitivity: "opaque-handles-redacted".to_owned(),
+                mutability: "immutable".to_owned(),
+                activation: "plan-transition".to_owned(),
+                fields,
+            });
+        }
+    }
+    configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+        id: "presentation/preferences".to_owned(),
+        owner: "presentation-document".to_owned(),
+        persistence: "user-workspace".to_owned(),
+        revision: workspace.presentation().revision.to_string(),
+        sensitivity: "public".to_owned(),
+        mutability: "presentation-only".to_owned(),
+        activation: "none".to_owned(),
+        fields: vec![
+            conduit_patchbay::PatchbayConfigurationFieldProjection {
+                id: "mode".to_owned(),
+                display_value: workspace.presentation().mode.as_str().to_owned(),
+            },
+            conduit_patchbay::PatchbayConfigurationFieldProjection {
+                id: "lens".to_owned(),
+                display_value: workspace.presentation().lens.as_str().to_owned(),
+            },
+            conduit_patchbay::PatchbayConfigurationFieldProjection {
+                id: "topology".to_owned(),
+                display_value: workspace.presentation().topology.as_str().to_owned(),
+            },
+        ],
+    });
+    if let Some(run) = matching_run.as_ref() {
+        configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+            id: "runtime/current".to_owned(),
+            owner: "run".to_owned(),
+            persistence: "run-epoch".to_owned(),
+            revision: run.run_id.clone(),
+            sensitivity: "bounded-projection".to_owned(),
+            mutability: "runtime-state-read-only".to_owned(),
+            activation: "runtime-control".to_owned(),
+            fields: vec![conduit_patchbay::PatchbayConfigurationFieldProjection {
+                id: "state".to_owned(),
+                display_value: format!("{:?}", run.state).to_lowercase(),
+            }],
+        });
+        configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+            id: "evidence/immutable".to_owned(),
+            owner: "evidence-stream".to_owned(),
+            persistence: "evidence-retention-policy".to_owned(),
+            revision: run.run_id.clone(),
+            sensitivity: "bounded-redacted-projection".to_owned(),
+            mutability: "immutable".to_owned(),
+            activation: "none".to_owned(),
+            fields: vec![conduit_patchbay::PatchbayConfigurationFieldProjection {
+                id: "retained-events".to_owned(),
+                display_value: evidence.len().to_string(),
+            }],
+        });
+    }
+    truncated |= configuration_layers.len() > bounds.maximum_configuration_layers;
+    configuration_layers.truncate(bounds.maximum_configuration_layers);
     Ok(conduit_patchbay::PatchbayViewModel {
         protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_VERSION,
         source: workspace.source().clone(),
@@ -3585,6 +3813,8 @@ fn authoritative_patchbay_view(
             }
             .to_owned(),
         },
+        at_rest: conduit_patchbay::project_at_rest(workspace.source()).ok(),
+        configuration_layers,
         diagnostics,
         bounds,
         truncated: truncated || recovered.recovery_limited,
@@ -3976,6 +4206,7 @@ fn parse_error_source_range(
 
 fn project_config_value(
     value: &conduit_panel::SourceValue,
+    source_revision: u64,
 ) -> conduit_patchbay::PatchbayConfigProjection {
     let (kind, display_value, editable) = match value {
         conduit_panel::SourceValue::Boolean(value) => ("boolean", value.to_string(), false),
@@ -4003,6 +4234,16 @@ fn project_config_value(
         kind: kind.to_owned(),
         display_value,
         editable,
+        owner: "panel-instance".to_owned(),
+        persistence: "source-document".to_owned(),
+        revision: source_revision,
+        sensitivity: if matches!(value, conduit_panel::SourceValue::SecretReference(_)) {
+            "secret"
+        } else {
+            "public"
+        }
+        .to_owned(),
+        activation: "source-candidate-requires-resolution".to_owned(),
         source_range: None,
         validity: "valid".to_owned(),
         diagnostic_ids: Vec::new(),
@@ -4829,10 +5070,10 @@ mod tests {
         exact_plan_snapshot, explain_panel, panel_language_metadata, panel_source_metadata,
         patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
         patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_dispose_exact_run,
-        patchbay_move_node, patchbay_notify_host_operation, patchbay_open_session,
-        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
-        patchbay_replace_source, patchbay_session_view, patchbay_snapshot_exact_run,
-        patchbay_start_exact_run, planned_realization_projection,
+        patchbay_inspect_at_rest, patchbay_move_node, patchbay_notify_host_operation,
+        patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
+        patchbay_read_exact_watch, patchbay_replace_source, patchbay_session_view,
+        patchbay_snapshot_exact_run, patchbay_start_exact_run, planned_realization_projection,
     };
 
     const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
@@ -5539,6 +5780,161 @@ output.value > sink.result\n\
                 .is_some_and(|identity| identity.starts_with("sha256:"))
         );
         assert_eq!(replaced["result"]["candidate_revision"]["source"], 1);
+    }
+
+    #[test]
+    fn presentation_lenses_are_rust_owned_and_keep_semantic_runtime_layers_separate() {
+        let session = "test/presentation-lenses";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session.to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["view"]["presentation"]["mode"], "build");
+        assert_eq!(opened["view"]["presentation"]["lens"], "face");
+        assert_eq!(
+            opened["view"]["presentation"]["opening_reason"],
+            "no-usable-task-front-declared"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["cords"][0]["owner_kind"],
+            "enclosing-panel"
+        );
+        assert_eq!(
+            opened["view"]["topology"]["cords"][0]["boundary_rule"],
+            "exported-public-ports-only"
+        );
+        let source_identity = opened["view"]["source"]["identity"].clone();
+        let semantic_identity = opened["view"]["semantic"]["source_semantic_hash"].clone();
+        let plan_identity = opened["view"]["plan"]["identity"].clone();
+        let cord_path = opened["view"]["topology"]["cords"][0]["semantic_path"]
+            .as_str()
+            .expect("cord path");
+        let request = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session,
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [
+                {"Navigate": {
+                    "mode": "inspect",
+                    "lens": "context",
+                    "topology": "expanded"
+                }},
+                {"SelectSubject": {"subject": {
+                    "kind": "cord",
+                    "path": cord_path
+                }}}
+            ]
+        });
+        let changed: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session.to_owned(),
+            request.to_string(),
+        ))
+        .expect("navigation JSON");
+        assert_eq!(changed["ok"], true, "{changed}");
+        assert_eq!(changed["view"]["presentation"]["mode"], "inspect");
+        assert_eq!(changed["view"]["presentation"]["lens"], "context");
+        assert_eq!(changed["view"]["presentation"]["topology"], "expanded");
+        assert_eq!(changed["view"]["source"]["identity"], source_identity);
+        assert_eq!(
+            changed["view"]["semantic"]["source_semantic_hash"],
+            semantic_identity
+        );
+        assert_eq!(changed["view"]["plan"]["identity"], plan_identity);
+        let layers = changed["view"]["configuration_layers"]
+            .as_array()
+            .expect("configuration layers");
+        for owner in [
+            "panel-instance",
+            "upstream-semantic-cords",
+            "exact-plan",
+            "presentation-document",
+        ] {
+            assert!(
+                layers.iter().any(|layer| layer["owner"] == owner),
+                "projects {owner} separately"
+            );
+        }
+        let authored = layers
+            .iter()
+            .find(|layer| layer["owner"] == "panel-instance")
+            .expect("instance-authored layer");
+        assert_eq!(authored["persistence"], "source-document");
+        assert_eq!(authored["activation"], "re-resolution-or-plan-transition");
+    }
+
+    #[test]
+    fn unloaded_at_rest_wasm_projection_has_no_plan_run_authority_or_effect() {
+        let inspected: Value = serde_json::from_str(&patchbay_inspect_at_rest(
+            "shelf/hello".to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("at-rest JSON");
+        assert_eq!(inspected["ok"], true, "{inspected}");
+        let projection = &inspected["inspection"];
+        assert_eq!(projection["presentation"]["lens"], "at-rest");
+        assert_eq!(
+            projection["definition"]["provider_availability"],
+            "not-observed"
+        );
+        assert_eq!(projection["definition"]["operations"]["resolved"], false);
+        assert_eq!(
+            projection["definition"]["operations"]["authority_acquired"],
+            false
+        );
+        assert_eq!(projection.get("plan"), None);
+        assert_eq!(projection.get("run"), None);
+        assert_eq!(projection.get("evidence"), None);
+    }
+
+    #[test]
+    fn two_definition_instances_keep_config_external_cords_and_internal_owner_distinct() {
+        let source = r#"panel 0
+example/upper-box(value: std/text = "default") {
+  source: std/literal { value = "inside" }
+  upper: text/uppercase
+  source.value > upper.text
+  export value > = upper.text
+  bind value = source.value
+}
+first: example/upper-box { value = "first" }
+second: example/upper-box { value = "second" }
+sink_one: display/text
+sink_two: display/text
+first.value > sink_one.text
+second.value > sink_two.text
+"#;
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/two-composite-instances".to_owned(),
+            source.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        let nodes = opened["view"]["topology"]["logical_nodes"]
+            .as_array()
+            .expect("logical nodes");
+        let first = nodes.iter().find(|node| node["id"] == "first").unwrap();
+        let second = nodes.iter().find(|node| node["id"] == "second").unwrap();
+        assert_eq!(first["config"]["value"]["display_value"], "first");
+        assert_eq!(second["config"]["value"]["display_value"], "second");
+        let cords = opened["view"]["topology"]["cords"]
+            .as_array()
+            .expect("external cords");
+        assert_eq!(cords.len(), 2);
+        assert!(
+            cords
+                .iter()
+                .all(|cord| cord["owner_kind"] == "enclosing-panel")
+        );
+        let composites = opened["view"]["topology"]["composites"]
+            .as_array()
+            .expect("composite instances");
+        assert_eq!(composites.len(), 2, "{opened}");
+        assert!(composites.iter().all(|composite| {
+            composite["definition"] == "example/upper-box"
+                && composite["internal_cords"][0]["owner_kind"] == "panel-definition"
+        }));
     }
 
     #[test]

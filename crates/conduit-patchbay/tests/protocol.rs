@@ -1,11 +1,28 @@
 use conduit_patchbay::{
     EditOperation, EditRequest, HostConformanceProjectionInput, NodePosition,
-    PATCHBAY_PROTOCOL_VERSION, PlanSnapshot, PoolProjectionInput, ProjectionLog, ProjectionUpdate,
-    RunSnapshot, RunState, SubjectPath, Workspace, project_host_conformance,
+    PATCHBAY_PROTOCOL_VERSION, PlanSnapshot, PoolProjectionInput, PresentationMode,
+    PresentationOpening, PresentationSubject, PresentationSubjectKind, PresentationViewport,
+    ProjectionLog, ProjectionUpdate, RunSnapshot, RunState, StructuralLens, SubjectPath,
+    TopologyProjection, Workspace, inspect_at_rest, project_host_conformance,
     project_library_catalog, project_pool, project_supervision,
 };
 
 const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
+const COMPOSITE_SOURCE: &str = r#"panel 0
+example/upper-box(value: std/text = "default") {
+  source: std/literal { value = "inside" }
+  upper: text/uppercase
+  source.value > upper.text
+  export value > = upper.text
+  bind value = source.value
+}
+first: example/upper-box { value = "first" }
+second: example/upper-box { value = "second" }
+sink_one: display/text
+sink_two: display/text
+first.value > sink_one.text
+second.value > sink_two.text
+"#;
 const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol.json");
 
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
@@ -340,6 +357,183 @@ fn move_only_changes_presentation_identity() {
 }
 
 #[test]
+fn navigation_selection_collapse_and_viewport_change_only_presentation() {
+    let mut workspace = Workspace::new("tour/hello", SOURCE).expect("source parses");
+    let cord_path = format!(
+        "root/cord/{}",
+        conduit_panel::parse(SOURCE).unwrap().cords[0].id
+    );
+    let original_source = workspace.source().clone();
+    let original_semantic = workspace.semantic();
+    let changed = workspace
+        .apply(request(
+            &workspace,
+            vec![
+                EditOperation::Navigate {
+                    mode: PresentationMode::Inspect,
+                    lens: StructuralLens::Context,
+                    topology: TopologyProjection::Expanded,
+                },
+                EditOperation::SelectSubject {
+                    subject: Some(PresentationSubject {
+                        kind: PresentationSubjectKind::Cord,
+                        path: cord_path.clone(),
+                    }),
+                },
+                EditOperation::SetCollapsed {
+                    node_id: "greeting".to_owned(),
+                    collapsed: true,
+                },
+                EditOperation::SetViewport {
+                    viewport: PresentationViewport {
+                        x: 40,
+                        y: -20,
+                        zoom_basis_points: 20_000,
+                    },
+                },
+            ],
+        ))
+        .expect("presentation transaction applies");
+    assert_eq!(changed.source, original_source);
+    assert_eq!(changed.semantic, original_semantic);
+    assert_eq!(changed.presentation.revision, 1);
+    assert_eq!(changed.presentation.mode, PresentationMode::Inspect);
+    assert_eq!(changed.presentation.lens, StructuralLens::Context);
+    assert_eq!(changed.presentation.topology, TopologyProjection::Expanded);
+    assert_eq!(
+        changed.presentation.selected_subject.as_ref().unwrap().path,
+        cord_path
+    );
+    assert!(changed.presentation.collapsed_nodes.contains("greeting"));
+    assert_eq!(changed.presentation.viewport.zoom_basis_points, 20_000);
+    assert_eq!(changed.compatibility.code, "CND-PBY-PRESENTATION-ONLY");
+}
+
+#[test]
+fn opening_mode_requires_an_explicit_usable_task_front_observation() {
+    let mut fallback = Workspace::new("tour/fallback", SOURCE).expect("source parses");
+    assert_eq!(fallback.presentation().mode, PresentationMode::Build);
+    assert_eq!(
+        fallback.presentation().opening_reason,
+        "no-usable-task-front-declared"
+    );
+    let rejected = fallback
+        .apply(request(
+            &fallback,
+            vec![EditOperation::Navigate {
+                mode: PresentationMode::Use,
+                lens: StructuralLens::Face,
+                topology: TopologyProjection::Logical,
+            }],
+        ))
+        .expect_err("fallback cannot manufacture a Use surface");
+    assert_eq!(rejected.code, "CND-PBY-013");
+    assert_eq!(fallback.presentation().mode, PresentationMode::Build);
+
+    let mut task =
+        Workspace::new_with_opening("tour/task", SOURCE, 4, PresentationOpening::UsableTaskFront)
+            .expect("source parses");
+    assert_eq!(task.presentation().mode, PresentationMode::Use);
+    assert_eq!(
+        task.presentation().opening_reason,
+        "usable-task-front-declared"
+    );
+    task.apply(request(
+        &task,
+        vec![EditOperation::Navigate {
+            mode: PresentationMode::Build,
+            lens: StructuralLens::Inside,
+            topology: TopologyProjection::Logical,
+        }],
+    ))
+    .expect("declared task front may reveal Build");
+    task.apply(request(
+        &task,
+        vec![EditOperation::Navigate {
+            mode: PresentationMode::Use,
+            lens: StructuralLens::Face,
+            topology: TopologyProjection::Logical,
+        }],
+    ))
+    .expect("declared task front may return to Use");
+}
+
+#[test]
+fn unloaded_at_rest_inspection_is_source_only_and_non_effecting() {
+    let inspection =
+        inspect_at_rest("shelf/upper-box", COMPOSITE_SOURCE).expect("unloaded definition inspects");
+    assert_eq!(inspection.presentation.lens, StructuralLens::AtRest);
+    assert_eq!(inspection.presentation.mode, PresentationMode::Build);
+    assert_eq!(inspection.definition.provider_availability, "not-observed");
+    assert_eq!(inspection.definition.definitions.len(), 1);
+    assert_eq!(inspection.definition.authored_instances.len(), 4);
+    assert_eq!(inspection.definition.definitions[0].internal_cords.len(), 1);
+    assert!(!inspection.definition.operations.fetched);
+    assert!(!inspection.definition.operations.installed);
+    assert!(!inspection.definition.operations.resolved);
+    assert!(!inspection.definition.operations.authority_acquired);
+    assert!(!inspection.definition.operations.resources_acquired);
+    assert!(!inspection.definition.operations.run_started);
+}
+
+#[test]
+fn definition_and_enclosing_cord_edits_retain_distinct_owners() {
+    let original = conduit_panel::parse(COMPOSITE_SOURCE).expect("composite parses");
+    let original_internal = original.definitions[0].cords.clone();
+    let original_external = original.cords.clone();
+
+    let internal_source = COMPOSITE_SOURCE.replacen(
+        "  source.value > upper.text\n",
+        "  source.value > upper.text { capacity = 2 }\n",
+        1,
+    );
+    let internal = conduit_panel::parse(&internal_source).expect("internal candidate parses");
+    assert_ne!(internal.definitions[0].cords, original_internal);
+    assert_eq!(internal.cords, original_external);
+
+    let external_source =
+        COMPOSITE_SOURCE.replace("first.value > sink_one.text", "first.value > sink_two.text");
+    let external = conduit_panel::parse(&external_source).expect("external candidate parses");
+    assert_eq!(external.definitions[0].cords, original_internal);
+    assert_ne!(external.cords, original_external);
+}
+
+#[test]
+fn client_invented_subject_and_unbounded_zoom_fail_atomically() {
+    let mut workspace =
+        Workspace::new("tour/negative-presentation", SOURCE).expect("source parses");
+    let before = workspace.presentation().clone();
+    let invented = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::SelectSubject {
+                subject: Some(PresentationSubject {
+                    kind: PresentationSubjectKind::Port,
+                    path: "root/greeting/port/outgoing/invented".to_owned(),
+                }),
+            }],
+        ))
+        .expect_err("invented path is rejected");
+    assert_eq!(invented.code, "CND-PBY-013");
+    assert_eq!(workspace.presentation(), &before);
+
+    let unbounded = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::SetViewport {
+                viewport: PresentationViewport {
+                    x: 0,
+                    y: 0,
+                    zoom_basis_points: 30_001,
+                },
+            }],
+        ))
+        .expect_err("unbounded zoom is rejected");
+    assert_eq!(unbounded.code, "CND-PBY-013");
+    assert_eq!(workspace.presentation(), &before);
+}
+
+#[test]
 fn source_edit_changes_semantics_but_not_an_existing_run() {
     let mut workspace = Workspace::new("tour/hello", SOURCE).expect("source parses");
     let old = workspace
@@ -486,6 +680,15 @@ fn fixture_names_each_required_protocol_boundary() {
         "direct-active-plan-mutation-is-not-a-protocol-operation",
         "candidate-plan-does-not-mutate-active-run",
         "authoritative-view-has-no-browser-inference",
+        "mode-lens-topology-navigation-is-presentation-only",
+        "unloaded-at-rest-inspection-has-no-resolution-or-effect",
+        "usable-task-front-opens-use-and-missing-front-falls-back-build",
+        "selected-subject-survives-mode-and-lens-navigation",
+        "internal-and-external-cords-retain-distinct-owners",
+        "two-instances-retain-distinct-config-and-enclosing-cords",
+        "configuration-runtime-plan-and-evidence-layers-stay-distinct",
+        "lens-navigation-has-keyboard-and-screen-reader-equivalents",
+        "use-view-information-budget-survives-two-hundred-percent-zoom",
     ] {
         assert!(ids.contains(required), "fixture covers {required}");
     }
