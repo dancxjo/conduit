@@ -1,8 +1,11 @@
-//! Opt-in hosted audio-device boundaries.
+//! Opt-in hosted audio implementations.
 //!
 //! Semantic audio frames and capture/playback node contracts remain in
-//! `conduit-media`. This crate observes and drives one closed-inventory ALSA
-//! backend without exposing ALSA names or callbacks through media ports.
+//! `conduit-media`. This crate owns host-side adapters such as the
+//! closed-inventory ALSA boundary and supervised FFmpeg/SoX transforms without
+//! exposing their names, commands, or callback types through media ports.
+
+pub mod transform_implementations;
 
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -1663,10 +1666,12 @@ mod tests {
         conduit_media::register_deterministic_audio_processing_providers(&mut registry).unwrap();
         register_observed_alsa_providers(&mut registry, &report).unwrap();
         let source_only = InstalledProfile::observe_registry(&source, &registry).unwrap();
-        let source_only_plan = compile_source(&source, &source_only.input).unwrap();
-        assert!(
-            source_only_plan.authorities.is_empty(),
-            "source and provider installation cannot author audio device authority"
+        assert_eq!(
+            compile_source(&source, &source_only.input)
+                .unwrap_err()
+                .code(),
+            "CND-CMP-006",
+            "source and provider installation cannot satisfy audio device authority"
         );
     }
 
@@ -1716,8 +1721,10 @@ mod tests {
         conduit_media::register_deterministic_audio_processing_providers(&mut registry).unwrap();
         register_observed_alsa_providers(&mut registry, &report).unwrap();
         let absent = InstalledProfile::observe_registry(&source, &registry).unwrap();
-        let absent_plan = compile_source(&source, &absent.input).unwrap();
-        assert!(absent_plan.authorities.is_empty());
+        assert_eq!(
+            compile_source(&source, &absent.input).unwrap_err().code(),
+            "CND-CMP-006"
+        );
         let authorities =
             observe_alsa_authorities(&source, &report, 12, "conduit/conduct-run", 1).unwrap();
         let installed = InstalledProfile::observe_registry_with_host_authorities(

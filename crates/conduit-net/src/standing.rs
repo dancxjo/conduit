@@ -1,17 +1,20 @@
 //! Standing packet, service, and observation node contracts.
 
 use conduit_core::{
-    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
-    ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,
-    PortFlowConstraints, Presence, SemanticHash, Sensitivity, StopPolicy, TemporalContract,
-    TerminalContract, TypeContractRef, ValueCardinality,
+    ArtifactDigest, ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability,
+    ConfigRequirement, ConnectionCardinality, Delivery, Direction, ExecutorKind, Id,
+    LossAcceptance, NodeContract, PinnedDescriptor, PortContract, PortFlowConstraints, Presence,
+    SemanticHash, Sensitivity, StopPolicy, TemporalContract, TerminalContract, TypeContractRef,
+    ValueCardinality,
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, ExactHostedServiceBinding, Handler, HostedServiceCleanup,
-    HostedServiceInterest, HostedServiceStep, HostedServiceStepContext, Registry, RegistryError,
+    HostedServiceInterest, HostedServiceStep, HostedServiceStepContext,
+    InstalledArtifactRegistration, InstalledImplementationRegistration, Registry, RegistryError,
     ResolutionError, RunIo, RuntimeError, Value,
 };
+use sha2::{Digest as _, Sha256};
 
 use crate::{
     ADDRESS_STATE_TYPE, AddressFamily, AddressReadiness, BYTE_STREAM_TYPE, ByteStreamChunk,
@@ -3447,14 +3450,45 @@ pub fn register_deterministic_standing_network_providers(
 /// It remains a userspace provider and does not mutate an ambient host route
 /// table or claim packet-injection authority.
 pub fn register_portable_route_provider(registry: &mut Registry) -> Result<(), RegistryError> {
-    static NO_AUTHORITIES: [SemanticHash; 0] = [];
-    registry.register_compiled_in_host_service(CompiledInHostService {
+    const ARTIFACT: &[u8] = b"conduit.net/portable-route-table|longest-prefix|finite|0";
+    let digest = ArtifactDigest::from_bytes(Sha256::digest(ARTIFACT).into());
+    let profile = "conduit/network-portable-in-process-profile";
+    registry.register_installed_implementation(InstalledImplementationRegistration {
         contract: &PACKET_ROUTE_CONTRACT,
-        implementation_id: "conduit.net/portable-route-table",
-        artifact_id: "conduit.net/portable-route-table-artifact",
-        entrypoint: "net-portable-route-table",
-        source_bytes: b"conduit.net/portable-route-table|longest-prefix|finite|0",
-        required_authorities: &NO_AUTHORITIES,
+        implementation_id: "conduit.net/portable-route-table".to_owned(),
+        implementation_version: "portable-longest-prefix-0".to_owned(),
+        executor: ExecutorKind::NativeInProcess,
+        entrypoint_name: "net-portable-route-table".to_owned(),
+        entrypoint_adapter: "conduit/host-service-step".to_owned(),
+        entrypoint_abi: "conduit/rust-in-process".to_owned(),
+        entrypoint_protocol_version: 0,
+        execution_profile: PinnedDescriptor {
+            id: Id(profile),
+            schema_version: 0,
+            semantic_hash: SemanticHash::from_bytes(Sha256::digest(profile).into()),
+        },
+        artifacts: vec![InstalledArtifactRegistration {
+            id: "conduit.net/portable-route-table-artifact".to_owned(),
+            digest,
+            media_type: "application/vnd.conduit.compiled-in-provider".to_owned(),
+            byte_size: u64::try_from(ARTIFACT.len()).expect("artifact size fits u64"),
+            target: Some(std::env::consts::ARCH.to_owned()),
+            abi: Some("conduit/rust-in-process".to_owned()),
+            builder: "conduit/rustc-workspace-build".to_owned(),
+            source_digest: digest,
+            build_recipe_digest: digest,
+            reproducible: true,
+            license_expressions: vec!["MIT".to_owned(), "Apache-2.0".to_owned()],
+            role: "implementation".to_owned(),
+            required: true,
+        }],
+        required_authorities: Vec::new(),
+        required_effects: Vec::new(),
+        minimum_plan_version: 0,
+        maximum_plan_version: u32::MAX,
+        minimum_runtime_protocol: 1,
+        maximum_runtime_protocol: 1,
+        coexistence_memory_bytes: 0,
         factory: portable_packet_router,
         validate_config: validate_route,
     })
@@ -3577,6 +3611,19 @@ mod tests {
             router_providers[0].manifest.id,
             router_providers[1].manifest.id
         );
+        let portable = router_providers
+            .iter()
+            .find(|provider| provider.manifest.id == Id("conduit.net/portable-route-table"))
+            .unwrap();
+        assert_eq!(
+            portable.manifest.implementation_version,
+            "portable-longest-prefix-0"
+        );
+        assert_eq!(portable.manifest.executor, ExecutorKind::NativeInProcess);
+        assert_eq!(portable.artifacts.len(), 1);
+        assert_eq!(portable.artifact.target, Some(Id(std::env::consts::ARCH)));
+        assert!(portable.manifest.required_authorities.is_empty());
+        assert!(portable.manifest.required_effects.is_empty());
     }
 
     #[test]

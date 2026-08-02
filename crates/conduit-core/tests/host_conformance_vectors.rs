@@ -205,14 +205,12 @@ fn bind<'a>(
 }
 
 #[test]
-fn required_cross_host_fixture_inventory_is_frozen() {
+fn required_cross_host_fixture_inventory_is_current() {
     let fixture = include_str!("../../../conformance/c5/cross-host-provider-conformance.json");
     let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
     assert_eq!(value["suite"], "conduit.cross-host-provider-conformance");
-    assert_eq!(value["cases"].as_array().unwrap().len(), 24);
+    assert_eq!(value["cases"].as_array().unwrap().len(), 22);
     for required in [
-        "provider-fixture-alpha-pass",
-        "provider-fixture-beta-pass",
         "firmware-honest-unsupported",
         "deterministic-pass",
         "describe-only-not-executable",
@@ -223,7 +221,7 @@ fn required_cross_host_fixture_inventory_is_frozen() {
         "fabricated-observation",
         "label-only-false-satisfaction",
         "custom-type-incompatible",
-        "explicit-adapter-fixture-pass",
+        "explicit-adapter-pass",
         "adapter-not-published",
         "wrong-artifact-digest",
         "protocol-mismatch",

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     ArtifactDocument, ArtifactReferenceDocument, AuthorityConstraintDocument,
@@ -25,6 +25,46 @@ pub struct InstalledProfile {
     pub input: CompileInput,
     implementations: BTreeMap<String, HostedPrimitiveImplementation>,
     providers: Vec<InstalledHostedProvider>,
+}
+
+/// Caller-supplied snapshot identity for one host observing an installed
+/// registry. Installation and discovery do not manufacture this fact.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstalledHostObservationInput {
+    pub id: String,
+    pub host: String,
+    pub reporter: PinDocument,
+    pub trust: PinDocument,
+    pub time_basis: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub current_tick: u64,
+    pub available: BudgetDocument,
+}
+
+impl InstalledHostObservationInput {
+    #[must_use]
+    pub fn conduct_host() -> Self {
+        Self {
+            id: "conduit/conduct-host-observation".to_owned(),
+            host: "conduit/conduct-host".to_owned(),
+            reporter: pin("conduit/conduct-host-reporter", 50),
+            trust: pin("conduit/local-build-trust", 51),
+            time_basis: "clock/conduct-host".to_owned(),
+            observed_at_tick: 10,
+            valid_until_tick: 20,
+            current_tick: 12,
+            available: BudgetDocument {
+                memory_bytes: 4 * 1024 * 1024,
+                storage_bytes: 16 * 1024 * 1024,
+                cpu_units: 64,
+                timers: 16,
+                transports: 16,
+                checkpoints: 16,
+                evidence_bytes: 256 * 1024,
+            },
+        }
+    }
 }
 
 /// One authority decision observed independently by the host and offered to
@@ -55,6 +95,34 @@ pub struct HostServiceAuthorityObservationInput {
     pub lease_ticks: Option<u64>,
     pub revocation_grace_ticks: Option<u64>,
     pub cleanup_ticks: Option<u64>,
+}
+
+/// Caller-owned policy input for an optional implementation whose effect is
+/// not defined by a built-in semantic contract.
+///
+/// This is the generic extension path for domain providers such as process,
+/// FFI, WASM-host, device, or remote adapters. Provider installation cannot
+/// call this implicitly: the host must independently name the action,
+/// resource, requirement, grant, lease, and run audience.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExternalHostServiceAuthorityObservationInput {
+    pub contract_id: String,
+    pub instance: String,
+    pub run_id: String,
+    pub epoch: u64,
+    pub host: String,
+    pub time_basis: String,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub name: String,
+    pub requirement: String,
+    pub action: String,
+    pub resource_kind: String,
+    pub resource_id: String,
+    pub grant_id: String,
+    pub constraints: Vec<AuthorityConstraintDocument>,
+    pub revocation_grace_ticks: u64,
+    pub cleanup_ticks: u64,
 }
 
 /// Commits host-observed opaque values to the semantic constraint identifiers
@@ -100,6 +168,83 @@ pub fn observed_host_service_authority(
             decision,
         }
     })
+}
+
+/// Admit one independently observed authority for a generically installed
+/// implementation. This function creates no provider, artifact, observation,
+/// or selection and is never called by descriptor discovery.
+#[must_use]
+pub fn observed_external_host_service_authority(
+    input: ExternalHostServiceAuthorityObservationInput,
+) -> ObservedHostServiceAuthority {
+    let (mut resource_lease, commit_profile) = effect_contracts(
+        &input.name,
+        &input.instance,
+        &input.action,
+        &input.resource_id,
+    );
+    resource_lease.run = input.run_id.clone();
+    resource_lease.epoch = input.epoch;
+    resource_lease.time_basis = input.time_basis.clone();
+    resource_lease.issued_at_tick = input.observed_at_tick;
+    resource_lease.expires_at_tick = input.valid_until_tick;
+    resource_lease.revocation_grace_ticks = input.revocation_grace_ticks;
+    resource_lease.cleanup_ticks = input.cleanup_ticks;
+    let valid_until_tick = input.valid_until_tick;
+    ObservedHostServiceAuthority {
+        contract_id: input.contract_id,
+        instance: input.instance.clone(),
+        decision: AuthorityDecisionDocument {
+            requirement: input.requirement,
+            effect_hash: String::new(),
+            grant_hash: String::new(),
+            effect: EffectRequirementDocument {
+                id: format!("conduit.effect/{}", input.name),
+                administrative_class: None,
+                policy_budget_class: None,
+                action: input.action.clone(),
+                resource_kind: input.resource_kind.clone(),
+                resource_id: Some(input.resource_id.clone()),
+                requester: input.instance.clone(),
+                audience: input.run_id.clone(),
+                constraints: input.constraints.clone(),
+                check_at_use: true,
+            },
+            capability: HostCapabilityDocument {
+                id: format!("conduit.capability/{}", input.name),
+                action: input.action.clone(),
+                resource_kind: input.resource_kind.clone(),
+                resource_id: input.resource_id.clone(),
+                host: input.host.clone(),
+                time_basis: input.time_basis.clone(),
+                observed_at_tick: input.observed_at_tick,
+                valid_until_tick,
+            },
+            grant: AuthorityGrantDocument {
+                id: input.grant_id,
+                action: input.action,
+                resource_kind: input.resource_kind,
+                resource_id: input.resource_id,
+                scope_root: input.instance,
+                scope_descendants: false,
+                audience: input.run_id,
+                constraints: input.constraints,
+                time_basis: input.time_basis,
+                not_before_tick: input.observed_at_tick,
+                expires_at_tick: valid_until_tick,
+                issued_for_host: input.host,
+                delegation: "none".to_owned(),
+                audit_id: format!("conduit.audit/{}", input.name),
+                terminal_policy: "abort".to_owned(),
+            },
+            status: "active".to_owned(),
+            administrative_subject: None,
+            containment: None,
+            policy_budgets: Vec::new(),
+            resource_lease,
+            commit_profile,
+        },
+    }
 }
 
 struct HostedServiceInstance {
@@ -152,6 +297,26 @@ impl InstalledProfile {
             registry,
             true,
             authorities,
+            &InstalledHostObservationInput::conduct_host(),
+        )
+    }
+
+    /// Observe one explicitly named host snapshot. The host identity and
+    /// freshness window are independent of the implementations installed in
+    /// the registry, so the same inventory can be observed on multiple hosts
+    /// without changing semantic contracts.
+    pub fn observe_registry_on_host(
+        source: &str,
+        registry: &Registry,
+        observation: &InstalledHostObservationInput,
+        authorities: &[ObservedHostServiceAuthority],
+    ) -> Result<Self, RuntimeError> {
+        Self::observe_registry_with_stdout_grant_and_host_authorities(
+            source,
+            registry,
+            true,
+            authorities,
+            observation,
         )
     }
 
@@ -183,6 +348,20 @@ impl InstalledProfile {
         Ok(self)
     }
 
+    /// Applies caller-owned provider preference without changing source or
+    /// semantic contracts. Entries are implementation IDs observed in this
+    /// profile; the exact resolver still rejects incompatible candidates.
+    pub fn with_implementation_preference(
+        mut self,
+        implementation_ids: Vec<String>,
+    ) -> Result<Self, RuntimeError> {
+        self.input.implementation_preference = implementation_ids;
+        self.input
+            .seal()
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        Ok(self)
+    }
+
     fn observe_registry_with_stdout_grant(
         source: &str,
         registry: &Registry,
@@ -193,6 +372,7 @@ impl InstalledProfile {
             registry,
             stdout_granted,
             &[],
+            &InstalledHostObservationInput::conduct_host(),
         )
     }
 
@@ -201,6 +381,7 @@ impl InstalledProfile {
         registry: &Registry,
         stdout_granted: bool,
         observed_authorities: &[ObservedHostServiceAuthority],
+        host_observation: &InstalledHostObservationInput,
     ) -> Result<Self, RuntimeError> {
         let panel =
             parse(source).map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
@@ -242,7 +423,9 @@ impl InstalledProfile {
                         | "conduit.std/select"
                 )
             });
-        let providers = registry.installed_providers();
+        let providers = registry
+            .installed_providers_for_panel(&panel)
+            .map_err(|error| RuntimeError::new(error.code, error.message))?;
         let mut implementations = BTreeMap::new();
         let mut candidates = Vec::with_capacity(required.len());
         for (contract_id, (contract_hash, instances)) in required {
@@ -305,9 +488,11 @@ impl InstalledProfile {
                     &host_service_instances,
                     stdout_granted,
                     observed_authorities,
+                    host_observation,
                 ));
             }
         }
+        share_host_observation(&mut candidates);
         let mut catalog = builtin_catalog_document()
             .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         for contract_id in candidates
@@ -394,8 +579,8 @@ impl InstalledProfile {
             source_semantic_hash: topology.source_semantic_hash.to_string(),
             resolver: pin("conduit/exact-compiler-resolver", 70),
             resolver_policy_hash: String::new(),
-            time_basis: "clock/conduct-host".to_owned(),
-            current_tick: 12,
+            time_basis: host_observation.time_basis.clone(),
+            current_tick: host_observation.current_tick,
             plan_budget: BudgetDocument {
                 memory_bytes: 4 * 1024 * 1024,
                 storage_bytes: 16 * 1024 * 1024,
@@ -591,27 +776,74 @@ impl InstalledProfile {
     }
 }
 
+/// A host observation describes the host snapshot, not one implementation
+/// candidate. Every candidate resolved against that snapshot must therefore
+/// carry the same report identity. Executor, target, and ABI support are the
+/// canonical union of the relevant installed implementations.
+fn share_host_observation(candidates: &mut [CandidateDocument]) {
+    let Some(first) = candidates.first() else {
+        return;
+    };
+    let mut report = first.host_report.clone();
+    report.supported_executors = candidates
+        .iter()
+        .flat_map(|candidate| candidate.host_report.supported_executors.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    report.supported_targets = candidates
+        .iter()
+        .flat_map(|candidate| candidate.host_report.supported_targets.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    report.supported_abis = candidates
+        .iter()
+        .flat_map(|candidate| candidate.host_report.supported_abis.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    report.minimum_plan_version = candidates
+        .iter()
+        .map(|candidate| candidate.host_report.minimum_plan_version)
+        .min()
+        .unwrap_or(report.minimum_plan_version);
+    report.maximum_plan_version = candidates
+        .iter()
+        .map(|candidate| candidate.host_report.maximum_plan_version)
+        .max()
+        .unwrap_or(report.maximum_plan_version);
+    for candidate in candidates {
+        candidate.host_report = report.clone();
+    }
+}
+
 fn candidate(
     installed: &conduit_runtime::InstalledHostedProvider,
     stdout_instance: Option<&str>,
     host_service_instances: &[HostedServiceInstance],
     stdout_granted: bool,
     observed_authorities: &[ObservedHostServiceAuthority],
+    host_observation: &InstalledHostObservationInput,
 ) -> CandidateDocument {
     let manifest = installed.manifest;
-    let artifact = installed.artifact;
     let mut authorities = stdout_instance
-        .map(|instance| vec![stdout_authority(instance, stdout_granted)])
+        .map(|instance| {
+            vec![authority_on_observed_host(
+                stdout_authority(instance, stdout_granted),
+                host_observation,
+            )]
+        })
         .unwrap_or_default();
     for instance in host_service_instances {
         if !matches!(
             installed.contract.id.as_str(),
             "learned/promote" | "conduit.media/audio/capture" | "conduit.media/audio/playback"
         ) {
-            authorities.extend(host_service_authority(
-                installed.contract.id.as_str(),
-                instance,
-            ));
+            authorities.extend(
+                host_service_authority(installed.contract.id.as_str(), instance)
+                    .map(|decision| authority_on_observed_host(decision, host_observation)),
+            );
         }
         authorities.extend(
             observed_authorities
@@ -682,7 +914,8 @@ fn candidate(
             | HostedPrimitiveImplementation::StderrStream
             | HostedPrimitiveImplementation::DisplayText
     );
-    let process_profile = installed.contract.id.as_str() == "conduit.host/process/exec";
+    let process_profile = installed.contract.id.as_str() == "conduit.host/process/exec"
+        || manifest.executor == ExecutorKind::Process;
     let audio_device_profile = matches!(
         installed.contract.id.as_str(),
         "conduit.media/audio/capture" | "conduit.media/audio/playback"
@@ -697,7 +930,7 @@ fn candidate(
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
             identity: String::new(),
             id: manifest.id.to_string(),
-            implementation_version: "1.0.0".to_owned(),
+            implementation_version: manifest.implementation_version.to_owned(),
             semantic_contract: PinDocument {
                 id: manifest.semantic_contract.id.to_string(),
                 schema_version: manifest.semantic_contract.schema_version,
@@ -709,18 +942,26 @@ fn candidate(
             entrypoint_abi: manifest.entrypoint.abi.to_string(),
             runtime_protocol_version: manifest.entrypoint.protocol_version,
             execution_profile: pin("conduit/hosted-primitive-profile", 30),
-            artifacts: vec![ArtifactReferenceDocument {
-                id: artifact.id.to_string(),
-                digest: artifact.digest.to_string(),
-                role: "implementation".to_owned(),
-                required: true,
-            }],
+            artifacts: manifest
+                .artifacts
+                .iter()
+                .map(|reference| ArtifactReferenceDocument {
+                    id: reference.id.to_string(),
+                    digest: reference.digest.to_string(),
+                    role: reference.role.to_string(),
+                    required: reference.required,
+                })
+                .collect(),
             required_authorities: manifest
                 .required_authorities
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
-            required_effects: Vec::new(),
+            required_effects: manifest
+                .required_effects
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
             minimum_plan_version: manifest.minimum_plan_version,
             maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             minimum_runtime_protocol: manifest.minimum_runtime_protocol,
@@ -756,51 +997,58 @@ fn candidate(
         } else {
             execution_profile()
         },
-        artifacts: vec![ArtifactDocument {
-            schema_version: ARTIFACT_MANIFEST_SCHEMA_VERSION,
-            identity: String::new(),
-            id: artifact.id.to_string(),
-            digest: artifact.digest.to_string(),
-            media_type: "application/octet-stream".to_owned(),
-            byte_size: artifact.byte_size,
-            target: None,
-            abi: None,
-            builder: artifact.provenance.builder.to_string(),
-            source_digest: artifact.provenance.source_digest.to_string(),
-            build_recipe_digest: artifact.provenance.build_recipe_digest.to_string(),
-            reproducible: artifact.provenance.reproducible,
-            license_expressions: artifact
-                .license_expressions
-                .iter()
-                .map(ToString::to_string)
-                .collect(),
-        }],
+        artifacts: installed
+            .artifacts
+            .iter()
+            .map(|artifact| ArtifactDocument {
+                schema_version: ARTIFACT_MANIFEST_SCHEMA_VERSION,
+                identity: String::new(),
+                id: artifact.id.to_string(),
+                digest: artifact.digest.to_string(),
+                media_type: artifact.media_type.to_owned(),
+                byte_size: artifact.byte_size,
+                target: artifact.target.map(|value| value.to_string()),
+                abi: artifact.abi.map(|value| value.to_string()),
+                builder: artifact.provenance.builder.to_string(),
+                source_digest: artifact.provenance.source_digest.to_string(),
+                build_recipe_digest: artifact.provenance.build_recipe_digest.to_string(),
+                reproducible: artifact.provenance.reproducible,
+                license_expressions: artifact
+                    .license_expressions
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            })
+            .collect(),
         host_report: HostReportDocument {
             schema_version: conduit_core::CAPABILITY_REPORT_SCHEMA_VERSION,
             identity: String::new(),
-            id: "conduit/conduct-host-observation".to_owned(),
-            host: "conduit/conduct-host".to_owned(),
-            reporter: pin("conduit/conduct-host-reporter", 50),
-            trust: pin("conduit/local-build-trust", 51),
+            id: host_observation.id.clone(),
+            host: host_observation.host.clone(),
+            reporter: host_observation.reporter.clone(),
+            trust: host_observation.trust.clone(),
             membership: None,
-            time_basis: "clock/conduct-host".to_owned(),
-            observed_at_tick: 10,
-            valid_until_tick: 20,
-            available: BudgetDocument {
-                memory_bytes: 4 * 1024 * 1024,
-                storage_bytes: 16 * 1024 * 1024,
-                cpu_units: 64,
-                timers: 16,
-                transports: 16,
-                checkpoints: 16,
-                evidence_bytes: 256 * 1024,
-            },
+            time_basis: host_observation.time_basis.clone(),
+            observed_at_tick: host_observation.observed_at_tick,
+            valid_until_tick: host_observation.valid_until_tick,
+            available: host_observation.available,
             capabilities: Vec::new(),
             resources: Vec::new(),
             topology: Vec::new(),
             supported_executors: vec![executor_name(manifest.executor).to_owned()],
-            supported_targets: Vec::new(),
-            supported_abis: Vec::new(),
+            supported_targets: installed
+                .artifacts
+                .iter()
+                .filter_map(|artifact| artifact.target.map(|value| value.to_string()))
+                .collect(),
+            supported_abis: installed
+                .artifacts
+                .iter()
+                .filter_map(|artifact| artifact.abi.map(|value| value.to_string()))
+                .chain(std::iter::once(manifest.entrypoint.abi.to_string()))
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect(),
             minimum_plan_version: manifest.minimum_plan_version,
             maximum_plan_version: EXECUTION_PLAN_SCHEMA_VERSION,
             current_constraints: Vec::new(),
@@ -980,6 +1228,30 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
         resource_lease,
         commit_profile,
     }
+}
+
+fn authority_on_observed_host(
+    mut decision: AuthorityDecisionDocument,
+    observation: &InstalledHostObservationInput,
+) -> AuthorityDecisionDocument {
+    decision.capability.host.clone_from(&observation.host);
+    decision
+        .capability
+        .time_basis
+        .clone_from(&observation.time_basis);
+    decision.capability.observed_at_tick = observation.observed_at_tick;
+    decision.grant.issued_for_host.clone_from(&observation.host);
+    decision
+        .grant
+        .time_basis
+        .clone_from(&observation.time_basis);
+    decision.grant.not_before_tick = observation.observed_at_tick;
+    decision
+        .resource_lease
+        .time_basis
+        .clone_from(&observation.time_basis);
+    decision.resource_lease.issued_at_tick = observation.observed_at_tick;
+    decision
 }
 
 /// Builds one deterministic authority fixture for conformance tests. This is

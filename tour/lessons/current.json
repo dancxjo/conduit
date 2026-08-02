@@ -2812,60 +2812,73 @@
     {
       "id": "platform.cross-host-provider-conformance",
       "chapter": 4,
-      "title": "A provider is more than a matching label",
+      "title": "One media node, several implementations",
       "prerequisites": [
         "nodes.types-mean-promises",
         "platform.workload-admission-deadline"
       ],
-      "objective": "Run one unchanged media graph while comparing deterministic and explicitly named fixture provider chains, plus honest unavailable profiles.",
-      "prose": "Decode the same semantic `conduit.media/audio/decode` contract while hosts choose explicitly named fixture and adapter-aware realizations only after discovery, satisfaction proof, current observation, and exact conformance all pass.",
+      "objective": "Run one unchanged gain graph through reference, FFmpeg, SoX, and browser-WASM implementations while an unsupported host fails honestly.",
+      "prose": "The gain box is one stable `conduit.media/audio/gain` promise. Reference Rust, exact observed FFmpeg and SoX executables, and code linked into the browser WASM host may implement its narrow half-gain profile. Switching the host changes the implementation, artifact, observation, limits, resources and grants in the exact plan; it never creates an FFmpeg node, a SoX node, or a browser node in the semantic graph.",
       "vocabulary": [
         "host profile",
-        "optional provider",
-        "satisfaction proof",
-        "conformance result",
-        "explicit adapter"
+        "semantic contract",
+        "implementation manifest",
+        "host observation",
+        "exact provider binding",
+        "numeric tolerance"
       ],
-"source": "panel 0\n\nwave: conduit.media/wave/literal {\n  fixture = \"silence-pcm-s16le-stereo-48000-192\"\n  content_identity = \"sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d\"\n  maximum_output_bytes = 1024\n}\ndemux: conduit.media/container/demux {\n  container = \"wave\"\n  codec = \"pcm-s16le\"\n  profile = \"stereo-48000-192\"\n  extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\"\n  maximum_input_bytes = 1024\n  maximum_output_bytes = 1024\n  maximum_tracks = 1\n  maximum_packets = 1\n  maximum_reorder_depth = 0\n  maximum_retained_bytes = 1024\n  maximum_metadata_entries = 0\n  maximum_work = 4096\n  flush = \"exact-terminal\"\n}\ndecode: conduit.media/audio/decode {\n  container = \"wave\"\n  codec = \"pcm-s16le\"\n  profile = \"stereo-48000-192\"\n  extradata_identity = \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n  profile_identity = \"sha256:4e4cb77e40a559442cbf79888585e9c046117930cd5a99b383eb8743787cb979\"\n  maximum_input_bytes = 1024\n  maximum_output_bytes = 1024\n  maximum_tracks = 1\n  maximum_packets = 1\n  maximum_reorder_depth = 0\n  maximum_retained_bytes = 1024\n  maximum_metadata_entries = 0\n  maximum_work = 4096\n  flush = \"exact-terminal\"\n}\ninspect: conduit.media/audio-frame/inspect\noutput: display/text\n\nwave.container > demux.container {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ndemux.packet > decode.packet {\n    capacity = 1\n    max_value_bytes = 1024\n    max_queued_bytes = 1024\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ndecode.frame > inspect.frame {\n    capacity = 1\n    max_value_bytes = 64\n    max_queued_bytes = 64\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\ninspect.summary > output.text {\n    capacity = 1\n    max_value_bytes = 128\n    max_queued_bytes = 128\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
-      "command": "conduct --run cross-host-provider-conformance.panel",
+      "source": "panel 0\n\nsource: conduit.media/audio-frame/literal { fixture = \"tone-s16le-stereo-48000\" }\ngain: conduit.media/audio/gain {\n    lifecycle = \"finite\"\n    numeric_profile = \"pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact\"\n    curve = \"linear-q15-absolute-frame\"\n    start_gain_q15 = 16384\n    end_gain_q15 = 16384\n    ramp_start_frame = 0\n    ramp_end_frame = 0\n    discontinuity = \"absolute-timeline\"\n    maximum_automation_points = 2\n    maximum_retained_samples = 0\n    maximum_frames = 16\n}\ninspect: conduit.media/audio-frame/inspect\noutput: display/text\n\nsource.frame > gain.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ngain.frame > inspect.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }\ninspect.summary > output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct --check examples/media-gain-provider.panel",
       "commands": [
-        "conduct inspect host-conformance-report.json",
-        "conduct --check cross-host-provider-conformance.panel",
-        "conduct --run cross-host-provider-conformance.panel"
+        "conduct --check examples/media-gain-provider.panel",
+        "cargo test -p conduit-audio --test implementation_matrix",
+        "CONDUIT_REQUIRE_MEDIA_PROCESS_PROVIDERS=1 cargo test -p conduit-audio --test implementation_matrix"
       ],
-      "expected_display": "audio:s16le:48000:stereo:192",
+      "expected_display": "audio:s16le:48000:stereo-lr:16",
       "profile": "browser-dedicated-worker",
       "budgets": {
-        "runtime_ticks": 32,
-        "queue_bytes": 256,
+        "runtime_ticks": 64,
+        "queue_bytes": 312,
         "evidence_events": 64
       },
       "presentation": {
-        "layout": "provider-binding-story",
+        "layout": "one-node-provider-matrix",
         "show_plan": true,
         "timeline": "exact-evidence",
         "patchbay_fields": [
-          "mandatory_facts",
-          "optional_providers",
-          "extensions",
-          "exact_bindings"
+          "contract_id",
+          "implementation_id",
+          "artifact_digest",
+          "host_observation",
+          "supported_profile",
+          "limits",
+          "resource",
+          "grant",
+          "queue_bytes",
+          "pressure",
+          "numeric_tolerance",
+          "run_state",
+          "cancellation",
+          "cleanup",
+          "error",
+          "terminal"
         ]
       },
       "validation": {
         "kind": "display",
-        "value": "audio:s16le:48000:stereo:192"
+        "value": "audio:s16le:48000:stereo-lr:16"
       },
       "hints": [
-        "Edit wave.fixture and rerun; the semantic graph does not acquire host authority.",
-        "Step from contract to facets, satisfaction, conformance, bundle, observation, and exact binding.",
-        "Compare the adapter-absent and provider-lost cases with the accepted provider fixture cases."
+        "Keep the panel untouched while selecting another observed host profile; only the realization overlay and exact plan change.",
+        "Change either Q15 gain away from 16384 to see the narrow FFmpeg, SoX, and browser profiles reject during resolution.",
+        "Compare the known-contract/no-provider case with stale, changed-artifact, missing-authority, cancellation, and cleanup outcomes."
       ],
-      "solution": "Keep profile inventory and current observation separate, validate complete satisfaction and behavioral conformance proofs, then bind exact artifacts and implementation profiles within finite bounds.",
+      "solution": "Author the semantic gain contract once, observe exact host implementations separately, admit only their overlapping bounded profile, and let the exact plan pin the selected implementation, artifact, host, limits, resource and grant.",
       "accessibility": {
-        "non_audio": "The graph is paired with ordered text for profile, inventory, observation, satisfaction, conformance, exact binding, execution, cancellation, and terminal evidence.",
+        "non_audio": "An ordered textual event table names source, reservation, input frame, blocked or ready queue, provider call, normalized output, Waiting or terminal state, cancellation, cleanup and error; no sound is required.",
         "reduced_motion": true,
-        "keyboard": "Native controls plus Space to play and ArrowRight to step while the ordered provider story has focus.",
-        "color_independent": "State labels, identities, finite values, reason codes, and ordered text duplicate every provider color."
+        "keyboard": "Native controls select the provider scenario; Space plays the existing evidence and ArrowRight steps the ordered table while it has focus.",
+        "color_independent": "Contract, provider, host, bounds, pressure, cancellation, error and terminal labels duplicate every graph color and animation."
       },
       "runnability": {
         "state": "runnable",
@@ -2874,68 +2887,67 @@
       },
       "platform": {
         "schema": "conduit.tour-platform-lesson",
-        "what": "A provider is selectable only through an exact chain from required contract through behavioral conformance, current host observation, implementation, artifact, adapter, and finite execution bounds.",
-        "when": "Use this chain for optional host services and custom namespaced contracts while keeping fixture selection distinct from proof of a real host boundary.",
-        "wrong": "Matching labels, source-language interfaces, stale reports, wrong artifacts, unavailable runtimes, protocol resemblance, hidden queues, and describe-only reports presented as executable fail closed.",
+        "what": "One gain node retains one contract, port and type identity while four separately identified implementations satisfy the same narrow profile on reference, Linux-process and browser-WASM hosts.",
+        "when": "Use this pattern whenever several hosts can implement the same bounded semantic promise, including audio, networking, storage, devices, codecs and embedded firmware.",
+        "wrong": "A package label, ambient PATH, browser API name, stale report, changed executable, broad codec claim, hidden filtergraph, missing grant or unbounded process does not establish an implementation.",
         "editable": [
-          "wave.fixture:conduit.media/wave/literal"
+          "start_gain_q15:16384",
+          "end_gain_q15:16384",
+          "maximum_frames:16"
         ],
-        "fixture": "../../conformance/c5/cross-host-provider-conformance.json",
-        "panel": "../../examples/cross-host-provider-conformance.panel",
+        "fixture": "../../conformance/c5/cross-host-media-implementations.json",
+        "panel": "../../examples/media-gain-provider.panel",
         "docs": [
-          "../../spec/058-cross-host-provider-conformance.md"
+          "../../spec/058-cross-host-provider-conformance.md",
+          "../../spec/079-generic-implementations.md"
         ],
         "profiles": [
           {
-            "id": "deterministic-host",
-            "fixture_case": "deterministic-pass",
-            "admission": "accepted",
-            "guarantee": "exact-binding"
+        "id": "reference-media",
+        "fixture_case": "reference-pass",
+        "admission": "accepted",
+        "guarantee": "exact-binding",
+        "browser_execution": "fixture-only"
           },
           {
-            "id": "provider-fixture-alpha",
-            "fixture_case": "provider-fixture-alpha-pass",
-            "admission": "accepted",
-            "guarantee": "exact-binding"
+        "id": "linux-ffmpeg-process",
+        "fixture_case": "ffmpeg-pass",
+        "admission": "accepted",
+        "guarantee": "exact-binding-and-process-cleanup",
+        "browser_execution": "fixture-only"
           },
           {
-            "id": "provider-fixture-beta",
-            "fixture_case": "provider-fixture-beta-pass",
-            "admission": "accepted",
-            "guarantee": "exact-binding"
+        "id": "linux-sox-process",
+        "fixture_case": "sox-pass",
+        "admission": "accepted",
+        "guarantee": "exact-binding-and-process-cleanup",
+        "browser_execution": "fixture-only"
           },
           {
-            "id": "firmware-unsupported",
-            "fixture_case": "firmware-honest-unsupported",
+        "id": "browser-worker",
+        "fixture_case": "browser-wasm-pass",
+        "admission": "accepted",
+        "guarantee": "exact-binding-and-browser-bounds",
+        "browser_execution": "exact-run"
+          },
+          {
+            "id": "known-contract-no-provider",
+            "fixture_case": "known-contract-no-provider",
             "admission": "rejected",
-            "code": "CND-HCF-005"
-          },
-          {
-            "id": "describe-only",
-            "fixture_case": "describe-only-not-executable",
-            "admission": "rejected",
-            "code": "CND-HCF-003"
-          },
-          {
-            "id": "explicit-adapter-fixture",
-            "fixture_case": "explicit-adapter-fixture-pass",
-            "admission": "accepted",
-            "guarantee": "exact-adapter"
-          },
-          {
-            "id": "provider-lost",
-            "fixture_case": "provider-lost",
-            "admission": "rejected",
-            "terminal": "provider-lost",
-            "code": "CND-HCF-007"
+            "code": "CND-IMP-001"
           }
         ],
-      "authoritative_story": [
-          "mandatory host facts remain separate from optional provider inventory and namespaced extensions",
-          "fresh provider observation distinguishes linked, uninitialized, available, lost, and stale",
-          "offered facets and complete satisfaction proof reject label-only impersonation",
-          "behavioral conformance pins fixtures, adapter boundary, implementation, artifact, profile, and finite bounds",
-          "exact binding and ordered terminal evidence preserve every identity without granting authority during discovery"
+        "scenarios": [
+          {"id":"gain-standalone-harness","panel":"../../examples/media-gain-provider.panel","source_identity":"unchanged","semantics":"One bounded PCM fixture enters one semantic gain node and exposes its normalized result."},
+          {"id":"gain-inspection-composition","panel":"../../examples/media-gain-provider.panel","source_identity":"unchanged","semantics":"The same gain output composes with the ordinary audio inspector and display without provider-specific ports."}
+        ],
+        "authoritative_story": [
+          "the semantic gain node, ports, types and cords never change between scenarios",
+          "discovery lists installed artifacts but does not execute media work or grant process authority",
+          "fresh host observation and exact supported profile precede selection",
+          "the exact plan pins implementation, artifact, host observation, limits, resources and grants",
+          "ordered evidence distinguishes input, pressure, output, Waiting, cancellation, cleanup, error and terminal outcomes",
+          "numeric comparison uses the published Q15 profile with zero sample tolerance for this overlap"
         ]
       }
     },
@@ -3102,7 +3114,7 @@
         "forced cleanup",
         "provider loss"
       ],
-      "source": "panel 0\n\nchild: conduit.host/process/exec {\n    program = ref(\"conduit.executable/process-fixture\")\n    argv = record()\n    environment = record(LANG=\"C\")\n    working_resource = secret(\"conduit.resource/process-working-root\")\n    grant = secret(\"conduit.grant/process-exec\")\n    stdin_close = \"close-after-input\"\n    maximum_stdin_bytes = 4096\n    maximum_stdout_bytes = 4096\n    maximum_stderr_bytes = 4096\n    maximum_chunk_bytes = 1024\n    maximum_pending_operations = 3\n    maximum_processes = 1\n    maximum_child_processes = 0\n    maximum_descriptors = 3\n    maximum_environment_bytes = 16\n    maximum_work = 4096\n    maximum_evidence_events = 64\n    deadline_ticks = 1000\n    graceful_signal = 9\n    graceful_ticks = 1\n    forced_ticks = 1\n    cancellation = \"none\"\n}\n",
+      "source": "panel 0\n\nchild: conduit.host/process/exec {\n    program = ref(\"conduit.executable/process-fixture\")\n    argv = record()\n    environment = record(LANG=\"C\")\n    working_resource = secret(\"conduit.resource/process-working-root\")\n    grant = secret(\"conduit.grant/process-exec\")\n    stdin_close = \"close-after-input\"\n    maximum_stdin_bytes = 4096\n    maximum_stdout_bytes = 4096\n    maximum_stderr_bytes = 4096\n    maximum_chunk_bytes = 1024\n    maximum_pending_operations = 3\n    maximum_processes = 1\n    maximum_child_processes = 0\n    maximum_descriptors = 16\n    maximum_environment_bytes = 16\n    maximum_work = 4096\n    maximum_evidence_events = 64\n    deadline_ticks = 1000\n    graceful_signal = 9\n    graceful_ticks = 1\n    forced_ticks = 1\n    cancellation = \"none\"\n}\n",
       "command": "conduct --enable-process-exec examples/process-exec.panel",
       "commands": [
         "conduct --enable-process-exec --check examples/process-exec.panel",

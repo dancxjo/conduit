@@ -1777,8 +1777,6 @@ pub fn register_deterministic_audio_processing_providers(
 ) -> Result<(), RegistryError> {
     register_audio_processing_contracts(registry);
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
-    static CAPTURE_AUTHORITY: [SemanticHash; 1] = [SemanticHash::from_bytes([0x65; 32])];
-    static PLAYBACK_AUTHORITY: [SemanticHash; 1] = [SemanticHash::from_bytes([0x66; 32])];
     for (contract, implementation_id, artifact_id, entrypoint, factory, validate_config) in [
         (
             &AUDIO_TEE_CONTRACT,
@@ -1861,18 +1859,13 @@ pub fn register_deterministic_audio_processing_providers(
             validate_playback as conduit_runtime::ConfigValidator,
         ),
     ] {
-        let required_authorities = match contract.id.as_str() {
-            "conduit.media/audio/capture" => &CAPTURE_AUTHORITY[..],
-            "conduit.media/audio/playback" => &PLAYBACK_AUTHORITY[..],
-            _ => &NO_AUTHORITIES[..],
-        };
         registry.register_compiled_in_host_service(CompiledInHostService {
             contract,
             implementation_id,
             artifact_id,
             entrypoint,
             source_bytes: include_bytes!("audio.rs"),
-            required_authorities,
+            required_authorities: &NO_AUTHORITIES,
             factory,
             validate_config,
         })?;

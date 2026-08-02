@@ -2401,6 +2401,56 @@ pub struct CompiledInHostService {
     pub validate_config: ConfigValidator,
 }
 
+/// One exact artifact offered by a generically installed implementation.
+///
+/// Discovery and observation happen outside the registry. This value carries
+/// only already-observed, content-addressed facts into installation; adding it
+/// cannot execute discovery, initialize a provider, or grant authority.
+pub struct InstalledArtifactRegistration {
+    pub id: String,
+    pub digest: ArtifactDigest,
+    pub media_type: String,
+    pub byte_size: u64,
+    pub target: Option<String>,
+    pub abi: Option<String>,
+    pub builder: String,
+    pub source_digest: ArtifactDigest,
+    pub build_recipe_digest: ArtifactDigest,
+    pub reproducible: bool,
+    pub license_expressions: Vec<String>,
+    pub role: String,
+    pub required: bool,
+}
+
+/// Generic installation request for any implementation of any semantic node.
+///
+/// Contracts, implementation manifests, artifacts, adapters, and authority
+/// requirements remain distinct. Domain crates supply the semantic contract
+/// and adapter callback; host code supplies observed artifact facts. The same
+/// resolver path is used for native, process, WASM, FFI, firmware, and remote
+/// implementations.
+pub struct InstalledImplementationRegistration {
+    pub contract: &'static NodeContract<'static>,
+    pub implementation_id: String,
+    pub implementation_version: String,
+    pub executor: ExecutorKind,
+    pub entrypoint_name: String,
+    pub entrypoint_adapter: String,
+    pub entrypoint_abi: String,
+    pub entrypoint_protocol_version: u32,
+    pub execution_profile: PinnedDescriptor<'static>,
+    pub artifacts: Vec<InstalledArtifactRegistration>,
+    pub required_authorities: Vec<SemanticHash>,
+    pub required_effects: Vec<SemanticHash>,
+    pub minimum_plan_version: u32,
+    pub maximum_plan_version: u32,
+    pub minimum_runtime_protocol: u32,
+    pub maximum_runtime_protocol: u32,
+    pub coexistence_memory_bytes: u64,
+    pub factory: HandlerFactory,
+    pub validate_config: ConfigValidator,
+}
+
 #[derive(Debug)]
 pub struct RegisteredExecutable {
     pub manifest: &'static ImplementationManifest<'static>,
@@ -2428,8 +2478,12 @@ struct RegisteredNode {
 pub struct InstalledHostedProvider {
     pub contract: &'static NodeContract<'static>,
     pub manifest: &'static ImplementationManifest<'static>,
+    /// Complete exact artifact set named by the implementation manifest.
+    pub artifacts: &'static [&'static ArtifactManifest<'static>],
+    /// Primary executable artifact selected for the plan node binding.
     pub artifact: &'static ArtifactManifest<'static>,
     pub implementation: HostedPrimitiveImplementation,
+    validate_config: ConfigValidator,
 }
 
 #[derive(Clone, Copy)]
@@ -2733,12 +2787,41 @@ impl Registry {
                 providers.push(InstalledHostedProvider {
                     contract: node.contract,
                     manifest: executable.manifest,
+                    artifacts: executable.artifacts,
                     artifact,
                     implementation: executable.implementation,
+                    validate_config: executable.validate_config,
                 });
             }
         }
         providers
+    }
+
+    /// Returns only implementations whose declared supported subset accepts
+    /// every authored instance of their contract in this exact source.
+    ///
+    /// Inventory and source compatibility are different facts: an installed
+    /// implementation must not become a compile candidate merely because it
+    /// implements the same contract for some other profile.
+    pub fn installed_providers_for_panel(
+        &self,
+        panel: &Panel,
+    ) -> Result<Vec<InstalledHostedProvider>, ResolutionError> {
+        let expanded = expand_panel(panel, self)?;
+        Ok(self
+            .installed_providers()
+            .into_iter()
+            .filter(|provider| {
+                expanded
+                    .nodes
+                    .iter()
+                    .filter(|source| {
+                        self.get_registered_node(&source.kind)
+                            .is_some_and(|node| node.contract.id == provider.contract.id)
+                    })
+                    .all(|source| (provider.validate_config)(source).is_ok())
+            })
+            .collect())
     }
 
     pub fn register_interface(&mut self, interface: OwnedInterfaceContract) {
@@ -2776,6 +2859,142 @@ impl Registry {
             factory,
             validate_config,
             HostedPrimitiveImplementation::HostedService,
+        )
+    }
+
+    /// Installs one exact implementation through the shared implementation
+    /// manifest and artifact path.
+    ///
+    /// This is the owned hosted convenience for implementations observed at
+    /// runtime (for example an exact executable, WASM component, dynamic
+    /// library, firmware image, or remote adapter artifact). It deliberately
+    /// does not discover artifacts or create host observations, conformance
+    /// results, resources, effects, or grants.
+    pub fn register_installed_implementation(
+        &mut self,
+        registration: InstalledImplementationRegistration,
+    ) -> Result<(), RegistryError> {
+        fn leak(value: String) -> &'static str {
+            Box::leak(value.into_boxed_str())
+        }
+
+        if registration.artifacts.is_empty() {
+            return Err(RegistryError {
+                code: "CND-REG-008",
+                message: "installed implementation has no exact artifact".to_owned(),
+            });
+        }
+
+        let mut artifacts = Vec::with_capacity(registration.artifacts.len());
+        let mut references = Vec::with_capacity(registration.artifacts.len());
+        for observed in registration.artifacts {
+            let id = Id(leak(observed.id));
+            let role = Id(leak(observed.role));
+            let licenses = observed
+                .license_expressions
+                .into_iter()
+                .map(leak)
+                .collect::<Vec<_>>();
+            let licenses: &'static [&'static str] = Box::leak(licenses.into_boxed_slice());
+            let mut artifact = ArtifactManifest {
+                schema_version: 0,
+                identity: SemanticHash::from_bytes([0; 32]),
+                id,
+                digest: observed.digest,
+                media_type: leak(observed.media_type),
+                byte_size: observed.byte_size,
+                target: observed.target.map(leak).map(Id),
+                abi: observed.abi.map(leak).map(Id),
+                provenance: ArtifactProvenance {
+                    builder: Id(leak(observed.builder)),
+                    source_digest: observed.source_digest,
+                    build_recipe_digest: observed.build_recipe_digest,
+                    reproducible: observed.reproducible,
+                },
+                signatures: &[],
+                license_expressions: licenses,
+                notices: &[],
+                sbom: None,
+                source: None,
+                related_artifacts: &[],
+                locations: &[],
+            };
+            let mut scratch =
+                vec![SemanticHash::from_bytes([0; 32]); artifact.identity_fact_count()];
+            artifact.identity =
+                artifact
+                    .computed_semantic_hash(&mut scratch)
+                    .map_err(|_| RegistryError {
+                        code: "CND-REG-008",
+                        message: format!("installed artifact `{id}` has an invalid identity"),
+                    })?;
+            let artifact = &*Box::leak(Box::new(artifact));
+            references.push(ManifestArtifactRef {
+                id,
+                digest: observed.digest,
+                role,
+                required: observed.required,
+            });
+            artifacts.push(artifact);
+        }
+        let artifacts: &'static [&'static ArtifactManifest<'static>] =
+            Box::leak(artifacts.into_boxed_slice());
+        let references: &'static [ManifestArtifactRef<'static>] =
+            Box::leak(references.into_boxed_slice());
+        let required_authorities: &'static [SemanticHash] =
+            Box::leak(registration.required_authorities.into_boxed_slice());
+        let required_effects: &'static [SemanticHash] =
+            Box::leak(registration.required_effects.into_boxed_slice());
+        let mut manifest = ImplementationManifest {
+            schema_version: 0,
+            identity: SemanticHash::from_bytes([0; 32]),
+            id: Id(leak(registration.implementation_id)),
+            implementation_version: leak(registration.implementation_version),
+            semantic_contract: PinnedDescriptor {
+                id: registration.contract.id,
+                schema_version: 0,
+                semantic_hash: OwnedNodeSchema::from_contract(registration.contract)
+                    .semantic_hash(),
+            },
+            executor: registration.executor,
+            entrypoint: ManifestEntrypoint {
+                name: Id(leak(registration.entrypoint_name)),
+                adapter: Id(leak(registration.entrypoint_adapter)),
+                abi: Id(leak(registration.entrypoint_abi)),
+                protocol_version: registration.entrypoint_protocol_version,
+            },
+            execution_profile: registration.execution_profile,
+            artifacts: references,
+            required_interfaces: &[],
+            provided_interfaces: &[],
+            required_authorities,
+            required_effects,
+            minimum_plan_version: registration.minimum_plan_version,
+            maximum_plan_version: registration.maximum_plan_version,
+            minimum_runtime_protocol: registration.minimum_runtime_protocol,
+            maximum_runtime_protocol: registration.maximum_runtime_protocol,
+            replacement: ReplacementSupport::Cold,
+            coexistence_memory_bytes: registration.coexistence_memory_bytes,
+            reproducibility: None,
+        };
+        let mut scratch = vec![SemanticHash::from_bytes([0; 32]); manifest.identity_fact_count()];
+        manifest.identity =
+            manifest
+                .computed_semantic_hash(&mut scratch)
+                .map_err(|_| RegistryError {
+                    code: "CND-REG-007",
+                    message: format!(
+                        "installed implementation `{}` has an invalid identity",
+                        manifest.id
+                    ),
+                })?;
+        let manifest = &*Box::leak(Box::new(manifest));
+        self.register_executable_provider(
+            registration.contract,
+            manifest,
+            artifacts,
+            registration.factory,
+            registration.validate_config,
         )
     }
 
@@ -2873,14 +3092,13 @@ impl Registry {
 
     /// Registers a semantic contract as contract-only.
     pub fn register_contract_only(&mut self, contract: &'static NodeContract<'static>) {
-        self.nodes.insert(
-            contract.id.as_str(),
-            RegisteredNode {
+        self.nodes
+            .entry(contract.id.as_str())
+            .or_insert_with(|| RegisteredNode {
                 contract,
                 executables: Vec::new(),
                 compatibility_executable: None,
-            },
-        );
+            });
     }
 
     /// Returns semantic port metadata known for one authored contract without
@@ -3794,8 +4012,10 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                         installed: InstalledHostedProvider {
                             contract,
                             manifest,
+                            artifacts,
                             artifact,
                             implementation: *implementation,
+                            validate_config: *validate_config,
                         },
                         artifacts,
                         factory: *factory,

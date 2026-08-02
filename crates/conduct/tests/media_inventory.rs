@@ -3,18 +3,13 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use conduit_compile::{InstalledProfile, compile_source};
-use conduit_core::NodeContract;
 use conduit_media::{
-    DEMUX_CONTRACT, ENCODE_CONTRACT, MUX_CONTRACT, PROBE_CONTRACT, WAVE_LITERAL_CONTRACT,
     register_audio_processing_contracts, register_deterministic_audio_processing_providers,
     register_deterministic_codec_providers, register_deterministic_media_providers,
     register_deterministic_signal_providers, register_media_codec_contracts,
     register_media_contracts, register_portable_lfo_provider,
 };
-use conduit_runtime::{
-    AvailabilityState, CompiledInHostService, Handler, Registry, RegistryError, RunIo,
-    RuntimeError, Value as RuntimeValue,
-};
+use conduit_runtime::{AvailabilityState, Registry};
 
 fn workspace_file(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -36,143 +31,6 @@ fn run_source(source: &str) -> std::process::Output {
         .write_all(source.as_bytes())
         .unwrap();
     child.wait_with_output().unwrap()
-}
-
-fn register_codec_fixture_provider(
-    registry: &mut Registry,
-    providers: &[(
-        &'static NodeContract<'static>,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static [u8],
-    )],
-) -> Result<(), RegistryError> {
-    struct MediaCodecFixtureProvider;
-
-    impl Handler for MediaCodecFixtureProvider {
-        fn run(
-            &mut self,
-            _node: &conduit_panel::Node,
-            _inputs: &[RuntimeValue],
-            _io: &mut RunIo<'_>,
-        ) -> Result<Vec<RuntimeValue>, RuntimeError> {
-            Ok(Vec::new())
-        }
-    }
-
-    static NO_AUTHORITIES: [conduit_core::SemanticHash; 0] = [];
-    for (contract, implementation_id, artifact_id, entrypoint, source_bytes) in providers {
-        registry.register_compiled_in_host_service(CompiledInHostService {
-            contract,
-            implementation_id,
-            artifact_id,
-            entrypoint,
-            source_bytes,
-            required_authorities: &NO_AUTHORITIES,
-            factory: || Box::new(MediaCodecFixtureProvider),
-            validate_config: |_node: &conduit_panel::Node| Ok(()),
-        })?;
-    }
-    Ok(())
-}
-
-fn register_cross_host_fixture_providers(registry: &mut Registry) -> Result<(), RegistryError> {
-    register_codec_fixture_provider(
-        registry,
-        &[
-            (
-                &WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-cross-host-fixture-alpha",
-                "conduit.media/wave-literal-cross-host-fixture-alpha-artifact",
-                "media-wave-literal-cross-host-fixture-alpha",
-                b"conduit.media/wave-literal-cross-host-fixture-alpha.source",
-            ),
-            (
-                &PROBE_CONTRACT,
-                "conduit.media/wave-probe-cross-host-fixture-alpha",
-                "conduit.media/wave-probe-cross-host-fixture-alpha-artifact",
-                "media-wave-probe-cross-host-fixture-alpha",
-                b"conduit.media/wave-probe-cross-host-fixture-alpha.source",
-            ),
-            (
-                &DEMUX_CONTRACT,
-                "conduit.media/wave-demux-cross-host-fixture-alpha",
-                "conduit.media/wave-demux-cross-host-fixture-alpha-artifact",
-                "media-wave-demux-cross-host-fixture-alpha",
-                b"conduit.media/wave-demux-cross-host-fixture-alpha.source",
-            ),
-            (
-                &MUX_CONTRACT,
-                "conduit.media/wave-mux-cross-host-fixture-alpha",
-                "conduit.media/wave-mux-cross-host-fixture-alpha-artifact",
-                "media-wave-mux-cross-host-fixture-alpha",
-                b"conduit.media/wave-mux-cross-host-fixture-alpha.source",
-            ),
-            (
-                &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-cross-host-fixture-alpha",
-                "conduit.media/pcm-decode-cross-host-fixture-alpha-artifact",
-                "media-pcm-decode-cross-host-fixture-alpha",
-                b"conduit.media/pcm-decode-cross-host-fixture-alpha.source",
-            ),
-            (
-                &ENCODE_CONTRACT,
-                "conduit.media/pcm-encode-cross-host-fixture-alpha",
-                "conduit.media/pcm-encode-cross-host-fixture-alpha-artifact",
-                "media-pcm-encode-cross-host-fixture-alpha",
-                b"conduit.media/pcm-encode-cross-host-fixture-alpha.source",
-            ),
-        ],
-    )?;
-    register_codec_fixture_provider(
-        registry,
-        &[
-            (
-                &WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-cross-host-fixture-beta",
-                "conduit.media/wave-literal-cross-host-fixture-beta-artifact",
-                "media-wave-literal-cross-host-fixture-beta",
-                b"conduit.media/wave-literal-cross-host-fixture-beta.source",
-            ),
-            (
-                &PROBE_CONTRACT,
-                "conduit.media/wave-probe-cross-host-fixture-beta",
-                "conduit.media/wave-probe-cross-host-fixture-beta-artifact",
-                "media-wave-probe-cross-host-fixture-beta",
-                b"conduit.media/wave-probe-cross-host-fixture-beta.source",
-            ),
-            (
-                &DEMUX_CONTRACT,
-                "conduit.media/wave-demux-cross-host-fixture-beta",
-                "conduit.media/wave-demux-cross-host-fixture-beta-artifact",
-                "media-wave-demux-cross-host-fixture-beta",
-                b"conduit.media/wave-demux-cross-host-fixture-beta.source",
-            ),
-            (
-                &MUX_CONTRACT,
-                "conduit.media/wave-mux-cross-host-fixture-beta",
-                "conduit.media/wave-mux-cross-host-fixture-beta-artifact",
-                "media-wave-mux-cross-host-fixture-beta",
-                b"conduit.media/wave-mux-cross-host-fixture-beta.source",
-            ),
-            (
-                &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-cross-host-fixture-beta",
-                "conduit.media/pcm-decode-cross-host-fixture-beta-artifact",
-                "media-pcm-decode-cross-host-fixture-beta",
-                b"conduit.media/pcm-decode-cross-host-fixture-beta.source",
-            ),
-            (
-                &ENCODE_CONTRACT,
-                "conduit.media/pcm-encode-cross-host-fixture-beta",
-                "conduit.media/pcm-encode-cross-host-fixture-beta-artifact",
-                "media-pcm-encode-cross-host-fixture-beta",
-                b"conduit.media/pcm-encode-cross-host-fixture-beta.source",
-            ),
-        ],
-    )?;
-    Ok(())
 }
 
 #[test]
@@ -268,6 +126,33 @@ fn standing_signal_catalog_examples_and_provider_plurality_are_exact() {
         providers[0].manifest.semantic_contract,
         providers[1].manifest.semantic_contract
     );
+
+    let standing_source = include_str!("../../../examples/standing-signal-lab.panel");
+    let installed = InstalledProfile::observe_registry(standing_source, &registry).unwrap();
+    let mut reference_input = installed.input.clone();
+    reference_input.implementation_preference = vec!["conduit.media/lfo-reference".to_owned()];
+    reference_input.seal().unwrap();
+    let reference_plan = compile_source(standing_source, &reference_input).unwrap();
+    let mut portable_input = installed.input.clone();
+    portable_input.implementation_preference =
+        vec!["conduit.media/lfo-portable-integer".to_owned()];
+    portable_input.seal().unwrap();
+    let portable_plan = compile_source(standing_source, &portable_input).unwrap();
+    assert_eq!(
+        reference_plan.source_semantic_hash,
+        portable_plan.source_semantic_hash
+    );
+    assert_eq!(reference_plan.cords, portable_plan.cords);
+    assert_ne!(reference_plan.identity, portable_plan.identity);
+    for (plan, implementation) in [
+        (&reference_plan, "conduit.media/lfo-reference"),
+        (&portable_plan, "conduit.media/lfo-portable-integer"),
+    ] {
+        assert!(plan.nodes.iter().any(|node| {
+            node.contract.id == "conduit.media/control/lfo"
+                && node.implementation.id == implementation
+        }));
+    }
 
     for path in [
         "examples/standing-signal-lab.panel",
@@ -746,123 +631,4 @@ fn known_codec_contracts_report_missing_and_stale_providers_separately() {
         compile_source(source, &stale).unwrap_err().code(),
         "CND-CMP-006"
     );
-}
-
-#[test]
-fn overlapping_media_codec_contracts_are_observable_and_expose_multiple_implementations() {
-    let source = include_str!("../../../examples/media-wave-roundtrip.panel");
-    let mut registry = Registry::hosted_primitives();
-    register_deterministic_media_providers(&mut registry).unwrap();
-    register_deterministic_codec_providers(&mut registry).unwrap();
-    register_cross_host_fixture_providers(&mut registry).unwrap();
-    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
-
-    for (contract, expected_implementations) in [
-        (
-            "conduit.media/container/probe",
-            &[
-                "conduit.media/wave-probe-deterministic",
-                "conduit.media/wave-probe-cross-host-fixture-alpha",
-                "conduit.media/wave-probe-cross-host-fixture-beta",
-            ][..],
-        ),
-        (
-            "conduit.media/container/mux",
-            &[
-                "conduit.media/wave-mux-deterministic",
-                "conduit.media/wave-mux-cross-host-fixture-alpha",
-                "conduit.media/wave-mux-cross-host-fixture-beta",
-            ][..],
-        ),
-        (
-            "conduit.media/container/demux",
-            &[
-                "conduit.media/wave-demux-deterministic",
-                "conduit.media/wave-demux-cross-host-fixture-alpha",
-                "conduit.media/wave-demux-cross-host-fixture-beta",
-            ][..],
-        ),
-        (
-            "conduit.media/audio/decode",
-            &[
-                "conduit.media/pcm-decode-deterministic",
-                "conduit.media/pcm-decode-cross-host-fixture-alpha",
-                "conduit.media/pcm-decode-cross-host-fixture-beta",
-            ][..],
-        ),
-        (
-            "conduit.media/audio/encode",
-            &[
-                "conduit.media/pcm-encode-deterministic",
-                "conduit.media/pcm-encode-cross-host-fixture-alpha",
-                "conduit.media/pcm-encode-cross-host-fixture-beta",
-            ][..],
-        ),
-    ] {
-        let mut implementations = installed
-            .input
-            .candidates
-            .iter()
-            .filter(|candidate| candidate.implementation.semantic_contract.id == contract)
-            .map(|candidate| candidate.implementation.id.as_str())
-            .collect::<Vec<_>>();
-        implementations.sort_unstable();
-        let mut expected = expected_implementations.to_vec();
-        expected.sort_unstable();
-        assert_eq!(implementations, expected, "contract {contract}");
-    }
-}
-
-#[test]
-fn implementation_preference_selects_overlapping_media_providers() {
-    let source = include_str!("../../../examples/media-wave-roundtrip.panel");
-    let mut registry = Registry::hosted_primitives();
-    register_deterministic_media_providers(&mut registry).unwrap();
-    register_deterministic_codec_providers(&mut registry).unwrap();
-    register_cross_host_fixture_providers(&mut registry).unwrap();
-    let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
-
-    for (preference, expected_decode, expected_encode) in [
-        (
-            [
-                "conduit.media/pcm-decode-deterministic",
-                "conduit.media/pcm-encode-deterministic",
-            ],
-            "conduit.media/pcm-decode-deterministic",
-            "conduit.media/pcm-encode-deterministic",
-        ),
-        (
-            [
-                "conduit.media/pcm-decode-cross-host-fixture-alpha",
-                "conduit.media/pcm-encode-cross-host-fixture-alpha",
-            ],
-            "conduit.media/pcm-decode-cross-host-fixture-alpha",
-            "conduit.media/pcm-encode-cross-host-fixture-alpha",
-        ),
-        (
-            [
-                "conduit.media/pcm-decode-cross-host-fixture-beta",
-                "conduit.media/pcm-encode-cross-host-fixture-beta",
-            ],
-            "conduit.media/pcm-decode-cross-host-fixture-beta",
-            "conduit.media/pcm-encode-cross-host-fixture-beta",
-        ),
-    ] {
-        let mut input = installed.input.clone();
-        input.implementation_preference = preference
-            .iter()
-            .map(|implementation| implementation.to_string())
-            .collect();
-        input.seal().unwrap();
-
-        let document = compile_source(source, &input).unwrap();
-        for (contract, expected) in [
-            ("conduit.media/audio/decode", expected_decode),
-            ("conduit.media/audio/encode", expected_encode),
-        ] {
-            assert!(document.nodes.iter().any(|node| {
-                node.contract.id == contract && node.implementation.id == expected
-            }));
-        }
-    }
 }

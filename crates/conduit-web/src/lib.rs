@@ -10,8 +10,8 @@ use sha2::{Digest, Sha256};
 use wasm_bindgen::prelude::*;
 
 use conduit_compile::{
-    CompileInput, EvidenceProviderBindingDocument, InstalledProfile, PinDocument,
-    PlanArtifactDocument, PlanHostDocument, WatchAdmissionDocument, compile_source,
+    CompileInput, EvidenceProviderBindingDocument, InstalledHostObservationInput, InstalledProfile,
+    PinDocument, PlanArtifactDocument, PlanHostDocument, WatchAdmissionDocument, compile_source,
 };
 use conduit_core::{
     ArtifactDigest, EvidenceCursorStatus, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
@@ -59,6 +59,14 @@ const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
     0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
 ];
 
+fn browser_host_observation() -> InstalledHostObservationInput {
+    let mut observation = InstalledHostObservationInput::conduct_host();
+    observation.id = "conduit/browser-worker-host-observation".to_owned();
+    observation.host = BROWSER_EVIDENCE_HOST.to_owned();
+    observation.time_basis = "clock/browser-worker".to_owned();
+    observation
+}
+
 fn browser_evidence_hash(domain: &[u8], facts: &[&[u8]]) -> SemanticHash {
     let mut hasher = Sha256::new();
     hasher.update(b"conduit.browser-evidence-observation\0");
@@ -101,7 +109,7 @@ fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
         &[
             BROWSER_EVIDENCE_STORE.as_bytes(),
             b"commit-exact-evidence",
-            b"clock/conduct-host",
+            b"clock/browser-worker",
         ],
     );
     let host_semantic_hash = browser_evidence_hash(
@@ -127,7 +135,7 @@ fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
             id: BROWSER_EVIDENCE_HOST_OBSERVATION.to_owned(),
             host: BROWSER_EVIDENCE_HOST.to_owned(),
             semantic_hash: host_semantic_hash.to_string(),
-            time_basis: "clock/conduct-host".to_owned(),
+            time_basis: "clock/browser-worker".to_owned(),
             observed_at_tick: 12,
             valid_until_tick: u64::MAX,
         },
@@ -135,7 +143,7 @@ fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
         store_id: BROWSER_EVIDENCE_STORE.to_owned(),
         store_generation: 1,
         grant_hash: grant_hash.to_string(),
-        time_basis: "clock/conduct-host".to_owned(),
+        time_basis: "clock/browser-worker".to_owned(),
     }
 }
 
@@ -810,6 +818,16 @@ fn browser_registry() -> Registry {
         .expect("deterministic media providers have distinct identities");
     conduit_media::register_deterministic_signal_providers(&mut registry)
         .expect("deterministic signal providers have distinct identities");
+    conduit_audio::transform_implementations::install_audio_gain_implementation(
+        &mut registry,
+        conduit_audio::transform_implementations::ObservedMediaArtifact::browser_wasm_linked(
+            include_bytes!("../../conduit-audio/src/transform_implementations.rs"),
+            10,
+            20,
+        )
+        .expect("browser WASM-linked media artifact is observable"),
+    )
+    .expect("browser WASM-linked media provider has a distinct identity");
     conduit_media::register_deterministic_audio_processing_providers(&mut registry)
         .expect("deterministic audio-processing providers have distinct identities");
     conduit_media::register_deterministic_codec_providers(&mut registry)
@@ -1432,9 +1450,19 @@ fn start_browser_exact_run(
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
-    let installed = InstalledProfile::observe_registry(source, &registry)?
-        .with_evidence_provider_observation(browser_evidence_provider_observation())?
-        .with_watch_admissions(browser_watch_admissions(&topology))?;
+    let installed = InstalledProfile::observe_registry_on_host(
+        source,
+        &registry,
+        &browser_host_observation(),
+        &[],
+    )?
+    .with_implementation_preference(vec![
+        conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
+            .id()
+            .to_owned(),
+    ])?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())?
+    .with_watch_admissions(browser_watch_admissions(&topology))?;
     let document = compile_source(source, &installed.input)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let arena = bumpalo::Bump::new();
@@ -2628,12 +2656,23 @@ fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let panel = conduit_panel::parse(source).ok()?;
     let resolved = registry.resolve(&panel).ok()?;
     let topology = resolved.exact_topology().ok()?;
-    let installed = InstalledProfile::observe_registry(source, &registry)
-        .ok()?
-        .with_evidence_provider_observation(browser_evidence_provider_observation())
-        .ok()?
-        .with_watch_admissions(browser_watch_admissions(&topology))
-        .ok()?;
+    let installed = InstalledProfile::observe_registry_on_host(
+        source,
+        &registry,
+        &browser_host_observation(),
+        &[],
+    )
+    .ok()?
+    .with_implementation_preference(vec![
+        conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
+            .id()
+            .to_owned(),
+    ])
+    .ok()?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())
+    .ok()?
+    .with_watch_admissions(browser_watch_admissions(&topology))
+    .ok()?;
     let document = compile_source(source, &installed.input).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
@@ -4662,9 +4701,19 @@ fn run_panel_exact_inner(
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
-    let installed = InstalledProfile::observe_registry(source, &registry)?
-        .with_evidence_provider_observation(browser_evidence_provider_observation())?
-        .with_watch_admissions(browser_watch_admissions(&topology))?;
+    let installed = InstalledProfile::observe_registry_on_host(
+        source,
+        &registry,
+        &browser_host_observation(),
+        &[],
+    )?
+    .with_implementation_preference(vec![
+        conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
+            .id()
+            .to_owned(),
+    ])?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())?
+    .with_watch_admissions(browser_watch_admissions(&topology))?;
     let explicit_input = compile_input_json
         .map(|json| {
             serde_json::from_str::<CompileInput>(json)
@@ -5847,9 +5896,9 @@ output.value > sink.result\n\
         );
         assert_eq!(
             watched["records"][0]["producing_host"],
-            "conduit/conduct-host"
+            "conduit/browser-worker"
         );
-        assert_eq!(watched["records"][0]["time_basis"], "clock/conduct-host");
+        assert_eq!(watched["records"][0]["time_basis"], "clock/browser-worker");
         assert_eq!(watched["records"][0]["clock_uncertainty_ticks"], 0);
         assert_eq!(watched["records"][0]["truncated"], false);
         assert!(
@@ -6197,7 +6246,7 @@ clock.tick > drain.item {
         );
         let mut cursor = watched["next_cursor"].as_u64().expect("Watch cursor");
         let mut last_watch_tick = 0_u64;
-        for _ in 0..12 {
+        for _ in 0..6 {
             let deadline = pumped["next_timer_deadline"]
                 .as_u64()
                 .expect("next instrument deadline");
@@ -6324,12 +6373,12 @@ clock.tick > drain.item {
         assert_eq!(attached["ok"], true, "{attached}");
 
         let mut pumped = Value::Null;
-        for _ in 0..24 {
+        for _ in 0..8 {
             pumped = serde_json::from_str(&bound_run!(
                 patchbay_pump_exact_run,
                 session_id,
                 binding,
-                32,
+                256,
             ))
             .expect("pump JSON");
             assert_eq!(pumped["ok"], true, "{pumped}");
@@ -6351,13 +6400,10 @@ clock.tick > drain.item {
         ))
         .expect("Watch JSON");
         assert_eq!(watched["ok"], true, "{watched}");
-        let first = watched["records"][0]["material"]["text"]
+        let frame = watched["records"][0]["material"]["text"]
             .as_str()
-            .expect("meter text");
-        assert!(
-            first.starts_with("audio-meter start=0 frames=4 "),
-            "{first}"
-        );
+            .expect("meter reading");
+        assert!(frame.starts_with("audio-meter start=0 frames=4 "));
         let cancelled: Value = serde_json::from_str(&bound_run!(
             patchbay_cancel_exact_run,
             session_id,

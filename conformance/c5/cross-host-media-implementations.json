@@ -1,0 +1,53 @@
+{
+  "suite": "conduit.cross-host-media-implementations",
+  "schema_version": 0,
+  "semantic_contract": "conduit.media/audio/gain",
+  "panel": "examples/media-gain-provider.panel",
+  "overlap_profile": "stereo-48000-pcm-s16-q15-half-finite-or-standing-32-frames",
+  "numeric_tolerance_samples": 0,
+  "implementations": [
+    {"id":"conduit.media/audio-gain-reference","host":"reference-media","boundary":"native","artifact":"source-attested-rust"},
+    {"id":"conduit.media/audio-gain-ffmpeg-process","host":"linux-ffmpeg-process","boundary":"supervised-process","artifact":"observed-executable"},
+    {"id":"conduit.media/audio-gain-sox-process","host":"linux-sox-process","boundary":"supervised-process","artifact":"observed-executable"},
+    {"id":"conduit.media/audio-gain-browser-wasm-linked","host":"browser-worker","boundary":"wasm-browser","artifact":"source-attested-wasm-linked-provider"}
+  ],
+  "invariants": [
+    "same-panel-source",
+    "same-source-semantic-hash",
+    "same-logical-node-port-type-and-cord-identities",
+    "different-exact-plan-implementation-artifact-and-host-identities",
+    "capacity-one-block-pressure",
+    "bounded-cancellation-and-cleanup",
+    "finite-and-standing-lifecycle-remain-contract-owned"
+  ],
+  "cases": [
+    {"id":"reference-pass","owner":"conduit-media","expected":"bound-and-exact-output"},
+    {"id":"ffmpeg-pass","owner":"conduit-audio","expected":"bound-and-exact-output"},
+    {"id":"sox-pass","owner":"conduit-audio","expected":"bound-and-exact-output"},
+    {"id":"browser-wasm-pass","owner":"conduit-web","expected":"bound-and-exact-output"},
+    {"id":"known-contract-no-provider","owner":"conduit-runtime","expected":"CND-IMP-001"},
+    {"id":"executable-absent","owner":"conduit-audio","expected":"CND-MPR-003"},
+    {"id":"browser-api-absent","owner":"browser-host","expected":"CND-BRW-008"},
+    {"id":"wrong-or-changed-build","owner":"conduit-audio","expected":"CND-MPR-005"},
+    {"id":"stale-observation","owner":"conduit-audio","expected":"CND-MPR-009"},
+    {"id":"incompatible-implementation-manifest","owner":"conduit-runtime","expected":"CND-REG-005"},
+    {"id":"unsupported-profile","owner":"conduit-audio","expected":"CND-MPR-010"},
+    {"id":"malformed-input","owner":"conduit-audio","expected":"CND-MPR-011"},
+    {"id":"argv-injection-literal","owner":"conduit-process","expected":"literal-argv-no-shell"},
+    {"id":"unexpected-network-request","owner":"conduit-audio","expected":"pipe-only-no-network-effect"},
+    {"id":"output-bound-exhaustion","owner":"conduit-process","expected":"CND-EXEC-013"},
+    {"id":"stderr-bound-exhaustion","owner":"conduit-process","expected":"CND-EXEC-014"},
+    {"id":"temp-storage-or-disk-full","owner":"conduit-audio","expected":"not-applicable-zero-temp-and-no-file-effect"},
+    {"id":"callback-bound-exhaustion","owner":"browser-host","expected":"CND-BRW-007"},
+    {"id":"foreign-queue-bound-exhaustion","owner":"browser-host","expected":"CND-BRW-007"},
+    {"id":"hung-process","owner":"conduit-process","expected":"deadline-exceeded-cleanup-complete"},
+    {"id":"child-process","owner":"conduit-process","expected":"child-process-limit-exceeded-cleanup-complete"},
+    {"id":"cancellation-before-spawn","owner":"conduit-process","expected":"cancelled-cleanup-complete"},
+    {"id":"cancellation-after-spawn","owner":"conduit-process","expected":"cancelled-forced-cleanup-complete"},
+    {"id":"partial-output","owner":"conduit-process","expected":"partial-output-with-exit-7"},
+    {"id":"signal-terminal","owner":"conduit-process","expected":"signaled"},
+    {"id":"numeric-reference-ffmpeg-sox-browser","owner":"conduit-audio","expected":"zero-sample-error"},
+    {"id":"metadata-redaction","owner":"conduit-audio","expected":"basename-and-digest-no-absolute-path"},
+    {"id":"same-source-different-bindings","owner":"conduit-compile","expected":"same-semantic-hash-different-plan-hash"}
+  ]
+}

@@ -64,9 +64,10 @@ use sha2::{Digest as _, Sha256};
 mod installed_profile;
 
 pub use installed_profile::{
-    HostServiceAuthorityObservationInput, InstalledProfile, ObservedHostServiceAuthority,
-    fixture_host_service_authority_observation, observed_host_service_authority,
-    observed_host_service_constraints,
+    ExternalHostServiceAuthorityObservationInput, HostServiceAuthorityObservationInput,
+    InstalledHostObservationInput, InstalledProfile, ObservedHostServiceAuthority,
+    fixture_host_service_authority_observation, observed_external_host_service_authority,
+    observed_host_service_authority, observed_host_service_constraints,
 };
 
 pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input";
@@ -1612,16 +1613,22 @@ impl CompileInput {
             for authority in &mut candidate.authorities {
                 seal_authority_decision(authority)?;
             }
-            candidate.implementation.required_authorities = candidate
-                .authorities
-                .iter()
-                .map(|authority| authority.requirement.clone())
-                .collect();
-            candidate.implementation.required_effects = candidate
-                .authorities
-                .iter()
-                .map(|authority| authority.effect_hash.clone())
-                .collect();
+            candidate.implementation.required_authorities.extend(
+                candidate
+                    .authorities
+                    .iter()
+                    .map(|authority| authority.requirement.clone()),
+            );
+            candidate.implementation.required_authorities.sort();
+            candidate.implementation.required_authorities.dedup();
+            candidate.implementation.required_effects.extend(
+                candidate
+                    .authorities
+                    .iter()
+                    .map(|authority| authority.effect_hash.clone()),
+            );
+            candidate.implementation.required_effects.sort();
+            candidate.implementation.required_effects.dedup();
             candidate.granted_authorities = candidate
                 .authorities
                 .iter()

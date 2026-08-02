@@ -6427,7 +6427,7 @@
         {
           "id": "cross-host-provider-conformance",
           "path": "../c5/cross-host-provider-conformance.json",
-          "sha256": "sha256:65272673a4828c618bc92eabc66de17dcb95ca0dd99c241778473c5758ed0213",
+          "sha256": "sha256:8e037afbca6d225a6f12b4a617a252b22a9d6843b3cc60676d07dcdcb5bea4df",
           "operation": "cross-host-provider-conformance",
           "requirement_ids": [
             "HCF-001",
@@ -6451,7 +6451,7 @@
             "fabricated-observation": "HCF-003",
             "label-only-false-satisfaction": "HCF-004",
             "custom-type-incompatible": "HCF-005",
-            "explicit-adapter-fixture-pass": "HCF-005",
+            "explicit-adapter-pass": "HCF-005",
             "adapter-not-published": "HCF-005",
             "failed-conformance": "HCF-006",
             "stale-conformance": "HCF-006",
@@ -6472,14 +6472,68 @@
           "expected_fields": [
             "expected"
           ]
+        },
+        {
+          "id": "cross-host-media-implementations",
+          "path": "../c5/cross-host-media-implementations.json",
+          "sha256": "sha256:dcadee4593563a8e32846dc82266c2da3c1063d9a884993482000da94cda8b1e",
+          "operation": "cross-host-media-implementations",
+          "requirement_ids": [
+            "HCF-001",
+            "HCF-002",
+            "HCF-003",
+            "HCF-004",
+            "HCF-005",
+            "HCF-006",
+            "HCF-007",
+            "HCF-008",
+            "HCF-009"
+          ],
+          "default_rule": "HCF-001",
+          "case_rules": {
+            "known-contract-no-provider": "HCF-002",
+            "executable-absent": "HCF-003",
+            "browser-api-absent": "HCF-003",
+            "wrong-or-changed-build": "HCF-006",
+            "stale-observation": "HCF-003",
+            "incompatible-implementation-manifest": "HCF-005",
+            "unsupported-profile": "HCF-005",
+            "malformed-input": "HCF-005",
+            "argv-injection-literal": "HCF-007",
+            "unexpected-network-request": "HCF-007",
+            "output-bound-exhaustion": "HCF-008",
+            "stderr-bound-exhaustion": "HCF-008",
+            "temp-storage-or-disk-full": "HCF-008",
+            "callback-bound-exhaustion": "HCF-008",
+            "foreign-queue-bound-exhaustion": "HCF-008",
+            "hung-process": "HCF-008",
+            "child-process": "HCF-008",
+            "cancellation-before-spawn": "HCF-008",
+            "cancellation-after-spawn": "HCF-008",
+            "partial-output": "HCF-008",
+            "signal-terminal": "HCF-008",
+            "metadata-redaction": "HCF-009"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
         }
       ],
       "coverage": {
         "positive": [
-          "cross-host-provider-conformance#provider-fixture-alpha-pass",
-          "cross-host-provider-conformance#provider-fixture-beta-pass",
           "cross-host-provider-conformance#deterministic-pass",
-          "cross-host-provider-conformance#explicit-adapter-fixture-pass"
+          "cross-host-provider-conformance#explicit-adapter-pass",
+          "cross-host-media-implementations#reference-pass",
+          "cross-host-media-implementations#ffmpeg-pass",
+          "cross-host-media-implementations#sox-pass",
+          "cross-host-media-implementations#browser-wasm-pass",
+          "cross-host-media-implementations#numeric-reference-ffmpeg-sox-browser",
+          "cross-host-media-implementations#same-source-different-bindings"
         ],
         "negative": [
           "cross-host-provider-conformance#firmware-honest-unsupported",
@@ -6496,13 +6550,35 @@
           "cross-host-provider-conformance#stale-conformance",
           "cross-host-provider-conformance#wrong-artifact-digest",
           "cross-host-provider-conformance#protocol-mismatch",
-          "cross-host-provider-conformance#interpreter-unavailable"
+          "cross-host-provider-conformance#interpreter-unavailable",
+          "cross-host-media-implementations#known-contract-no-provider",
+          "cross-host-media-implementations#executable-absent",
+          "cross-host-media-implementations#browser-api-absent",
+          "cross-host-media-implementations#wrong-or-changed-build",
+          "cross-host-media-implementations#stale-observation",
+          "cross-host-media-implementations#incompatible-implementation-manifest",
+          "cross-host-media-implementations#unsupported-profile",
+          "cross-host-media-implementations#malformed-input",
+          "cross-host-media-implementations#unexpected-network-request"
         ],
         "boundary": [
           "cross-host-provider-conformance#non-cancellable-worker",
           "cross-host-provider-conformance#hidden-foreign-queue",
           "cross-host-provider-conformance#discovery-no-install",
-          "cross-host-provider-conformance#discovery-no-authority"
+          "cross-host-provider-conformance#discovery-no-authority",
+          "cross-host-media-implementations#argv-injection-literal",
+          "cross-host-media-implementations#output-bound-exhaustion",
+          "cross-host-media-implementations#stderr-bound-exhaustion",
+          "cross-host-media-implementations#temp-storage-or-disk-full",
+          "cross-host-media-implementations#callback-bound-exhaustion",
+          "cross-host-media-implementations#foreign-queue-bound-exhaustion",
+          "cross-host-media-implementations#hung-process",
+          "cross-host-media-implementations#child-process",
+          "cross-host-media-implementations#cancellation-before-spawn",
+          "cross-host-media-implementations#cancellation-after-spawn",
+          "cross-host-media-implementations#partial-output",
+          "cross-host-media-implementations#signal-terminal",
+          "cross-host-media-implementations#metadata-redaction"
         ],
         "migration": [
           "cross-host-provider-conformance#profile-schema-version-rejected"
@@ -6528,6 +6604,18 @@
         {
           "package": "conduit-patchbay",
           "test": "protocol"
+        },
+        {
+          "package": "conduit-audio",
+          "test": "implementation_matrix"
+        },
+        {
+          "package": "conduit-process",
+          "test": "lib"
+        },
+        {
+          "package": "conduit-web",
+          "test": "tour_lessons"
         }
       ]
     }

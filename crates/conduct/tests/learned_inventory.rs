@@ -490,15 +490,19 @@ fn promotion_effect_failures_run_through_the_fixture_backend_without_receipts() 
 
 #[test]
 fn promotion_use_time_authority_run_epoch_and_cancellation_fail_closed() {
+    let source = include_str!("../../../examples/learned-lifecycle.panel");
+    let mut ungranted = Registry::hosted_primitives();
+    register_deterministic_inference_provider(&mut ungranted).unwrap();
+    register_deterministic_lifecycle_fixture_provider(&mut ungranted).unwrap();
+    let ungranted =
+        InstalledProfile::observe_registry_with_host_authorities(source, &ungranted, &[]).unwrap();
+    assert_eq!(
+        compile_source(source, &ungranted.input).unwrap_err().code(),
+        "CND-CMP-006",
+        "an implementation-declared promotion authority is required during resolution"
+    );
+
     for (use_fault, planned_run, planned_epoch, actual_run, actual_epoch, code) in [
-        (
-            PromotionUseFault::None,
-            "",
-            1,
-            "conduit/conduct-run",
-            1,
-            "CND-LEARN-019",
-        ),
         (
             PromotionUseFault::Revoked,
             "conduit/conduct-run",
