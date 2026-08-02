@@ -470,7 +470,7 @@ fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_bindin
     let base = fs::read_to_string(root.join("examples/wifi-ap-isolated.panel"))
         .expect("network fixture example");
     let mut registry = conduit_runtime::Registry::hosted_primitives();
-    conduit_net::register_deterministic_network_fixture_providers(&mut registry)
+    conduit_net::register_deterministic_network_providers(&mut registry)
         .expect("no-radio fixtures install");
 
     for key in [

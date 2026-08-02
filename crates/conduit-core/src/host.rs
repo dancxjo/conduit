@@ -67,6 +67,9 @@ pub struct CapabilityReport<'a> {
     pub identity: SemanticHash,
     pub id: Id<'a>,
     pub host: Id<'a>,
+    /// Exact host boot/session identity. Provider loss within a boot and host
+    /// loss across boots are different observations.
+    pub boot_id: Id<'a>,
     pub reporter: PinnedDescriptor<'a>,
     pub trust: PinnedDescriptor<'a>,
     pub membership: Option<ReportMembership<'a>>,
@@ -145,6 +148,7 @@ impl CapabilityReport<'_> {
         let fields = [
             semantic("id", CanonicalValue::Identifier(self.id)),
             semantic("host", CanonicalValue::Identifier(self.host)),
+            semantic("boot_id", CanonicalValue::Identifier(self.boot_id)),
             semantic("reporter_id", CanonicalValue::Identifier(reporter.id)),
             semantic(
                 "reporter_version",

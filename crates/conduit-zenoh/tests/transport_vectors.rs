@@ -347,6 +347,7 @@ fn capability_report<'a>(
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id(id),
         host: Id(host),
+        boot_id: Id("fixture/host-boot"),
         reporter: support::pin("fixture/host-reporter", 73),
         trust: support::pin("fixture/report-trust", 74),
         membership: None,

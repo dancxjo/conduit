@@ -25,8 +25,9 @@ use conduit_core::{
 use conduit_runtime::{
     CompiledInHostService, ExactHostedServiceBinding, HTTP_LISTENER_CONTRACT, Handler,
     HostedDrainObservation, HostedGenerationBinding, HostedServiceInterest, HostedServiceStep,
-    HostedServiceStepContext, HostedTransitionGeneration, Registry, RegistryError, ResolutionError,
-    ResolvedPlacementBinding, RunIo, RuntimeError, Value, hosted_effect_constraint_hash,
+    HostedServiceStepContext, HostedTransitionGeneration, ManagedAdapterBoundary,
+    ManagedComponentDescriptor, Registry, RegistryError, ResolutionError, ResolvedPlacementBinding,
+    RunIo, RuntimeError, Value, hosted_effect_constraint_hash,
 };
 use rustls::pki_types::CertificateDer;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -2159,16 +2160,19 @@ impl HttpServingBackend for LinuxHttpServingBackend {
 /// registry. Merely publishing the semantic contract does not install it.
 pub fn register_hosted_http_provider(registry: &mut Registry) -> Result<(), RegistryError> {
     static REQUIRED_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x48; 32])];
-    registry.register_compiled_in_host_service(CompiledInHostService {
-        contract: &HTTP_LISTENER_CONTRACT,
-        implementation_id: "conduit/http-linux-listener",
-        artifact_id: "conduit/http-linux-listener-artifact",
-        entrypoint: "http-linux-listener",
-        source_bytes: include_bytes!("lib.rs"),
-        required_authorities: &REQUIRED_AUTHORITIES,
-        factory: || Box::new(HttpListenerHandler::default()),
-        validate_config: validate_http_listener_config,
-    })
+    registry.register_managed_compiled_in_host_service(
+        CompiledInHostService {
+            contract: &HTTP_LISTENER_CONTRACT,
+            implementation_id: "conduit/http-linux-listener",
+            artifact_id: "conduit/http-linux-listener-artifact",
+            entrypoint: "http-linux-listener",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &REQUIRED_AUTHORITIES,
+            factory: || Box::new(HttpListenerHandler::default()),
+            validate_config: validate_http_listener_config,
+        },
+        ManagedComponentDescriptor::full_standing_service(ManagedAdapterBoundary::Native),
+    )
 }
 
 pub const HTTP_CLIENT_LOOPBACK_RESOURCE: &str = "conduit.resource/http-loopback";
@@ -3334,9 +3338,18 @@ mod tests {
             run_id: "conduit/conduct-run".to_owned(),
             instance: "client".to_owned(),
             implementation_id: "conduit/http-linux-client".to_owned(),
+            implementation_version: "1".to_owned(),
+            implementation_identity: conduit_core::SemanticHash::from_bytes([4; 32]),
             artifact_id: "conduit/http-linux-client-artifact".to_owned(),
+            artifacts: vec![conduit_runtime::ManagedArtifactIdentity {
+                id: "conduit/http-linux-client-artifact".to_owned(),
+                digest: conduit_core::ArtifactDigest::from_bytes([5; 32]).to_string(),
+            }],
             host_id: "conduit/conduct-host".to_owned(),
+            host_boot_id: "conduit/conduct-host-boot".to_owned(),
             host_observation_id: "conduit.observation/conduct-host".to_owned(),
+            host_observation_valid_until_tick: 20,
+            managed_lifecycle: None,
             use_time_tick: 12,
             authorities: vec![ExactHostedServiceAuthority {
                 effect_hash: conduit_core::SemanticHash::from_bytes([0; 32]),
@@ -3576,6 +3589,26 @@ mod tests {
         let value_capacity = session
             .value_storage_usage()
             .expect("hosted listener owns fixed value storage");
+        let lifecycle = session.managed_component_observations();
+        assert_eq!(lifecycle.len(), 1);
+        let lifecycle_component = lifecycle[0].identity.component.clone();
+        assert_eq!(
+            lifecycle[0].state,
+            conduit_runtime::ManagedLifecycleState::Active
+        );
+        assert_eq!(
+            lifecycle[0].readiness,
+            conduit_runtime::ManagedRuntimeReadiness::Waiting
+        );
+        assert_eq!(
+            lifecycle[0].identity.host_boot_id,
+            "conduit/conduct-host-boot"
+        );
+        assert_eq!(
+            lifecycle[0].identity.implementation_id,
+            "conduit/http-linux-listener"
+        );
+        assert_eq!(lifecycle[0].identity.artifacts.len(), 1);
         assert_eq!(
             session
                 .notify_host_operation(Id("conduit/http-other-event"), &observations)
@@ -3612,10 +3645,30 @@ mod tests {
             assert!(session.high_water().event_slots <= allocation.event_slots);
         }
         assert_eq!(session.identity(), &identity);
+        let lifecycle_events = session
+            .read_managed_component_evidence(&lifecycle_component, 0, 64)
+            .unwrap();
+        assert!(lifecycle_events.iter().any(|event| {
+            event.state == conduit_runtime::ManagedLifecycleState::Active
+                && event.readiness == conduit_runtime::ManagedRuntimeReadiness::Ready
+        }));
+        assert!(lifecycle_events.iter().any(|event| {
+            event.state == conduit_runtime::ManagedLifecycleState::Active
+                && event.readiness == conduit_runtime::ManagedRuntimeReadiness::Waiting
+        }));
         session.cancel(StopPolicy::Abort).unwrap();
         assert_eq!(
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        let lifecycle = session.managed_component_observations();
+        assert_eq!(
+            lifecycle[0].state,
+            conduit_runtime::ManagedLifecycleState::Stopped
+        );
+        assert_eq!(
+            lifecycle[0].cleanup,
+            conduit_runtime::ManagedCleanupState::Complete
         );
         assert!(session.exact_evidence().len() > 2);
         session.finalize().unwrap();
@@ -3640,6 +3693,15 @@ mod tests {
             session.cancel(StopPolicy::Drain).unwrap().state,
             ExactRunState::Quiescing
         );
+        let lifecycle = session.managed_component_observations();
+        assert_eq!(
+            lifecycle[0].state,
+            conduit_runtime::ManagedLifecycleState::Quiescing
+        );
+        assert_eq!(
+            lifecycle[0].reason,
+            conduit_runtime::ManagedLifecycleReason::AdmissionClosed
+        );
         assert!(
             TcpStream::connect(address).is_err(),
             "drain stops new admission"
@@ -3659,6 +3721,15 @@ mod tests {
         assert_eq!(
             session.state(),
             ExactRunState::Terminal(conduit_core::TerminalClass::Cancelled)
+        );
+        let lifecycle = session.managed_component_observations();
+        assert_eq!(
+            lifecycle[0].state,
+            conduit_runtime::ManagedLifecycleState::Stopped
+        );
+        assert_eq!(
+            lifecycle[0].cleanup,
+            conduit_runtime::ManagedCleanupState::Complete
         );
         session.finalize().unwrap();
         assert_eq!(sessions.active_sessions(), 0);

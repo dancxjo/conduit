@@ -291,6 +291,9 @@ containment program is tracked by
 - [`078-audio-device-boundaries.md`](078-audio-device-boundaries.md) defines
   observed capture and playback resources, exact negotiation, authority,
   clocks, hosted and virtual providers, standing lifecycle, and failures.
+- [`079-generic-implementations.md`](079-generic-implementations.md) defines
+  one domain-neutral installed implementation and artifact model shared by
+  multiple hosts and semantic contracts.
 - [`079-temporal-modalities.md`](079-temporal-modalities.md) defines exact
   ordinary-value, closing-flow, open-flow, and current-observation contracts,
   compatibility, identity, and explicit conversion boundaries.
@@ -301,6 +304,10 @@ containment program is tracked by
 - [`081-patchbay-structural-lenses.md`](081-patchbay-structural-lenses.md)
   defines presentation-only structural lenses and orthogonal
   Use/Build/Inspect modes.
+- [`082-managed-component-lifecycle.md`](082-managed-component-lifecycle.md)
+  defines the optional generic implementation facet for configured, prepared,
+  active, quiescing, cleaning, stopped, failed, and unsupported components,
+  with separate readiness, authority, host, run, and plan identities.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

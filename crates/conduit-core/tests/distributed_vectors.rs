@@ -503,6 +503,7 @@ fn current_plan_requires_one_exact_binding_for_each_cross_host_cord() {
         PlanHostObservation {
             id: Id("fixture/writer-report"),
             host: Id("fixture/writer-host"),
+            boot_id: Id("fixture/writer-host-boot"),
             semantic_hash: hash(80),
             time_basis: Id("fixture/clock"),
             observed_at_tick: 10,
@@ -511,6 +512,7 @@ fn current_plan_requires_one_exact_binding_for_each_cross_host_cord() {
         PlanHostObservation {
             id: Id("fixture/reader-report"),
             host: Id("fixture/reader-host"),
+            boot_id: Id("fixture/reader-host-boot"),
             semantic_hash: hash(81),
             time_basis: Id("fixture/clock"),
             observed_at_tick: 10,

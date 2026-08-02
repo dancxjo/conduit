@@ -47,6 +47,7 @@ fn host_observation(name: &str) -> InstalledHostObservationInput {
     let mut observation = InstalledHostObservationInput::conduct_host();
     observation.id = format!("conduit/observation/{name}");
     observation.host = format!("conduit/host/{name}");
+    observation.boot_id = format!("conduit/boot/{name}");
     observation.time_basis = format!("clock/{name}");
     observation
 }

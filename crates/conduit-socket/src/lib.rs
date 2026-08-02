@@ -11,8 +11,8 @@ use std::time::Duration;
 use conduit_core::SemanticHash;
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
-    CompiledInHostService, Handler, Registry, RegistryError, ResolutionError, RunIo, RuntimeError,
-    Value,
+    CompiledInHostService, Handler, ManagedAdapterBoundary, ManagedComponentDescriptor, Registry,
+    RegistryError, ResolutionError, RunIo, RuntimeError, Value,
 };
 use conduit_std::{
     SOCKET_MAX_DATAGRAMS, SOCKET_MAX_EVIDENCE_EVENTS, SOCKET_MAX_MESSAGE_BYTES,
@@ -650,7 +650,12 @@ pub fn register_hosted_socket_providers(registry: &mut Registry) -> Result<(), R
             validate_config: validate_udp_datagram,
         },
     ] {
-        registry.register_compiled_in_host_service(service)?;
+        let descriptor = if service.contract.id.as_str() == TCP_LISTEN_ID {
+            ManagedComponentDescriptor::full_standing_service(ManagedAdapterBoundary::Native)
+        } else {
+            ManagedComponentDescriptor::leased_provider(ManagedAdapterBoundary::Native)
+        };
+        registry.register_managed_compiled_in_host_service(service, descriptor)?;
     }
     Ok(())
 }
@@ -716,6 +721,29 @@ mod tests {
                 conduit_runtime::AvailabilityState::ProviderAvailable
             );
         }
+        let installed = registry
+            .installed_providers()
+            .into_iter()
+            .filter(|provider| {
+                matches!(
+                    provider.contract.id.as_str(),
+                    TCP_CONNECT_ID | TCP_LISTEN_ID | UDP_CONNECTED_ID | UDP_DATAGRAM_ID
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(installed.len(), 4);
+        assert!(installed.iter().all(|provider| {
+            provider.managed_lifecycle.is_some()
+                && provider.manifest.provided_interfaces[0]
+                    .interface
+                    .id
+                    .as_str()
+                    == conduit_runtime::MANAGED_COMPONENT_INTERFACE_ID
+                && provider.manifest.provided_interfaces[0]
+                    .interface
+                    .semantic_hash
+                    == conduit_runtime::managed_component_interface_hash()
+        }));
         let description = provider_description();
         assert!(description.contains(&("dns", "unsupported".to_owned())));
         assert!(description.contains(&("public_reachability", "not-claimed".to_owned())));

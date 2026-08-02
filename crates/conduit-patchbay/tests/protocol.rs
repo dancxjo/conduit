@@ -715,6 +715,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
     let hosts = [PlanHostObservation {
         id: Id("report/browser"),
         host: Id("host/browser"),
+        boot_id: Id("host/browser-boot"),
         semantic_hash: hash(9),
         time_basis: Id("clock/test"),
         observed_at_tick: 1,

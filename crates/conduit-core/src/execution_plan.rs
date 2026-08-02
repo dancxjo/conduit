@@ -86,6 +86,7 @@ pub struct PlanArtifact<'a> {
 pub struct PlanHostObservation<'a> {
     pub id: Id<'a>,
     pub host: Id<'a>,
+    pub boot_id: Id<'a>,
     pub semantic_hash: SemanticHash,
     pub time_basis: Id<'a>,
     pub observed_at_tick: u64,
@@ -2893,6 +2894,7 @@ fn hash_host_observation(
         &[
             semantic("id", CanonicalValue::Identifier(value.id)),
             semantic("host", CanonicalValue::Identifier(value.host)),
+            semantic("boot_id", CanonicalValue::Identifier(value.boot_id)),
             semantic(
                 "semantic_hash",
                 CanonicalValue::Bytes(value.semantic_hash.as_bytes()),

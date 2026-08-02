@@ -195,6 +195,7 @@ fn report<'a>(
         identity: ZERO,
         id: Id(id),
         host: Id(host),
+        boot_id: Id("fixture/host-boot"),
         reporter: REPORTER,
         trust: TRUST,
         membership: None,
@@ -1009,6 +1010,7 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
     let observations = [PlanHostObservation {
         id: linux_report.id,
         host: linux_report.host,
+        boot_id: linux_report.boot_id,
         semantic_hash: linux_report.identity,
         time_basis: linux_report.time_basis,
         observed_at_tick: linux_report.observed_at_tick,

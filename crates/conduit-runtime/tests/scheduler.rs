@@ -131,6 +131,7 @@ fn with_plan(
     let observation = [PlanHostObservation {
         id: Id("fixture/host-report"),
         host: Id("host/a"),
+        boot_id: Id("host/a-boot"),
         semantic_hash: hash(1),
         time_basis: Id("clock/monotonic"),
         observed_at_tick: 0,

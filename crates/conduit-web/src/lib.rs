@@ -63,6 +63,7 @@ fn browser_host_observation() -> InstalledHostObservationInput {
     let mut observation = InstalledHostObservationInput::conduct_host();
     observation.id = "conduit/browser-worker-host-observation".to_owned();
     observation.host = BROWSER_EVIDENCE_HOST.to_owned();
+    observation.boot_id = "conduit/browser-worker-boot".to_owned();
     observation.time_basis = "clock/browser-worker".to_owned();
     observation
 }
@@ -134,6 +135,7 @@ fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
         host_observation: PlanHostDocument {
             id: BROWSER_EVIDENCE_HOST_OBSERVATION.to_owned(),
             host: BROWSER_EVIDENCE_HOST.to_owned(),
+            boot_id: "conduit/browser-worker-boot".to_owned(),
             semantic_hash: host_semantic_hash.to_string(),
             time_basis: "clock/browser-worker".to_owned(),
             observed_at_tick: 12,
@@ -844,8 +846,8 @@ fn browser_registry() -> Registry {
         .expect("deterministic spatial providers have distinct identities");
     conduit_spatial::register_deterministic_spatial_data_provider(&mut registry)
         .expect("deterministic spatial-data providers have distinct identities");
-    conduit_net::register_deterministic_network_fixture_providers(&mut registry)
-        .expect("deterministic network fixture providers have distinct identities");
+    conduit_net::register_deterministic_network_providers(&mut registry)
+        .expect("deterministic network reference providers have distinct identities");
     for provider in [
         CompiledInHostService {
             contract: file_read_contract(),

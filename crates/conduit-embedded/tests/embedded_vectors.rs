@@ -913,6 +913,7 @@ fn pico_report_names_exact_build_pools_and_no_unimplemented_zenoh() {
         identity: ZERO,
         id: Id("fixture/pico-w-report"),
         host: Id("fixture/pico-w"),
+        boot_id: Id("fixture/pico-w-boot"),
         reporter: REPORTER,
         trust: TRUST,
         membership: None,

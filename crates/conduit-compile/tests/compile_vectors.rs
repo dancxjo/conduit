@@ -106,6 +106,8 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
                 role: "implementation".to_owned(),
                 required: true,
             }],
+            required_interfaces: Vec::new(),
+            provided_interfaces: Vec::new(),
             required_authorities: Vec::new(),
             required_effects: Vec::new(),
             minimum_plan_version: 0,
@@ -135,6 +137,7 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             identity: String::new(),
             id: format!("fixture/report-{ordinal}"),
             host: "fixture/host-local".to_owned(),
+            boot_id: "fixture/host-local-boot".to_owned(),
             reporter: pin("fixture/reporter", 50),
             trust: pin("fixture/report-trust", 51),
             membership: None,
@@ -477,10 +480,16 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             };
             ExactHostedBinding {
                 implementation_id: node.implementation.id.to_string(),
+                implementation_version: "1.0.0".to_owned(),
                 implementation_identity: node.implementation.semantic_hash,
                 artifact_id: node.artifact.to_string(),
                 artifact_digest: artifact.digest,
+                artifacts: vec![conduit_runtime::ManagedArtifactIdentity {
+                    id: node.artifact.to_string(),
+                    digest: artifact.digest.to_string(),
+                }],
                 implementation,
+                managed_lifecycle: None,
             }
         })
         .collect::<Vec<_>>();

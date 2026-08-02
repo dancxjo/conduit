@@ -181,6 +181,7 @@ fn with_plan(test: impl FnOnce(ExecutionPlan<'_>, &mut [SemanticHash; 64])) {
     let observations = [PlanHostObservation {
         id: Id("fixture/host-report"),
         host: Id("host/a"),
+        boot_id: Id("host/a-boot"),
         semantic_hash: hash(10),
         time_basis: Id("clock/monotonic"),
         observed_at_tick: 0,
@@ -526,7 +527,7 @@ fn valid_nested_plan_pins_every_runnable_boundary() {
     with_plan(|plan, scratch| {
         assert_eq!(
             plan.identity.to_string(),
-            "sha256:eb57d8a56634b735fb5a70506d57a32a1244cd7303de529d951673ddd06b4c0a"
+            "sha256:746861a7692dff8da30339c4597f804f9a64e69063e8bb66a0fa7487996863e1"
         );
         assert_eq!(validate_execution_plan(&plan, context(20), scratch), Ok(()));
         assert_eq!(plan.identity, plan.semantic_hash(scratch).unwrap());
