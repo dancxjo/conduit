@@ -2656,7 +2656,10 @@ test("typed text lesson runs line transforms", async ({ page }) => {
   await expect(result).toContainText("alpha | beta |  | gamma", { timeout: 20_000 });
   await expect(page.locator('[data-id="lines"]')).toContainText("std/text/lines");
   await expect(page.locator('[data-id="joined"]')).toContainText("std/text/join");
+});
 
+test("typed text lesson formats line values", async ({ page }) => {
+  const { result } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("format-lines");
   await page.locator("#run").click();
   await expect(result).toContainText("alpha / beta", { timeout: 20_000 });
