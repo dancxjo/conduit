@@ -64,6 +64,25 @@ const configurationLayers = document.querySelector("#configuration-layers");
 const configurationLayerList = document.querySelector("#configuration-layer-list");
 const showHowButton = document.querySelector("#show-how");
 const showWhyButton = document.querySelector("#show-why");
+const taskFrontSection = document.querySelector("#task-front");
+const taskFrontTitle = document.querySelector("#task-front-title");
+const taskFrontState = document.querySelector("#task-front-state");
+const taskFrontPurpose = document.querySelector("#task-front-purpose");
+const taskFrontPrimary = document.querySelector("#task-front-primary");
+const taskFrontAdvanced = document.querySelector("#task-front-advanced");
+const taskFrontAdvancedControls = document.querySelector("#task-front-advanced-controls");
+const taskFrontAction = document.querySelector("#task-front-action");
+const taskFrontResult = document.querySelector("#task-front-result");
+const selectionInspector = document.querySelector("#selection-inspector");
+const selectionInspectorTitle = document.querySelector("#selection-inspector-title");
+const selectionInspectorState = document.querySelector("#selection-inspector-state");
+const selectionInspectorSections = document.querySelector("#selection-inspector-sections");
+const selectionInspectorClose = document.querySelector("#selection-inspector-close");
+const consoleDisclosure = document.querySelector("#console-disclosure");
+const consoleBody = document.querySelector("#console-body");
+const taskFrontResultTitle = document.querySelector("#task-front-result-title");
+const taskFrontResultValue = document.querySelector("#task-front-result-value");
+const taskFrontExplanation = document.querySelector("#task-front-explanation");
 
 const lessons = await (await fetch("../lessons/current.json", { cache: "no-store" })).json();
 const book = await (await fetch("../book/current.json", { cache: "no-store" })).json();
@@ -1006,10 +1025,11 @@ function setWatchControl(control) {
   renderStructuredTopology();
 }
 
-function setWatchControlBusy(control, busy) {
+function setWatchControlBusy(control, busy, allowQueuedToggle = false) {
   if (!control || activeWatchControl !== control) return;
   control.pending = busy;
-  watchToggle.disabled = busy;
+  control.acceptsQueuedToggle = busy && allowQueuedToggle;
+  watchToggle.disabled = busy && !allowQueuedToggle;
   for (const button of document.querySelectorAll(".structured-watch-button")) {
     button.disabled = busy;
   }
@@ -1078,10 +1098,12 @@ function applyLiveRunProjection(projection) {
     ...patchbayView,
     run: projection.run,
     evidence: projection.evidence,
+    task_front: projection.task_front || patchbayView.task_front,
   };
   evidence.splice(0, evidence.length, ...projection.evidence);
   document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
   patchbayRenderer?.updateRunPresentation(patchbayView);
+  renderTaskFront();
 }
 
 function presentContinuousUpdate(presentation) {
@@ -1128,7 +1150,18 @@ function toggleDisplayFreeze() {
 
 async function toggleWatch() {
   const control = activeWatchControl;
-  if (!control || watchToggle.disabled) return;
+  if (!control) return;
+  if (control.pending) {
+    // A live cycle owns the adapter's one bounded request slot. Preserve the
+    // learner's action and perform it as soon as that cycle releases the slot.
+    if (control.acceptsQueuedToggle && !control.toggleQueued) {
+      control.toggleQueued = true;
+      control.acceptsQueuedToggle = false;
+      watchToggle.disabled = true;
+    }
+    return;
+  }
+  if (watchToggle.disabled) return;
   const wasAttached = control.attached;
   const nextAttached = !wasAttached;
   // Stop issuing observation reads before the detach request reaches the
@@ -1449,6 +1482,7 @@ function selectDiagnostic(diagnostic) {
   }
   result.textContent =
     `${diagnostic.code}: ${diagnostic.message}\n${diagnostic.explanation}`;
+  setConsoleExpanded(true);
 }
 
 function plannedNodesForPresentation(view = patchbayView) {
@@ -1574,7 +1608,11 @@ function renderStructuredTopology() {
 
 function openPatchbaySession() {
   patchbaySessionId = `tour/${current.id}`;
-  const opened = JSON.parse(patchbay_open_session(patchbaySessionId, acceptedSource));
+  const opened = JSON.parse(patchbay_open_session(
+    patchbaySessionId,
+    acceptedSource,
+    current.task_front ? JSON.stringify(current.task_front) : "",
+  ));
   if (!opened.ok) {
     patchbayView = null;
     updateCytoscapeGraph();
@@ -1708,6 +1746,200 @@ function renderConfigurationLayers() {
   }
 }
 
+function taskFrontEditValue(control, rawValue, checked = false) {
+  if (control.edit_kind === "boolean") return { kind: "boolean", value: checked };
+  if (control.edit_kind === "integer") return { kind: "integer", value: Number(rawValue) };
+  if (control.edit_kind === "exact-decimal") return { kind: "exact-decimal", value: rawValue };
+  if (control.edit_kind === "reference") return { kind: "reference", value: rawValue };
+  if (control.edit_kind === "contract-reference") {
+    return { kind: "contract-reference", value: rawValue };
+  }
+  return { kind: "text", value: rawValue };
+}
+
+function renderTaskFrontControl(control) {
+  const field = document.createElement("div");
+  field.className = "task-front-control";
+  field.dataset.controlId = control.id;
+  const label = document.createElement("label");
+  const inputId = `task-front-control-${control.id}`;
+  label.htmlFor = inputId;
+  label.textContent = control.label;
+  const consequence = document.createElement("p");
+  consequence.className = "task-front-consequence";
+  consequence.textContent =
+    `${control.requirement}; ${control.value_origin}; persists in ${control.persistence}; ` +
+    `takes effect at ${control.activation}.`;
+  let editor;
+  if (control.renderer === "enum") {
+    editor = document.createElement("select");
+    for (const choice of control.choices || []) {
+      const option = document.createElement("option");
+      option.value = choice.value;
+      option.textContent = choice.label;
+      editor.append(option);
+    }
+  } else {
+    editor = document.createElement("input");
+    editor.type = control.renderer === "boolean" ? "checkbox"
+      : control.renderer === "number" ? "number" : "text";
+  }
+  editor.id = inputId;
+  editor.setAttribute("aria-label", control.accessibility_name);
+  editor.disabled = !control.editable;
+  if (editor.type === "checkbox") editor.checked = control.display_value === "true";
+  else editor.value = control.display_value || "";
+  if (!control.editable) editor.setAttribute("aria-readonly", "true");
+  if (control.editable) {
+    editor.onchange = () => {
+      const path = control.target.split("/");
+      const changed = applyPatchbayOperations([{
+        SetConfig: {
+          node_id: path[1],
+          key: path.at(-1),
+          value: taskFrontEditValue(control, editor.value, editor.checked),
+        },
+      }]);
+      if (changed.ok) updateCytoscapeGraph();
+    };
+  }
+  const help = document.createElement("p");
+  help.className = "card-subtitle";
+  help.textContent = control.help;
+  field.append(label, editor, consequence, help);
+  return field;
+}
+
+function renderTaskFront() {
+  const state = patchbayView?.task_front;
+  const useMode = patchbayView?.presentation?.mode === "use";
+  const front = state?.status === "usable" ? state.front : null;
+  taskFrontSection.hidden = !front || !useMode;
+  taskFrontPrimary.replaceChildren();
+  taskFrontAdvancedControls.replaceChildren();
+  taskFrontAction.replaceChildren();
+  taskFrontAdvanced.hidden = true;
+  taskFrontResult.hidden = true;
+  if (!front) return;
+  taskFrontSection.dataset.descriptorIdentity = front.descriptor_identity;
+  taskFrontSection.dataset.sourceIdentity = front.identities.source_identity;
+  taskFrontTitle.textContent = front.name;
+  taskFrontPurpose.textContent = front.purpose;
+  taskFrontState.textContent = state.status;
+  taskFrontExplanation.textContent = state.explanation;
+  for (const control of front.controls) {
+    const field = renderTaskFrontControl(control);
+    if (control.visibility === "advanced") {
+      taskFrontAdvanced.hidden = false;
+      taskFrontAdvancedControls.append(field);
+    } else {
+      taskFrontPrimary.append(field);
+    }
+  }
+  if (front.primary_action) {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "btn primary task-front-primary-action";
+    action.textContent = front.primary_action.label;
+    action.setAttribute("aria-label", front.primary_action.accessibility_name);
+    action.dataset.actionState = front.primary_action.state;
+    action.disabled = front.primary_action.state !== "request-available" || runButton.disabled;
+    action.onclick = () => runButton.click();
+    const help = document.createElement("p");
+    help.className = "card-subtitle";
+    help.textContent = [
+      front.primary_action.help,
+      ...(front.primary_action.explanations || []),
+    ].join(" ");
+    taskFrontAction.append(action, help);
+  }
+  if (front.result) {
+    taskFrontResult.hidden = false;
+    taskFrontResultTitle.textContent = front.result.label;
+    taskFrontResultValue.textContent = front.result.display_value ||
+      `${front.result.observation_state}. ${front.result.help}`;
+  }
+}
+
+function renderSelectionInspector() {
+  if (!selectionInspector || !selectionInspectorSections) return;
+  const activeControl = document.activeElement?.classList?.contains(
+    "selection-inspector-control",
+  ) ? {
+      key: document.activeElement.dataset.editKey,
+      start: document.activeElement.selectionStart,
+      end: document.activeElement.selectionEnd,
+    } : null;
+  const projection = patchbayView?.selection_inspector || null;
+  const visible = Boolean(projection);
+  selectionInspector.hidden = !visible;
+  workspace.dataset.inspectorOpen = String(visible);
+  selectionInspectorSections.replaceChildren();
+  if (!projection) return;
+  selectionInspectorTitle.textContent = projection.title;
+  selectionInspectorState.textContent =
+    `${projection.subject.kind} · ${projection.subject.path} · ${projection.state}. ` +
+    "Opening or closing this inspector changes presentation only.";
+  for (const section of projection.sections || []) {
+    const region = document.createElement("section");
+    region.className = "selection-inspector-section";
+    region.dataset.section = section.id;
+    const heading = document.createElement("h4");
+    heading.textContent = section.label;
+    const facts = document.createElement("dl");
+    for (const fact of section.facts || []) {
+      const row = document.createElement("div");
+      row.className = "selection-inspector-fact";
+      if (fact.clue) row.dataset.clue = fact.clue;
+      const term = document.createElement("dt");
+      term.textContent = fact.label;
+      const value = document.createElement("dd");
+      if (fact.edit) {
+        const control = document.createElement("input");
+        control.type = "text";
+        control.className = "control-input selection-inspector-control";
+        control.value = fact.value;
+        control.readOnly = !fact.edit.editable ||
+          patchbayView?.presentation?.mode !== "build";
+        control.dataset.editKey = `${fact.edit.node_id}/${fact.edit.key}`;
+        control.setAttribute("aria-label", `${fact.label} configuration`);
+        control.oninput = (event) => patchbayRenderer?.updateConfig(
+          fact.edit.node_id,
+          fact.edit.key,
+          event.currentTarget.value,
+          fact.edit.kind,
+        );
+        value.append(control);
+      } else {
+        const exact = document.createElement("code");
+        exact.textContent = fact.value;
+        value.append(exact);
+      }
+      const provenance = document.createElement("small");
+      provenance.textContent = `${fact.provenance}; ${fact.sensitivity}`;
+      value.append(provenance);
+      row.append(term, value);
+      facts.append(row);
+    }
+    region.append(heading, facts);
+    selectionInspectorSections.append(region);
+  }
+  if (activeControl) {
+    const replacement = [...selectionInspectorSections.querySelectorAll(
+      ".selection-inspector-control",
+    )].find((control) => control.dataset.editKey === activeControl.key);
+    replacement?.focus({ preventScroll: true });
+    replacement?.setSelectionRange(activeControl.start, activeControl.end);
+  }
+}
+
+function setConsoleExpanded(expanded) {
+  if (!consoleDisclosure || !consoleBody) return;
+  consoleDisclosure.setAttribute("aria-expanded", String(expanded));
+  consoleDisclosure.textContent = expanded ? "Hide raw output" : "Show raw output";
+  consoleBody.hidden = !expanded;
+}
+
 function syncPresentationControls() {
   const presentation = presentationSnapshot();
   if (!presentation) return;
@@ -1720,7 +1952,7 @@ function syncPresentationControls() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
     button.disabled = button.dataset.presentationMode === "use" &&
-      presentation.opening_reason !== "usable-task-front-declared";
+      patchbayView?.task_front?.status !== "usable";
   }
   for (const button of structuralLensButtons) {
     const active = button.dataset.structuralLens === presentation.lens;
@@ -1732,7 +1964,9 @@ function syncPresentationControls() {
     : " No subject selected.";
   const opening = presentation.opening_reason === "usable-task-front-declared"
     ? "A declared usable task front opened in Use."
-    : "No usable task front is declared, so this root opened in Build.";
+    : presentation.opening_reason === "declared-task-front-is-invalid"
+      ? `The declared task front is invalid, so Build remains authoritative. ${patchbayView.task_front.explanation}`
+      : "No usable task front is declared, so this root opened in Build.";
   presentationStatus.textContent =
     `${opening} ${presentation.mode} intent · ${presentation.lens} boundary · ` +
     `${presentation.topology} topology.${selected}`;
@@ -1745,6 +1979,8 @@ function syncPresentationControls() {
   });
   configurationLayers.hidden = presentation.lens !== "configure";
   renderConfigurationLayers();
+  renderTaskFront();
+  renderSelectionInspector();
 
   const atRest = presentation.lens === "at-rest";
   runButton.disabled ||= atRest;
@@ -1754,7 +1990,7 @@ function syncPresentationControls() {
 function navigatePresentation({ mode, lens, topology } = {}) {
   const presentation = presentationSnapshot();
   if (!presentation) return null;
-  if (mode === "use" && presentation.opening_reason !== "usable-task-front-declared") {
+  if (mode === "use" && patchbayView?.task_front?.status !== "usable") {
     result.textContent =
       "No usable task front is declared; Build remains active until an authoritative front exists.";
     return null;
@@ -2153,6 +2389,7 @@ function renderRustProjection(projection) {
   };
   positions = retainedPositions;
   updateCytoscapeGraph();
+  renderTaskFront();
   evidence.splice(0, evidence.length, ...projection.evidence);
   document.querySelector("#evidence").textContent = JSON.stringify(evidence, null, 2);
 }
@@ -2288,11 +2525,19 @@ function selectNode(node) {
   const plannedProjection = plannedNodesForPresentation()
     .find((candidate) => candidate.id === node);
   const projection = logicalProjection || plannedProjection;
-  if (!selectSourceRange("node", node, projection?.source_range)) return;
-  if (logicalProjection) {
+  const sourceRange = logicalProjection?.source_range ||
+    plannedProjection?.source_range ||
+    plannedProjection?.source_origin_range;
+  if (!selectSourceRange("node", node, sourceRange)) return;
+  const logicalSubject = logicalProjection ||
+    (patchbayView?.topology?.logical_nodes || []).find((candidate) =>
+      candidate.semantic_id === plannedProjection?.logical_origin ||
+      candidate.id === plannedProjection?.logical_origin
+    );
+  if (logicalSubject) {
     const selected = selectPresentationSubject({
       kind: "instance",
-      path: logicalProjection.semantic_id,
+      path: logicalSubject.semantic_id,
     });
     if (selected && !selected.ok) return;
   }
@@ -2312,6 +2557,15 @@ function selectCord(cordId) {
   const projection = projectedCordsForTopologyView()
     .find((candidate) => candidate.id === cordId);
   if (topologyView === "expanded") {
+    const logicalCord = (patchbayView?.topology?.cords || [])
+      .find((candidate) => candidate.id === cordId);
+    if (logicalCord) {
+      const selected = selectPresentationSubject({
+        kind: "cord",
+        path: logicalCord.semantic_path,
+      });
+      if (selected && !selected.ok) return;
+    }
     selectedNode = null;
     selectedCord = cordId;
     moveLeftBtn.disabled = true;
@@ -2347,10 +2601,32 @@ function selectPort(nodeId, port) {
   if (topologyView === "expanded") {
     const plannedNode = plannedNodesForPresentation()
       .find((candidate) => candidate.id === nodeId);
+    const logicalNode = (patchbayView?.topology?.logical_nodes || [])
+      .find((candidate) =>
+        candidate.semantic_id === plannedNode?.logical_origin ||
+        candidate.id === plannedNode?.logical_origin
+      );
+    const logicalPort = logicalNode && [
+      ...(logicalNode.inputs || []),
+      ...(logicalNode.outputs || []),
+    ].find((candidate) => candidate.id === port.id);
+    if (logicalPort) {
+      const selected = selectPresentationSubject({
+        kind: "port",
+        path: logicalPort.semantic_path,
+      });
+      if (selected && !selected.ok) return;
+    } else if (logicalNode) {
+      const selected = selectPresentationSubject({
+        kind: "instance",
+        path: logicalNode.semantic_id,
+      });
+      if (selected && !selected.ok) return;
+    }
     selectSourceRange(
       "planned instance source origin",
       plannedNode?.logical_origin || nodeId,
-      plannedNode?.source_range,
+      plannedNode?.source_range || plannedNode?.source_origin_range,
     );
     selectedNode = nodeId;
     selectedCord = null;
@@ -2443,7 +2719,7 @@ function clearTopologySelection() {
   moveRightBtn.disabled = true;
   source.setSourceHighlightRange?.(null, null);
   source.setSourceRelatedRanges?.([]);
-  patchbayRenderer?.highlightCordEndpoints(null);
+  patchbayRenderer?.clearSelection?.();
 }
 
 function check() {
@@ -2641,10 +2917,28 @@ showHowButton.onclick = () => navigatePresentation({
     (composite) => composite.id === selectedNode,
   ) ? "inside" : "face",
 });
-showWhyButton.onclick = () => navigatePresentation({
-  mode: "inspect",
-  lens: selectedCord ? "context" : "configure",
-});
+showWhyButton.onclick = () => {
+  const front = patchbayView?.task_front?.front;
+  const resultSubject = front?.result?.target;
+  if (!resultSubject) {
+    return navigatePresentation({
+      mode: "inspect",
+      lens: selectedCord ? "context" : "configure",
+    });
+  }
+  const presentation = presentationSnapshot();
+  return applyPatchbayOperations([{
+    Navigate: {
+      mode: "inspect",
+      lens: "context",
+      topology: presentation.topology,
+    },
+  }, {
+    SelectSubject: {
+      subject: { kind: "port", path: resultSubject },
+    },
+  }]);
+};
 
 function moveSelected(delta) {
   if (!selectedNode) return;
@@ -2709,7 +3003,8 @@ function scheduleContinuousWatch({
       });
       return;
     }
-    setWatchControlBusy(cycleControl, true);
+    setWatchControlBusy(cycleControl, true, true);
+    let cycleSucceeded = false;
     try {
       const advanced = await adapter.request("patchbay-advance-exact-run", {
         sessionId,
@@ -2766,6 +3061,7 @@ function scheduleContinuousWatch({
         cursor: nextCursor,
         state: pumped.value.state,
       });
+      cycleSucceeded = true;
       if (!pumped.value.terminal) {
         scheduleContinuousWatch({
           adapter,
@@ -2787,7 +3083,12 @@ function scheduleContinuousWatch({
         consoleBadge.className = "badge status-badge failed";
       }
     } finally {
+      const runQueuedToggle = Boolean(
+        cycleSucceeded && cycleControl?.toggleQueued && activeWatchControl === cycleControl
+      );
+      if (cycleControl) cycleControl.toggleQueued = false;
       setWatchControlBusy(cycleControl, false);
+      if (runQueuedToggle) void toggleWatch();
     }
   }, LIVE_WATCH_PRESENTATION_INTERVAL_MS);
 }
@@ -2857,6 +3158,7 @@ async function run() {
     const opened = await adapter.request("patchbay-open-session", {
       documentId: `tour/worker-run/${epoch}`,
       source: source.value,
+      taskFront: current.task_front || null,
     });
     if (!opened.ok || !opened.value?.ok) {
       throw new Error(`${opened.code || opened.value?.code || "open-failed"}: ${opened.value?.diagnostic || ""}`);
@@ -3059,6 +3361,8 @@ async function run() {
 runButton.onclick = run;
 watchToggle.onclick = () => void toggleWatch();
 freezeDisplay.onclick = toggleDisplayFreeze;
+consoleDisclosure.onclick = () => setConsoleExpanded(consoleBody.hidden);
+selectionInspectorClose.onclick = () => clearTopologySelection();
 stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
@@ -3070,6 +3374,11 @@ document.addEventListener("keydown", (event) => {
     ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
     target.isContentEditable
   );
+  if (event.key === "Escape" && !isEditing && !selectionInspector.hidden) {
+    event.preventDefault();
+    clearTopologySelection();
+    return;
+  }
   const isWatchShortcut = event.key.toLowerCase() === "w" &&
     !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
   if (isWatchShortcut && !isEditing && !event.repeat && !event.isComposing) {

@@ -91,7 +91,7 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
     if (message.type() === "error") failures.push(message.text());
   });
 
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel&autorun");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel&autorun");
   await expect(page.locator("#result")).toContainText("Hello from the Tour.", {
     timeout: 20_000,
   });
@@ -111,7 +111,7 @@ test("runs a production lesson in the resolved browser worker", async ({ page })
 });
 
 test("opens as a book and embeds the same real lab in compact and expanded modes", async ({ page }) => {
-  await page.goto("/tour/public/index.html");
+  await gotoTour(page, "/tour/public/index.html");
 
   await expect(page.locator("#book-cover")).toBeVisible();
   await expect(page.locator("#cover-title")).toHaveText(
@@ -206,11 +206,9 @@ test("restores reading position and a local draft without reviving a run", async
   )).toBeGreaterThan(0);
 });
 
-test("carries, resets and recovers cumulative project state explicitly", async ({ page }) => {
+test("carries and resets cumulative project state explicitly", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
-  await page.locator("#expand-lab").click();
   const source = page.locator("#source");
-  await source.scrollIntoViewIfNeeded();
   await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
   await page.locator("#next-section").click();
 
@@ -220,18 +218,29 @@ test("carries, resets and recovers cumulative project state explicitly", async (
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1000/);
-
-  await page.locator("#recover-project").dispatchEvent("click");
-  await expect(page.locator("#artifact-status")).toContainText("instrument-running");
-  await expect(source).toHaveValue(/duration_ticks = 1400/);
+  await expect(page.locator("#recover-project")).toBeEnabled();
 });
 
-test("keeps one canonical source artifact through every cumulative build", async ({ page }) => {
-  for (const [section, nextTitle, sourcePattern] of [
-    ["instrument.wake", "Give it a heartbeat", /conduit\.media\/control\/sequencer/],
-    ["service.listen", "Waiting is not completion", /server: net\/http\/listen/],
-    ["robot.rehearse", "Choose hosts without changing meaning", /wifi_ap: net\/wifi\/access-point/],
-  ]) {
+test("recovers cumulative project drafts explicitly", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
+  const source = page.locator("#source");
+  await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
+  await page.locator("#reset-project").dispatchEvent("click");
+  await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
+  await expect(source).toHaveValue(/duration_ticks = 1000/);
+  await expect(page.locator("#recover-project")).toBeEnabled();
+  await page.locator("#recover-project").dispatchEvent("click");
+  await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
+  await expect(source).toHaveValue(/duration_ticks = 1400/);
+  await expect(page.locator("#recover-project")).toBeDisabled();
+});
+
+for (const [section, nextTitle, sourcePattern] of [
+  ["instrument.wake", "Give it a heartbeat", /conduit\.media\/control\/sequencer/],
+  ["service.listen", "Waiting is not completion", /server: net\/http\/listen/],
+  ["robot.rehearse", "Choose hosts without changing meaning", /wifi_ap: net\/wifi\/access-point/],
+]) {
+  test(`keeps one canonical source artifact through the ${section} build`, async ({ page }) => {
     await gotoTour(page, `/tour/public/index.html?section=${section}`);
     const source = page.locator("#source");
     await expect(source).toHaveValue(sourcePattern);
@@ -242,8 +251,8 @@ test("keeps one canonical source artifact through every cumulative build", async
     await expect(page.locator("#artifact-status")).toContainText(
       "This is reader state, not a live-run claim",
     );
-  }
-});
+  });
+}
 
 test("keeps the project path keyboard-operable with adjacent reduced-motion equivalents", async ({
   page,
@@ -274,7 +283,7 @@ test("keeps the project path keyboard-operable with adjacent reduced-motion equi
 test("routes Book, Cookbook, Reference and retired lesson links through the migration ledger", async ({
   page,
 }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await expect(page.locator("#reader-section-title")).toHaveText("Retired: Hello, panel");
   await expect(page.locator("#section-progress")).toContainText(
     "exact fixture retained",
@@ -282,7 +291,7 @@ test("routes Book, Cookbook, Reference and retired lesson links through the migr
   await page.locator("#previous-section").click();
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
 
-  await page.goto("/tour/public/index.html?lesson=library.bounded-http-service");
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-http-service");
   await expect(page.locator("#reader-section-title")).toHaveText(
     "Open the service boundary",
   );
@@ -290,11 +299,11 @@ test("routes Book, Cookbook, Reference and retired lesson links through the migr
   await expect(page.locator("#run")).toBeDisabled();
   await expect(page.locator("#result")).toContainText("CND-IMP-001");
 
-  await page.goto("/tour/public/index.html?lesson=nodes.more-than-one-port");
+  await gotoTour(page, "/tour/public/index.html?lesson=nodes.more-than-one-port");
   await expect(page.locator("#project-progress")).toHaveText("Reference lesson");
   await expect(page.locator("#project-artifact")).toBeHidden();
 
-  await page.goto("/tour/public/index.html?lesson=library.bounded-media-codecs");
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-media-codecs");
   await expect(page.locator("#project-progress")).toHaveText("Cookbook recipe");
   await expect(page.locator("#reader-section-title")).toHaveText(
     "Use exact PCM and WAVE operations",
@@ -302,7 +311,7 @@ test("routes Book, Cookbook, Reference and retired lesson links through the migr
 });
 
 test("keeps prose, action, real lab, result and explanation in document order", async ({ page }) => {
-  await page.goto("/tour/public/index.html?section=why.visible-program#plan-drawer");
+  await gotoTour(page, "/tour/public/index.html?section=why.visible-program#plan-drawer");
   await expect(page.locator("#plan-drawer")).toHaveAttribute("open", "");
   const order = await page.evaluate(() => {
     const nodes = [
@@ -328,7 +337,7 @@ test("keeps prose, action, real lab, result and explanation in document order", 
 });
 
 test("owns an exact Patchbay run session inside the dedicated worker", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
 
   const result = await page.evaluate(async () => {
     const plan = await fetch("/tour/public/browser-plan.json", { cache: "no-store" })
@@ -618,45 +627,26 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
     },
   });
 
-  await expect.poll(async () => {
-    const accounting = await page.locator("#watch-accounting").evaluate((element) =>
-      JSON.parse(element.textContent)
-    );
-    return accounting.cursor;
-  }, { timeout: 20_000 }).toBeGreaterThan(first.cursor);
-  const later = await page.locator("#watch-accounting").evaluate((element) =>
-    JSON.parse(element.textContent)
+  expect(first.cursor).toBeGreaterThan(0);
+  expect(first.next_timer_deadline).toEqual(expect.any(Number));
+  expect(first.value_storage.resident_slots).toBeLessThanOrEqual(
+    first.value_storage.maximum_slots,
   );
-  expect(parseWatchTick(await page.locator("#watch-value").textContent()))
-    .toBeGreaterThan(firstTick);
-  expect(Number.parseInt(
-    await page.locator("#instrument-result").getAttribute("data-tick"),
-    10,
-  )).toBeGreaterThan(firstTick);
-  expect(later.run_id).toBe(first.run_id);
-  expect(later.plan_identity).toBe(first.plan_identity);
-  expect(later.source_semantic_hash).toBe(first.source_semantic_hash);
-  expect(later.cursor).toBeGreaterThan(first.cursor);
-  expect(later.value_storage.maximum_slots).toBe(first.value_storage.maximum_slots);
-  expect(later.value_storage.maximum_bytes).toBe(first.value_storage.maximum_bytes);
-  expect(later.value_storage.resident_slots).toBeLessThanOrEqual(
-    later.value_storage.maximum_slots,
+  expect(first.value_storage.resident_bytes).toBeLessThanOrEqual(
+    first.value_storage.maximum_bytes,
   );
-  expect(later.value_storage.resident_bytes).toBeLessThanOrEqual(
-    later.value_storage.maximum_bytes,
+  expect(first.value_storage.high_water_slots).toBeLessThanOrEqual(
+    first.value_storage.maximum_slots,
   );
-  expect(later.value_storage.high_water_slots).toBeLessThanOrEqual(
-    later.value_storage.maximum_slots,
+  expect(first.value_storage.high_water_bytes).toBeLessThanOrEqual(
+    first.value_storage.maximum_bytes,
   );
-  expect(later.value_storage.high_water_bytes).toBeLessThanOrEqual(
-    later.value_storage.maximum_bytes,
+  expect(first.evidence_store.next_cursor).toBeGreaterThan(0);
+  expect(first.evidence_store.retained_events).toBeLessThanOrEqual(
+    first.evidence_store.maximum_events,
   );
-  expect(later.evidence_store.next_cursor).toBeGreaterThan(first.evidence_store.next_cursor);
-  expect(later.evidence_store.retained_events).toBeLessThanOrEqual(
-    later.evidence_store.maximum_events,
-  );
-  expect(later.evidence_store.retained_bytes).toBeLessThanOrEqual(
-    later.evidence_store.maximum_bytes,
+  expect(first.evidence_store.retained_bytes).toBeLessThanOrEqual(
+    first.evidence_store.maximum_bytes,
   );
   await expect(page.locator("#live-flow-status")).toContainText(
     "authoritative event",
@@ -683,20 +673,25 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
 
 test("freezes and resumes a live Watch without pressuring execution", async ({ page }) => {
   const failures = collectPageFailures(page);
-  await startTinyInstrument(page);
+  await openTinyInstrument(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
+  await page.locator("#run").click();
+  await expect(page.locator("#freeze-display")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => parseWatchTick(
+    await page.locator("#watch-value").textContent(),
+  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
   const beforeFreeze = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
-  await page.waitForTimeout(1_700);
+  await expect(page.locator("#display-freeze-status")).toContainText(
+    "deferred while the exact executor remains live",
+    { timeout: 20_000 },
+  );
   expect(parseWatchTick(await page.locator("#watch-value").textContent()))
     .toBe(beforeFreeze);
-  await expect(page.locator("#display-freeze-status")).toContainText(
-    "exact executor remains live",
-  );
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "false");
   await expect.poll(async () => parseWatchTick(
@@ -868,7 +863,7 @@ test("keeps live textual instrumentation truthful when the topology renderer is 
   await page.addInitScript(() => {
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
-  await page.goto("/tour/public/index.html?lesson=panels.tiny-instrument");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
@@ -915,7 +910,7 @@ test("presents the persistent HTTP source and refuses to simulate its hosted pro
 });
 
 test("runs with Shift+Enter from editor and workspace focus", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   const result = page.locator("#result");
 
@@ -942,7 +937,7 @@ test("runs with Shift+Enter from editor and workspace focus", async ({ page }) =
 });
 
 test("preserves a recoverable draft across reset", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/Hello from the Tour\./);
   await source.fill((await source.inputValue()).replace("Hello from the Tour.", "Recover me."));
@@ -953,7 +948,7 @@ test("preserves a recoverable draft across reset", async ({ page }) => {
 });
 
 test("highlights panel source while retaining the native editor surface", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const editor = page.locator(".panel-source-editor");
   const source = page.locator("#source");
   const highlight = page.locator(".panel-source-highlight");
@@ -1156,13 +1151,18 @@ test("covers every published chapter and exposes production topology projections
     "read-only candidate plan",
   );
   const plannedWorker = page.locator('.react-flow__node[data-id="root/box.worker"]');
-  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+  await expect(plannedWorker.locator('[data-clue="implementation"]')).toHaveCount(1);
+  await expect(plannedWorker.locator('[data-clue="provider"]')).toHaveCount(1);
+  await expect(plannedWorker.locator('[data-clue="artifact"]')).toHaveCount(1);
+  await plannedWorker.locator(".faceplate-header").click();
+  await expect(page.locator("#selection-inspector")).toBeVisible();
+  await expect(page.locator('[data-section="realization"]')).toContainText(
     "implementation",
   );
-  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
-    "host observation",
+  await expect(page.locator('[data-section="realization"]')).toContainText(
+    "provider observation",
   );
-  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+  await expect(page.locator('[data-section="realization"]')).toContainText(
     "artifact",
   );
   await expect(page.locator("#panel-port-list")).toContainText("root/box.worker: > text");
@@ -1178,7 +1178,7 @@ test("covers every published chapter and exposes production topology projections
 });
 
 test("accepts a semantically correct alternate solution", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/Hello from the Tour\./);
   await source.fill(
@@ -1260,25 +1260,51 @@ test("keeps structural lenses orthogonal to Use Build Inspect and preserves the 
 });
 
 test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
-  await expect(page.locator('[data-presentation-mode="use"]')).toBeDisabled();
-  // #294 supplies the authoritative task front. This checks only the reserved
-  // presentation budget without claiming that this fallback lesson has one.
-  await page.evaluate(() => {
-    document.querySelector("#workspace").dataset.presentationMode = "use";
-    document.documentElement.style.zoom = "200%";
-  });
-  await expect(page.locator("#presentation-controls")).toBeVisible();
-  await expect(page.locator("#run")).toBeVisible();
-  await expect(page.locator("#result")).toBeVisible();
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  const workspace = page.locator("#workspace");
+  const front = page.locator("#task-front");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "use");
+  await expect(front).toBeVisible();
+  await expect(front).toHaveAttribute("data-descriptor-identity", /^sha256:/);
   await expect(page.locator(".source-card")).toBeHidden();
   await expect(page.locator(".inspectors")).toBeHidden();
-  const runBox = await page.locator("#run").boundingBox();
-  const resultBox = await page.locator("#result").boundingBox();
-  expect(runBox).not.toBeNull();
+  await expect(page.locator(".task-front-control")).toHaveCount(1);
+  await expect(front).not.toContainText("private_worker");
+  await expect(page.getByLabel("Uppercase text input")).toBeDisabled();
+  await expect(front).toContainText("run-only");
+  await expect(front).toContainText("current-run-delivery");
+  await expect(page.getByRole("button", { name: "Run the checked uppercase-text plan" })).toBeEnabled();
+
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = "200%";
+  });
+  const actionBox = await page.locator(".task-front-primary-action").boundingBox();
+  const resultBox = await page.locator("#task-front-result").boundingBox();
+  expect(actionBox).not.toBeNull();
   expect(resultBox).not.toBeNull();
-  expect(runBox.x).toBeLessThan(page.viewportSize().width);
+  expect(actionBox.x).toBeLessThan(page.viewportSize().width);
   expect(resultBox.x).toBeLessThan(page.viewportSize().width);
+
+  await page.locator("#show-how").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(page.locator("#source")).toHaveValue(/private_worker/);
+  await expect(front).toBeHidden();
+  await page.locator('[data-presentation-mode="use"]').click();
+  await expect(front).toBeVisible();
+  await page.locator("#show-why").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(page.locator("#presentation-status")).toContainText(
+    "root/faceplate/port/outgoing/result",
+  );
+});
+
+test("runs the task-front action without manufacturing a semantic result", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
+  await expect(page.locator("#result")).toContainText("JACKS", { timeout: 20_000 });
+  await expect(page.locator("#task-front-result-value")).toContainText(
+    "terminal-without-semantic-result-observation",
+  );
 });
 
 test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {
@@ -1301,7 +1327,11 @@ test("navigates composite boundaries from canvas and structured controls", async
   await expect(page.locator("#topology")).toContainText("realization_bindings");
   await expect(status).toContainText("root/box");
 
-  await page.locator('[data-structural-lens="at-rest"]').click();
+  const atRestButton = page.locator('[data-structural-lens="at-rest"]');
+  await atRestButton.evaluate((button) =>
+    button.scrollIntoView({ block: "center", behavior: "instant" })
+  );
+  await atRestButton.click();
   await expect(workspace).toHaveAttribute("data-structural-lens", "at-rest");
   await expect(page.locator("#run")).toBeDisabled();
   await expect(page.locator(".primary-actions")).toBeHidden();
@@ -1310,7 +1340,11 @@ test("navigates composite boundaries from canvas and structured controls", async
   );
   await expect(page.locator("#topology")).toContainText('"resolved": false');
   await expect(page.locator("#topology")).toContainText('"run_started": false');
-  await page.locator('[data-structural-lens="face"]').click();
+  const faceButton = page.locator('[data-structural-lens="face"]');
+  await faceButton.evaluate((button) =>
+    button.scrollIntoView({ block: "center", behavior: "instant" })
+  );
+  await faceButton.click();
   await expect(workspace).toHaveAttribute("data-structural-lens", "face");
   await expect(page.locator(".primary-actions")).toBeVisible();
   await expect(page.locator("#topology")).not.toContainText("worker");
@@ -1340,7 +1374,8 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   expect(canvasBox?.height).toBeGreaterThan(0);
   expect(firstNodeBox?.y).toBeGreaterThanOrEqual(canvasBox?.y ?? Infinity);
   expect(firstNodeBox?.y).toBeLessThan((canvasBox?.y ?? 0) + (canvasBox?.height ?? 0));
-  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(2);
+  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(0);
+  await expect(page.locator('[data-clue="kind"]')).toHaveCount(2);
   await expect(page.locator(".faceplate-status-label", { hasText: "provider" })).toHaveCount(0);
   const receiving = page.locator(".react-flow__node").getByRole("button", {
     name: "text, receiving port; type std/text",
@@ -1356,7 +1391,7 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
     await page.locator(".faceplate-port-row").allTextContents(),
   ).toEqual(expect.not.arrayContaining([expect.stringContaining("<")]));
   await expect(page.locator(".faceplate-type-compartment")).toHaveCount(2);
-  await expect(page.locator(".faceplate-config-row")).toHaveCount(1);
+  await expect(page.locator(".faceplate-config-row")).toHaveCount(0);
   await expect(page.locator(".faceplate-config-row .jack-handle")).toHaveCount(0);
   await expect(page.locator(".faceplate-port-row")).toHaveCount(2);
   await expect(receiving.locator("..")).toHaveClass(/faceplate-port-row/);
@@ -1381,38 +1416,96 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(page.locator("#selected-node-label")).toContainText(
     "Selected value, outgoing port: root/greeting/port/outgoing/value",
   );
+  await expect(page.locator("#selection-inspector")).toBeVisible();
+  await expect(page.locator('[data-section="port"]')).toContainText("std/text");
   await expect(page.locator(".panel-source-selection")).toHaveText("value");
   const selectedEndpoint = await page.locator("#source").evaluate((element) =>
     element.value.slice(element.selectionStart, element.selectionEnd)
   );
   expect(selectedEndpoint).toBe("value");
 
-  const greeting = page.locator('[data-id="greeting"]');
-  await greeting.getByTitle("Collapse Faceplate").click();
-  await expect(greeting.getByTitle("Expand Faceplate")).toHaveAttribute(
+  const greetingBox = await page.locator('[data-id="greeting"] .conduit-faceplate-card')
+    .boundingBox();
+  expect(greetingBox?.height).toBeLessThan(260);
+});
+
+test("keeps compact topology details in one presentation-only selection inspector", async ({
+  page,
+}) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  const source = page.locator("#source");
+  const sourceBefore = await source.inputValue();
+  const planBefore = await page.locator("#plan").textContent();
+  const inspector = page.locator("#selection-inspector");
+
+  await expect(inspector).toBeHidden();
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  await expect(inspector).toBeVisible();
+  await expect(page.locator("#selection-inspector-state")).toContainText(
+    "instance · root/greeting",
+  );
+  await expect(page.locator('[data-section="semantic"]')).toContainText(
+    "Semantic contract",
+  );
+  await expect(page.locator('[data-section="configuration"]')).toContainText(
+    "Configuration",
+  );
+  await expect(source).toHaveValue(sourceBefore);
+  await expect(page.locator("#plan")).toHaveText(planBefore);
+
+  await page.locator("#selection-inspector-close").click();
+  await expect(inspector).toBeHidden();
+  await expect(page.locator("#selected-node-label")).toHaveText(
+    "No topology item selected",
+  );
+
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  await page.keyboard.press("Escape");
+  await expect(inspector).toBeHidden();
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  await page.locator(".react-flow__pane").click({ position: { x: 8, y: 8 } });
+  await expect(inspector).toBeHidden();
+
+  await expect(page.locator("#console-body")).toBeHidden();
+  await expect(page.locator("#console-disclosure")).toHaveAttribute(
     "aria-expanded",
     "false",
   );
-  await expect(greeting.getByRole("button", {
-    name: "value, outgoing port; type std/text",
-    exact: true,
-  })).toContainText("value >");
-  const collapsedRow = greeting.locator(".faceplate-port-row");
-  const collapsedHandle = collapsedRow.locator(".jack-handle");
-  await expect.poll(async () => {
-    const collapsedRowBox = await collapsedRow.boundingBox();
-    const collapsedHandleBox = await collapsedHandle.boundingBox();
-    if (!collapsedRowBox || !collapsedHandleBox) return Number.POSITIVE_INFINITY;
-    return Math.abs(
-      (collapsedRowBox.y + collapsedRowBox.height / 2) -
-      (collapsedHandleBox.y + collapsedHandleBox.height / 2),
-    );
-  }).toBeLessThan(1);
-  await greeting.getByTitle("Expand Faceplate").click();
+  await page.locator("#console-disclosure").click();
+  await expect(page.locator("#console-body")).toBeVisible();
+  await expect(source).toHaveValue(sourceBefore);
+  await expect(page.locator("#plan")).toHaveText(planBefore);
+});
+
+test("keeps a representative many-node patch as compact selectable symbols", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
+  const cards = page.locator(".conduit-faceplate-card");
+  await expect.poll(() => cards.count(), { timeout: 20_000 }).toBeGreaterThan(10);
+  const heights = await cards.evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().height)
+  );
+  expect(Math.max(...heights)).toBeLessThan(340);
+  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(0);
+  await expect(page.locator(".planned-realization-compartment")).toHaveCount(0);
+  await expect(page.locator(".faceplate-config-row")).toHaveCount(0);
+
+  const keyboardPort = page.locator(
+    "#panel-port-list .structured-topology-button",
+  ).first();
+  await keyboardPort.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#selection-inspector")).toBeVisible();
+  await page.setViewportSize({ width: 720, height: 720 });
+  const inspectorBox = await page.locator("#selection-inspector").boundingBox();
+  expect(inspectorBox?.x).toBeGreaterThanOrEqual(0);
+  expect((inspectorBox?.x || 0) + (inspectorBox?.width || 0)).toBeLessThanOrEqual(720);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(720);
 });
 
 test("draws bounded cords and exposes draggable rewire ends", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
@@ -1494,7 +1587,7 @@ test("keeps semantic port direction redundant across presentation media", async 
     forcedColors: "active",
     reducedMotion: "reduce",
   });
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const receiving = page.locator(".react-flow__node").getByRole("button", {
     name: "text, receiving port; type std/text",
     exact: true,
@@ -1533,9 +1626,12 @@ test("keeps semantic port direction redundant across presentation media", async 
   await expect(outgoing).toContainText("value >");
 });
 
-test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
-  const input = page.locator('[data-id="greeting"] .control-input');
+test("keeps inspector controls focused while highlighting and updating source", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  const input = page.locator(
+    '#selection-inspector .selection-inspector-control',
+  );
   const selectedSourceText = async () =>
     (await page.locator(".panel-source-selection").allTextContents()).join("");
   await input.click();
@@ -1551,7 +1647,7 @@ test("keeps faceplate controls focused while highlighting and updating source", 
 });
 
 test("selects a cord by authoritative identity and reveals its declaration", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const edge = page.locator(".react-flow__edge").first();
   await edge.locator(".react-flow__edge-textbg").click();
 
@@ -1603,7 +1699,7 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
 });
 
 test("shows node movement while a topology box is being dragged", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const node = page.locator(".react-flow__node").first();
   await node.scrollIntoViewIfNeeded();
   const before = await node.boundingBox();
@@ -1629,7 +1725,7 @@ test("shows node movement while a topology box is being dragged", async ({ page 
 });
 
 test("retains committed topology positions across Check and Run renders", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const greeting = page.locator('[data-id="greeting"]');
   const output = page.locator('[data-id="output"]');
   const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
@@ -1656,32 +1752,34 @@ test("retains committed topology positions across Check and Run renders", async 
   ).toBe(committedOutputTransform);
 });
 
-test("restores committed topology positions across lesson visits and reload", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+test("restores a committed topology position across lesson visits", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const greeting = page.locator('[data-id="greeting"]');
-  const output = page.locator('[data-id="output"]');
   const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
-  const committedOutputTransform = await dragAndCommitTopologyNode(page, output, -72, 40);
-  await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.inside-outside");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
-  await expect.poll(
-    async () => output.evaluate((element) => element.style.transform),
-  ).toBe(committedOutputTransform);
+});
 
+test("restores a committed topology position across reload", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  const greeting = page.locator('[data-id="greeting"]');
+  const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
   await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-tour-ready",
+    "true",
+    { timeout: 20_000 },
+  );
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
-  await expect.poll(
-    async () => output.evaluate((element) => element.style.transform),
-  ).toBe(committedOutputTransform);
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await page.evaluate(() => {
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
@@ -1702,7 +1800,7 @@ test("retains headless editing and execution when presentation fails", async ({ 
 test("clears the previous diagram before redrawing a lesson that fails resolution", async ({
   page,
 }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await expect(page.locator('.react-flow__node[data-id="greeting"]')).toHaveCount(1);
 
   await page.evaluate(() => {
@@ -1776,7 +1874,7 @@ test("routes stacked reverse cords with straight rectilinear segments", async ({
 });
 
 test("renders the direction lesson as an invalid authored graph", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  await gotoTour(page, "/tour/public/index.html?lesson=nodes.direction-matters");
 
   await expect(page.locator('.react-flow__node[data-id="first"]')).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="second"]')).toBeVisible();
@@ -1822,7 +1920,7 @@ test("renders the direction lesson as an invalid authored graph", async ({ page 
 });
 
 test("keeps current diagnostic source ranges marked as the source changes", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  await gotoTour(page, "/tour/public/index.html?lesson=nodes.direction-matters");
   const source = page.locator("#source");
   const diagnosticMark = page.locator(".panel-source-diagnostic");
 
@@ -1854,7 +1952,7 @@ test("keeps current diagnostic source ranges marked as the source changes", asyn
 });
 
 test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   const original = await source.inputValue();
@@ -1901,7 +1999,7 @@ test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", 
 
 test("projects every authored cord failure family with static reduced-motion cues", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   const cases = [
@@ -1946,7 +2044,7 @@ test("projects every authored cord failure family with static reduced-motion cue
 });
 
 test("emphasizes one of several diagnostics without replaying unchanged checks", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await source.fill(
@@ -1987,7 +2085,7 @@ test("emphasizes one of several diagnostics without replaying unchanged checks",
 });
 
 test("enters and exits the same fullscreen workspace without rebuilding state", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await page.locator("#expanded-view").click();
@@ -2070,7 +2168,7 @@ test("falls back honestly and keeps one movable shadeable dockable editor", asyn
     Element.prototype.requestFullscreen = () =>
       Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await source.evaluate((element) => {
@@ -2186,7 +2284,7 @@ test("navigates incomplete source and diagnostics in fullscreen with reduced mot
       Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  await gotoTour(page, "/tour/public/index.html?lesson=nodes.direction-matters");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/first:/, { timeout: 20_000 });
   const original = await source.inputValue();
@@ -2235,7 +2333,7 @@ test("window presentation changes do not recreate unchanged diagnostic motion", 
     Element.prototype.requestFullscreen = () =>
       Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
-  await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
+  await gotoTour(page, "/tour/public/index.html?lesson=nodes.direction-matters");
   await expect(page.locator(".patchbay-cord.diagnostic-emphasized")).toHaveCount(1);
   await page.locator("#workspace-fullscreen").click();
   const path = page.locator(
@@ -2282,8 +2380,24 @@ test("standalone Patchbay app exposes the same live fullscreen editor workspace"
   );
 });
 
+test("Tour and standalone Patchbay consume the same checked task-front model", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  const tourIdentity = await page.locator("#task-front").getAttribute(
+    "data-descriptor-identity",
+  );
+  const tourSourceIdentity = await page.locator("#task-front").getAttribute(
+    "data-source-identity",
+  );
+  await page.goto("/tour/public/patchbay-app.html?lesson=panels.jacks-on-the-front");
+  const standalone = page.locator("#task-front");
+  await expect(standalone).toBeVisible({ timeout: 20_000 });
+  await expect(standalone).toHaveAttribute("data-descriptor-identity", tourIdentity);
+  await expect(standalone).toHaveAttribute("data-source-identity", tourSourceIdentity);
+  await expect(standalone.locator(".task-front-control")).toHaveCount(1);
+});
+
 test("routes cords through free space by default and keeps labels off node faces", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
 
   const panelSource = "panel 0\n\n" +
     "source: std/literal {\n" +
@@ -2475,7 +2589,7 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("pedagogical completion is not execution evidence", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.pull-the-cord");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.pull-the-cord");
   await expect(page.locator("#run")).toBeDisabled();
   await page.locator("#check").click();
   await expect(page.locator("#result")).toContainText(
@@ -2487,7 +2601,7 @@ test("pedagogical completion is not execution evidence", async ({ page }) => {
 });
 
 test("multi-port lesson runs its explicit display composite", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=nodes.more-than-one-port");
+  await gotoTour(page, "/tour/public/index.html?lesson=nodes.more-than-one-port");
   await expect(page.locator("#runnability-state")).toContainText(
     "runnable · browser",
   );

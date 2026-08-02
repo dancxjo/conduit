@@ -314,6 +314,9 @@ containment program is tracked by
 - [`084-audited-robotics-profiles.md`](084-audited-robotics-profiles.md)
   defines one effect-free robotics profile implemented by distinct Linux and
   Pico W describe-only hosts through the generic host-conformance path.
+- [`085-task-facing-fronts.md`](085-task-facing-fronts.md) defines bounded
+  presentation metadata checked against explicit exported controls, actions,
+  and exact semantic result identities.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

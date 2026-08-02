@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use conduit_patchbay::{
     EditOperation, EditRequest, HostConformanceProjectionInput, NodePosition,
     PATCHBAY_PROTOCOL_VERSION, PlanSnapshot, PoolProjectionInput, PresentationMode,
@@ -25,6 +27,29 @@ second.value > sink_two.text
 "#;
 const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol.json");
 
+fn task_front_port(id: &str, path: &str) -> conduit_patchbay::PatchbayPortProjection {
+    conduit_patchbay::PatchbayPortProjection {
+        id: id.to_owned(),
+        semantic_path: path.to_owned(),
+        direction: "output".to_owned(),
+        display_label: format!("{id} >"),
+        accessible_label: format!("{id}, outgoing"),
+        type_id: "std/text".to_owned(),
+        delivery: "bounded-stream".to_owned(),
+        connections: "fan-out".to_owned(),
+        values: "typed".to_owned(),
+        temporal: "ordered".to_owned(),
+        terminal: "explicit".to_owned(),
+        presence: "required".to_owned(),
+        sensitivity: "public".to_owned(),
+        loss_acceptance: "lossless".to_owned(),
+        connected: false,
+        source_range: None,
+        validity: "valid".to_owned(),
+        diagnostic_ids: Vec::new(),
+    }
+}
+
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
     EditRequest {
         protocol_version: PATCHBAY_PROTOCOL_VERSION,
@@ -33,6 +58,263 @@ fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest
         expected_presentation_revision: workspace.presentation().revision,
         operations,
     }
+}
+
+#[test]
+fn task_front_derives_controls_and_accepts_only_exact_semantic_results() {
+    let source = r#"panel 0
+example/task(required_text: std/text, count: std/integer = 3, enabled: std/boolean = true) {
+  inner: std/literal { value = "inside" }
+  export result > = inner.value
+}
+first: example/task
+second: example/task { required_text = "second" }
+"#;
+    let mut workspace = Workspace::new("task-front", source).expect("task source parses");
+    let topology = conduit_patchbay::PatchbayTopologyProjection {
+        contract_imports: Vec::new(),
+        logical_nodes: vec![conduit_patchbay::PatchbayNodeProjection {
+            id: "first".to_owned(),
+            semantic_id: "root/first".to_owned(),
+            contract_id: Some("example/task".to_owned()),
+            contract_identity: None,
+            semantic_effects: Vec::new(),
+            source_range: None,
+            inputs: Vec::new(),
+            outputs: vec![task_front_port("result", "root/first/port/outgoing/result")],
+            config: BTreeMap::new(),
+            availability: None,
+            validity: "valid".to_owned(),
+            diagnostic_ids: Vec::new(),
+            placement: None,
+            activity: None,
+        }],
+        planned_realization: None,
+        planned_realization_status: "not-checked".to_owned(),
+        cords: Vec::new(),
+        composites: Vec::new(),
+        diagnostic_anchors: Vec::new(),
+        source_state: "exact".to_owned(),
+    };
+    let descriptor = serde_json::json!({
+        "schema": "conduit.patchbay-task-front",
+        "schema_version": 0,
+        "root": "root/first",
+        "name": "Task",
+        "purpose": "Exercise checked controls.",
+        "controls": [
+            {"id":"required","source":"instance-configuration","target":"root/first/config/required_text","label":"Required text","help":"Required by the definition.","group":"Main","visibility":"primary","renderer_profile":"mode","accessibility_name":"Required text"},
+            {"id":"count","source":"instance-configuration","target":"root/first/config/count","label":"Count","help":"Uses the exact definition default.","group":"Tuning","visibility":"advanced","accessibility_name":"Count"},
+            {"id":"enabled","source":"instance-configuration","target":"root/first/config/enabled","label":"Enabled","help":"Boolean definition default.","group":"Tuning","visibility":"advanced","accessibility_name":"Enabled"}
+        ],
+        "primary_action":{"request":"run-exact-plan","label":"Run task","help":"Run one exact plan.","accessibility_name":"Run task"},
+        "result":{"target":"root/first/port/outgoing/result","label":"Result","help":"Exact typed result.","accessibility_name":"Task result"}
+    });
+    let profiles = vec![
+        conduit_patchbay::TaskFrontRendererProfile {
+            id: "mode".to_owned(),
+            type_id: "std/text".to_owned(),
+            renderer: "enum".to_owned(),
+            choices: vec![
+                conduit_patchbay::TaskFrontChoiceProjection {
+                    value: "brief".to_owned(),
+                    label: "Brief".to_owned(),
+                },
+                conduit_patchbay::TaskFrontChoiceProjection {
+                    value: "detailed".to_owned(),
+                    label: "Detailed".to_owned(),
+                },
+            ],
+        },
+        conduit_patchbay::TaskFrontRendererProfile {
+            id: "text".to_owned(),
+            type_id: "std/text".to_owned(),
+            renderer: "text".to_owned(),
+            choices: Vec::new(),
+        },
+        conduit_patchbay::TaskFrontRendererProfile {
+            id: "integer".to_owned(),
+            type_id: "std/integer".to_owned(),
+            renderer: "number".to_owned(),
+            choices: Vec::new(),
+        },
+        conduit_patchbay::TaskFrontRendererProfile {
+            id: "boolean".to_owned(),
+            type_id: "std/boolean".to_owned(),
+            renderer: "boolean".to_owned(),
+            choices: Vec::new(),
+        },
+    ];
+    let plan = PlanSnapshot {
+        identity: "sha256:plan".to_owned(),
+        source_semantic_hash: workspace.semantic().source_semantic_hash.clone().unwrap(),
+        bindings: Vec::new(),
+        cords: Vec::new(),
+        composites: Vec::new(),
+        value_envelopes: Vec::new(),
+        watch_admissions: Vec::new(),
+        clock_conversions: Vec::new(),
+        feedback_boundaries: Vec::new(),
+        resource_leases: Vec::new(),
+        effect_commit_profiles: Vec::new(),
+        workloads: Vec::new(),
+    };
+    let run = RunSnapshot {
+        run_id: "run-1".to_owned(),
+        plan_identity: plan.identity.clone(),
+        source_semantic_hash: plan.source_semantic_hash.clone(),
+        state: RunState::Terminal,
+    };
+    let observation = conduit_patchbay::TaskFrontResultObservation {
+        plan_identity: plan.identity.clone(),
+        run_id: run.run_id.clone(),
+        port_path: "root/first/port/outgoing/result".to_owned(),
+        type_id: "std/text".to_owned(),
+        display_value: "done".to_owned(),
+        terminal_outcome: "succeeded".to_owned(),
+    };
+    let projected = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        Some(&plan),
+        Some(&run),
+        Some(&observation),
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    assert_eq!(projected.status, "usable");
+    let front = projected.front.expect("usable front");
+    assert_eq!(front.controls[0].requirement, "required");
+    assert_eq!(front.controls[0].value_origin, "missing");
+    assert_eq!(front.controls[0].renderer, "enum");
+    assert_eq!(front.controls[0].choices.len(), 2);
+    assert_eq!(front.controls[1].requirement, "optional");
+    assert_eq!(front.controls[1].display_value.as_deref(), Some("3"));
+    assert_eq!(
+        front.controls[1].visibility,
+        conduit_patchbay::TaskFrontControlVisibility::Advanced
+    );
+    assert_eq!(front.result.unwrap().display_value.as_deref(), Some("done"));
+
+    let stale = conduit_patchbay::TaskFrontResultObservation {
+        run_id: "run-stale".to_owned(),
+        ..observation
+    };
+    let stale_projection = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        Some(&plan),
+        Some(&run),
+        Some(&stale),
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    assert_eq!(
+        stale_projection
+            .front
+            .unwrap()
+            .result
+            .unwrap()
+            .observation_state,
+        "stale-or-mismatched-result-rejected"
+    );
+
+    let unavailable = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        None,
+        None,
+        None,
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    assert_eq!(
+        unavailable.front.unwrap().primary_action.unwrap().state,
+        "blocked-by-authoritative-observation"
+    );
+
+    let mut weakening = descriptor.clone();
+    weakening["controls"][0]["required"] = serde_json::Value::Bool(false);
+    assert_eq!(
+        conduit_patchbay::project_task_front(
+            Some(&weakening.to_string()),
+            workspace.source(),
+            &workspace.semantic(),
+            &topology,
+            &[],
+            None,
+            None,
+            None,
+            &profiles,
+            conduit_patchbay::PatchbayProjectionBounds::default(),
+        )
+        .status,
+        "invalid"
+    );
+
+    let mut wrong_instance = descriptor.clone();
+    wrong_instance["root"] = serde_json::Value::String("root/second".to_owned());
+    assert_eq!(
+        conduit_patchbay::project_task_front(
+            Some(&wrong_instance.to_string()),
+            workspace.source(),
+            &workspace.semantic(),
+            &topology,
+            &[],
+            None,
+            None,
+            None,
+            &profiles,
+            conduit_patchbay::PatchbayProjectionBounds::default(),
+        )
+        .status,
+        "invalid"
+    );
+
+    let mut malformed_profiles = profiles.clone();
+    malformed_profiles[0].choices[1].value = "brief".to_owned();
+    assert_eq!(
+        conduit_patchbay::project_task_front(
+            Some(&descriptor.to_string()),
+            workspace.source(),
+            &workspace.semantic(),
+            &topology,
+            &[],
+            None,
+            None,
+            None,
+            &malformed_profiles,
+            conduit_patchbay::PatchbayProjectionBounds::default(),
+        )
+        .status,
+        "invalid"
+    );
+
+    workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::SetConfig {
+                node_id: "first".to_owned(),
+                key: "required_text".to_owned(),
+                value: conduit_patchbay::EditValue::Text("authored".to_owned()),
+            }],
+        ))
+        .expect("exported missing parameter can be authored");
+    assert!(
+        workspace
+            .source()
+            .source
+            .contains("required_text = \"authored\"")
+    );
 }
 
 #[test]
@@ -691,7 +973,12 @@ fn fixture_names_each_required_protocol_boundary() {
         "authoritative-view-has-no-browser-inference",
         "mode-lens-topology-navigation-is-presentation-only",
         "unloaded-at-rest-inspection-has-no-resolution-or-effect",
-        "usable-task-front-opens-use-and-missing-front-falls-back-build",
+        "checked-task-front-opens-use-and-missing-or-invalid-front-falls-back-build",
+        "task-front-controls-derive-semantic-requiredness-defaults-and-ownership",
+        "task-front-renderers-are-finite-type-owned-profiles",
+        "task-front-result-requires-exact-plan-run-port-and-type",
+        "task-front-show-how-and-why-preserve-authoritative-resources",
+        "tour-and-self-hosted-patchbay-share-task-front-model",
         "selected-subject-survives-mode-and-lens-navigation",
         "internal-and-external-cords-retain-distinct-owners",
         "two-instances-retain-distinct-config-and-enclosing-cords",

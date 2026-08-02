@@ -3,10 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_compile::{InstalledHostObservationInput, InstalledProfile, compile_source};
 use conduit_runtime::Registry;
 use conduit_web::{
-    cancel_panel, patchbay_open_session, patchbay_pump_exact_run, patchbay_start_exact_run,
-    run_panel,
+    cancel_panel, patchbay_open_session as patchbay_open_session_with_front,
+    patchbay_pump_exact_run, patchbay_start_exact_run, run_panel,
 };
 use serde_json::Value;
+
+fn patchbay_open_session(document_id: String, source: String) -> String {
+    patchbay_open_session_with_front(document_id, source, String::new())
+}
 
 fn assert_current_panel_source(id: &str, source: &str) {
     let panel = conduit_panel::parse(source)

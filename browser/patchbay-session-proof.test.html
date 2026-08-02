@@ -36,7 +36,7 @@ greeting.value > output.text {
 
   try {
     await init();
-    const opened = JSON.parse(patchbay_open_session("browser/proof", source));
+    const opened = JSON.parse(patchbay_open_session("browser/proof", source, ""));
     assert(opened.ok, opened.diagnostic);
     const view = opened.view;
     assert(view.protocol_version === 0, "view model is not current");

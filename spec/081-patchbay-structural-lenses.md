@@ -60,11 +60,11 @@ The mode is independent of the structural lens and Logical/Expanded topology:
   and candidate plan facts, realization bindings, lifecycle, pressure,
   causation, and authorized bounded evidence.
 
-`Use` is selected initially only when an authoritative usable task front is
-declared. Until #294 supplies such a front, the opening mode is `Build` with the
-reason `no-usable-task-front-declared`; presentation must not invent a form.
-Such a fallback cannot be navigated into Use until a new workspace is opened
-with an authoritative task-front observation.
+`Use` is selected initially only when the checked task-front contract in
+specification 083 returns a usable front. Otherwise the opening mode is `Build`
+with `no-usable-task-front-declared` or `declared-task-front-is-invalid`;
+presentation must not invent a form. Such a fallback cannot be navigated into
+Use until a new workspace is opened with a usable checked descriptor.
 
 `Show how this works` changes to Build while retaining the selected subject.
 `Why did this happen?` changes to Inspect while retaining that exact subject.

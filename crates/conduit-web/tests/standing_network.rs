@@ -1,12 +1,16 @@
 use conduit_web::{
     patchbay_advance_exact_run, patchbay_attach_exact_watch, patchbay_cancel_exact_run,
-    patchbay_detach_exact_watch, patchbay_open_session, patchbay_pump_exact_run,
-    patchbay_start_exact_run,
+    patchbay_detach_exact_watch, patchbay_open_session as patchbay_open_session_with_front,
+    patchbay_pump_exact_run, patchbay_start_exact_run,
 };
 use serde_json::Value;
 
 fn json(value: String) -> Value {
     serde_json::from_str(&value).unwrap_or_else(|error| panic!("{error}: {value}"))
+}
+
+fn patchbay_open_session(document_id: String, source: String) -> String {
+    patchbay_open_session_with_front(document_id, source, String::new())
 }
 
 #[test]

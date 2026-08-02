@@ -1720,6 +1720,160 @@ output#result {
   outline: 3px solid #fbbf24;
 }
 
+/* Compact topology plus one selected-subject disclosure surface (#307). */
+.patchbay-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+#workspace[data-inspector-open="true"] .patchbay-main-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+}
+
+.selection-inspector {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border-width: 2px;
+}
+
+.selection-inspector-header {
+  align-items: flex-start;
+}
+
+.selection-inspector-header .eyebrow {
+  margin: 0 0 0.15rem;
+}
+
+.selection-inspector-sections,
+.selection-inspector-section dl {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.selection-inspector-section + .selection-inspector-section {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line-color);
+}
+
+.selection-inspector-section h4,
+.selection-inspector-section dl {
+  margin: 0;
+}
+
+.selection-inspector-fact {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.7fr) minmax(0, 1.3fr);
+  gap: 0.65rem;
+}
+
+.selection-inspector-fact dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.selection-inspector-fact dd {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.selection-inspector-fact code,
+.selection-inspector-fact small {
+  overflow-wrap: anywhere;
+}
+
+.selection-inspector-fact small {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.faceplate-kind-glyph {
+  display: inline-grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 0.2rem;
+  font-weight: 800;
+}
+
+.faceplate-clues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-height: 1.65rem;
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid var(--line-color);
+  list-style: none;
+}
+
+.faceplate-clue {
+  display: inline-grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.faceplate-clue.clue-runtime,
+.faceplate-clue.clue-diagnostic {
+  border-style: double;
+  border-width: 3px;
+}
+
+.conduit-faceplate-card .faceplate-member-type {
+  max-width: 8.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conduit-faceplate-card.selection-muted,
+.react-flow__edge.selection-muted {
+  opacity: 0.42;
+}
+
+.conduit-faceplate-card.selection-neighbor,
+.react-flow__edge.selection-neighbor .react-flow__edge-path {
+  outline: 2px dashed currentColor;
+  outline-offset: 2px;
+}
+
+.console-card {
+  margin-top: 1.25rem;
+}
+
+#console-body[hidden] {
+  display: none;
+}
+
+#workspace[data-presentation-mode="use"] .console-card {
+  display: none;
+}
+
+@media (max-width: 90rem) {
+  #workspace[data-inspector-open="true"] .patchbay-main-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .selection-inspector {
+    position: static;
+    max-height: min(32rem, 70vh);
+  }
+}
+
 /* Inspectors Accordions */
 .inspectors {
   display: grid;
@@ -2725,6 +2879,86 @@ path.patchbay-cord.compatibility-incompatible {
   margin-top: 0.5rem;
 }
 
+.task-front {
+  display: grid;
+  gap: 1rem;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.task-front[hidden] { display: none; }
+
+.task-front-heading,
+.task-front-control,
+.task-front-action,
+.task-front-result {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.task-front-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.task-front-heading h3,
+.task-front-heading p,
+.task-front-control p,
+.task-front-result h4 { margin: 0; }
+
+.task-front-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 0.9rem;
+}
+
+.task-front-control {
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+}
+
+.task-front-control label { font-weight: 700; }
+
+.task-front-control input,
+.task-front-control select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--surface-strong, #111827);
+  color: inherit;
+  font: inherit;
+}
+
+.task-front-control input[type="checkbox"] {
+  width: 2.75rem;
+}
+
+.task-front-consequence {
+  color: var(--muted);
+  font: 0.75rem/1.45 var(--font-mono);
+}
+
+.task-front-advanced summary { cursor: pointer; }
+
+.task-front-result {
+  padding: 0.9rem;
+  border-left: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.task-front-result output {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 38rem) {
+  .task-front-heading { grid-template-columns: 1fr; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .react-flow__edge.live-flow-pulse .react-flow__edge-path {
     animation: none;
@@ -2732,6 +2966,19 @@ path.patchbay-cord.compatibility-incompatible {
 }
 
 @media (forced-colors: active) {
+  .selection-inspector,
+  .selection-inspector-section + .selection-inspector-section,
+  .faceplate-kind-glyph,
+  .faceplate-clue,
+  .conduit-faceplate-card.selection-neighbor,
+  .react-flow__edge.selection-neighbor .react-flow__edge-path {
+    color: CanvasText;
+    border-color: CanvasText !important;
+    outline-color: CanvasText !important;
+    stroke: CanvasText !important;
+    forced-color-adjust: auto;
+  }
+
   .receiving-port-label,
   .outgoing-port-label,
   .jack-handle,

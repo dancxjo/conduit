@@ -154,6 +154,7 @@
       "markers": [
         "conduit.browser-reference-profiles",
         "conduit.panel-runnability",
+        "conduit.patchbay-task-front",
         "conduit.tour-browser-plan",
         "conduit.tour-book",
         "conduit.tour-contract-import-lesson",

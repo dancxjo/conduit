@@ -76,8 +76,12 @@ Logical/Expanded choice, stable selection, face collapse state, layout, and
 bounded viewport are one separate `PresentationDocument`. The Tour sends
 versioned presentation-only transactions back through Rust; changing a mode or
 lens cannot edit source, resolve a plan, grant authority, acquire a resource,
-or start/stop a run. Roots without a declared task front open in Build with an
-explicit explanation until the task-front contract supplies a real Use surface.
+or start/stop a run. A checked bounded task-front descriptor opens in Use only
+when every control and result resolves to an explicit exported semantic fact.
+Requiredness, defaults, types, authority, persistence, activation, and result
+identity come from the Rust view, not lesson metadata. Missing or invalid
+fronts open in Build with an explicit explanation; Tour and the standalone
+Patchbay app consume the same serialized front.
 
 Every lesson and reference panel declares `runnable`, `contract-only`, or
 `illustrative/unavailable`. Only `runnable` sources enable Run. Reference
