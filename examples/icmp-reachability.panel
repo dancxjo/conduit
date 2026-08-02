@@ -11,15 +11,28 @@ dhcp: net/dhcp/server {
     lifecycle = "standing" lease_ticks = 3600000 maximum_leases = 8 maximum_pending = 1
     maximum_evidence_events = 64 cancellation = "cancel-before-commit"
 }
+local_dns: net/dns/local-authority {
+    lifecycle = "standing" zone = "pete-local-authority" address = "192.168.4.1"
+    port = 53 ttl_ticks = 60000 maximum_records = 5 maximum_name_bytes = 63
+    maximum_packet_bytes = 512 maximum_questions_per_step = 1 recursion = "forbidden"
+    maximum_evidence_events = 64
+}
 dns_sd: net/dns-sd {
-    lifecycle = "standing" name = "pete.local" port = 8080 ttl_ticks = 120000
+    lifecycle = "standing" name = "pete.local" port = 80 ttl_ticks = 120000
     maximum_records = 8 maximum_name_bytes = 63 maximum_evidence_events = 64
 }
 reachability: net/reachability {
     lifecycle = "standing" scope = "local-network" maximum_packet_bytes = 1500
     maximum_packets_per_window = 4 window_ticks = 1000 maximum_evidence_events = 64
 }
+address_tee_root: net/address/tee { mode = "coupled" }
+address_tee_services: net/address/tee { mode = "coupled" }
+address_tee_observers: net/address/tee { mode = "coupled" }
 
-wifi_ap.address > dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-dhcp.lease > dns_sd.lease { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-dns_sd.registration > reachability.registration { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+wifi_ap.address > address_tee_root.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+address_tee_root.left > address_tee_services.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+address_tee_root.right > address_tee_observers.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+address_tee_services.left > dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+address_tee_services.right > local_dns.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+address_tee_observers.left > dns_sd.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+address_tee_observers.right > reachability.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }

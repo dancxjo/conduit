@@ -61,7 +61,7 @@ exact interest and returns `Waiting`; it does not spin, sleep, complete, or
 advance a clock. Completion, drain, abort, provider loss, and failure are
 different outcomes. Editing never starts a run.
 
-The checked deterministic sources use one packet or observation per step,
+The checked reference sources use one packet or observation per step,
 1,500-byte packets, one exact timer interest, finite one-value current state,
 16 routes, eight concurrent sessions, and 64 retained evidence events. Cords
 remain independently bounded by their plan-pinned item and byte capacities.
@@ -106,11 +106,16 @@ timer wakes, preserve one immutable plan identity, handle repeated runtime
 values without topology growth, and end only through explicit lifecycle
 control.
 
-The displaced finite text demonstrations now have one standing typed form. The
-checked isolated-local chain is `net/wifi/access-point` link/address readiness
-to `net/dhcp/server` lease state, then `net/dns-sd` service registration and
-`net/reachability` scoped observation. Repeated values cross the same four
-nodes. No request, lease, name, or probe creates topology.
+The displaced finite text demonstrations now have one standing typed form. One
+`net/wifi/access-point` address observation passes through explicit typed
+`net/address/tee` structural nodes to `net/dhcp/server`, the finite non-recursive
+`net/dns/local-authority`, `net/dns-sd`, and `net/reachability`. DNS-SD
+advertises the AP address rather than a DHCP client's address; local UDP/53
+service readiness is not ambient resolver selection. Repeated values cross the
+same five network-service nodes and three visible structural nodes. Like the
+audio tee, the address tee is an ordinary semantic contract installed through
+the generic implementation mechanism; it owns no radio or network authority.
+No request, lease, name, or probe creates topology.
 
 ## Finite route and session state
 
@@ -125,7 +130,7 @@ are separate. A stale-generation transition fails; expiry clears the finite
 slot; terminal close, timeout, reset, cancellation, or failure clears the
 session without rewriting earlier evidence.
 
-DHCP leases, DNS-SD records, Netherwick registration, and Pico observations
+DHCP leases, local DNS state, DNS-SD records, Netherwick registration, and Pico observations
 retain the finite generation and expiry rules in
 `071-bounded-brainstem-network.md`. A DNS lookup never creates a record.
 
@@ -158,8 +163,8 @@ mutation. It is installed through the generic implementation-manifest path and
 is selectable only when an independent fresh host snapshot reports its exact
 linked-code capability. Installation alone is insufficient.
 Linux socket/HTTP providers remain owned by `conduit-socket` and
-`conduit-http`; Pico W overlap remains the bounded AP/DHCP/reachability/DNS-SD
-provider contract from #144. Missing physical facts remain contract-only or
+`conduit-http`; Pico W overlap remains the bounded
+AP/DHCP/local-DNS/reachability/DNS-SD provider contract from #144. Missing physical facts remain contract-only or
 unsupported rather than fabricated.
 
 ## Tour project

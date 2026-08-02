@@ -215,7 +215,7 @@ fn isolated_local_services_keep_readiness_layers_distinct_and_standing() {
             .as_array()
             .unwrap()
             .len(),
-        4
+        8
     );
     let cord_types = opened["view"]["topology"]["logical_nodes"]
         .as_array()
@@ -269,14 +269,14 @@ fn complete_tour_network_projects_two_endpoints_and_every_value_family() {
             .as_array()
             .unwrap()
             .len(),
-        16
+        20
     );
     assert_eq!(
         opened["view"]["topology"]["cords"]
             .as_array()
             .unwrap()
             .len(),
-        12
+        16
     );
     let port_types = opened["view"]["topology"]["logical_nodes"]
         .as_array()

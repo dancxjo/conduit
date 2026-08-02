@@ -11,8 +11,9 @@ mod standing;
 mod types;
 
 pub use runtime_nodes::{
-    DHCP_SERVER_CONTRACT, DNS_SD_CONTRACT, NETWORK_CONTRACTS, REACHABILITY_CONTRACT,
-    WIFI_AP_CONTRACT, register_deterministic_network_providers, register_network_contracts,
+    ADDRESS_TEE_CONTRACT, DHCP_SERVER_CONTRACT, DNS_SD_CONTRACT, LOCAL_DNS_AUTHORITY_CONTRACT,
+    NETWORK_CONTRACTS, REACHABILITY_CONTRACT, WIFI_AP_CONTRACT,
+    register_deterministic_network_providers, register_network_contracts,
 };
 pub use standing::{
     EXECUTABLE_STANDING_NETWORK_CONTRACTS, LINK_OBSERVE_CONTRACT,
@@ -923,6 +924,7 @@ mod tests {
         for required in [
             "ap",
             "dhcp",
+            "local-udp-53",
             "icmp",
             "tcp",
             "udp",
@@ -953,6 +955,9 @@ mod tests {
             "tcp-port-conflict",
             "udp-port-conflict",
             "http-sse-websocket-cancellation",
+            "local-dns-fixed-aliases",
+            "local-dns-unknown-reserved-and-malformed",
+            "local-dns-type-class-and-response-bounds",
             "mdns-name-conflict",
             "pressure",
             "cancel",
@@ -961,7 +966,7 @@ mod tests {
             "no-route-no-bridge-no-nat",
             "describe-only-no-effects",
             "forged-source-authority",
-            "no-radio-fixture-no-authority",
+            "no-radio-reference-no-authority",
             "physical-provider-missing-binding",
             "physical-provider-revoked-at-use",
             "physical-provider-direct-handler-bypass",

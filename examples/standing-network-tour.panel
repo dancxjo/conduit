@@ -3,7 +3,7 @@
 # standing listener. Every cord is bounded; none establishes host authority.
 panel 0
 
-# Endpoint A: link/address readiness -> DHCP -> local name -> observation.
+# Endpoint A: one address observation fans out to independent bounded services.
 endpoint_a: net/wifi/access-point {
     lifecycle = "standing" topology = "isolated-local-only" interface = 1
     address = "192.168.4.1" prefix_length = 24 maximum_clients = 8
@@ -13,14 +13,23 @@ endpoint_a_dhcp: net/dhcp/server {
     lifecycle = "standing" lease_ticks = 3600000 maximum_leases = 8 maximum_pending = 1
     maximum_evidence_events = 64 cancellation = "cancel-before-commit"
 }
+endpoint_a_local_dns: net/dns/local-authority {
+    lifecycle = "standing" zone = "pete-local-authority" address = "192.168.4.1"
+    port = 53 ttl_ticks = 60000 maximum_records = 5 maximum_name_bytes = 63
+    maximum_packet_bytes = 512 maximum_questions_per_step = 1 recursion = "forbidden"
+    maximum_evidence_events = 64
+}
 endpoint_a_name: net/dns-sd {
-    lifecycle = "standing" name = "pete.local" port = 8080 ttl_ticks = 120000
+    lifecycle = "standing" name = "pete.local" port = 80 ttl_ticks = 120000
     maximum_records = 8 maximum_name_bytes = 63 maximum_evidence_events = 64
 }
 endpoint_a_observe: net/reachability {
     lifecycle = "standing" scope = "local-network" maximum_packet_bytes = 1500
     maximum_packets_per_window = 4 window_ticks = 1000 maximum_evidence_events = 64
 }
+endpoint_a_address_tee_root: net/address/tee { mode = "coupled" }
+endpoint_a_address_tee_services: net/address/tee { mode = "coupled" }
+endpoint_a_address_tee_observers: net/address/tee { mode = "coupled" }
 
 # The packet source and destination begin as two isolated application
 # endpoints. The route is authored reference state, not an ambient host-route
@@ -82,9 +91,13 @@ service_observe: net/observe/service {
     lifecycle = "standing" maximum_retained_items = 0 maximum_evidence_events = 64
 }
 
-endpoint_a.address > endpoint_a_dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-endpoint_a_dhcp.lease > endpoint_a_name.lease { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-endpoint_a_name.registration > endpoint_a_observe.registration { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a.address > endpoint_a_address_tee_root.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_address_tee_root.left > endpoint_a_address_tee_services.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_address_tee_root.right > endpoint_a_address_tee_observers.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_address_tee_services.left > endpoint_a_dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_address_tee_services.right > endpoint_a_local_dns.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_address_tee_observers.left > endpoint_a_name.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_address_tee_observers.right > endpoint_a_observe.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
 
 packet_source.packet > packet_route.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
 packet_route.packet > packet_meter.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }

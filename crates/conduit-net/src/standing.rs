@@ -1905,6 +1905,7 @@ fn lease_phase_tag(phase: LeasePhase) -> u8 {
     }
 }
 
+#[cfg(test)]
 fn lease_phase_from_tag(tag: u8) -> Result<LeasePhase, RuntimeError> {
     match tag {
         0 => Ok(LeasePhase::Offered),
@@ -1940,6 +1941,7 @@ pub(crate) fn dhcp_lease_value(lease: NetworkDhcpLease) -> Result<Value, Runtime
     })
 }
 
+#[cfg(test)]
 pub(crate) fn parse_dhcp_lease(value: &Value) -> Result<NetworkDhcpLease, RuntimeError> {
     if value.value_type != DHCP_LEASE_TYPE
         || !value.bytes.starts_with(b"CNDH")
@@ -1992,6 +1994,7 @@ pub(crate) fn service_registration_value(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn parse_service_registration(
     value: &Value,
 ) -> Result<NetworkServiceRegistration, RuntimeError> {

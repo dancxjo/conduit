@@ -1,4 +1,4 @@
-//! Standing isolated-network service contracts and deterministic providers.
+//! Standing isolated-network service contracts and reference providers.
 //!
 //! These providers are deterministic no-radio reference implementations. They preserve the same
 //! typed graph that a Linux or embedded provider can satisfy, but they neither
@@ -18,9 +18,10 @@ use conduit_runtime::{
 
 use crate::standing::{
     address_state_value, control_value, dhcp_lease_value, link_value, parse_address_state,
-    parse_dhcp_lease, parse_service_registration, reachability_value, recorded_handler,
-    service_registration_value, state_value,
+    reachability_value, recorded_handler, service_registration_value, state_value,
 };
+#[cfg(test)]
+use crate::standing::{parse_dhcp_lease, parse_service_registration};
 use crate::{
     ADDRESS_STATE_TYPE, AddressFamily, AddressReadiness, CONTROL_EVENT_TYPE, DHCP_LEASE_TICKS,
     DHCP_LEASE_TYPE, DhcpLeaseTable, DhcpMessage, DhcpOutcome, ICMP_PACKETS_PER_WINDOW,
@@ -94,6 +95,20 @@ const DNS_SD_FIELDS: [ConfigFieldContract<'static>; 7] = [
     field("maximum_name_bytes", U64_TYPE),
     field("maximum_evidence_events", U64_TYPE),
 ];
+const LOCAL_DNS_FIELDS: [ConfigFieldContract<'static>; 11] = [
+    field("lifecycle", TEXT_TYPE),
+    field("zone", TEXT_TYPE),
+    field("address", TEXT_TYPE),
+    field("port", U64_TYPE),
+    field("ttl_ticks", U64_TYPE),
+    field("maximum_records", U64_TYPE),
+    field("maximum_name_bytes", U64_TYPE),
+    field("maximum_packet_bytes", U64_TYPE),
+    field("maximum_questions_per_step", U64_TYPE),
+    field("recursion", TEXT_TYPE),
+    field("maximum_evidence_events", U64_TYPE),
+];
+const ADDRESS_TEE_FIELDS: [ConfigFieldContract<'static>; 1] = [field("mode", TEXT_TYPE)];
 const REACHABILITY_FIELDS: [ConfigFieldContract<'static>; 6] = [
     field("lifecycle", TEXT_TYPE),
     field("scope", TEXT_TYPE),
@@ -178,23 +193,37 @@ const AP_OUTPUTS: [PortContract<'static>; 3] = [
     output_port("address", ADDRESS_STATE_TYPE, true, Sensitivity::Restricted),
     output_port("event", CONTROL_EVENT_TYPE, false, Sensitivity::Restricted),
 ];
+const ADDRESS_TEE_INPUTS: [PortContract<'static>; 1] = [input_port("address", ADDRESS_STATE_TYPE)];
+const ADDRESS_TEE_OUTPUTS: [PortContract<'static>; 2] = [
+    output_port("left", ADDRESS_STATE_TYPE, true, Sensitivity::Restricted),
+    output_port("right", ADDRESS_STATE_TYPE, true, Sensitivity::Restricted),
+];
 const DHCP_INPUTS: [PortContract<'static>; 1] = [input_port("address", ADDRESS_STATE_TYPE)];
 const DHCP_OUTPUTS: [PortContract<'static>; 2] = [
-    output_port("lease", DHCP_LEASE_TYPE, true, Sensitivity::Restricted),
+    output_port("lease", DHCP_LEASE_TYPE, false, Sensitivity::Restricted),
     state_output("state"),
 ];
-const DNS_SD_INPUTS: [PortContract<'static>; 1] = [input_port("lease", DHCP_LEASE_TYPE)];
+const DNS_SD_INPUTS: [PortContract<'static>; 1] = [input_port("address", ADDRESS_STATE_TYPE)];
 const DNS_SD_OUTPUTS: [PortContract<'static>; 2] = [
     output_port(
         "registration",
         SERVICE_REGISTRATION_TYPE,
-        true,
+        false,
         Sensitivity::Restricted,
     ),
     state_output("state"),
 ];
-const REACHABILITY_INPUTS: [PortContract<'static>; 1] =
-    [input_port("registration", SERVICE_REGISTRATION_TYPE)];
+const LOCAL_DNS_INPUTS: [PortContract<'static>; 1] = [input_port("address", ADDRESS_STATE_TYPE)];
+const LOCAL_DNS_OUTPUTS: [PortContract<'static>; 2] = [
+    output_port(
+        "registration",
+        SERVICE_REGISTRATION_TYPE,
+        false,
+        Sensitivity::Restricted,
+    ),
+    state_output("state"),
+];
+const REACHABILITY_INPUTS: [PortContract<'static>; 1] = [input_port("address", ADDRESS_STATE_TYPE)];
 const REACHABILITY_OUTPUTS: [PortContract<'static>; 1] = [output_port(
     "observation",
     REACHABILITY_OBSERVATION_TYPE,
@@ -207,6 +236,14 @@ pub const WIFI_AP_CONTRACT: NodeContract<'static> = NodeContract {
     config: ConfigContract { fields: &AP_FIELDS },
     inputs: &[],
     outputs: &AP_OUTPUTS,
+};
+pub const ADDRESS_TEE_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("net/address/tee"),
+    config: ConfigContract {
+        fields: &ADDRESS_TEE_FIELDS,
+    },
+    inputs: &ADDRESS_TEE_INPUTS,
+    outputs: &ADDRESS_TEE_OUTPUTS,
 };
 pub const DHCP_SERVER_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/dhcp/server"),
@@ -224,6 +261,14 @@ pub const DNS_SD_CONTRACT: NodeContract<'static> = NodeContract {
     inputs: &DNS_SD_INPUTS,
     outputs: &DNS_SD_OUTPUTS,
 };
+pub const LOCAL_DNS_AUTHORITY_CONTRACT: NodeContract<'static> = NodeContract {
+    id: Id("net/dns/local-authority"),
+    config: ConfigContract {
+        fields: &LOCAL_DNS_FIELDS,
+    },
+    inputs: &LOCAL_DNS_INPUTS,
+    outputs: &LOCAL_DNS_OUTPUTS,
+};
 pub const REACHABILITY_CONTRACT: NodeContract<'static> = NodeContract {
     id: Id("net/reachability"),
     config: ConfigContract {
@@ -233,9 +278,11 @@ pub const REACHABILITY_CONTRACT: NodeContract<'static> = NodeContract {
     outputs: &REACHABILITY_OUTPUTS,
 };
 
-pub const NETWORK_CONTRACTS: [&NodeContract<'static>; 4] = [
+pub const NETWORK_CONTRACTS: [&NodeContract<'static>; 6] = [
     &WIFI_AP_CONTRACT,
+    &ADDRESS_TEE_CONTRACT,
     &DHCP_SERVER_CONTRACT,
+    &LOCAL_DNS_AUTHORITY_CONTRACT,
     &DNS_SD_CONTRACT,
     &REACHABILITY_CONTRACT,
 ];
@@ -293,6 +340,16 @@ fn validate_ap(node: &Node) -> Result<(), ResolutionError> {
     Ok(())
 }
 
+fn validate_address_tee(node: &Node) -> Result<(), ResolutionError> {
+    if node.config.len() != ADDRESS_TEE_FIELDS.len() || node.config("mode") != Some("coupled") {
+        return Err(ResolutionError::new(
+            NetworkReason::Unsupported.code(),
+            "address tee requires the exact coupled structural profile",
+        ));
+    }
+    Ok(())
+}
+
 fn validate_dhcp(node: &Node) -> Result<(), ResolutionError> {
     validate_base(node, DHCP_FIELDS.len())?;
     if integer(node, "lease_ticks") != Some(DHCP_LEASE_TICKS)
@@ -312,7 +369,7 @@ fn validate_dhcp(node: &Node) -> Result<(), ResolutionError> {
 fn validate_dns_sd(node: &Node) -> Result<(), ResolutionError> {
     validate_base(node, DNS_SD_FIELDS.len())?;
     if node.config("name") != Some("pete.local")
-        || integer(node, "port") != Some(8080)
+        || integer(node, "port") != Some(80)
         || integer(node, "ttl_ticks") != Some(120_000)
         || integer(node, "maximum_records") != Some(MAXIMUM_CLIENTS as u64)
         || integer(node, "maximum_name_bytes") != Some(MAXIMUM_NAME_BYTES as u64)
@@ -321,6 +378,27 @@ fn validate_dns_sd(node: &Node) -> Result<(), ResolutionError> {
         return Err(ResolutionError::new(
             NetworkReason::NameConflict.code(),
             "DNS-SD requires the exact finite local registration profile",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_local_dns(node: &Node) -> Result<(), ResolutionError> {
+    validate_base(node, LOCAL_DNS_FIELDS.len())?;
+    if node.config("zone") != Some("pete-local-authority")
+        || node.config("address") != Some("192.168.4.1")
+        || integer(node, "port") != Some(53)
+        || integer(node, "ttl_ticks") != Some(60_000)
+        || integer(node, "maximum_records") != Some(5)
+        || integer(node, "maximum_name_bytes") != Some(MAXIMUM_NAME_BYTES as u64)
+        || integer(node, "maximum_packet_bytes") != Some(512)
+        || integer(node, "maximum_questions_per_step") != Some(1)
+        || node.config("recursion") != Some("forbidden")
+        || integer(node, "maximum_evidence_events") != Some(MAXIMUM_EVIDENCE_EVENTS as u64)
+    {
+        return Err(ResolutionError::new(
+            NetworkReason::Unsupported.code(),
+            "local DNS authority requires the finite non-recursive Pete zone profile",
         ));
     }
     Ok(())
@@ -426,6 +504,31 @@ struct DeterministicDhcp {
     client_cursor: u64,
 }
 
+#[derive(Default)]
+struct DeterministicAddressTee;
+
+impl Handler for DeterministicAddressTee {
+    fn step(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        _context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        let [input] = inputs else {
+            return Err(runtime_error(
+                NetworkReason::MalformedPacket,
+                "address tee requires one address-readiness value",
+            ));
+        };
+        parse_address_state(input)?;
+        Ok(HostedServiceStep::produced(vec![
+            input.clone(),
+            input.clone(),
+        ]))
+    }
+}
+
 impl Handler for DeterministicDhcp {
     fn step(
         &mut self,
@@ -514,17 +617,14 @@ impl Handler for DeterministicDnsSd {
         let [input] = inputs else {
             return Err(runtime_error(
                 NetworkReason::MalformedPacket,
-                "DNS-SD service requires one lease value",
+                "DNS-SD service requires one address-readiness value",
             ));
         };
-        let lease = parse_dhcp_lease(input)?;
-        if !matches!(
-            lease.phase,
-            LeasePhase::Offered | LeasePhase::Bound | LeasePhase::Renewed
-        ) {
+        let address_state = parse_address_state(input)?;
+        if address_state.readiness != AddressReadiness::Ready {
             return Err(runtime_error(
                 NetworkReason::RegistrationStale,
-                "service registration requires a current lease",
+                "DNS-SD announcement requires a current local address",
             ));
         }
         let mut name = [0; MAXIMUM_NAME_BYTES];
@@ -533,15 +633,15 @@ impl Handler for DeterministicDnsSd {
             .tick
             .checked_add(120_000)
             .ok_or_else(|| runtime_error(NetworkReason::Bounds, "DNS-SD expiry overflow"))?
-            .min(lease.expires_at_tick.unwrap_or(u64::MAX));
+            .min(address_state.valid_until_tick.unwrap_or(u64::MAX));
         let registration = NetworkServiceRegistration {
             name,
             name_bytes: u8::try_from("pete.local".len()).expect("constant name length"),
-            family: lease.family,
-            address: lease.address,
-            port: 8080,
+            family: address_state.family,
+            address: address_state.address,
+            port: 80,
             protocol: TransportProtocol::Tcp,
-            generation: lease.generation,
+            generation: address_state.generation,
             expires_at_tick,
         };
         Ok(HostedServiceStep::produced(vec![
@@ -555,6 +655,63 @@ impl Handler for DeterministicDnsSd {
                 observed_at_tick: context.tick,
                 expires_at_tick: Some(expires_at_tick),
                 policy: RetainedStatePolicy::Expiring,
+            }),
+        ]))
+    }
+}
+
+#[derive(Default)]
+struct DeterministicLocalDns;
+
+impl Handler for DeterministicLocalDns {
+    fn step(
+        &mut self,
+        _node: &Node,
+        inputs: &[Value],
+        context: HostedServiceStepContext,
+        _io: &mut RunIo<'_>,
+    ) -> Result<HostedServiceStep, RuntimeError> {
+        let [input] = inputs else {
+            return Err(runtime_error(
+                NetworkReason::MalformedPacket,
+                "local DNS authority requires one address-readiness value",
+            ));
+        };
+        let address_state = parse_address_state(input)?;
+        if address_state.readiness != AddressReadiness::Ready {
+            return Ok(HostedServiceStep::waiting(
+                HostedServiceInterest::HostOperation {
+                    subject: Id("conduit/net-local-dns-address-ready"),
+                },
+            ));
+        }
+        let mut name = [0; MAXIMUM_NAME_BYTES];
+        name[.."pete.internal".len()].copy_from_slice(b"pete.internal");
+        let expires_at_tick = context
+            .tick
+            .checked_add(60_000)
+            .ok_or_else(|| runtime_error(NetworkReason::Bounds, "local DNS expiry overflow"))?
+            .min(address_state.valid_until_tick.unwrap_or(u64::MAX));
+        let registration = NetworkServiceRegistration {
+            name,
+            name_bytes: u8::try_from("pete.internal".len()).expect("constant name length"),
+            family: address_state.family,
+            address: address_state.address,
+            port: 53,
+            protocol: TransportProtocol::Udp,
+            generation: address_state.generation,
+            expires_at_tick,
+        };
+        Ok(HostedServiceStep::produced(vec![
+            service_registration_value(registration)?,
+            state_value(RetainedNetworkState {
+                table: 9,
+                generation: registration.generation,
+                items: 4,
+                bytes: 512,
+                observed_at_tick: context.tick,
+                expires_at_tick: Some(expires_at_tick),
+                policy: RetainedStatePolicy::GenerationFenced,
             }),
         ]))
     }
@@ -575,10 +732,17 @@ impl Handler for DeterministicReachability {
         let [input] = inputs else {
             return Err(runtime_error(
                 NetworkReason::MalformedPacket,
-                "reachability requires one service registration",
+                "reachability requires one address-readiness value",
             ));
         };
-        let registration = parse_service_registration(input)?;
+        let address_state = parse_address_state(input)?;
+        if address_state.readiness != AddressReadiness::Ready {
+            return Ok(HostedServiceStep::waiting(
+                HostedServiceInterest::HostOperation {
+                    subject: Id("conduit/net-reachability-address-ready"),
+                },
+            ));
+        }
         let outcome = match self.limiter.admit(64, context.tick) {
             Ok(()) => ReachabilityOutcome::Reachable,
             Err(NetworkReason::RateLimited) => ReachabilityOutcome::RateLimited,
@@ -590,8 +754,8 @@ impl Handler for DeterministicReachability {
             .ok_or_else(|| runtime_error(NetworkReason::Bounds, "probe freshness overflow"))?;
         Ok(HostedServiceStep::produced(vec![reachability_value(
             NetworkReachabilityObservation {
-                family: registration.family,
-                target: registration.address,
+                family: address_state.family,
+                target: address_state.address,
                 scope: ReachabilityScope::LocalNetwork,
                 outcome,
                 latency_ticks: (outcome == ReachabilityOutcome::Reachable).then_some(1),
@@ -628,6 +792,16 @@ pub fn register_deterministic_network_providers(
             validate_config: validate_ap,
         },
         CompiledInHostService {
+            contract: &ADDRESS_TEE_CONTRACT,
+            implementation_id: "conduit.net/reference-address-tee",
+            artifact_id: "conduit.net/reference-address-tee-artifact",
+            entrypoint: "network-reference-address-tee",
+            source_bytes: include_bytes!("runtime_nodes.rs"),
+            required_authorities: &NO_AUTHORITIES,
+            factory: || recorded_handler(DeterministicAddressTee),
+            validate_config: validate_address_tee,
+        },
+        CompiledInHostService {
             contract: &DHCP_SERVER_CONTRACT,
             implementation_id: "conduit.net/reference-dhcp-server",
             artifact_id: "conduit.net/reference-dhcp-server-artifact",
@@ -641,6 +815,16 @@ pub fn register_deterministic_network_providers(
                 })
             },
             validate_config: validate_dhcp,
+        },
+        CompiledInHostService {
+            contract: &LOCAL_DNS_AUTHORITY_CONTRACT,
+            implementation_id: "conduit.net/reference-local-dns-authority",
+            artifact_id: "conduit.net/reference-local-dns-authority-artifact",
+            entrypoint: "network-reference-local-dns-authority",
+            source_bytes: include_bytes!("runtime_nodes.rs"),
+            required_authorities: &NO_AUTHORITIES,
+            factory: || recorded_handler(DeterministicLocalDns),
+            validate_config: validate_local_dns,
         },
         CompiledInHostService {
             contract: &DNS_SD_CONTRACT,
@@ -709,10 +893,34 @@ mod tests {
             ADDRESS_STATE_TYPE
         );
         assert_eq!(DHCP_SERVER_CONTRACT.outputs[0].value_type, DHCP_LEASE_TYPE);
-        assert_eq!(DNS_SD_CONTRACT.inputs[0].value_type, DHCP_LEASE_TYPE);
+        assert_eq!(
+            ADDRESS_TEE_CONTRACT.inputs[0].value_type,
+            ADDRESS_STATE_TYPE
+        );
+        assert_eq!(
+            ADDRESS_TEE_CONTRACT.outputs[0].value_type,
+            ADDRESS_STATE_TYPE
+        );
+        assert_eq!(
+            ADDRESS_TEE_CONTRACT.outputs[1].value_type,
+            ADDRESS_STATE_TYPE
+        );
+        assert_eq!(DNS_SD_CONTRACT.inputs[0].value_type, ADDRESS_STATE_TYPE);
         assert_eq!(
             DNS_SD_CONTRACT.outputs[0].value_type,
             SERVICE_REGISTRATION_TYPE
+        );
+        assert_eq!(
+            LOCAL_DNS_AUTHORITY_CONTRACT.inputs[0].value_type,
+            ADDRESS_STATE_TYPE
+        );
+        assert_eq!(
+            LOCAL_DNS_AUTHORITY_CONTRACT.outputs[0].value_type,
+            SERVICE_REGISTRATION_TYPE
+        );
+        assert_eq!(
+            REACHABILITY_CONTRACT.inputs[0].value_type,
+            ADDRESS_STATE_TYPE
         );
         assert_eq!(
             REACHABILITY_CONTRACT.outputs[0].value_type,
@@ -792,8 +1000,8 @@ mod tests {
             name,
             name_bytes: 10,
             family: AddressFamily::Ipv4,
-            address: lease_address,
-            port: 8080,
+            address,
+            port: 80,
             protocol: TransportProtocol::Tcp,
             generation: 1,
             expires_at_tick: 120_000,
@@ -805,7 +1013,7 @@ mod tests {
 
         let observation = NetworkReachabilityObservation {
             family: AddressFamily::Ipv4,
-            target: lease_address,
+            target: address,
             scope: ReachabilityScope::LocalNetwork,
             outcome: ReachabilityOutcome::Reachable,
             latency_ticks: Some(1),
@@ -815,6 +1023,102 @@ mod tests {
         assert_eq!(
             crate::standing::parse_reachability(&reachability_value(observation).unwrap()).unwrap(),
             observation
+        );
+    }
+
+    #[test]
+    fn local_dns_dns_sd_and_reachability_depend_on_ap_address_not_a_client_lease() {
+        fn node(source: &str) -> Node {
+            let mut panel = conduit_panel::parse(&format!("panel 0\nservice: {source}\n")).unwrap();
+            panel.nodes.remove(0)
+        }
+        let mut address = [0; 16];
+        address[..4].copy_from_slice(&[192, 168, 4, 1]);
+        let input = address_state_value(NetworkAddressState {
+            interface: 1,
+            generation: 7,
+            family: AddressFamily::Ipv4,
+            address,
+            prefix_length: 24,
+            readiness: AddressReadiness::Ready,
+            valid_until_tick: Some(2_000),
+        })
+        .unwrap();
+        let mut stdin = std::io::empty();
+        let mut stdout = std::io::sink();
+        let mut stderr = std::io::sink();
+        let mut display = std::io::sink();
+        let mut io = RunIo {
+            input: &mut stdin,
+            output: &mut stdout,
+            error: &mut stderr,
+            display: &mut display,
+        };
+        for (mut handler, service_node, expected_name, expected_port, expected_protocol) in [
+            (
+                Box::new(DeterministicLocalDns) as Box<dyn Handler>,
+                node(
+                    "net/dns/local-authority { lifecycle = \"standing\" zone = \"pete-local-authority\" address = \"192.168.4.1\" port = 53 ttl_ticks = 60000 maximum_records = 5 maximum_name_bytes = 63 maximum_packet_bytes = 512 maximum_questions_per_step = 1 recursion = \"forbidden\" maximum_evidence_events = 64 }",
+                ),
+                "pete.internal",
+                53,
+                TransportProtocol::Udp,
+            ),
+            (
+                Box::new(DeterministicDnsSd) as Box<dyn Handler>,
+                node(
+                    "net/dns-sd { lifecycle = \"standing\" name = \"pete.local\" port = 80 ttl_ticks = 120000 maximum_records = 8 maximum_name_bytes = 63 maximum_evidence_events = 64 }",
+                ),
+                "pete.local",
+                80,
+                TransportProtocol::Tcp,
+            ),
+        ] {
+            let HostedServiceStep::Produced { outputs } = handler
+                .step(
+                    &service_node,
+                    core::slice::from_ref(&input),
+                    HostedServiceStepContext { tick: 10 },
+                    &mut io,
+                )
+                .unwrap()
+            else {
+                panic!("address-backed service did not produce");
+            };
+            let registration = parse_service_registration(&outputs[0]).unwrap();
+            assert_eq!(
+                core::str::from_utf8(&registration.name[..usize::from(registration.name_bytes)])
+                    .unwrap(),
+                expected_name
+            );
+            assert_eq!(registration.address, address);
+            assert_eq!(registration.port, expected_port);
+            assert_eq!(registration.protocol, expected_protocol);
+            assert_eq!(registration.generation, 7);
+        }
+
+        let mut reachability = DeterministicReachability {
+            limiter: IcmpRateLimiter::new(),
+        };
+        let node = node(
+            "net/reachability { lifecycle = \"standing\" scope = \"local-network\" maximum_packet_bytes = 1500 maximum_packets_per_window = 4 window_ticks = 1000 maximum_evidence_events = 64 }",
+        );
+        let HostedServiceStep::Produced { outputs } = reachability
+            .step(
+                &node,
+                core::slice::from_ref(&input),
+                HostedServiceStepContext { tick: 10 },
+                &mut io,
+            )
+            .unwrap()
+        else {
+            panic!("address-backed reachability did not produce");
+        };
+        assert_eq!(
+            crate::standing::parse_reachability(&outputs[0])
+                .unwrap()
+                .target,
+            address
         );
     }
 
