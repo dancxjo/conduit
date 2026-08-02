@@ -7,8 +7,9 @@ use conduit_core::{
     NodeInterfaceRequirement, NodeInterfaceRequirementDecision, NodeInterfaceRequirementProof,
     NodeInterfaceRequirementReason, NodeInterfaceSatisfactionError,
     NodeInterfaceSatisfactionReason, NodeInterfaceTypeDecision, PortCompatibilityReason,
-    PortContract, PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract,
-    TerminalContract, TypeContractRef, ValueCardinality, assess_node_interface,
+    PortContract, PortFlowConstraints, Presence, PrincipalPath, PrincipalProjectionError,
+    SemanticHash, Sensitivity, TemporalContract, TerminalContract, TypeContractRef,
+    ValueCardinality, assess_node_interface,
 };
 
 const VALUE: TypeContractRef<'static> = TypeContractRef {
@@ -111,7 +112,7 @@ fn language_neutral_fixture_inventory_is_frozen() {
     let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
     assert_eq!(value["suite"], "conduit.node-interface");
     assert_eq!(value["portable_limits"]["maximum_members"], 64);
-    assert_eq!(value["cases"].as_array().unwrap().len(), 21);
+    assert_eq!(value["cases"].as_array().unwrap().len(), 28);
     for required in [
         "exact-primitive-boundary",
         "compatible-directional-refinement",
@@ -122,6 +123,13 @@ fn language_neutral_fixture_inventory_is_frozen() {
         "provider-unavailable",
         "ambiguous-provider-decisions",
         "authority-effect-widening-rejected",
+        "principal-exact-projection",
+        "principal-absent-side",
+        "principal-missing-member",
+        "principal-wrong-direction",
+        "principal-optional-member",
+        "principal-change-is-semantic",
+        "auxiliary-members-do-not-select-principal",
         "revision-or-hash-mismatch",
         "insufficient-proof-scratch",
         "claim-does-not-prove-deferred-facets",
@@ -149,6 +157,7 @@ fn required_non_port_facts_are_directional_and_cannot_widen_authority() {
     }];
     let interface = NodeInterfaceContract {
         id: Id("fixture/authority-bounded"),
+        principal_path: PrincipalPath::NONE,
         members: &[],
         requirements: &requirements,
     };
@@ -264,6 +273,7 @@ fn interface_identity_is_namespaced_order_independent_and_semantic() {
     let reversed = [members[1], members[0]];
     let interface = NodeInterfaceContract {
         id: Id("speech/recognizer"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };
@@ -311,6 +321,156 @@ fn interface_identity_is_namespaced_order_independent_and_semantic() {
 }
 
 #[test]
+fn principal_path_is_explicit_identity_bearing_and_projection_is_not_inferred() {
+    let members = [
+        member(
+            "text",
+            Direction::Input,
+            InterfaceMemberRequirement::Required,
+        ),
+        member(
+            "audio",
+            Direction::Output,
+            InterfaceMemberRequirement::Required,
+        ),
+        member(
+            "voice",
+            Direction::Input,
+            InterfaceMemberRequirement::Required,
+        ),
+    ];
+    let interface = NodeInterfaceContract {
+        id: Id("speech/synthesize"),
+        principal_path: PrincipalPath {
+            receiving: Some(Id("text")),
+            outgoing: Some(Id("audio")),
+        },
+        members: &members,
+        requirements: &[],
+    };
+
+    assert_eq!(
+        interface
+            .project_principal(Direction::Input)
+            .unwrap()
+            .port
+            .id,
+        Id("text")
+    );
+    assert_eq!(
+        interface
+            .project_principal(Direction::Output)
+            .unwrap()
+            .port
+            .id,
+        Id("audio")
+    );
+
+    let reordered_with_auxiliary = [members[2], members[1], members[0]];
+    let reordered = NodeInterfaceContract {
+        members: &reordered_with_auxiliary,
+        ..interface
+    };
+    assert_eq!(
+        reordered
+            .project_principal(Direction::Input)
+            .unwrap()
+            .port
+            .id,
+        Id("text")
+    );
+
+    let no_principal = NodeInterfaceContract {
+        principal_path: PrincipalPath::NONE,
+        ..interface
+    };
+    assert_eq!(
+        no_principal.project_principal(Direction::Input),
+        Err(PrincipalProjectionError::Unavailable {
+            direction: Direction::Input
+        })
+    );
+
+    let changed_principal = NodeInterfaceContract {
+        principal_path: PrincipalPath {
+            receiving: Some(Id("voice")),
+            outgoing: Some(Id("audio")),
+        },
+        ..interface
+    };
+    let mut original_scratch = [hash(0); 3];
+    let mut changed_scratch = [hash(0); 3];
+    assert_ne!(
+        interface.semantic_hash(&mut original_scratch).unwrap(),
+        changed_principal
+            .semantic_hash(&mut changed_scratch)
+            .unwrap()
+    );
+}
+
+#[test]
+fn principal_path_rejects_missing_wrong_direction_and_optional_members() {
+    let required_input = member(
+        "text",
+        Direction::Input,
+        InterfaceMemberRequirement::Required,
+    );
+    let optional_output = member(
+        "audio",
+        Direction::Output,
+        InterfaceMemberRequirement::Optional,
+    );
+    let members = [required_input, optional_output];
+
+    let missing = NodeInterfaceContract {
+        id: Id("speech/synthesize"),
+        principal_path: PrincipalPath {
+            receiving: Some(Id("missing")),
+            outgoing: None,
+        },
+        members: &members,
+        requirements: &[],
+    };
+    assert_eq!(
+        missing.validate(),
+        Err(NodeInterfaceContractError::MissingPrincipalMember {
+            id: Id("missing"),
+            direction: Direction::Input,
+        })
+    );
+
+    let wrong_direction = NodeInterfaceContract {
+        principal_path: PrincipalPath {
+            receiving: Some(Id("audio")),
+            outgoing: None,
+        },
+        ..missing
+    };
+    assert_eq!(
+        wrong_direction.validate(),
+        Err(NodeInterfaceContractError::MissingPrincipalMember {
+            id: Id("audio"),
+            direction: Direction::Input,
+        })
+    );
+
+    let optional = NodeInterfaceContract {
+        principal_path: PrincipalPath {
+            receiving: Some(Id("text")),
+            outgoing: Some(Id("audio")),
+        },
+        ..missing
+    };
+    assert_eq!(
+        optional.validate(),
+        Err(NodeInterfaceContractError::OptionalPrincipalMember {
+            id: Id("audio"),
+            direction: Direction::Output,
+        })
+    );
+}
+
+#[test]
 fn exact_primitive_and_composite_boundaries_use_the_same_proof_path() {
     let members = [
         member(
@@ -326,6 +486,7 @@ fn exact_primitive_and_composite_boundaries_use_the_same_proof_path() {
     ];
     let interface = NodeInterfaceContract {
         id: Id("speech/recognizer"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };
@@ -402,6 +563,7 @@ fn directional_refinement_and_extra_ports_are_admitted_without_adapters() {
     ];
     let interface = NodeInterfaceContract {
         id: Id("fixture/request-response"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };
@@ -466,6 +628,7 @@ fn optionality_only_allows_absence_and_never_hides_an_incompatible_port() {
     ];
     let interface = NodeInterfaceContract {
         id: Id("fixture/optional-output"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };
@@ -536,6 +699,7 @@ fn missing_wrong_direction_and_complete_port_mismatches_have_stable_reasons() {
     )];
     let interface = NodeInterfaceContract {
         id: Id("fixture/result-source"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };
@@ -648,6 +812,7 @@ fn non_exact_types_require_one_reasoned_provider_decision() {
     )];
     let interface = NodeInterfaceContract {
         id: Id("fixture/provider-output"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };
@@ -742,6 +907,7 @@ fn malformed_revisions_duplicates_and_insufficient_scratch_fail_closed() {
     )];
     let interface = NodeInterfaceContract {
         id: Id("fixture/result-source"),
+        principal_path: PrincipalPath::NONE,
         members: &members,
         requirements: &[],
     };

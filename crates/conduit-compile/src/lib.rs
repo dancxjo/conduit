@@ -3464,6 +3464,7 @@ fn executable_panel(
                         constraint_span: None,
                         implements: Vec::new(),
                         config: Vec::new(),
+                        expression: None,
                         source_span: root.source_span,
                     }],
                     Vec::new(),
@@ -9299,13 +9300,13 @@ mod tests {
     #[test]
     fn typed_supervision_compiles_and_round_trips_exactly() {
         let source = "panel 0\n\
-            node subject : std/literal { value = \"primary\" }\n\
-            node subject_sink : display/text\n\
-            node fallback : std/literal { value = \"fallback\" }\n\
-            node fallback_sink : display/text\n\
-            node handler : supervision/supervisor\n\
-            cord subject.value -> subject_sink.text\n\
-            cord fallback.value -> fallback_sink.text\n\
+            subject: std/literal { value = \"primary\" }\n\
+            subject_sink: display/text\n\
+            fallback: std/literal { value = \"fallback\" }\n\
+            fallback_sink: display/text\n\
+            handler: supervision/supervisor\n\
+            subject.value > subject_sink.text\n\
+            fallback.value > fallback_sink.text\n\
             supervise subject with handler\n";
         let panel = parse(source).unwrap();
         let mut topology_panel = panel.clone();
@@ -9434,16 +9435,16 @@ mod tests {
     #[test]
     fn composite_expansion_retains_logical_membership_and_exports() {
         let source = "panel 0\n\
-             composite fixture/uppercase {\n\
-               node upper : text/uppercase\n\
+             fixture/uppercase{\n\
+               upper: text/uppercase\n\
                export > text = upper.text\n\
                export uppercased > = upper.text\n\
              }\n\
-             node source : std/literal { value = \"hello\" }\n\
-             node transform : fixture/uppercase\n\
-             node sink : display/text\n\
-             cord source.value -> transform.text\n\
-             cord transform.uppercased -> sink.text\n";
+             source: std/literal { value = \"hello\" }\n\
+             transform: fixture/uppercase\n\
+             sink: display/text\n\
+             source.value > transform.text\n\
+             transform.uppercased > sink.text\n";
         let panel = parse(source).unwrap();
         let input = compile_input(source, &panel);
         let plan = compile_panel(&panel, &input).unwrap();
@@ -9457,17 +9458,17 @@ mod tests {
     #[test]
     fn explicit_module_closure_and_selected_root_compile_without_io() {
         let child = "panel 0\n\
-                     composite fixture/pipeline {\n\
-                       node source : std/literal { value = \"module\" }\n\
-                       node upper : text/uppercase using ready\n\
-                       node sink : display/text\n\
-                       cord source.value -> upper.text\n\
-                       cord upper.text -> sink.text\n\
+                     fixture/pipeline{\n\
+                       source: std/literal { value = \"module\" }\n\
+                       upper: text/uppercase using ready\n\
+                       sink: display/text\n\
+                       source.value > upper.text\n\
+                       upper.text > sink.text\n\
                      }\n";
         let entry = "panel 0\n\
                      import \"./child.panel\" as child\n\
-                     composite fixture/app {\n\
-                       node pipeline : child.fixture/pipeline\n\
+                     fixture/app{\n\
+                       pipeline: child.fixture/pipeline\n\
                      }\n\
                      root fixture/app\n";
         let mut input = CompileInput {
@@ -10386,7 +10387,7 @@ mod tests {
     #[test]
     fn finite_port_groups_are_retained_as_plan_visible_expansions() {
         let base = include_str!("../../../examples/hello.panel");
-        let source = format!("{base}\nport-group lanes > : conduit/output-text indexed max 2\n");
+        let source = format!("{base}\nport-group lanes >: conduit/output-text indexed max 2\n");
         let panel = parse(&source).unwrap();
         let base_panel = parse(base).unwrap();
         let mut input = compile_input(base, &base_panel);
@@ -10408,12 +10409,12 @@ mod tests {
         let base = include_str!("../../../examples/hello.panel");
         let source = format!(
             "{base}\n\
-             composite fixture/worker {{\n\
-               node source : std/literal {{ value = \"pool\" }}\n\
-               node sink : display/text\n\
-               cord source.value -> sink.text\n\
+             fixture/worker{{\n\
+               source: std/literal {{ value = \"pool\" }}\n\
+               sink: display/text\n\
+               source.value > sink.text\n\
              }}\n\
-             pool workers : fixture/worker {{ maximum = 2 admission = queue_bounded admission_queue = 2 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }}\n"
+             pool workers: fixture/worker {{ maximum = 2 admission = queue_bounded admission_queue = 2 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }}\n"
         );
         let panel = parse(&source).unwrap();
         let base_panel = parse(base).unwrap();

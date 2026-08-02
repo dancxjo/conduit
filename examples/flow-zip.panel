@@ -1,36 +1,36 @@
 panel 0
 
-node first : std/literal {
+first: std/literal {
     value = "left"
 }
-node second : std/literal {
+second: std/literal {
     value = "right"
 }
-node first_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
-node second_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
-node zip : conduit.std/zip {
+first_lines: std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+second_lines: std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+zip: conduit.std/zip {
     unpaired = "fail"
 }
-node left_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
-node right_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
-node left_bytes : std/data/encode-utf8 {
+left_text: std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+right_text: std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+left_bytes: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node right_bytes : std/data/encode-utf8 {
+right_bytes: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node left : io/stdout
-node right : io/stderr
+left: io/stdout
+right: io/stderr
 
-cord first.value -> first_lines.text {
+first.value > first_lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -38,7 +38,7 @@ cord first.value -> first_lines.text {
     high_watermark = 1
     pressure = block
 }
-cord second.value -> second_lines.text {
+second.value > second_lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -46,9 +46,9 @@ cord second.value -> second_lines.text {
     high_watermark = 1
     pressure = block
 }
-cord first_lines.line -> zip.left { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord second_lines.line -> zip.right { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord zip.left -> left_text.item {
+first_lines.line > zip.left { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+second_lines.line > zip.right { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+zip.left > left_text.item {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -56,7 +56,7 @@ cord zip.left -> left_text.item {
     high_watermark = 1
     pressure = block
 }
-cord zip.right -> right_text.item {
+zip.right > right_text.item {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -64,7 +64,7 @@ cord zip.right -> right_text.item {
     high_watermark = 1
     pressure = block
 }
-cord left_text.text -> left_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_text.text -> right_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord left_bytes.bytes -> left.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_bytes.bytes -> right.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+left_text.text > left_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+right_text.text > right_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+left_bytes.bytes > left.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+right_bytes.bytes > right.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

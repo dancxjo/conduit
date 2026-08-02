@@ -422,11 +422,11 @@ mod tests {
 
     #[test]
     fn relative_imports_are_dependency_ordered_and_content_identified() {
-        let child = "panel 0\nnode worker { node value : std/literal }\nroot worker\n";
+        let child = "panel 0\nworker { value: std/literal }\nroot worker\n";
         let pin = content_hash(child);
         let root = format!(
             "panel 0\nimport \"./child.panel\" as child pin \"{pin}\"\n\
-             node app {{ node worker : child.worker }}\nroot app\n"
+             app{{ worker: child.worker }}\nroot app\n"
         );
         let loader = MemoryLoader(BTreeMap::from([
             ("mem://fixture/root.panel".to_owned(), root),

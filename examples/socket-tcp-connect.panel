@@ -1,8 +1,8 @@
 # Bounded numeric-loopback TCP client. The provider creates a leased fixture peer.
 panel 0
 
-node input : io/stdin-stream
-node client : conduit.host/net/tcp/connect {
+input: io/stdin-stream
+client: conduit.host/net/tcp/connect {
     network_resource = secret("conduit.resource/socket-loopback")
     target_grant = secret("conduit.grant/socket-tcp-connect")
     local = "127.0.0.1:0"
@@ -20,7 +20,7 @@ node client : conduit.host/net/tcp/connect {
     cleanup_ticks = 100
     cancellation = "none"
 }
-node output : io/stdout-stream
+output: io/stdout-stream
 
-cord input.bytes -> client.transmit { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
-cord client.received -> output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+input.bytes > client.transmit { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+client.received > output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }

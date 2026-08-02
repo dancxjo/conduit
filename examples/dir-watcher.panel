@@ -1,7 +1,7 @@
 # Stay live for bounded, explicitly notified events from an opaque provider-owned file resource.
 panel 0
 
-node watcher : fs/watch {
+watcher: fs/watch {
     resource = secret("conduit.resource/filesystem-example-watch")
     grant = secret("conduit.grant/filesystem-watch")
     clock = ref("conduit.clock/monotonic-ticks")

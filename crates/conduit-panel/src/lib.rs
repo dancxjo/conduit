@@ -4,9 +4,15 @@
 //! deterministic; implementation selection, host observation, planning,
 //! execution, evidence, and presentation remain outside this crate.
 
-use std::{collections::BTreeSet, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+};
+
+use unicode_normalization::UnicodeNormalization as _;
 
 mod document;
+mod formatter;
 mod modules;
 mod packages;
 
@@ -15,6 +21,7 @@ pub use document::{
     RecoveredEndpoint, RecoveredNode, SOURCE_AST_SCHEMA_VERSION, SourceDocument, Span,
     parse_document, parse_document_with_root, recover_document, semantic_source_hash,
 };
+pub use formatter::format_panel;
 pub use modules::{
     LoadedModule, ModuleGraph, ModuleLoader, ModuleResolutionError, ResolvedImport, ResolvedModule,
     ResolvedRootSelection, RootSelectionMode, resolve_modules,
@@ -66,8 +73,6 @@ pub const SYNTAX_WORDS: &[&str] = &[
     "capacity",
     "cleanup",
     "coalescer",
-    "composite",
-    "cord",
     "deadline_ms",
     "export",
     "fallback",
@@ -82,7 +87,6 @@ pub const SYNTAX_WORDS: &[&str] = &[
     "max_queued_bytes",
     "max_value_bytes",
     "member",
-    "node",
     "optional",
     "output",
     "panel",
@@ -302,8 +306,39 @@ pub struct Node {
     pub implements: Vec<InterfaceClaim>,
     /// Source configuration entries.
     pub config: Vec<ConfigEntry>,
+    /// Checked pure expression attached to an inline logical stage.
+    pub expression: Option<SourceExpression>,
     /// Exact authored instance extent.
     pub source_span: SourceSpan,
+}
+
+/// One expression-island operation. Graph operators are represented by
+/// [`Cord`] and can therefore never appear in this enum.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExpressionOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    Equal,
+    NotEqual,
+}
+
+/// Pure expression syntax retained before typed lowering.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SourceExpression {
+    Value(SourceValue),
+    Binding(String),
+    Binary {
+        operation: ExpressionOperator,
+        left: Box<SourceExpression>,
+        right: Box<SourceExpression>,
+        operator_span: SourceSpan,
+    },
 }
 
 /// Shape of a compile-time group of ordinary ports.
@@ -514,6 +549,8 @@ pub struct Cord {
     pub high_watermark_items: u16,
     /// Exact pressure response.
     pub pressure: SourcePressure,
+    /// Exact source range of the graph-level `>` token.
+    pub operator_span: SourceSpan,
     /// Exact authored cord extent.
     pub source_span: SourceSpan,
 }
@@ -598,8 +635,9 @@ enum TokenKind {
     RightBrace,
     LeftParen,
     RightParen,
-    Arrow,
-    LeftArrow,
+    Bang,
+    Plus,
+    Star,
     Greater,
     Less,
     Eof,
@@ -619,12 +657,12 @@ struct Token {
 /// ```text
 /// panel 0
 ///
-/// node greeting : std/literal {
+/// greeting: std/literal {
 ///     value = "Hello from Conduit."
 /// }
-/// node output : display/text
+/// output: display/text
 ///
-/// cord greeting.value -> output.text {
+/// greeting.value > output.text {
 ///     capacity = 8
 ///     pressure = block
 /// }
@@ -656,6 +694,7 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
     let mut index = 0;
     let mut line = 1;
     let mut column = 1;
+    let mut normalized_spellings = BTreeMap::<String, String>::new();
 
     while index < bytes.len() {
         if tokens.len() >= MAXIMUM_PANEL_TOKENS.saturating_sub(1) {
@@ -716,6 +755,39 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                 index += 1;
                 column += 1;
             }
+            b'!' => {
+                tokens.push(Token {
+                    kind: TokenKind::Bang,
+                    line,
+                    column,
+                    end_line: line,
+                    end_column: column + 1,
+                });
+                index += 1;
+                column += 1;
+            }
+            b'+' => {
+                tokens.push(Token {
+                    kind: TokenKind::Plus,
+                    line,
+                    column,
+                    end_line: line,
+                    end_column: column + 1,
+                });
+                index += 1;
+                column += 1;
+            }
+            b'*' => {
+                tokens.push(Token {
+                    kind: TokenKind::Star,
+                    line,
+                    column,
+                    end_line: line,
+                    end_column: column + 1,
+                });
+                index += 1;
+                column += 1;
+            }
             b'{' => {
                 tokens.push(Token {
                     kind: TokenKind::LeftBrace,
@@ -760,27 +832,9 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                 index += 1;
                 column += 1;
             }
-            b'-' if bytes.get(index + 1) == Some(&b'>') => {
-                tokens.push(Token {
-                    kind: TokenKind::Arrow,
-                    line,
-                    column,
-                    end_line: line,
-                    end_column: column + 2,
-                });
-                index += 2;
-                column += 2;
-            }
-            b'<' if bytes.get(index + 1) == Some(&b'-') => {
-                tokens.push(Token {
-                    kind: TokenKind::LeftArrow,
-                    line,
-                    column,
-                    end_line: line,
-                    end_column: column + 2,
-                });
-                index += 2;
-                column += 2;
+            b';' => {
+                index += 1;
+                column += 1;
             }
             b'>' => {
                 tokens.push(Token {
@@ -930,18 +984,42 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
                     end_column: column,
                 });
             }
-            _ if is_word_start_byte(byte) => {
+            _ if source[index..]
+                .chars()
+                .next()
+                .is_some_and(is_word_start_character) =>
+            {
                 let start = index;
                 let start_column = column;
-                while bytes
-                    .get(index)
-                    .is_some_and(|candidate| is_word_byte(*candidate))
-                {
-                    index += 1;
+                while index < bytes.len() {
+                    let character = source[index..]
+                        .chars()
+                        .next()
+                        .expect("valid UTF-8 character boundary");
+                    if !is_word_character(character) {
+                        break;
+                    }
+                    index += character.len_utf8();
                     column += 1;
                 }
+                let spelling = &source[start..index];
+                let normalized = spelling.nfc().collect::<String>();
+                if let Some(previous) = normalized_spellings.get(&normalized) {
+                    if previous != spelling {
+                        return Err(ParseError {
+                            code: "CND-SRC-011",
+                            line,
+                            column: start_column,
+                            message: format!(
+                                "identifier normalization collision between `{previous}` and `{spelling}`"
+                            ),
+                        });
+                    }
+                } else {
+                    normalized_spellings.insert(normalized, spelling.to_owned());
+                }
                 tokens.push(Token {
-                    kind: TokenKind::Word(source[start..index].to_owned()),
+                    kind: TokenKind::Word(spelling.to_owned()),
                     line,
                     column: start_column,
                     end_line: line,
@@ -969,12 +1047,13 @@ fn lex(source: &str) -> Result<Vec<Token>, ParseError> {
     Ok(tokens)
 }
 
-const fn is_word_byte(byte: u8) -> bool {
-    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.' | b'/' | b'@' | b'[' | b']')
+fn is_word_character(character: char) -> bool {
+    unicode_ident::is_xid_continue(character)
+        || matches!(character, '-' | '.' | '/' | '@' | '[' | ']' | '$' | '|')
 }
 
-const fn is_word_start_byte(byte: u8) -> bool {
-    byte.is_ascii_alphabetic() || matches!(byte, b'_' | b'-' | b'.' | b'/' | b'@')
+fn is_word_start_character(character: char) -> bool {
+    unicode_ident::is_xid_start(character) || matches!(character, '_' | '-' | '.' | '/' | '@' | '$')
 }
 
 struct Parser {
@@ -1018,8 +1097,23 @@ impl Parser {
         let mut pools = Vec::new();
         let mut supervisions = Vec::new();
         while !matches!(self.current().kind, TokenKind::Eof) {
+            if matches!(
+                self.current().kind,
+                TokenKind::String(_) | TokenKind::Number(_)
+            ) {
+                self.parse_value_chain(&mut nodes, &mut cords)?;
+                continue;
+            }
+            let start_line = self.current().line;
+            let start_column = self.current().column;
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
+                _ if matches!(self.current().kind, TokenKind::Colon) => {
+                    nodes.push(self.parse_node_after_id(declaration, start_line, start_column)?);
+                }
+                _ if matches!(self.current().kind, TokenKind::Equals) => {
+                    nodes.push(self.parse_value_binding(declaration, start_line, start_column)?);
+                }
                 "import" => {
                     if matches!(self.current().kind, TokenKind::String(_)) {
                         imports.push(self.parse_import()?);
@@ -1035,34 +1129,6 @@ impl Parser {
                     }
                 }
                 "interface" => interfaces.push(self.parse_interface()?),
-                "node" => {
-                    let start_line = self.current().line;
-                    let start_column = self.current().column;
-                    let id = self.expect_any_word()?;
-                    if matches!(self.current().kind, TokenKind::Colon) {
-                        nodes.push(self.parse_node_after_id(id, start_line, start_column)?);
-                    } else {
-                        definitions.push(self.parse_definition_after_id(
-                            id,
-                            start_line,
-                            start_column,
-                        )?);
-                    }
-                }
-                "composite" => {
-                    let start_line = self.current().line;
-                    let start_column = self.current().column;
-                    let id = self.expect_any_word()?;
-                    definitions.push(self.parse_definition_after_id(
-                        id,
-                        start_line,
-                        start_column,
-                    )?);
-                }
-                "cord" => {
-                    let ordinal = cords.len();
-                    cords.push(self.parse_cord(ordinal)?);
-                }
                 "root" => {
                     let start_line = self.current().line;
                     let start_column = self.current().column;
@@ -1082,9 +1148,29 @@ impl Parser {
                 "pool" => pools.push(self.parse_pool()?),
                 "supervise" => supervisions.push(self.parse_supervision()?),
                 _ => {
-                    return Err(self.error(format!(
-                        "expected import, interface, node, composite, cord, root, port-group, pool, or supervise; found `{declaration}`"
-                    )));
+                    if matches!(
+                        self.current().kind,
+                        TokenKind::LeftParen | TokenKind::LeftBrace
+                    ) || self.current_word_is("implements")
+                    {
+                        definitions.push(self.parse_definition_after_id(
+                            declaration,
+                            start_line,
+                            start_column,
+                        )?);
+                    } else if matches!(self.current().kind, TokenKind::Greater) {
+                        self.parse_named_chain(
+                            declaration,
+                            start_line,
+                            start_column,
+                            &mut nodes,
+                            &mut cords,
+                        )?;
+                    } else {
+                        return Err(self.error(format!(
+                            "expected `:`, `=`, `{{`, parameter list, or graph `>` after `{declaration}`"
+                        )));
+                    }
                 }
             }
         }
@@ -1265,12 +1351,30 @@ impl Parser {
             if matches!(self.current().kind, TokenKind::Eof) {
                 return Err(self.error("unterminated node definition"));
             }
+            if matches!(
+                self.current().kind,
+                TokenKind::String(_) | TokenKind::Number(_)
+            ) {
+                self.parse_value_chain(&mut nodes, &mut cords)?;
+                continue;
+            }
+            let member_start_line = self.current().line;
+            let member_start_column = self.current().column;
             let declaration = self.expect_any_word()?;
             match declaration.as_str() {
-                "node" => nodes.push(self.parse_node()?),
-                "cord" => {
-                    let ordinal = cords.len();
-                    cords.push(self.parse_cord(ordinal)?);
+                _ if matches!(self.current().kind, TokenKind::Colon) => {
+                    nodes.push(self.parse_node_after_id(
+                        declaration,
+                        member_start_line,
+                        member_start_column,
+                    )?);
+                }
+                _ if matches!(self.current().kind, TokenKind::Equals) => {
+                    nodes.push(self.parse_value_binding(
+                        declaration,
+                        member_start_line,
+                        member_start_column,
+                    )?);
                 }
                 "export" => {
                     let start_line = self.current().line;
@@ -1313,9 +1417,19 @@ impl Parser {
                 "pool" => pools.push(self.parse_pool()?),
                 "supervise" => supervisions.push(self.parse_supervision()?),
                 _ => {
-                    return Err(self.error(format!(
-                        "expected child, cord, export, binding, port-group, pool, or supervise; found `{declaration}`"
-                    )));
+                    if matches!(self.current().kind, TokenKind::Greater) {
+                        self.parse_named_chain(
+                            declaration,
+                            member_start_line,
+                            member_start_column,
+                            &mut nodes,
+                            &mut cords,
+                        )?;
+                    } else {
+                        return Err(self.error(format!(
+                            "expected child declaration, value binding, graph chain, export, binding, port-group, pool, or supervise; found `{declaration}`"
+                        )));
+                    }
                 }
             }
         }
@@ -1503,13 +1617,6 @@ impl Parser {
         Ok(parameters)
     }
 
-    fn parse_node(&mut self) -> Result<Node, ParseError> {
-        let start_line = self.current().line;
-        let start_column = self.current().column;
-        let id = self.expect_any_word()?;
-        self.parse_node_after_id(id, start_line, start_column)
-    }
-
     fn parse_node_after_id(
         &mut self,
         id: String,
@@ -1555,6 +1662,7 @@ impl Parser {
             constraint_span: constraint.map(|(_, span)| span),
             implements,
             config,
+            expression: None,
             source_span: SourceSpan {
                 line: start_line,
                 column: start_column,
@@ -1562,6 +1670,252 @@ impl Parser {
                 end_column,
             },
         })
+    }
+
+    fn parse_value_binding(
+        &mut self,
+        id: String,
+        start_line: usize,
+        start_column: usize,
+    ) -> Result<Node, ParseError> {
+        self.expect_simple(TokenKind::Equals, "`=`")?;
+        let value_start_line = self.current().line;
+        let value_start_column = self.current().column;
+        let value = self.expect_source_value()?;
+        let (end_line, end_column) = self.previous_end();
+        Ok(Node {
+            id,
+            kind: "std/literal".to_owned(),
+            constraint: None,
+            constraint_span: None,
+            implements: Vec::new(),
+            config: vec![ConfigEntry {
+                key: "value".to_owned(),
+                value,
+                source_span: SourceSpan {
+                    line: value_start_line,
+                    column: value_start_column,
+                    end_line,
+                    end_column,
+                },
+            }],
+            expression: None,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
+        })
+    }
+
+    fn parse_value_chain(
+        &mut self,
+        nodes: &mut Vec<Node>,
+        cords: &mut Vec<Cord>,
+    ) -> Result<(), ParseError> {
+        let start_line = self.current().line;
+        let start_column = self.current().column;
+        let value = self.expect_source_value()?;
+        let (end_line, end_column) = self.previous_end();
+        let id = format!("literal/{start_line}/{start_column}");
+        nodes.push(Node {
+            id: id.clone(),
+            kind: "std/literal".to_owned(),
+            constraint: None,
+            constraint_span: None,
+            implements: Vec::new(),
+            config: vec![ConfigEntry {
+                key: "value".to_owned(),
+                value,
+                source_span: SourceSpan {
+                    line: start_line,
+                    column: start_column,
+                    end_line,
+                    end_column,
+                },
+            }],
+            expression: None,
+            source_span: SourceSpan {
+                line: start_line,
+                column: start_column,
+                end_line,
+                end_column,
+            },
+        });
+        self.parse_chain_after_endpoint(
+            Endpoint {
+                node: id,
+                port: String::new(),
+            },
+            start_line,
+            start_column,
+            nodes,
+            cords,
+        )
+    }
+
+    fn parse_named_chain(
+        &mut self,
+        first: String,
+        start_line: usize,
+        start_column: usize,
+        nodes: &mut Vec<Node>,
+        cords: &mut Vec<Cord>,
+    ) -> Result<(), ParseError> {
+        let first = self.endpoint_from_word(first)?;
+        self.parse_chain_after_endpoint(first, start_line, start_column, nodes, cords)
+    }
+
+    fn parse_chain_after_endpoint(
+        &mut self,
+        mut from: Endpoint,
+        start_line: usize,
+        start_column: usize,
+        nodes: &mut Vec<Node>,
+        cords: &mut Vec<Cord>,
+    ) -> Result<(), ParseError> {
+        if !matches!(self.current().kind, TokenKind::Greater) {
+            return Err(self.error("literal and endpoint statements require graph `>`"));
+        }
+        while matches!(self.current().kind, TokenKind::Greater) {
+            let operator = self.current().clone();
+            self.advance();
+            let target_line = self.current().line;
+            let target_column = self.current().column;
+            let target = self.expect_any_word()?;
+            let expression = if matches!(target.as_str(), "keep" | "map" | "stop")
+                && matches!(self.current().kind, TokenKind::LeftBrace)
+            {
+                Some(self.parse_expression_island()?)
+            } else {
+                None
+            };
+            let to = if expression.is_some() || (target.contains('/') && !target.contains('.')) {
+                let id = format!("inline/{}", nodes.len());
+                let (end_line, end_column) = self.previous_end();
+                let kind = match target.as_str() {
+                    "keep" => "std/flow/keep".to_owned(),
+                    "map" => "std/flow/map".to_owned(),
+                    "stop" => "std/flow/stop".to_owned(),
+                    _ => target,
+                };
+                nodes.push(Node {
+                    id: id.clone(),
+                    kind,
+                    constraint: None,
+                    constraint_span: None,
+                    implements: Vec::new(),
+                    config: Vec::new(),
+                    expression,
+                    source_span: SourceSpan {
+                        line: target_line,
+                        column: target_column,
+                        end_line,
+                        end_column,
+                    },
+                });
+                Endpoint {
+                    node: id,
+                    port: String::new(),
+                }
+            } else {
+                self.endpoint_from_word(target)?
+            };
+            let ordinal = cords.len();
+            cords.push(self.parse_cord_policy(
+                from,
+                to.clone(),
+                ordinal,
+                start_line,
+                start_column,
+                SourceSpan {
+                    line: operator.line,
+                    column: operator.column,
+                    end_line: operator.end_line,
+                    end_column: operator.end_column,
+                },
+            )?);
+            from = to;
+        }
+        Ok(())
+    }
+
+    fn parse_expression_island(&mut self) -> Result<SourceExpression, ParseError> {
+        self.expect_simple(TokenKind::LeftBrace, "`{`")?;
+        let expression = self.parse_expression(0)?;
+        self.expect_simple(TokenKind::RightBrace, "`}`")?;
+        Ok(expression)
+    }
+
+    fn parse_expression(&mut self, minimum_precedence: u8) -> Result<SourceExpression, ParseError> {
+        let mut left = self.parse_expression_primary()?;
+        while let Some((operation, precedence, token_count)) = self.expression_operator() {
+            if precedence < minimum_precedence {
+                break;
+            }
+            let operator_start = self.current().clone();
+            for _ in 0..token_count {
+                self.advance();
+            }
+            let (end_line, end_column) = self.previous_end();
+            let right = self.parse_expression(precedence + 1)?;
+            left = SourceExpression::Binary {
+                operation,
+                left: Box::new(left),
+                right: Box::new(right),
+                operator_span: SourceSpan {
+                    line: operator_start.line,
+                    column: operator_start.column,
+                    end_line,
+                    end_column,
+                },
+            };
+        }
+        Ok(left)
+    }
+
+    fn parse_expression_primary(&mut self) -> Result<SourceExpression, ParseError> {
+        match self.current().kind.clone() {
+            TokenKind::LeftParen => {
+                self.advance();
+                let expression = self.parse_expression(0)?;
+                self.expect_simple(TokenKind::RightParen, "`)`")?;
+                Ok(expression)
+            }
+            TokenKind::String(_) | TokenKind::Number(_) => {
+                self.expect_source_value().map(SourceExpression::Value)
+            }
+            TokenKind::Word(value)
+                if matches!(value.as_str(), "true" | "false")
+                    || matches!(self.peek().kind, TokenKind::LeftParen) =>
+            {
+                self.expect_source_value().map(SourceExpression::Value)
+            }
+            TokenKind::Word(_) => self.expect_any_word().map(SourceExpression::Binding),
+            _ => Err(self.error("expected expression operand")),
+        }
+    }
+
+    fn expression_operator(&self) -> Option<(ExpressionOperator, u8, usize)> {
+        let next_is_equals = matches!(self.peek().kind, TokenKind::Equals);
+        match self.current().kind {
+            TokenKind::Star => Some((ExpressionOperator::Multiply, 30, 1)),
+            TokenKind::Word(ref value) if value == "/" => Some((ExpressionOperator::Divide, 30, 1)),
+            TokenKind::Plus => Some((ExpressionOperator::Add, 20, 1)),
+            TokenKind::Word(ref value) if value == "-" => {
+                Some((ExpressionOperator::Subtract, 20, 1))
+            }
+            TokenKind::Less if next_is_equals => Some((ExpressionOperator::LessThanOrEqual, 10, 2)),
+            TokenKind::Less => Some((ExpressionOperator::LessThan, 10, 1)),
+            TokenKind::Greater if next_is_equals => {
+                Some((ExpressionOperator::GreaterThanOrEqual, 10, 2))
+            }
+            TokenKind::Greater => Some((ExpressionOperator::GreaterThan, 10, 1)),
+            TokenKind::Equals if next_is_equals => Some((ExpressionOperator::Equal, 9, 2)),
+            TokenKind::Bang if next_is_equals => Some((ExpressionOperator::NotEqual, 9, 2)),
+            _ => None,
+        }
     }
 
     fn parse_port_group(&mut self) -> Result<PortGroup, ParseError> {
@@ -1796,21 +2150,15 @@ impl Parser {
         })
     }
 
-    fn parse_cord(&mut self, ordinal: usize) -> Result<Cord, ParseError> {
-        let start_line = self.current().line;
-        let start_column = self.current().column;
-        let first = self.expect_endpoint()?;
-        let (from, to) = match self.current().kind {
-            TokenKind::Arrow => {
-                self.advance();
-                (first, self.expect_endpoint()?)
-            }
-            TokenKind::LeftArrow => {
-                self.advance();
-                (self.expect_endpoint()?, first)
-            }
-            _ => return Err(self.error("expected `->` or `<-`")),
-        };
+    fn parse_cord_policy(
+        &mut self,
+        from: Endpoint,
+        to: Endpoint,
+        ordinal: usize,
+        start_line: usize,
+        start_column: usize,
+        operator_span: SourceSpan,
+    ) -> Result<Cord, ParseError> {
         let mut capacity_items = 8_u16;
         let mut pressure_name = "block".to_owned();
         let mut max_value_bytes = None;
@@ -1911,6 +2259,7 @@ impl Parser {
             low_watermark_items,
             high_watermark_items,
             pressure,
+            operator_span,
             source_span: SourceSpan {
                 line: start_line,
                 column: start_column,
@@ -1990,15 +2339,18 @@ impl Parser {
     }
 
     fn endpoint_from_word(&self, value: String) -> Result<Endpoint, ParseError> {
-        let Some((node, port)) = value.rsplit_once('.') else {
-            return Err(self.error(format!("endpoint `{value}` must be `node.port`")));
-        };
-        if node.is_empty() || port.is_empty() {
-            return Err(self.error(format!("endpoint `{value}` must be `node.port`")));
+        if let Some((node, port)) = value.rsplit_once('.') {
+            if node.is_empty() || port.is_empty() {
+                return Err(self.error(format!("endpoint `{value}` must be a node or `node.port`")));
+            }
+            return Ok(Endpoint {
+                node: node.to_owned(),
+                port: port.to_owned(),
+            });
         }
         Ok(Endpoint {
-            node: node.to_owned(),
-            port: port.to_owned(),
+            node: value,
+            port: String::new(),
         })
     }
 
@@ -2149,7 +2501,7 @@ impl Parser {
     fn expect_any_word(&mut self) -> Result<String, ParseError> {
         if let TokenKind::Word(value) = self.current().kind.clone() {
             self.advance();
-            Ok(value)
+            Ok(value.nfc().collect())
         } else {
             Err(self.error("expected identifier"))
         }
@@ -2179,6 +2531,10 @@ impl Parser {
 
     fn current(&self) -> &Token {
         &self.tokens[self.index]
+    }
+
+    fn peek(&self) -> &Token {
+        &self.tokens[(self.index + 1).min(self.tokens.len() - 1)]
     }
 
     fn previous_end(&self) -> (usize, usize) {
@@ -2514,11 +2870,11 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                node greeting : std/literal {
+                greeting: std/literal {
                     value = "Hello\n"
                 }
-                node output : display/text
-                cord greeting.value -> output.text {
+                output: display/text
+                greeting.value > output.text {
                     capacity = 4
                     pressure = reject
                 }
@@ -2541,14 +2897,14 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                composite wrapper {
-                    node output : fixture/source { output = "output" }
+                wrapper{
+                    output: fixture/source { output = "output" }
                     export output > = output.value
                 }
-                node source : fixture/source { output = "output" }
-                node output : fixture/sink
-                cord source.output -> output.value
-                cord source.value -> output.output
+                source: fixture/source { output = "output" }
+                output: fixture/sink
+                source.output > output.value
+                source.value > output.output
                 root output
             "#,
         )
@@ -2565,7 +2921,7 @@ mod tests {
 
     #[test]
     fn reports_source_location() {
-        let error = parse("panel 0\nnode broken std/literal").expect_err("invalid panel");
+        let error = parse("panel 0\nbroken std/literal").expect_err("invalid panel");
         assert_eq!(error.code, "CND-SRC-001");
         assert_eq!(error.line, 2);
     }
@@ -2573,22 +2929,22 @@ mod tests {
     #[test]
     fn requires_exact_parameters_for_sampling_and_coalescing() {
         let missing_sample = parse(
-            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.bytes -> b.bytes { pressure = sample }",
+            "panel 0\na: io/stdin\nb: io/stdout\n\
+             a.bytes > b.bytes { pressure = sample }",
         )
         .expect_err("sampling interval must not be implicit");
         assert!(missing_sample.message.contains("sample_every"));
 
         let missing_coalescer = parse(
-            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.bytes -> b.bytes { pressure = coalesce }",
+            "panel 0\na: io/stdin\nb: io/stdout\n\
+             a.bytes > b.bytes { pressure = coalesce }",
         )
         .expect_err("coalescing relation must not be implicit");
         assert!(missing_coalescer.message.contains("coalescer"));
 
         let panel = parse(
-            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.bytes -> b.bytes {\n\
+            "panel 0\na: io/stdin\nb: io/stdout\n\
+             a.bytes > b.bytes {\n\
                pressure = sample\n\
                sample_every = 4\n\
                sample_offset = 1\n\
@@ -2609,16 +2965,16 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                composite example/upper-line {
-                    node source : std/literal
-                    node upper : text/uppercase
-                    cord source.value -> upper.text
+                example/upper-line{
+                    source: std/literal
+                    upper: text/uppercase
+                    source.value > upper.text
                     export text > = upper.text
                     bind value = source.value
                 }
-                node line : example/upper-line { value = "hello" }
-                node sink : display/text
-                cord line.text -> sink.text
+                line: example/upper-line { value = "hello" }
+                sink: display/text
+                line.text > sink.text
             "#,
         )
         .expect("composite source parses");
@@ -2630,26 +2986,26 @@ mod tests {
     }
 
     #[test]
-    fn panel_three_parses_all_directional_sigil_equivalences() {
+    fn current_panel_parses_all_directional_sigil_equivalences() {
         let panel = parse(
             r#"
                 panel 0
                 interface fixture/ports {
-                    > receiving : fixture/text
-                    receiving_alt < : fixture/text
-                    < outgoing_alt : fixture/text
-                    outgoing > : fixture/text
+                    > receiving: fixture/text
+                    receiving_alt <: fixture/text
+                    < outgoing_alt: fixture/text
+                    outgoing >: fixture/text
                 }
-                composite fixture/box {
-                    node child : fixture/node
+                fixture/box{
+                    child: fixture/node
                     export > receiving = child.receiving
                     export outgoing > = child.outgoing
-                    port-group > requests : fixture/request indexed max 2
-                    port-group responses > : fixture/response indexed max 2
-                    cord child.receiving <- child.outgoing
+                    port-group > requests: fixture/request indexed max 2
+                    port-group responses >: fixture/response indexed max 2
+                    child.outgoing > child.receiving
                 }
-                port-group > input : fixture/request indexed max 1
-                port-group output > : fixture/response indexed max 1
+                port-group > input: fixture/request indexed max 1
+                port-group output >: fixture/response indexed max 1
                 root fixture/box
             "#,
         )
@@ -2675,16 +3031,82 @@ mod tests {
     }
 
     #[test]
-    fn current_panel_rejects_english_direction_positions_and_elided_endpoints() {
-        let english = parse("panel 0\ninterface fixture/ports { input audio : fixture/text }\n")
+    fn current_panel_rejects_english_direction_positions_and_accepts_bare_endpoints() {
+        let english = parse("panel 0\ninterface fixture/ports { input audio: fixture/text }\n")
             .expect_err("English direction keyword is not canonical");
         assert!(english.message.contains("flow sigil"));
 
-        let elided = parse(
-            "panel 0\nnode source : fixture/source\nnode sink : fixture/sink\n\
-             cord source -> sink\n",
+        let concise = parse(
+            "panel 0\nsource: fixture/source\nsink: fixture/sink\n\
+             source > sink\n",
         )
-        .expect_err("cord endpoints remain explicit");
-        assert!(elided.message.contains("node.port"));
+        .expect("bare endpoints are resolved only during descriptor-backed lowering");
+        assert_eq!(concise.cords[0].from.port, "");
+        assert_eq!(concise.cords[0].to.port, "");
+    }
+
+    #[test]
+    fn graph_and_expression_greater_than_have_distinct_ast_contexts_and_spans() {
+        let panel = parse(
+            "panel 0\nages: fixture/source\nadults: fixture/sink\n\
+             ages > keep { it > 18 } > adults\n",
+        )
+        .expect("expression island parses without catalog lookup");
+
+        assert_eq!(panel.cords.len(), 2);
+        assert_eq!(panel.nodes.len(), 3);
+        let SourceExpression::Binary {
+            operation,
+            operator_span,
+            ..
+        } = panel.nodes[2]
+            .expression
+            .as_ref()
+            .expect("inline stage retains expression")
+        else {
+            panic!("expected binary expression");
+        };
+        assert_eq!(*operation, ExpressionOperator::GreaterThan);
+        assert_ne!(panel.cords[0].operator_span, *operator_span);
+        assert_ne!(panel.cords[1].operator_span, *operator_span);
+    }
+
+    #[test]
+    fn unicode_xid_names_normalize_and_collisions_fail_deterministically() {
+        let panel = parse("panel 0\nκαφές: fixture/source\n").expect("Unicode XID name");
+        assert_eq!(panel.nodes[0].id, "καφές");
+
+        let error = parse("panel 0\ncafé: fixture/source\ncafe\u{301}: fixture/sink\n")
+            .expect_err("distinct spellings must not collapse silently");
+        assert_eq!(error.code, "CND-SRC-011");
+    }
+
+    #[test]
+    fn displaced_source_spellings_are_rejected() {
+        for source in [
+            "panel 0\nnode source: fixture/source\n",
+            "panel 0\ncomposite box { value: fixture/source }\n",
+            "panel 0\ncord source.value -> sink.value\n",
+            "panel 0\ncord sink.value <- source.value\n",
+        ] {
+            let error = parse(source).expect_err("displaced draft source must be rejected");
+            assert_eq!(error.code, "CND-SRC-001", "{source}");
+        }
+    }
+
+    #[test]
+    fn concise_surface_covers_bindings_literals_inline_stages_and_semicolons() {
+        let panel = parse(
+            "panel 0; limit = 18; ages: fixture/source; adults: fixture/sink; \
+             ages > keep { it > limit } > flow/each > adults;",
+        )
+        .expect("the current concise surface parses as one grammar");
+
+        assert_eq!(panel.nodes[0].id, "limit");
+        assert_eq!(panel.nodes[0].kind, "std/literal");
+        assert_eq!(panel.nodes[3].kind, "std/flow/keep");
+        assert_eq!(panel.nodes[4].kind, "flow/each");
+        assert_eq!(panel.cords.len(), 3);
+        assert!(panel.nodes[3].expression.is_some());
     }
 }

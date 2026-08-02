@@ -1,26 +1,26 @@
 # Local Ollama LLM text generation request via HTTP client.
 panel 0
 
-node prompt_template : std/literal {
+prompt_template: std/literal {
     value = "{{\"model\": \"{model}\", \"prompt\": \"{prompt}\", \"stream\": false}}"
 }
 
-node prompt_values : std/format-values/literal {
+prompt_values: std/format-values/literal {
     values = list(
         record(name="model", value="llama3"),
         record(name="prompt", value="Summarize Conduit architecture.")
     )
 }
 
-node prompt : std/text/format
+prompt: std/text/format
 
-node ollama_api : conduit/http-client {
+ollama_api: conduit/http-client {
     endpoint = "http://127.0.0.1:11434/api/generate"
 }
 
-node output : display/text
+output: display/text
 
-cord prompt_template.value -> prompt.template {
+prompt_template.value > prompt.template {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -29,7 +29,7 @@ cord prompt_template.value -> prompt.template {
     pressure = block
 }
 
-cord prompt_values.values -> prompt.values {
+prompt_values.values > prompt.values {
     capacity = 1
     max_value_bytes = 16384
     max_queued_bytes = 16384
@@ -38,7 +38,7 @@ cord prompt_values.values -> prompt.values {
     pressure = block
 }
 
-cord prompt.text -> ollama_api.request {
+prompt.text > ollama_api.request {
     capacity = 4
     max_value_bytes = 8192
     max_queued_bytes = 32768
@@ -47,7 +47,7 @@ cord prompt.text -> ollama_api.request {
     pressure = block
 }
 
-cord ollama_api.response -> output.text {
+ollama_api.response > output.text {
     capacity = 4
     max_value_bytes = 65536
     max_queued_bytes = 262144

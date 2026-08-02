@@ -1,27 +1,27 @@
 panel 0
 
-node clock : time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
-node pulse : conduit.media/event/from-ticker
-node sequence : conduit.media/control/sequencer { pattern = "1024,512,256,768" maximum_steps = 4 lane = 0 repeat = "repeat" }
-node modulation : conduit.media/control/slew { initial = 0 maximum_delta = 256 }
-node state : conduit.media/control/register { initial = 0 maximum_value = 1024 }
-node audio : conduit.media/audio/from-control { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" sample_rate_hz = 48000 layout = "stereo-lr" frames_per_control = 8 maximum_work = 16 }
-node audio_tee : conduit.media/audio/tee { lifecycle = "standing" mode = "coupled" maximum_frames = 8 }
-node mix : conduit.media/audio/mix { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" alignment = "exact-start-rate-layout-frames" missing_late = "wait-then-fail-terminal" left_gain_q15 = 24576 right_gain_q15 = 8192 headroom = "none" clipping = "saturate-s16" output_layout = "same-as-aligned-inputs" latency_frames = 0 terminal_drain = "no-retained-samples" maximum_inputs = 2 maximum_frames = 8 maximum_work = 32 }
-node gain : conduit.media/audio/gain { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" curve = "linear-q15-absolute-frame" start_gain_q15 = 8192 end_gain_q15 = 32768 ramp_start_frame = 0 ramp_end_frame = 63 discontinuity = "absolute-timeline" maximum_automation_points = 2 maximum_retained_samples = 0 maximum_frames = 8 }
-node resample : conduit.media/audio/resample { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" input_rate_hz = 48000 output_rate_hz = 24000 quality_profile = "nearest-hold-bit-exact" group_delay_frames = 0 timestamp_mapping = "absolute-rational-grid" drift = "reject-rate-or-discontinuity" flush = "no-pending-output" maximum_history_frames = 0 maximum_frames = 8 maximum_work = 32 }
-node meter : conduit.media/audio/meter { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" window_basis = "input-frame-clock" window_frames = 4 peak = "absolute-s16" rms = "integer-sqrt-mean-square" cadence_frames = 4 latency_frames = 0 maximum_retained_samples = 0 maximum_side_outputs = 1 maximum_work = 8 }
-node level_drain : flow/discard
+clock: time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
+pulse: conduit.media/event/from-ticker
+sequence: conduit.media/control/sequencer { pattern = "1024,512,256,768" maximum_steps = 4 lane = 0 repeat = "repeat" }
+modulation: conduit.media/control/slew { initial = 0 maximum_delta = 256 }
+state: conduit.media/control/register { initial = 0 maximum_value = 1024 }
+audio: conduit.media/audio/from-control { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" sample_rate_hz = 48000 layout = "stereo-lr" frames_per_control = 8 maximum_work = 16 }
+audio_tee: conduit.media/audio/tee { lifecycle = "standing" mode = "coupled" maximum_frames = 8 }
+mix: conduit.media/audio/mix { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" alignment = "exact-start-rate-layout-frames" missing_late = "wait-then-fail-terminal" left_gain_q15 = 24576 right_gain_q15 = 8192 headroom = "none" clipping = "saturate-s16" output_layout = "same-as-aligned-inputs" latency_frames = 0 terminal_drain = "no-retained-samples" maximum_inputs = 2 maximum_frames = 8 maximum_work = 32 }
+gain: conduit.media/audio/gain { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" curve = "linear-q15-absolute-frame" start_gain_q15 = 8192 end_gain_q15 = 32768 ramp_start_frame = 0 ramp_end_frame = 63 discontinuity = "absolute-timeline" maximum_automation_points = 2 maximum_retained_samples = 0 maximum_frames = 8 }
+resample: conduit.media/audio/resample { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" input_rate_hz = 48000 output_rate_hz = 24000 quality_profile = "nearest-hold-bit-exact" group_delay_frames = 0 timestamp_mapping = "absolute-rational-grid" drift = "reject-rate-or-discontinuity" flush = "no-pending-output" maximum_history_frames = 0 maximum_frames = 8 maximum_work = 32 }
+meter: conduit.media/audio/meter { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" window_basis = "input-frame-clock" window_frames = 4 peak = "absolute-s16" rms = "integer-sqrt-mean-square" cadence_frames = 4 latency_frames = 0 maximum_retained_samples = 0 maximum_side_outputs = 1 maximum_work = 8 }
+level_drain: flow/discard
 
-cord clock.tick -> pulse.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
-cord pulse.event -> sequence.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord sequence.control -> modulation.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord modulation.control -> state.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord state.control -> audio.level { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord audio.frame -> audio_tee.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord audio_tee.left -> mix.left { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord audio_tee.right -> mix.right { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord mix.frame -> gain.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord gain.frame -> resample.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord resample.frame -> meter.frame { capacity = 1 max_value_bytes = 40 max_queued_bytes = 40 low_watermark = 0 high_watermark = 1 pressure = block }
-cord meter.level -> level_drain.item { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+clock.tick > pulse.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
+pulse.event > sequence.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+sequence.control > modulation.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+modulation.control > state.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+state.control > audio.level { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+audio.frame > audio_tee.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+audio_tee.left > mix.left { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+audio_tee.right > mix.right { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+mix.frame > gain.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+gain.frame > resample.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+resample.frame > meter.frame { capacity = 1 max_value_bytes = 40 max_queued_bytes = 40 low_watermark = 0 high_watermark = 1 pressure = block }
+meter.level > level_drain.item { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

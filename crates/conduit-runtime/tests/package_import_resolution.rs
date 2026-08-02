@@ -103,7 +103,7 @@ fn import_check_can_succeed_contract_only_without_installing_or_authorizing_a_pr
     let source = parse(
         "panel 0\n\
          import example.dev/parts/{probe as inspect}\n\
-         node observation : inspect\n",
+         observation: inspect\n",
     )
     .unwrap();
     let descriptor_hash = OwnedNodeSchema::from_contract(&CONTRACT)
@@ -144,7 +144,7 @@ fn checker_rejects_a_package_descriptor_that_does_not_match_its_known_contract()
     let source = parse(
         "panel 0\n\
          import example.dev/parts/{probe}\n\
-         node observation : probe\n",
+         observation: probe\n",
     )
     .unwrap();
     let wrong =
@@ -170,7 +170,7 @@ fn foreign_owned_import_remains_eligible_for_structural_substitution_without_imp
     let source = parse(
         "panel 0\n\
          import example.dev/parts/{probe as foreign}\n\
-         node observation : foreign\n",
+         observation: foreign\n",
     )
     .unwrap();
     assert!(source.nodes[0].implements.is_empty());

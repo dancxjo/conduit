@@ -26,17 +26,17 @@ Declare reusable named interfaces using the `interface` keyword in `.panel` sour
 panel 0
 
 interface speech/recognizer {
-  > audio : std/text
-  final > : std/text
-  partial > : std/text optional
+  > audio: std/text
+  final >: std/text
+  partial >: std/text optional
 }
 
 # Primitive node declaring interface satisfaction
-node asr_primary : tongues/asr-recognizer implements speech/recognizer
+asr_primary: tongues/asr-recognizer implements speech/recognizer
 
 # Composite node declaring interface satisfaction via transparent exports
-node speech_pipeline implements speech/recognizer {
-  node recognizer : tongues/asr-recognizer
+speech_pipeline implements speech/recognizer {
+  recognizer: tongues/asr-recognizer
   export > audio = recognizer.audio
   export final > = recognizer.transcript
 }

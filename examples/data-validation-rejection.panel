@@ -1,13 +1,13 @@
 panel 0
 
-node candidate : std/record/literal {
+candidate: std/record/literal {
     fields = record(name="sample")
     maximum_fields = 2
     maximum_field_name_bytes = 5
     maximum_field_value_bytes = 8
     maximum_work = 40
 }
-node validate : std/data/validate-closed-record {
+validate: std/data/validate-closed-record {
     schema = ref("conduit.schema/closed-record-name-count")
     schema_version = 0
     schema_hash = bytes("a3de3b0c278e14c8765d3e93a5256e957f58ee5820564b5dce0d23d5deb06bcf")
@@ -16,11 +16,11 @@ node validate : std/data/validate-closed-record {
     maximum_field_value_bytes = 8
     maximum_work = 40
 }
-node rejected : std/testing/assert-validation-decision {
+rejected: std/testing/assert-validation-decision {
     expected = "rejected-missing-field"
 }
 
-cord candidate.record -> validate.candidate {
+candidate.record > validate.candidate {
     capacity = 1
     max_value_bytes = 40
     max_queued_bytes = 40
@@ -28,7 +28,7 @@ cord candidate.record -> validate.candidate {
     high_watermark = 1
     pressure = block
 }
-cord validate.decision -> rejected.decision {
+validate.decision > rejected.decision {
     capacity = 1
     max_value_bytes = 5
     max_queued_bytes = 5

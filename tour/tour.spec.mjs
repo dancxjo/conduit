@@ -212,8 +212,8 @@ test("carries, resets and recovers cumulative project state explicitly", async (
 test("keeps one canonical source artifact through every cumulative build", async ({ page }) => {
   for (const [section, nextTitle, sourcePattern] of [
     ["instrument.wake", "Give it a heartbeat", /conduit\.media\/control\/sequencer/],
-    ["service.listen", "Waiting is not completion", /node server : net\/http\/listen/],
-    ["robot.rehearse", "Choose hosts without changing meaning", /node wifi_ap : net\/wifi\/access-point/],
+    ["service.listen", "Waiting is not completion", /server: net\/http\/listen/],
+    ["robot.rehearse", "Choose hosts without changing meaning", /wifi_ap: net\/wifi\/access-point/],
   ]) {
     await gotoTour(page, `/tour/public/index.html?section=${section}`);
     const source = page.locator("#source");
@@ -337,8 +337,8 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
         wasmUrl: new URL(wasm.path, location.href).href,
         wasmSha256: wasm.sha256,
       });
-      const source = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\n" +
-        "node output : display/text\ncord greeting.value -> output.text\n";
+      const source = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\n" +
+        "output: display/text\ngreeting.value > output.text\n";
       const opened = await request("patchbay-open-session", {
         documentId: "tour/worker-exact-session",
         source,
@@ -397,7 +397,7 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
           document_id: sessionId,
           expected_source_revision: 0,
           expected_presentation_revision: 0,
-          operations: [{ ReplaceSource: { source: "panel 0\nnode broken :" } }],
+          operations: [{ ReplaceSource: { source: "panel 0\nbroken :" } }],
         }),
       });
       const activeAfterCandidate = await request("patchbay-session-view", { sessionId });
@@ -879,7 +879,7 @@ test("presents the persistent HTTP source and refuses to simulate its hosted pro
   await expect(page.locator("#title")).toHaveText(
     "Project two: A small service that stays alive — Open the service boundary",
   );
-  await expect(page.locator("#source")).toHaveValue(/node server : net\/http\/listen/);
+  await expect(page.locator("#source")).toHaveValue(/server: net\/http\/listen/);
   await expect(page.locator("#source")).toHaveValue(/deadline_ticks = "5000"/);
   await expect(page.locator("#runnability-state")).toHaveText(
     "illustrative/unavailable · browser",
@@ -996,11 +996,11 @@ test("highlights panel source while retaining the native editor surface", async 
 
   await source.fill(
     "panel 0\n# note > ignored\ninterface speech/recognizer {\n" +
-      "  > in : audio/pcm-stream\n" +
-      "  in > : speech/transcript\n" +
-      "  > audio : audio/pcm-stream\n" +
-      "  committed > : speech/transcript\n" +
-      "}\nnode value : fixture/source implements speech/recognizer\n",
+      "  > in: audio/pcm-stream\n" +
+      "  in >: speech/transcript\n" +
+      "  > audio: audio/pcm-stream\n" +
+      "  committed >: speech/transcript\n" +
+      "}\nvalue: fixture/source implements speech/recognizer\n",
   );
   await expect(highlight).toHaveAttribute("data-semantic-metadata", "available");
   await expect(highlight.locator(".panel-token-comment")).toHaveText("# note > ignored");
@@ -1041,16 +1041,16 @@ test("highlights panel source while retaining the native editor surface", async 
   await expect(highlight.locator(".panel-token-comment .panel-token-port-sigil")).toHaveCount(0);
   await expect(source).toHaveValue(
     "panel 0\n# note > ignored\ninterface speech/recognizer {\n" +
-      "  > in : audio/pcm-stream\n" +
-      "  in > : speech/transcript\n" +
-      "  > audio : audio/pcm-stream\n" +
-      "  committed > : speech/transcript\n" +
-      "}\nnode value : fixture/source implements speech/recognizer\n",
+      "  > in: audio/pcm-stream\n" +
+      "  in >: speech/transcript\n" +
+      "  > audio: audio/pcm-stream\n" +
+      "  committed >: speech/transcript\n" +
+      "}\nvalue: fixture/source implements speech/recognizer\n",
   );
 
   await source.fill(
-    "panel 0\ncomposite example/uppercase {\n" +
-      "  node worker : text/uppercase\n" +
+    "panel 0\nexample/uppercase {\n" +
+      "  worker: text/uppercase\n" +
       "  export > text = worker.text\n" +
       "  export value < = worker.text\n" +
       "}\n",
@@ -1073,12 +1073,27 @@ test("highlights panel source while retaining the native editor surface", async 
     "definition/example/uppercase/port/receiving/value",
   );
 
-  await source.fill('panel 0\ninterface broken {\n  > audio : "not > metadata"\n');
+  await source.fill(
+    "panel 0\nκαφές: fixture/source\nadults: fixture/sink\n" +
+      "καφές > keep { it > 18 } > adults\n",
+  );
+  await expect(highlight).toHaveAttribute("data-semantic-metadata", "available");
+  await expect(highlight.locator(".panel-token-identifier").filter({
+    hasText: /^καφές$/,
+  })).toHaveCount(2);
+  await expect(highlight.locator(".panel-token-operator-graph")).toHaveCount(2);
+  await expect(highlight.locator(".panel-token-operator-expression")).toHaveCount(1);
+  await expect(highlight.locator(".panel-token-operator-graph").first())
+    .toHaveAttribute("data-token-label", "graph connect operator");
+  await expect(highlight.locator(".panel-token-operator-expression"))
+    .toHaveAttribute("data-token-label", "expression greater-than operator");
+
+  await source.fill('panel 0\ninterface broken {\n  > audio: "not > metadata"\n');
   await expect(highlight).toHaveAttribute("data-semantic-metadata", "unavailable");
   await expect(highlight.locator(".panel-token-port")).toHaveCount(0);
   await expect(highlight.locator(".panel-token-port-sigil")).toHaveCount(0);
   await expect(source).toHaveValue(
-    'panel 0\ninterface broken {\n  > audio : "not > metadata"\n',
+    'panel 0\ninterface broken {\n  > audio: "not > metadata"\n',
   );
   await expect(highlight).toHaveAttribute("aria-hidden", "true");
 });
@@ -1143,7 +1158,7 @@ test("covers every published chapter and exposes production topology projections
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#topology")).toContainText(
-    "composite box : example/upper-box",
+    "box: example/upper-box",
   );
 });
 
@@ -1153,20 +1168,20 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
   await expect(source).toHaveValue(/Hello from the Tour\./);
   await source.fill(
     (await source.inputValue())
-      .replace("node greeting ", "node salutation ")
+      .replace("greeting:", "salutation:")
       .replace("greeting.value", "salutation.value"),
   );
   await page.locator("#run").click();
   await expect(page.locator("#result")).toContainText("✓ Lesson complete!", {
     timeout: 20_000,
   });
-  await expect(source).toHaveValue(/node salutation/);
+  await expect(source).toHaveValue(/salutation/);
 });
 
 test("keeps Expanded unavailable when the semantic revision has no exact plan", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await source.fill("panel 0\nnode unfinished :");
+  await source.fill("panel 0\nunfinished :");
   await expect(page.locator("#expanded-view")).toBeDisabled();
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#plan-view-notice")).toContainText(
@@ -1271,15 +1286,15 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
 test("draws bounded cords and exposes draggable rewire ends", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
     "data-layout",
     "ready",
   );
   await source.fill(
     "panel 0\n\n" +
-    "node first : std/literal { value = \"first\" }\n" +
-    "node primary : display/text\n",
+    "first: std/literal { value = \"first\" }\n" +
+    "primary: display/text\n",
   );
   await expect(page.locator(".react-flow__node")).toHaveCount(2);
 
@@ -1312,7 +1327,7 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
 
   await dragHandle(handle("first"), handle("primary"));
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
-  await expect(source).toHaveValue(/cord first\.value -> primary\.text/);
+  await expect(source).toHaveValue(/first\.value > primary\.text/);
   await expect(source).toHaveValue(/max_queued_bytes = 1024/);
 
   await page.locator(".react-flow__edge-textbg").click();
@@ -1398,13 +1413,13 @@ test("keeps faceplate controls focused while highlighting and updating source", 
   await input.click();
 
   await expect(input).toBeFocused();
-  await expect.poll(selectedSourceText).toContain("node greeting");
+  await expect.poll(selectedSourceText).toContain("greeting");
 
   await input.fill("Edited on the faceplate.");
   await expect(input).toBeFocused();
   await expect(input).toHaveValue("Edited on the faceplate.");
   await expect(page.locator("#source")).toHaveValue(/Edited on the faceplate\./);
-  await expect.poll(selectedSourceText).toContain("node greeting");
+  await expect.poll(selectedSourceText).toContain("greeting");
 });
 
 test("selects a cord by authoritative identity and reveals its declaration", async ({ page }) => {
@@ -1427,11 +1442,11 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
   ).join("");
   await expect(page.locator(".panel-source-selection")).toHaveCount(1);
   await expect(
-    page.locator(".panel-source-selection .panel-token-keyword").filter({
-      hasText: /^cord$/,
+    page.locator(".panel-source-selection .panel-token-operator-graph").filter({
+      hasText: /^>$/,
     }),
   ).toHaveCount(1);
-  expect(highlighted).toContain("cord greeting.value -> output.text");
+  expect(highlighted).toContain("greeting.value > output.text");
   expect(highlighted).toContain("pressure = block");
   const nativeSelection = await page.locator("#source").evaluate((element) =>
     element.value.slice(element.selectionStart, element.selectionEnd)
@@ -1456,7 +1471,7 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
   );
   await expect.poll(async () =>
     (await page.locator(".panel-source-selection").allTextContents()).join("")
-  ).toContain("node greeting");
+  ).toContain("greeting");
 });
 
 test("shows node movement while a topology box is being dragged", async ({ page }) => {
@@ -1685,7 +1700,7 @@ test("renders the direction lesson as an invalid authored graph", async ({ page 
   );
   await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
   await expect(page.locator(".panel-source-selection")).toContainText(
-    "cord first.value -> second.value",
+    "first.value > second.value",
   );
   await expect(page.locator("#plan")).toContainText(
     "No Rust-resolved plan for this source yet.",
@@ -1717,10 +1732,10 @@ test("keeps current diagnostic source ranges marked as the source changes", asyn
 
   const corrected = moved
     .replace(
-      'node second : std/literal {\n    value = "Second.\\n"\n}',
-      "node second : display/text",
+      'second: std/literal {\n    value = "Second.\\n"\n}',
+      "second: display/text",
     )
-    .replace("cord first.value -> second.value", "cord first.value -> second.text");
+    .replace("first.value > second.value", "first.value > second.text");
   await source.fill(corrected);
   await expect(page.locator(".patchbay-cord")).toHaveClass(/cord-validity-valid/);
   await expect(diagnosticMark).toHaveCount(0);
@@ -1729,21 +1744,21 @@ test("keeps current diagnostic source ranges marked as the source changes", asyn
 test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   const original = await source.inputValue();
   const destinationInvalid = "panel 0\n" +
-    "node greeting : std/literal { value = \"invalid\" }\n" +
-    "node output : display/text\n" +
-    "cord greeting.value -> greeting.value\n";
+    "greeting: std/literal { value = \"invalid\" }\n" +
+    "output: display/text\n" +
+    "greeting.value > greeting.value\n";
   await source.fill(destinationInvalid);
-  await expect(source).toHaveValue(/greeting\.value -> greeting\.value/);
+  await expect(source).toHaveValue(/greeting\.value > greeting\.value/);
   await expect(page.locator(".patchbay-cord")).toHaveClass(
     /cord-validity-wrong-direction/,
     { timeout: 20_000 },
   );
   await expect(page.locator("#run")).toBeDisabled();
 
-  const incomplete = `${original}\nnode provisional :`;
+  const incomplete = `${original}\nprovisional :`;
   await source.fill(incomplete);
   await expect(page.locator('[data-id="greeting"]')).toBeVisible();
   await expect(page.locator('[data-id="output"]')).toBeVisible();
@@ -1755,7 +1770,7 @@ test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", 
   ).toHaveClass(/faceplate-validity-incomplete/, { timeout: 20_000 });
   await expect(page.locator("#run")).toBeDisabled();
 
-  await source.fill(`${original}\nnode provisional : missing/contract\n`);
+  await source.fill(`${original}\nprovisional: missing/contract\n`);
   await expect(
     page.locator('[data-id="provisional"] .conduit-faceplate-card'),
   ).toHaveClass(/faceplate-validity-unresolved/, { timeout: 20_000 });
@@ -1776,24 +1791,24 @@ test("projects every authored cord failure family with static reduced-motion cue
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   const cases = [
     {
       state: "wrong-direction",
-      panel: "panel 0\nnode a : display/text\nnode b : display/text\ncord a.text -> b.text\n",
+      panel: "panel 0\na: display/text\nb: display/text\na.text > b.text\n",
     },
     {
       state: "unresolved",
-      panel: "panel 0\nnode b : display/text\ncord missing.value -> b.text\n",
+      panel: "panel 0\nb: display/text\nmissing.value > b.text\n",
     },
     {
       state: "incompatible",
-      panel: "panel 0\nnode a : std/literal\nnode b : io/stdout\ncord a.value -> b.bytes\n",
+      panel: "panel 0\na: std/literal\nb: io/stdout\na.value > b.bytes\n",
     },
     {
       state: "invalid-bounds",
-      panel: "panel 0\nnode a : std/literal\nnode b : display/text\n" +
-        "cord a.value -> b.text { capacity = 1 max_value_bytes = 8 " +
+      panel: "panel 0\na: std/literal\nb: display/text\n" +
+        "a.value > b.text { capacity = 1 max_value_bytes = 8 " +
         "max_queued_bytes = 8 low_watermark = 0 high_watermark = 2 pressure = block }\n",
     },
   ];
@@ -1821,14 +1836,14 @@ test("projects every authored cord failure family with static reduced-motion cue
 test("emphasizes one of several diagnostics without replaying unchanged checks", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await source.fill(
     "panel 0\n" +
-    "node a : std/literal\n" +
-    "node b : std/literal\n" +
-    "node c : std/literal\n" +
-    "cord a.value -> b.value\n" +
-    "cord b.value -> c.value\n",
+    "a: std/literal\n" +
+    "b: std/literal\n" +
+    "c: std/literal\n" +
+    "a.value > b.value\n" +
+    "b.value > c.value\n",
   );
   const edges = page.locator(".patchbay-cord");
   await expect(edges).toHaveCount(2);
@@ -1862,7 +1877,7 @@ test("emphasizes one of several diagnostics without replaying unchanged checks",
 test("enters and exits the same fullscreen workspace without rebuilding state", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await page.locator("#expanded-view").click();
   await page.locator('.react-flow__node[data-id="root/greeting"]').click();
   await source.evaluate((element) => {
@@ -1945,7 +1960,7 @@ test("falls back honestly and keeps one movable shadeable dockable editor", asyn
   });
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await source.evaluate((element) => {
     element.__conduitLiveEditor = "one";
     element.focus();
@@ -2061,9 +2076,9 @@ test("navigates incomplete source and diagnostics in fullscreen with reduced mot
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/tour/public/index.html?lesson=nodes.direction-matters");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node first/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/first:/, { timeout: 20_000 });
   const original = await source.inputValue();
-  await source.fill(`${original}\nnode provisional :`);
+  await source.fill(`${original}\nprovisional :`);
   await expect(
     page.locator('[data-id="provisional"] .conduit-faceplate-card'),
   ).toHaveClass(/faceplate-validity-incomplete/, { timeout: 20_000 });
@@ -2089,7 +2104,7 @@ test("navigates incomplete source and diagnostics in fullscreen with reduced mot
   ).click();
   await page.locator("#workspace-show-editor").click();
   await expect(page.locator(".panel-source-selection")).toContainText(
-    "node first",
+    "first",
   );
   await expect(workspace).toHaveCSS("animation-name", "none");
   await expect(page.locator("#patchbay-source-window")).toHaveCSS(
@@ -2137,7 +2152,7 @@ test("standalone Patchbay app exposes the same live fullscreen editor workspace"
   });
   await page.goto("/tour/public/patchbay-app.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
-  await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
+  await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await source.evaluate((element) => {
     element.__standaloneEditorIdentity = "live";
   });
@@ -2159,12 +2174,12 @@ test("routes cords through free space by default and keeps labels off node faces
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
 
   const panelSource = "panel 0\n\n" +
-    "node source : std/literal {\n" +
+    "source: std/literal {\n" +
     "  value = \"source\"\n" +
     "}\n" +
-    "node transform : text/uppercase\n" +
-    "node sink : display/text\n\n" +
-    "cord source.value -> transform.text {\n" +
+    "transform: text/uppercase\n" +
+    "sink: display/text\n\n" +
+    "source.value > transform.text {\n" +
     "  capacity = 1\n" +
     "  max_value_bytes = 1024\n" +
     "  max_queued_bytes = 1024\n" +
@@ -2172,7 +2187,7 @@ test("routes cords through free space by default and keeps labels off node faces
     "  high_watermark = 1\n" +
     "  pressure = block\n" +
     "}\n\n" +
-    "cord transform.text -> sink.text {\n" +
+    "transform.text > sink.text {\n" +
     "  capacity = 1\n" +
     "  max_value_bytes = 1024\n" +
     "  max_queued_bytes = 1024\n" +
@@ -2781,7 +2796,7 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
 
   await story.getByRole("button", { name: "firmware-unsupported" }).click();
   await expect(result).toContainText("rejected before execution with CND-HCF-005");
-  await expect(source).toHaveValue(/node wave : conduit\.media\/wave\/literal/);
+  await expect(source).toHaveValue(/wave: conduit\.media\/wave\/literal/);
 });
 
 for (const scenarioId of [
@@ -2808,7 +2823,7 @@ for (const scenarioId of [
     );
     await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
     await expect(page.locator("#timeline-table")).toContainText("succeeded");
-    await expect(source).toHaveValue(/node decode : conduit\.media\/audio\/decode/);
+    await expect(source).toHaveValue(/decode: conduit\.media\/audio\/decode/);
     await expect(run).toBeEnabled({ timeout: 20_000 });
   });
 }

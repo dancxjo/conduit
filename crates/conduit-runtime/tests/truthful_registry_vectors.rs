@@ -120,7 +120,7 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
             "{kind}"
         );
         assert_eq!(availability.reason_code, "CND-AVL-001");
-        let panel = parse(&format!("panel 0\nnode node : {kind}\n")).unwrap();
+        let panel = parse(&format!("panel 0\ncandidate: {kind}\n")).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)
@@ -187,13 +187,13 @@ fn compatibility_demo_runs_only_proven_finite_handlers_without_claiming_availabi
     }
     let panel = parse(
         "panel 0\n\
-         node source : std/literal { value = \"fixture\" }\n\
-         node upper : text/uppercase\n\
-         node encoded : std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
-         node sink : io/stdout\n\
-         cord source.value -> upper.text\n\
-         cord upper.text -> encoded.text\n\
-         cord encoded.bytes -> sink.bytes\n",
+         source: std/literal { value = \"fixture\" }\n\
+         upper: text/uppercase\n\
+         encoded: std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
+         sink: io/stdout\n\
+         source.value > upper.text\n\
+         upper.text > encoded.text\n\
+         encoded.bytes > sink.bytes\n",
     )
     .unwrap();
     registry
@@ -257,7 +257,7 @@ fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvabl
     assert_eq!(availability.host_id, None);
     assert_eq!(availability.rejection_reasons, vec!["CND-RES-025"]);
 
-    let panel = parse("panel 0\nnode file : fs/read\n").unwrap();
+    let panel = parse("panel 0\nfile: fs/read\n").unwrap();
     assert_eq!(
         registry
             .resolve(&panel)
@@ -368,7 +368,7 @@ fn discarded_standard_id_is_unsupported_and_never_aliased() {
             vec!["CND-RES-001"],
             "{discarded}"
         );
-        let panel = parse(&format!("panel 0\nnode legacy : {discarded}\n")).unwrap();
+        let panel = parse(&format!("panel 0\nlegacy: {discarded}\n")).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)
@@ -384,7 +384,7 @@ fn discarded_standard_id_is_unsupported_and_never_aliased() {
 fn patchbay_receives_registry_facts_without_node_name_inference() {
     let workspace = conduit_patchbay::Workspace::new(
         "doc-1",
-        "panel 0\nnode greeting : std/literal { value = \"hello\" }\n",
+        "panel 0\ngreeting: std/literal { value = \"hello\" }\n",
     )
     .unwrap();
     let registry = Registry::default();

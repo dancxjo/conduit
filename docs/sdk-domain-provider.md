@@ -111,14 +111,14 @@ Domain users author `.panel` source files referencing your domain node:
 ```panel
 panel 0
 
-node audio_source : std/literal {
+audio_source: std/literal {
     value = "sample_audio_pcm_payload"
 }
 
-node asr : tongues/asr-recognizer
-node output_log : observe/log
+asr: tongues/asr-recognizer
+output_log: observe/log
 
-cord audio_source.value -> asr.audio {
+audio_source.value > asr.audio {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288
@@ -127,7 +127,7 @@ cord audio_source.value -> asr.audio {
     pressure = block
 }
 
-cord asr.transcript -> output_log.message {
+asr.transcript > output_log.message {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288

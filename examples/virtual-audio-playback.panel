@@ -1,8 +1,8 @@
 panel 0
 
 # Isolated deterministic playback boundary. It opens no physical device.
-node frame : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
-node playback : conduit.media/audio/playback {
+frame: conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+playback: conduit.media/audio/playback {
     device_resource = secret("conduit.audio/device/virtual-playback-0")
     device_label = "Virtual Loopback Playback"
     provider_observation = "conduit.audio/observation/virtual-loopback"
@@ -44,4 +44,4 @@ node playback : conduit.media/audio/playback {
     maximum_evidence_events = 64
 }
 
-cord frame.frame -> playback.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+frame.frame > playback.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

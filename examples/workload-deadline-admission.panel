@@ -1,12 +1,12 @@
 panel 0
 
-node message : std/literal {
+message: std/literal {
     value = "Deadline guarantees stay separate from measurements.\n"
 }
-node emphasize : text/uppercase
-node output : display/text
+emphasize: text/uppercase
+output: display/text
 
-cord message.value -> emphasize.text {
+message.value > emphasize.text {
     capacity = 1
     max_value_bytes = 128
     max_queued_bytes = 128
@@ -14,7 +14,7 @@ cord message.value -> emphasize.text {
     high_watermark = 1
     pressure = block
 }
-cord emphasize.text -> output.text {
+emphasize.text > output.text {
     capacity = 1
     max_value_bytes = 128
     max_queued_bytes = 128

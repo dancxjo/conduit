@@ -1,19 +1,19 @@
 panel 0
 
-node clock : time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
-node pulse : conduit.media/event/from-ticker
-node layers : conduit.media/event/tee
-node sequence : conduit.media/control/sequencer { pattern = "128,1024,256,768" maximum_steps = 4 lane = 0 repeat = "repeat" }
-node divider : conduit.media/control/clock-divider { divisor = 2 phase = 0 }
-node sample : conduit.media/control/sample-hold { initial = 64 maximum_value = 1024 before_first_trigger = "emit-initial" }
-node scope : conduit.media/control/scope
-node drain : flow/discard
+clock: time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
+pulse: conduit.media/event/from-ticker
+layers: conduit.media/event/tee
+sequence: conduit.media/control/sequencer { pattern = "128,1024,256,768" maximum_steps = 4 lane = 0 repeat = "repeat" }
+divider: conduit.media/control/clock-divider { divisor = 2 phase = 0 }
+sample: conduit.media/control/sample-hold { initial = 64 maximum_value = 1024 before_first_trigger = "emit-initial" }
+scope: conduit.media/control/scope
+drain: flow/discard
 
-cord clock.tick -> pulse.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
-cord pulse.event -> layers.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord layers.fast -> sequence.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord layers.slow -> divider.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord sequence.control -> sample.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord divider.event -> sample.trigger { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord sample.control -> scope.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord scope.text -> drain.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+clock.tick > pulse.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
+pulse.event > layers.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+layers.fast > sequence.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+layers.slow > divider.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+sequence.control > sample.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+divider.event > sample.trigger { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+sample.control > scope.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+scope.text > drain.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

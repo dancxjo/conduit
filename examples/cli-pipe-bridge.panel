@@ -1,25 +1,25 @@
 # Single-port CLI pipe bridge panel.
 panel 0
 
-node input_pipe : io/stdin
-node decoder : std/data/decode-utf8 {
+input_pipe: io/stdin
+decoder: std/data/decode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node processor : text/uppercase
-node encoder : std/data/encode-utf8 {
+processor: text/uppercase
+encoder: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node output_pipe : io/stdout
+output_pipe: io/stdout
 
-cord input_pipe.bytes -> decoder.bytes {
+input_pipe.bytes > decoder.bytes {
     capacity = 16
     max_value_bytes = 65536
     max_queued_bytes = 1048576
@@ -28,7 +28,7 @@ cord input_pipe.bytes -> decoder.bytes {
     pressure = block
 }
 
-cord decoder.text -> processor.text {
+decoder.text > processor.text {
     capacity = 4
     max_value_bytes = 65536
     max_queued_bytes = 262144
@@ -37,7 +37,7 @@ cord decoder.text -> processor.text {
     pressure = block
 }
 
-cord processor.text -> encoder.text {
+processor.text > encoder.text {
     capacity = 4
     max_value_bytes = 65536
     max_queued_bytes = 262144
@@ -46,7 +46,7 @@ cord processor.text -> encoder.text {
     pressure = block
 }
 
-cord encoder.bytes -> output_pipe.bytes {
+encoder.bytes > output_pipe.bytes {
     capacity = 16
     max_value_bytes = 65536
     max_queued_bytes = 1048576

@@ -1,7 +1,7 @@
 panel 0
 
 # Isolated deterministic capture boundary. It opens no physical device.
-node capture : conduit.media/audio/capture {
+capture: conduit.media/audio/capture {
     device_resource = secret("conduit.audio/device/virtual-capture-0")
     device_label = "Virtual Loopback Capture"
     provider_observation = "conduit.audio/observation/virtual-loopback"
@@ -42,8 +42,8 @@ node capture : conduit.media/audio/capture {
     maximum_work = 16
     maximum_evidence_events = 64
 }
-node inspect : conduit.media/audio-frame/inspect
-node output : display/text
+inspect: conduit.media/audio-frame/inspect
+output: display/text
 
-cord capture.frame -> inspect.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+capture.frame > inspect.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

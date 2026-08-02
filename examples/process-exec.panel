@@ -1,9 +1,9 @@
 # Pass finite stdin through the explicit bounded process boundary.
 panel 0
 
-node input : io/stdin-stream
+input: io/stdin-stream
 
-node child : conduit.host/process/exec {
+child: conduit.host/process/exec {
     program = ref("conduit.executable/process-fixture")
     argv = record(arg0="$(not a shell)", arg1=";", arg2="|")
     environment = record(LANG="C")
@@ -28,10 +28,10 @@ node child : conduit.host/process/exec {
     cancellation = "none"
 }
 
-node output : io/stdout-stream
-node errors : io/stderr-stream
+output: io/stdout-stream
+errors: io/stderr-stream
 
-cord input.bytes -> child.stdin {
+input.bytes > child.stdin {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096
@@ -40,7 +40,7 @@ cord input.bytes -> child.stdin {
     pressure = block
 }
 
-cord child.stdout -> output.bytes {
+child.stdout > output.bytes {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096
@@ -49,7 +49,7 @@ cord child.stdout -> output.bytes {
     pressure = block
 }
 
-cord child.stderr -> errors.bytes {
+child.stderr > errors.bytes {
     capacity = 4
     max_value_bytes = 1024
     max_queued_bytes = 4096

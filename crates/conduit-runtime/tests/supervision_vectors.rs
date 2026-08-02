@@ -208,12 +208,12 @@ impl ModuleLoader for MemoryLoader {
 
 fn current_panel_source() -> &'static str {
     "panel 0\n\
-     node subject : std/literal { value = \"work\" }\n\
-     node encoded : std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
-     node sink : io/stdout\n\
-     node handler : supervision/supervisor\n\
-     cord subject.value -> encoded.text\n\
-     cord encoded.bytes -> sink.bytes\n\
+     subject: std/literal { value = \"work\" }\n\
+     encoded: std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
+     sink: io/stdout\n\
+     handler: supervision/supervisor\n\
+     subject.value > encoded.text\n\
+     encoded.bytes > sink.bytes\n\
      supervise subject with handler\n"
 }
 
@@ -728,7 +728,8 @@ fn execute_case(id: &str) -> Value {
             json!({"redacted":true})
         }
         "source-self-supervision-rejected" => {
-            let source = "panel 0\nnode subject : std/literal { value = \"x\" }\nsupervise subject with subject\n";
+            let source =
+                "panel 0\nsubject: std/literal { value = \"x\" }\nsupervise subject with subject\n";
             let error = parse(source).unwrap_err();
             json!({"code":error.code})
         }

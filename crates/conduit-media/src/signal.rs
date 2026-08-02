@@ -2056,7 +2056,7 @@ mod tests {
     use super::*;
 
     fn node(source: &str) -> Node {
-        let mut panel = conduit_panel::parse(&format!("panel 0\nnode signal : {source}\n"))
+        let mut panel = conduit_panel::parse(&format!("panel 0\nsignal: {source}\n"))
             .expect("signal source parses");
         panel.nodes.remove(0)
     }

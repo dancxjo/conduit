@@ -1,6 +1,6 @@
 panel 0
 
-node sensor_to_body : spatial/transform/literal {
+sensor_to_body: spatial/transform/literal {
   source_frame = "sensor" target_frame = "body"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 10 translation_y_um = 20 translation_z_um = 30 quarter_turns_z = 0
@@ -10,7 +10,7 @@ node sensor_to_body : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node body_to_camera : spatial/transform/literal {
+body_to_camera: spatial/transform/literal {
   source_frame = "body" target_frame = "camera"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 100 translation_y_um = 200 translation_z_um = 300 quarter_turns_z = 0
@@ -20,7 +20,7 @@ node body_to_camera : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node sensor_to_body_inverse : spatial/transform/literal {
+sensor_to_body_inverse: spatial/transform/literal {
   source_frame = "sensor" target_frame = "body"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 10 translation_y_um = 20 translation_z_um = 30 quarter_turns_z = 0
@@ -30,7 +30,7 @@ node sensor_to_body_inverse : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node body_to_camera_inverse : spatial/transform/literal {
+body_to_camera_inverse: spatial/transform/literal {
   source_frame = "body" target_frame = "camera"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 100 translation_y_um = 200 translation_z_um = 300 quarter_turns_z = 0
@@ -40,55 +40,55 @@ node body_to_camera_inverse : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node sensor_point : spatial/point/literal {
+sensor_point: spatial/point/literal {
   frame = "sensor" x_um = 1000 y_um = 500 z_um = 10000
   clock = "clock/fixture" tick = 10 uncertainty_um = 0
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   unit = "um" axes = "x-right-y-forward-z-up" maximum_output_bytes = 256
 }
-node camera_point : spatial/point/literal {
+camera_point: spatial/point/literal {
   frame = "camera" x_um = 1110 y_um = 720 z_um = 10330
   clock = "clock/fixture" tick = 10 uncertainty_um = 0
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   unit = "um" axes = "x-right-y-forward-z-up" maximum_output_bytes = 256
 }
-node compose : spatial/transform/compose { maximum_uncertainty_um = 10 maximum_work = 256 }
-node lookup : spatial/transform/lookup {
+compose: spatial/transform/compose { maximum_uncertainty_um = 10 maximum_work = 256 }
+lookup: spatial/transform/lookup {
   source_frame = "sensor" target_frame = "camera" maximum_edges = 2
   maximum_uncertainty_um = 10 maximum_work = 256
 }
-node invert : spatial/transform/invert { maximum_uncertainty_um = 10 maximum_work = 256 }
-node apply : spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
-node apply_inverse : spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
-node project : spatial/camera/project {
+invert: spatial/transform/invert { maximum_uncertainty_um = 10 maximum_work = 256 }
+apply: spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
+apply_inverse: spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
+project: spatial/camera/project {
   camera_frame = "camera"
   calibration_identity = "sha256:5151515151515151515151515151515151515151515151515151515151515151"
   fx_millipixel = 100000 fy_millipixel = 100000 cx_millipixel = 320000 cy_millipixel = 240000
   width_pixels = 640 height_pixels = 480 valid_until_tick = 20 maximum_work = 256 maximum_output_bytes = 256
 }
-node unproject : spatial/camera/unproject {
+unproject: spatial/camera/unproject {
   camera_frame = "camera"
   calibration_identity = "sha256:5151515151515151515151515151515151515151515151515151515151515151"
   fx_millipixel = 100000 fy_millipixel = 100000 cx_millipixel = 320000 cy_millipixel = 240000
   width_pixels = 640 height_pixels = 480 valid_until_tick = 20 maximum_work = 256 maximum_output_bytes = 256
 }
-node inspect : spatial/point/inspect
-node inspect_inverse : spatial/point/inspect
-node output : display/text
-node output_inverse : display/text
+inspect: spatial/point/inspect
+inspect_inverse: spatial/point/inspect
+output: display/text
+output_inverse: display/text
 
-cord sensor_to_body.transform -> compose.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord body_to_camera.transform -> compose.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord compose.transform -> apply.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord sensor_to_body_inverse.transform -> lookup.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord body_to_camera_inverse.transform -> lookup.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord lookup.transform -> invert.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord sensor_point.point -> apply.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord invert.transform -> apply_inverse.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord camera_point.point -> apply_inverse.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord apply_inverse.point -> inspect_inverse.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect_inverse.summary -> output_inverse.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord apply.point -> project.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord project.pixel -> unproject.pixel { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord unproject.point -> inspect.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+sensor_to_body.transform > compose.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+body_to_camera.transform > compose.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+compose.transform > apply.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+sensor_to_body_inverse.transform > lookup.first { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+body_to_camera_inverse.transform > lookup.second { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+lookup.transform > invert.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+sensor_point.point > apply.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+invert.transform > apply_inverse.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+camera_point.point > apply_inverse.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+apply_inverse.point > inspect_inverse.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect_inverse.summary > output_inverse.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+apply.point > project.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+project.pixel > unproject.pixel { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+unproject.point > inspect.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }

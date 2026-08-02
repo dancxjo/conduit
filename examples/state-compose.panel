@@ -1,8 +1,8 @@
 panel 0
 
-node source : std/literal { value = "put:a=alpha\nput:a=alpha\nget:a\nget:a\n" }
-node lines : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
-node deduplicate : state/deduplicate {
+source: std/literal { value = "put:a=alpha\nput:a=alpha\nget:a\nget:a\n" }
+lines: std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+deduplicate: state/deduplicate {
     equality = ref("conduit.equality/sha256-bytes")
     equality_schema_version = 0
     equality_hash = bytes("a25096b1d49acb2554639f36bd5ce09f1841db665e3d755c2218a8e58741f657")
@@ -15,7 +15,7 @@ node deduplicate : state/deduplicate {
     restart = "empty"
     checkpoint = "unsupported"
 }
-node cache : state/cache {
+cache: state/cache {
     request_schema = ref("conduit.cache/text-request")
     request_schema_version = 0
     request_schema_hash = bytes("e0a209f8ddb8a8fb8550743630c7866c03f2dab48704fe66092e23858e41cb29")
@@ -32,11 +32,11 @@ node cache : state/cache {
     restart = "empty"
     checkpoint = "unsupported"
 }
-node join : std/text/join { separator = "," maximum_items = 8 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
-node display : display/text
+join: std/text/join { separator = "," maximum_items = 8 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 128 }
+display: display/text
 
-cord source.value -> lines.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
-cord lines.line -> deduplicate.candidate { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord deduplicate.unique -> cache.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord cache.response -> join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord join.text -> display.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+source.value > lines.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+lines.line > deduplicate.candidate { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+deduplicate.unique > cache.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+cache.response > join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+join.text > display.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

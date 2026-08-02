@@ -1,7 +1,7 @@
 panel 0
 
-node adapter_bridge implements conduit/text-processor {
-  node formatter : text/uppercase
+adapter_bridge implements conduit/text-processor {
+  formatter: text/uppercase
 
   export > text = formatter.text
   export text > = formatter.text

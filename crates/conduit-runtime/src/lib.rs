@@ -35,6 +35,7 @@ use sha2::{Digest as _, Sha256};
 
 mod artifact_verification;
 mod config_resolution;
+mod current_value;
 mod distributed;
 mod evidence_ndjson;
 mod exact_evidence;
@@ -48,6 +49,7 @@ mod scheduler;
 mod session;
 mod source_lowering;
 mod supervision;
+mod temporal_conversion;
 mod transition;
 mod transport;
 mod type_registry;
@@ -63,6 +65,10 @@ pub use conduit_core::ImplementationManifest;
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,
+};
+pub use current_value::{
+    CurrentObservation, CurrentObservationError, CurrentUpdateRequest, CurrentValueCell,
+    CurrentValueMutationAuthorizer, CurrentValueUpdateError,
 };
 pub use distributed::{
     DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,
@@ -159,11 +165,15 @@ pub use source_lowering::{
     LoweredSupervisedTopology, LoweredSupervision, LoweredTopology, LoweredTopologyBase,
     LoweringDiagnostic, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract,
     OwnedInterfaceMember, OwnedNodeContract, OwnedNodeSchema, OwnedPortContract,
-    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_VERSION,
-    SourceContractCatalog, SourceMapEntry, SourceOrigin, lower_source, lower_source_base,
-    lower_supervision, lower_topology,
+    OwnedPortReference, OwnedPrincipalPath, OwnedPrincipalProjectionError, OwnedSemanticValue,
+    OwnedTypeReference, SOURCE_AST_SCHEMA_VERSION, SourceContractCatalog, SourceMapEntry,
+    SourceOrigin, lower_source, lower_source_base, lower_supervision, lower_topology,
 };
 pub use supervision::BoundedSupervisionRuntime;
+pub use temporal_conversion::{
+    BoundedClosingCollector, ClosingFlowEvent, CollectError, CollectLimits, CollectRejection,
+    CurrentChanges, EachClosingFlow, OpenFlowItem, hold_current, sample_current,
+};
 pub use transition::{
     HostedDrainObservation, HostedGenerationBinding, HostedTransitionAdmission,
     HostedTransitionAdmissionError, HostedTransitionError, HostedTransitionGeneration,
@@ -4049,6 +4059,7 @@ impl Default for Registry {
         let mut stream_sink = OwnedInterfaceContract {
             id: "conduit/stream-sink".to_owned(),
             schema_version: 0,
+            principal_path: OwnedPrincipalPath::none(),
             members: vec![stream_sink_member],
             semantic_hash: SemanticHash::from_bytes([0; 32]),
         };
@@ -4088,6 +4099,7 @@ impl Default for Registry {
         let mut text_processor = OwnedInterfaceContract {
             id: "conduit/text-processor".to_owned(),
             schema_version: 0,
+            principal_path: OwnedPrincipalPath::none(),
             members: vec![text_processor_in, text_processor_out],
             semantic_hash: SemanticHash::from_bytes([0; 32]),
         };
@@ -4834,7 +4846,7 @@ fn validate_definition_cycles(panel: &Panel) -> Result<(), ResolutionError> {
             cycle.push_str(&definition.id);
             return Err(ResolutionError::new(
                 "CND-CMP-005",
-                format!("recursive composite definition: {cycle}"),
+                format!("recursive definition: {cycle}"),
             ));
         }
         if visited.contains(&definition.id.as_str()) {
@@ -5719,7 +5731,7 @@ impl ResolvedPanel<'_> {
         )
         .expect("writing to String cannot fail");
         for node in &self.source.nodes {
-            writeln!(explanation, "  instance {} : {}", node.id, node.kind)
+            writeln!(explanation, "  instance {}: {}", node.id, node.kind)
                 .expect("writing to String cannot fail");
         }
         let mut composites = self.logical_composites.iter().collect::<Vec<_>>();
@@ -5727,12 +5739,12 @@ impl ResolvedPanel<'_> {
         for composite in composites {
             writeln!(
                 explanation,
-                "  composite {} : {}",
+                "  composite {}: {}",
                 composite.path, composite.definition
             )
             .expect("writing to String cannot fail");
             for (child_path, definition) in &composite.children {
-                writeln!(explanation, "    child {child_path} : {definition}")
+                writeln!(explanation, "    child {child_path}: {definition}")
                     .expect("writing to String cannot fail");
             }
             for (from, to) in &composite.cords {
@@ -5775,14 +5787,14 @@ impl ResolvedPanel<'_> {
         for (index, node) in self.nodes.iter().enumerate() {
             writeln!(
                 explanation,
-                "  node {index}: {} : {} -> hosted builtin",
+                "  node {index}: {}: {} -> hosted builtin",
                 node.source.id, node.definition.contract.id
             )
             .expect("writing to String cannot fail");
             for port in node.definition.contract.inputs {
                 writeln!(
                     explanation,
-                    "    input  {} : {} {:?} {:?}",
+                    "    input  {}: {} {:?} {:?}",
                     port.id, port.value_type.contract_id, port.delivery, port.connections
                 )
                 .expect("writing to String cannot fail");
@@ -5790,7 +5802,7 @@ impl ResolvedPanel<'_> {
             for port in node.definition.contract.outputs {
                 writeln!(
                     explanation,
-                    "    output {} : {} {:?} {:?}",
+                    "    output {}: {} {:?} {:?}",
                     port.id, port.value_type.contract_id, port.delivery, port.connections
                 )
                 .expect("writing to String cannot fail");
@@ -13562,23 +13574,23 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                node template : std/literal {
+                template: std/literal {
                     value = "{worker} = {{status: {1}; count={2}}}"
                 }
-                node values : std/format-values/literal {
+                values: std/format-values/literal {
                     values = list(
                         record(name="worker", value="alpha"),
                         record(name="ready", value=true),
                         record(name="count", value=-7)
                     )
                 }
-                node message : std/text/format
-                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-                node output : io/stdout
-                cord template.value -> message.template
-                cord values.values -> message.values
-                cord message.text -> encoded.text
-                cord encoded.bytes -> output.bytes
+                message: std/text/format
+                encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+                output: io/stdout
+                template.value > message.template
+                values.values > message.values
+                message.text > encoded.text
+                encoded.bytes > output.bytes
             "#,
         )
         .unwrap();
@@ -13603,19 +13615,19 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                node template : std/literal {
+                template: std/literal {
                     value = "{} {}"
                 }
-                node values : std/format-values/literal {
+                values: std/format-values/literal {
                     values = list("only-one")
                 }
-                node message : std/text/format
-                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-                node output : io/stdout
-                cord template.value -> message.template
-                cord values.values -> message.values
-                cord message.text -> encoded.text
-                cord encoded.bytes -> output.bytes
+                message: std/text/format
+                encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+                output: io/stdout
+                template.value > message.template
+                values.values > message.values
+                message.text > encoded.text
+                encoded.bytes > output.bytes
             "#,
         )
         .unwrap();
@@ -13692,15 +13704,15 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                node greeting : std/literal {
+                greeting: std/literal {
                     value = "Hello from Conduit.\n"
                 }
-                node shout : text/uppercase
-                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-                node output : io/stdout
-                cord greeting.value -> shout.text
-                cord shout.text -> encoded.text
-                cord encoded.bytes -> output.bytes
+                shout: text/uppercase
+                encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+                output: io/stdout
+                greeting.value > shout.text
+                shout.text > encoded.text
+                encoded.bytes > output.bytes
             "#,
         )
         .expect("panel parses");
@@ -13757,7 +13769,7 @@ mod tests {
         let unsupported = parse(
             r#"
                 panel 0
-                node encoded : std/data/encode-utf8 {
+                encoded: std/data/encode-utf8 {
                     codec = ref("conduit.codec/utf-8")
                     codec_schema_version = 0
                     codec_hash = bytes("0000000000000000000000000000000000000000000000000000000000000000")
@@ -13775,7 +13787,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_implementations() {
-        let panel = parse("panel 0\nnode mystery : example/missing").expect("panel parses");
+        let panel = parse("panel 0\nmystery: example/missing").expect("panel parses");
         let error = Registry::compatibility_demo()
             .resolve(&panel)
             .expect_err("missing implementation");
@@ -13786,10 +13798,10 @@ mod tests {
     fn source_only_module_group_and_pool_forms_require_explicit_lowering() {
         for source in [
             "panel 0\nimport \"./child.panel\" as child",
-            "panel 0\nport-group > routes : fixture/request indexed max 8",
-            "panel 0\npool sessions : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
-            "panel 0\nnode app { node child : std/literal }\nroot app",
-            "panel 0\nnode source : std/literal using ready",
+            "panel 0\nport-group > routes: fixture/request indexed max 8",
+            "panel 0\npool sessions: fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }",
+            "panel 0\napp { child: std/literal }\nroot app",
+            "panel 0\nsource: std/literal using ready",
         ] {
             let panel = parse(source).expect("source form parses");
             let error = Registry::compatibility_demo()
@@ -13802,8 +13814,8 @@ mod tests {
     #[test]
     fn rejects_loss_and_missing_type_traits_before_execution() {
         let sample = parse(
-            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.bytes -> b.bytes {\n\
+            "panel 0\na: io/stdin\nb: io/stdout\n\
+             a.bytes > b.bytes {\n\
                pressure = sample\n\
                sample_every = 2\n\
              }",
@@ -13815,8 +13827,8 @@ mod tests {
         assert_eq!(error.code, "CND-FLW-002");
 
         let coalesce = parse(
-            "panel 0\nnode a : io/stdin\nnode b : io/stdout\n\
-             cord a.bytes -> b.bytes {\n\
+            "panel 0\na: io/stdin\nb: io/stdout\n\
+             a.bytes > b.bytes {\n\
                pressure = coalesce\n\
                coalescer = conduit/replace-latest\n\
              }",
@@ -13834,9 +13846,9 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                node input : io/stdin
-                node output : io/stdout
-                cord input.bytes -> output.bytes
+                input: io/stdin
+                output: io/stdout
+                input.bytes > output.bytes
             "#,
         )
         .expect("panel parses");
@@ -13863,25 +13875,25 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                composite example/literal-line {
-                    node source : std/literal
+                example/literal-line{
+                    source: std/literal
                     export text > = source.value
                     bind value = source.value
                 }
-                composite example/upper-line {
-                    node source : example/literal-line
-                    node upper : text/uppercase
-                    cord source.text -> upper.text
+                example/upper-line{
+                    source: example/literal-line
+                    upper: text/uppercase
+                    source.text > upper.text
                     export text > = upper.text
                     bind value = source.value
                 }
-                node line : example/upper-line { value = "mixed Case" }
-                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-                node stdout : io/stdout
-                node stderr : io/stderr
-                cord line.text -> encoded.text
-                cord encoded.bytes -> stdout.bytes
-                cord encoded.bytes -> stderr.bytes
+                line: example/upper-line { value = "mixed Case" }
+                encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+                stdout: io/stdout
+                stderr: io/stderr
+                line.text > encoded.text
+                encoded.bytes > stdout.bytes
+                encoded.bytes > stderr.bytes
             "#,
         )
         .expect("nested composite parses");
@@ -13889,13 +13901,13 @@ mod tests {
         let resolved = registry.resolve(&panel).expect("composite resolves");
         let logical = resolved.explain_logical();
         let expanded = resolved.explain_expanded();
-        assert!(logical.contains("composite line : example/upper-line"));
-        assert!(logical.contains("composite line/source : example/literal-line"));
-        assert!(logical.contains("child line/upper : text/uppercase"));
+        assert!(logical.contains("line: example/upper-line"));
+        assert!(logical.contains("line/source: example/literal-line"));
+        assert!(logical.contains("child line/upper: text/uppercase"));
         assert!(logical.contains("export output text -> line.upper.text"));
         assert!(logical.contains("bind value -> line/source.value"));
-        assert!(expanded.contains("line.source.source : std/literal"));
-        assert!(expanded.contains("line.upper : text/uppercase"));
+        assert!(expanded.contains("line.source.source: std/literal"));
+        assert!(expanded.contains("line.upper: text/uppercase"));
         assert!(!expanded.contains("example/upper-line -> hosted builtin"));
 
         let mut input = &b""[..];
@@ -13919,18 +13931,18 @@ mod tests {
         let panel = parse(
             r#"
                 panel 0
-                composite example/uppercase {
-                    node worker : text/uppercase
+                example/uppercase{
+                    worker: text/uppercase
                     export > text = worker.text
                     export text > = worker.text
                 }
-                node source : std/literal { value = "boundary" }
-                node transform : example/uppercase
-                node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-                node sink : io/stdout
-                cord source.value -> transform.text
-                cord transform.text -> encoded.text
-                cord encoded.bytes -> sink.bytes
+                source: std/literal { value = "boundary" }
+                transform: example/uppercase
+                encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+                sink: io/stdout
+                source.value > transform.text
+                transform.text > encoded.text
+                encoded.bytes > sink.bytes
             "#,
         )
         .expect("transparent composite parses");
@@ -13956,7 +13968,7 @@ mod tests {
     fn contract_only_http_service_is_not_executable() {
         let panel = parse(
             "panel 0\n\
-             node server : net/http/listen {\n\
+             server: net/http/listen {\n\
                listen = \"127.0.0.1:0\"\n\
                method = \"GET\"\n\
                path = \"/health\"\n\
@@ -13981,52 +13993,52 @@ mod tests {
         let registry = Registry::compatibility_demo();
         for (source, source_code, runtime_code) in [
             (
-                "panel 0\ncomposite example/a { node b : example/b }\n\
-                 composite example/b { node a : example/a }\n\
-                 node root : example/a",
+                "panel 0\nexample/a { b: example/b }\n\
+                 example/b{ a: example/a }\n\
+                 root: example/a",
                 None,
                 Some("CND-CMP-005"),
             ),
             (
-                "panel 0\ncomposite example/a {\n\
-                   node source : io/stdin\n\
+                "panel 0\nexample/a {\n\
+                   source: io/stdin\n\
                    export bytes > = source.bytes\n\
                    export bytes > = source.bytes\n\
-                 }\nnode root : example/a",
+                 }\nroot: example/a",
                 Some("CND-SRC-002"),
                 None,
             ),
             (
-                "panel 0\ncomposite example/a {\n\
-                   node source : io/stdin\n\
+                "panel 0\nexample/a {\n\
+                   source: io/stdin\n\
                    export bytes > = missing.bytes\n\
-                 }\nnode root : example/a",
+                 }\nroot: example/a",
                 Some("CND-SRC-009"),
                 None,
             ),
             (
-                "panel 0\ncomposite example/a {\n\
-                   node source : io/stdin\n\
+                "panel 0\nexample/a {\n\
+                   source: io/stdin\n\
                    export > bytes = source.bytes\n\
-                 }\nnode root : example/a",
+                 }\nroot: example/a",
                 None,
                 Some("CND-CMP-003"),
             ),
             (
-                "panel 0\ncomposite example/a {\n\
-                   node source : std/literal\n\
+                "panel 0\nexample/a {\n\
+                   source: std/literal\n\
                    export value > = source.value\n\
                    bind value = source.missing\n\
-                 }\nnode root : example/a { value = x }",
+                 }\nroot: example/a { value = x }",
                 None,
                 Some("CND-CMP-003"),
             ),
             (
-                "panel 0\ncomposite example/a {\n\
-                   node source : io/stdin\n\
+                "panel 0\nexample/a {\n\
+                   source: io/stdin\n\
                    export bytes > = source.bytes\n\
-                 }\nnode root : example/a\nnode sink : io/stdout\n\
-                 cord root.source.bytes -> sink.bytes",
+                 }\nroot: example/a\nsink: io/stdout\n\
+                 root.source.bytes > sink.bytes",
                 Some("CND-SRC-009"),
                 None,
             ),

@@ -148,7 +148,7 @@ pub fn parse_document_with_root(source: &str, selected_root: Option<&str>) -> So
     }
 }
 
-/// Recovers bounded authored node and cord declarations for editor
+/// Recovers bounded authored instance and graph-chain declarations for editor
 /// presentation. Recovery never produces a [`Panel`] and is never executable.
 #[must_use]
 pub fn recover_document(source: &str) -> RecoveredDocument {
@@ -173,7 +173,7 @@ pub fn recover_document(source: &str) -> RecoveredDocument {
             offset += line.len();
             continue;
         }
-        if declaration_keyword(content, "node") {
+        if let Some(colon) = concise_declaration_colon(content) {
             if nodes.len() >= 1_024 {
                 return RecoveredDocument {
                     nodes,
@@ -187,13 +187,11 @@ pub fn recover_document(source: &str) -> RecoveredDocument {
             let header_end = source[start..end]
                 .find(['{', '\n'])
                 .map_or(end, |relative| start + relative);
-            let header = &source[start + "node".len()..header_end];
-            let (id, id_span) = next_source_word(source, start + "node".len(), header);
-            let colon = header.find(':');
-            let (kind, kind_span) = colon.map_or((None, None), |relative| {
-                let kind_start = start + "node".len() + relative + 1;
-                next_source_word(source, kind_start, &source[kind_start..header_end])
-            });
+            let header = &source[start..header_end];
+            let (id, id_span) = next_source_word(source, start, &header[..colon]);
+            let kind_start = start + colon + 1;
+            let (kind, kind_span) =
+                next_source_word(source, kind_start, &source[kind_start..header_end]);
             let complete =
                 id_span.is_some() && kind_span.is_some() && braces_complete(&source[start..end]);
             nodes.push(RecoveredNode {
@@ -204,7 +202,7 @@ pub fn recover_document(source: &str) -> RecoveredDocument {
                 kind_span,
                 complete,
             });
-        } else if declaration_keyword(content, "cord") {
+        } else if let Some(operator) = concise_graph_operator(content) {
             if cords.len() >= 4_096 {
                 return RecoveredDocument {
                     nodes,
@@ -218,29 +216,22 @@ pub fn recover_document(source: &str) -> RecoveredDocument {
             let header_end = source[start..end]
                 .find(['{', '\n'])
                 .map_or(end, |relative| start + relative);
-            let header_start = start + "cord".len();
-            let header = source[header_start..header_end].trim();
-            let header_offset = source[header_start..header_end]
+            let header = source[start..header_end].trim();
+            let header_offset = source[start..header_end]
                 .find(header)
-                .map_or(header_start, |relative| header_start + relative);
-            let (from_text, to_text) = header
-                .split_once("->")
-                .map_or((header, ""), |(from, to)| (from.trim(), to.trim()));
+                .map_or(start, |relative| start + relative);
+            let (from_text, to_text) = (&header[..operator], &header[operator + 1..]);
+            let from_text = from_text.trim();
+            let to_text = to_text.trim();
             let from_offset = header_offset + header.find(from_text).unwrap_or(0);
-            let to_offset = header
-                .find("->")
-                .map(|arrow| {
-                    let suffix = &header[arrow + 2..];
-                    header_offset + arrow + 2 + suffix.find(to_text).unwrap_or(0)
-                })
-                .unwrap_or(header_end);
+            let suffix = &header[operator + 1..];
+            let to_offset = header_offset + operator + 1 + suffix.find(to_text).unwrap_or(0);
             let from = recovered_endpoint(source, from_text, from_offset);
             let to = recovered_endpoint(source, to_text, to_offset);
             let complete = from.node.is_some()
-                && from.port.is_some()
                 && to.node.is_some()
-                && to.port.is_some()
-                && header.contains("->")
+                && !from_text.ends_with('.')
+                && !to_text.ends_with('.')
                 && braces_complete(&source[start..end]);
             cords.push(RecoveredCord {
                 id: format!("cord-{}", cords.len()),
@@ -270,12 +261,39 @@ pub fn recover_document(source: &str) -> RecoveredDocument {
     }
 }
 
-fn declaration_keyword(source: &str, keyword: &str) -> bool {
-    source == keyword
-        || source
-            .strip_prefix(keyword)
-            .and_then(|tail| tail.chars().next())
-            .is_some_and(char::is_whitespace)
+fn concise_declaration_colon(source: &str) -> Option<usize> {
+    if source.starts_with(['>', '<'])
+        || [
+            "panel ",
+            "import ",
+            "interface ",
+            "root ",
+            "export ",
+            "bind ",
+            "port-group ",
+            "pool ",
+            "supervise ",
+        ]
+        .iter()
+        .any(|keyword| source.starts_with(keyword))
+    {
+        return None;
+    }
+    let colon = source.find(':')?;
+    let equals = source.find('=').unwrap_or(usize::MAX);
+    let greater = source.find('>').unwrap_or(usize::MAX);
+    (colon < equals && colon < greater && !source[..colon].trim().is_empty()).then_some(colon)
+}
+
+fn concise_graph_operator(source: &str) -> Option<usize> {
+    if source.starts_with(['>', '<'])
+        || ["export ", "interface ", "port-group "]
+            .iter()
+            .any(|keyword| source.starts_with(keyword))
+    {
+        return None;
+    }
+    source.find('>')
 }
 
 fn next_source_word(source: &str, base: usize, fragment: &str) -> (Option<String>, Option<Span>) {
@@ -604,7 +622,57 @@ fn write_node(node: &crate::Node, output: &mut String) {
         write_source_value(&config.value, output);
         output.push('}');
     }
+    match &node.expression {
+        Some(expression) => {
+            output.push_str("expression{");
+            write_expression(expression, output);
+            output.push('}');
+        }
+        None => output.push_str("no-expression;"),
+    }
     output.push('}');
+}
+
+fn write_expression(expression: &crate::SourceExpression, output: &mut String) {
+    match expression {
+        crate::SourceExpression::Value(value) => {
+            output.push_str("value{");
+            write_source_value(value, output);
+            output.push('}');
+        }
+        crate::SourceExpression::Binding(binding) => {
+            output.push_str("binding{");
+            text(output, binding);
+            output.push('}');
+        }
+        crate::SourceExpression::Binary {
+            operation,
+            left,
+            right,
+            operator_span: _,
+        } => {
+            output.push_str("binary{");
+            text(output, expression_operator_name(*operation));
+            write_expression(left, output);
+            write_expression(right, output);
+            output.push('}');
+        }
+    }
+}
+
+fn expression_operator_name(operation: crate::ExpressionOperator) -> &'static str {
+    match operation {
+        crate::ExpressionOperator::Add => "add",
+        crate::ExpressionOperator::Subtract => "subtract",
+        crate::ExpressionOperator::Multiply => "multiply",
+        crate::ExpressionOperator::Divide => "divide",
+        crate::ExpressionOperator::LessThan => "less-than",
+        crate::ExpressionOperator::LessThanOrEqual => "less-than-or-equal",
+        crate::ExpressionOperator::GreaterThan => "greater-than",
+        crate::ExpressionOperator::GreaterThanOrEqual => "greater-than-or-equal",
+        crate::ExpressionOperator::Equal => "equal",
+        crate::ExpressionOperator::NotEqual => "not-equal",
+    }
 }
 
 fn write_source_value(value: &crate::SourceValue, output: &mut String) {
@@ -790,7 +858,7 @@ mod recovery_tests {
 
     #[test]
     fn incomplete_typing_preserves_every_recoverable_authored_identity() {
-        let prefix = "panel 0\nnode stable : std/literal { value = \"ok\" }\nnode greeting :";
+        let prefix = "panel 0\nstable: std/literal { value = \"ok\" }\ngreeting :";
         for suffix in ["", " std/lit", " std/literal {", " std/literal {\n value ="] {
             let recovered = recover_document(&format!("{prefix}{suffix}"));
             assert!(
@@ -811,13 +879,26 @@ mod recovery_tests {
 
     #[test]
     fn partial_cord_retains_only_authored_endpoint_facts() {
-        let recovered =
-            recover_document("panel 0\nnode source : std/literal\ncord source.value -> sink.\n");
+        let recovered = recover_document("panel 0\nsource: std/literal\nsource.value > sink.\n");
         assert_eq!(recovered.cords.len(), 1);
         assert_eq!(recovered.cords[0].from.node.as_deref(), Some("source"));
         assert_eq!(recovered.cords[0].from.port.as_deref(), Some("value"));
         assert_eq!(recovered.cords[0].to.node.as_deref(), Some("sink"));
         assert_eq!(recovered.cords[0].to.port, None);
+        assert!(!recovered.cords[0].complete);
+    }
+
+    #[test]
+    fn trailing_graph_operator_is_visible_but_never_semantically_executable() {
+        let source = "panel 0\nsource: fixture/source\nsource >\n";
+        let document = crate::parse_document(source);
+        assert!(document.ast.is_none());
+        assert_eq!(document.round_trip(), source);
+
+        let recovered = recover_document(source);
+        assert_eq!(recovered.cords.len(), 1);
+        assert_eq!(recovered.cords[0].from.node.as_deref(), Some("source"));
+        assert_eq!(recovered.cords[0].to.node, None);
         assert!(!recovered.cords[0].complete);
     }
 

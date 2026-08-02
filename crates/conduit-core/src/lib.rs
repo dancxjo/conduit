@@ -42,6 +42,7 @@ mod scheduler;
 mod standard;
 mod structural;
 mod supervision;
+mod temporal_modality;
 mod transition;
 mod type_contract;
 mod value_envelope;
@@ -224,7 +225,7 @@ pub use node_interface::{
     NodeInterfaceMemberReason, NodeInterfaceRequirement, NodeInterfaceRequirementDecision,
     NodeInterfaceRequirementProof, NodeInterfaceRequirementReason, NodeInterfaceSatisfactionError,
     NodeInterfaceSatisfactionProof, NodeInterfaceSatisfactionReason, NodeInterfaceTypeDecision,
-    assess_node_interface,
+    PrincipalPath, PrincipalProjectionError, assess_node_interface,
 };
 pub use policy_budget::{
     MAX_POLICY_BUDGET_BINDINGS, POLICY_BUDGET_SCHEMA_VERSION, PersistentBudgetLedger,
@@ -318,6 +319,15 @@ pub use supervision::{
     TerminalObservation, TerminalPhase, classify_evidence_cursor, handler_deadline_tick,
     nearest_supervision_boundary, outward_handler_observation, select_terminal_observation,
     terminal_observations_correlate, validate_supervision_nesting,
+};
+pub use temporal_modality::{
+    ClosingBoundary, InitialAvailability, LiftedSurfaces, ModalityLiftContract,
+    ModalityLiftContractError, ModalityLiftError, ModalityLiftIdentityError, ModalityReplay,
+    ModalityRetention, ReplacementBehavior, TEMPORAL_MODALITY_SCHEMA_VERSION, TemporalCardinality,
+    TemporalConversionContract, TemporalConversionError, TemporalConversionIdentityError,
+    TemporalConversionKind, TemporalModalityCompatibility, TemporalModalityCompatibilityReason,
+    TemporalModalityContract, TemporalModalityError, TemporalModalityIdentityError,
+    TemporalSurface, assess_temporal_modality_exact, lift_temporal_modality,
 };
 pub use transition::{
     MAX_TRANSITION_OPTIONAL_CHANGES, OptionalCharacteristicChange, PLAN_TRANSITION_SCHEMA_VERSION,

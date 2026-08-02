@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar",
           "path": "../c3/panel-grammar.json",
-          "sha256": "sha256:c516a10d8ba743c40d6b95c8e0592e85c57553ce89469552da8b298d1e32ee66",
+          "sha256": "sha256:87c46153317ddc04352700eee5e28a1e56e09721612b958666861f4c85825f3b",
           "operation": "panel-source",
           "requirement_ids": [
             "SRC-001",
@@ -1015,7 +1015,7 @@
         {
           "id": "panel-directional-syntax",
           "path": "../c3/panel-directional-syntax.json",
-          "sha256": "sha256:008e99f3fc8db31211fa68ec24b6482e24a5bb797da847844769f763ce2f00d9",
+          "sha256": "sha256:05221e432f3e8e86259da2f9862b33afbc6290e077ecb4403676f8f89c3a1e17",
           "operation": "panel-directional-syntax",
           "requirement_ids": [
             "SRC-001",
@@ -1028,9 +1028,9 @@
           "default_rule": "SRC-001",
           "case_rules": {
             "canonical-interface-action-shape": "SRC-001",
-            "equivalent-sigils-and-reverse-cord": "SRC-010",
+            "equivalent-directional-sigils": "SRC-010",
             "zero-sided-source-and-sink": "SRC-009",
-            "endpoint-elision-rejected": "SRC-009",
+            "bare-endpoint-chain-accepted": "SRC-009",
             "english-direction-rejected": "SRC-007",
             "doubled-sigil-rejected": "SRC-001"
           },
@@ -1049,12 +1049,13 @@
         "positive": [
           "panel-grammar#minimal",
           "panel-grammar#resolved-import",
-          "panel-directional-syntax#canonical-interface-action-shape"
+          "panel-directional-syntax#canonical-interface-action-shape",
+          "panel-directional-syntax#bare-endpoint-chain-accepted"
         ],
         "negative": [
-          "panel-grammar#malformed-cord",
+          "panel-grammar#malformed-graph",
           "panel-grammar#import-cycle",
-          "panel-directional-syntax#endpoint-elision-rejected"
+          "panel-directional-syntax#english-direction-rejected"
         ],
         "boundary": [
           "panel-grammar#port-groups",
@@ -1065,7 +1066,7 @@
         "migration": [
           "panel-grammar#format-equivalence",
           "panel-grammar#definition-parameters-constraint-export",
-          "panel-directional-syntax#equivalent-sigils-and-reverse-cord"
+          "panel-directional-syntax#equivalent-directional-sigils"
         ]
       },
       "reference_tests": [
@@ -1105,7 +1106,7 @@
         {
           "id": "port-group-source",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "port-group-source",
           "requirement_ids": [
             "PGC-001",
@@ -1146,7 +1147,7 @@
         {
           "id": "port-group-plan",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "port-group-plan",
           "requirement_ids": [
             "PGC-002",
@@ -1175,7 +1176,7 @@
         {
           "id": "correlation-family",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "correlation-family",
           "requirement_ids": [
             "COR-001",
@@ -1203,7 +1204,7 @@
         {
           "id": "correlation-propagation",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "correlation-propagation",
           "requirement_ids": [
             "COR-001",
@@ -1232,7 +1233,7 @@
         {
           "id": "correlation-allocation-rejection",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "correlation-allocation-rejection",
           "requirement_ids": [
             "PGC-008",
@@ -1315,7 +1316,7 @@
         {
           "id": "diagnostics",
           "path": "../c3/diagnostics.json",
-          "sha256": "sha256:bd8b25e9065e796e7a53c2d51b7f1e63aea3b647d29c81420e64cd6c9881220c",
+          "sha256": "sha256:29a94f25c522fea83c8aff92078196dd50ccb80a75f5fa2354e319ab39e96c8f",
           "operation": "structured-diagnostic",
           "requirement_ids": [
             "DIA-001",
@@ -1406,7 +1407,7 @@
         {
           "id": "conduct-cli-command",
           "path": "../c3/conduct-cli.json",
-          "sha256": "sha256:77a2af670d28b301a47f741a417d0f903471069d8359704882955fdc947aabab",
+          "sha256": "sha256:9f43b05845af46bc1ac0dc444ee7268223cbd234e5d8d72c059384bb40e83831",
           "operation": "conduct-cli-command",
           "requirement_ids": [
             "CLI-001",
@@ -1442,7 +1443,7 @@
         {
           "id": "conduct-cli-presentation",
           "path": "../c3/conduct-cli.json",
-          "sha256": "sha256:77a2af670d28b301a47f741a417d0f903471069d8359704882955fdc947aabab",
+          "sha256": "sha256:9f43b05845af46bc1ac0dc444ee7268223cbd234e5d8d72c059384bb40e83831",
           "operation": "conduct-cli-presentation",
           "requirement_ids": [
             "CLI-005",
@@ -1517,7 +1518,7 @@
         {
           "id": "source-lowering",
           "path": "../c3/source-lowering.json",
-          "sha256": "sha256:4e11f825b18e528d1d57f9a8899bffc498acbc9138db8b5dd7f189c6aff73bc8",
+          "sha256": "sha256:4f6709eac441b3f2b84fa6267b1ab27a917b0fc1760adaedc78ebf5273939bd7",
           "operation": "source-lowering",
           "requirement_ids": [
             "SL2-001",
@@ -1973,7 +1974,7 @@
         {
           "id": "inspection",
           "path": "../c3/inspection.json",
-          "sha256": "sha256:ca0647ace345f287786d9360376336ddcd9cfbc39199fbabebb1685bebbaaf91",
+          "sha256": "sha256:157c00d47640942df46af43b67d1d04681666031a16b5fbd38e326f16a09ff4f",
           "operation": "safe-inspection",
           "requirement_ids": [
             "INSP-001",
@@ -2859,13 +2860,17 @@
         "NIF-011",
         "NIF-012",
         "NIF-013",
-        "NIF-014"
+        "NIF-014",
+        "NIF-015",
+        "NIF-016",
+        "NIF-017",
+        "NIF-018"
       ],
       "artifacts": [
         {
           "id": "node-interface",
           "path": "../c2/node-interface.json",
-          "sha256": "sha256:be2cbf1c4e2d99cf438fe21ddcc45468f1d9ac8a866f0d76578c65b8994b40d0",
+          "sha256": "sha256:d32f049c4336b7d7c35604f7065e4b759c8a90d340ab0768577f2521b557e2b8",
           "operation": "node-interface-satisfaction",
           "requirement_ids": [
             "NIF-001",
@@ -2881,7 +2886,11 @@
             "NIF-011",
             "NIF-012",
             "NIF-013",
-            "NIF-014"
+            "NIF-014",
+            "NIF-015",
+            "NIF-016",
+            "NIF-017",
+            "NIF-018"
           ],
           "default_rule": "NIF-006",
           "case_rules": {
@@ -2899,6 +2908,13 @@
             "ambiguous-provider-decisions": "NIF-009",
             "authority-effect-widening-rejected": "NIF-007",
             "extra-concrete-member": "NIF-005",
+            "principal-exact-projection": "NIF-015",
+            "principal-absent-side": "NIF-017",
+            "principal-missing-member": "NIF-016",
+            "principal-wrong-direction": "NIF-016",
+            "principal-optional-member": "NIF-016",
+            "principal-change-is-semantic": "NIF-015",
+            "auxiliary-members-do-not-select-principal": "NIF-017",
             "duplicate-interface-member": "NIF-009",
             "revision-or-hash-mismatch": "NIF-001",
             "member-order-nonsemantic": "NIF-011",
@@ -2921,29 +2937,167 @@
         "positive": [
           "node-interface#exact-primitive-boundary",
           "node-interface#compatible-directional-refinement",
-          "node-interface#composite-exported-boundary"
+          "node-interface#composite-exported-boundary",
+          "node-interface#principal-exact-projection"
         ],
         "negative": [
           "node-interface#missing-required-member",
           "node-interface#wrong-direction",
           "node-interface#same-type-incompatible-delivery",
-          "node-interface#authority-effect-widening-rejected"
+          "node-interface#authority-effect-widening-rejected",
+          "node-interface#principal-missing-member",
+          "node-interface#principal-wrong-direction",
+          "node-interface#principal-optional-member"
         ],
         "boundary": [
           "node-interface#optional-member-absent",
           "node-interface#provider-unavailable",
-          "node-interface#insufficient-proof-scratch"
+          "node-interface#insufficient-proof-scratch",
+          "node-interface#principal-absent-side",
+          "node-interface#auxiliary-members-do-not-select-principal"
         ],
         "migration": [
           "node-interface#revision-or-hash-mismatch",
           "node-interface#member-order-nonsemantic",
-          "node-interface#semantic-member-change"
+          "node-interface#semantic-member-change",
+          "node-interface#principal-change-is-semantic"
         ]
       },
       "reference_tests": [
         {
           "package": "conduit-core",
           "test": "node_interface_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "principal_path_vectors"
+        }
+      ]
+    },
+    {
+      "id": "temporal-modality",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "TMOD-001",
+        "TMOD-002",
+        "TMOD-003",
+        "TMOD-004",
+        "TMOD-005",
+        "TMOD-006",
+        "TMOD-007",
+        "TMOD-008",
+        "TMOD-009",
+        "TMOD-010"
+      ],
+      "artifacts": [
+        {
+          "id": "temporal-modality",
+          "path": "../c2/temporal-modality.json",
+          "sha256": "sha256:703d6494f93b23796c003560eceea6763d6f7c2ff47c3b1b49bd098c19e21265",
+          "operation": "temporal-modality",
+          "requirement_ids": [
+            "TMOD-001",
+            "TMOD-002",
+            "TMOD-003",
+            "TMOD-004",
+            "TMOD-005",
+            "TMOD-006",
+            "TMOD-007",
+            "TMOD-008",
+            "TMOD-009",
+            "TMOD-010"
+          ],
+          "default_rule": "TMOD-001",
+          "case_rules": {
+            "ordinary-value": "TMOD-001",
+            "closing-flow": "TMOD-001",
+            "open-flow": "TMOD-001",
+            "current-observation": "TMOD-006",
+            "cross-surface-matrix": "TMOD-003",
+            "closing-is-not-resource-bound": "TMOD-005",
+            "current-is-observation-only": "TMOD-007",
+            "current-is-not-history": "TMOD-007",
+            "invalid-immediate-open-flow": "TMOD-008",
+            "every-field-is-identity-bearing": "TMOD-004",
+            "explicit-pure-lift": "TMOD-010",
+            "unadmitted-current-lift": "TMOD-010",
+            "lift-input-type-mismatch": "TMOD-010",
+            "lift-proof-required": "TMOD-010",
+            "lift-declaration-is-identity-bearing": "TMOD-010",
+            "current-late-subscriber": "TMOD-006",
+            "current-update-without-subscriber": "TMOD-006",
+            "current-reconnect-newest": "TMOD-006",
+            "current-denied-mutation": "TMOD-007",
+            "current-equal-replacement": "TMOD-007",
+            "standard-conversion-profiles": "TMOD-009",
+            "flow-each-order-and-close": "TMOD-009",
+            "flow-collect-bounded": "TMOD-009",
+            "flow-collect-open-rejected": "TMOD-009",
+            "flow-collect-close-required": "TMOD-009",
+            "flow-collect-overflow-atomic": "TMOD-009",
+            "state-conversion-runtime": "TMOD-009",
+            "state-hold-initial-required": "TMOD-009"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "temporal-modality#ordinary-value",
+          "temporal-modality#closing-flow",
+          "temporal-modality#open-flow",
+          "temporal-modality#current-observation",
+          "temporal-modality#explicit-pure-lift",
+          "temporal-modality#current-late-subscriber",
+          "temporal-modality#current-update-without-subscriber",
+          "temporal-modality#current-reconnect-newest",
+          "temporal-modality#standard-conversion-profiles",
+          "temporal-modality#flow-each-order-and-close",
+          "temporal-modality#flow-collect-bounded",
+          "temporal-modality#state-conversion-runtime"
+        ],
+        "negative": [
+          "temporal-modality#cross-surface-matrix",
+          "temporal-modality#invalid-immediate-open-flow",
+          "temporal-modality#unadmitted-current-lift",
+          "temporal-modality#lift-input-type-mismatch",
+          "temporal-modality#lift-proof-required",
+          "temporal-modality#flow-collect-open-rejected",
+          "temporal-modality#flow-collect-close-required",
+          "temporal-modality#state-hold-initial-required"
+        ],
+        "boundary": [
+          "temporal-modality#closing-is-not-resource-bound",
+          "temporal-modality#current-is-observation-only",
+          "temporal-modality#current-is-not-history",
+          "temporal-modality#current-denied-mutation",
+          "temporal-modality#current-equal-replacement",
+          "temporal-modality#flow-collect-overflow-atomic"
+        ],
+        "migration": [
+          "temporal-modality#every-field-is-identity-bearing",
+          "temporal-modality#lift-declaration-is-identity-bearing"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "temporal_modality_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "current_value_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "temporal_conversion_vectors"
         }
       ]
     },

@@ -44,8 +44,7 @@ fn socket_callbacks_cannot_claim_network_conformance() {
         let availability = registry.node_availability(contract.id.as_str());
         assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
         assert_eq!(availability.host_id, None);
-        let panel =
-            conduit_panel::parse(&format!("panel 0\nnode network : {}\n", contract.id)).unwrap();
+        let panel = conduit_panel::parse(&format!("panel 0\nnetwork: {}\n", contract.id)).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)

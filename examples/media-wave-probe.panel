@@ -1,11 +1,11 @@
 panel 0
 
-node wave : conduit.media/wave/literal {
+wave: conduit.media/wave/literal {
   fixture = "silence-pcm-s16le-stereo-48000-192"
   content_identity = "sha256:fb20432c75da1dc29b674363a3df19e1966f344387423b92366aef4fedbbfd9d"
   maximum_output_bytes = 1024
 }
-node probe : conduit.media/container/probe {
+probe: conduit.media/container/probe {
   container = "wave"
   codec = "pcm-s16le"
   profile = "stereo-48000-192"
@@ -21,7 +21,7 @@ node probe : conduit.media/container/probe {
   maximum_work = 4096
   flush = "exact-terminal"
 }
-node output : display/text
+output: display/text
 
-cord wave.container -> probe.container { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord probe.summary -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+wave.container > probe.container { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+probe.summary > output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -1389,8 +1389,8 @@ mod tests {
             })
             .unwrap();
         let source = format!(
-            "{}node sink : acme/filesystem-watch-sink\n\
-             cord watcher.event -> sink.event {{ capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }}\n",
+            "{}sink: acme/filesystem-watch-sink\n\
+             watcher.event > sink.event {{ capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }}\n",
             include_str!("../../../examples/dir-watcher.panel")
         );
         let installed = InstalledProfile::observe_registry(&source, &registry).unwrap();

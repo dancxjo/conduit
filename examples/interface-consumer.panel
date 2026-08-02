@@ -1,9 +1,9 @@
 panel 0
 
-node source : std/literal {
+source: std/literal {
   value = "hello interface"
 }
 
-node target : display/text implements conduit/stream-sink
+target: display/text implements conduit/stream-sink
 
-cord source.value -> target.text
+source.value > target.text

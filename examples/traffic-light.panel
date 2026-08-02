@@ -1,16 +1,16 @@
 # Traffic light state machine sequencer panel.
 panel 0
 
-node clock_ticks : std/counter
-node state_selector : std/cell {
+clock_ticks: std/counter
+state_selector: std/cell {
     initial = "RED"
 }
-node light_controller : device/gpio/pin {
+light_controller: device/gpio/pin {
     pin = 16
     mode = "write"
 }
 
-cord clock_ticks.count -> state_selector.update {
+clock_ticks.count > state_selector.update {
     capacity = 4
     max_value_bytes = 256
     max_queued_bytes = 1024
@@ -19,7 +19,7 @@ cord clock_ticks.count -> state_selector.update {
     pressure = block
 }
 
-cord state_selector.current -> light_controller.command {
+state_selector.current > light_controller.command {
     capacity = 4
     max_value_bytes = 256
     max_queued_bytes = 1024

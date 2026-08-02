@@ -7,8 +7,9 @@ use conduit_core::{
     ConfigIdentity, ConfigMutability, ConfigRequirement, ConnectionCardinality, Delivery,
     DescriptorRef, Direction, FieldDisposition, Id, IdError, InterfaceMemberRequirement,
     LossAcceptance, NodeContract, NodeInterfaceContract, NodeInterfaceContractRef,
-    NodeInterfaceMember, PortContract, PortFlowConstraints, Presence, SemanticHash, Sensitivity,
-    TemporalContract, TerminalContract, TypeContractRef, ValueCardinality, assess_node_interface,
+    NodeInterfaceMember, PortContract, PortFlowConstraints, Presence, PrincipalPath, SemanticHash,
+    Sensitivity, TemporalContract, TerminalContract, TypeContractRef, ValueCardinality,
+    assess_node_interface,
 };
 use conduit_panel::{
     InstancePool, ModuleGraph, Panel, PoolAdmission, PoolCleanup, PoolSupervision, PortGroup,
@@ -361,11 +362,43 @@ impl OwnedInterfaceMember {
 
 /// Owned interface contract representation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedPrincipalPath {
+    pub receiving: Option<String>,
+    pub outgoing: Option<String>,
+}
+
+impl OwnedPrincipalPath {
+    #[must_use]
+    pub const fn none() -> Self {
+        Self {
+            receiving: None,
+            outgoing: None,
+        }
+    }
+
+    fn to_core(&self) -> Result<PrincipalPath<'_>, IdError> {
+        Ok(PrincipalPath {
+            receiving: self.receiving.as_deref().map(Id::new).transpose()?,
+            outgoing: self.outgoing.as_deref().map(Id::new).transpose()?,
+        })
+    }
+}
+
+/// Owned interface contract representation.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OwnedInterfaceContract {
     pub id: String,
     pub schema_version: u32,
+    pub principal_path: OwnedPrincipalPath,
     pub members: Vec<OwnedInterfaceMember>,
     pub semantic_hash: SemanticHash,
+}
+
+/// Hosted principal projection failure with stable core reason spelling.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnedPrincipalProjectionError {
+    InvalidContract(&'static str),
+    Unavailable { direction: Direction },
 }
 
 impl OwnedInterfaceContract {
@@ -378,6 +411,7 @@ impl OwnedInterfaceContract {
             .collect::<Result<Vec<_>, IdError>>()?;
         let core_contract = NodeInterfaceContract {
             id: core_id,
+            principal_path: self.principal_path.to_core()?,
             members: &members,
             requirements: &[],
         };
@@ -385,6 +419,49 @@ impl OwnedInterfaceContract {
         core_contract
             .semantic_hash(&mut scratch)
             .map_err(|_| IdError::InvalidSlash)
+    }
+
+    /// Projects a bare endpoint using only this exact semantic descriptor.
+    pub fn project_principal(
+        &self,
+        direction: Direction,
+    ) -> Result<&OwnedInterfaceMember, OwnedPrincipalProjectionError> {
+        let core_id = Id::new(&self.id).map_err(|_| {
+            OwnedPrincipalProjectionError::InvalidContract("interface-invalid-identifier")
+        })?;
+        let members = self
+            .members
+            .iter()
+            .map(OwnedInterfaceMember::to_core)
+            .collect::<Result<Vec<_>, IdError>>()
+            .map_err(|_| {
+                OwnedPrincipalProjectionError::InvalidContract("interface-invalid-member")
+            })?;
+        let principal_path = self.principal_path.to_core().map_err(|_| {
+            OwnedPrincipalProjectionError::InvalidContract("interface-invalid-identifier")
+        })?;
+        let contract = NodeInterfaceContract {
+            id: core_id,
+            principal_path,
+            members: &members,
+            requirements: &[],
+        };
+        let projected = contract
+            .project_principal(direction)
+            .map_err(|error| match error {
+                conduit_core::PrincipalProjectionError::InvalidContract(error) => {
+                    OwnedPrincipalProjectionError::InvalidContract(error.as_str())
+                }
+                conduit_core::PrincipalProjectionError::Unavailable { direction } => {
+                    OwnedPrincipalProjectionError::Unavailable { direction }
+                }
+            })?;
+        self.members
+            .iter()
+            .find(|member| member.id == projected.port.id.as_str() && member.direction == direction)
+            .ok_or(OwnedPrincipalProjectionError::InvalidContract(
+                "interface-principal-member-missing",
+            ))
     }
 }
 
@@ -831,7 +908,14 @@ pub fn lower_topology(
     for module in &graph.modules {
         let uri = &module.canonical_uri;
         for cord in &module.panel.cords {
-            let lowered = lower_cord(cord, uri, uri, &module.content_hash);
+            let lowered = lower_cord(
+                cord,
+                &module.panel.nodes,
+                catalog,
+                uri,
+                uri,
+                &module.content_hash,
+            )?;
             source_map.push(SourceMapEntry {
                 semantic_path: lowered.path.clone(),
                 origins: vec![lowered.origin.clone()],
@@ -882,7 +966,14 @@ pub fn lower_topology(
                 });
             }
             for cord in &definition.cords {
-                let lowered = lower_cord(cord, &composite_path, uri, &module.content_hash);
+                let lowered = lower_cord(
+                    cord,
+                    &definition.nodes,
+                    catalog,
+                    &composite_path,
+                    uri,
+                    &module.content_hash,
+                )?;
                 source_map.push(SourceMapEntry {
                     semantic_path: lowered.path.clone(),
                     origins: vec![lowered.origin.clone()],
@@ -1193,6 +1284,15 @@ fn prove_interface_claim(
         })?;
     let core_interface_contract = NodeInterfaceContract {
         id: core_interface_id,
+        principal_path: interface.principal_path.to_core().map_err(|_| {
+            diagnostic(
+                "CND-LWR-013",
+                &path,
+                None,
+                Some(claim_origin.clone()),
+                "invalid principal path in interface contract",
+            )
+        })?,
         members: &core_members,
         requirements: &[],
     };
@@ -1560,6 +1660,7 @@ fn interface_decl_to_owned(
     let mut owned = OwnedInterfaceContract {
         id: decl.id.clone(),
         schema_version: 0,
+        principal_path: OwnedPrincipalPath::none(),
         members,
         semantic_hash: SemanticHash::from_bytes([0; 32]),
     };
@@ -1638,13 +1739,32 @@ fn lower_root_selection(
 
 fn lower_cord(
     cord: &conduit_panel::Cord,
+    nodes: &[conduit_panel::Node],
+    catalog: &impl SourceContractCatalog,
     scope: &str,
     uri: &str,
     module_hash: &str,
-) -> LoweredCord {
+) -> Result<LoweredCord, LoweringDiagnostic> {
     let path = format!("{scope}/cord/{}", cord.id);
-    let from = format!("{scope}/node/{}/port/{}", cord.from.node, cord.from.port);
-    let to = format!("{scope}/node/{}/port/{}", cord.to.node, cord.to.port);
+    let cord_origin = origin(uri, module_hash, cord.source_span);
+    let from_port = resolve_endpoint_port(
+        &cord.from,
+        Direction::Output,
+        nodes,
+        catalog,
+        &path,
+        &cord_origin,
+    )?;
+    let to_port = resolve_endpoint_port(
+        &cord.to,
+        Direction::Input,
+        nodes,
+        catalog,
+        &path,
+        &cord_origin,
+    )?;
+    let from = format!("{scope}/node/{}/port/{from_port}", cord.from.node);
+    let to = format!("{scope}/node/{}/port/{to_port}", cord.to.node);
     let pressure = pressure_identity(&cord.pressure);
     let numeric = [
         cord.capacity_items.to_string(),
@@ -1667,7 +1787,7 @@ fn lower_cord(
             &pressure,
         ],
     );
-    LoweredCord {
+    Ok(LoweredCord {
         path,
         from,
         to,
@@ -1678,7 +1798,85 @@ fn lower_cord(
         high_watermark_items: cord.high_watermark_items,
         pressure: cord.pressure.clone(),
         semantic_hash,
-        origin: origin(uri, module_hash, cord.source_span),
+        origin: cord_origin,
+    })
+}
+
+fn resolve_endpoint_port(
+    endpoint: &conduit_panel::Endpoint,
+    direction: Direction,
+    nodes: &[conduit_panel::Node],
+    catalog: &impl SourceContractCatalog,
+    path: &str,
+    cord_origin: &SourceOrigin,
+) -> Result<String, LoweringDiagnostic> {
+    if !endpoint.port.is_empty() {
+        return Ok(endpoint.port.clone());
+    }
+    let node = nodes
+        .iter()
+        .find(|candidate| candidate.id == endpoint.node)
+        .ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-016",
+                path,
+                None,
+                Some(cord_origin.clone()),
+                format!("bare endpoint names unknown node `{}`", endpoint.node),
+            )
+        })?;
+    let mut contracts = Vec::new();
+    if let Some(contract) = catalog.interface_contract(&node.kind) {
+        contracts.push(contract);
+    }
+    for claim in &node.implements {
+        if claim.interface != node.kind {
+            if let Some(contract) = catalog.interface_contract(&claim.interface) {
+                contracts.push(contract);
+            }
+        }
+    }
+    let mut projected = contracts
+        .iter()
+        .filter_map(|contract| {
+            contract
+                .project_principal(direction)
+                .ok()
+                .map(|member| (contract.id.as_str(), member.id.as_str()))
+        })
+        .collect::<Vec<_>>();
+    projected.sort_unstable();
+    projected.dedup();
+    match projected.as_slice() {
+        [(_, port)] => Ok((*port).to_owned()),
+        [] => Err(diagnostic(
+            "CND-LWR-016",
+            path,
+            None,
+            Some(cord_origin.clone()),
+            format!(
+                "node `{}` has no descriptor-backed principal {} endpoint; spell a named port",
+                endpoint.node,
+                match direction {
+                    Direction::Input => "receiving",
+                    Direction::Output => "outgoing",
+                }
+            ),
+        )),
+        _ => Err(diagnostic(
+            "CND-LWR-016",
+            path,
+            None,
+            Some(cord_origin.clone()),
+            format!(
+                "node `{}` has ambiguous principal {} endpoints; spell a named port",
+                endpoint.node,
+                match direction {
+                    Direction::Input => "receiving",
+                    Direction::Output => "outgoing",
+                }
+            ),
+        )),
     }
 }
 

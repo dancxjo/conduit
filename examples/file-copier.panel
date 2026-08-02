@@ -1,7 +1,7 @@
 # Copy one bounded chunk between provider-owned opaque file resources.
 panel 0
 
-node reader : fs/read {
+reader: fs/read {
     resource = secret("conduit.resource/filesystem-example-read")
     grant = secret("conduit.grant/filesystem-read")
     offset = 0
@@ -12,7 +12,7 @@ node reader : fs/read {
     cancellation = "discard"
 }
 
-node writer : fs/write {
+writer: fs/write {
     resource = secret("conduit.resource/filesystem-example-write")
     grant = secret("conduit.grant/filesystem-write")
     mode = "replace"
@@ -23,7 +23,7 @@ node writer : fs/write {
     cancellation = "close"
 }
 
-cord reader.chunk -> writer.chunk {
+reader.chunk > writer.chunk {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64

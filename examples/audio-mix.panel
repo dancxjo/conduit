@@ -1,8 +1,8 @@
 panel 0
 
-node left : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
-node right : conduit.media/audio-frame/literal { fixture = "silence-s16le-stereo-48000" }
-node mix : conduit.media/audio/mix {
+left: conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+right: conduit.media/audio-frame/literal { fixture = "silence-s16le-stereo-48000" }
+mix: conduit.media/audio/mix {
     lifecycle = "finite"
     numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact"
     alignment = "exact-start-rate-layout-frames"
@@ -18,10 +18,10 @@ node mix : conduit.media/audio/mix {
     maximum_frames = 16
     maximum_work = 64
 }
-node inspect : conduit.media/audio-frame/inspect
-node output : display/text
+inspect: conduit.media/audio-frame/inspect
+output: display/text
 
-cord left.frame -> mix.left { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right.frame -> mix.right { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord mix.frame -> inspect.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }
+left.frame > mix.left { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+right.frame > mix.right { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+mix.frame > inspect.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }

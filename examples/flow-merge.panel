@@ -1,27 +1,27 @@
 panel 0
 
-node first : std/literal {
+first: std/literal {
     value = "first"
 }
-node second : std/literal {
+second: std/literal {
     value = "second"
 }
-node first_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
-node second_lines : std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
-node merge : conduit.std/merge {
+first_lines: std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+second_lines: std/text/lines { maximum_line_bytes = 1024 maximum_retained_prefix_bytes = 1024 }
+merge: conduit.std/merge {
     ordering = "round-robin"
 }
-node merged_text : std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
-node encoded : std/data/encode-utf8 {
+merged_text: std/text/join { separator = "" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }
+encoded: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node output : io/stdout
+output: io/stdout
 
-cord first.value -> first_lines.text {
+first.value > first_lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -29,7 +29,7 @@ cord first.value -> first_lines.text {
     high_watermark = 1
     pressure = block
 }
-cord second.value -> second_lines.text {
+second.value > second_lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -37,9 +37,9 @@ cord second.value -> second_lines.text {
     high_watermark = 1
     pressure = block
 }
-cord first_lines.line -> merge.left { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord second_lines.line -> merge.right { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord merge.value -> merged_text.item {
+first_lines.line > merge.left { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+second_lines.line > merge.right { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+merge.value > merged_text.item {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -47,5 +47,5 @@ cord merge.value -> merged_text.item {
     high_watermark = 1
     pressure = block
 }
-cord merged_text.text -> encoded.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord encoded.bytes -> output.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+merged_text.text > encoded.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+encoded.bytes > output.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

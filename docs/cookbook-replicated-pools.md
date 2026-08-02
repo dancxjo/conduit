@@ -10,7 +10,7 @@ host, authority, and resource bindings are not installed by this snippet.
 ```panel
 panel 0
 
-pool workers : fixture/worker {
+pool workers: fixture/worker {
   maximum = 4
   admission = queue_bounded
   admission_queue = 8

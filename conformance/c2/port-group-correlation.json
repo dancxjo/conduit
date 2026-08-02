@@ -4,20 +4,20 @@
     {
       "id": "keyed-exact-identities-and-spans",
       "assertion": "lower",
-      "source": "panel 0\nport-group > routes : fixture/request-port keyed max 3 { member home member assets }\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port keyed max 3 { member home member assets }\n",
       "expected": {
         "outcome": "accepted",
         "maximum": 3,
         "members": [
-          {"key": "home", "ordinal": 0, "line": 2, "column": 65, "end_column": 69},
-          {"key": "assets", "ordinal": 1, "line": 2, "column": 77, "end_column": 83}
+          {"key": "home", "ordinal": 0, "line": 2, "column": 64, "end_column": 68},
+          {"key": "assets", "ordinal": 1, "line": 2, "column": 76, "end_column": 82}
         ]
       }
     },
     {
       "id": "indexed-exact-range",
       "assertion": "lower",
-      "source": "panel 0\nport-group workers > : fixture/reply-port indexed max 3\n",
+      "source": "panel 0\nport-group workers >: fixture/reply-port indexed max 3\n",
       "expected": {
         "outcome": "accepted",
         "maximum": 3,
@@ -31,27 +31,27 @@
     {
       "id": "complete-contract-direction-mismatch",
       "assertion": "diagnostic",
-      "source": "panel 0\nport-group > routes : fixture/reply-port indexed max 1\n",
+      "source": "panel 0\nport-group > routes: fixture/reply-port indexed max 1\n",
       "expected": {"outcome": "rejected", "code": "CND-LWR-010"}
     },
     {
       "id": "maximum-changes-identity",
       "assertion": "compare",
-      "source": "panel 0\nport-group > routes : fixture/request-port keyed max 2 { member home member assets }\n",
-      "comparison_source": "panel 0\nport-group > routes : fixture/request-port keyed max 3 { member home member assets }\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port keyed max 2 { member home member assets }\n",
+      "comparison_source": "panel 0\nport-group > routes: fixture/request-port keyed max 3 { member home member assets }\n",
       "expected": {"outcome": "accepted", "relation": "different"}
     },
     {
       "id": "trivia-preserves-identity",
       "assertion": "compare",
-      "source": "panel 0\nport-group > routes : fixture/request-port keyed max 2 { member home member assets }\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port keyed max 2 { member home member assets }\n",
       "comparison_source": "# presentation only\npanel 0 port-group > routes:fixture/request-port keyed max 2{member home member assets}\n",
       "expected": {"outcome": "accepted", "relation": "equal"}
     },
     {
       "id": "catalog-order-independent",
       "assertion": "catalog-order",
-      "source": "panel 0\nport-group > routes : fixture/request-port indexed max 2\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port indexed max 2\n",
       "catalog_orders": [
         ["fixture/request-port", "fixture/reply-port"],
         ["fixture/reply-port", "fixture/request-port"]
@@ -61,43 +61,43 @@
     {
       "id": "nested-member-export-source",
       "assertion": "parse",
-      "source": "panel 0\nnode inner() { port-group routes > : fixture/reply-port keyed max 2 { member home member assets } }\nnode middle() { node child : inner export home > = child.routes[home] }\nnode outer() { node child : middle export home > = child.home }\nroot outer\n",
+      "source": "panel 0\ninner() { port-group routes >: fixture/reply-port keyed max 2 { member home member assets } }\nmiddle() { child: inner export home > = child.routes[home] }\nouter() { child: middle export home > = child.home }\nroot outer\n",
       "expected": {"outcome": "accepted", "target": "routes[home]"}
     },
     {
       "id": "unknown-local-member",
       "assertion": "parse-diagnostic",
-      "source": "panel 0\nnode inner() { port-group routes > : fixture/reply-port keyed max 1 { member home } }\nnode outer() { node child : inner export missing > = child.routes[missing] }\nroot outer\n",
+      "source": "panel 0\ninner() { port-group routes >: fixture/reply-port keyed max 1 { member home } }\nouter() { child: inner export missing > = child.routes[missing] }\nroot outer\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-009"}
     },
     {
       "id": "duplicate-key",
       "assertion": "parse-diagnostic",
-      "source": "panel 0\nport-group > routes : fixture/request-port keyed max 2 { member home member home }\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port keyed max 2 { member home member home }\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-002"}
     },
     {
       "id": "zero-maximum",
       "assertion": "parse-diagnostic",
-      "source": "panel 0\nport-group > routes : fixture/request-port indexed max 0\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port indexed max 0\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-008"}
     },
     {
       "id": "overflowed-maximum",
       "assertion": "parse-diagnostic",
-      "source": "panel 0\nport-group > routes : fixture/request-port indexed max 65536\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port indexed max 65536\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-008"}
     },
     {
       "id": "membership-exceeds-maximum",
       "assertion": "parse-diagnostic",
-      "source": "panel 0\nport-group > routes : fixture/request-port keyed max 1 { member home member assets }\n",
+      "source": "panel 0\nport-group > routes: fixture/request-port keyed max 1 { member home member assets }\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-008"}
     },
     {
       "id": "boundary-bypass",
       "assertion": "parse-diagnostic",
-      "source": "panel 0\nnode inner() { port-group routes > : fixture/reply-port keyed max 1 { member home } }\nnode outer() { node child : inner export home > = missing.routes[home] }\nroot outer\n",
+      "source": "panel 0\ninner() { port-group routes >: fixture/reply-port keyed max 1 { member home } }\nouter() { child: inner export home > = missing.routes[home] }\nroot outer\n",
       "expected": {"outcome": "rejected", "code": "CND-SRC-009"}
     }
   ],

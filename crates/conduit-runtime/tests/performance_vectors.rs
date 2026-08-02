@@ -60,10 +60,10 @@ fn small_medium_and_reviewed_maximum_linear_graphs_parse() {
     for nodes in [2_usize, 32, 256] {
         let mut source = String::from("panel 0\n");
         for index in 0..nodes {
-            source.push_str(&format!("node n{index} : fixture/node\n"));
+            source.push_str(&format!("n{index}: fixture/node\n"));
         }
         for index in 0..nodes - 1 {
-            source.push_str(&format!("cord n{index}.value -> n{}.value\n", index + 1));
+            source.push_str(&format!("n{index}.value > n{}.value\n", index + 1));
         }
         let panel = conduit_panel::parse(&source).unwrap();
         assert_eq!(panel.nodes.len(), nodes);

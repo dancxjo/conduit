@@ -1,21 +1,21 @@
 # Typed template + values -> text formatting with exact finite cords.
 panel 0
 
-node template : std/literal {
+template: std/literal {
     value = "Hello, {name}. Payload: {{status = {status}}}\n"
 }
 
-node values : std/format-values/literal {
+values: std/format-values/literal {
     values = list(
         record(name="name", value="operator"),
         record(name="status", value="ready")
     )
 }
 
-node greeting : std/text/format
-node output : display/text
+greeting: std/text/format
+output: display/text
 
-cord template.value -> greeting.template {
+template.value > greeting.template {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -24,7 +24,7 @@ cord template.value -> greeting.template {
     pressure = block
 }
 
-cord values.values -> greeting.values {
+values.values > greeting.values {
     capacity = 1
     max_value_bytes = 16384
     max_queued_bytes = 16384
@@ -33,7 +33,7 @@ cord values.values -> greeting.values {
     pressure = block
 }
 
-cord greeting.text -> output.text {
+greeting.text > output.text {
     capacity = 1
     max_value_bytes = 16384
     max_queued_bytes = 16384

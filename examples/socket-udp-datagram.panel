@@ -1,7 +1,7 @@
 # One bounded unconnected UDP loopback exchange; each datagram owns its address.
 panel 0
 
-node socket : conduit.host/net/udp/datagram {
+socket: conduit.host/net/udp/datagram {
     network_resource = secret("conduit.resource/socket-loopback")
     bind_grant = secret("conduit.grant/socket-udp-datagram")
     local = "127.0.0.1:0"

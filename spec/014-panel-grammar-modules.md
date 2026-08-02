@@ -2,115 +2,85 @@
 
 Status: C3 normative source contract
 
-This document defines the current `.panel` grammar. A panel is an authored
-assemblage of ordinary node definitions and instances. Parsing creates source
-structures, spans, and diagnostics only. It does not select implementations,
-inspect hosts, allocate queues, execute nodes, record evidence, or create a
-runtime `Panel` species.
+This document defines the only repository-supported `.panel` grammar. The
+pre-release marker remains `panel 0`; it is a marker for the current draft, not
+a compatibility promise. Git history contains displaced draft spellings.
 
-Source bytes, lossless CST, semantic source AST, resolved module graph, lowered
-semantic contracts, exact ExecutionPlan, run evidence, and presentation have
-distinct identities.
+Parsing creates source structures, spans, and diagnostics only. It does not
+select implementations, inspect hosts, allocate queues, execute nodes, record
+evidence, or create presentation state. Source bytes, lossless CST, semantic
+source AST, resolved module graph, lowered semantic contracts, exact plan, run
+evidence, and Patchbay presentation retain distinct identities.
 
-## Encoding and lexical grammar
+## Encoding and names
 
-A source unit is UTF-8. Outside strings, current form accepts ASCII space, tab,
-carriage return, and line feed as trivia. A `#` begins a comment through, but
-not including, the next line feed. Comments and trivia are retained in the CST
-and omitted from semantic source identity.
+Source is UTF-8. Identifiers use Unicode XID start and continuation characters,
+plus the grammar punctuation used by semantic namespaces and temporal types.
+Identifier spelling is normalized to NFC using the pinned
+`unicode-normalization 0.1.25` implementation. Two distinct spellings that
+normalize to the same identifier fail with `CND-SRC-011`; the lossless CST
+still retains the exact submitted bytes.
+
+Spaces, tabs, carriage returns, line feeds, and semicolons separate statements.
+`#` begins a comment through the next line feed. A chain may continue across a
+newline around `>`. Strings retain their Unicode contents without identifier
+normalization.
 
 ```ebnf
-letter          = "A"…"Z" | "a"…"z" ;
-digit           = "0"…"9" ;
-word-start      = letter | "_" | "-" | "." | "/" | "@" ;
-word-rest       = letter | digit | "_" | "-" | "." | "/" | "@"
-                | "[" | "]" ;
-word            = word-start, { word-rest } ;
+xid-start       = Unicode-XID-Start | "_" ;
+xid-continue    = Unicode-XID-Continue | "_" ;
+name            = xid-start, { xid-continue | "-" } ;
+qualified-name  = name, { "/", name }, [ "@", name ] ;
+member          = name, { "[", name, "]" } ;
+endpoint        = name, [ ".", member ] ;
+temporal-type   = qualified-name, [ "...", [ "|" ] ]
+                | "$", qualified-name ;
 number          = digit, { digit } ;
 integer         = [ "-" ], number ;
 string          = '"', { string-character | escape }, '"' ;
-escape          = "\", ( "n" | "r" | "t" | '"' | "\" ) ;
-qualified-name  = word ;
-endpoint        = word, ".", word ;
+separator       = newline | ";" ;
 ```
 
-`number` is an unsigned 64-bit decimal integer. `integer` is a signed `i128`
-source value whose expected type contract may impose narrower bounds.
-Individual non-literal productions impose the portable bounds stated below. A
-newline inside a string is preserved. current form does not normalize Unicode
-string contents.
+`T` is one ordinary value, `T...|` is a flow with a normal closing boundary,
+`T...` is an open flow, and `$T` is an immediately available current value
+whose newest replacement is retained. Closing alone implies no count, byte,
+duration, or progress bound. `$T` grants observation only: it is not mutation
+authority, history, durability, multi-writer state, or a CRDT.
 
-Names containing `/` are semantic namespaces. An imported name uses the exact
-alias prefix `alias.symbol`. Group member syntax such as `routes[home]` remains
-part of the port word after compile-time lowering; it does not denote a runtime
-array-valued port.
-
-## Syntactic grammar
-
-Line breaks and indentation are trivia. Keywords and punctuation delimit
-productions; current form has no semicolon insertion.
+## Current grammar
 
 ```ebnf
-document        = "panel", number, { declaration } ;
+document        = "panel", "0", { statement } ;
+statement       = import | interface | declaration | definition | graph
+                | root | port-group | pool | supervision ;
 
-declaration     = import
-                | interface
-                | node-declaration
-                | cord
-                | root
-                | port-group
-                | pool ;
+declaration     = name, ":", qualified-name,
+                  [ "using", qualified-name ], [ implements ], [ config ]
+                | name, "=", source-value ;
+implements      = "implements", qualified-name,
+                  { ",", qualified-name } ;
+config          = "{", { name, "=", source-value }, "}" ;
 
-import          = "import", string, "as", word, [ "pin", string ] ;
-root            = "root", qualified-name ;
+definition      = qualified-name, [ parameters ], [ implements ],
+                  "{", { definition-statement }, "}" ;
+parameters      = "(", [ parameter, { ",", parameter } ], ")" ;
+parameter       = name, ":", qualified-name, [ "=", source-value ] ;
+definition-statement
+                = declaration | graph | export | binding | port-group
+                | pool | supervision ;
 
-node-declaration
-                = "node", word,
-                  ( ":", qualified-name, [ constraint ], [ config-block ]
-                  | [ parameter-list ], definition-body ) ;
-constraint      = "using", word ;
-
-interface       = "interface", word, "{",
-                  { interface-member }, "}" ;
-interface-member
-                = directional-name, ":", qualified-name, [ "optional" ] ;
-
-parameter-list  = "(", [ parameter, { ",", parameter } ], ")" ;
-parameter       = word, ":", qualified-name, [ "=", source-value ] ;
-
-definition-body = "{", { definition-member }, "}" ;
-definition-member
-                = node-instance
-                | cord
-                | export
-                | binding
-                | port-group
-                | pool ;
-node-instance   = "node", word, ":", qualified-name,
-                  [ constraint ], [ config-block ] ;
-
-config-block    = "{", { word, "=", source-value }, "}" ;
-source-value    = boolean
-                | integer
-                | string
-                | word
-                | literal-call ;
-boolean         = "true" | "false" ;
-literal-call    = "bytes", "(", string, ")"
-                | "ref", "(", ( string | word ), ")"
-                | "contract", "(", ( string | word ), ")"
-                | "secret", "(", ( string | word ), ")"
-                | "decimal", "(", string, ")"
-                | "list", "(", [ source-value,
-                  { ",", source-value } ], ")"
-                | ( "record" | "map" ), "(",
-                  [ record-field, { ",", record-field } ], ")" ;
-record-field    = word, "=", source-value ;
-
-cord            = "cord",
-                  ( endpoint, "->", endpoint
-                  | endpoint, "<-", endpoint ),
+graph           = graph-term, ">", graph-term, { ">", graph-term },
                   [ cord-policy ] ;
+graph-term      = endpoint | source-value | qualified-name
+                | expression-stage ;
+expression-stage
+                = ( "keep" | "map" | "stop" ), "{", expression, "}" ;
+
+expression      = primary, { binary-operator, primary } ;
+primary         = source-value | name | "(", expression, ")" ;
+binary-operator = "+" | "-" | "*" | "/"
+                | "<" | "<=" | ">" | ">=" | "==" | "!=" ;
+
 cord-policy     = "{", { cord-field }, "}" ;
 cord-field      = "capacity", "=", number
                 | "max_value_bytes", "=", number
@@ -124,187 +94,152 @@ cord-field      = "capacity", "=", number
 pressure-name   = "block" | "reject" | "coalesce" | "sample"
                 | "drop-disposable" | "disconnect" | "fail" ;
 
+source-value    = "true" | "false" | integer | string | qualified-name
+                | literal-call ;
+literal-call    = "bytes", "(", string, ")"
+                | "ref", "(", ( string | qualified-name ), ")"
+                | "contract", "(", ( string | qualified-name ), ")"
+                | "secret", "(", ( string | qualified-name ), ")"
+                | "decimal", "(", string, ")"
+                | "list", "(", [ source-value,
+                  { ",", source-value } ], ")"
+                | ( "record" | "map" ), "(",
+                  [ record-field, { ",", record-field } ], ")" ;
+record-field    = name, "=", source-value ;
+
+interface       = "interface", qualified-name, "{",
+                  { directional-name, ":", qualified-name,
+                    [ "optional" ] }, "}" ;
+directional-name
+                = ">", name | name, "<" | name, ">" | "<", name ;
 export          = "export", directional-name, "=", endpoint ;
-binding         = "bind", word, "=", endpoint ;
+binding         = "bind", name, "=", endpoint ;
+root            = "root", qualified-name ;
 
 port-group      = "port-group", directional-name, ":", qualified-name,
                   ( "indexed", "max", number
                   | "keyed", "max", number, "{",
-                    group-member, { group-member }, "}" ) ;
-group-member    = "member", word ;
+                    "member", name, { "member", name }, "}" ) ;
+pool            = "pool", name, ":", qualified-name,
+                  "{", { name, "=", source-value }, "}" ;
+supervision     = "supervise", name, "with", name ;
 
-directional-name
-                = ">", word | word, "<"
-                | word, ">" | "<", word ;
-
-pool            = "pool", word, ":", qualified-name, "{",
-                  { pool-field }, "}" ;
-pool-field      = word, "=", source-value ;
+import          = "import", string, "as", name, [ "pin", string ]
+                | "import", qualified-name, package-selection ;
+package-selection
+                = "as", name
+                | "/{", package-name, { ",", package-name }, "}" ;
+package-name    = name, [ "as", name ] ;
 ```
 
-The pool field names and combinations are closed in current form:
+The parser context determines every operator before type checking. In
+`ages > keep { it > 18 } > adults`, the outer operators are graph connections
+and the inner operator is `GreaterThan`. Catalog contents, operand types,
+providers, and host observations cannot change that classification.
 
-| Field | Rule |
-|---|---|
-| `maximum` | required positive `u16` |
-| `admission` | required: `reject`, `block`, `queue_bounded`, or `fail` |
-| `admission_queue` | required positive `u16` only for `queue_bounded` |
-| `deadline_ms` | required finite `u64` |
-| `idle_timeout_ms` | required finite `u64` |
-| `supervision` | required: `fail_together`, `isolate`, `restart_bounded`, `fallback`, or `escalate` |
-| `restart_attempts` | required `u16` for `restart_bounded` |
-| `restart_backoff_ms` | required finite `u64` for `restart_bounded` |
-| `fallback` | required qualified name for `fallback` |
-| `cleanup` | required: `drain` or `abort` |
+## Concise declarations and chains
 
-Direction is explicit in the glyph, and the export target always names its
-semantic member:
+`:` declares a logical semantic instance. It does not allocate it or select an
+implementation. `=` supplies an immutable literal/configuration binding.
+`>` creates a bounded semantic cord. Explicit cord policy remains available;
+omitted policy uses the current finite source defaults and is resolved exactly
+before execution.
 
 ```panel
-export > trigger = mic.trigger
-export audio > = tts.audio
+panel 0
+
+answer-aloud {
+  voice: controls/voice
+  generate: llm/generate
+  sentences: text/sentences
+  speak: speech/synthesize
+  play: audio/play
+
+  voice > speak.voice
+  "Explain photosynthesis simply." > generate > sentences > speak > play
+}
 ```
 
-Parsing cannot inspect a selected implementation to infer direction.
+A bare endpoint is source shorthand only. Lowering must obtain the required
+receiving or outgoing member from one exact semantic interface descriptor's
+principal path. If that proof is unavailable or ambiguous, lowering fails with
+`CND-LWR-016` and the author must spell `instance.member`. Lowered graphs,
+plans, diagnostics, evidence, inspection, and accessible presentation always
+retain the complete named endpoint and source provenance.
 
-## Definitions, instances, and roots
+An inline namespaced stage receives a deterministic semantic occurrence
+identity derived from semantic AST order, never byte offsets or formatting.
+Use a named declaration when it needs cross-reference, independent
+configuration, multiple cords, or identity stable across structural edits.
 
-A source unit may contain multiple reusable definitions. A definition remains
-an ordinary node contract at its boundary. Parameters are typed configuration,
-not ports. `using ready` is an unresolved constraint and never a stored
-implementation selection.
+## Definitions, roots, groups, and pools
 
-Every instance, definition, parameter, group, pool, import alias, export, and
-binding is unique in its owning namespace. Duplicate symbols produce
-`CND-SRC-002`.
+A definition is an ordinary composite contract at its boundary. Parameters are
+typed configuration, never live ports. `using ready` remains an unresolved
+semantic constraint and never a stored implementation selection.
 
-`root name` declares a selectable definition or top-level instance. One
-declared root selects itself. More than one declared root requires an explicit
-caller selection; absence or mismatch produces `CND-SRC-006`. Imported source
-units may publish multiple roots because importing does not execute or select
-one. Displaced current form files with top-level instances and no root remain
-parse-compatible; they preserve their already-explicit top-level graph and do
-not synthesize a hidden root.
+Every name is unique in its owning namespace. One declared root selects itself;
+multiple roots require caller selection or fail with `CND-SRC-006`. Child
+access through an unexported composite boundary fails with `CND-SRC-009`.
 
-An endpoint must name an instance in its current boundary. Direct access such
-as `outer.inner.port` bypasses an export and produces `CND-SRC-009`.
+Port groups and instance pools retain their finite current contracts. A keyed
+group has unique keys and a positive maximum. An indexed group expands only
+`0..maximum`. Pools require positive maximum, finite deadlines and idle
+timeouts, explicit admission, supervision, and cleanup. Zero or unbounded
+forms fail with `CND-SRC-008`.
 
-## Compile-time groups and bounded pools
+## Modules and package imports
 
-A keyed group has one or more unique authored keys and a positive finite
-maximum. An indexed group expands deterministically to indices `0..maximum`.
-The qualified name after `:` identifies one complete semantic `PortContract`,
-not merely a value type. Lowering applies it to every member and produces
-ordinary complete typed ports with stable derived identities. Member
-insertion, removal, reordering where order is semantic, or maximum changes
-source and lowered semantic identity.
+Parsing performs no I/O. Module resolution consumes an explicitly supplied
+`ModuleLoader`, normalizes paths lexically, rejects escape above a URI root,
+checks exact optional SHA-256 pins, visits dependencies in source order, and
+rejects cycles with the complete import chain. Package resolution similarly
+consumes only caller-supplied immutable package bytes and exact lock data. It
+does not fetch, install, select providers, or grant authority.
 
-A pool names a template and every finite admission, deadline, idle,
-supervision, restart, and cleanup fact needed by later lowering. No callback or
-configuration array may hide handlers. Queue-bounded admission has an explicit
-positive queue maximum. Pool and group zero/unbounded forms produce
-`CND-SRC-008`.
+## CST, AST, formatting, and recovery
 
-Parsing does not allocate a pool or lower group members. The current hosted
-runtime fails with `CND-PLN-005` if imports, roots, constraints, groups, pools,
-or parameterized definitions reach it without the explicit compiler/lowering
-stage.
+`SourceDocument` retains exact UTF-8 bytes, trivia, comments, tokens, and spans.
+Its semantic AST contains only complete source forms. `format_panel` is an
+explicit canonical formatter; it emits the concise current grammar and
+preserves semantic source identity. Formatting never replaces the lossless CST
+round trip.
 
-Specification
-[`017-port-groups-correlation.md`](017-port-groups-correlation.md)
-maps every current group source field to its complete semantic, lowering,
-current plan, export, and evidence obligation. The current grammar meaning here is
-unchanged.
+Recovery may retain incomplete declarations and chains for editing, including
+`a >`, but never produces an executable `Panel`. Invalid or partial recovered
+state is presentation-only and lowering remains unavailable.
 
-## Modules, aliases, and content identity
-
-Import resolution is an explicit operation over a caller-supplied
-`ModuleLoader`. The parser and resolver perform no implicit filesystem or
-network access.
-
-Resolution applies these rules:
-
-1. An absolute path or URI is normalized lexically.
-2. A relative target is joined to the importing canonical URI.
-3. `.` is removed and `..` is rejected when it would escape the URI root.
-4. The loader must return the exact requested canonical URI.
-5. UTF-8 source bytes receive `sha256:<hex>` content identity.
-6. A `pin` must equal that identity or resolution fails with `CND-SRC-005`.
-7. Imports are visited in source order and emitted dependency-first.
-8. Duplicate aliases fail with `CND-SRC-002`.
-9. Missing modules or qualified symbols fail with `CND-SRC-003`.
-10. A cycle fails with `CND-SRC-004` and the complete ordered cycle path.
-
-The resolved graph records canonical URIs, exact content hashes, parsed source
-ASTs, and entry-root selection. It is not an ExecutionPlan or lockfile.
-Packaging tooling may persist those identities in a separate lock artifact;
-parsing never silently updates a pin.
-
-Specification
-[`019-source-lowering.md`](019-source-lowering.md) corrects the persisted
-source-AST boundary by excluding caller-selected root state under an explicit
-current form identity domain. This current form hash and every current grammar fixture
-retain their original meaning.
-
-## CST, semantic AST, and compatibility
-
-`SourceDocument` retains every UTF-8 byte as contiguous CST tokens with exact
-byte and line/column spans. `round_trip()` returns the original source. Its
-separate AST excludes comments, trivia, and spans. The stable
-`semantic_source_hash` domain-separates and hashes normalized AST fields, so
-equivalent formatting has equal identity.
-
-current form parsers MUST continue accepting the current valid fixtures. Adding a
-keyword in a location previously accepted as a `word` is potentially breaking.
-New optional syntax is compatible only when old documents keep the same AST.
-Changing defaults, implicit bounds, name resolution, or diagnostic meaning is
-a grammar-version change.
-
-## Diagnostics and recovery
+## Diagnostics
 
 | Code | Meaning |
 |---|---|
-| `CND-SRC-001` | lexical or syntactic error |
-| `CND-SRC-002` | duplicate source symbol |
-| `CND-SRC-003` | missing module, alias target, qualified symbol, or source reference |
-| `CND-SRC-004` | import cycle |
+| `CND-SRC-001` | malformed current grammar |
+| `CND-SRC-002` | duplicate symbol or field |
+| `CND-SRC-003` | unresolved imported/local symbol |
+| `CND-SRC-004` | module import cycle |
 | `CND-SRC-005` | content pin mismatch |
-| `CND-SRC-006` | absent, ambiguous, or unknown root selection |
-| `CND-SRC-007` | unsupported grammar version |
-| `CND-SRC-008` | zero, missing, overflowed, or unbounded group/pool maximum |
-| `CND-SRC-009` | inaccessible child or boundary bypass |
-| `CND-SRC-010` | malformed or unknown exact literal constructor |
-
-Recovery never guesses semantics. The lossless scanner continues through the
-complete byte string, so editors can always preserve and display malformed
-source. The strict semantic parser reports the first stable diagnostic and
-withholds the AST. An editor seeking additional diagnostics may synchronize at
-the next top-level declaration keyword or the closing brace at the current
-depth, but recovered declarations remain provisional and MUST NOT be lowered
-until a strict parse succeeds.
-
-## Conformance
-
-`conformance/c3/panel-grammar.json` is normative. It contains complete UTF-8
-source cases rather than implementation snapshots. It covers every EBNF
-production above, exact round trips, formatting equivalence, exact literal
-forms, imports, aliases, pins, cycles, duplicate symbols, malformed cords,
-boundary bypass, root selection, compile-time groups, bounded pools, pressure
-policies, and unsupported versions. Typed validation and lowering cases are
-separately current by `conformance/c3/source-lowering.json`.
+| `CND-SRC-006` | invalid or ambiguous root selection |
+| `CND-SRC-007` | unsupported panel marker |
+| `CND-SRC-008` | zero or non-finite group/pool bound |
+| `CND-SRC-009` | hidden composite child bypass |
+| `CND-SRC-010` | invalid typed source literal |
+| `CND-SRC-011` | Unicode normalization collision |
+| `CND-SRC-012` | invalid supervision relationship |
+| `CND-SEC-001` | source byte/token/item bound exceeded |
+| `CND-SEC-002` | source-value nesting bound exceeded |
+| `CND-LWR-016` | bare endpoint lacks one exact principal-path proof |
 
 ## Normative requirements
 
 | ID | Obligation |
 |---|---|
-| SRC-001 | Parse only the exact versioned lexical and syntactic grammar |
-| SRC-002 | Reject duplicate symbols in every owning source namespace |
-| SRC-003 | Resolve imports deterministically through explicit caller-supplied bytes without implicit I/O |
-| SRC-004 | Reject cycles with the complete deterministic import path |
-| SRC-005 | Content-identify every module and enforce authored pins exactly |
-| SRC-006 | Require explicit selection among multiple roots and never synthesize a hidden root |
-| SRC-007 | Reject unsupported grammar versions without reinterpretation |
-| SRC-008 | Keep every group, pool, admission queue, deadline, restart, and cleanup bound explicit and finite |
-| SRC-009 | Permit boundary access only through explicit exports |
-| SRC-010 | Preserve exact CST bytes/spans while keeping trivia outside semantic source identity |
-| SRC-011 | Recover without guessing or lowering provisional semantics |
+| PNL-001 | Accept one current pre-release grammar under `panel 0` |
+| PNL-002 | Retain exact bytes separately from normalized semantic identifiers |
+| PNL-003 | Parse graph and expression operators from grammar context only |
+| PNL-004 | Lower bare endpoints only through exact principal-path descriptors |
+| PNL-005 | Keep every live cord finite and pressure behavior explicit in semantics |
+| PNL-006 | Keep providers, devices, hosts, artifacts, resources, and authority out of source semantics |
+| PNL-007 | Preserve advanced definitions, roots, imports, interfaces, groups, pools, and supervision without a displaced reader |
+| PNL-008 | Keep recovery non-executable and formatting explicit |
+| PNL-009 | Reject normalization collisions deterministically |
+| PNL-010 | Delete displaced declaration and connection spellings from repository-owned sources |

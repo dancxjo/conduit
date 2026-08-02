@@ -180,8 +180,7 @@ fn dns_and_doh_execution_remain_blocked_by_http_provider_registration() {
         ("net/dns/resolve", "CND-IMP-001"),
         ("net/dns/doh", "CND-IMP-001"),
     ] {
-        let panel =
-            conduit_panel::parse(&format!("panel 0\nnode resolver : {contract}\n")).unwrap();
+        let panel = conduit_panel::parse(&format!("panel 0\nresolver: {contract}\n")).unwrap();
         let error = registry
             .resolve(&panel)
             .expect_err("HTTP installation cannot create a DNS execution path");

@@ -1,8 +1,8 @@
 # Bounded numeric-loopback TCP listener. It grants no firewall or reachability authority.
 panel 0
 
-node input : io/stdin-stream
-node listener : conduit.host/net/tcp/listen {
+input: io/stdin-stream
+listener: conduit.host/net/tcp/listen {
     network_resource = secret("conduit.resource/socket-loopback")
     bind_grant = secret("conduit.grant/socket-tcp-listen")
     local = "127.0.0.1:0"
@@ -21,7 +21,7 @@ node listener : conduit.host/net/tcp/listen {
     cleanup_ticks = 100
     cancellation = "none"
 }
-node output : io/stdout-stream
+output: io/stdout-stream
 
-cord input.bytes -> listener.transmit { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
-cord listener.received -> output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+input.bytes > listener.transmit { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+listener.received > output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }

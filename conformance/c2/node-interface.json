@@ -9,6 +9,21 @@
     "proof_hash_slots_per_member": 1
   },
   "unlisted_non_port_facets_are_unproven": true,
+  "principal_path": {
+    "receiving": "optional-required-input-member-id",
+    "outgoing": "optional-required-output-member-id",
+    "selection_authority": "exact-interface-descriptor-only",
+    "forbidden_inference": [
+      "member-order",
+      "port-count",
+      "type-compatibility",
+      "connection-state",
+      "catalog-order",
+      "implementation",
+      "provider",
+      "host-observation"
+    ]
+  },
   "cases": [
     {
       "id": "exact-primitive-boundary",
@@ -120,6 +135,59 @@
       "expected": {
         "outcome": "compatible",
         "hidden_adapter": false
+      }
+    },
+    {
+      "id": "principal-exact-projection",
+      "runner": "principal-projection",
+      "expected": {
+        "receiving": "text",
+        "outgoing": "audio",
+        "descriptor_backed": true
+      }
+    },
+    {
+      "id": "principal-absent-side",
+      "runner": "principal-projection",
+      "expected": {
+        "error": "principal-path-unavailable",
+        "inferred_fallback": false
+      }
+    },
+    {
+      "id": "principal-missing-member",
+      "runner": "validation",
+      "expected": {
+        "error": "interface-principal-member-missing"
+      }
+    },
+    {
+      "id": "principal-wrong-direction",
+      "runner": "validation",
+      "expected": {
+        "error": "interface-principal-member-missing"
+      }
+    },
+    {
+      "id": "principal-optional-member",
+      "runner": "validation",
+      "expected": {
+        "error": "interface-principal-member-optional"
+      }
+    },
+    {
+      "id": "principal-change-is-semantic",
+      "runner": "identity",
+      "expected": {
+        "relation": "different"
+      }
+    },
+    {
+      "id": "auxiliary-members-do-not-select-principal",
+      "runner": "principal-projection",
+      "expected": {
+        "projection_relation": "equal",
+        "inferred_fallback": false
       }
     },
     {

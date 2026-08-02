@@ -2,4 +2,4 @@ panel 0
 
 import conduit.dev/std/{tee as split}
 
-node branch : split
+branch: split

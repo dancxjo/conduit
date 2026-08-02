@@ -48,7 +48,7 @@ The compiler performs parse, module resolution, validation, lowering, host
 resolution, budget binding, exact-plan construction, plan sealing, and
 portable plan validation in that order (`CMP-003`). It performs no network
 discovery, artifact download, host provisioning, login, secret resolution,
-grant acquisition, implementation loading, or node execution (`CMP-004`).
+grant acquisition, implementation loading, or execution(`CMP-004`).
 Every provider call is an explicit in-memory lookup over the supplied
 document.
 

@@ -184,15 +184,15 @@ fn every_normative_diagnostic_vector_is_valid_lossless_and_renderable() {
 
 #[test]
 fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
-    let arrow_source = DiagnosticSource::new(
-        "mem://fixture/arrow.panel",
-        b"panel 0\ncord microphone.audio tts.text\n".as_slice(),
+    let graph_source = DiagnosticSource::new(
+        "mem://fixture/graph.panel",
+        b"panel 0\nmicrophone.audio tts.text\n".as_slice(),
     );
-    let arrow = from_parse_error(
-        &parse(std::str::from_utf8(&arrow_source.bytes).unwrap()).unwrap_err(),
-        &arrow_source,
+    let graph = from_parse_error(
+        &parse(std::str::from_utf8(&graph_source.bytes).unwrap()).unwrap_err(),
+        &graph_source,
     );
-    assert_eq!(arrow.fixes[0].id, "insert-cord-arrow");
+    assert_eq!(graph.fixes[0].id, "insert-graph-operator");
 
     let version_source =
         DiagnosticSource::new("mem://fixture/version.panel", b"panel 99\n".as_slice());
@@ -204,7 +204,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let comma_source = DiagnosticSource::new(
         "mem://fixture/comma.panel",
-        b"panel 0\nnode value : fixture/all { items = list(true, ) }\n".as_slice(),
+        b"panel 0\nvalue: fixture/all { items = list(true, ) }\n".as_slice(),
     );
     let comma = from_parse_error(
         &parse(std::str::from_utf8(&comma_source.bytes).unwrap()).unwrap_err(),
@@ -214,7 +214,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let secret_source = DiagnosticSource::new(
         "mem://fixture/secret.panel",
-        b"panel 0\nnode value : fixture/secret { token = \"do-not-echo\" }\n".as_slice(),
+        b"panel 0\nvalue: fixture/secret { token = \"do-not-echo\" }\n".as_slice(),
     );
     let secret_error = LoweringDiagnostic {
         code: "CND-LWR-009",
@@ -243,7 +243,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 
     let source = DiagnosticSource::new(
         "mem://fixture/mismatch.panel",
-        b"panel 0\ncord microphone.audio -> tts.text\n".as_slice(),
+        b"panel 0\nmicrophone.audio > tts.text\n".as_slice(),
     );
     let adapter = from_validation_error(
         ValidationError {
@@ -265,7 +265,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
                     precondition_hash: source.content_hash.clone(),
                     byte_start: 8,
                     byte_end: 41,
-                    replacement: "node adapter : fixture/transcribe\ncord microphone.audio -> adapter.audio\ncord adapter.text -> tts.text".to_owned(),
+                    replacement: "adapter: fixture/transcribe\nmicrophone.audio > adapter.audio\nadapter.text > tts.text".to_owned(),
                 },
             }),
         },
@@ -277,7 +277,7 @@ fn common_mistakes_have_five_explicit_unapplied_fix_contracts() {
 fn terminal_color_and_plain_snapshots_are_exact() {
     let source = DiagnosticSource::new(
         "mem://fixture/root.panel",
-        b"panel 0\ncord microphone.audio -> tts.text\n".as_slice(),
+        b"panel 0\nmicrophone.audio > tts.text\n".as_slice(),
     );
     let diagnostic = from_validation_error(
         ValidationError {
@@ -306,7 +306,7 @@ fn terminal_color_and_plain_snapshots_are_exact() {
         concat!(
             "error[CND-TYP-001]: writer port is not accepted by reader port\n",
             "--> mem://fixture/root.panel:2:1 (bytes 8..41)\n",
-            "2 | cord microphone.audio -> tts.text\n",
+            "2 | microphone.audio > tts.text\n",
             "  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
         )
     );
@@ -323,7 +323,7 @@ fn terminal_color_and_plain_snapshots_are_exact() {
             "writer port is not accepted by reader port\n",
             "\u{1b}[1;34m-->\u{1b}[0m mem://fixture/root.panel:2:1 ",
             "(bytes 8..41)\n",
-            "2 | cord microphone.audio -> tts.text\n",
+            "2 | microphone.audio > tts.text\n",
             "  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
         )
     );

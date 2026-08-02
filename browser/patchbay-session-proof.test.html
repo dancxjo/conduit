@@ -14,9 +14,9 @@
     if (!condition) throw new Error(message);
   };
   const source = `panel 0
-node greeting : std/literal { value = "hello" }
-node output : display/text
-cord greeting.value -> output.text {
+greeting: std/literal { value = "hello" }
+output: display/text
+greeting.value > output.text {
   capacity = 1
   max_value_bytes = 64
   max_queued_bytes = 64

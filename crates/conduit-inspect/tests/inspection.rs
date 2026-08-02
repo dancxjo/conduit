@@ -452,7 +452,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
 fn panel_detection_is_comment_safe_and_never_reproduces_secrets() {
     let source = br#"# comment
 panel 0
-node value : std/literal { value = secret("credential/material") }
+value: std/literal { value = secret("credential/material") }
 "#;
     let report = inspect_bytes(
         source,

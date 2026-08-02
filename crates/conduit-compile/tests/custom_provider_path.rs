@@ -165,7 +165,7 @@ fn start_cleanup_session(
     factory: HandlerFactory,
     run_id: &'static str,
 ) -> (ExactHostedRunSession, ExactRunSessionRegistry, u64) {
-    const SOURCE: &str = "panel 0\nnode weather : acme/weather/cleanup\n";
+    const SOURCE: &str = "panel 0\nweather: acme/weather/cleanup\n";
     let mut registry = Registry::hosted_primitives();
     registry.register_contract_only(&CLEANUP_CONTRACT);
     registry
@@ -232,7 +232,7 @@ fn start_cleanup_session(
 
 #[test]
 fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() {
-    const SOURCE: &str = "panel 0\nnode weather : acme/weather/probe\n";
+    const SOURCE: &str = "panel 0\nweather: acme/weather/probe\n";
     let mut registry = Registry::hosted_primitives();
     registry.register_contract_only(&CUSTOM_CONTRACT);
     registry
@@ -330,7 +330,7 @@ fn custom_namespaced_node_survives_source_plan_binding_execution_and_evidence() 
 
 #[test]
 fn custom_hosted_provider_waits_across_multiple_exact_host_wakes() {
-    const SOURCE: &str = "panel 0\nnode weather : acme/weather/probe\n";
+    const SOURCE: &str = "panel 0\nweather: acme/weather/probe\n";
     LIVE_PROVIDER_PREPARES.store(0, Ordering::SeqCst);
     LIVE_PROVIDER_STARTS.store(0, Ordering::SeqCst);
     LIVE_PROVIDER_CLEANUPS.store(0, Ordering::SeqCst);

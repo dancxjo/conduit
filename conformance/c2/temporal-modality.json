@@ -1,0 +1,153 @@
+{
+  "suite": "conduit.temporal-modality",
+  "schema_version": 0,
+  "surfaces": {
+    "T": "value",
+    "T...|": "closing-flow",
+    "T...": "open-flow",
+    "$T": "current"
+  },
+  "compatibility": "exact-modality-only",
+  "cases": [
+    {
+      "id": "ordinary-value",
+      "runner": "descriptor",
+      "expected": {"surface": "value", "cardinality": "exactly-one", "closing": "after-value"}
+    },
+    {
+      "id": "closing-flow",
+      "runner": "descriptor",
+      "expected": {"surface": "closing-flow", "cardinality": "zero-or-more", "closing": "available"}
+    },
+    {
+      "id": "open-flow",
+      "runner": "descriptor",
+      "expected": {"surface": "open-flow", "cardinality": "zero-or-more", "closing": "absent"}
+    },
+    {
+      "id": "current-observation",
+      "runner": "descriptor",
+      "expected": {"surface": "current", "initial": "immediate-current", "retention": "latest-replacement", "replay": "current-only", "replacement": "replace-latest"}
+    },
+    {
+      "id": "cross-surface-matrix",
+      "runner": "compatibility",
+      "expected": {"diagonal": "compatible", "off_diagonal": "incompatible", "implicit_conversion": false}
+    },
+    {
+      "id": "closing-is-not-resource-bound",
+      "runner": "boundary",
+      "expected": {"maximum_items": null, "maximum_bytes": null, "maximum_duration": null, "progress_promised": false}
+    },
+    {
+      "id": "current-is-observation-only",
+      "runner": "boundary",
+      "expected": {"mutation_authority": false, "separate_effect_port_required": true, "separate_grant_required": true}
+    },
+    {
+      "id": "current-is-not-history",
+      "runner": "boundary",
+      "expected": {"historical_replay": false, "durable": false, "multi_writer": false, "crdt": false}
+    },
+    {
+      "id": "invalid-immediate-open-flow",
+      "runner": "validation",
+      "expected": {"error": "temporal-modality-invalid-combination"}
+    },
+    {
+      "id": "every-field-is-identity-bearing",
+      "runner": "identity",
+      "expected": {"surface_identities": "all-distinct", "item_type_change": "different"}
+    },
+    {
+      "id": "explicit-pure-lift",
+      "runner": "modality-lift",
+      "expected": {"item_type": "declared-output", "all_temporal_fields": "preserved", "proofs": ["purity", "modality-law"]}
+    },
+    {
+      "id": "unadmitted-current-lift",
+      "runner": "modality-lift",
+      "expected": {"error": "surface-not-admitted", "implicit_lift": false}
+    },
+    {
+      "id": "lift-input-type-mismatch",
+      "runner": "modality-lift",
+      "expected": {"error": "input-type-mismatch", "implicit_adapter": false}
+    },
+    {
+      "id": "lift-proof-required",
+      "runner": "validation",
+      "expected": {"errors": ["modality-lift-invalid-purity-proof", "modality-lift-invalid-law-proof"]}
+    },
+    {
+      "id": "lift-declaration-is-identity-bearing",
+      "runner": "identity",
+      "expected": {"node_endpoint_type_surface_or_proof_change": "different"}
+    },
+    {
+      "id": "current-late-subscriber",
+      "runner": "current-value-runtime",
+      "expected": {"delivery": "immediate-current", "generation": 0}
+    },
+    {
+      "id": "current-update-without-subscriber",
+      "runner": "current-value-runtime",
+      "expected": {"retained": "newest", "subscriber_required_for_update": false}
+    },
+    {
+      "id": "current-reconnect-newest",
+      "runner": "current-value-runtime",
+      "expected": {"delivery": "newest-only", "history": false, "skipped_replacements_reported": true}
+    },
+    {
+      "id": "current-denied-mutation",
+      "runner": "current-value-runtime",
+      "expected": {"state_changed": false, "separate_authorizer_called": true}
+    },
+    {
+      "id": "current-equal-replacement",
+      "runner": "current-value-runtime",
+      "expected": {"generation_advanced": true, "implicit_deduplication": false}
+    },
+    {
+      "id": "standard-conversion-profiles",
+      "runner": "temporal-conversion-contract",
+      "expected": {"contracts": ["conduit.std/flow/each", "conduit.std/flow/collect", "conduit.std/state/sample", "conduit.std/state/changes", "conduit.std/state/hold"]}
+    },
+    {
+      "id": "flow-each-order-and-close",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"order": "list-order", "normal_closes": 1}
+    },
+    {
+      "id": "flow-collect-bounded",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"maximum_items": "positive-required", "maximum_bytes": "positive-required", "preallocated": true}
+    },
+    {
+      "id": "flow-collect-open-rejected",
+      "runner": "temporal-conversion-contract",
+      "expected": {"error": "temporal-conversion-invalid-profile", "implicit_window": false}
+    },
+    {
+      "id": "flow-collect-close-required",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"error": "normal-close-required", "partial_list_fabricated": false}
+    },
+    {
+      "id": "flow-collect-overflow-atomic",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"resident_state_changed": false, "rejected_item_returned": true}
+    },
+    {
+      "id": "state-conversion-runtime",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"sample": "one-current", "changes": "future-open-flow", "hold": "initialized-current"}
+    },
+    {
+      "id": "state-hold-initial-required",
+      "runner": "temporal-conversion-contract",
+      "expected": {"error": "temporal-conversion-invalid-profile", "missing_initial_allowed": false}
+    }
+  ]
+}

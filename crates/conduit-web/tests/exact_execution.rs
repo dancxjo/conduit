@@ -3,10 +3,10 @@ mod support;
 use conduit_web::{run_panel, run_panel_exact};
 
 const SOURCE: &str = "panel 0\n\
-node greeting : std/literal { value = \"Hello from Conduit.\\n\" }\n\
-node shout : text/uppercase\n\
-node output : display/text\n\
-cord greeting.value -> shout.text {\n\
+greeting: std/literal { value = \"Hello from Conduit.\\n\" }\n\
+shout: text/uppercase\n\
+output: display/text\n\
+greeting.value > shout.text {\n\
   capacity = 2\n\
   max_value_bytes = 64\n\
   max_queued_bytes = 128\n\
@@ -14,7 +14,7 @@ cord greeting.value -> shout.text {\n\
   high_watermark = 2\n\
   pressure = block\n\
 }\n\
-cord shout.text -> output.text {\n\
+shout.text > output.text {\n\
   capacity = 2\n\
   max_value_bytes = 64\n\
   max_queued_bytes = 128\n\

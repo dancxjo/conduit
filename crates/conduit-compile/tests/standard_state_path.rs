@@ -242,16 +242,16 @@ fn cell_get_reset_and_abort_cancellation_are_explicit() {
     let cell = include_str!("../../../examples/state-cell.panel")
         .replace("maximum_items = 4", "maximum_items = 8")
         .replace(
-            "node join :",
-            "node command_source : std/literal { value = \"get\\nreset\\n\" }\n\
-             node commands : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\n\
-             node join :",
+            "join:",
+            "command_source: std/literal { value = \"get\\nreset\\n\" }\n\
+             commands: std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }\n\
+             join:",
         )
         .replace(
-            "cord cell.current ->",
-            "cord command_source.value -> commands.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
-             cord commands.line -> cell.command { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
-             cord cell.current ->",
+            "cell.current >",
+            "command_source.value > commands.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
+             commands.line > cell.command { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
+             cell.current >",
         );
     assert_eq!(
         exact_run(&cell, "run/state/cell-get-reset").0,

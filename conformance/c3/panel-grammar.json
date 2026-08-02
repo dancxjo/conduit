@@ -6,10 +6,73 @@
       "id": "minimal",
       "mode": "parse",
       "productions": ["document", "version", "instance", "cord", "endpoint", "cord-policy"],
-      "source": "panel 0\nnode source : std/literal { value = \"hello\" }\nnode sink : display/text\ncord source.value -> sink.text\n",
+      "source": "panel 0\nsource: std/literal { value = \"hello\" }\nsink: display/text\nsource.value > sink.text\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
+    },
+    {
+      "id": "concise-bindings-chain-and-inline-stage",
+      "mode": "parse",
+      "productions": ["separator", "value-binding", "graph", "inline-stage"],
+      "source": "panel 0; answer = 42; source: fixture/source; sink: fixture/sink; answer > flow/each > sink;",
+      "selected_root": null,
+      "round_trip": true,
+      "outcome": "accepted", "code": "-"
+    },
+    {
+      "id": "temporal-surfaces",
+      "mode": "parse",
+      "productions": ["temporal-type"],
+      "source": "panel 0\ninterface fixture/temporal {\n  > one: fixture/T\n  > closing: fixture/T...|\n  > open: fixture/T...\n  > current: $fixture/T\n}\n",
+      "selected_root": null,
+      "round_trip": true,
+      "outcome": "accepted", "code": "-"
+    },
+    {
+      "id": "graph-and-expression-context",
+      "mode": "parse",
+      "productions": ["expression", "comparison-operator"],
+      "source": "panel 0\nages: fixture/source\nadults: fixture/sink\nages > keep { it > 18 } > adults\n",
+      "selected_root": null,
+      "round_trip": true,
+      "outcome": "accepted", "code": "-"
+    },
+    {
+      "id": "unicode-xid-name",
+      "mode": "parse",
+      "productions": ["unicode-name"],
+      "source": "panel 0\nκαφές: fixture/source\n",
+      "selected_root": null,
+      "round_trip": true,
+      "outcome": "accepted", "code": "-"
+    },
+    {
+      "id": "unicode-normalization-collision",
+      "mode": "parse",
+      "productions": ["unicode-name"],
+      "source": "panel 0\ncafé: fixture/source\ncafé: fixture/sink\n",
+      "selected_root": null,
+      "round_trip": false,
+      "outcome": "rejected", "code": "CND-SRC-011"
+    },
+    {
+      "id": "displaced-node-declaration",
+      "mode": "parse",
+      "productions": ["declaration"],
+      "source": "panel 0\nnode source: fixture/source\n",
+      "selected_root": null,
+      "round_trip": false,
+      "outcome": "rejected", "code": "CND-SRC-001"
+    },
+    {
+      "id": "displaced-cord-arrow",
+      "mode": "parse",
+      "productions": ["graph"],
+      "source": "panel 0\ncord source.value -> sink.value\n",
+      "selected_root": null,
+      "round_trip": false,
+      "outcome": "rejected", "code": "CND-SRC-001"
     },
     {
       "id": "import-alias-pin",
@@ -24,7 +87,7 @@
       "id": "definition-parameters-constraint-export",
       "mode": "parse",
       "productions": ["definition", "parameter-list", "parameter", "constraint", "export", "binding", "comment"],
-      "source": "# retained comment\npanel 0\nnode reply(language: language_tag = \"en\") {\n  node source : std/literal using ready\n  node sink : display/text\n  cord source.value -> sink.text\n  export audio > = source.value\n  bind language = source.value\n}\nroot reply\n",
+      "source": "# retained comment\npanel 0\nreply(language: language_tag = \"en\") {\n  source: std/literal using ready\n  sink: display/text\n  source.value > sink.text\n  export audio > = source.value\n  bind language = source.value\n}\nroot reply\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -33,7 +96,7 @@
       "id": "multiple-roots-selected",
       "mode": "parse",
       "productions": ["root"],
-      "source": "panel 0\nnode first { node a : std/literal }\nnode second { node b : std/literal }\nroot first\nroot second\n",
+      "source": "panel 0\nfirst { a: std/literal }\nsecond { b: std/literal }\nroot first\nroot second\n",
       "selected_root": "second",
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -42,7 +105,7 @@
       "id": "port-groups",
       "mode": "parse",
       "productions": ["port-group", "keyed-group", "indexed-group", "group-member"],
-      "source": "panel 0\nnode router {\n  node handler : fixture/handler\n  port-group routes > : fixture/reply keyed max 3 { member home member assets }\n  export home > = handler.routes[home]\n}\nport-group workers > : fixture/reply indexed max 8\nroot router\n",
+      "source": "panel 0\nrouter {\n  handler: fixture/handler\n  port-group routes >: fixture/reply keyed max 3 { member home member assets }\n  export home > = handler.routes[home]\n}\nport-group workers >: fixture/reply indexed max 8\nroot router\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -51,7 +114,7 @@
       "id": "nested-definitions",
       "mode": "parse",
       "productions": ["definition", "instance", "export", "root"],
-      "source": "panel 0\nnode inner {\n  node value : fixture/source\n  export result > = value.result\n}\nnode outer {\n  node child : inner\n  export result > = child.result\n}\nroot outer\n",
+      "source": "panel 0\ninner {\n  value: fixture/source\n  export result > = value.result\n}\nouter {\n  child: inner\n  export result > = child.result\n}\nroot outer\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -60,7 +123,7 @@
       "id": "bounded-pools",
       "mode": "parse",
       "productions": ["pool", "pool-policy", "admission", "supervision", "cleanup"],
-      "source": "panel 0\npool rejectors : fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fail_together cleanup = abort }\npool blockers : fixture/handler { maximum = 8 admission = block deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = drain }\npool queued : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 32 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\npool failed : fixture/handler { maximum = 8 admission = fail deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fallback fallback = fixture/fallback cleanup = abort }\n",
+      "source": "panel 0\npool rejectors: fixture/handler { maximum = 8 admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fail_together cleanup = abort }\npool blockers: fixture/handler { maximum = 8 admission = block deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = drain }\npool queued: fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 32 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\npool failed: fixture/handler { maximum = 8 admission = fail deadline_ms = 1000 idle_timeout_ms = 5000 supervision = fallback fallback = fixture/fallback cleanup = abort }\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -69,7 +132,7 @@
       "id": "pressure-policies",
       "mode": "parse",
       "productions": ["pressure-policy", "number"],
-      "source": "panel 0\nnode a : fixture/source\nnode b : fixture/sink\ncord a.value -> b.value { capacity = 4 pressure = sample sample_every = 3 sample_offset = 1 }\ncord a.value -> b.value { capacity = 4 pressure = coalesce coalescer = fixture/latest }\ncord a.value -> b.value { capacity = 4 pressure = drop-disposable }\n",
+      "source": "panel 0\na: fixture/source\nb: fixture/sink\na.value > b.value { capacity = 4 pressure = sample sample_every = 3 sample_offset = 1 }\na.value > b.value { capacity = 4 pressure = coalesce coalescer = fixture/latest }\na.value > b.value { capacity = 4 pressure = drop-disposable }\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -78,8 +141,8 @@
       "id": "format-equivalence",
       "mode": "parse",
       "productions": ["trivia"],
-      "source": "panel 0\nnode value : std/literal { value = \"same\" }\n",
-      "equivalent_source": "# different trivia\npanel 0   node value:std/literal{\nvalue=\"same\"\n}\n",
+      "source": "panel 0\nvalue: std/literal { value = \"same\" }\n",
+      "equivalent_source": "# different trivia\npanel 0   value:std/literal{\nvalue=\"same\"\n}\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -88,7 +151,7 @@
       "id": "typed-literal-forms",
       "mode": "parse",
       "productions": ["source-value", "boolean", "integer", "literal-call", "record-field"],
-      "source": "panel 0\nnode value : fixture/all { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") token = secret(\"binding\") amount = decimal(\"0.100\") items = list(true,false) nested = record(name=\"nested\",count=7) }\n",
+      "source": "panel 0\nvalue: fixture/all { flag = true count = -7 text = \"hello\" data = bytes(\"00aBff\") target = ref(\"fixture/target\") schema = contract(\"fixture/schema\") token = secret(\"binding\") amount = decimal(\"0.100\") items = list(true,false) nested = record(name=\"nested\",count=7) }\n",
       "selected_root": null,
       "round_trip": true,
       "outcome": "accepted", "code": "-"
@@ -97,7 +160,7 @@
       "id": "invalid-exact-decimal",
       "mode": "parse",
       "productions": ["source-value", "literal-call"],
-      "source": "panel 0\nnode value : fixture/all { amount = decimal(\"1e-3\") }\n",
+      "source": "panel 0\nvalue: fixture/all { amount = decimal(\"1e-3\") }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-010"
@@ -106,7 +169,7 @@
       "id": "trailing-literal-comma",
       "mode": "parse",
       "productions": ["source-value", "literal-call"],
-      "source": "panel 0\nnode value : fixture/all { items = list(true,) }\n",
+      "source": "panel 0\nvalue: fixture/all { items = list(true,) }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-001"
@@ -124,16 +187,16 @@
       "id": "duplicate-symbol",
       "mode": "parse",
       "productions": ["instance"],
-      "source": "panel 0\nnode same : fixture/a\nnode same : fixture/b\n",
+      "source": "panel 0\nsame: fixture/a\nsame: fixture/b\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-002"
     },
     {
-      "id": "malformed-cord",
+      "id": "malformed-graph",
       "mode": "parse",
-      "productions": ["cord"],
-      "source": "panel 0\nnode a : fixture/a\nnode b : fixture/b\ncord a.value b.value\n",
+      "productions": ["graph"],
+      "source": "panel 0\na: fixture/a\nb: fixture/b\na.value b.value\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-001"
@@ -142,7 +205,7 @@
       "id": "boundary-bypass",
       "mode": "parse",
       "productions": ["endpoint", "export"],
-      "source": "panel 0\nnode box { node inner : fixture/source export result > = inner.result }\nnode app : box\nnode sink : fixture/sink\ncord app.inner.result -> sink.value\n",
+      "source": "panel 0\nbox { inner: fixture/source export result > = inner.result }\napp: box\nsink: fixture/sink\napp.inner.result > sink.value\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-009"
@@ -151,7 +214,7 @@
       "id": "multiple-roots-unselected",
       "mode": "parse",
       "productions": ["root"],
-      "source": "panel 0\nnode first { node a : fixture/a }\nnode second { node b : fixture/b }\nroot first\nroot second\n",
+      "source": "panel 0\nfirst { a: fixture/a }\nsecond { b: fixture/b }\nroot first\nroot second\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-006"
@@ -160,7 +223,7 @@
       "id": "zero-group-maximum",
       "mode": "parse",
       "productions": ["port-group"],
-      "source": "panel 0\nport-group > routes : fixture/request indexed max 0\n",
+      "source": "panel 0\nport-group > routes: fixture/request indexed max 0\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-008"
@@ -169,7 +232,7 @@
       "id": "duplicate-group-member",
       "mode": "parse",
       "productions": ["group-member"],
-      "source": "panel 0\nport-group > routes : fixture/request keyed max 2 { member home member home }\n",
+      "source": "panel 0\nport-group > routes: fixture/request keyed max 2 { member home member home }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-002"
@@ -178,7 +241,7 @@
       "id": "unbounded-pool",
       "mode": "parse",
       "productions": ["pool", "pool-policy"],
-      "source": "panel 0\npool sessions : fixture/handler { admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }\n",
+      "source": "panel 0\npool sessions: fixture/handler { admission = reject deadline_ms = 1000 idle_timeout_ms = 5000 supervision = isolate cleanup = abort }\n",
       "selected_root": null,
       "round_trip": false,
       "outcome": "rejected", "code": "CND-SRC-008"
@@ -225,9 +288,9 @@
       "mode": "resolve",
       "productions": ["import", "module-resolution", "qualified-name"],
       "entry_uri": "mem://fixture/root.panel",
-      "source": "panel 0\nimport \"./child.panel\" as child pin \"sha256:15922d78b96cca4f29437dfead8a7e51b50e7e424ca4ec91344304f49b5631cb\"\nnode app { node worker : child.worker }\nroot app\n",
+      "source": "panel 0\nimport \"./child.panel\" as child pin \"sha256:6ae89817f3fc6f221185a30bcbc8e76d0c7faf1f670f9791673d83faa38bf245\"\napp { worker: child.worker }\nroot app\n",
       "modules": {
-        "mem://fixture/child.panel": "panel 0\nnode worker { node value : fixture/value }\nroot worker\n"
+        "mem://fixture/child.panel": "panel 0\nworker { value: fixture/value }\nroot worker\n"
       },
       "selected_root": null,
       "round_trip": false,

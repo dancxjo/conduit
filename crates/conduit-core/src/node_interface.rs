@@ -108,11 +108,40 @@ pub struct NodeInterfaceRequirement<'a> {
     pub contract: DescriptorRef<'a>,
 }
 
+/// Explicit principal receiving and outgoing endpoints for concise source.
+///
+/// An absent side is intentional and supports source-only and sink-only
+/// boundaries. Member order, type compatibility, and connection state never
+/// participate in projection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PrincipalPath<'a> {
+    pub receiving: Option<Id<'a>>,
+    pub outgoing: Option<Id<'a>>,
+}
+
+impl<'a> PrincipalPath<'a> {
+    /// A boundary that permits no bare endpoint projection.
+    pub const NONE: Self = Self {
+        receiving: None,
+        outgoing: None,
+    };
+
+    #[must_use]
+    const fn endpoint(self, direction: Direction) -> Option<Id<'a>> {
+        match direction {
+            Direction::Input => self.receiving,
+            Direction::Output => self.outgoing,
+        }
+    }
+}
+
 /// Borrowed allocator-free node-interface descriptor.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeInterfaceContract<'a> {
     /// Stable namespaced identity.
     pub id: Id<'a>,
+    /// Exact principal path used only for descriptor-backed bare projection.
+    pub principal_path: PrincipalPath<'a>,
     /// Finite named boundary. Source order is not semantic.
     pub members: &'a [NodeInterfaceMember<'a>],
     /// Finite exact configuration, lifecycle, effect, or provider-owned facts.
@@ -142,6 +171,21 @@ impl<'a> NodeInterfaceContract<'a> {
                     id: member.port.id,
                     direction: member.port.direction,
                 });
+            }
+        }
+        for direction in [Direction::Input, Direction::Output] {
+            let Some(id) = self.principal_path.endpoint(direction) else {
+                continue;
+            };
+            let Some(member) = self
+                .members
+                .iter()
+                .find(|member| member.port.id == id && member.port.direction == direction)
+            else {
+                return Err(NodeInterfaceContractError::MissingPrincipalMember { id, direction });
+            };
+            if member.requirement != InterfaceMemberRequirement::Required {
+                return Err(NodeInterfaceContractError::OptionalPrincipalMember { id, direction });
             }
         }
         for (index, requirement) in self.requirements.iter().enumerate() {
@@ -189,7 +233,24 @@ impl<'a> NodeInterfaceContract<'a> {
             *slot = hash_interface_requirement(*requirement)
                 .map_err(NodeInterfaceIdentityError::Canonical)?;
         }
-        let fields = [semantic("contract_id", CanonicalValue::Identifier(self.id))];
+        let principal_fields = [
+            semantic(
+                "receiving",
+                self.principal_path
+                    .receiving
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+            semantic(
+                "outgoing",
+                self.principal_path
+                    .outgoing
+                    .map_or(CanonicalValue::Null, CanonicalValue::Identifier),
+            ),
+        ];
+        let fields = [
+            semantic("contract_id", CanonicalValue::Identifier(self.id)),
+            semantic("principal_path", CanonicalValue::Map(&principal_fields)),
+        ];
         semantic_hash_with_hash_set(
             Id("conduit/node-interface-contract"),
             NODE_INTERFACE_CONTRACT_SCHEMA_VERSION,
@@ -215,6 +276,53 @@ impl<'a> NodeInterfaceContract<'a> {
         }
         Ok(())
     }
+
+    /// Projects a bare source endpoint through the declared principal path.
+    ///
+    /// This operation consults only this exact descriptor. It never selects a
+    /// member by order, type, connection state, implementation, or host facts.
+    pub fn project_principal(
+        &self,
+        direction: Direction,
+    ) -> Result<NodeInterfaceMember<'a>, PrincipalProjectionError<'a>> {
+        self.validate()
+            .map_err(PrincipalProjectionError::InvalidContract)?;
+        let id = self
+            .principal_path
+            .endpoint(direction)
+            .ok_or(PrincipalProjectionError::Unavailable { direction })?;
+        self.members
+            .iter()
+            .copied()
+            .find(|member| member.port.id == id && member.port.direction == direction)
+            .ok_or(PrincipalProjectionError::InvalidContract(
+                NodeInterfaceContractError::MissingPrincipalMember { id, direction },
+            ))
+    }
+}
+
+/// Failure to project a bare endpoint through an exact interface descriptor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrincipalProjectionError<'a> {
+    InvalidContract(NodeInterfaceContractError<'a>),
+    Unavailable { direction: Direction },
+}
+
+impl PrincipalProjectionError<'_> {
+    /// Stable machine-readable reason.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidContract(error) => error.as_str(),
+            Self::Unavailable { .. } => "principal-path-unavailable",
+        }
+    }
+}
+
+impl fmt::Display for PrincipalProjectionError<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
 }
 
 /// Invalid interface descriptor or reference.
@@ -227,6 +335,8 @@ pub enum NodeInterfaceContractError<'a> {
     TooManyRequirements,
     InvalidMember(Id<'a>),
     DuplicateMember { id: Id<'a>, direction: Direction },
+    MissingPrincipalMember { id: Id<'a>, direction: Direction },
+    OptionalPrincipalMember { id: Id<'a>, direction: Direction },
     InvalidRequirement(Id<'a>),
     DuplicateRequirement(Id<'a>),
 }
@@ -243,6 +353,8 @@ impl NodeInterfaceContractError<'_> {
             Self::TooManyRequirements => "interface-too-many-requirements",
             Self::InvalidMember(_) => "interface-invalid-member",
             Self::DuplicateMember { .. } => "interface-duplicate-member",
+            Self::MissingPrincipalMember { .. } => "interface-principal-member-missing",
+            Self::OptionalPrincipalMember { .. } => "interface-principal-member-optional",
             Self::InvalidRequirement(_) => "interface-invalid-requirement",
             Self::DuplicateRequirement(_) => "interface-duplicate-requirement",
         }

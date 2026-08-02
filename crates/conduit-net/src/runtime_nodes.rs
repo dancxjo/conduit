@@ -821,7 +821,7 @@ mod tests {
     #[test]
     fn standing_dhcp_reuses_eight_explicit_clients_without_exhausting_the_service() {
         let mut panel = conduit_panel::parse(
-            "panel 0\nnode dhcp : net/dhcp/server { lifecycle = \"standing\" lease_ticks = 3600000 maximum_leases = 8 maximum_pending = 1 maximum_evidence_events = 64 cancellation = \"cancel-before-commit\" }\n",
+            "panel 0\ndhcp: net/dhcp/server { lifecycle = \"standing\" lease_ticks = 3600000 maximum_leases = 8 maximum_pending = 1 maximum_evidence_events = 64 cancellation = \"cancel-before-commit\" }\n",
         )
         .unwrap();
         let node = panel.nodes.remove(0);

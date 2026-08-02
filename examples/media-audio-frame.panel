@@ -1,10 +1,10 @@
 panel 0
 
-node frame : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
-node inspect : conduit.media/audio-frame/inspect
-node output : display/text
+frame: conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+inspect: conduit.media/audio-frame/inspect
+output: display/text
 
-cord frame.frame -> inspect.frame {
+frame.frame > inspect.frame {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64
@@ -13,4 +13,4 @@ cord frame.frame -> inspect.frame {
     pressure = block
 }
 
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

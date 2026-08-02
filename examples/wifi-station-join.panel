@@ -2,7 +2,7 @@
 # installs an exact provider and supplies current use-time authority.
 panel 0
 
-node wifi_sta : net/wifi/join {
+wifi_sta: net/wifi/join {
     lifecycle = "standing"
     interface = 1
     profile = "ConduitNet"

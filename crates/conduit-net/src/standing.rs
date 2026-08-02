@@ -3466,7 +3466,7 @@ mod tests {
     use conduit_runtime::AvailabilityState;
 
     fn node(source: &str) -> Node {
-        let mut panel = conduit_panel::parse(&format!("panel 0\nnode network : {source}\n"))
+        let mut panel = conduit_panel::parse(&format!("panel 0\nnetwork: {source}\n"))
             .expect("network source parses");
         panel.nodes.remove(0)
     }

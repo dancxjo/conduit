@@ -500,6 +500,7 @@ fn validate_embedded_panel(relative: &Path, text: &str) -> Result<(), Box<dyn st
             )
             .into());
         }
+        validate_current_panel_spelling(relative, text)?;
         return Ok(());
     }
 
@@ -525,6 +526,9 @@ fn validate_embedded_panel(relative: &Path, text: &str) -> Result<(), Box<dyn st
                     relative.display()
                 )
                 .into());
+            }
+            if in_panel_fence {
+                validate_current_panel_line(relative, trimmed)?;
             }
         }
         return Ok(());
@@ -558,6 +562,38 @@ fn validate_embedded_panel(relative: &Path, text: &str) -> Result<(), Box<dyn st
             .into());
         }
         offset = digit_start;
+    }
+    Ok(())
+}
+
+fn validate_current_panel_spelling(
+    relative: &Path,
+    text: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    for line in text.lines() {
+        validate_current_panel_line(relative, line.trim())?;
+    }
+    Ok(())
+}
+
+fn validate_current_panel_line(
+    relative: &Path,
+    line: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if line.is_empty() || line.starts_with('#') {
+        return Ok(());
+    }
+    if ["node ", "cord ", "composite "]
+        .iter()
+        .any(|prefix| line.starts_with(prefix))
+        || line.contains(" -> ")
+        || line.contains(" <- ")
+    {
+        return Err(format!(
+            "displaced Panel declaration or connection spelling in {}",
+            relative.display()
+        )
+        .into());
     }
     Ok(())
 }
@@ -1103,14 +1139,11 @@ mod tests {
     #[test]
     fn rejects_embedded_panel_in_json_javascript_and_rust() {
         for (path, contents) in [
-            ("src/source.json", r#"{"source":"panel 3\nnode a : x"}"#),
-            (
-                "src/source.js",
-                "const source = \"panel 3\\nnode a : x\";\n",
-            ),
+            ("src/source.json", r#"{"source":"panel 3\na: x"}"#),
+            ("src/source.js", "const source = \"panel 3\\na: x\";\n"),
             (
                 "src/source.rs",
-                "const SOURCE: &str = \"panel 3\\nnode a : x\";\n",
+                "const SOURCE: &str = \"panel 3\\na: x\";\n",
             ),
         ] {
             let repository = MiniRepository::new();
@@ -1118,6 +1151,25 @@ mod tests {
             assert!(
                 repository.error().contains("Panel source is not panel 0"),
                 "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_displaced_panel_source_spelling_in_owned_panels() {
+        for source in [
+            "panel 0\nnode value: fixture/source\n",
+            "panel 0\ncord value.out -> sink.in\n",
+            "panel 0\ncord sink.in <- value.out\n",
+            "panel 0\ncomposite box { value: fixture/source }\n",
+        ] {
+            let repository = MiniRepository::new();
+            repository.write("src/example.panel", source);
+            assert!(
+                repository
+                    .error()
+                    .contains("displaced Panel declaration or connection spelling"),
+                "{source}"
             );
         }
     }

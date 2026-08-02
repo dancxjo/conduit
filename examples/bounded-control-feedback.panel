@@ -3,8 +3,8 @@ panel 0
 # The register output is an explicit finite retained-state edge. Removing that
 # exact cord leaves an acyclic graph, so recurrence is admitted without relying
 # on scheduler order or an unbounded hidden queue.
-node memory : conduit.media/control/register { initial = 128 maximum_value = 1024 }
-node shape : conduit.media/control/slew { initial = 0 maximum_delta = 64 }
+memory: conduit.media/control/register { initial = 128 maximum_value = 1024 }
+shape: conduit.media/control/slew { initial = 0 maximum_delta = 64 }
 
-cord memory.control -> shape.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord shape.control -> memory.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+memory.control > shape.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+shape.control > memory.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }

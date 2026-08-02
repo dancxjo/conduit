@@ -6,9 +6,9 @@ fn display_text_uses_the_presentation_channel_not_process_stdout() {
     let panel = parse(
         r#"
             panel 0
-            node message : std/literal { value = "visible text" }
-            node display : display/text
-            cord message.value -> display.text
+            message: std/literal { value = "visible text" }
+            display: display/text
+            message.value > display.text
         "#,
     )
     .expect("display panel parses");
@@ -63,15 +63,15 @@ fn fallback_node_selects_primary_or_fallback() {
     let panel = parse(
         r#"
             panel 0
-            node primary : std/literal { value = "primary data" }
-            node secondary : std/literal { value = "fallback data" }
-            node router : flow/fallback
-            node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-            node sink : io/stdout
-            cord primary.value -> router.primary
-            cord secondary.value -> router.fallback
-            cord router.selected -> encoded.text
-            cord encoded.bytes -> sink.bytes
+            primary: std/literal { value = "primary data" }
+            secondary: std/literal { value = "fallback data" }
+            router: flow/fallback
+            encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+            sink: io/stdout
+            primary.value > router.primary
+            secondary.value > router.fallback
+            router.selected > encoded.text
+            encoded.bytes > sink.bytes
         "#,
     )
     .expect("fallback panel parses");

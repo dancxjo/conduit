@@ -1,11 +1,11 @@
 panel 0
 
-node source : std/literal { value = "settled event\n" }
-node lines : std/text/lines {
+source: std/literal { value = "settled event\n" }
+lines: std/text/lines {
     maximum_line_bytes = 64
     maximum_retained_prefix_bytes = 64
 }
-node debounce : time/debounce {
+debounce: time/debounce {
     clock = ref("conduit.clock/monotonic-ticks")
     clock_schema_version = 0
     clock_hash = bytes("6b9c687226d4a1965e780b63b4bdc0922de2a686c3c1365f4f68f7219f30cc48")
@@ -17,16 +17,16 @@ node debounce : time/debounce {
     maximum_retained = 1
     discontinuity = "fail"
 }
-node join : std/text/join {
+join: std/text/join {
     separator = ""
     maximum_items = 4
     maximum_item_bytes = 64
     maximum_separator_bytes = 1
     maximum_output_bytes = 64
 }
-node display : display/text
+display: display/text
 
-cord source.value -> lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord lines.line -> debounce.event { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord debounce.settled -> join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+source.value > lines.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+lines.line > debounce.event { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+debounce.settled > join.item { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+join.text > display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

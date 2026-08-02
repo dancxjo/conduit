@@ -15,9 +15,9 @@ use conduit_runtime::{
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 const TICKER_SOURCE: &str = "panel 0\n\
-node ticker : time/ticker { duration_ticks = 10 time_basis = ref(\"conduit.clock/monotonic-ticks\") maximum_pending = 1 }\n\
-node sink : acme/tick-sink\n\
-cord ticker.tick -> sink.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+ticker: time/ticker { duration_ticks = 10 time_basis = ref(\"conduit.clock/monotonic-ticks\") maximum_pending = 1 }\n\
+sink: acme/tick-sink\n\
+ticker.tick > sink.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }\n";
 
 const TICK_TEXT: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("std/text"),

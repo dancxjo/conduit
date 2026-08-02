@@ -1,47 +1,47 @@
 panel 0
 
-node message : std/literal {
+message: std/literal {
     value = "one value, two coupled branches"
 }
-node messages : std/text/lines {
+messages: std/text/lines {
     maximum_line_bytes = 1024
     maximum_retained_prefix_bytes = 1024
 }
-node tee : conduit.std/tee {
+tee: conduit.std/tee {
     mode = "coupled"
 }
-node left_text : std/text/join {
+left_text: std/text/join {
     separator = ""
     maximum_items = 8
     maximum_item_bytes = 1024
     maximum_separator_bytes = 64
     maximum_output_bytes = 4096
 }
-node right_text : std/text/join {
+right_text: std/text/join {
     separator = ""
     maximum_items = 8
     maximum_item_bytes = 1024
     maximum_separator_bytes = 64
     maximum_output_bytes = 4096
 }
-node left_bytes : std/data/encode-utf8 {
+left_bytes: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node right_bytes : std/data/encode-utf8 {
+right_bytes: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node left : io/stdout
-node right : io/stderr
+left: io/stdout
+right: io/stderr
 
-cord message.value -> messages.text {
+message.value > messages.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -49,7 +49,7 @@ cord message.value -> messages.text {
     high_watermark = 1
     pressure = block
 }
-cord messages.line -> tee.value {
+messages.line > tee.value {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -57,7 +57,7 @@ cord messages.line -> tee.value {
     high_watermark = 1
     pressure = block
 }
-cord tee.left -> left_text.item {
+tee.left > left_text.item {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -65,8 +65,8 @@ cord tee.left -> left_text.item {
     high_watermark = 1
     pressure = block
 }
-cord tee.right -> right_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord left_text.text -> left_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_text.text -> right_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord left_bytes.bytes -> left.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord right_bytes.bytes -> right.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+tee.right > right_text.item { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+left_text.text > left_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+right_text.text > right_bytes.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+left_bytes.bytes > left.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+right_bytes.bytes > right.bytes { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }

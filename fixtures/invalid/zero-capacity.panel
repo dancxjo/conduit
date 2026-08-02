@@ -1,11 +1,11 @@
 panel 0
 
-node greeting : std/literal {
+greeting: std/literal {
     value = "This panel must not resolve."
 }
-node output : display/text
+output: display/text
 
-cord greeting.value -> output.text {
+greeting.value > output.text {
     capacity = 0
     max_value_bytes = 65536
     max_queued_bytes = 524288
