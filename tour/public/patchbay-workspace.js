@@ -554,8 +554,28 @@ export class PatchbayWorkspaceController {
   persistConsoleState() { sessionStorage.setItem(`${this.storageKey()}/console`, JSON.stringify(this.consoleState)); }
   toggleConsoleShade() { if (!this.active) return; this.consoleState.shaded = !this.consoleState.shaded; this.persistConsoleState(); this.applyConsoleWindowState(); }
   toggleConsoleDock() { if (!this.active) return; this.consoleState.mode = this.consoleState.mode === "docked" ? "floating" : "docked"; this.persistConsoleState(); this.applyConsoleWindowState(); }
-  hideConsole() { if (!this.active) return; this.consoleState.hidden = true; this.diagnosticsOpen = false; this.consoleCard.hidden = false; this.persistConsoleState(); this.applyConsoleWindowState(); this.errorCount.setAttribute("aria-expanded", "false"); this.showConsoleButton.focus({ preventScroll: true }); }
-  showConsole() { if (!this.active) return; this.consoleState.hidden = false; this.diagnosticsOpen = true; this.consoleCard.hidden = false; this.persistConsoleState(); this.applyConsoleWindowState(); this.consoleHideButton.focus({ preventScroll: true }); }
+  hideConsole() {
+    if (!this.active) return;
+    this.consoleState.hidden = true;
+    this.diagnosticsOpen = false;
+    this.consoleCard.hidden = false;
+    this.setConsoleBodyExpanded(false);
+    this.persistConsoleState();
+    this.applyConsoleWindowState();
+    this.errorCount.setAttribute("aria-expanded", "false");
+    this.showConsoleButton.focus({ preventScroll: true });
+  }
+
+  showConsole() {
+    if (!this.active) return;
+    this.consoleState.hidden = false;
+    this.diagnosticsOpen = true;
+    this.consoleCard.hidden = false;
+    this.setConsoleBodyExpanded(true);
+    this.persistConsoleState();
+    this.applyConsoleWindowState();
+    this.consoleHideButton.focus({ preventScroll: true });
+  }
 
   startConsoleDrag(event) {
     if (!this.active || this.consoleState.mode !== "floating" || event.button !== 0 || event.target.closest("button")) return;
@@ -608,15 +628,10 @@ export class PatchbayWorkspaceController {
     if (!this.consoleCard) return;
     if (!this.active) {
       const consoleBody = this.consoleCard.querySelector("#console-body");
-      const disclosure = this.consoleCard.querySelector("#console-disclosure");
       if (!consoleBody) return;
       const opening = consoleBody.hidden;
-      consoleBody.hidden = !opening;
+      this.setConsoleBodyExpanded(opening);
       this.diagnosticsOpen = opening;
-      disclosure?.setAttribute("aria-expanded", String(opening));
-      if (disclosure) {
-        disclosure.textContent = opening ? "Hide raw output" : "Show raw output";
-      }
       this.errorCount.setAttribute("aria-expanded", String(opening));
       if (opening) {
         this.consoleCard.querySelector(
@@ -632,6 +647,7 @@ export class PatchbayWorkspaceController {
     this.persistConsoleState();
     this.applyConsoleWindowState();
     this.consoleCard.hidden = !this.diagnosticsOpen;
+    this.setConsoleBodyExpanded(this.diagnosticsOpen);
     this.errorCount.setAttribute("aria-expanded", String(this.diagnosticsOpen));
     if (this.diagnosticsOpen) {
       this.consoleCard.querySelector(
@@ -639,6 +655,18 @@ export class PatchbayWorkspaceController {
       )?.focus?.({ preventScroll: true });
     } else {
       this.errorCount.focus({ preventScroll: true });
+    }
+  }
+
+  setConsoleBodyExpanded(expanded) {
+    if (!this.consoleCard) return;
+    const consoleBody = this.consoleCard.querySelector("#console-body");
+    const disclosure = this.consoleCard.querySelector("#console-disclosure");
+    if (!consoleBody) return;
+    consoleBody.hidden = !expanded;
+    disclosure?.setAttribute("aria-expanded", String(expanded));
+    if (disclosure) {
+      disclosure.textContent = expanded ? "Hide raw output" : "Show raw output";
     }
   }
 
