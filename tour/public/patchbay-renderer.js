@@ -253,6 +253,7 @@ export class PatchbayReactFlowRenderer {
     this.livePulseTimers = new Map();
     this.liveEvidenceByCord = new Map();
     this.watchObservedCordId = null;
+    this.renderedTopologyIdentity = null;
   }
 
   init() {
@@ -277,6 +278,7 @@ export class PatchbayReactFlowRenderer {
       this.selectedNodeId = null;
       this.selectedCordId = null;
       this.renderedCordIds = [];
+      this.renderedTopologyIdentity = null;
       this.flowInstance = null;
       this.liveEvidenceByCord.clear();
       this.watchObservedCordId = null;
@@ -570,9 +572,6 @@ export class PatchbayReactFlowRenderer {
       }
       return;
     }
-    this.flowWrapper.dataset.layout = "settling";
-    this.flowWrapper.setAttribute("aria-busy", "true");
-
     const realization = viewModel.topology?.planned_realization;
     const presentationCanEdit = viewModel.presentation?.mode === "build" &&
       ["face", "context", "configure"].includes(viewModel.presentation?.lens);
@@ -821,6 +820,11 @@ export class PatchbayReactFlowRenderer {
         `node:${node.id}:${node.position.x}:${node.position.y}`),
       ...edges.map((edge) => `cord:${edge.id}`),
     ].join("\0");
+    if (topologyIdentity !== this.renderedTopologyIdentity) {
+      this.flowWrapper.dataset.layout = "settling";
+      this.flowWrapper.setAttribute("aria-busy", "true");
+      this.renderedTopologyIdentity = topologyIdentity;
+    }
     const flow = e(
       ReactFlowRenderer,
       {

@@ -1974,8 +1974,13 @@ test("keeps current diagnostic source ranges marked as the source changes", asyn
     )
     .replace("first.value > second.value", "first.value > second.text");
   await source.fill(corrected);
+  await expect(diagnosticMark).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
+    "data-layout",
+    "ready",
+    { timeout: 20_000 },
+  );
   await expect(page.locator(".patchbay-cord")).toHaveClass(/cord-validity-valid/);
-  await expect(diagnosticMark).toHaveCount(0);
 });
 
 test("keeps invalid, unresolved, incomplete, and corrected revisions distinct", async ({ page }) => {
