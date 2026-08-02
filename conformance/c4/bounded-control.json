@@ -1,0 +1,139 @@
+{
+  "schema": "conduit.bounded-control-fixtures",
+  "schema_version": 0,
+  "catalog": [
+    "conduit.std/control/request-reply",
+    "conduit.std/control/cancellable-action"
+  ],
+  "profiles": [
+    "rust-hosted",
+    "browser-wasm",
+    "process-boundary",
+    "python-host",
+    "allocator-free-firmware"
+  ],
+  "evidence_contract": {
+    "immutable": true,
+    "ordered": true,
+    "identity_fields": ["subject", "attempt", "correlation", "idempotency"],
+    "feedback_payload_durable": false,
+    "feedback_fact_fields": ["sequence", "feedback_bytes", "pressure_disposition"]
+  },
+  "cases": [
+    {
+      "id": "request-reply-success",
+      "composite": "conduit.std/control/request-reply",
+      "expected": {"terminal": "reply", "correlated_outcomes": 1}
+    },
+    {
+      "id": "request-reply-domain-failure",
+      "composite": "conduit.std/control/request-reply",
+      "expected": {"terminal": "domain-error", "transport_failure": false}
+    },
+    {
+      "id": "request-reply-timeout",
+      "composite": "conduit.std/control/request-reply",
+      "expected": {"terminal": "timed-out", "timers": 1}
+    },
+    {
+      "id": "request-reply-duplicate-idempotent-replay",
+      "composite": "conduit.std/control/request-reply",
+      "expected": {"decision": "duplicate-replayed", "new-work": false}
+    },
+    {
+      "id": "request-reply-exhaustion",
+      "composite": "conduit.std/control/request-reply",
+      "expected": {"decision": "exhausted", "unbounded-queue": false}
+    },
+    {
+      "id": "action-success-with-several-feedback-items",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"admission": "accepted", "feedback_items": 3, "terminal": "result"}
+    },
+    {
+      "id": "action-rejected-before-work",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"admission": "rejected", "work_started": false}
+    },
+    {
+      "id": "action-timeout",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"terminal": "deadline-exhausted", "cleanup": "declared-policy"}
+    },
+    {
+      "id": "action-cancel-before-admission",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"terminal": "withdrawn-before-admission", "accepted": false}
+    },
+    {
+      "id": "action-cancel-after-admission",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"terminal": "cancelled", "cancel_causality": true}
+    },
+    {
+      "id": "action-domain-failure",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"terminal": "failed", "success": false}
+    },
+    {
+      "id": "action-duplicate-idempotent-submission",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"decision": "duplicate-replayed", "new-goal": false}
+    },
+    {
+      "id": "action-slow-feedback-consumer-blocks",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"pressure": "block-producer", "terminal_authority": false, "payload_durable": false}
+    },
+    {
+      "id": "action-slow-feedback-consumer-drops-oldest",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"pressure": "drop-oldest", "loss_explicit": true, "retained_items": 2, "affected_items": 1, "payload_durable": false}
+    },
+    {
+      "id": "action-slow-feedback-consumer-coalesces-latest",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"pressure": "coalesce-latest", "loss_explicit": true, "retained_items": 1, "payload_durable": false}
+    },
+    {
+      "id": "action-concurrency-saturated",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"admission": "rejected", "reason": "concurrent-goal-limit"}
+    },
+    {
+      "id": "action-admission-queue-saturated",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"decision": "admission-exhausted", "unbounded-queue": false}
+    },
+    {
+      "id": "action-provider-loss-terminal",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"terminal": "failed", "cause": "provider-lost"}
+    },
+    {
+      "id": "action-plan-transition-discontinuity",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"terminal": "discontinued", "implicit-resume": false}
+    },
+    {
+      "id": "action-compatible-checkpoint-handoff",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"state": "accepted", "proofs": ["transition", "checkpoint"]}
+    },
+    {
+      "id": "semantic-import-host-unavailable",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"semantic_import": "available", "provider_observation": "unavailable", "execution": "not-started"}
+    },
+    {
+      "id": "robotics-safety-inhibit-denial",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"admission": "rejected", "reason": "inhibited", "motion_authorized": false}
+    },
+    {
+      "id": "robotics-authority-denial",
+      "composite": "conduit.std/control/cancellable-action",
+      "expected": {"admission": "rejected", "reason": "authority", "motion_authorized": false}
+    }
+  ]
+}

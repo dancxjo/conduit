@@ -1,0 +1,8 @@
+panel 0
+
+# Importing the ordinary semantic composite establishes meaning only. The
+# selected host must still provide a specialized implementation and exact
+# plan; this repository example therefore fails resolution honestly.
+import conduit.std/control/{request-reply as exchange}
+
+request: exchange

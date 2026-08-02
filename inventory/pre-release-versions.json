@@ -23,6 +23,7 @@
         "benchmarks",
         "browser",
         "conformance",
+        "contract-packages",
         "crates",
         "deny.toml",
         "distribution",
@@ -133,11 +134,13 @@
       "markers": [
         "conduit.contract-package",
         "conduit.contract-package-lock",
+        "conduit.bounded-control-composite",
         "conduit.library-catalog",
         "conduit.standard-catalog"
       ],
       "locations": [
         "conformance",
+        "contract-packages",
         "crates/conduit-core/src/manifest.rs",
         "crates/conduit-package",
         "fixtures",
@@ -177,6 +180,7 @@
         "conduit.application-socket-conformance",
         "conduit.audio-device-boundary-conformance",
         "conduit.audio-processing-conformance",
+        "conduit.bounded-control-fixtures",
         "conduit.standing-signal-conformance",
         "conduit.standing-network-conformance",
         "conduit.conformance/distributed-cord",

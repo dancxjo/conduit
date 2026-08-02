@@ -1,0 +1,8 @@
+panel 0
+
+# Two imported semantic shapes can coexist without acquiring callbacks,
+# transport, providers, authority, or a teaching-only execution path.
+import conduit.std/control/{request-reply as exchange, cancellable-action as action}
+
+request: exchange
+goal: action

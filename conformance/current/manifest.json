@@ -6448,6 +6448,114 @@
       ]
     },
     {
+      "id": "bounded-control",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "CTL-001",
+        "CTL-002",
+        "CTL-003",
+        "CTL-004",
+        "CTL-005",
+        "CTL-006",
+        "CTL-007",
+        "CTL-008",
+        "CTL-009",
+        "CTL-010"
+      ],
+      "artifacts": [
+        {
+          "id": "bounded-control",
+          "path": "../c4/bounded-control.json",
+          "sha256": "sha256:aff5a08e6d0208080998800faebd5be3b2ace25185d7e7d5722d2d2177da03e4",
+          "operation": "bounded-control-composite",
+          "requirement_ids": [
+            "CTL-001",
+            "CTL-002",
+            "CTL-003",
+            "CTL-004",
+            "CTL-005",
+            "CTL-006",
+            "CTL-007",
+            "CTL-008",
+            "CTL-009",
+            "CTL-010"
+          ],
+          "default_rule": "CTL-005",
+          "case_rules": {
+            "request-reply-success": "CTL-002",
+            "request-reply-domain-failure": "CTL-006",
+            "request-reply-timeout": "CTL-005",
+            "request-reply-duplicate-idempotent-replay": "CTL-003",
+            "request-reply-exhaustion": "CTL-005",
+            "action-success-with-several-feedback-items": "CTL-006",
+            "action-rejected-before-work": "CTL-004",
+            "action-timeout": "CTL-005",
+            "action-cancel-before-admission": "CTL-006",
+            "action-cancel-after-admission": "CTL-006",
+            "action-domain-failure": "CTL-006",
+            "action-duplicate-idempotent-submission": "CTL-003",
+            "action-slow-feedback-consumer-blocks": "CTL-007",
+            "action-slow-feedback-consumer-drops-oldest": "CTL-007",
+            "action-slow-feedback-consumer-coalesces-latest": "CTL-007",
+            "action-concurrency-saturated": "CTL-005",
+            "action-admission-queue-saturated": "CTL-005",
+            "action-provider-loss-terminal": "CTL-008",
+            "action-plan-transition-discontinuity": "CTL-008",
+            "action-compatible-checkpoint-handoff": "CTL-008",
+            "semantic-import-host-unavailable": "CTL-009",
+            "robotics-safety-inhibit-denial": "CTL-004",
+            "robotics-authority-denial": "CTL-004"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "bounded-control#request-reply-success",
+          "bounded-control#action-success-with-several-feedback-items",
+          "bounded-control#action-compatible-checkpoint-handoff"
+        ],
+        "negative": [
+          "bounded-control#request-reply-domain-failure",
+          "bounded-control#request-reply-timeout",
+          "bounded-control#action-rejected-before-work",
+          "bounded-control#action-timeout",
+          "bounded-control#action-cancel-before-admission",
+          "bounded-control#action-cancel-after-admission",
+          "bounded-control#action-domain-failure",
+          "bounded-control#action-provider-loss-terminal",
+          "bounded-control#action-plan-transition-discontinuity"
+        ],
+        "boundary": [
+          "bounded-control#request-reply-duplicate-idempotent-replay",
+          "bounded-control#request-reply-exhaustion",
+          "bounded-control#action-duplicate-idempotent-submission",
+          "bounded-control#action-slow-feedback-consumer-blocks",
+          "bounded-control#action-slow-feedback-consumer-drops-oldest",
+          "bounded-control#action-slow-feedback-consumer-coalesces-latest",
+          "bounded-control#action-concurrency-saturated",
+          "bounded-control#action-admission-queue-saturated",
+          "bounded-control#semantic-import-host-unavailable",
+          "bounded-control#robotics-safety-inhibit-denial",
+          "bounded-control#robotics-authority-denial"
+        ],
+        "migration": []
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-std",
+          "test": "control"
+        }
+      ]
+    },
+    {
       "id": "cross-host-provider-conformance",
       "profile": "conduit.c5",
       "requirement_ids": [
