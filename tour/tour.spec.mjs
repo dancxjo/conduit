@@ -1904,6 +1904,9 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
     "aria-label",
     "Enter fullscreen Patchbay workspace",
   );
+  await expect.poll(() => page.locator(".react-flow__viewport").evaluate(
+    (element) => element.style.transform,
+  )).toBe(before.viewport);
   const after = await page.evaluate(() => ({
     sourceRevision: JSON.parse(
       document.querySelector("#patchbay-editor-status").textContent
